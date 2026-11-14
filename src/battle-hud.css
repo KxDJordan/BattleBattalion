@@ -247,3 +247,18 @@
 .uname .utr{flex:none;display:inline-flex;line-height:0}
 .uname .utr .tr-chips.compact{gap:1px}
 .ufol{flex:none;display:inline-flex;align-items:center;gap:1px;height:16px;padding:0 2px 0 0;font-family:'Jersey 15',serif;font-size:.74rem;font-weight:700;line-height:1;color:#f3d98b;box-shadow:inset 0 -2px 0 #8a6a2a}
+/* ---- phase 7 (look): the objective chip in the turn strip ---- */
+#order .objc{flex:none;position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;column-gap:4px;width:auto;min-width:74px;max-width:110px;height:44px;margin-right:2px;padding:3px 6px 3px 4px;
+ background:#0b1514;border:2px solid #d1a94e;color:#e9e0c9;font-family:'Jersey 15',serif;line-height:1;text-align:left}
+#order .objc .pxi{grid-row:1;align-self:center}
+#order .objc .oct{grid-row:1;display:flex;flex-direction:column;min-width:0}
+#order .objc .oct b{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:#d1a94e;font-weight:600}
+#order .objc .ocv{font-size:1rem;font-weight:700;white-space:nowrap}#order .objc .ocv small{font-size:.7rem;color:#b9ad8f}
+#order .objc .ohp,#order .objc .opip{grid-column:1 / 3;grid-row:2;align-self:end}
+#order .objc .ohp{display:block;height:4px;background:#213a36;margin-top:3px}#order .objc .ohp b{display:block;height:100%;background:#58b39c}
+#order .objc .ohp.low b{background:#ef8a78}#order .objc .ohp.foe b{background:#c4493f}
+#order .objc .opip{display:flex;gap:2px;margin-top:3px}#order .objc .opip b{flex:1;height:4px;background:#213a36}#order .objc .opip b.on{background:#d1a94e}
+#order .objc.lost{border-color:#c4493f}#order .objc.lost .ocv{color:#ef8a78}
+#order .objc.won{border-color:#58b39c}#order .objc.won .ocv{color:#9fe0cd}
+@media (prefers-reduced-motion:no-preference){#app:not(.rm) #order .objc.k-escort:not(.lost) .ohp.low b{animation:objlow 1s steps(2) infinite}}
+@keyframes objlow{50%{opacity:.4}}

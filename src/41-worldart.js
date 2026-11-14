@@ -291,7 +291,7 @@ function waBlob(P,lobes,fn){const fl=P.flat;for(let y=0;y<P.h;y++)for(let x=0;x<
 function waGround(P,cx,cy,rx,ry,k,k2){const fl=P.flat;P.flat=true;P.ell(cx,cy,rx,ry,(x,y,a,b)=>{const e=a*a+b*b,h=waHash(x,y,77);return e<.55||h<(1-e)*1.6?(k2&&h>.8?k2:k):null});P.flat=fl}
 
 const WASITE={town1:{w:34,h:24},town2:{w:44,h:36},town3:{w:56,h:48},lair:{w:36,h:30},eyrie:{w:40,h:52},ruin:{w:34,h:28},portal:{w:30,h:40}};
-function waSiteDim(o){if(o.kind==='lair'&&o.f==='wyvern')return WASITE.eyrie;return o.kind==='town'?WASITE['town'+clamp(o.size|0||1,1,3)]:WASITE[o.kind]||WASITE.ruin}
+function waSiteDim(o){if(o.kind==='lair'&&o.f==='wyvern')return WASITE.eyrie;if(o.kind==='nest')return WASITE['nest'+clamp(o.tier|0||1,1,3)]||WASITE.lair;return o.kind==='town'?WASITE['town'+clamp(o.size|0||1,1,3)]:WASITE[o.kind]||WASITE.ruin}
 function siteBoxPx(o){const d=waSiteDim(o||{});return{w:d.w,h:d.h}}
 function waTown(P,size,night,f){const W=P.w,B=P.h-3,o=(a)=>Object.assign({night},a),R=WARAMP,WL=WAWALL;
  if(size<=1){waGround(P,17,B-2,15,5,'k','j');
@@ -411,6 +411,7 @@ function waPortal(P,realm,f){const B=P.h-3,C=WAREALM[realm]||WAREALM.hollow,cx=1
 function drawSitePx(q,x,y,o){if(!waInit())return;o=o||{};const D=waSiteDim(o),rm=waRM(),f=rm?0:o.frame|0,night=o.night?1:0,kind=o.kind;let key,paint;
  if(kind==='town'){const sz=clamp(o.size|0||1,1,3);key='town'+sz+'|'+night+'|'+(f&3);paint=P=>waTown(P,sz,night,f&3)}
  else if(kind==='lair'){const fk=FACT&&FACT[o.f]?o.f:'bandit';key='lair'+fk+'|'+night+'|'+(f&7);paint=P=>waLair(P,fk,night,f&7)}
+ else if(kind==='nest'){const fk=typeof FACT==='object'&&FACT[o.f]?o.f:'bandit',ti=clamp(o.tier|0||1,1,3);key='nest'+fk+ti+'|'+night+'|'+(f&7);paint=P=>waNestPaint(P,fk,ti,night,f&7)}
  else if(kind==='portal'){const rl=WAREALM[o.realm]?o.realm:'hollow';key='portal'+rl+'|'+(f&7);paint=P=>waPortal(P,rl,f&7)}
  else{key='ruin';paint=P=>waRuin(P)}
  const s=waSprite(key,D.w,D.h,D.w>>1,D.h-2,paint);waShadow(q,x,y,D.w-4,7);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
@@ -473,7 +474,7 @@ function waMonBand(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&
 function waBandSprite(fk,k,f,dir,moving,co){const key='band'+fk+'|'+(co?co.k+'.'+co.fs+(co.bn?'.'+co.bn.sig:''):k)+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(moving?1:0),w=co?48:40,h=co?38:30;
  return waSprite(key,w,h,w>>1,h-3,P=>{if(WAMONF[fk])waMonBand(P,fk,k,f&3,moving);else waBandPaint(P,fk,k,f&3,moving,co);if(dir<0)P.mirror()})}
 const WAMONF={serpent:1,ent:1,ogre:1,wyvern:1};
-function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const fk=WAFIG[o.f]||o.f==='beast'||WAMONF[o.f]?o.f:'bandit',k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,s=waBandSprite(fk,k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),null);
+function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const gl=o.goal;if(gl==='caravan'||gl==='patrol'||gl==='raid'){drawGoalPx(q,x,y,o);return} const fk=WAFIG[o.f]||o.f==='beast'||WAMONF[o.f]?o.f:'bandit',k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,s=waBandSprite(fk,k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),null);
  if(fk!=='wyvern')waShadow(q,x,y,fk==='beast'||fk==='serpent'?12+k*5:fk==='ogre'||fk==='ent'?11+k*7:8+k*7,5);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
 /* the company banner (G.banner {c1,c2,emblem}, 46-banner.js): a waving flag in the field colour c1, a c2 border and the emblem shrunk to fit.
    Absent (old saves, no banner module): the brass and verdigris pennant as before. Recomputed only when the banner changes. */
@@ -535,3 +536,127 @@ function drawWeatherPx(q,w,h,o){if(!waInit()||!o)return;const kind=o.kind;if(!ki
  q.restore();q.globalAlpha=a0}
 const WAKEYC=['X','v','B','k','p','4','d','r'];
 function worldKeyColor(t,river,road){return road?(t===7?'n':t===6?'j':'m'):river&&t!==0?'x':WAKEYC[t&7]||'X'}
+
+/* ================= Phase 7 (look): parties by goal, nests, town dressing =================
+   drawBandPx(q,x,y,{goal,house,...}): goal 'caravan' (a covered wagon behind an ox team), 'patrol' (mounted knights in the
+   house's colours under its banner), 'raid' (the faction's band carrying torches), anything else (roam, a nest's guard band)
+   the roaming band as before. Nests (G.nests) are sites: drawSitePx({kind:'nest',f,tier}) grows from burrow to fortified lair. drawTownDecoPx(q,x,y,{size,own,sit,pros,frame,night}) paints an overlay on the
+   town sprite (same box and anchor): the owner's pennant, fires and smoke when raided, bunting at a festival, the plague flag,
+   bare stalls in famine, market awnings in a boom, siege tents, a poorer or richer look by prosperity.
+   All sprites are cached per variant (waSprite); nothing is allocated per frame. */
+const WABNS=new Map();
+function waBnOf(b0){if(!b0||typeof BANNERC!=='object')return null;let b=b0;try{if(typeof bannerFix==='function')b=bannerFix(b0)}catch(e){}
+ const sig=b.c1+'.'+b.c2+'.'+b.emblem;let v=WABNS.get(sig);if(v!==undefined)return v;const ramp=k=>{const c=BANNERC[k];return c&&Array.isArray(c.r)?c.r:PAL[k]?[k,k,k]:null},A=ramp(b.c1);
+ v=null;if(A){const C=ramp(b.c2===b.c1?'l':b.c2)||['m','l','r'],E=typeof EMBLEMS==='object'&&EMBLEMS[b.emblem]?EMBLEMS[b.emblem].r:null;
+  let em=null;if(E){const m=8,pick={'#':3,'+':2,'-':1,'=':2};em=[];for(let y=0;y<m;y++){let r='';for(let x=0;x<m;x++){let best='.',bw=0;for(let j=0;j<2;j++)for(let i=0;i<2;i++){const ch=(E[y*2+j]||'')[x*2+i]||'.',w=pick[ch]||0;if(w>bw){bw=w;best=ch}}r+=best}em.push(r)}}
+  v={A,C,em,sig}}if(WABNS.size>40)WABNS.clear();WABNS.set(sig,v);return v}
+/* a small pennant (w x h) in a banner's colours, swallowtail, waving with f; dir 1 flies right */
+function waPennant(P,x,y,w,h,bn,f,dir){const A=bn?bn.A:['f','g','h'],C=bn?bn.C:['m','l','r'];
+ for(let i=0;i<w;i++){const yo=((i+(f&3))>>1)&1;for(let j=0;j<h;j++){if(i===w-1&&j===(h>>1)&&h>2)continue;const k=j===0?A[2]:j===h-1?A[0]:A[1];P.p(x+dir*(1+i),y+j+yo,k)}}
+ if(w>3&&h>2){const cx=x+dir*(1+(w>>1)-1),yo=((((w>>1)-1)+(f&3))>>1)&1;P.p(cx,y+(h>>1)+yo,C[1]);if(h>3)P.p(cx+dir,y+(h>>1)+yo,C[2])}}
+
+/* ---- the caravan: covered wagon, ox team, drover; guards at k >= 2 ---- */
+const WAOX={b:['..........l.','.........lHl','..HHHHHHHHH0','.jHHHHHHHHHk','.jjHHHHHHjj.'],la:['.j.j....j.j.','.j.j....j.j.'],lb:['..jj.....jj.','.j..j..j...j']};
+const WACART=['..lllllllllll....','.llllllllllllm...','lllmllllmlllmmn..','llllllllllllmmn..','mmmmmmmmmmmmmnn..','kkkkkkkkkkkkkkkkj','jjjjjjjjjjjjjjjji'];
+function waWheel(P,x,y,f){P.s(x,y,f&1?['.iii.','i.k.i','ik.ki','i.k.i','.iii.']:['.iii.','ik.ki','i.a.i','ik.ki','.iii.'])}
+function waCaravanPaint(P,k,f,moving,bn){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,up=i=>moving&&((f+i)&3)===1?1:0;
+ // wagon behind (left), ox in front (right), the drover walks beside the ox
+ const wx=cx-15,wy=B-11+up(3)*0;P.s(wx,wy,WACART);for(let i=2;i<12;i+=4)P.p(wx+i,wy,'m');
+ P.p(wx+3,wy+2,'c');P.p(wx+4,wy+2,'c');P.p(wx+3,wy+3,'b');P.p(wx+4,wy+3,'b');   // a brass lantern hook / painted mark
+ waWheel(P,wx+1,wy+6,moving?f:0);waWheel(P,wx+10,wy+6,moving?f+1:0);
+ for(let i=0;i<4;i++)P.p(wx+17+i,wy+6,'j');   // the shaft to the yoke
+ waFigure(P,WAOX,cx+9,B,st(0),up(0));
+ P.s(wx+13,wy-3,['.HH.','HssH','.ks.','kkkk']);   // the drover on the bench
+ if(bn){P.r(wx+1,wy-7,1,8,'j');P.p(wx+1,wy-8,'d');waPennant(P,wx+1,wy-7,5,3,bn,moving?f:f>>1,-1)}   // the owner's pennant on the tailboard
+ if(k>=2){const gd=waFigure(P,WAFIG.co,cx-19,B+1,st(2),up(2),{'5':'j',c:'k',q:'p',p:'o'});waWeapon(P,'spear',gd)}
+ if(k>=3){const gd=waFigure(P,WAFIG.co,cx+18,B+1,st(3),up(3),{'5':'j',c:'k',q:'p',p:'o'});waWeapon(P,'spear',gd)}
+ P.outline()}
+
+/* ---- house patrol: mounted knights in the house's caparison, the lead under the house banner ---- */
+const WAKNIGHT={b:['.....qq........','....qrqp.......','....q0qp.......','...SPRPS.......','...PPPPP....kk.','....PPs....kHHj','.kHHRPPRHHkHHj0','kHHHPPPPPHHHjH.','HkHHPPPPPHj..j.','.jHHSSSSSj.....'],
+ la:['.H.j....H.j....','.H.j....H.j....','.o.o....o.o....'],lb:['..Hj...H..j....','.H..j.H....j...','.o..o.o.....o..']};
+function waKnight(P,x,by,step,up,bn){const A=bn?bn.A:['f','g','h'],C=bn?bn.C:['m','l','r'];return waFigure(P,WAKNIGHT,x,by,step,up,{P:A[1],R:A[2],Q:A[0],S:C[1]})}
+function waPatrolPaint(P,k,f,moving,bn){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,up=i=>moving&&((f+i)&3)===1?1:0;
+ const L=k>=3?[[cx+8,B-1],[cx-8,B+1],[cx+1,B+3]]:k===2?[[cx+5,B-1],[cx-7,B+1]]:[[cx,B]];
+ L.forEach((e,i)=>{const kb=waKnight(P,e[0],e[1],st(i),up(i),bn);const lx=kb.x0+9,ly=kb.y;
+  if(i===0){// the banner on a tall staff
+   const ph=12;P.r(lx,ly-ph,1,ph+5,'j');P.p(lx,ly-ph-1,'d');if(bn&&bn.em)waBanner(P,lx,ly-ph,bn,moving?f:f>>1);else waPennant(P,lx,ly-ph,6,4,bn,moving?f:f>>1,-1)}
+  else{// a lance with a pennon
+   P.r(lx+1,ly-7,1,11,'k');P.p(lx+1,ly-8,'q');P.p(lx+1,ly-9,'r');waPennant(P,lx+1,ly-7,3,2,bn,moving?f+i:(f+i)>>1,-1)}});
+ P.outline()}
+
+/* ---- raiders: the faction's band with torches ---- */
+function waTorch(P,B,f,i){const x=B.x0+B.w,y=B.y;for(let j=0;j<6;j++)P.p(x,y+1+j,'j');const fl=P.flat;P.flat=true;const a=(f+i)&3;
+ P.p(x,y,'E');P.p(x,y-1,a&1?'y':'E');P.p(x+(a>>1?1:-1),y-1,'E');P.p(x,y-2,a===2?'e':'y');if(a!==0)P.p(x+(a===1?1:0),y-3,'y');P.p(x+((a&1)?-1:1),y-4-(a>>1),'p');P.flat=fl}
+function waRaidPaint(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,F=WAFIG[fk]||WAFIG.bandit,n=clamp(k+1,2,4),gap=F.gap,x1=cx+((n-1)*gap>>1),L=[],T=[];
+ for(let i=0;i<n;i++)L.push({i,x:x1-i*gap,y:B-(i&1?2:0)+1});
+ L.slice().sort((a,b)=>a.y-b.y).forEach(e=>{const i=e.i,st=moving?((f+i)&1):0,up=F.hover?((f+i*2)>>1)&1:moving&&((f+i)&3)===1?1:0;
+  if(i===1){const px=e.x-(F.b[0].length>>1)-1,py=e.y-up,ph=12;P.r(px,py-ph,1,ph+1,'i');waFlag(P,px,py-ph,5,4,F.flag,moving?f:f>>1,-1,F.flag[3])}
+  const bx=waFigure(P,F,e.x,e.y,st,up,null);if(i!==1)T.push([bx,i]);else waWeapon(P,F.wpn==='bow'?'sword':F.wpn||'sword',bx)});
+ P.outline();for(const t of T)waTorch(P,t[0],f,t[1])}
+
+/* ---- nests: the lair grows with its tier (1 a burrow, 2 the lair, 3 the lair with outworks, totems and a war banner) ---- */
+WASITE.nest1={w:30,h:22};WASITE.nest2={w:36,h:30};WASITE.nest3={w:48,h:36};
+const WANESTC={gob:['v','w','B'],undead:['l','m','n'],beast:['j','i','H'],orc:['t','u','i'],bandit:['p','o','G'],void:['C','D','G'],serpent:['5','7','3'],ent:['A','B','w'],ogre:['t','u','i'],wyvern:['g','f','D']};
+function waNestPaint(P,fk,tier,night,f){const B=P.h-3,cx=P.w>>1,C=WANESTC[fk]||WANESTC.bandit;
+ if(tier<=1){waGround(P,cx,B-1,12,4,'j','i');
+  P.ell(cx,B+1,8,7,(x,y,a,b)=>{if(y>B)return null;const l=-a*.6-b*.8+(waHash(x,y,3)-.5)*.35;return l>.7?'k':l>.15?'j':'i'});
+  P.ell(cx+1,B-1,3.2,3,(x,y)=>y>B?null:'0');P.p(cx,B-2,night||(f&4)?'y':'0');P.p(cx+2,B-2,night||(f&4)?'y':'0');
+  for(const s of [[cx-9,B],[cx+8,B-1],[cx-6,B+1]])P.s(s[0],s[1]-1,['l.l','.l.']);P.r(cx-5,B-12,1,6,'i');P.s(cx-6,B-14,['.'+C[0]+'.',C[0]+C[1]+C[0]]);
+  P.outline();return}
+ const dx=tier>=3?6:0;if(tier>=3){waGround(P,cx,B-1,23,6,'i','j')}
+ // the lair itself, drawn into a 36 x 30 sub-box centred
+ const sub=waP(36,30);sub.h=30;waLair(sub,WAFIG[fk]||WAMONF[fk]||fk==='beast'?fk:'bandit',night,f);
+ for(let y=0;y<30;y++)for(let x=0;x<36;x++){const v=sub.d[y*36+x];if(v){const X=x+dx,Y=y+(P.h-30);if(X>=0&&Y>=0&&X<P.w&&Y<P.h){P.d[Y*P.w+X]=v;P.sol[Y*P.w+X]=sub.sol[y*36+x]}}}
+ if(tier>=3){// palisade wings, skull totems and a tall war banner in the faction's colours
+  for(let x=1;x<=7;x++){const hh=5+(x&1),k=x&1?'j':'k';P.r(x,B-hh+1,1,hh,k);P.p(x,B-hh,'l')}for(let x=P.w-8;x<=P.w-2;x++){const hh=5+(x&1),k=x&1?'j':'k';P.r(x,B-hh+1,1,hh,k);P.p(x,B-hh,'l')}
+  for(const tx of [4,P.w-5]){P.r(tx,B-14,1,8,'i');P.s(tx-1,B-17,['lll','0l0','.l.'])}
+  P.r(cx+1,B-34,1,16,'i');waFlag(P,cx+1,B-34,6,4,[C[0],C[1],C[2]],f>>1,1,'l');
+  P.outline();const fl=P.flat;P.flat=true;if(night||(f&4)){P.p(4,B-16,'g');P.p(P.w-5,B-16,'g')}P.flat=fl}}
+function waNestTier(n){if(typeof nestTier==='function'){try{const t=nestTier(n);if(t>=1)return clamp(t|0,1,3)}catch(e){}}const s=+(n&&n.str)||1;return s<1.7?1:s<2.5?2:3}
+
+/* ---- town dressing overlay ---- */
+const WARAIDF=[null,[[8,-8],[17,-5],[25,-9]],[[8,-14],[27,-6],[35,-12]],[[14,-21],[38,-14],[24,-7],[46,-8]]];
+const WAFLAME=[['..y..','.yEy.','.EyE.','EEKEE','.KEK.'],['.y...','.Ey.y','EyEE.','EEyKE','.KEK.'],['...y.','y.yE.','.EEyE','EKyEE','.KEK.'],['..y..','.yE..','.EyEy','EEKEE','.KEK.']];
+function waBigFire(P,x,y,f){P.s(x-2,y-4,WAFLAME[f&3])}
+const WASITK=['raided','festival','famine','plague','boom','siege'];
+function waTownSitMask(t){let m=0;const S=t&&Array.isArray(t.sit)?t.sit:[];for(const s of S){const k=s&&(s.k||s);const i=WASITK.indexOf(k);if(i>=0)m|=1<<i}return m}
+function waTownDeco(P,size,own,mask,pr,night,f){const O=4,B=P.h-3,sz=clamp(size|0||1,1,3),TW=WASITE['town'+sz].w,TH=WASITE['town'+sz].h,fl0=P.flat,X=x=>O+x;
+ const has=k=>!!(mask&(1<<WASITK.indexOf(k)));
+ // prosperity: 0 poor (soot and patched roofs, a broken fence), 2 rich (a kept garden, a cart of goods)
+ if(pr===0){P.flat=true;for(let i=0;i<10;i++){const x=X(3+((waHash(i,sz,61)*(TW-6))|0)),y=B-4-((waHash(i,sz,62)*(TH*.6))|0);P.p(x,y,'o');P.p(x+1,y,'n')}P.flat=fl0;P.s(X(TW-6),B-1,['j.k.j','jk.kj'])}
+ else if(pr===2){P.s(X(-3),B-1,['.Av.h','vBByB','.ii.i']);P.s(X(TW-3),B,['.dc.','kjjk','.i.i'])}
+ // the owner's pennant: a tall pole beside the town with the house banner
+ if(own){const px=X(sz===3?TW-7:sz===2?TW-3:TW-2),py=B-(sz===3?44:sz===2?34:24);P.r(px,py,1,B-py+1,'j');P.p(px,py-1,'d');P.p(px-1,B,'i');P.p(px+1,B,'i');
+  if(own.em&&sz>=2)waBanner(P,px,py,own,f>>1);else waPennant(P,px,py,7,5,own,f>>1,-1)}
+ if(has('festival')){// bunting across the roofs, coloured pennons, lanterns at night
+  const y0=B-(sz===3?26:sz===2?18:12),x0=X(1),x1=X(TW-2),cols=['g','y','x','A','C','E'];
+  for(let x=x0;x<=x1;x++){const t=(x-x0)/(x1-x0),y=Math.round(y0+Math.sin(t*Math.PI)*3);P.p(x,y,'m');if((x-x0)%3===1){const c=cols[((x-x0)/3|0)%cols.length];P.p(x,y+1,c);P.p(x+1,y+1,c);P.p(x,y+2,c)}}
+  P.r(x0-1,y0-1,1,B-y0+2,'j');P.r(x1+1,y0-1,1,B-y0+2,'j');P.p(x0-1,y0-2,'d');P.p(x1+1,y0-2,'d')}
+ if(has('boom')){// a striped market awning and stacked goods by the road
+  const ax=X(TW>>1);P.s(ax-14,B-4,['ggrrggrr','grrggrrg','j......j','j.dc.kj.','kjjjjjjk']);P.s(ax+8,B-2,['.ll.','kjjk','kjji'])}
+ if(has('famine')){// bare stalls
+  P.s(X((TW>>1)-13),B-2,['j......j','j......j','kjjjjjjk']);P.s(X((TW>>1)+7),B-1,['.kk.','k..k','.ii.'])}
+ if(has('plague')){// a black plague flag by the road
+  const gx=X(-2);P.r(gx,B-14,1,15,'i');P.p(gx,B-15,'d');P.s(gx+1,B-14,['GGGGG','GGgGG','GgggG','GGgGG','GGGGG'])}
+ if(has('siege')){// besiegers' tents and a ram before the gate
+  waTent(P,X(-1),B+1,3,7,['l','m','n']);waTent(P,X(TW),B+1,3,7,['l','m','n']);P.s(X((TW>>1)-4),B-1,['.kkkkkk.','kjjjjjjk','.i.ii.i.'])}
+ if(has('raided'))WARAIDF[sz].forEach((p,i)=>waBigFire(P,X(p[0]),B+p[1],f+i));
+ P.outline();P.flat=true;
+ if(has('festival')&&night){const y0=B-(sz===3?26:sz===2?18:12),x0=X(1),x1=X(TW-2);for(let i=0;i<4;i++){const x=x0+3+i*((x1-x0-6)/3|0),y=Math.round(y0+Math.sin((x-x0)/(x1-x0)*Math.PI)*3)+2;P.p(x,y,'y');P.p(x,y+1,'E')}}
+ if(has('famine')){const a=f&3;for(const c of [[X(2+a),B-TH+6],[X(TW-6-a),B-TH+10]]){P.p(c[0],c[1]+(a&1),'0');P.p(c[0]-1,c[1]-1,'0');P.p(c[0]+1,c[1]-1,'0')}}
+ if(has('plague'))for(let i=0;i<8;i++){const ph=(f+i*2)&7,x=X(2+((waHash(i,3,71)*(TW-4))|0)),y=B-4-((waHash(i,4,71)*(TH*.55))|0)-(ph>>1);P.p(x,y,ph<4?'A':'B')}
+ if(has('raided')){// soot and columns of smoke over the burning roofs
+  for(let i=0;i<16;i++){const x=X(3+((waHash(i,sz,81)*(TW-6))|0)),y=B-2-((waHash(i,sz,82)*(TH*.55))|0);P.p(x,y,'0');P.p(x+1,y,'1')}
+  WARAIDF[sz].forEach((p,i)=>{const sx=X(p[0]),sy=p[1]-6;for(let j=0;j<7;j++){const ph=(f+i+j)&3,xx=sx+((j+ph)&1)-(j>>1),yy=sy-j*2-(ph>>1)+B;const k=j<2?'4':j<4?'o':'n';P.p(xx,yy,k);P.p(xx+1,yy,k);if(j>1&&j<5)P.p(xx,yy-1,k)}})}
+ P.flat=fl0}
+function drawTownDecoPx(q,x,y,o){if(!waInit())return;o=o||{};const sz=clamp(o.size|0||1,1,3),D=WASITE['town'+sz],W=D.w+8,H=D.h+18,f=waRM()?0:(o.frame|0)&3,night=o.night?1:0,mask=o.mask|0,pr=o.pr==null?1:o.pr|0,own=o.own||null;
+ if(!mask&&!own&&pr===1)return;const key='deco'+sz+'|'+mask+'|'+pr+'|'+(own?own.sig:'-')+'|'+night+'|'+f;
+ const s=waSprite(key,W,H,W>>1,H-2,P=>waTownDeco(P,sz,own,mask,pr,night,f));   // 4 px wider each side and 18 px taller than the town box, same ground line
+ q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
+function drawGoalPx(q,x,y,o){const gl=o.goal,k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,mv=!!o.moving&&!waRM(),dir=o.dir<0?-1:1;let key,paint,w=48,h=40;
+ if(gl==='caravan'){const bn=waBnOf(o.house);key='car'+k+(bn?bn.sig:'-');paint=P=>waCaravanPaint(P,k,f&3,mv,bn)}
+ else if(gl==='patrol'){const bn=waBnOf(o.house);key='pat'+k+(bn?bn.sig:'-');paint=P=>waPatrolPaint(P,k,f&3,mv,bn);h=44}
+ else{const fk=WAFIG[o.f]?o.f:'bandit';key='raid'+fk+k;paint=P=>waRaidPaint(P,fk,k,f&3,mv)}
+ const s=waSprite(key+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(mv?1:0),w,h,w>>1,h-3,P=>{paint(P);if(dir<0)P.mirror()});
+ waShadow(q,x,y,gl==='caravan'?30:gl==='patrol'?14+k*8:10+k*7,6);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}

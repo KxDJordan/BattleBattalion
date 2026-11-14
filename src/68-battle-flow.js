@@ -21,6 +21,7 @@ function unitNewInj(u,snap){const m=u.m,all=typeof cpInj==='function'?cpInj(m):[
 function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSync();const pu=b.units.filter(u=>u.side===0&&u.m),dead=[],snap=b.opts&&b.opts.inj0||null,
   res={win:!!win,fled:!!b.fled,stuck:false,famed:[],f:b.opts.f,rounds:b.round,turns:b.turns,foes:b.units.filter(u=>u.side===1).length,down:[],dead:[],levels:[],xp:0,share:0,crowns:0,loot:[],
    withdrew:[],routed:[],injuries:[],men:[],armorLost:0,helmLost:0,repair:0,toolsNeed:0,tools:0,slain:[],foeKeys:[],parts:[],xpK:1};
+ res.obj=b.obj?b.obj.state||'ok':null;res.objK=b.obj?b.obj.k:null;if(b.obj&&b.obj.vip)res.vip={name:b.obj.vip.name,alive:!!b.obj.vip.alive,hp:Math.max(0,Math.round(b.obj.vip.hp)),hpMax:b.obj.vip.hpMax};if(b.bossU)res.boss={name:b.bossU.name,slain:!b.bossU.alive};
  // the foes by EN key: every one that took the field (foeKeys) and those killed (slain); partsDrop and the ambitions read them
  {const ek=enKeyOf();for(const u of b.units)if(u.side===1&&u.def){const k=ek.get(u.def)||u.eid||u.key||null;if(!k)continue;res.foeKeys.push(k);if(!u.alive&&!u.left&&!u.withdrawn)res.slain.push(k)}}
  const num=v=>typeof v==='number'&&isFinite(v),rows=new Map();
@@ -66,6 +67,10 @@ function brOpens(a,b){const out=[],R=['I','II','III','IV','V','VI','VII','VIII',
  for(let t=1;t<=9;t++){const L=brTierLv('style',t);if(L>a&&L<=b&&t<=6)out.push('New tier unlocked: tier '+R[t-1])}
  for(let t=1;t<=3;t++){const L=brTierLv('weapon',t);if(L>a&&L<=b)out.push(t===1?'Weapon trees open':'Weapon tier '+R[t-1]+' opens')}
  return out}
+/* the battle objective's outcome, one line (escort / hold / siege, and a named foe) */
+function brObjLine(res){let t='';if(res.objK==='escort')t=res.vip&&res.vip.alive?`<p class="good">${res.vip.name} came through (${res.vip.hp}/${res.vip.hpMax}).</p>`:`<p class="bad">The ${(res.vip?res.vip.name:'wagon').toLowerCase()} is lost.</p>`;
+ else if(res.objK==='hold'&&res.obj==='won'&&res.win)t=`<p class="good">The line held for ${res.rounds-1} rounds. The raiders give it up.</p>`;else if(res.objK==='siege'&&res.win)t='<p class="good">The siege lines are broken.</p>';
+ if(res.boss)t+=res.boss.slain?`<p class="good">${res.boss.name} is dead.</p>`:'';return t}
 /* the results dialog: outcome, spoils, then one line per sword that has something to report */
 function brIcon(n,sz){return typeof cpIcon==='function'?cpIcon(n,sz||16):''}
 function brItem(id){const it=ITEMS[id];if(!it)return'';return`<span class="br-it${it.famed?' fmd':''}">${typeof pnItemIcon==='function'?pnItemIcon(id,32):''}<b>${typeof pnItemName==='function'?pnItemName(id):it.n}</b>${it.famed?`<small class="fmd-tag">Famed</small>`:''}</span>`}
@@ -79,6 +84,7 @@ function brMan(r){const u=B&&B.units?B.units.find(u=>u.side===0&&u.m&&u.m.id===r
 function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'||r.inj.length||r.arm||r.helm||r.lvl||r.shield),fine=(res.men||[]).length-men.length;let h;
  if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
+ h+=brObjLine(res);
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
  if(res.win&&res.parts&&res.parts.length)h+=`<div class="br-parts"><span class="br-ph">${brIcon(['parts','stash'])}Monster parts${typeof followerHas==='function'&&followerHas('herbalist')?' <small>(herbalist)</small>':''}</span>${res.parts.map(x=>{const P=typeof PARTS!=='undefined'&&PARTS[x.key]||{};return`<span class="br-pt">${typeof pxIcon==='function'?pxIcon(P.icon||'part-'+x.key,16):''}<b>${P.n||x.key}</b><i>x${x.n}</i></span>`}).join('')}</div>`;
  if(res.win&&res.xpK>1)h+=`<p class="dim br-drill">${brIcon('xp')}The drillmaster drives them on: +${Math.round((res.xpK-1)*100)}% experience.</p>`;
@@ -96,29 +102,36 @@ function endBattle(win){const b=B;if(!b)return null;if(b.result)return b.result;
 // Rules: leaves the battle and applies its consequences to the campaign. Returns what happened:
 // {kind:'wiped',days} | {kind:'world',toast?} | {kind:'dunNext',stage,realm} | {kind:'dunDone',pay,ended}
 // src is only given when there is no battle to read it from (a withdrawal before the first blow, see fleeEncounter).
-function settleBattle(win,src){const s=src||B&&B.opts.src||{};B=null;mode='world';
+function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result||null;B=null;mode='world';
  if(!G.roster.length){clearSave();return{kind:'wiped',days:G.day}}
  G.grace=3;const out={kind:'world',toast:null};
+ // the world's consequences first (caravan loot, reputation, sieges broken, nests cleared: 40-world.js), while the beaten party is still on the map
+ if(typeof worldBattleEnd==='function'){try{out.world=worldBattleEnd(s,win)}catch(e){out.world=null}}
+ if(s.type==='nest'&&win){const c=G.contract;if(c&&!c.failed&&c.type==='nest'&&c.nest===s.id&&typeof ctrBattleEnd==='function'){const st=ctrStage(c);if(st&&st.k==='go'&&st.fight)out.toast=ctrBattleEnd(c,true,B0res)}else if(typeof nestClear==='function'&&Array.isArray(G.nests)&&G.nests.some(n=>n.id===s.id))nestClear(s.id)}
  if(s.type==='party'){if(win){G.parties=G.parties.filter(p=>p.id!==s.id);G.renown+=3}}
+ else if(s.type==='lair'&&typeof ctrBattleEnd==='function'){const c=G.contract;if(c&&!c.failed&&(s.id==null||s.id===c.id)){out.toast=ctrBattleEnd(c,win,B0res)||null}}
+ else if(s.type==='twist'){if(!win&&G.contract&&G.contract.id===s.id&&typeof ctrFail==='function'){/* a lost ambush costs the cargo */const c=G.contract;if(c.type==='deliver'||c.type==='escort'||c.type==='relic'){ctrFail(c,'Lost the cargo to an ambush');out.toast='Contract failed: the cargo is lost'}}}
  else if(s.type==='lair'){const c=G.contract;if(c&&c.type==='hunt'&&!c.done){if(win){c.done=true;if(typeof ambEvent==='function')ambEvent('lair',{f:c.f,diff:c.diff});out.toast='Contract done. Return to '+G.towns[c.town].name+' for pay'}else{G.contract=null;G.renown=Math.max(0,G.renown-5);out.toast='Contract failed'}}}
  else if(s.type==='dun'&&G.dun){const d=G.dun;
   if(!win){G.dun=null;out.toast='The rift spits you back out'}
   else if(d.stage<2){d.stage++;G.roster.forEach(m=>{const mx=calc(m).hp;m.hp=Math.min(mx,m.hp+Math.round(mx*.15))});return{kind:'dunNext',stage:d.stage,realm:d.realm}}
-  else{const pay=800+G.day*20;G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');if(typeof ambEvent==='function')ambEvent('rift');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
+  else{const pay=Math.round((800+G.day*20)*(typeof originK==='function'?originK('rift'):1));G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');if(typeof ambEvent==='function')ambEvent('rift');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
    if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total)G.crisis.ended=ended=true}
    return{kind:'dunDone',pay,ended}}}
  return out}
 // Rules: the company declines a battle it has not yet joined. The same price as sounding the retreat in one: a tenth of the
 // crowns dropped on the run, and whatever settleBattle() makes of a lost fight of that kind (a hunt is forfeit, a rift closes).
 function fleeEncounter(o){const c0=G.crowns;G.crowns=Math.floor(G.crowns*.9);const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
-function afterBattle(win){if(!B)return null;const out=settleBattle(win);setUI();closeSheet(true);
+function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
  if(out.kind==='wiped'){sheet(`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p><button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
  if(out.kind==='dunNext'){sheet(`<h2>${BIO[out.realm].n}</h2><p>${out.stage===1?'The path winds deeper. The air tastes of iron.':'A throne of fused stone. Something vast stirs upon it.'}</p><p class="dim">The company catches its breath (+15% HP). Battle ${out.stage+1} of 3.</p><button class="pri" onclick="dunBattle()">Press on</button>`);return out}
  if(out.kind==='dunDone'){let msg=`<h2>The rift collapses</h2><p>The tyrant falls and the tear in the world seals behind you. You carry out <span class="coin">${out.pay} crowns</span> of strange gold and a rift-forged blade.</p>`;
   if(out.ended)msg+=`<p class="good">The last of the three rifts is closed. The Sundering is over, though lesser rifts may still open.</p>`;
   sheet(msg+`<button class="pri" onclick="closeSheet()">Return to the world</button>`)}
  else if(out.toast)toast(out.toast);
- save();if(typeof ambNotify==='function'&&!sheetOpen)ambNotify();return out}
+ save();if(typeof ambNotify==='function'&&!sheetOpen)ambNotify();
+ if(win&&out.kind==='world'&&typeof eventTick==='function'&&!sheetOpen){try{eventTick('after',{win:true,f:f0})}catch(e){}}   // a battle-aftermath event (17-events.js)
+ return out}
 // Headless: fight o to the end with the AI on both sides and no result sheet. Resolves with the result record
 // (result.stuck is set if o.turnCap was hit), or null if nobody can be fielded. Follow with settleBattle(result.win).
 function autoBattle(o){return new Promise(done=>{const p=Object.assign({},o,{auto:true,quiet:true,onEnd:done});battleSnap(p);if(!startBattle(p))done(null)})}

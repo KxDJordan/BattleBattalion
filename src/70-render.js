@@ -92,10 +92,10 @@ function drawBackdrop(kind){const key=kind+'|'+cv.width+'|'+cv.height;
            worldReadout() minimapToWorld(el,cx,cy) WV WNAME */
 const WNAME=['Open water','Grassland','Forest','Hills','Mountains','Marsh','Desert','Snowfield'];
 const WVT=16,WVC=16,WVP=WVT*WVC,WVU=TS/WVT,WVTB=12,WVDIM=112;      // art px per tile, tiles per chunk, art px per chunk, world units per art px, where a tile's tall part stands (art px below the tile top)
-const WV={s:0,sdef:1,smin:1,smax:1,z:0,zt:0,x:0,y:0,tx:0,ty:0,free:false,hold:false,pinch:false,ps:0,zax:0,zay:0,sig:'',gz:-1,boot:true,mv:false,
+const WV={deco:{size:1,frame:0,night:false,own:null,mask:0,pr:1},mks:[],mkn:0,dk:[],s:0,sdef:1,smin:1,smax:1,z:0,zt:0,x:0,y:0,tx:0,ty:0,free:false,hold:false,pinch:false,ps:0,zax:0,zay:0,sig:'',gz:-1,boot:true,mv:false,
  sc:1,bx:0,by:0,f4:0,fs:0,vr:0,ring:null,ringR:-1,ringAt:0,dir:1,lx:0,cost:0,build:0,bd:new Map(),plates:[],np:0,night:0};
 const WVA={init:false,tile:false,tall:false,site:false,box:false,band:false,co:false,mark:false,tint:false,wx:false,key:false,warn:{}};
-function wvArtInit(){WVA.init=true;WVA.tile=typeof drawWorldTilePx==='function';WVA.tall=typeof drawWorldTallPx==='function';WVA.site=typeof drawSitePx==='function';WVA.box=typeof siteBoxPx==='function';
+function wvArtInit(){WVA.init=true;WVA.deco=typeof drawTownDecoPx==='function';WVA.tile=typeof drawWorldTilePx==='function';WVA.tall=typeof drawWorldTallPx==='function';WVA.site=typeof drawSitePx==='function';WVA.box=typeof siteBoxPx==='function';
  WVA.band=typeof drawBandPx==='function';WVA.co=typeof drawCompanyPx==='function';WVA.mark=typeof drawMarkerPx==='function';WVA.tint=typeof worldTint==='function';WVA.wx=typeof drawWeatherPx==='function';WVA.key=typeof worldKeyColor==='function'}
 function wvFail(n,e){WVA[n]=false;if(!WVA.warn[n]){WVA.warn[n]=1;try{console.warn('world: '+n+' art failed, using the fallback: '+(e&&e.message||e))}catch(x){}}
  if(n==='tile'||n==='tall'||n==='key')WCH.w=null;else{WSPR.clear();WSBX.clear()}}
@@ -265,18 +265,24 @@ function wchWork(cx0,cy0,cx1,cy1,vx0,vy0,vx1,vy1){const t0=performance.now(),boo
   ch.ai=0;ch.af=f;if(ch.comp===ch.flat)ch.ck=ch.frev}}
 
 /* ---- sprites: cached at art size, tinted with the land, lit windows kept bright ---- */
+/* the town dressing for town i: owner's banner, situations, prosperity. Re-derived at most every 400 ms per town; the key string only changes with the state. */
+function wvDecoOf(t,i){const D=WV.dk[i]||(WV.dk[i]={at:-1e9,key:'',own:null,mask:0,pr:1,hit:false});if(now-D.at>400){D.at=now;const h=t.own&&t.own!=='free'?lkHouse(t.own):null,own=h&&typeof waBnOf==='function'?waBnOf(h):null,
+  mask=typeof waTownSitMask==='function'?waTownSitMask(t):0,pr=typeof t.pros==='number'?(t.pros<30?0:t.pros>70?2:1):1;if(own!==D.own||mask!==D.mask||pr!==D.pr||!D.key){D.own=own;D.mask=mask;D.pr=pr;D.key='D'+(t.size||2)+'|'+mask+'|'+pr+'|'+(own?own.sig:'-')}D.hit=!!(own||mask||pr!==1)}
+ if(!D.hit)return null;const O=WV.deco;O.own=D.own;O.mask=D.mask;O.pr=D.pr;return D}
+function waNestTierSafe(n){if(typeof waNestTier==='function'){try{return waNestTier(n)}catch(e){}}return 2}
 const WSPR=new Map(),WSBX=new Map(),WSC={c:null,cq:null};
 function wvScratch(w,h,k){let c=WSC[k];if(!c){c=WSC[k]=mkCanvas(Math.max(96,w),Math.max(96,h));WSC[k+'q']=c.getContext('2d',{willReadFrequently:k==='c'})}if(c.width<w)c.width=w;if(c.height<h)c.height=h;const q=WSC[k+'q'];q.setTransform(1,0,0,1,0,0);q.globalCompositeOperation='source-over';q.globalAlpha=1;q.imageSmoothingEnabled=false;q.clearRect(0,0,c.width,c.height);return q}
 function wvPaint(q,x,y,kind,o){
  if(kind==='site'){if(WVA.site){try{drawSitePx(q,x,y,o);return}catch(e){wvFail('site',e)}}wvSiteOld(q,x,y,o)}
+ else if(kind==='deco'){if(WVA.deco){try{drawTownDecoPx(q,x,y,o)}catch(e){wvFail('deco',e)}}}
  else if(kind==='band'){if(WVA.band){try{drawBandPx(q,x,y,o);return}catch(e){wvFail('band',e)}}wvBandOld(q,x,y,o,false)}
  else{if(WVA.co){try{drawCompanyPx(q,x,y,o);return}catch(e){wvFail('co',e)}}wvBandOld(q,x,y,o,true)}}
 // Cached sprite for a key. Two new sprites a frame at most: a third shows the last frame of the same thing meanwhile.
-function wvSprite(key,base,kind,o){let e=WSPR.get(key);if(e)return e;{const b=WSBX.get(base);if(b&&b.last&&WV.nc>=2&&!WV.boot)return b.last}WV.nc++;if(WSPR.size>420)WSPR.clear();let w=72,h=64,ax=36,ay=54;if(kind==='site'){const b=wvSiteBox(o);w=b.w+12;h=b.h+12;ax=w>>1;ay=b.h+6}
- const night=kind==='site'&&o.night,c=mkCanvas(w,h),q=c.getContext('2d',night?{willReadFrequently:true}:undefined);q.imageSmoothingEnabled=false;wvPaint(q,ax,ay,kind,o);
+function wvSprite(key,base,kind,o){let e=WSPR.get(key);if(e)return e;{const b=WSBX.get(base);if(b&&b.last&&WV.nc>=2&&!WV.boot)return b.last}WV.nc++;if(WSPR.size>420)WSPR.clear();let w=72,h=64,ax=36,ay=54;if(kind==='site'){const b=wvSiteBox(o);w=b.w+12;h=b.h+12;ax=w>>1;ay=b.h+6}else if(kind==='deco'){const b=wvSiteBox({kind:'town',size:o.size});w=b.w+20;h=b.h+32;ax=w>>1;ay=b.h+24}
+ const night=(kind==='site'||kind==='deco')&&o.night,c=mkCanvas(w,h),q=c.getContext('2d',night?{willReadFrequently:true}:undefined);q.imageSmoothingEnabled=false;wvPaint(q,ax,ay,kind,o);
  let bb=WSBX.get(base),d=null;if(!bb||night)d=q.getImageData(0,0,w,h).data;
  if(!bb){let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(d[(y*w+x)*4+3]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}   // measured on the first frame of a sprite, with room for its animation
-  if(x1<0){x0=ax-4;x1=ax+4;y0=ay-8;y1=ay}const pad=kind==='site'?1:3;bb={x0:Math.max(0,x0-pad)-ax,y0:Math.max(0,y0-pad)-ay,x1:Math.min(w,x1+1+pad)-ax,y1:Math.min(h,y1+1+(kind==='site'?1:0))-ay};bb.last=null;if(WSBX.size>300)WSBX.clear();WSBX.set(base,bb)}
+  if(x1<0){x0=ax-4;x1=ax+4;y0=ay-8;y1=ay}const pad=kind==='site'||kind==='deco'?1:3;bb={x0:Math.max(0,x0-pad)-ax,y0:Math.max(0,y0-pad)-ay,x1:Math.min(w,x1+1+pad)-ax,y1:Math.min(h,y1+1+(kind==='site'||kind==='deco'?1:0))-ay};bb.last=null;if(WSBX.size>300)WSBX.clear();WSBX.set(base,bb)}
  e=bb.last={c,w,h,ax,ay,x0:bb.x0,y0:bb.y0,x1:bb.x1,y1:bb.y1,tc:null,tq:null,tk:'',lit:null,raw:kind==='site'&&o.kind==='portal'};
  if(night){   // the pixels that differ from the day sprite are the lit windows: they stay untinted
   const dq=wvScratch(w,h,'c'),was=o.night;o.night=false;wvPaint(dq,ax,ay,kind,o);o.night=was;const dd=dq.getImageData(0,0,w,h).data;let any=false;const im=new ImageData(w,h),ld=im.data;
@@ -335,17 +341,23 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  g.setTransform(sc,0,0,sc,bx,by);
  if(G.moving&&G.path.length)wvPathDots(vx0,vy0,vx1,vy1);
  // standing things, back to front
- WSN=0;WV.np=0;WV.tn=0;WV.nc=0;const M=40,inV=(x,y)=>x>vx0-M&&x<vx1+M&&y>vy0-M&&y<vy1+M+24,fs=WV.fs,c=G.contract,turnin=c?(c.type==='hunt'&&!c.done?-1:c.type==='deliver'?c.to:c.town):-1;
+ WSN=0;WV.np=0;WV.tn=0;WV.nc=0;const M=40,inV=(x,y)=>x>vx0-M&&x<vx1+M&&y>vy0-M&&y<vy1+M+24,fs=WV.fs,c=G.contract,CM=lkCtrMarks();let turnin=-1;WV.mkn=0;for(let i=0;i<CM.length;i++)if(CM[i].kind==='turnin'){turnin=CM[i].town;break}
  for(let i=0;i<G.towns.length;i++){const o=G.towns[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y))continue;const seen=worldSeen(o.x,o.y),so={kind:'town',size:o.size||2,frame:WV.f4%4,night:night>.5};let top=y-7;
-  if(seen){const e=wvSprite('T'+so.size+(so.night?'n':'d')+so.frame,'T'+so.size,'site',so);wvPush(y,e,x,false);top=y+e.y0}
+  if(seen){const e=wvSprite('T'+so.size+(so.night?'n':'d')+so.frame,'T'+so.size,'site',so);wvPush(y,e,x,false);top=y+e.y0;
+   if(WVA.deco){const dk=wvDecoOf(o,i);if(dk){const DO=WV.deco;DO.size=so.size;DO.frame=so.frame;DO.night=so.night;const e2=wvSprite(dk.key+(so.night?'n':'d')+so.frame,dk.key,'deco',DO);wvPush(y+.001,e2,x,false)}}}
   wvPlateAt(o.name,seen?(i===turnin?'d':'l'):'n',seen?'1':'0',x,top-2);if(i===turnin)WV.mk={x,y:top-13}}
  if(G.sites)for(const o of G.sites){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;wvPush(y,wvSprite('R'+(o.kind||'ruin')+(o.n|0)%4,'R'+(o.kind||'ruin')+(o.n|0)%4,'site',{kind:o.kind||'ruin',size:1,frame:0,night:false,n:o.n}),x,false)}
- let lairTop=0;if(c&&c.type==='hunt'&&!c.done){const x=c.x/WVU,y=c.y/WVU;lairTop=y-2;if(inV(x,y)&&worldVisible(c.x,c.y)){const e=wvSprite('L'+c.f+WV.f4%4,'L'+c.f,'site',{kind:'lair',f:c.f,size:c.diff||1,frame:WV.f4%4,night:night>.5});wvPush(y,e,x,false);lairTop=y+e.y0}}
+ for(let i=0;i<CM.length;i++){const m=CM[i];if(m.kind==='turnin')continue;const x=m.x/WVU,y=m.y/WVU;let top=y-2;
+  if(m.kind==='lair'&&inV(x,y)&&worldVisible(m.x,m.y)){const fk=m.f||'bandit',e=wvSprite('L'+fk+WV.f4%4,'L'+fk,'site',{kind:'lair',f:fk,size:c.diff||1,frame:WV.f4%4,night:night>.5});wvPush(y,e,x,false);top=y+e.y0}
+  const k=WV.mkn++,Q=WV.mks[k]||(WV.mks[k]={x:0,y:0});Q.x=x;Q.y=top-3}
+ if(Array.isArray(G.nests))for(const n of G.nests){if(!n)continue;const x=n.x/WVU,y=n.y/WVU;if(!inV(x,y)||!worldSeen(n.x,n.y))continue;const ti=waNestTierSafe(n),fk=n.f||'bandit';
+  wvPush(y,wvSprite('N'+fk+ti+(night>.5?'n':'d')+WV.f4%4,'N'+fk+ti,'site',{kind:'nest',f:fk,tier:ti,frame:WV.f4%4,night:night>.5}),x,false)}
  for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldVisible(o.x,o.y))continue;wvPush(y,wvSprite('P'+o.realm+fs%12,'P'+o.realm,'site',{kind:'portal',realm:o.realm,size:1,frame:fs%12,night:night>.5}),x,false)}
  for(const o of G.parties){const x=o.x/WVU,y=o.y/WVU;let b=WV.bd.get(o.id);if(!b){if(WV.bd.size>200)WV.bd.clear();b={x:o.x,dir:(o.tx||0)<o.x?-1:1,t:-1e9};WV.bd.set(o.id,b)}
   if(Math.abs(o.x-b.x)>.02){b.dir=o.x<b.x?-1:1;b.t=now}else if(o.x!==b.x||Math.abs((o.y-(b.y||0)))>.02)b.t=now;b.x=o.x;b.y=o.y;
   if(!inV(x,y)||!worldVisible(o.x,o.y))continue;const mv=now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
-  wvPush(y,wvSprite('B'+o.f+str+b.dir+(mv?'m':'s')+f,'B'+o.f+str+b.dir,'band',{f:o.f,str,frame:f,dir:b.dir,moving:mv}),x,true)}
+  const hf=o.f==='free'||!!lkHouse(o.f),gl=o.goal==='caravan'||o.goal==='patrol'||o.goal==='raid'?o.goal:hf?'patrol':'',hs=gl==='patrol'||gl==='caravan'?lkHouse(o.f):null;
+  wvPush(y,wvSprite('B'+gl+o.f+str+b.dir+(mv?'m':'s')+f,'B'+gl+o.f+str+b.dir,'band',{f:o.f,str,frame:f,dir:b.dir,moving:mv,goal:gl,house:hs}),x,true)}
  {if(Math.abs(p.x-WV.lx)>.02){WV.dir=p.x<WV.lx?-1:1}WV.lx=p.x;const mv=!!G.moving&&!sheetOpen,f=fs%12,n=G.roster.length;wvPush(p.y/WVU+.01,wvSprite('C'+n+WV.dir+(mv?'m':'s')+f,'C'+n+WV.dir,'co',{n,frame:f,dir:WV.dir,moving:mv}),p.x/WVU,true)}
  for(let i=1;i<WSN;i++){const s=WSL[i];let j=i-1;while(j>=0&&(WSL[j].y>s.y||(WSL[j].y===s.y&&WSL[j].i>s.i))){WSL[j+1]=WSL[j];j--}WSL[j+1]=s}
  for(let i=0;i<WSN;i++){const s=WSL[i];wvDrawSprite(s.e,s.x,s.y,s.snap)}
@@ -358,7 +370,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  // markers: route waypoints, the tap destination, the contract
  {const R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++)wvMark(R[i].x/WVU,R[i].y/WVU,'waypoint');
   if(G.moving&&G.path.length&&!G.dest){const e=G.path[G.path.length-1];wvMark(e.x/WVU,e.y/WVU,'dest')}
-  if(c){if(turnin<0)wvMark(c.x/WVU,lairTop-3,'contract');else if(WV.mk&&inV(G.towns[turnin].x/WVU,G.towns[turnin].y/WVU))wvMark(WV.mk.x,WV.mk.y,'turnin')}}
+  if(c){for(let i=0;i<WV.mkn;i++)wvMark(WV.mks[i].x,WV.mks[i].y,'contract');if(turnin>=0&&WV.mk&&inV(G.towns[turnin].x/WVU,G.towns[turnin].y/WVU))wvMark(WV.mk.x,WV.mk.y,'turnin')}}
  if(insW){const r=Math.round(insW.r/WVU),x=Math.round(insW.x/WVU),y=Math.round(insW.y/WVU),L=Math.max(2,r>>1),on=reduced||(now/260|0)&1;g.fillStyle=PAL['0'];
   for(let k=0;k<2;k++){const o=k?0:1;for(let sx=-1;sx<=1;sx+=2)for(let sy=-1;sy<=1;sy+=2){const ex=x+sx*r,ey=y+sy*r;g.fillRect(Math.min(ex,ex-sx*L)+o,ey+o,L+1,1);g.fillRect(ex+o,Math.min(ey,ey-sy*L)+o,1,L+1)}g.fillStyle=PAL[on?'r':'d']}}
  // soft light: town windows and camp fire at night, rifts always
@@ -377,7 +389,8 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
 function worldPick(wx,wy,withCompany){if(!G||!W)return null;const pad=Math.max(0,16/wcam.z),hit=(x,y,w,h)=>{const r=Math.max(Math.max(w,h)*WVU*.5+2,pad),cy=y-h*WVU*.45;return Math.hypot(wx-x,wy-cy)<r?{x,y:cy,r:Math.max(w,h)*WVU*.5+3}:null};let b;
  for(let i=0;i<G.towns.length;i++){const o=G.towns[i],bb=wvSiteBox({kind:'town',size:o.size||2});if((b=hit(o.x,o.y,bb.w,bb.h)))return{type:'town',i,o,x:b.x,y:b.y,r:b.r,seen:worldSeen(o.x,o.y)}}
  for(const o of G.portals)if(worldVisible(o.x,o.y)&&(b=hit(o.x,o.y,14,20)))return{type:'portal',o,x:b.x,y:b.y,r:b.r};
- const c=G.contract;if(c&&c.type==='hunt'&&!c.done&&(b=hit(c.x,c.y,16,14)))return{type:'lair',o:c,x:b.x,y:b.y,r:b.r,vis:worldVisible(c.x,c.y)};
+ const c=G.contract,CM=lkCtrMarks();for(const m of CM)if(m.kind!=='turnin'&&(b=hit(m.x,m.y,16,14)))return{type:'lair',o:m,c,x:b.x,y:b.y,r:b.r,vis:worldVisible(m.x,m.y)};
+ if(Array.isArray(G.nests))for(const n of G.nests)if(n&&worldSeen(n.x,n.y)&&(b=hit(n.x,n.y,22,16)))return{type:'nest',o:n,x:b.x,y:b.y,r:b.r,vis:worldVisible(n.x,n.y)};
  for(const o of G.parties)if(worldVisible(o.x,o.y)&&(b=hit(o.x,o.y,16,14)))return{type:'band',o,x:b.x,y:b.y,r:b.r};
  if(withCompany&&(b=hit(G.p.x,G.p.y,16,16)))return{type:'company',x:b.x,y:b.y,r:b.r};
  if(G.sites)for(const o of G.sites)if(worldSeen(o.x,o.y)&&(b=hit(o.x,o.y,14,10)))return{type:'site',o,x:b.x,y:b.y,r:b.r};
@@ -392,7 +405,7 @@ function wvMiniFog(){const pk=Math.floor(G.p.y/TS)*WN+Math.floor(G.p.x/TS)+(type
  const s=wvScratch(WN,WN,'c');s.putImageData(im,0,0);q.drawImage(WSC.c,0,0,WN,WN,0,0,WN,WN);return true}
 function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el!==MM.el){MM.el=el;MM.t=0;MM.sig='';if(typeof wireMinimap==='function')wireMinimap(el)}
  if(now-MM.t<110)return;const cwid=el.clientWidth,chei=el.clientHeight;if(cwid<8||chei<8)return;MM.t=now;const c0=G.contract,pulse=(now/300|0)&1,fogNew=wvMiniFog();let vis='';for(const o of G.parties)if(worldVisible(o.x,o.y))vis+=((o.x/TS)|0)+'.'+((o.y/TS)|0)+';';
- const sig=(G.p.x/TS*2|0)+','+(G.p.y/TS*2|0)+','+(wcam.x/TS*2|0)+','+(wcam.y/TS*2|0)+','+WV.s+','+G.path.length+','+G.portals.length+','+pulse+','+(c0?c0.type+(c0.done?1:0):'')+','+SR.w+','+SR.h+','+cwid+','+vis+(G.route?G.route.length:0);
+ const sig=(G.p.x/TS*2|0)+','+(G.p.y/TS*2|0)+','+(wcam.x/TS*2|0)+','+(wcam.y/TS*2|0)+','+WV.s+','+G.path.length+','+G.portals.length+','+pulse+','+(c0?c0.type+(c0.done?1:0)+(c0.stage|0):'')+(G.nests?G.nests.length:0)+','+SR.w+','+SR.h+','+cwid+','+vis+(G.route?G.route.length:0);
  if(sig===MM.sig&&!fogNew)return;MM.sig=sig;
  const d=Math.min(3,window.devicePixelRatio||1),w=Math.round(cwid*d),h=Math.round(chei*d);if(el.width!==w||el.height!==h){el.width=w;el.height=h}
  const q=el.getContext('2d'),k=Math.max(1,Math.floor(Math.min(w,h)/WN)),S=k*WN,ox=(w-S)>>1,oy=(h-S)>>1,u=k/TS,th=Math.max(1,k>>1);MM.s=S/WS/d;MM.ox=ox/d;MM.oy=oy/d;
@@ -404,7 +417,8 @@ function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el
  for(const o of G.parties)if(worldVisible(o.x,o.y)){q.fillStyle=PAL['0'];q.fillRect(ox+tile(o.x)-th,oy+tile(o.y)-th,k+2*th,k+2*th);q.fillStyle=PAL.g;q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}
  for(const o of G.portals)if(worldVisible(o.x,o.y))box(ox+tile(o.x),oy+tile(o.y),pulse?th:0,'D','C');
  if(G.route&&G.route.length>1)for(let i=1;i<G.route.length;i++)box(ox+tile(G.route[i].x),oy+tile(G.route[i].y),0,'0','5');
- if(c0){let mx,my,done=false;if(c0.type==='hunt'&&!c0.done){mx=c0.x;my=c0.y}else{const o=G.towns[c0.type==='deliver'?c0.to:c0.town];mx=o.x;my=o.y;done=true}
+ if(Array.isArray(G.nests))for(const n of G.nests)if(n&&worldSeen(n.x,n.y))box(ox+tile(n.x),oy+tile(n.y),0,'0','f');
+ if(c0)for(const m of lkCtrMarks()){const done=m.kind==='turnin',mx=m.x,my=m.y;
   const x=ox+tile(mx)+(k>>1),y=oy+tile(my)+(k>>1),r=k+(pulse?th:0);q.fillStyle=PAL['0'];for(let i=-r-th;i<=r+th;i++){const ww=r+th-Math.abs(i);q.fillRect(x-ww,y+i,2*ww+1,1)}q.fillStyle=PAL[done?'y':'g'];for(let i=-r;i<=r;i++){const ww=r-Math.abs(i);q.fillRect(x-ww,y+i,2*ww+1,1)}}
  // the view
  {const x0=clamp(X(wcam.x+SR.x/wcam.z),ox,ox+S-th),y0=clamp(Y(wcam.y+SR.y/wcam.z),oy,oy+S-th),x1=clamp(X(wcam.x+(SR.x+SR.w)/wcam.z),ox+th,ox+S),y1=clamp(Y(wcam.y+(SR.y+SR.h)/wcam.z),oy+th,oy+S);
@@ -649,7 +663,7 @@ function warmSprites(){if(typeof unitSpriteWarm!=='function'||!HAVE.sprite)retur
  try{WARMF[0]=WARM.i&3;const wu=B.units[WARM.i>>2];if(!(typeof monsterSpriteWarm==='function'&&wu.def&&monsterSpriteWarm(wu,WARMF)>=0&&umon(wu).kind))unitSpriteWarm(wu,WARMF);WARM.i++}catch(e){WARM.i=1e9}}
 function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.def){try{s=monsterSpritePx(u,v.pD,v.pS,v.pF)}catch(e){s=null}}
  if(!s){try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}}if(!s||!s.cv||!s.cv.width)return false;
- const mi=umon(u),wide=mi.size>1,big=!wide&&u.def&&u.def.big,x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=wide?E.shW:big?E.shB:E.sh;
+ const mi=umon(u),wide=mi.size>1,big=!wide&&(u.def&&u.def.big||mi.bigSh),x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=wide?E.shW:big?E.shB:E.sh;
  if(mi.fly&&u.alive&&v.pL>0){const k=Math.max(.45,1-v.pL/140);g.globalAlpha=v.pA*.42;const w=Math.round(sh.width*k),h=Math.round(sh.height*k);g.drawImage(sh,x-(w>>1),gy-(h>>1),w,h);   // a flier: its shadow shrinks with height, the side ring stays on the ground
   if(u.alive){const rg=wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
  else if(u.alive&&v.pA>.99&&v.pSh>.99){const c=wide?(u.side?E.c1W:E.c0W):big?(u.side?E.c1B:E.c0B):u.side?E.c1:E.c0;g.drawImage(c,x-(c.width>>1),gy-(c.height>>1))}
@@ -693,7 +707,12 @@ function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBars
 function allyBarsOn(){return!(typeof SET==='object'&&SET&&SET.allyBars===false)&&(typeof shAllyBars!=='function'||shAllyBars())}
 function drawUnitOverlays(){const us=B.units,ab=allyBarsOn();for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;const cur=u===B.cur;
   if(HAVE.over){OO.cur=cur;const mi=umon(u);OO.big=!!(u.def&&u.def.big)||mi.size>1;OO.wide=mi.size>1;OO.top=mi.kind?mi.top:0;OO.tgt=!!(B.targets&&unitTiles(u).some(q=>B.targets.has(key(q[0],q[1]))));OO.bars=ab||u.side!==0;try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
-  drawOverlayOld(u,v,v.ox,v.oy,cur)}g.globalAlpha=1}
+  drawOverlayOld(u,v,v.ox,v.oy,cur)}g.globalAlpha=1;
+ /* objective marks (phase 7): the escorted VIP wears a gold shield, the siege leader a red crown; both bob unless motion is reduced */
+ const ob=B.obj;if(ob&&(ob.vip||ob.leader)){for(const [u,rows,key] of [[ob.vip,OBJMK.vip,'objvip'],[ob.leader,OBJMK.lead,'objlead']]){if(!u||!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;
+   const mi=umon(u),big=!!(u.def&&u.def.big)||mi.size>1,c=pxScaled(key,rows,1);if(!c)continue;const bob=reduced?0:((now/400)|0)&1;g.drawImage(c,Math.round(v.ox-c.width/2),Math.round(v.oy-(big?66:52)-(mi.kind?mi.top||0:0)-bob))}}}
+const OBJMK={vip:['..0000000..','.0ddddddd0.','0deeeeeddc0','0de0e0e0dc0','0deeeeeedc0','0ddeeeedcc0','.0ddedddc0.','..0dddcc0..','...0ddc0...','....0c0....','.....0.....'],
+ lead:['.0..0.0..0.','0g00g0g00g0','0gg0ggg0gg0','0ghggggghg0','0ggggggggf0','0fffffffff0','.000000000.']};
 
 /* ---- picking: exact against the drawn columns (tops and exposed cliff faces), front to back ---- */
 function tileAtBoard(bx,by){if(!B||!B.tiles)return -1;const R=viewEnsure(),k=R.rot,x=Math.floor(bx/2+1e-6)+.5,y=Math.floor(by/2+1e-6)+.5,u0=Math.floor(x/16);   // the centre of the art pixel under the point

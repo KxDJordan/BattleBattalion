@@ -28,8 +28,8 @@ function worldGo(wx,wy,dest){if(!G||!W)return false;
 function worldTap(wx,wy){const k=worldPick(wx,wy,true);if(!k)return;const p=G.p,at=(x,y)=>Math.hypot(x-p.x,y-p.y)<TS*.12;
  if(k.type==='town'){const t=k.o;if(at(t.x,t.y))openTown(k.i);else goTo(t.x,t.y,{type:'town',i:k.i})}
  else if(k.type==='portal'){const q=k.o;if(at(q.x,q.y))portalSheet(q.id);else goTo(q.x,q.y,{type:'portal',id:q.id})}
- else if(k.type==='lair')goTo(k.o.x,k.o.y);
- else if(k.type==='band')goTo(k.o.x,k.o.y);
+ else if(k.type==='lair'||k.type==='nest')goTo(k.o.x,k.o.y);
+ else if(k.type==='band'){const o=k.o;if(typeof partyHostile==='function'&&typeof attackParty==='function'&&!partyHostile(o)&&Math.hypot(o.x-p.x,o.y-p.y)<TS*1.6)bandSheet(o);else goTo(o.x,o.y)}
  else if(k.type==='site'){const o=k.o;if(at(o.x,o.y)&&typeof siteSheet==='function')siteSheet(o.id);else goTo(o.x,o.y,{type:'site',id:o.id})}
  else if(k.type==='company'){for(let i=0;i<G.towns.length;i++)if(at(G.towns[i].x,G.towns[i].y)){openTown(i);return}if(G.moving){G.moving=false;if(G.route)G.route=[]}}
  else worldGo(wx,wy)}
@@ -83,3 +83,10 @@ function wireMinimap(el){let d=null;el.style.touchAction='none';
  el.addEventListener('pointerdown',e=>{d={x:e.clientX,y:e.clientY,id:e.pointerId};e.stopPropagation()});
  el.addEventListener('pointerup',e=>{const s=d;d=null;if(!s||s.id!==e.pointerId||sheetOpen||mode!=='world'||!G||Math.hypot(e.clientX-s.x,e.clientY-s.y)>12)return;const w=minimapToWorld(el,e.clientX,e.clientY);if(w){Inspect.hide();worldGo(w.x,w.y)}});
  el.addEventListener('pointercancel',()=>{d=null})}
+
+/* a neutral caravan or patrol close by: say who they are, what attacking them costs, and let the player choose (world agent's attackParty) */
+function bandSheet(o){if(typeof sheet!=='function')return;const lab=typeof partyLabel==='function'?partyLabel(o):(FACT[o.f]?FACT[o.f].n:'A band'),car=o.goal==='caravan',fn=typeof lkFacName==='function'?lkFacName(o.f):o.f,rt=typeof lkRepTier==='function'?lkRepTier(o.f):null,cost=car?18:12;
+ const war=Array.isArray(G.houses)&&o.f!=='free'&&typeof atWar==='function'?G.houses.filter(h=>h.id!==o.f&&atWar(h.id,o.f)).map(h=>h.n):[];
+ sheet(`<h2>${htmlEsc(lab)}</h2><p>${car?'Wagons, oxen and a few hired guards. They pass you with a nod.':'Riders in their lord\u2019s colours. They watch you, but keep to the road.'}</p>
+ <p class="dim">Standing with ${htmlEsc(fn)}: ${rt?htmlEsc(rt.n):'neutral'}. Attacking costs about <b>${cost}</b> standing${car&&o.cargo&&o.cargo.crowns?`; the cargo is worth about ${Math.round(o.cargo.crowns)} crowns`:''}${war.length?`, and earns a little with ${htmlEsc(war.join(' and '))}, at war with them`:''}.</p>
+ <div class="row"><button class="warn" onclick="closeSheet();attackParty(${o.id})">Attack</button><button class="pri" onclick="closeSheet()">Let them pass</button></div>`)}

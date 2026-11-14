@@ -142,7 +142,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
  G.roster.forEach(m=>{m.base.hp+=30;m.base.ms+=12;m.base.md+=8;m.base.brv+=25;m.hp=X.calc(m).hp});   // ... nor about four green swords surviving a month on autopilot (the auto-battle table below measures balance)
  let here=0,loops=0,vet=false,rifts=0;const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  const wages=()=>typeof X.companyWages==='function'?X.companyWages():G.roster.reduce((n,m)=>n+(X.mercWage?X.mercWage(m):X.BG[m.bg].wage),0),mark=()=>({c:G.crowns,d:G.day,w:wages()}),paid=(m,pay)=>G.crowns>=m.c+pay-m.w*(G.day-m.d);   // wages fall due on the road
- const town=async(i,via)=>{const nb=log.length,r=await march(X,G.towns[i].x,G.towns[i].y,{type:'town',i},log,via);if(r==='wiped')return r;
+ const town=async(i,via)=>{const nb=log.length;let r=await march(X,G.towns[i].x,G.towns[i].y,{type:'town',i},log,via);while(r==='lair'){closeAll(X);r=await march(X,G.towns[i].x,G.towns[i].y,{type:'town',i},log)}if(r==='wiped')return r;   // a contract fight on the way (ambush, waypoint) is won in passing, then the march goes on
   if(via&&log.length===nb&&X.G.townOpen&&X.G.town===i)flags.route=true;                // a two-leg route marched through the middle town and opened only the last
   if(G.weather.kind!=='clear')flags.weather=true;
   if(!X.G.townOpen||X.G.town!==i){closeAll(X);ok(dist(G.p,G.towns[i])<8,'march did not reach '+G.towns[i].name);X.openTown(i)}here=i;return'ok'};
@@ -158,7 +158,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
   for(let j=G.stash.length-1;j>=0;j--){if(X.ITEMS[G.stash[j]].price>150||X.ITEMS[G.stash[j]].uniq)continue;c0=G.crowns;X.sellItem(j);if(G.crowns>c0)flags.sell=true}
   if(!G.contract){const want=!flags.deliver?'deliver':!flags.hunt?'hunt':null;let j=t.contracts.findIndex(c=>!want||c.type===want);
    for(let g=0;j<0&&g<200;g++){const c=X.genContract(t);if(c.type===want){t.contracts.push(c);j=t.contracts.length-1}}
-   if(j>=0){X.acceptContract(j);ok(G.contract&&G.contract.town===G.town,'contract was not accepted');flags.accept=true}}
+   if(j>=0){X.acceptContract(j);ok(G.contract&&G.contract.town===G.town,'contract was not accepted');flags.accept=true;if(G.contract){G.contract.twist=null;G.contract.due=null}}}   // fixture: twists and deadlines are covered by test/contracts.js
   scan(G,'G');closeAll(X)};
  ok(await town(0)==='ok','could not enter the first town');
  while(loops++<80){if(!G.roster.length)return'wiped';inTown();
@@ -259,6 +259,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    const leg=X.routeTo(G.towns[end].x,G.towns[end].y,G.towns[mid]);ok(leg&&leg.hours>0&&X.routeTo(1,1)===null,'routeTo from a waypoint failed, or planned into the sea');
    const h0=G.day*24+G.hour;ok(X.setRoute([{x:G.towns[mid].x,y:G.towns[mid].y,dest:{type:'town',i:mid}},{x:G.towns[end].x,y:G.towns[end].y,dest:{type:'town',i:end}}])&&G.route.length===2&&G.moving,'setRoute did not start');
    let passed=false,opened=false,kinds={};for(let n=0;n<400000&&G.moving;n++){X.worldTick(.05);if(X.sheetOpen){if(X.G.townOpen&&G.town===mid)opened=true;if(G.moving)closeAll(X)}if(Math.hypot(G.p.x-G.towns[mid].x,G.p.y-G.towns[mid].y)<1)passed=true;kinds[G.weather.kind]=1;ok(X.mode==='world','a battle started under grace')}
+   if(G.town!==end&&X.sheetOpen&&X.EVS&&X.EVS.cur)X.evtClose();   // a town event card may greet the company first; the town opens when it closes
    ok(passed&&!opened&&G.route.length===0&&Math.hypot(G.p.x-G.towns[end].x,G.p.y-G.towns[end].y)<1&&G.town===end&&X.sheetOpen,'the route did not pass the middle town and stop in the last');closeAll(X);
    const took=G.day*24+G.hour-h0,est=X.routeTo(G.towns[mid].x,G.towns[mid].y,t0).hours+leg.hours;ok(took>est*.85&&took<est*1.6,`route took ${took.toFixed(1)} h against a plan of ${est.toFixed(1)} h`);
    ok(cnt()>c0+60&&W.fogRev>rev0,'marching did not push back the fog');ok(G.parties.every(p=>X.okAt(p.x,p.y)&&Array.isArray(p.pts)&&[1,2,3].includes(X.partyStrength(p))),'bands left the land or lost their patrols');

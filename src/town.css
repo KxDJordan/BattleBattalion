@@ -15,8 +15,8 @@
  padding:calc(var(--sat,0px) + 6px) calc(var(--sar,0px) + 8px) 0 calc(var(--sal,0px) + 8px)}
 #tv .tv-name,#tv .tv-res,#tv .tv-plate,#tv .tv-btn,#tv .tv-note{background:#101d1c;border:2px solid #0b1514;box-shadow:inset 0 0 0 2px #35554f,inset 0 2px 0 2px #4d5a5c,4px 4px 0 #0b151499}
 #tv .tv-name{display:flex;flex-direction:column;gap:1px;padding:5px 12px 6px;min-width:0;box-shadow:inset 0 0 0 2px #8a6a2a,inset 0 2px 0 2px #d1a94e,4px 4px 0 #0b151499}
-#tv .tv-name b{font-weight:700;font-size:20px;line-height:1;letter-spacing:.02em;color:#f3d98b;white-space:nowrap}
-#tv .tv-name span{font-size:12px;line-height:1.1;color:#9fe0cd;white-space:nowrap;letter-spacing:.02em}
+#tv .tv-name>b{font-weight:700;font-size:20px;line-height:1;letter-spacing:.02em;color:#f3d98b;white-space:nowrap}
+#tv .tv-name>span:not(.tv-own){font-size:12px;line-height:1.1;color:#9fe0cd;white-space:nowrap;letter-spacing:.02em}
 #tv .tv-res{display:flex;align-items:center;gap:10px;padding:6px 10px;min-height:32px}
 #tv .tv-chip{display:inline-flex;align-items:center;gap:4px;font-size:15px;line-height:1;font-variant-numeric:tabular-nums;font-weight:600}
 #tv .tv-chip.coin{color:#f3d98b}
@@ -55,7 +55,7 @@
 #tv .tv-btn .tv-badge{right:-7px;top:-9px}
 
 @media (min-width:1100px) and (min-height:600px){
- #tv .tv-name b{font-size:28px}#tv .tv-name span{font-size:15px}#tv .tv-chip{font-size:18px}#tv .tv-res{min-height:40px;padding:8px 14px;gap:14px}
+ #tv .tv-name>b{font-size:28px}#tv .tv-name>span:not(.tv-own){font-size:15px}#tv .tv-chip{font-size:18px}#tv .tv-res{min-height:40px;padding:8px 14px;gap:14px}
  #tv .tv-plate{height:32px;font-size:17px;padding:0 12px 1px 9px;gap:7px}#tv .tv-badge{min-width:22px;height:22px;font-size:14px;right:-11px;top:-13px}
  #tv .tv-btn{min-height:52px;min-width:150px;font-size:19px}#tv .tv-note{top:calc(var(--sat,0px) + 70px);font-size:17px}
 }
@@ -220,3 +220,34 @@
 .br-pt i{font-style:normal;font-family:'Jersey 15',sans-serif;color:#f3d98b}
 .br-parts .pxi,.br-ph .pn-i,.br-drill .pxi,.br-drill .pn-i{display:inline-block;flex:none;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated}
 .br-drill{display:flex;align-items:center;gap:5px}
+/* ---- phase 7 (look): owner, standing and situations in the town header; guild houses; building panels ---- */
+#tv .tv-own{display:none;align-items:center;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
+#tv .tv-own.on{display:flex}
+#tv .tv-own .bnr{width:18px!important;height:24px!important;filter:drop-shadow(2px 2px 0 #0b1514)}
+.tw-town{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.tw-own{display:inline-flex;align-items:center;gap:5px;font-size:.86rem}
+.tw-own b{font-weight:600}
+.tw-sit{display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 6px 0 2px;background:#0b1514;box-shadow:inset 0 0 0 2px #35554f;font-size:.82rem;line-height:1}
+.tw-sit b{font-weight:600}.tw-sit small{color:var(--dim)}
+.tw-sit.bad{box-shadow:inset 0 0 0 2px #c4493f;color:#ef8a78}
+.tw-pw{display:inline-flex;gap:4px;margin-right:8px;font-family:var(--pxfont);font-size:.9rem}.tw-pw small{font-family:'Alegreya Sans',sans-serif;color:var(--dim)}
+.tw-pw.good{color:#9fe0cd}.tw-pw.bad{color:#ef8a78}
+#tv .tv-guild .tv-plate{font-size:12px;height:22px;opacity:.94}
+#tv .tv-guild{z-index:0}
+.bl-hints{display:flex;flex-direction:column;gap:4px}
+.bl-hint,.bl-tree{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:2px solid #213a36}
+.bl-tree span{flex:1;display:flex;flex-direction:column}.bl-tree small{color:var(--dim)}
+.bl-mercs{display:flex;flex-wrap:wrap;gap:6px}
+#pn .pn-note .tw-town{padding:2px 0}
+#tv .tv-own,#tv .tv-own *{white-space:nowrap}
+#tv .tv-own .tw-own b,#tv .tv-own .tw-sit b{font-size:12px;font-weight:600;color:#e9e0c9;letter-spacing:.02em}
+#tv .tv-own .fx-tier{height:18px;font-size:11px}#tv .tv-own .tw-sit{height:18px}#tv .tv-own .tw-sit small{font-size:11px}
+#tv .tv-own .tw-town{gap:3px 5px}
+#tv .tv-guild .tv-plate.ic{left:auto;top:auto;transform:none;position:absolute;padding:0;width:26px;height:26px;justify-content:center}
+#tv .tv-guild .tv-plate.ic b{display:none;position:absolute;left:50%;top:100%;transform:translate(-50%,3px);padding:3px 6px;background:#101d1c;box-shadow:inset 0 0 0 2px #8a6a2a;font-size:12px}
+#tv .tv-guild:hover .tv-plate.ic b,#tv .tv-guild:focus-visible .tv-plate.ic b{display:block}
+#tv .tv-own .tw-town{display:contents}
+#tv .tv-own .tw-prices{display:inline-flex;gap:0}
+#tv .tv-own .tw-pw{font-size:12px;margin-right:6px}
+#tv .tv-name{max-width:min(470px,calc(100vw - 240px))}
+@media (max-height:400px){#tv .tv-own .tw-prices{display:none}}

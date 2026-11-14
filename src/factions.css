@@ -1,0 +1,59 @@
+/* ================= FACTIONS (57-factions-ui.js), reputation chips shared with the town, map and contract screens (look) ================= */
+:root{--fx-hostile:#c4493f;--fx-hostile-d:#5a1f1c;--fx-cold:#62a6ee;--fx-cold-d:#2f5fa8;--fx-neutral:#8d99a6;--fx-neutral-d:#4d5a5c;--fx-friendly:#58b39c;--fx-friendly-d:#2c6a5d;--fx-allied:#d1a94e;--fx-allied-d:#8a6a2a}
+.fx-tier{display:inline-flex;align-items:center;gap:3px;padding:0 5px 0 2px;margin-right:4px;height:20px;font-family:var(--pxfont);font-weight:600;font-size:.86rem;line-height:1;white-space:nowrap;vertical-align:middle;
+ color:var(--fx-c,#e9e0c9);background:#0b1514;box-shadow:inset 0 0 0 2px var(--fx-d,#35554f)}
+.fx-tier.t-hostile{--fx-c:var(--fx-hostile);--fx-d:var(--fx-hostile-d)}.fx-tier.t-cold{--fx-c:var(--fx-cold);--fx-d:var(--fx-cold-d)}.fx-tier.t-neutral{--fx-c:#c8d0d8;--fx-d:var(--fx-neutral-d)}
+.fx-tier.t-friendly{--fx-c:#9fe0cd;--fx-d:var(--fx-friendly-d)}.fx-tier.t-allied{--fx-c:#f3d98b;--fx-d:var(--fx-allied-d)}
+.fx-tier .pxi,.fx-tier .pn-i{flex:none}
+.fx-good{color:#9fe0cd}.fx-bad{color:#ef8a78}
+/* the standing bar */
+.fx-bar{position:relative;display:flex;height:10px;margin:4px 0 2px;border:2px solid #0b1514;background:#0b1514;min-width:90px}
+.fx-bar.big{height:16px;margin:6px 0 2px}
+.fx-bar i{display:block;height:100%;opacity:.42;box-shadow:inset -1px 0 0 #0b1514}
+.fx-bar i.on{opacity:1}
+.fx-bar i.t-hostile{background:var(--fx-hostile)}.fx-bar i.t-cold{background:var(--fx-cold)}.fx-bar i.t-neutral{background:var(--fx-neutral)}.fx-bar i.t-friendly{background:var(--fx-friendly)}.fx-bar i.t-allied{background:var(--fx-allied)}
+.fx-bar b{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;background:#fff4c8;box-shadow:0 0 0 2px #0b1514}
+.fx-ticks{display:flex;justify-content:space-between;font-family:var(--pxfont);font-size:.74rem;color:var(--dim);margin-bottom:4px}
+/* list */
+#pn .fx-row .pn-rs{display:flex;flex-wrap:wrap;align-items:center;gap:2px 0;white-space:normal}
+#pn .fx-row .fx-bar{flex:1 0 100%;max-width:220px}
+#pn .fx-row .pn-lead{width:44px;display:flex;justify-content:center}
+.fx-n{color:var(--dim);font-size:.86rem}
+.fx-free{display:inline-flex;align-items:center;justify-content:center;background:#20363a;box-shadow:inset 0 0 0 2px #4d5a5c}
+.fx-ban{display:inline-flex}
+.fx-mon{padding:4px 8px 10px}
+.fx-monl{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px}
+.fx-monl span{display:inline-flex;align-items:center;gap:4px;font-size:.84rem;color:var(--dim)}
+.fx-monl b{font-weight:500}
+/* detail */
+.fx-hero{display:flex;gap:12px;align-items:flex-start}
+.fx-hero>.bnr,.fx-hero>.fx-free{flex:none;filter:drop-shadow(3px 3px 0 #0b1514)}
+.fx-stand{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fx-v{font-family:var(--pxfont);font-size:1.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.fx-stand small{color:var(--dim)}
+.fx-rels{display:flex;flex-wrap:wrap;gap:6px}
+.fx-rel{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 4px;background:#0b151480;box-shadow:inset 0 0 0 2px #35554f}
+.fx-rel span{display:flex;flex-direction:column;line-height:1.15}
+.fx-rel small{font-size:.8rem;color:var(--dim)}
+.fx-rel.r-war{box-shadow:inset 0 0 0 2px #c4493f}.fx-rel.r-war small{color:#ef8a78}.fx-rel.r-ally small{color:#9fe0cd}.fx-rel.r-tense small{color:#f3d98b}
+.fx-towns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 10px}
+.fx-town{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;padding:3px 0;border-bottom:2px solid #213a36}
+.fx-town b{flex:1 1 auto;font-weight:600}.fx-town em{font-style:normal;font-size:.76rem;color:var(--brass);text-transform:uppercase;letter-spacing:.06em}
+.fx-sits{display:inline-flex;gap:2px;align-items:center;font-size:.8rem}
+.fx-pros{flex:1 0 100%}
+#pn .pn-bar.pros{--mc:var(--brass);--md:#8a6a2a;height:6px;margin-top:0}
+.fx-logs{display:flex;flex-direction:column}
+.fx-log{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:2px solid #213a36}
+.fx-log .fx-d{flex:none;min-width:34px;text-align:right;font-family:var(--pxfont);font-size:1.1rem;color:#9fe0cd;font-variant-numeric:tabular-nums}
+.fx-log.neg .fx-d{color:#ef8a78}
+.fx-why{flex:1;line-height:1.25}.fx-why em{display:block;font-style:normal;font-size:.78rem;color:var(--dim)}
+.fx-log small{flex:none;color:var(--dim);font-size:.78rem}
+.fx-lb{flex:none;display:inline-flex}
+.fx-sum{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-bottom:4px}
+.fx-sumi{display:flex;gap:8px;align-items:center;padding:6px;background:#0b151480;box-shadow:inset 0 0 0 2px #35554f;cursor:pointer}
+.fx-sumi>span{flex:1;display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+.fx-sumi .fx-bar{align-self:stretch}
+#pn[data-panel="factions"] .pn-list .pn-row.on{background:#213a36}
+/* the map card's banner */
+.mp-bn{vertical-align:middle;margin-right:4px}
+.mp-bad{color:#ef8a78}

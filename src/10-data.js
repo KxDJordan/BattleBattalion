@@ -901,3 +901,70 @@ Object.assign(STATUS,{
  grounded:{n:'Grounded',d:'A wing or leg is crippled: it cannot fly or dive.',icon:'grounded',good:0},
  slammed:{n:'Off balance',d:'Thrown off its feet: −10 melee and ranged defense until its next turn.',icon:'slammed',good:0}
 });
+/* ================= PHASE 7: THE LIVING WORLD (world agent; CONTRACT.md "Factions", "Towns", "Roaming parties") =================
+   REPT      reputation tiers, low to high: {k, n, min} (min = the lowest standing of the tier, -100..100)
+   REPK[k]   what a tier does: buy/sell/hire price factors, ctr (how much work the board posts for you), patience (negotiation rounds' slack),
+             recruit (recruit odds), closed (markets shut), hunt (the house sends patrols after the company)
+   HPERS     house personalities: {n, d, war (daily pull toward war), greed (price factor in its towns), pious, proud (rep losses x)}
+   HOUSEN    house name roots (the house is 'House <root>', its short name the root)
+   SITS[k]   town situations: {n, d, icon, price:{buy,sell,food}, recruits (count factor), contracts {type: weight factor}, dur:[a,b] days,
+             pros (prosperity a day while it lasts), stock (market items factor)}
+   BLD[k]    town buildings: {n, d, icon, base (every town has it), svc (what bldServe(i,key,arg) offers: short words for the UI)}
+   GOODS[k]  town specialties: {n, d, icon, kind 'food'|'tools'|'buy'|'sell'|'hire', k (price factor on that kind), items? {k:[slots], wt:[weapon types],
+             tag} (which market items the specialty makes cheaper and stocks more of), bio:[world biomes it comes from], coast (sea towns) } */
+const REPT=[{k:'hostile',n:'Hostile',min:-100},{k:'cold',n:'Cold',min:-40},{k:'neutral',n:'Neutral',min:-10},{k:'friendly',n:'Friendly',min:15},{k:'allied',n:'Allied',min:50}];
+const REPK={hostile:{buy:1.25,sell:.75,hire:1.3,ctr:.35,patience:0,recruit:.4,closed:1,hunt:1},
+ cold:{buy:1.1,sell:.9,hire:1.12,ctr:.75,patience:1,recruit:.8,closed:0,hunt:0},
+ neutral:{buy:1,sell:1,hire:1,ctr:1,patience:2,recruit:1,closed:0,hunt:0},
+ friendly:{buy:.93,sell:1.06,hire:.92,ctr:1.2,patience:3,recruit:1.15,closed:0,hunt:0},
+ allied:{buy:.86,sell:1.12,hire:.85,ctr:1.4,patience:4,recruit:1.3,closed:0,hunt:0}};
+const HPERS={
+ proud:{n:'Proud',d:'Old blood and long memories. Slights cost twice the standing; honour is repaid in kind.',war:.6,greed:1,proud:2},
+ greedy:{n:'Greedy',d:'Everything has a price in their towns, a little higher than elsewhere. Gold buys their friendship quickly.',war:.4,greed:1.06,proud:1,gold:1},
+ pious:{n:'Pious',d:'Temples in every town. They hate the restless dead and the rifts, and reward those who put them down.',war:.3,greed:1,proud:1,pious:1},
+ warlike:{n:'Warlike',d:'Always at someone\'s throat. Their patrols are many and their wars come often.',war:1.2,greed:1,proud:1,patrols:1}};
+const HOUSEN=['Varrow','Ostmark','Caelin','Dunmere','Halloran','Aubreth','Morcant','Thessaly','Ilsworth','Rennick','Grausch','Valcourt','Ashgrove','Brennan','Corwyn','Maudlin'];
+const SITS={
+ famine:{n:'Famine',d:'The granaries are empty. Food costs twice as much, fewer will sign on, and the board wants grain carried in.',icon:'sit-famine',
+  price:{buy:1,sell:1,food:2},recruits:.6,contracts:{deliver:2,escort:1.5},dur:[4,9],pros:-2,stock:1},
+ raided:{n:'Raided',d:'Raiders burned the outskirts. Goods are scarce and dear, and the town pays for vengeance.',icon:'sit-raided',
+  price:{buy:1.15,sell:.85,food:1.4},recruits:.7,contracts:{bounty:2,hunt:1.5,defend:1.5},dur:[3,7],pros:-3,stock:.7},
+ festival:{n:'Festival',d:'Banners, ale and dancing. Food is cheap, merchants pay well and young folk are eager to join a company.',icon:'sit-festival',
+  price:{buy:1.05,sell:1.1,food:.85},recruits:1.4,contracts:{},dur:[2,4],pros:1,stock:1.1},
+ plague:{n:'Plague',d:'Sickness in the streets. Few recruits, wary merchants, and the temple pays for relics and medicine.',icon:'sit-plague',
+  price:{buy:1.1,sell:.9,food:1.2},recruits:.4,contracts:{relic:1.5,deliver:1.5},dur:[5,10],pros:-2,stock:.85},
+ boom:{n:'Boom',d:'Trade is booming. Prices are fair, stalls are full and the merchants hire guards for their caravans.',icon:'sit-boom',
+  price:{buy:.9,sell:1.1,food:.95},recruits:1.2,contracts:{escort:2,deliver:1.5},dur:[5,10],pros:2,stock:1.3},
+ siege:{n:'Under siege',d:'An enemy host sits before the walls. Everything is dear, food most of all, and the lord pays to break the siege.',icon:'sit-siege',
+  price:{buy:1.3,sell:.8,food:1.8},recruits:.5,contracts:{siege:3,defend:2},dur:[4,8],pros:-3,stock:.6}};
+const BLD={
+ notice:{n:'Notice board',d:'Contracts posted by the town and its lord.',icon:'board',base:1,svc:['contracts']},
+ tavern:{n:'Tavern',d:'Recruits, rumours and followers for hire.',icon:'tavern',base:1,svc:['recruits']},
+ market:{n:'Market',d:'Food, tools and gear. Specialties are cheaper and better stocked.',icon:'market',base:1,svc:['buy','sell']},
+ inn:{n:'Inn',d:'A roof and a hot meal: rest until the wounds close.',icon:'inn',base:1,svc:['rest']},
+ temple:{n:'Temple',d:'Healers for the wounded and blessings for the faithful.',icon:'temple',svc:['heal']},
+ armorer:{n:'Armorer',d:'Top-tier armor and helmets, and full repairs for crowns instead of tools.',icon:'armor-heavy',svc:['stock','repair']},
+ college:{n:'Arcane college',d:'Scholars of the four gifts: they read a sword\'s gift, sell foci and staves, and unlearn one talent tree for a fee.',icon:'mana',svc:['hint','stock','respec']},
+ hall:{n:'Training hall',d:'Drill masters train a sword for crowns, as in camp but with no daily limit.',icon:'level',svc:['train']},
+ weaponsmith:{n:'Weaponsmith',d:'Fine blades, axes and polearms of the highest tier the town can forge.',icon:'melee',svc:['stock']},
+ fletcher:{n:'Fletcher',d:'Bows, crossbows and firearms, and the quivers to go with them.',icon:'ranged',svc:['stock']},
+ harbour:{n:'Harbour',d:'Ships to the other harbour towns: faster than the road, for crowns and a few days at sea.',icon:'anchor',svc:['sail']}};
+const BLDX=['temple','armorer','college','hall','weaponsmith','fletcher','harbour'];   // the extras, in the order the town view lists them
+const GOODS={
+ grain:{n:'Grain',d:'Wide fields: food is cheap here.',icon:'food',kind:'food',k:.75,bio:['plains']},
+ cattle:{n:'Cattle',d:'Herds on the hills: salted meat is cheap here.',icon:'food',kind:'food',k:.8,bio:['plains','hills']},
+ fish:{n:'Fish',d:'The boats come in every morning: food is cheap here.',icon:'food',kind:'food',k:.8,coast:1},
+ timber:{n:'Timber',d:'Sawmills and woodwrights: tools, shields and staves are cheap here.',icon:'tools',kind:'tools',k:.75,items:{k:['s'],wt:['staff']},bio:['forest']},
+ ore:{n:'Iron ore',d:'Mines in the hills: tools and heavy armor are cheap here.',icon:'tools',kind:'tools',k:.7,items:{k:['a','h'],heavy:1},bio:['hills','snow']},
+ steel:{n:'Steel',d:'Famous forges: blades, axes, maces and polearms are cheap and plentiful.',icon:'melee',kind:'buy',k:.85,items:{wt:['sword','axe','mace','spear','polearm','dagger','hammer','greatsword']},bio:['hills']},
+ yew:{n:'Yew bows',d:'Bowyers and fletchers: bows and crossbows are cheap here.',icon:'ranged',kind:'buy',k:.82,items:{wt:['bow','crossbow']},bio:['forest']},
+ leather:{n:'Leather',d:'Tanneries: light armor and caps are cheap here.',icon:'armor-light',kind:'buy',k:.85,items:{k:['a','h'],light:1},bio:['plains','swamp']},
+ furs:{n:'Furs',d:'Trappers sell furs: merchants here pay well for what you bring.',icon:'parts',kind:'sell',k:1.12,bio:['snow','forest']},
+ herbs:{n:'Herbs',d:'Marsh herbalists: the temple heals for less and food keeps.',icon:'heal',kind:'food',k:.9,bio:['swamp']},
+ salt:{n:'Salt',d:'Salt pans by the sea: food is cheap and merchants pay well.',icon:'food',kind:'sell',k:1.08,coast:1,bio:['desert']},
+ spice:{n:'Spice',d:'Caravan spices: merchants pay well for loot.',icon:'coin',kind:'sell',k:1.15,bio:['desert']},
+ glass:{n:'Rift glass',d:'Strange glass from the waste: foci and staves are cheap here.',icon:'mana',kind:'buy',k:.8,items:{wt:['staff','focus'],spell:1},bio:['desert','snow']},
+ ale:{n:'Ale',d:'Famous breweries: men sign on cheaply over a mug.',icon:'tavern',kind:'hire',k:.88,bio:['plains','forest','hills','swamp']}};
+/* the house soldiers: every noble house and the free towns field these (their banner colours are filled in by houseFactReg, 15-factions.js) */
+const HOUSEUNITS=[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],HOUSELOOT=['shortsword','mace','heater','kite','mail','padded','leather','spear','crossbow','lightxbow','arming','cap'];
+FACT.free={n:'Free towns',g:'F',col:'#7d8f86',skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a free town militia',units:HOUSEUNITS,rank:[.5,1.1,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])};

@@ -2,7 +2,7 @@
    monsterSpritePx(u,face,state,frame) -> {cv,ax,ay} | null   battle figure; ax/ay = the feet (size-2: the footprint centre)
    monsterPortrait(key)                -> 32x32 canvas | null  key: an EN id, a unit, or an EN def
    monsterFrames(u,state)              -> frames of that state for this figure (74-anim.js asks; else UNIT_FRAMES)
-   monsterKind(u)                      -> 'adder' 'viper' 'gserpent' 'thorn' 'ent' 'elder' 'ogre' 'aogre' 'wyvern' 'hatch' | null
+   monsterKind(u)                      -> 'adder' 'viper' 'gserpent' 'thorn' 'ent' 'elder' 'ogre' 'aogre' 'wyvern' 'hatch' 'wagon' | null
    monsterInfo(u)                      -> {kind,size,fly,lift,top,wide} what the board needs to place it
    Figures are painted with the part grid of 73-units.js (usGrid / usPart / usP / usResolve): every part is filled flat in
    design coordinates (feet at 0,0, y up is negative, facing screen-right), then one pass shades it from the top-left
@@ -22,7 +22,8 @@ const MSK={
  ogre:{g:[96,84,48,74],big:1,top:52,wide:18},
  aogre:{g:[100,88,50,78],big:1,top:56,wide:19},
  wyvern:{g:[152,132,76,112],size:2,fly:1,lift:14,top:74,wide:30,fr:{idle:4,walk:4,attack:3,cast:3,hit:2,death:3}},
- hatch:{g:[60,52,30,44],fly:1,lift:8,top:30,wide:10,fr:{idle:4}}
+ hatch:{g:[60,52,30,44],fly:1,lift:8,top:30,wide:10,fr:{idle:4}},
+ wagon:{g:[68,56,34,44],top:29,wide:15,bigSh:1,ally:1}
 };
 /* which figure an enemy is: its EN id or name (the monsters agent's ids are read as they land) */
 const MS_ID={gserp:'gserpent',whatch:'hatch',adder:'adder',viper:'viper',spitter:'viper',sviper:'viper',gserpent:'gserpent',serpent:'gserpent',bigserpent:'gserpent',thornling:'thorn',sapling:'thorn',thorn:'thorn',
@@ -36,8 +37,8 @@ function msKindOfId(id,def){const s=((id||'')+' '+(def&&def.n||'')).toLowerCase(
  if(/\bent\b|treant|tree ?folk|barkhide|^ent/.test(s))return'ent';
  if(/spit|viper|cobra|spray/.test(s))return'viper';if(/great|giant|python|constrict|basilisk/.test(s)&&/serpent|snake/.test(s))return'gserpent';if(/adder|asp|snake|serpent/.test(s))return def&&(def.big||def.size>1)?'gserpent':'adder';
  return null}
-function monsterKind(u){if(!u||!u.def||u.m)return null;let k=MS.kind.get(u.def);if(k!==undefined)return k;k=null;try{k=msKindOfId(msEnKey(u.def)||u.eid||'',u.def)}catch(e){k=null}MS.kind.set(u.def,k);return k}
-function monsterInfo(u){const k=monsterKind(u),K=k&&MSK[k];const sz=u&&u.def&&u.def.size>1?u.def.size:K&&K.size||1;return{kind:k,size:sz,fly:!!(K&&K.fly)||!!(u&&u.def&&u.def.fly),lift:K?K.lift||0:0,top:K?K.top:u&&u.def&&u.def.big?48:32,wide:K?K.wide:u&&u.def&&u.def.big?14:8}}
+function monsterKind(u){if(!u||!u.def||u.m)return null;if(u.vip==='wagon'||(typeof CVIP==='object'&&CVIP&&u.def===CVIP.wagon))return'wagon';let k=MS.kind.get(u.def);if(k!==undefined)return k;k=null;try{k=msKindOfId(msEnKey(u.def)||u.eid||'',u.def)}catch(e){k=null}MS.kind.set(u.def,k);return k}
+function monsterInfo(u){const k=monsterKind(u),K=k&&MSK[k];const sz=u&&u.def&&u.def.size>1?u.def.size:K&&K.size||1;return{kind:k,size:sz,fly:!!(K&&K.fly)||!!(u&&u.def&&u.def.fly),lift:K?K.lift||0:0,top:K?K.top:u&&u.def&&u.def.big?48:32,wide:K?K.wide:u&&u.def&&u.def.big?14:8,bigSh:!!(K&&K.bigSh)}}
 function monsterFrames(u,st){const k=monsterKind(u);if(!k)return 0;const K=MSK[k],F=K.fr;return F&&F[st]?F[st]:MS_FR[st]||0}
 
 /* ---- painter: shapes filled into the part grid (design coordinates) ---- */
@@ -418,6 +419,74 @@ function msWyDead(v,k,juv){const W=MSW,R=r=>Math.max(.7,r*k),big=k>.7,hs=juv?1.4
  usPart();msL(w[0],w[1],w[0]+2*k,w[1]-3*k,W.claw,1);usGrp=0}
 function msHatch(v,st,fr,va){msWyvern(v,st,fr,va,.46,1)}
 
+/* ================= CARAVAN WAGON (the escort contract's VIP: CVIP.wagon of 16-contracts.js) ================= */
+/* a covered merchant wagon: a plank bed on two pairs of spoked wheels, a canvas cover over hoops with a madder stripe, a driver's
+   bench with a sack and a crate up front, a tongue and yoke for the (absent) ox, a pennant on a pole. Drawn in world units
+   (a along the wagon, + to the front; b across, + the near side; h up) and projected iso: v 0 the front goes screen-down-right
+   (the near side and the front end show), v 1 the front goes up-right (the near side and the open rear show). States: idle (the
+   pennant flutters), hit (a jolt), death (a wheel breaks off, the bed slumps, the cover caves in). */
+const MSG={wood:usRamp('aijk',2),woodD:usRamp('0aij',2),wheel:usRamp('aijk',2),iron:usRamp('Gop',1),can:usRamp('nmle',2),canS:usRamp('fgh',1),
+ crate:usRamp('ijkc',2),sack:usRamp('jkmn',2),dark:usRamp('01a',1)};
+function msWgPose(st,fr){const p={ox:0,oy:0,ta:0,tb:0,dh:0,sq:1,sag:0,brk:0,fl:fr&1,dead:0};
+ switch(st){
+  case'hit':if(fr===0){p.ox=-2;p.oy=-1;p.ta=.08;p.tb=.1}else{p.ox=1;p.ta=-.04};break;
+  case'death':if(fr===0){p.ox=-1;p.ta=.08;p.tb=.1;p.brk=1}else if(fr===1){p.ta=-.1;p.tb=-.14;p.dh=-1;p.sq=.8;p.sag=.25;p.brk=2}else{p.dead=1;p.ta=-.08;p.tb=-.18;p.dh=-3;p.sq=.42;p.sag=.5;p.brk=2}break}
+ return p}
+function msWagon(v,st,fr){const p=msWgPose(st,fr),G=MSG,vis=v===0?1:-1,R=Math.round;
+ // world -> screen (the bed's tilt and drop apply to everything fixed to it)
+ const K=1.15,Wg=(a,b,h)=>{a*=K;b*=K;h*=K;return v===0?[a-b+p.ox,(a+b)/2-h+p.oy]:[a+b+p.ox,(b-a)/2-h+p.oy]},W=(a,b,h)=>Wg(a,b,h+a*p.ta+b*p.tb+p.dh);   // world scale K: a touch bigger than a man   // on the ground (no tilt)
+ const quad=(P,Rp,tex)=>msPoly(P,Rp,tex);
+ const A0=-11,A1=9,B0=5,H0=4,H1=9;
+ // a wheel in the a-h plane at (a0,b0), hub height hh, radius r; spokes 6; br: 0 whole, 1 cracked
+ const wheel=(a0,b0,hh,r,fixed,br)=>{const T=fixed?W:Wg;usPart();const pts=[];for(let i=0;i<24;i++){const t=i/24*Math.PI*2;pts.push(T(a0+Math.cos(t)*r,b0,hh+Math.sin(t)*r))}msPoly(pts,G.wheel);
+  for(let rho=0;rho<=1.001;rho+=.08)for(let t=0;t<Math.PI*2;t+=.05){const q=T(a0+Math.cos(t)*r*rho,b0,hh+Math.sin(t)*r*rho),x=Math.floor(q[0]+.5),y=Math.floor(q[1]+.5);
+   if(rho>.74){if(rho>.92)usF(x,y,'i')}else if(rho<.3)usF(x,y,rho<.15?'G':'o');
+   else{const sp=((t*6/(Math.PI*2))%1+1)%1;const on=sp<.17||sp>.83;if(!on||(br&&t>2.2&&t<3.4&&rho>.5))usF(x,y,'1');else usF(x,y,(t>Math.PI?'k':'j'))}}};
+ const flatWheel=(a0,b0,r)=>{usPart();const pts=[];for(let i=0;i<24;i++){const t=i/24*Math.PI*2;pts.push(Wg(a0+Math.cos(t)*r,b0+Math.sin(t)*r,.5))}msPoly(pts,G.wheel);
+  for(let rho=0;rho<.74;rho+=.08)for(let t=0;t<Math.PI*2;t+=.05){const q=Wg(a0+Math.cos(t)*r*rho,b0+Math.sin(t)*r*rho,.5),x=Math.floor(q[0]+.5),y=Math.floor(q[1]+.5),sp=((t*6/(Math.PI*2))%1+1)%1;
+   usF(x,y,rho<.3?'o':sp<.17||sp>.83?'j':'a')}};
+ const hubH=p.dead?3:4.6;
+ // far wheels (behind the bed)
+ usGrp=1;if(!p.dead||true){wheel(-6,-B0-1,hubH,4.6,1,0);if(!p.dead)wheel(5,-B0-1,hubH-.6,4,1,0)}
+ // tongue and yoke at the far end (v 1: the front is away from us)
+ const tongue=()=>{usPart();const t0=W(A1,0,3.4),t1=p.dead?Wg(A1+7,0,.5):Wg(A1+7,0,2);msL(t0[0],t0[1],t1[0],t1[1],G.woodD,0);const y0=p.dead?Wg(A1+7,-3,.5):Wg(A1+7,-3,2),y1=p.dead?Wg(A1+7,3,.5):Wg(A1+7,3,2);msL(y0[0],y0[1],y1[0],y1[1],G.woodD,1)};
+ if(v===1){usGrp=6;tongue()}
+ // the bed: floor, near side, visible end
+ usGrp=2;usPart();quad([W(A0,-B0,H1-1),W(A1,-B0,H1-1),W(A1,B0,H1-1),W(A0,B0,H1-1)],G.woodD);
+ usPart();quad([W(A0,B0,H0),W(A1,B0,H0),W(A1,B0,H1),W(A0,B0,H1)],G.wood,(x,y)=>0);
+ for(let a=A0;a<=A1;a+=.5){for(const hh of [H0+2.5]){const q=W(a,B0,hh);usB(Math.floor(q[0]+.5),Math.floor(q[1]+.5),-1)}}
+ for(const a of [A0+1,A1-1,(A0+A1)/2]){const q0=W(a,B0,H0+.5),q1=W(a,B0,H1-.5);msFL(q0[0],q0[1],q1[0],q1[1],'o')}
+ const ae=vis>0?A1:A0;usPart();quad([W(ae,B0,H0),W(ae,-B0,H0),W(ae,-B0,H1),W(ae,B0,H1)],G.wood);
+ {const q0=W(ae,B0,H0+2.5),q1=W(ae,-B0,H0+2.5);for(let i=0;i<=10;i++){usB(R(q0[0]+(q1[0]-q0[0])*i/10),R(q0[1]+(q1[1]-q0[1])*i/10),-1)}}
+ // the bench and the load up front (v 0 in view; v 1 behind the cover)
+ const front=()=>{usGrp=4;const sk=W(6.5,1.5,H1);usPart();msE(sk[0],sk[1]-2,2.6,2.3,G.sack);usF(R(sk[0]),R(sk[1])-4,'j');
+  const cr=W(4.5,-2.5,H1);usPart();msPoly([[cr[0]-3,cr[1]],[cr[0]+3,cr[1]+0],[cr[0]+3,cr[1]-4],[cr[0]-3,cr[1]-4]],G.crate);for(let i=-2;i<=2;i++)usF(R(cr[0])+i,R(cr[1])-2,'i');
+  usPart();const b0=W(A1-.5,B0,H1+1),b1=W(A1-.5,-B0,H1+1);msL(b0[0],b0[1],b1[0],b1[1],G.wood,1)};
+ const pen=()=>{usGrp=4;usPart();const s0=W(A1-1,-B0+.5,H1),s1=W(A1-1,-B0+.5,H1+13);msL(s0[0],s0[1],s1[0],s1[1],G.woodD,1);usPart(1);const tx=R(s1[0]),ty=R(s1[1]),d=vis>0?-1:1,f=p.fl;
+  for(let i=0;i<5;i++)for(let j=0;j<=Math.max(0,2-(i>>1));j++){usP(tx+d*(i+1),ty+j+(i>2&&f?1:0),G.canS,j===0?1:0)}};
+ if(!p.dead&&v===1){pen();front()}
+ // the cover: half an ellipse-cylinder over the bed, ribs every few units, a madder stripe low on the side
+ const C0=-10,C1=3.5,CR=B0+.6,CH=8*p.sq,ch0=H1;
+ usGrp=3;usPart();
+ const cov=(a,th)=>{const s=1-p.sag*Math.sin(Math.PI*(a-C0)/(C1-C0))*Math.sin(th);return W(a,CR*Math.cos(th),ch0+CH*Math.sin(th)*s)};
+ for(let a=C0;a<=C1;a+=.25)for(let th=0;th<=Math.PI;th+=.04){if(Math.cos(th)+.9*Math.sin(th)<-.05)continue;const q=cov(a,th),x=Math.floor(q[0]+.5),y=Math.floor(q[1]+.5);
+  const rib=[C0+.5,C0+4.8,C0+9.1,C1-.4].some(r=>Math.abs(a-r)<.3),dg=th*180/Math.PI;
+  const stripe=dg>18&&dg<34;let b=dg>60&&dg<125?1:dg<10?-1:0;if(rib)b-=1;if(p.sag&&((x*3+y*5)%7===0))b-=1;usP(x,y,stripe?G.canS:G.can,b)}
+ // the visible end of the cover: v 0 the front (the driver's side, a dark mouth), v 1 the rear (the mouth shows crates inside)
+ {const ce=vis>0?C1:C0;usPart();for(let rho=0;rho<=1.001;rho+=.05)for(let th=0;th<=Math.PI;th+=.03){const q=W(ce,CR*rho*Math.cos(th),ch0+CH*rho*Math.sin(th)*(1-p.sag*.5)),x=Math.floor(q[0]+.5),y=Math.floor(q[1]+.5);
+   if(rho>.8)usP(x,y,G.can,rho>.93?0:-1);else usP(x,y,G.dark,rho<.5?-1:0)}
+  if(v===1&&!p.dead){usPart();const c=W(ce,1.5,ch0),c2=W(ce,-2,ch0);msPoly([[c[0]-1,c[1]],[c[0]+3,c[1]],[c[0]+3,c[1]-3],[c[0]-1,c[1]-3]],G.crate);usF(R(c[0])+1,R(c[1])-2,'b');
+   usPart();msE(c2[0]+1,c2[1]-2,2,2.2,G.sack)}}
+ if(!p.dead&&v===0){front();pen()}
+ if(v===0){usGrp=6;tongue()}
+ // near wheels
+ usGrp=5;wheel(-6,B0+1,hubH,4.6,1,p.brk===1?1:0);if(p.brk<2)wheel(5,B0+1,hubH-.6,4,1,p.brk);
+ if(p.brk>=2){usGrp=7;flatWheel(p.dead?9:6,B0+5,4);if(p.dead){usPart();const c=Wg(2,B0+7,0);msPoly([[c[0]-3,c[1]],[c[0]+3,c[1]+1],[c[0]+4,c[1]-3],[c[0]-2,c[1]-4]],G.crate);usF(R(c[0]),R(c[1])-2,'i');
+   usPart();msE(c[0]+8,c[1]-1,2.6,2,G.sack)}}
+ // broken hoops poking out of the collapsed cover
+ if(p.dead){usGrp=3;usPart();for(const [a,bb] of [[-6,3],[0,-2]]){const q0=W(a,bb,ch0+CH*.5),q1=W(a+1,bb+1,ch0+CH+4);msL(q0[0],q0[1],q1[0],q1[1],G.woodD,0)}}
+ usGrp=0}
+
 /* ================= ICONS: monster abilities and statuses (16x16, outlined at load; added to ICONS of 06-icons.js) ================= */
 const MS_ICSRC=`
 @st-venom
@@ -758,7 +827,7 @@ mlll0lllll0llm..
  const al={'ab-barkskin':'st-bark','ab-wdive':'st-diving','ab-hsting':'ab-wsting','ab-limb':'ab-limbcrush'};for(const k in al)if(ICONS[al[k]]&&!ICONS[k]){ICONS[k]=ICONS[al[k]];try{if(typeof icCss==='function')icCss(k)}catch(e){}}})();
 
 /* ================= API: build, cache ================= */
-const MSD={adder:msAdder,viper:msViper,gserpent:msGserpent,ent:(v,st,fr,va)=>msEnt(v,st,fr,va,MS_ENT),elder:msElder,thorn:msThorn,ogre:(v,st,fr,va)=>msOgre(v,st,fr,va,0),aogre:msAogre,wyvern:(v,st,fr,va)=>msWyvern(v,st,fr,va,1.1),hatch:msHatch};
+const MSD={adder:msAdder,viper:msViper,gserpent:msGserpent,ent:(v,st,fr,va)=>msEnt(v,st,fr,va,MS_ENT),elder:msElder,thorn:msThorn,ogre:(v,st,fr,va)=>msOgre(v,st,fr,va,0),aogre:msAogre,wyvern:(v,st,fr,va)=>msWyvern(v,st,fr,va,1.1),hatch:msHatch,wagon:msWagon};
 const MS_VAR={attack:1,cast:1};
 function msBuild(kind,face,st,fr,va){if(typeof document==='undefined')return null;const K=MSK[kind],t0=typeof performance!=='undefined'?performance.now():0,v=face>=2?1:0,mir=face===1||face===2;
  if(typeof usGrid!=='function'||typeof usResolve!=='function')return null;msBegin(K);
@@ -774,7 +843,7 @@ function monsterSpriteWarm(u,faces){const k=monsterKind(u);if(!k||!MSD[k])return
 function monsterSpriteBox(u){const i=monsterInfo(u);return i.kind?{w:i.wide*2,h:i.top}:null}
 
 /* ================= PORTRAITS: a 32x32 window on the figure's front view (idle), over the foes' portrait ground ================= */
-const MS_PT={adder:[6,-9],viper:[3,-15],gserpent:[20,-40],thorn:[0,-15],ent:[2,-55],elder:[2,-60],ogre:[7,-45],aogre:[7,-47],wyvern:[34,-54],hatch:[11,-22]};
+const MS_PT={adder:[6,-9],viper:[3,-15],gserpent:[20,-40],thorn:[0,-15],ent:[2,-55],elder:[2,-60],ogre:[7,-45],aogre:[7,-47],wyvern:[34,-54],hatch:[11,-22],wagon:[1,-11]};
 function msKindOfKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?msKindOfId(x,EN[x]):MSK[x]?x:null;if(x.def)return monsterKind(x);if(x.n&&typeof EN==='object'){const k=msEnKey(x);return k?msKindOfId(k,x):null}return null}
 /* the wyvern's portrait: a head-and-shoulders bust drawn at portrait scale (the battle sprite's head is too small to crop) */
 function msWyPortrait(){if(typeof usBeginAt!=='function')return null;const W=MSW,BD=(x,y)=>((x+y)&1)?0:-1;usBeginAt(32,32,0,0);usGrp=5;
@@ -784,7 +853,7 @@ function msWyPortrait(){if(typeof usBeginAt!=='function')return null;const W=MSW
  msWyHead([18,15],.4,1.12,0,0,0,true,BD);usGrp=0;return usResolve(usG,true)}
 const MS_PTD={wyvern:msWyPortrait};
 function monsterPortrait(key){if(typeof document==='undefined')return null;const k=msKindOfKey(key);if(!k||!MSD[k])return null;let c=MS.pt.get(k);if(c!==undefined)return c;c=null;
- try{const s=MS_PTD[k]?{cv:MS_PTD[k](),ax:0,ay:0,own:1}:monsterSpriteOf(k,0,'idle',0,''),cv=pxCanvas(32,32);if(s&&s.cv&&cv){const q=cv.getContext('2d'),bg0=PAL.f,bg1=PAL['1'];q.fillStyle=bg0;q.fillRect(0,0,32,32);q.fillStyle=bg1;for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)q.fillRect(x,y,1,1);
+ try{const s=MS_PTD[k]?{cv:MS_PTD[k](),ax:0,ay:0,own:1}:monsterSpriteOf(k,0,'idle',0,''),cv=pxCanvas(32,32);if(s&&s.cv&&cv){const q=cv.getContext('2d'),al=MSK[k].ally,bg0=al?PAL['3']:PAL.f,bg1=PAL[al?'2':'1'];q.fillStyle=bg0;q.fillRect(0,0,32,32);q.fillStyle=bg1;for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)q.fillRect(x,y,1,1);
   const o=s.own?[16,16]:MS_PT[k]||[0,-16];q.imageSmoothingEnabled=false;q.drawImage(s.cv,16-o[0]-s.ax,16-o[1]-s.ay);c=cv}}catch(e){c=null}
  MS.pt.set(k,c);return c}
 function monsterPortraitURL(key){const k=msKindOfKey(key);if(!k)return'';let u=MS.ptu.get(k);if(u!==undefined)return u;u='';try{const c=monsterPortrait(key);if(c)u=c.toDataURL()}catch(e){u=''}MS.ptu.set(k,u);return u}

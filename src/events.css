@@ -1,0 +1,50 @@
+/* ================= EVENT CARDS (17-events.js) =================
+   #sheetBody.evt: a vignette (pixel scene, integer scale set inline as --evw/--evh) with the merc involved, then the text and the
+   choices as large touch buttons. Landscape: scene left, story right. Tall: scene on top. */
+#sheetBody.evt{max-width:880px;padding:8px 10px 10px}
+.ev{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start}
+.ev-art{position:relative;width:var(--evw);height:var(--evh);flex:none;line-height:0;background:#0b1514;box-shadow:0 0 0 2px #0b1514,0 0 0 4px #35554f,0 0 0 6px #0b1514;margin:6px}
+.ev-scene{display:block;width:var(--evw);height:var(--evh);image-rendering:pixelated;image-rendering:crisp-edges;image-rendering:pixelated}
+.ev-kind{position:absolute;left:0;top:0;padding:3px 8px 4px;background:#0b1514d9;color:var(--brass);font-family:var(--pxfont);font-size:.9rem;line-height:1;letter-spacing:.04em;text-transform:uppercase}
+.ev-who{position:absolute;left:6px;bottom:6px;display:flex;align-items:flex-end;gap:6px;line-height:1.05}
+.ev-who .ptr{box-shadow:0 0 0 2px #0b1514,0 0 0 4px #d1a94e,0 0 0 6px #0b1514}
+.ev-who>span:not(.ptr){display:flex;flex-direction:column;padding:2px 6px 3px;background:#0b1514d9;font-family:var(--pxfont);font-size:1.02rem;color:var(--vellum)}
+.ev-who small{font-family:'Alegreya Sans',system-ui,sans-serif;font-size:.72rem;color:var(--dim)}
+.ev-main{min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:4px}
+.ev-main h2{font-size:1.7rem;line-height:1;color:var(--brass);margin:0}
+.ev-txt p{margin:0 0 6px;line-height:1.3;font-size:.98rem}
+.ev-txt b{color:var(--vellum)}
+.ev-opts{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+#sheetBody .ev-opt{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;min-height:52px;width:100%;padding:4px 12px 5px;text-align:left;line-height:1.1}
+.ev-ot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:1.08rem}
+.ev-od{display:block;font-family:'Alegreya Sans',system-ui,sans-serif;font-weight:500;font-size:.8rem;line-height:1.2;color:#b9ad8f}
+.ev-bdg{display:inline-block;padding:1px 6px 2px;background:#3a2c12;color:#f3d98b;box-shadow:inset 0 0 0 1px #8a6a2a;font-size:.78rem;line-height:1.1;letter-spacing:.03em}
+.ev-bdg.no{background:#0b1514;color:#7d8f86;box-shadow:inset 0 0 0 1px #35554f}
+#sheetBody .ev-opt.ev-lock .ev-od{color:#4d5a5c}
+#sheetBody .ev-go{min-height:52px;font-size:1.15rem}
+.ev-fx{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px}
+.ev-fx li{padding:2px 8px 3px;background:#0b1514;box-shadow:inset 0 0 0 1px #35554f;font-size:.86rem;line-height:1.15;color:var(--vellum)}
+.ev-fx li.good{color:#9fe0cd;box-shadow:inset 0 0 0 1px #2c6a5d}
+.ev-fx li.bad{color:#ef8a78;box-shadow:inset 0 0 0 1px #5a1f1c}
+.ev-none{margin:0}
+.ev-done .ev-txt{min-height:1em}
+.ev-orule{padding:6px 8px;background:#0b1514;box-shadow:inset 0 0 0 1px #8a6a2a}
+.ev-orule b{color:var(--brass)}
+/* the scene breathes in: a stepped reveal (off with reduced motion) */
+#app:not(.rm) .ev-scene{animation:ev-in .36s steps(6,end)}
+#app:not(.rm) .ev-done .ev-fx li{animation:ev-pop .2s steps(3,end) backwards}
+#app:not(.rm) .ev-done .ev-fx li:nth-child(2){animation-delay:.06s}#app:not(.rm) .ev-done .ev-fx li:nth-child(3){animation-delay:.12s}#app:not(.rm) .ev-done .ev-fx li:nth-child(n+4){animation-delay:.18s}
+@keyframes ev-in{from{opacity:0;clip-path:inset(0 0 100% 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+@keyframes ev-pop{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ev-scene,.ev-fx li{animation:none!important}}
+/* tall screens: scene on top, centred */
+@media (max-aspect-ratio:1/1){.ev{grid-template-columns:minmax(0,1fr)}.ev-art{justify-self:center}}
+/* short landscape (phones): tighter type so the choices fit */
+@media (max-height:440px){#sheetBody.evt{padding:6px 8px 8px}.ev{gap:8px}.ev-main{gap:4px;padding-top:2px}.ev-main h2{font-size:1.4rem}.ev-txt p{font-size:.9rem;margin-bottom:4px;line-height:1.22}
+ #sheetBody .ev-opt{min-height:46px;padding:3px 10px 4px}.ev-ot{font-size:1rem}.ev-od{font-size:.74rem}.ev-who>span:not(.ptr){font-size:.92rem}}
+.ev-who2{left:auto;right:6px}
+.ev-who2>span:not(.ptr){align-items:flex-end}
+.ev-chose{font-family:var(--pxfont);font-size:.95rem;color:var(--dim);letter-spacing:.02em}
+.ev-chose::before{content:'› '}
+.ev-sm.ev-two .ev-who small{display:none}
+.ev-sm.ev-two .ev-who>span:not(.ptr){max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;font-size:.9rem}

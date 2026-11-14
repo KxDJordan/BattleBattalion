@@ -15,6 +15,38 @@ const MPKEY=['X','v','B','m','o','7','d','q'];            // fallback terrain co
 const MPSIZE=['','Hamlet','Town','City'];
 
 /* ---- helpers ---- */
+/* ---- Phase 7 (look): shared readers of the living world, used by the world view, minimap, map screen and town panels.
+   Contract markers come from the contracts agent's ctrMarks(c) ([{x,y,kind,label}]) when it exists, else the old hunt/deliver
+   rule. Normalised to {x,y,kind:'lair'|'target'|'turnin',label,town:index|-1,f}; cached until the contract changes. */
+const LKM={c:null,sig:'',L:[]};
+function lkTownAt(x,y){if(!G||!G.towns)return -1;for(let i=0;i<G.towns.length;i++){const t=G.towns[i];if(Math.abs(t.x-x)<TS*.6&&Math.abs(t.y-y)<TS*.6)return i}return -1}
+function lkCtrMarks(){const c=G&&G.contract;if(!c){LKM.c=null;LKM.L.length=0;return LKM.L}
+ const sig=(c.stage|0)+'|'+(c.done?1:0)+'|'+(c.failed?1:0)+'|'+c.x+'|'+c.y+'|'+c.to+'|'+(c.twist&&c.twist.k||'')+'|'+(G.day|0);if(LKM.c===c&&LKM.sig===sig)return LKM.L;LKM.c=c;LKM.sig=sig;const L=LKM.L;L.length=0;
+ let raw=null;if(typeof ctrMarks==='function'){try{raw=ctrMarks(c)}catch(e){raw=null}}
+ if(Array.isArray(raw)){for(const m of raw){if(!m||!(m.x===m.x)||!(m.y===m.y))continue;const ti=m.town!=null&&G.towns[m.town]?m.town:lkTownAt(m.x,m.y),k=String(m.kind||'');
+   const kind=/lair|nest|den/.test(k)?'lair':ti>=0&&!/target|ambush|foe|beast|bounty|relic|ruin/.test(k)?'turnin':'target';
+   L.push({x:ti>=0&&kind==='turnin'?G.towns[ti].x:m.x,y:ti>=0&&kind==='turnin'?G.towns[ti].y:m.y,kind,label:m.label||(kind==='turnin'?'Contract':kind==='lair'?'Lair':'Target'),town:kind==='turnin'?ti:-1,f:m.f||c.f})}return L}
+ if(c.type==='hunt'&&!c.done){L.push({x:c.x,y:c.y,kind:'lair',label:'Lair',town:-1,f:c.f});return L}
+ const ti=c.type==='deliver'?c.to:c.town,t=G.towns[ti];if(t)L.push({x:t.x,y:t.y,kind:'turnin',label:c.type==='deliver'?'Delivery':'Pay',town:ti,f:c.f});return L}
+/* the contract's turn-in town for town i (ctrTurnInAt) with the old rule as fallback */
+function lkTurnInAt(i){const c=G&&G.contract;if(!c)return false;if(typeof ctrTurnInAt==='function'){try{return!!ctrTurnInAt(i)}catch(e){}}return(c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i)}
+/* one short status line for the contract in hand */
+function lkCtrStatus(c){c=c||G&&G.contract;if(!c)return'';if(typeof ctrStatus==='function'){try{const s=ctrStatus(c);if(s)return String(s)}catch(e){}}
+ const t=G.towns[c.town];return c.type==='deliver'?'Deliver to '+(G.towns[c.to]?G.towns[c.to].name:'?')+'.':c.done?'Done. Return to '+(t?t.name:'the town')+' for your pay.':'Find the lair marked on the map.'}
+function lkCtype(c){const T=typeof CTYPES==='object'&&CTYPES&&c?CTYPES[c.type]:null;return T||null}
+function lkCtrIcon(c){const T=lkCtype(c),n=T&&T.icon;if(n&&typeof icHas==='function'&&icHas(n))return n;const k='ct-'+(c&&c.type||'deliver');return typeof icHas==='function'&&icHas(k)?k:'contract'}
+/* houses, ownership, situations */
+function lkHouse(id){if(!G||!Array.isArray(G.houses))return null;for(const h of G.houses)if(h&&h.id===id)return h;return null}
+function lkFacName(f){const h=lkHouse(f);if(h)return h.n||h.short||f;if(f==='free')return'Free towns';const F=typeof FACT==='object'&&FACT&&FACT[f];return F?F.n||f:String(f||'')}
+function lkSits(t){return t&&Array.isArray(t.sit)?t.sit.filter(s=>s&&(s.k||typeof s==='string')):[]}
+function lkSitDef(k){const S=typeof SITS==='object'&&SITS?SITS[k]:null;return S||{n:k?k[0].toUpperCase()+k.slice(1):'',d:''}}
+function lkSitIcon(k){const S=lkSitDef(k);if(S&&S.icon&&typeof icHas==='function'&&icHas(S.icon))return S.icon;return typeof icHas==='function'&&icHas('sit-'+k)?'sit-'+k:'info'}
+function lkRepTier(f){if(typeof repTier==='function'){try{const r=repTier(f);if(r&&r.k)return r}catch(e){}}const v=G&&G.rep&&typeof G.rep[f]==='number'?G.rep[f]:0;
+ return v<=-60?{k:'hostile',n:'Hostile',min:-100}:v<=-20?{k:'cold',n:'Cold',min:-59}:v<20?{k:'neutral',n:'Neutral',min:-19}:v<60?{k:'friendly',n:'Friendly',min:20}:{k:'allied',n:'Allied',min:60}}
+function lkRep(f){return G&&G.rep&&typeof G.rep[f]==='number'?G.rep[f]:0}
+function lkHostile(i){if(typeof townHostile==='function'){try{return!!townHostile(i)}catch(e){}}return false}
+function lkPriceK(i,kind){if(typeof townPriceK==='function'){try{const k=+townPriceK(i,kind);if(k>0&&isFinite(k))return k}catch(e){}}return 1}
+
 function mpHash(x,y,s){let n=Math.imul(x+11,374761393)+Math.imul(y+7,668265263)+Math.imul((s|0)+3,1274126177)|0;n=Math.imul(n^n>>>13,1274126177);return((n^n>>>16)>>>0)/4294967296}
 function mpSeen(tx,ty){if(tx<0||ty<0||tx>=WN||ty>=WN)return false;if(typeof seenAt==='function'){try{return!!seenAt(tx,ty)}catch(e){return true}}return true}
 function mpSeenW(wx,wy){return mpSeen(Math.floor(wx/TS),Math.floor(wy/TS))}
@@ -73,7 +105,16 @@ const MPS={
  portal:['..000..','.0CCC0.','0CDDDC0','0CDrDC0','0CDFDC0','0CDDDD0','.0CDD0.','..000..'],
  portal2:['..000..','.0CCC0.','0CDDDC0','0CDFDC0','0CDrDC0','0CDDDD0','.0CDD0.','..000..'],
  ruin:['.00....','0qp0.0.','0qp00q0','0qp00p0','0qp00p0','0nnnnn0','.00000.'],
- cross:['00...00','0g0.0g0','.0g0g0.','..0g0..','.0g0g0.','0g0.0g0','00...00']
+ cross:['00...00','0g0.0g0','.0g0g0.','..0g0..','.0g0g0.','0g0.0g0','00...00'],
+ nest:['...000...','..0jkj0..','.0jkkjj0.','0jkj00ji0','0jk0000i0','0iiiiiii0','.0000000.'],
+ target:['...0...','..0g0..','.0ghg0.','0ghrhg0','.0ghg0.','..0g0..','...0...'],
+ own:['00....','0P00..','0PPQ0.','0PQQ0.','0P00..','0i0...','0i0...','.0....'],
+ 'sit-raided':['..0....','.0E0.0.','0EyE0E0','0EyyEE0','0EeyyE0','.0EEE0.','..000..'],
+ 'sit-festival':['0.....0','0g0.0x0','0ggxxx0','0.0y0.0','0..0..0','0.....0','0.....0'],
+ 'sit-famine':['..0.0..','.0d0d0.','.0dcd0.','..0c0..','00000.0','0kjjji0','.00000.'],
+ 'sit-plague':['.00000.','0GGGGG0','0GgGgG0','0GGgGG0','0GgGgG0','0GGGGG0','.0i0...'],
+ 'sit-boom':['.0000..','0dddc0.','0cccb00','0dddcA0','0cccbA0','0dddcB0','.00000.'],
+ 'sit-siege':['0.....0','00...00','.0q.q0.','..0q0..','.0q.q0.','0o0.0o0','00...00']
 };
 const MPS_CO=MPS.company.slice();
 function mpHalo(r){return(function(r){const w=r[0].length,p=['.'.repeat(w+2)].concat(r.map(x=>'.'+x+'.'),['.'.repeat(w+2)]),h=p.length,on=(x,y)=>y>=0&&y<h&&x>=0&&x<w+2&&p[y][x]!=='.';
@@ -154,6 +195,26 @@ function mpWorldSrc(){const riv=W.river&&W.river.length===WN*WN?W.river:null,roa
  return{t:(x,y)=>W.tiles[y*WN+x],seen:mpSeen,river:riv?(x,y)=>riv[y*WN+x]:null,road:road?(x,y)=>road[y*WN+x]:null,roads:MP.roads}}
 function mpTerrain(){const key=[G.seed,WN,MP.tp,MP.roads?1:0,W.fogRev||0,typeof worldKeyColor==='function'?1:0,typeof seenAt==='function'?1:0].join();
  if(MP.terr&&MP.terrKey===key&&MP.terrW===W)return MP.terr;MP.terrKey=key;MP.terrW=W;MP.terr=mpKeysToCanvas(mpPaint(WN,MP.tp,mpWorldSrc()));return MP.terr}
+/* ---- house territory: each charted land tile belongs to the nearest town within reach (9 leagues); a wash of the owner's colour,
+   a diagonal hatch and a firm border where two owners meet. Cached per owner map and fog. */
+function mpTerrOwner(){const T=G.towns,N=WN*WN,own=new Int16Array(N).fill(-1),best=new Float32Array(N).fill(1e9),R=9;
+ T.forEach((t,i)=>{const tx=Math.floor(t.x/TS),ty=Math.floor(t.y/TS);for(let y=Math.max(0,ty-R);y<=Math.min(WN-1,ty+R);y++)for(let x=Math.max(0,tx-R);x<=Math.min(WN-1,tx+R);x++){const d=(x-tx)*(x-tx)+(y-ty)*(y-ty);if(d>R*R)continue;const k=y*WN+x;if(W.tiles[k]===0)continue;if(d<best[k]){best[k]=d;own[k]=i}}});return own}
+function mpTerritory(){if(!Array.isArray(G.houses)||!G.houses.length||typeof BANNERC!=='object')return null;
+ const sig=G.towns.map(t=>t.own||'').join(',')+'|'+G.houses.map(h=>h.id+h.c1+h.c2).join(',');const key=[G.seed,WN,MP.tp,W.fogRev||0,sig].join();
+ if(MP.tc&&MP.tcKey===key&&MP.tcW===W)return MP.tc;MP.tcKey=key;MP.tcW=W;const tp=MP.tp,S=WN*tp,c=pxCanvas(S,S);if(!c||!c.getContext)return MP.tc=null;
+ const own=mpTerrOwner(),fk=new Array(G.towns.length),col={},rgb=(k,a)=>{const v=mpRGB(k);return((a<<24)|(v[2]<<16)|(v[1]<<8)|v[0])>>>0};
+ G.towns.forEach((t,i)=>{const h=t.own&&t.own!=='free'?lkHouse(t.own):null;fk[i]=h?h.id:t.own==='free'?'free':null;if(h&&!col[h.id]){const r=(BANNERC[h.c1]||BANNERC.p).r;col[h.id]={wash:rgb(r[1],62),hatch:rgb(r[1],125),edge:rgb(r[0],230),in2:rgb(r[1],170)}}});
+ col.free={wash:0,hatch:rgb('n',70),edge:rgb('n',150),in2:rgb('m',90)};
+ const q=c.getContext('2d'),im=q.createImageData(S,S),d=new Uint32Array(im.data.buffer),fo=k=>k>=0?fk[own[k]]:null;
+ for(let ty=0;ty<WN;ty++)for(let tx=0;tx<WN;tx++){const k=ty*WN+tx;if(own[k]<0||!mpSeen(tx,ty))continue;const f=fo(k),C=f&&col[f];if(!C)continue;
+  const nb=[tx>0?fo(k-1):null,tx<WN-1?fo(k+1):null,ty>0?fo(k-WN):null,ty<WN-1?fo(k+WN):null];
+  for(let j=0;j<tp;j++)for(let i=0;i<tp;i++){const px=tx*tp+i,py=ty*tp+j;let v=C.wash;
+   if(((px+py)&3)===0)v=C.hatch;
+   const eL=i===0&&nb[0]!==f,eR=i===tp-1&&nb[1]!==f,eU=j===0&&nb[2]!==f,eD=j===tp-1&&nb[3]!==f;
+   if(eL||eR||eU||eD)v=(f==='free'&&((px+py)&1))?0:C.edge;else if((i===1&&nb[0]!==f)||(i===tp-2&&nb[1]!==f)||(j===1&&nb[2]!==f)||(j===tp-2&&nb[3]!==f))v=C.in2;
+   if(v)d[py*S+px]=v}}
+ q.putImageData(im,0,0);return MP.tc=c}
+function mpOwnRows(h){const r=(BANNERC[h.c1]||BANNERC.p).r;return MPS.own.map(x=>x.replace(/P/g,r[1]).replace(/Q/g,r[0]))}
 /* centre of the widest unseen region (tile coords) for the "Terra Incognita" caption, or null */
 function mpIncognita(){const key=G.seed+','+WN+','+(W.fogRev||0);if(MP.incKey===key)return MP.inc;MP.incKey=key;MP.inc=null;if(typeof seenAt!=='function')return null;
  const N=WN*WN,dist=new Int16Array(N).fill(-1),q=[];for(let i=0;i<N;i++)if(mpSeen(i%WN,(i/WN)|0)){dist[i]=0;q.push(i)}
@@ -176,7 +237,8 @@ function mpRecalc(){MP.legs=[];let a={x:G.p.x,y:G.p.y};for(let i=0;i<MP.wps.leng
 function mapRouteHours(){let h=0;for(const l of MP.legs)h+=l.hours;return h}
 function mpWpFromHit(h){if(h.kind==='town'){const t=G.towns[h.i];return{x:t.x,y:t.y,dest:{type:'town',i:h.i},kind:'town',ref:h.i,label:t.name}}
  if(h.kind==='portal'){const p=G.portals.find(p=>p.id===h.id);return p?{x:p.x,y:p.y,dest:{type:'portal',id:p.id},kind:'portal',ref:p.id,label:'Rift'}:null}
- if(h.kind==='lair'){const c=G.contract;return{x:c.x,y:c.y,dest:null,kind:'lair',ref:0,label:'Lair'}}
+ if(h.kind==='lair')return{x:h.x,y:h.y,dest:null,kind:'lair',ref:0,label:h.label||'Lair'};
+ if(h.kind==='nest')return{x:h.x,y:h.y,dest:null,kind:'nest',ref:h.id,label:'Nest'};
  if(h.kind==='ruin')return{x:h.x,y:h.y,dest:typeof siteSheet==='function'?{type:'site',id:h.id}:null,kind:'ruin',ref:h.id,label:typeof h.n==='string'&&h.n?h.n:'Ruins'};
  return{x:h.x,y:h.y,dest:null,kind:'land',ref:0,label:MPTERR[tileAt(h.x,h.y)]||'Open ground'}}
 function mpSame(a,b){return!!a&&!!b&&a.kind===b.kind&&(a.kind==='land'?Math.hypot(a.x-b.x,a.y-b.y)<TS*.5:a.ref===b.ref)}
@@ -206,7 +268,7 @@ function mapRouteQueue(){return MP.queue?MP.queue.slice():[]}
 /* the route already under way, as planner stops (so the map opens showing it) */
 function mpCurrentRoute(){const out=[],lab=d=>d&&d.type==='town'&&G.towns[d.i]?{kind:'town',ref:d.i,label:G.towns[d.i].name}:d&&d.type==='portal'?{kind:'portal',ref:d.id,label:'Rift'}:d&&d.type==='site'?{kind:'ruin',ref:d.id,label:(((G.sites||[]).find(s=>s.id===d.id)||{}).n)||'Ruins'}:null;
  const add=(x,y,d,l)=>{if(!isFinite(x)||!isFinite(y))return;const k=lab(d)||{kind:'land',ref:0,label:l||MPTERR[tileAt(x,y)]||'Open ground'};
-  const c=G.contract;if(k.kind==='land'&&c&&c.type==='hunt'&&!c.done&&Math.hypot(c.x-x,c.y-y)<2){k.kind='lair';k.label='Lair'}out.push({x,y,dest:d||null,kind:k.kind,ref:k.ref,label:k.label})};
+  if(k.kind==='land'&&G.contract)for(const m of lkCtrMarks())if(m.kind!=='turnin'&&Math.hypot(m.x-x,m.y-y)<2){k.kind='lair';k.label=m.label||'Lair'}out.push({x,y,dest:d||null,kind:k.kind,ref:k.ref,label:k.label})};
  if(MP.queue&&MP.queue.length){for(const w of MP.queue)add(w.x,w.y,w.dest,w.label);return out}
  if(G.moving&&G.path&&G.path.length){const e=G.path[G.path.length-1];add(e.x,e.y,G.dest)}
  if(Array.isArray(G.route))for(const w of G.route){if(!w)continue;const l=out[out.length-1];if(l&&Math.hypot(l.x-w.x,l.y-w.y)<2)continue;add(+w.x,+w.y,w.dest)}
@@ -270,7 +332,7 @@ function mpDots(q,pts,col,phase,seen){const us=MP.us,step=7*us;let acc=phase?ste
  for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],L=Math.hypot(b.x-a.x,b.y-a.y);if(L<.01)continue;let t=step-acc;
   while(t<=L){const x=Math.round((a.x+(b.x-a.x)*t/L)/us)*us,y=Math.round((a.y+(b.y-a.y)*t/L)/us)*us;const gx=Math.round(x/(3*us)),gy=Math.round(y/(3*us));let hit=false;if(seen){for(let j=-1;j<=1&&!hit;j++)for(let i2=-1;i2<=1;i2++)if(seen.has((gx+i2)+','+(gy+j))){hit=true;break}}
    if(!hit){if(seen)seen.add(gx+','+gy);mpFill(q,'0',x-2*us,y-2*us,4*us,4*us);mpFill(q,col,x-us,y-us,2*us,2*us)}t+=step}acc=(acc+L)%step}}
-function mpContractMark(){const c=G.contract;if(!c)return null;if(c.type==='hunt'&&!c.done)return{kind:'lair',x:c.x,y:c.y};const t=G.towns[c.type==='deliver'?c.to:c.town];return t?{kind:'turnin',x:t.x,y:t.y,town:true}:null}
+function mpContractMark(){const L=G.contract?lkCtrMarks():[];for(const m of L)if(m.kind!=='turnin')return{kind:m.kind,x:m.x,y:m.y};for(const m of L)return{kind:'turnin',x:m.x,y:m.y,town:true};return null}
 function mpKnownPortals(){return(G.portals||[]).filter(p=>mpSeenW(p.x,p.y))}
 function mpKnownRuins(){return(Array.isArray(G.sites)?G.sites:[]).filter(s=>s&&(s.kind==='ruin'||!s.kind)&&mpSeenW(s.x,s.y))}
 function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!q||!G||!W)return;
@@ -283,6 +345,7 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  /* the sheet, with a neatline */
  mpFill(q,'m',o.x-us,o.y-us,Wp+4*us,Wp+4*us);mpFill(q,'0',o.x-2*us,o.y-2*us,Wp+4*us,Wp+4*us);mpFill(q,'c',o.x-us,o.y-us,Wp+2*us,Wp+2*us);
  if(terr)q.drawImage(terr,o.x,o.y,Wp,Wp);else mpFill(q,'v',o.x,o.y,Wp,Wp);
+ if(MP.terrOn!==false){const tc=mpTerritory();if(tc)q.drawImage(tc,o.x,o.y,Wp,Wp)}
  /* terra incognita caption */
  const inc=mpIncognita();if(inc){const words=['Terra','Incognita'],r=inc.r*MP.tp*z,one=mpTextW('Terra Incognita')*us<r*1.7;
   const lines=one?['Terra Incognita']:words;if(mpTextW(lines[0]==='Terra'?'Incognita':lines[0])*us<r*1.9){let ty=o.y+Math.round(inc.y*MP.tp*z)-Math.round(lines.length*MPTH*us/2);
@@ -293,11 +356,15 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  /* sites */
  for(const s of mpKnownRuins())mpAt(q,'ruin',MPS.ruin,X(s.x),Y(s.y),'c');
  for(const p of mpKnownPortals())mpAt(q,fr&1?'portal2':'portal',fr&1?MPS.portal2:MPS.portal,X(p.x),Y(p.y),'c');
+ if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)){const sx=X(n.x),sy=Y(n.y),ti=typeof waNestTier==='function'?waNestTier(n):1;mpAt(q,'nest',MPS.nest,sx,sy,'c');for(let i=0;i<ti;i++){mpFill(q,'0',sx-4*us+i*3*us,sy+4*us,3*us,3*us);mpFill(q,'g',sx-3*us+i*3*us,sy+5*us,us,us)}}
  G.towns.forEach(t=>{const s=mpTownSize(t);mpAt(q,s===1?'hamlet':s===3?'city':'town',mpTownRows(t),X(t.x),Y(t.y),'c')});
+ G.towns.forEach(t=>{const sx=X(t.x),sy=Y(t.y),hw=Math.floor(mpTownRows(t)[0].length/2),h=t.own&&t.own!=='free'?lkHouse(t.own):null;
+  if(h&&typeof BANNERC==='object')mpSpr(q,'own'+h.id+h.c1,mpOwnRows(h),sx-(hw+6)*us,sy-(hw+6)*us);
+  const S=lkSits(t);for(let j=0;j<S.length&&j<3;j++){const k='sit-'+(S[j].k||S[j]);if(MPS[k])mpSpr(q,k,MPS[k],sx+(hw+1)*us+j*8*us,sy-(hw+5)*us)}});
  if(MP.labels){const L=mpLabels();for(const b of L){if(!b)continue;const c=mpTextCv(G.towns[b.i].name,'0','l',us);if(c)q.drawImage(c,o.x+b.x,o.y+b.y)}}
  /* contract */
- const cm=mpContractMark();if(cm){const sx=X(cm.x),sy=Y(cm.y);if(cm.town){const th=mpTownRows({size:mpTownSize(G.towns[G.contract.type==='deliver'?G.contract.to:G.contract.town])}).length;mpAt(q,'turnin',MPS.turnin,sx+6*us,sy-(Math.floor(th/2)+3+(fr&1))*us,'c')}
-  else{mpAt(q,'lair',MPS.lair,sx,sy,'c');if(fr&1){const r=7*us;q.fillStyle=PAL.g;q.fillRect(sx-r,sy-r,2*us,us);q.fillRect(sx-r,sy-r,us,2*us);q.fillRect(sx+r-us,sy-r,2*us,us);q.fillRect(sx+r,sy-r,us,2*us);q.fillRect(sx-r,sy+r,2*us,us);q.fillRect(sx-r,sy+r-us,us,2*us);q.fillRect(sx+r-us,sy+r,2*us,us);q.fillRect(sx+r,sy+r-us,us,2*us)}}}
+ for(const cm of (G.contract?lkCtrMarks():[])){const sx=X(cm.x),sy=Y(cm.y);if(cm.kind==='turnin'){const th=mpTownRows({size:mpTownSize(G.towns[cm.town])}).length;mpAt(q,'turnin',MPS.turnin,sx+6*us,sy-(Math.floor(th/2)+3+(fr&1))*us,'c')}
+  else{mpAt(q,cm.kind==='lair'?'lair':'target',cm.kind==='lair'?MPS.lair:MPS.target,sx,sy,'c');if(fr&1){const r=7*us;q.fillStyle=PAL.g;q.fillRect(sx-r,sy-r,2*us,us);q.fillRect(sx-r,sy-r,us,2*us);q.fillRect(sx+r-us,sy-r,2*us,us);q.fillRect(sx+r,sy-r,us,2*us);q.fillRect(sx-r,sy+r,2*us,us);q.fillRect(sx-r,sy+r-us,us,2*us);q.fillRect(sx+r-us,sy+r,2*us,us);q.fillRect(sx+r,sy+r-us,us,2*us)}}}
  /* selection brackets */
  const s=MP.sel;if(s){const sx=X(s.x),sy=Y(s.y),r=(s.kind==='town'?Math.floor(mpTownRows(G.towns[s.ref]).length/2)+3:6)*us+(fr&1?us:0),L=3*us,br=(x,y,dx,dy)=>{mpFill(q,'0',x-us,y-us,L*1+2*us,3*us);mpFill(q,'0',x-us,y-us,3*us,L+2*us);q.fillStyle=PAL.e;q.fillRect(x,y,L,us);q.fillRect(x,y,us,L)};
   q.save();q.translate(sx,sy);for(const [mx2,my2] of [[1,1],[-1,1],[1,-1],[-1,-1]]){q.save();q.scale(mx2,my2);br(-r,-r);q.restore()}q.restore()}
@@ -334,7 +401,8 @@ function mpHit(sx,sy){const o=mpOrigin(),k=mpK(),d=MP.d,us=MP.us,R=Math.max(13*d
  let bi=-1,bd=R;G.towns.forEach((t,i)=>{const dd=near(t.x,t.y);if(dd<bd){bd=dd;bi=i}});
  if(bi<0&&MP.labels){const L=mpLabels();for(const b of L)if(b&&sx>=o.x+b.x&&sx<o.x+b.x+b.w&&sy>=o.y+b.y&&sy<o.y+b.y+b.h){bi=b.i;break}}
  if(bi>=0)return{kind:'town',i:bi};
- const c=G.contract;if(c&&c.type==='hunt'&&!c.done&&near(c.x,c.y)<R)return{kind:'lair'};
+ if(G.contract)for(const m of lkCtrMarks())if(m.kind!=='turnin'&&near(m.x,m.y)<R)return{kind:'lair',x:m.x,y:m.y,label:m.label};
+ if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)&&near(n.x,n.y)<R)return{kind:'nest',id:n.id,x:n.x,y:n.y};
  for(const p of mpKnownPortals())if(near(p.x,p.y)<R)return{kind:'portal',id:p.id};
  for(const s of mpKnownRuins())if(near(s.x,s.y)<R)return{kind:'ruin',id:s.id,x:s.x,y:s.y,n:s.n};
  const wx=(sx-o.x)/k,wy=(sy-o.y)/k;if(wx<0||wy<0||wx>=WN*TS||wy>=WN*TS)return{kind:'off'};
@@ -377,6 +445,9 @@ function mpLegendHTML(){const it=(sw,n)=>`<span class="mp-li">${sw}<b>${n}</b></
   +it(mpTerrSwatch(1,'river'),'River'+(riv?'':' *'))+it(mpTerrSwatch(1,'road'),'Road'+(road?'':' *'))+(typeof seenAt==='function'?it(mpTerrSwatch(1,'fog'),'Uncharted'):'')
   +it(mpSwatch('hamlet',MPS.hamlet),'Hamlet')+it(mpSwatch('town',MPS.town),'Town')+it(mpSwatch('city',MPS.city),'City')
   +it(mpSwatch('company',MPS.company),'Company')+it(mpSwatch('lair',MPS.lair),'Contract lair')+it(mpSwatch('turnin',MPS.turnin),'Contract pay')
+  +it(mpSwatch('target',MPS.target),'Contract target')+it(mpSwatch('nest',MPS.nest),'Nest')
+  +(Array.isArray(G.houses)&&typeof BANNERC==='object'?G.houses.map(h=>it(mpSwatch('own'+h.id+h.c1,mpOwnRows(h)),mpEsc(h.n||h.short))).join(''):'')
+  +(typeof SITS==='object'?Object.keys(SITS).filter(k=>MPS['sit-'+k]).map(k=>it(mpSwatch('sit-'+k,MPS['sit-'+k]),mpEsc(SITS[k].n))).join(''):'')
   +it(mpSwatch('portal',MPS.portal),'Rift')+it(mpSwatch('ruin',MPS.ruin),'Ruin')+it(mpSwatch('pin1',mpPinRows(1)),'Route stop')+'</div>'
   +(riv&&road?'':'<div class="mp-ln">* none charted in this land yet</div>')}
 function mpTools(){const r=MP.root;if(!r)return;const b=(id,k,l)=>{const e=r.querySelector('#'+id);if(e){e.classList.toggle('on',!!MP[k]);e.setAttribute('aria-pressed',MP[k]?'true':'false')}};
@@ -385,10 +456,14 @@ function mpCard(){const s=MP.sel,c=G.contract,L=[];let title='Plan a march',tag=
  if(!s){body='<p class="mp-dim">Tap a town or any charted ground to set a destination. Tap more towns to add stops.</p>'}
  else{const leg=mpLeg(G.p.x,G.p.y,s.x,s.y),here=Math.hypot(G.p.x-s.x,G.p.y-s.y)<TS*.9,dist=Math.max(1,Math.round(Math.hypot(G.p.x-s.x,G.p.y-s.y)/TS));title=s.label;
   if(s.kind==='town'){const t=G.towns[s.ref],i=s.ref;title=t.name;tag=`<span class="pxtag${mpTownSize(t)===3?' gold':''}">${MPSIZE[mpTownSize(t)]}</span>`;
-   if(c&&c.type==='deliver'&&c.to===i)L.push('<span class="mp-good">Your delivery is due here.</span>');else if(c&&c.town===i)L.push(c.type==='hunt'&&c.done?'<span class="mp-good">Your pay is waiting here.</span>':'Your contract was posted here.');
+   if(c&&lkCtrMarks().some(m=>m.kind==='turnin'&&m.town===i))L.push('<span class="mp-good">'+mpEsc(lkCtrStatus(c))+'</span>');else if(c&&c.town===i)L.push('Your contract was posted here.');
+   if(t.own){const h=lkHouse(t.own),rt=lkRepTier(t.own);L.push((h&&typeof bannerHTML==='function'?bannerHTML(h,20,'mp-bn'):'')+'<b>'+mpEsc(lkFacName(t.own))+'</b> <span class="fx-tier t-'+rt.k+'">'+mpEsc(rt.n)+'</span>'+(lkHostile(i)?' <span class="mp-bad">markets closed to you</span>':''))}
+   for(const x of lkSits(t)){const k=x.k||x,S=lkSitDef(k);L.push((typeof pxIcon==='function'?pxIcon(lkSitIcon(k),16):'')+'<b>'+mpEsc(S.n)+'</b>'+(x.days?' <span class="mp-dim">'+x.days+(x.days===1?' day':' days')+' left</span>':''))}
    const v=[t.lastVisit,t.visited,t.seenDay,t.mv].find(x=>typeof x==='number'&&isFinite(x));
    L.push(v!=null?(v>=G.day?'Visited today':'Last visited day '+v)+(Array.isArray(t.contracts)?', '+t.contracts.length+(t.contracts.length===1?' notice':' notices')+' on the board':''):'Not yet visited')}
-  else if(s.kind==='lair'){tag='<span class="pxtag bad">Lair</span>';title=c&&c.title?c.title:'Contract lair';const f=c&&typeof FACT!=='undefined'&&FACT[c.f];L.push('Your quarry'+(f&&(f.n||f.name)?': '+mpEsc(f.n||f.name):'')+'.')}
+  else if(s.kind==='lair'){tag='<span class="pxtag bad">'+mpEsc(s.label&&s.label!=='Lair'?s.label:'Lair')+'</span>';title=c&&c.title?c.title:'Contract target';const f=c&&typeof FACT!=='undefined'&&FACT[c.f];L.push(mpEsc(lkCtrStatus(c))||'Your quarry'+(f&&(f.n||f.name)?': '+mpEsc(f.n||f.name):'')+'.')}
+  else if(s.kind==='nest'){const n=(G.nests||[]).find(q=>q.id===s.ref),F=n&&typeof FACT!=='undefined'&&FACT[n.f],ti=n&&typeof waNestTier==='function'?waNestTier(n):1;tag='<span class="pxtag bad">Nest</span>';title=(F&&F.n?F.n+' nest':'A nest');
+   L.push(['A burrow, still small.','A lair, sending out bands.','A fortified lair, raiding the towns nearby.'][ti-1]+' It grows every day it is left alone.')}
   else if(s.kind==='portal'){tag='<span class="pxtag bad">Rift</span>';const p=G.portals.find(p=>p.id===s.ref),b=p&&typeof BIO!=='undefined'&&BIO[p.realm];title=b&&b.n?'Rift to '+b.n:'A rift';L.push('Three battles with no rest beyond it.')}
   else if(s.kind==='ruin'){tag='<span class="pxtag">Ruin</span>';L.push('Old stones, long abandoned.')}
   else{tag='<span class="pxtag">'+mpEsc(MPTERR[tileAt(s.x,s.y)]||'Ground')+'</span>';title='Open ground'}

@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=9;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=10;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -66,7 +66,16 @@ const MIGRATE={
     followers (G.retinue [ids], empty) and ambitions (G.amb {cur, done, offered}, nothing yet). The roster now holds MAXROSTER (20). */
  8:g=>{const fix=m=>{if(!svObj(m))return;if(!Array.isArray(m.traits))m.traits=BG[m.bg]?migrateTraits(m):[]};
   if(Array.isArray(g.roster))g.roster.forEach(fix);if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});
-  if(!svObj(g.parts))g.parts={};if(!Array.isArray(g.retinue))g.retinue=[];if(!svObj(g.amb))g.amb={cur:null,done:[],offered:[]};return g}
+  if(!svObj(g.parts))g.parts={};if(!Array.isArray(g.retinue))g.retinue=[];if(!svObj(g.amb))g.amb={cur:null,done:[],offered:[]};return g},
+ /* v10: the living world (phase 7). Houses, territory, reputation (all neutral), town buildings, specialties and prosperity come from
+    factionsInit (15-factions.js), which reads only the world seed: loading the same old save twice gives the same houses. No nests
+    yet (G.nests = []), no situations, no wars. Old bands become plain roamers. Events start unseen and the origin is the free company.
+    Old contracts are kept (deliver and hunt stay valid). */
+ 9:g=>{if(!svFin(g.seed))throw new Error('no world seed');if(!Array.isArray(g.towns))throw new Error('no towns');g.towns=g.towns.filter(t=>svObj(t)&&svFin(t.x)&&svFin(t.y));
+  for(const t of g.towns){delete t.own;delete t.bld;delete t.spec;delete t.sit;delete t.pros}delete g.houses;delete g.rep;delete g.hrel;delete g.wars;
+  g.nests=[];g.repLog=[];factionsInit(g,{nests:false});g.news=[];g.wsim={day:Math.max(1,Math.floor(svNum(g.day,1)))};
+  if(Array.isArray(g.parties))for(const p of g.parties)if(svObj(p))p.goal='roam';
+  if(!svObj(g.evt))g.evt={seen:{},flags:{}};if(typeof g.origin!=='string')g.origin='free';return g}
 };
 // The traits an old merc gets in the v9 migration (and a merc record that has none): rolled from its background by a stream seeded by its id.
 function migrateTraits(m){return rollTraits(m.bg,mulberry(((svNum(m.id,0)|0)^0x7a175)>>>0))}
@@ -110,7 +119,8 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  if(!Array.isArray(m.traits))m.traits=migrateTraits(m);else{const seen={};m.traits=m.traits.filter(k=>typeof k==='string'&&TRAITS[k]&&!seen[k]&&(seen[k]=1));
   m.traits=m.traits.filter((k,i)=>!m.traits.slice(0,i).some(o=>TRAITS[o].opp===k||TRAITS[k].opp===o)).slice(0,2)}   // known, no repeats, no opposed pair, at most 2
  m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
-function repairContract(c,nTowns){if(!svObj(c))return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skullsif(!svFin(c.pay)||typeof c.title!=='string')return false;
+function repairContract(c,nTowns){if(!svObj(c))return false;if(c.type!=='deliver'&&c.type!=='hunt')return typeof CTYPES!=='undefined'&&!!CTYPES[c.type]&&typeof ctrRepair==='function'&&!!ctrRepair(c,nTowns);
+ if(typeof ctrRepair==='function'&&ctrRepair(c,nTowns)===false)return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skullsif(!svFin(c.pay)||typeof c.title!=='string')return false;
  if(c.type==='deliver')return Number.isInteger(c.to)&&c.to>=0&&c.to<nTowns;
  if(c.type==='hunt')return !!FACT[c.f]&&svFin(c.x)&&svFin(c.y);return false}
 // Fills defaults in place. Returns '' when the save is usable, 'empty' for a company with nobody left, else what is wrong.
@@ -129,8 +139,10 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.towns.forEach((t,i)=>{if(typeof t.name!=='string'||!t.name)t.name=TOWNN[i%TOWNN.length];t.ref=svNum(t.ref,-99);t.size=clamp(Math.round(svNum(t.size,1)),1,3);
   t.recruits=Array.isArray(t.recruits)?t.recruits.filter(repairMerc):[];t.stock=Array.isArray(t.stock)?t.stock.filter(id=>!!ITEMS[id]&&!ITEMS[id].famed):[];
   t.contracts=Array.isArray(t.contracts)?t.contracts.filter(c=>repairContract(c,g.towns.length)):[]});
+ worldRepair(g);   // phase 7: houses (registered in FACT before the bands are checked), rep, town state, nests, wars (below)
  g.parties=Array.isArray(g.parties)?g.parties.filter(p=>svObj(p)&&FACT[p.f]&&svFin(p.x)&&svFin(p.y)&&svFin(p.tx)&&svFin(p.ty)&&svFin(p.mult)&&svFin(p.id)):[];
  g.parties.forEach(p=>{if(!Array.isArray(p.pts)||!p.pts.length||!p.pts.every(q=>svObj(q)&&svFin(q.x)&&svFin(q.y))){delete p.pts;p.pi=0}else p.pi=clamp(Math.floor(svNum(p.pi,0)),0,p.pts.length-1);p.ch=p.ch?1:0});
+ g.parties.forEach(p=>partyRepair(p,g.towns.length,g.nests));
  g.sites=Array.isArray(g.sites)?g.sites.filter(s=>svObj(s)&&svFin(s.x)&&svFin(s.y)&&svFin(s.id)&&typeof s.kind==='string'):[];g.sites.forEach(s=>{s.n=Math.max(0,Math.floor(svNum(s.n,0)));s.v=s.v?1:0});
  g.weather=svObj(g.weather)&&WTHR[g.weather.kind]&&svFin(g.weather.t)&&svFin(g.weather.dur)?{kind:g.weather.kind,t:Math.max(0,g.weather.t),dur:Math.max(.1,g.weather.dur)}:{kind:'clear',t:0,dur:8};
  g.fog=typeof g.fog==='string'?g.fog:null;g.route=[];
@@ -138,7 +150,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(g.contract&&!(repairContract(g.contract,g.towns.length)&&Number.isInteger(g.contract.town)&&g.contract.town>=0&&g.contract.town<g.towns.length))g.contract=null;
  if(g.contract)g.contract.done=!!g.contract.done;else g.contract=null;
  if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;
- let nid=svNum(g.nid,1);const seen=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=x.id+1};g.roster.forEach(seen);g.parties.forEach(seen);g.portals.forEach(seen);g.sites.forEach(seen);g.towns.forEach(t=>t.recruits.forEach(seen));g.nid=Math.floor(nid);
+ let nid=svNum(g.nid,1);const seen=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=x.id+1};g.roster.forEach(seen);g.parties.forEach(seen);g.portals.forEach(seen);g.nests.forEach(seen);g.sites.forEach(seen);g.towns.forEach(t=>t.recruits.forEach(seen));g.nid=Math.floor(nid);
  g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.refund=Array.isArray(g.refund)?g.refund.filter(r=>svObj(r)&&typeof r.name==='string'&&svFin(r.n)&&r.n>0).map(r=>({name:r.name.slice(0,40),n:Math.floor(r.n)})).slice(0,MAXROSTER):[];if(!g.refund.length){delete g.refund;if(g.note==='refund')g.note=null}else if(!g.note)g.note='refund';g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
  // phase 6 company fields (the camp and progression agents validate their own contents through craftRepair / companyRepair)
  {const P={};if(svObj(g.parts))for(const k in g.parts){const n=g.parts[k];if(svFin(n)&&n>0&&(typeof PARTS==='undefined'||PARTS[k]))P[k]=Math.floor(n)}g.parts=P}
@@ -146,6 +158,8 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  {const a=svObj(g.amb)?g.amb:{},ids=x=>Array.isArray(x)?x.filter((id,i,l)=>typeof id==='string'&&l.indexOf(id)===i):[];g.amb={cur:typeof a.cur==='string'||svObj(a.cur)?a.cur:null,done:ids(a.done),offered:ids(a.offered)};
   for(const k in a)if(!(k in g.amb))g.amb[k]=a[k]}
  if(typeof craftRepair==='function')craftRepair(g);if(typeof companyRepair==='function')companyRepair(g);
+ if(typeof evtRepair==='function')evtRepair(g);else if(!svObj(g.evt)||!svObj(g.evt.seen)||!svObj(g.evt.flags))g.evt={seen:svObj(g.evt)&&svObj(g.evt.seen)?g.evt.seen:{},flags:svObj(g.evt)&&svObj(g.evt.flags)?g.evt.flags:{}};
+ if(typeof g.origin!=='string'||(typeof ORIGINS==='object'&&ORIGINS&&!ORIGINS[g.origin]&&g.origin!=='free'))g.origin='free';
  if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.
 function cleanName(s){s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,NAMEMAX):'';return s||BANNERDEF.name}
@@ -162,3 +176,32 @@ function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.lengt
 function clearSave(){return storeDel(SAVEKEY)}
 // Keeps a copy of a save this version cannot read before a new company replaces it.
 function backupUnreadableSave(){const st=readSave().state;if(st!=='newer'&&st!=='corrupt')return false;const raw=storeGet(SAVEKEY);return raw!=null&&storeSet(SAVEKEY+'_bak',raw)}
+
+/* ---- phase 7 world fields (validated in place; anything unreadable is rebuilt from the seed by factionsInit) ---- */
+function worldRepair(g){const nT=g.towns.length,okF=f=>f==='free'||(Array.isArray(g.houses)&&g.houses.some(h=>h.id===f));
+ if(Array.isArray(g.houses)){const seen={};g.houses=g.houses.filter(h=>svObj(h)&&typeof h.id==='string'&&/^h[0-9]$/.test(h.id)&&!seen[h.id]&&(seen[h.id]=1)&&Number.isInteger(h.seat)&&h.seat>=0&&h.seat<nT);
+  for(const h of g.houses){if(typeof h.n!=='string'||!h.n)h.n='House '+h.id;h.n=h.n.slice(0,40);if(typeof h.short!=='string')h.short=h.n.replace(/^House /,'');if(!HPERS[h.pers])h.pers='proud';
+   const b=typeof bannerFix==='function'?bannerFix({c1:h.c1,c2:h.c2,emblem:h.emblem},h.n):h;h.c1=b.c1;h.c2=b.c2;h.emblem=b.emblem}
+  if(!g.houses.length)delete g.houses}
+ for(const t of g.towns){if(!okF(t.own))delete t.own;
+  if(Array.isArray(t.bld)){const s={};t.bld=t.bld.filter(k=>typeof k==='string'&&BLD[k]&&!s[k]&&(s[k]=1));for(const k of ['inn','market','tavern','notice'])if(!t.bld.includes(k))t.bld.unshift(k)}else delete t.bld;
+  if(Array.isArray(t.spec))t.spec=t.spec.filter(k=>typeof k==='string'&&GOODS[k]).slice(0,3);else delete t.spec;
+  t.sit=Array.isArray(t.sit)?t.sit.filter(s=>svObj(s)&&SITS[s.k]&&svFin(s.days)&&s.days>0).map(s=>{const o={k:s.k,days:clamp(Math.ceil(s.days),1,60)};if(okF(s.by))o.by=s.by;return o}):[];
+  if(svFin(t.pros))t.pros=clamp(t.pros,0,100);else delete t.pros}
+ {const r={};if(svObj(g.rep))for(const f in g.rep)if(okF(f)&&svFin(g.rep[f]))r[f]=clamp(Math.round(g.rep[f]),-100,100);g.rep=r}
+ g.repLog=Array.isArray(g.repLog)?g.repLog.filter(e=>svObj(e)&&okF(e.f)&&svFin(e.n)&&svFin(e.day)).map(e=>({day:Math.floor(e.day),f:e.f,n:Math.round(e.n),why:typeof e.why==='string'?e.why.slice(0,80):''})).slice(-30):[];
+ if(svObj(g.hrel)){const h={};for(const k in g.hrel)if(svFin(g.hrel[k])&&k.split('|').length===2&&k.split('|').every(okF))h[k]=clamp(g.hrel[k],-100,100);g.hrel=h}else delete g.hrel;
+ g.wars=Array.isArray(g.wars)?g.wars.filter(w=>svObj(w)&&okF(w.a)&&okF(w.b)&&w.a!==w.b&&w.a!=='free'&&w.b!=='free'&&svFin(w.day)).map(w=>({a:w.a,b:w.b,day:Math.floor(w.day)})):[];
+ g.nests=Array.isArray(g.nests)?g.nests.filter(n=>svObj(n)&&svFin(n.id)&&svFin(n.x)&&svFin(n.y)&&FACT[n.f]&&!FACT[n.f].house).map(n=>({id:Math.floor(n.id),x:n.x,y:n.y,f:n.f,str:clamp(svNum(n.str,1),.5,5),day:Math.floor(svNum(n.day,1)),n:Math.max(0,Math.floor(svNum(n.n,0)))})):[];
+ g.news=Array.isArray(g.news)?g.news.filter(e=>svObj(e)&&typeof e.t==='string'&&svFin(e.day)).map(e=>({day:Math.floor(e.day),t:e.t.slice(0,120)})).slice(-24):[];
+ g.wsim=svObj(g.wsim)&&svFin(g.wsim.day)?{day:Math.floor(g.wsim.day)}:{day:Math.floor(svNum(g.day,1))};
+ g.trav=Math.max(0,svNum(g.trav,0));if(svFin(g.travNext))g.travNext=clamp(g.travNext,1,96);else delete g.travNext;
+ if(typeof factionsInit==='function')factionsInit(g,{nests:false})}   // fills whatever was missing from the seed and registers the houses in FACT
+// one band: goal fields that point nowhere are dropped (the band falls back to roaming)
+function partyRepair(p,nT,nests){const ti=x=>Number.isInteger(x)&&x>=0&&x<nT;if(!['roam','nest','caravan','patrol','raid'].includes(p.goal))p.goal='roam';
+ for(const k of ['from','to','siege'])if(p[k]!=null&&!ti(p[k]))delete p[k];if(p.home!=null&&!(Array.isArray(nests)&&nests.some(n=>n.id===p.home)))p.home=null;
+ if(p.hunt)p.hunt=1;else delete p.hunt;if(svFin(p.life))p.life=Math.max(1,Math.floor(p.life));else delete p.life;if(p.legs!=null)p.legs=Math.max(0,Math.floor(svNum(p.legs,0)));
+ if(svObj(p.cargo))p.cargo={good:GOODS[p.cargo.good]?p.cargo.good:'ale',crowns:Math.max(0,Math.round(svNum(p.cargo.crowns,0)))};else delete p.cargo;
+ if((p.goal==='caravan'||p.goal==='raid')&&(p.to==null||!Array.isArray(p.pts)))p.goal='roam';if(p.goal==='caravan'&&p.from==null)p.goal='roam';
+ if(p.goal==='nest'&&p.home==null)p.goal='roam';if(p.goal==='roam'){delete p.siege;delete p.hunt}
+ if(Array.isArray(p.pts))p.pi=clamp(Math.floor(svNum(p.pi,0)),0,p.pts.length)}

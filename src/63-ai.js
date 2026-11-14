@@ -103,7 +103,7 @@ const AI_PLAN={
    aiProfile makes every AI unit drop caution and advance, so two careful sides can never stand apart forever. */
 const AI_STALL=12;
 function aiStalled(){const b=B;if(!b||!b.units)return false;const S=b.aiStall||(b.aiStall={r:-1,sum:-1,since:0});if(S.r!==b.round){S.r=b.round;let sum=0;for(const x of b.units)if(x.alive)sum+=x.hp;if(sum!==S.sum){S.sum=sum;S.since=b.round}}return b.round-S.since>=AI_STALL}
-function aiPlan(u){const b=B;if(u.side!==0)return null;if(b.opts.plan)return b.opts.plan;return AI_PLAN[b.opts.f]||{}}
+function aiPlan(u){const b=B;if(u.side!==0)return null;const p=b.opts.plan||AI_PLAN[b.opts.f]||{};return b.obj&&typeof objPlan==='function'?objPlan(p,u):p}   // a battle objective reshapes the plan (16-contracts.js)
 function aiProfile(u){let role=u.role;
  if(!role){role='line';if(aiHasBow(u))role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster'}
  const P=Object.assign({role},AI_ROLE[role]||AI_ROLE.line);if(u.def&&u.def.dive)P.back=1.8;if(u.fly&&u.side===1)P.back=Math.max(P.back,1.7);   // fliers go over the line for the casters and archers
@@ -150,7 +150,9 @@ function aiScan(u,P,plan,S){const b=B,N=BW*BH,X=S.X||(S.X={thr:new Float32Array(
  X.frail=1+(1-u.hp/u.hpMax)*1.5;
  aiThreat(u,X);
  X.D=dijkstra(u,u.rooted?0:u.ap);
- X.hold=0;X.tele=null;X.brace=0;X.fresh=0;X.lead=-1;
+ X.hold=0;X.tele=null;X.brace=0;X.fresh=0;X.lead=-1;X.guard=plan&&plan.guard&&plan.guard.alive&&plan.guard!==u?plan.guard:null;
+ // a siege: the foe keeps behind its stakes for the first rounds unless the company is already at the works
+ X.fort=u.side===1&&b.obj&&b.obj.k==='siege'&&b.round<=4&&!u.fly?DEPLOY.e.front+1:-1;
  // enemies come on together: until the lines meet, nobody runs more than a couple of rows ahead of the band
  if(u.side===1&&b.round<=6){let m=99,s=0,n=0;for(const o of X.allies){if(o.back)continue;s+=o.r;n++;for(const f of X.foes){const d=mdist(f,o);if(d<m)m=d}}
   if(n>=2&&m>3&&X.near(u)>3)X.lead=s/n+(P.back>1.2?3:2)}
@@ -200,6 +202,8 @@ function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan
  if(P.shy&&gk<=2)v-=6*(3-gk);
  if(X.reach&&gk===2)v+=2.5;                                      // a reach weapon likes the second rank: in reach, out of arm's length
  if(X.lead>=0&&r>X.lead)v-=5*(r-X.lead);
+ if(X.fort>=0&&r>X.fort)v-=6*(r-X.fort);
+ if(X.guard){const d=Math.abs(X.guard.c-c)+Math.abs(X.guard.r-r);if(d>3)v-=2*(d-3)}   // escort: stay within reach of the wagon
 
  let al=0,open=0,blk=0;
  for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const tt=B.tiles[nr*BW+nc];if(tt.t==='block'){blk++;continue}const o=unitAt(nc,nr);if(o&&o!==u&&o.alive&&o.side===u.side)al++;else if(!o||o===u)open++;
@@ -249,7 +253,7 @@ const aiTire=(u,f)=>typeof tiredPen==='function'&&f>0&&u.fatMax<999?tiredPen({fa
 function aiPrio(X,t){const u=X.u,P=X.P,plan=X.plan;let p=1;const fo=B.aiFoc&&B.aiFoc[u.side];
  if(u.def&&u.def.pack){let n=0;for(const o of X.allies)if(o.def&&o.def.pack&&mdist(o,t)===1)n++;p+=.35*Math.min(2,n);if(t.st.harried)p+=.3;       // the pack goes for whoever a wolf already has by the leg,
   else if(!n){let s=0;for(const o of X.foes)if(o!==t&&mdist(o,t)===1)s++;if(s<2)p+=.3}}                                                         // and for prey that stands alone
- if(fo===t)p+=.15;if(t.back||t.role==='caster'||t.role==='sniper')p*=P.back;
+ if(fo===t)p+=.15;if(t.back||t.role==='caster'||t.role==='sniper')p*=P.back;if(t.vip)p*=u.side===1?1.7:0;   // foes go for the escorted wagon
  if(plan){const h=plan.hunt&&plan.hunt[t.eid];if(h)p*=h;if(plan.volley&&P.shy&&(t.role==='sniper'||t.role==='caster'))p*=1.5;
   if(plan.outlast&&t.def&&t.def.tire)p*=t.st.winded||t.st.spent?1.3:1}
  if(t.st.ward)p*=.6;if(t.mor===0)p*=.5;if(typeof tiredPen==='function'&&t.fatMax<999)p*=1+tiredPen(t)*.012;   // a tired foe is easier to hit and slower to hit back

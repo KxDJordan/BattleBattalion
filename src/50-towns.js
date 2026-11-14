@@ -24,7 +24,8 @@ function ctrBiomeOk(f,x,y){const B=FACT[f]&&FACT[f].biomes;if(!Array.isArray(B)|
 function ctrLairAt(t,f,lo,hi){let pos=null;for(let k=0;k<40;k++){const p=randOk(t.x,t.y,lo,hi);if(!pos)pos=p;if(ctrBiomeOk(f,p.x,p.y))return p}return pos}
 function ctrTitle(f,t){return String(FACT[f].lair||'Hunt').replace('{place}',t.name)}
 function ctrDiff(){const D=typeof renownDef==='function'?renownDef():null;if(!D)return pick([1,1,2,2,3]);let tot=0;D.dw.forEach(w=>tot+=w);let x=rnd()*tot;for(let i=0;i<D.dw.length;i++){x-=D.dw[i];if(x<=0&&D.dw[i]>0)return i+1}return D.diff}
-function genContract(t){const ti=G.towns.indexOf(t),rep=typeof renownDef==='function'?renownDef().pay:1+G.renown/300;
+function genContract(t){const ti=G.towns.indexOf(t);if(typeof genContract2==='function'){const c=genContract2(t,ti);if(c)return c}return genContract0(t,ti)}
+function genContract0(t,ti){const rep=typeof renownDef==='function'?renownDef().pay:1+G.renown/300;
  if(rnd()<.25){let to;do{to=ri(0,G.towns.length-1)}while(to===ti);const o=G.towns[to],d=Math.hypot(o.x-t.x,o.y-t.y)/TS;return{type:'deliver',to,diff:1,pay:Math.round((60+d*10)*rep/10)*10,title:'Carry sealed cargo to '+o.name}}
  const P=ctrPool(t,ti);let tot=0;P.forEach(x=>tot+=x.w);let r=rnd()*tot,e=P[P.length-1];for(const x of P){r-=x.w;if(r<=0){e=x;break}}
  const f=e.f,diff=ctrDiff(),pos=ctrLairAt(t,f,e.lo,e.hi),tk=CTR_TIERK[FACT[f].tier]||1;
@@ -39,11 +40,33 @@ function stockPick(ids,maxT){const by={};for(const k of ids)(by[ITEMS[k].tier||1
 // recruits: 4 (5 with the recruiter); backgrounds by recruitBG (renown makes rare ones likelier); some veterans at higher renown tiers
 function stockTown(t){t.ref=G.day;t.recruits=[];const D=typeof renownDef==='function'?renownDef():null,nR=4+(typeof followerHas==='function'&&followerHas('recruiter')?1:0);
  for(let i=0;i<nR;i++){const m=newMerc(typeof recruitBG==='function'?recruitBG(t):wpickBG());if(D&&D.vet>0&&rnd()<D.vet)makeVeteran(m,ri(D.lv[0],D.lv[1]));t.recruits.push(m)}
- const maxT=marketTier(t.size,G.day),ids=marketPool(maxT);t.stock=[];for(let i=0;i<9;i++)t.stock.push(stockPick(ids,maxT));
+ const maxT=marketTier(t.size,G.day),ids=marketPool(maxT);t.stock=[];const nS=Math.max(3,9+twCountStep(typeof townStockK==='function'?townStockK(G.towns.indexOf(t)):1,2));for(let i=0;i<nS;i++)t.stock.push(stockPick(ids,maxT));
  {const hs=ids.filter(k=>ITEMS[k].k==='h');if(hs.length&&t.stock.length&&!t.stock.some(id=>ITEMS[id].k==='h')){const lo=hs.filter(k=>(ITEMS[k].tier||1)<=Math.min(maxT,3));t.stock[t.stock.length-1]=pick(lo.length?lo:hs)}}   // every market has a helmet on the stalls
- t.contracts=[];for(let i=0;i<3;i++)t.contracts.push(genContract(t))}
+ t.contracts=[];const nC=townBoardN(t);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}}
+/* how many notices a board posts: 3, +1 in a city, +1 when the owner is friendly or allied, -1 when cold; none when the town is hostile.
+   SITS[k].contracts as a number adds or removes notices. */
+/* the world's recruit and stock factors (situations, prosperity) as a step on the usual count: a small drift keeps it, a famine or a boom moves it */
+function twCountStep(k,big){k=+k;if(!isFinite(k)||k<=0)return 0;return k>=1.3?big:k>=1.15?1:k<=.55?-2*big:k<=.8?-big:0}
+function townBoardN(t){const i=G.towns.indexOf(t);if(twHostile(i))return 0;let n=3+(t.size>=3?1:0);const T=typeof repTier==='function'?repTier(t.own||'free'):null;if(T){if(T.k==='friendly'||T.k==='allied')n++;else if(T.k==='cold')n--}
+ if(Array.isArray(t.sit))for(const x of t.sit){const S=x&&typeof SITS==='object'&&SITS?SITS[x.k]:null;if(S&&typeof S.contracts==='number')n+=S.contracts>=1.5?1:S.contracts<=.6?-1:0}return clamp(n,1,5)}
+/* ---- the town economy: prices through townPriceK(i, kind) (owner reputation, situation, specialty; 15-factions.js), closed markets
+   through townHostile(i). Without those helpers every price is the old one. ---- */
+function twK(kind,ti,id){if(ti==null)ti=G.town;if(typeof townPriceK!=='function'||ti==null||ti<0)return 1;let k=1;try{k=+townPriceK(ti,kind,id)}catch(e){k=1}return k>0&&isFinite(k)?k:1}
+function twHostile(ti){if(ti==null)ti=G.town;if(typeof townHostile!=='function'||ti==null||ti<0)return false;try{return!!townHostile(ti)}catch(e){return false}}
+// one line that says why this market's prices differ (townPriceWhy, 15-factions.js): "Buy ×1.12: Cold with House X, Festival"
+function twPriceWhyHTML(kind,ti){if(ti==null)ti=G.town;if(typeof townPriceWhy!=='function'||ti==null)return'';let L=[];try{L=townPriceWhy(ti,kind)||[]}catch(e){L=[]}if(!L.length)return'';const k=twK(kind,ti);
+ return`<p class="pn-hint tw-why">${twIcon('coin',16)}<span><b>${kind==='sell'?'They pay':'Prices'} ×${k.toFixed(2)}</b> ${L.map(x=>htmlEsc(String(x.why))+' ×'+(+x.k).toFixed(2)).join(', ')}</span></p>`}
+function mkBuyPrice(id,ti){const it=ITEMS[id];return it?Math.max(1,Math.round((it.price||0)*twK('buy',ti,id))):0}
+function mkSellPrice(id,ti){return Math.max(0,Math.floor(sellPrice(id)*twK('sell',ti,id)))}
+function mkFoodPrice(ti){return Math.max(5,Math.round(30*twK('food',ti)))}
+function twShut(){if(!twHostile())return false;toast('The market is closed to the company');return true}
+/* the company walks into town i (the world's arrival): a town event (17-events.js eventTick) may come first, and opens the town when it
+   closes; else the town opens at once. openTown(i) itself never rolls an event (tests and inner calls use it directly). */
+function enterTown(i){if(typeof eventTick==='function'){let r=false;try{r=eventTick('town',{town:i,then:()=>openTown(i)})}catch(e){r=false}if(r)return'event'}openTown(i);return'open'}
 function openTown(i){G.town=i;const t=G.towns[i];if(G.day-t.ref>=3)stockTown(t);let note='';const c=G.contract;
- if(c&&((c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i))){G.crowns+=c.pay;G.renown+=8*c.diff;note=`<p class="good">Contract fulfilled. You are paid ${c.pay} crowns and gain ${8*c.diff} renown.</p>`;G.contract=null;if(typeof ambEvent==='function')ambEvent('contract',c)}
+ if(c&&typeof ctrTurnIn==='function'){const r=ctrTurnIn(i);if(r)note=`<p class="good">${r.text}</p>`}
+ else if(c&&((c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i))){G.crowns+=c.pay;G.renown+=8*c.diff;note=`<p class="good">Contract fulfilled. You are paid ${c.pay} crowns and gain ${8*c.diff} renown.</p>`;G.contract=null;if(typeof ambEvent==='function')ambEvent('contract',c)}
+ if(twHostile(i))note+=`<p class="bad">${typeof townHostileWhy==='function'?townHostileWhy(i):'The owner of this town is hostile to the company: its market, tavern and notice board are closed to you.'}</p>`;
  townTab='contracts';townSel={contracts:0,tavern:0,market:'food',temple:0,tailor:0,tav:'rec',ret:null};if(typeof TLR!=='undefined')TLR.draft=null;panelForget('town:');
  townAt=typeof tvCan==='function'&&tvCan()?'scene':'panel';renderTown(note);save();if(typeof ambNotify==='function')ambNotify()}
 function mastChips(m){return tlTrees(m).filter(x=>x.kind!=='weapon'&&x.kind!=='armor').map(x=>{const r=tlGiftRes(x.key);return`<span class="chip" style="${r?'border-color:'+RESC[r]+';color:'+RESC[r]:''}">${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</span>`}).join('')}
@@ -53,7 +76,7 @@ function mastChips(m){return tlTrees(m).filter(x=>x.kind!=='weapon'&&x.kind!=='a
 let townNote='',townSel={contracts:0,tavern:0,market:'food',temple:0,tailor:0,tav:'rec',ret:null},townAt='panel';
 const TOWNTABS=[['contracts','Contracts'],['tavern','Tavern'],['market','Market'],['tailor','Tailor'],['inn','Inn'],['temple','Temple']];
 const TOOLLOT=10;   // tools are sold by the lot
-function toolPrice(n){return Math.max(1,Math.round((typeof TOOLPRICE==='number'&&TOOLPRICE>0?TOOLPRICE:3)*(n||TOOLLOT)))}
+function toolPrice(n,ti){return Math.max(1,Math.round((typeof TOOLPRICE==='number'&&TOOLPRICE>0?TOOLPRICE:3)*(n||TOOLLOT)*twK('tools',ti)))}
 function townGo(k){townTab=k;renderTown()}
 function townPick(k){townSel[townTab]=k;renderTown(townNote)}
 function leaveTown(){if(typeof tvHide==='function')tvHide();townAt='panel';if(!closePanel()&&typeof closeSheet==='function')closeSheet()}
@@ -84,9 +107,11 @@ const TWMARK={
  ogre:{f:'nmo',m:['..tttt..','.tttttt.','t00tt00t','tttttttt','ttuuuutt','tlu..ult','.tuuuut.','..tttt..']},
  wyvern:{f:'fga',m:['d......d','dd....dd','ddd..ddd','.dddddd.','..dccd..','...dd...','...cd...','..d..c..']}};
 const TWCARGO=['................','................','..000000000000..','.0kkkkkckkkkkk0.','.0kjjjjbjjjjji0.','.0kjjjjbjjjjji0.','.0cbbbghgbbbbb0.','.0kjjjgggjjjji0.','.0kjjjfgfjjjji0.','.0kjjjjbjjjjji0.','.0kjjjjbjjjjji0.','.0jiiiibiiiiii0.','..000000000000..','................','................','................'];
-function twEmblemRows(c){if(c.type!=='hunt'||!TWMARK[c.f])return TWCARGO;const M=TWMARK[c.f];return TWSHIELD.map((r,y)=>{let o='';for(let x=0;x<16;x++){const k=r[x],mk=y>=3&&y<11&&x>=4&&x<12?M.m[y-3][x-4]:'.';o+=mk!=='.'?mk:k==='#'?M.f[0]:k==='+'?M.f[1]:k==='-'?M.f[2]:k}return o})}
-function twEmblem(c,sz){const key=c.type==='hunt'?c.f:'cargo',u=typeof pxURL==='function'?pxURL('twem-'+key,twEmblemRows(c),1):'';
- if(!u)return pnIcon(c.type==='deliver'?'contracts':'skull');return`<i class="tw-em" style="width:${sz||32}px;height:${sz||32}px;background-image:url(${u})" aria-hidden="true"></i>`}
+function twEmblemRows(c){if(!twEmF(c))return TWCARGO;const M=TWMARK[c.f];return TWSHIELD.map((r,y)=>{let o='';for(let x=0;x<16;x++){const k=r[x],mk=y>=3&&y<11&&x>=4&&x<12?M.m[y-3][x-4]:'.';o+=mk!=='.'?mk:k==='#'?M.f[0]:k==='+'?M.f[1]:k==='-'?M.f[2]:k}return o})}
+function twEmF(c){return c&&c.f&&TWMARK[c.f]&&c.type!=='deliver'&&c.type!=='escort'&&c.type!=='relic'?c.f:null}
+function twEmblem(c,sz){if(c&&c.type!=='hunt'&&c.type!=='deliver'&&typeof CTYPES==='object'&&CTYPES&&CTYPES[c.type]&&typeof pxIcon==='function'){const n=typeof icHas==='function'&&icHas('ct-'+c.type)?'ct-'+c.type:CTYPES[c.type].icon||('ct-'+c.type);try{const h=pxIcon(n,sz||32);if(h)return h}catch(e){}}
+ const key=twEmF(c)||'cargo',u=typeof pxURL==='function'?pxURL('twem-'+key,twEmblemRows(c),1):'';
+ if(!u)return pnIcon(twEmF(c)?'skull':'contracts');return`<i class="tw-em" style="width:${sz||32}px;height:${sz||32}px;background-image:url(${u})" aria-hidden="true"></i>`}
 function twHead(icon,kick,title){return`<div class="tw-head">${icon?`<span class="tw-hi">${icon}</span>`:''}<div><div class="pn-kick">${kick}</div><div class="pn-h">${title}</div></div></div>`}
 
 function giftRow(m){const r=tlRes(m),g=tlGift(m),st=g&&MAST[g].style;return`<div class="pn-gifts">${RESK.map(k=>`<span class="pn-gift g-${k}${k===r?' on':''}">${typeof pxIcon==='function'?pxIcon(k,16):'<i></i>'}${RESN[k]}</span>`).join('')}</div><p class="pn-p dim">${r?`Carries the gift of ${RESN[r]}${st&&TL_STYN[st]?', shaped to a '+TL_STYN[st].toLowerCase()+' hand':''}: <b class="tw-gv g-${r}">${tlGiftLabel(g)}</b>. The first perk learned in it awakens the gift.`:'No gift stirs here. This one fights with steel alone.'}</p>`}
@@ -114,13 +139,8 @@ function townView(t){let list='',detail='',foot='',key=townTab;
   if(G.contract)list+=`<div class="pn-hint tw-hint">${twEmblem(G.contract,32)}<span><b>Contract in hand</b>${G.contract.title}</span></div>`;
   list+=pnSec('Notice board',n);
   if(!n){list+=pnEmpty('No work posted.');detail=`<div class="pn-blank">${twIcon('board',48,'contracts')}<p>${G.contract?'You already hold a contract. Finish or abandon it before taking another.':'No work posted. New notices go up every three days.'}</p></div>`}
-  t.contracts.forEach((c,j)=>{list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'wrap tw-row',lead:twEmblem(c,32),title:c.title,sub:c.type==='deliver'?'Delivery':'Hunt, '+FACT[c.f].n.toLowerCase(),right:pnCoin(c.pay)+twSkulls(c.diff,Math.max(3,c.diff))})});
-  if(n){const c=t.contracts[i],hunt=c.type==='hunt',o=hunt?c:G.towns[c.to];
-   detail=`${twHead(twEmblem(c,48),hunt?'Hunt':'Delivery',c.title)}
-   <p class="pn-p">${hunt?`The lair lies about ${leagues(o,t)} leagues ${compass(o.x-t.x,o.y-t.y)} of ${t.name}. Once you take the work it is marked on the map with a red skull. Come back to ${t.name} for your pay.`:`Carry the sealed cargo to ${o.name}, about ${leagues(o,t)} leagues to the ${compass(o.x-t.x,o.y-t.y)}. You are paid on arrival.`}</p>
-   ${pnFacts([hunt?['Foe',FACT[c.f].n]:['Bound for',o.name],['Danger',twSkulls(c.diff,Math.max(3,c.diff))+' '+(typeof DIFFN!=='undefined'?DIFFN:['Light','Serious','Grave','Deadly','Dire'])[c.diff-1]],['Pay',twIcon('coin',16)+c.pay+' crowns'],['Renown',twIcon('renown',16)+'+'+8*c.diff]])}
-   ${G.contract?'<p class="pn-p warn">You already hold a contract. Finish or abandon it before taking another.</p>':''}`;
-   foot=`<span class="pn-fl">${pnCoin(c.pay,'big')}<small>crowns on completion</small></span><button type="button" class="pn-btn pri" ${G.contract?'disabled':''} onclick="acceptContract(${i})">Accept contract</button>`}}
+  t.contracts.forEach((c,j)=>{list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'wrap tw-row',lead:twEmblem(c,32),title:c.title,sub:twCtrSub(c),right:pnCoin(c.pay)+twSkulls(c.diff,Math.max(3,c.diff))})});
+  if(n){const c=t.contracts[i],v=twCtrDetail(c,t);detail=v.detail;foot=v.foot}}
  else if(townTab==='tavern'&&townSel.tav==='ret'&&typeof FOLLOWERS!=='undefined'){const v=retinueView(t);list=v.list;detail=v.detail;foot=v.foot;key+=':'+v.key}
  else if(townTab==='tavern'){const n=t.recruits.length,i=clamp(+townSel.tavern||0,0,n-1),full=G.roster.length>=MAXROSTER;townSel.tavern=i;key+=':'+i;
   if(typeof FOLLOWERS!=='undefined')list+=tavTabs('rec');list+=pnSec('Looking for work',`Roster ${G.roster.length} of ${MAXROSTER}`);
@@ -171,58 +191,86 @@ function marketView(t){let list='',detail='',foot='';const W=mkWorn();let sel=St
  else if(kind!=='t')kind='f';
  sel=townSel.market=kind==='f'?'food':kind==='t'?'tools':kind==='n'?'inv':kind==='e'?'e'+W[wi].mi+'.'+W[wi].k:kind+i;
  const tab=mkTabOf(sel);list+=mkTabs(tab,t.stock.length,G.stash.length+W.length);
+ if(typeof tvTownNote!=='function'){const h=twPriceWhyHTML(tab==='buy'?'buy':'sell');if(h)list+=h}   // the town note says it when the town view is loaded
  if(tab==='buy'){const need=cpDamageAll(),needT=Math.ceil(need/cpToolPts()),tp=toolPrice();
   list+=pnSec('Provisions and tools',2);
-  list+=pnRow({on:`townPick('food')`,sel:kind==='f',cls:'tw-row',lead:twIcon('food',32,'food'),title:'Provisions',sub:'10 days for one man',right:pnCoin(30,G.crowns<30?'short':'')});
+  list+=pnRow({on:`townPick('food')`,sel:kind==='f',cls:'tw-row',lead:twIcon('food',32,'food'),title:'Provisions',sub:'10 days for one man',right:pnCoin(mkFoodPrice(),G.crowns<mkFoodPrice()?'short':'')});
   list+=pnRow({on:`townPick('tools')`,sel:kind==='t',cls:'tw-row',lead:twIcon('tools',32,'armor'),title:'Tools',sub:`Each mends ${cpToolPts()} armor`+(needT>cpTools()?` <span class="tw-t warn">need ${needT}</span>`:''),right:pnCoin(tp,G.crowns<tp?'short':'')});
   list+=pnSec('For sale',t.stock.length);if(!t.stock.length)list+=pnEmpty('The stalls are bare. Fresh goods arrive every three days.');
-  t.stock.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('b${j}')`,sel:kind==='b'&&j===i,cls:'tw-row',lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${it.tier?`<span class="pn-tier t${it.tier}" title="Tier ${it.tier}">${TIERN[it.tier]}</span>`:''}${twItemStats(id)}</span>`,right:pnCoin(it.price,G.crowns<it.price?'short':'')})});
+  t.stock.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('b${j}')`,sel:kind==='b'&&j===i,cls:'tw-row',lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${it.tier?`<span class="pn-tier t${it.tier}" title="Tier ${it.tier}">${TIERN[it.tier]}</span>`:''}${twItemStats(id)}</span>`,right:pnCoin(mkBuyPrice(id),G.crowns<mkBuyPrice(id)?'short':'')})});
   if(kind==='f'){const men=G.roster.length;detail=`${twHead(twIcon('food',48,'food'),'Provisions','Salt pork and hard bread')}<p class="pn-p">10 days for one man. Every sword eats one ration a day, and a starving company bleeds.</p>${pnFacts([['In the wagons',twIcon('food',16)+G.food+' rations'],['Mouths to feed',twIcon('swords',16)+men],['Lasts the company',twIcon('day',16)+Math.floor(G.food/Math.max(1,men))+' days']])}`;
-   foot=`<span class="pn-fl">${pnCoin(30,'big'+(G.crowns<30?' short':''))}<small>${G.crowns<30?'<em>Not enough crowns</em>':'for 10 rations'}</small></span><button type="button" class="pn-btn pri${G.crowns<30?' off':''}" onclick="buyFood()">Buy for 30</button>`}
+   const fp=mkFoodPrice();foot=`<span class="pn-fl">${pnCoin(fp,'big'+(G.crowns<fp?' short':''))}<small>${G.crowns<fp?'<em>Not enough crowns</em>':'for 10 rations'}</small></span><button type="button" class="pn-btn pri${G.crowns<fp?' off':''}" onclick="buyFood()">Buy for ${fp}</button>`}
   else if(kind==='t'){const have=cpTools(),more=Math.max(0,needT-have),mp=toolPrice(more);
    detail=`${twHead(twIcon('tools',48,'armor'),'Hammers, rivets and rings','Repair tools')}<p class="pn-p">Armor and helmets do not mend themselves. One tool puts back <b>${cpToolPts()} points</b> on a body armor or a helmet whenever the company makes camp or rests at an inn. The fielded and the worst damaged go first.</p>
    ${pnFacts([['In the wagons',twIcon('tools',16)+have+' tool'+(have===1?'':'s')],['Armor to mend',twIcon('armor',16)+(need?need+' points':'None')],['Tools that takes',need?twIcon('tools',16)+needT+(more?` <small>(${more} short)</small>`:''):'None'],['Price',twIcon('coin',16)+toolPrice(1)+' crown'+(toolPrice(1)===1?'':'s')+' a tool']])}
    ${need?`<p class="pn-p ${more?'warn':'dim'}">${more?`You are ${more} tool${more===1?'':'s'} short of mending everything.`:'You carry enough to mend everything at the next camp.'}</p>`:'<p class="pn-p dim">Nothing needs mending right now. A spare lot costs little and weighs less.</p>'}`;
    foot=`<span class="pn-fl">${pnCoin(tp,'big'+(G.crowns<tp?' short':''))}<small>${G.crowns<tp?'<em>Not enough crowns</em>':'for '+TOOLLOT+' tools'}</small></span>${more&&more!==TOOLLOT?`<button type="button" class="pn-btn${G.crowns<mp?' off':''}" id="twToolsNeed" onclick="buyTools(${more})">Buy ${more} for ${mp}</button>`:''}<button type="button" class="pn-btn pri${G.crowns<tp?' off':''}" id="twTools" onclick="buyTools()">Buy ${TOOLLOT} for ${tp}</button>`}
   else{const id=t.stock[i],it=ITEMS[id],own=G.stash.filter(x=>x===id).length;detail=itemDetail(id);
-   foot=`<span class="pn-fl">${pnCoin(it.price,'big'+(G.crowns<it.price?' short':''))}<small>${G.crowns<it.price?'<em>Not enough crowns</em>':own?own+' in the stash':'to the stash'}</small></span><button type="button" class="pn-btn pri${G.crowns<it.price?' off':''}" onclick="buyItem(${i})">Buy for ${it.price}</button>`}}
- else{let worth=0;G.stash.forEach(id=>worth+=sellPrice(id));
+   const bp=mkBuyPrice(id);foot=`<span class="pn-fl">${pnCoin(bp,'big'+(G.crowns<bp?' short':''))}<small>${G.crowns<bp?'<em>Not enough crowns</em>':own?own+' in the stash':'to the stash'}</small></span><button type="button" class="pn-btn pri${G.crowns<bp?' off':''}" onclick="buyItem(${i})">Buy for ${bp}</button>`}}
+ else{let worth=0;G.stash.forEach(id=>worth+=mkSellPrice(id));
   list+=`<div class="mk-sum"><span title="Every piece the company carries">${twIcon('armor',16)}<b>${G.stash.length+W.length}</b> carried</span><span title="Spare pieces in the stash">${twIcon('stash',16,'armor')}<b>${G.stash.length}</b> spare</span><span title="Worn or held by a sword">${twIcon('swords',16)}<b>${W.length}</b> equipped</span></div>`;
   list+=pnSec('Spare in the stash',G.stash.length?`${G.stash.length} · sells for ${worth}`:0);if(!G.stash.length)list+=pnEmpty('Nothing spare. Loot from battles lands here.');
-  G.stash.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('s${j}')`,sel:kind==='s'&&j===i,cls:'own tw-row mk-spare'+(it.famed?' fmd-row':''),lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line"><span class="mk-tag spare">Spare</span>${twItemStats(id)}</span>`,right:pnCoin(sellPrice(id),'sell')})});
+  G.stash.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('s${j}')`,sel:kind==='s'&&j===i,cls:'own tw-row mk-spare'+(it.famed?' fmd-row':''),lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line"><span class="mk-tag spare">Spare</span>${twItemStats(id)}</span>`,right:pnCoin(mkSellPrice(id),'sell')})});
   list+=pnSec('Equipped',W.length);if(!W.length)list+=pnEmpty('Nobody wears anything. Equip gear in the company screen.');
   W.forEach((x,j)=>{const it=ITEMS[x.id];list+=pnRow({on:`townPick('e${x.mi}.${x.k}')`,sel:kind==='e'&&j===wi,cls:'tw-row mk-worn'+(it.famed?' fmd-row':''),lead:twItemIcon(x.id,32),title:pnItemName(x.id),sub:`<span class="tw-line"><span class="mk-tag eq">${x.n}</span><span class="tw-t0">${htmlEsc(x.m.name)}</span></span>`,right:`<span class="mk-who">${twPortrait(x.m,16)}</span>`})});
   if(kind==='n'){detail=`<div class="pn-blank">${twIcon('armor',48,'armor')}<p>The company carries nothing at all. Buy gear on the Purchase tab or take it from the fallen.</p></div>`}
   else if(kind==='s'){const id=G.stash[i],it=ITEMS[id];detail=`<div class="mk-state spare">${twIcon('stash',16,'armor')}<b>Spare</b><span>in the stash, not worn by anyone</span></div>`+itemDetail(id);
-   foot=`<span class="pn-fl">${pnCoin(sellPrice(id),'big')}<small>${it.famed?'a famed piece: the dealers pay well':'worth '+it.price+' new'}</small></span><button type="button" class="pn-btn${it.famed?' warn':''}" onclick="sellItem(${i})">Sell for ${sellPrice(id)}</button>`}
-  else{const x=W[wi],it=ITEMS[x.id],nm=htmlEsc(x.m.name);detail=`<div class="mk-state eq">${twIcon('swords',16)}<b>Equipped</b><span>${nm}, ${x.n.toLowerCase()} slot</span></div>`+itemDetail(x.id)+`<p class="pn-p dim">Worn gear is not for sale. Take it off in the company screen and it goes to the stash, where it can be sold for ${sellPrice(x.id)}.</p>`;
-   foot=`<span class="pn-fl">${pnCoin(sellPrice(x.id),'big')}<small>once taken off</small></span><button type="button" class="pn-btn" onclick="mkGear(${x.mi},'${x.k}')">${pnIcon('company')}<span>${nm}’s gear</span></button>`}}
+   foot=`<span class="pn-fl">${pnCoin(mkSellPrice(id),'big')}<small>${it.famed?'a famed piece: the dealers pay well':'worth '+it.price+' new'}</small></span><button type="button" class="pn-btn${it.famed?' warn':''}" onclick="sellItem(${i})">Sell for ${mkSellPrice(id)}</button>`}
+  else{const x=W[wi],it=ITEMS[x.id],nm=htmlEsc(x.m.name);detail=`<div class="mk-state eq">${twIcon('swords',16)}<b>Equipped</b><span>${nm}, ${x.n.toLowerCase()} slot</span></div>`+itemDetail(x.id)+`<p class="pn-p dim">Worn gear is not for sale. Take it off in the company screen and it goes to the stash, where it can be sold for ${mkSellPrice(x.id)}.</p>`;
+   foot=`<span class="pn-fl">${pnCoin(mkSellPrice(x.id),'big')}<small>once taken off</small></span><button type="button" class="pn-btn" onclick="mkGear(${x.mi},'${x.k}')">${pnIcon('company')}<span>${nm}’s gear</span></button>`}}
  return{list,detail,foot,key:sel}}
 function renderTown(note){G.townOpen=true;townNote=note||'';
  if(townAt==='scene'){if(typeof tvShow==='function'&&tvShow(note))return;townAt='panel'}
+ if(typeof tvbIsTab==='function'&&tvbIsTab(townTab)&&typeof tvbOpen==='function'){tvbOpen(townTab);return}   // a building panel (51-townview.js) stays on re-render
  const t=G.towns[G.town],v=townView(t),ready=G.roster.filter(m=>m.pend||m.pp).length,sq=typeof tvCan==='function'&&tvCan();
- showPanel({id:'town',title:t.name,sub:`Day ${G.day}`,meta:pnPurse()+`<button type="button" class="pn-btn ico pn-cobtn" aria-label="Company${ready?', '+ready+' ready to advance':''}" title="Company" onclick="companySheet()">${pnIcon('company','',32)}${ready?`<i>${ready}</i>`:''}</button>`,note:townNote,closeLabel:sq?'Town square':'Leave town',closeIcon:sq?'back':'x',onClose:sq?townBack:leaveTown,
-  tabs:TOWNTABS.map(([k,n])=>({k,n,badge:k==='temple'?cpInjured().length||'':''})),tab:townTab,onTab:townGo,
+ showPanel({id:'town',title:t.name,sub:`Day ${G.day}`,banner:typeof tvTownBanner==='function'?tvTownBanner(G.town):'',meta:pnPurse()+`<button type="button" class="pn-btn ico pn-cobtn" aria-label="Company${ready?', '+ready+' ready to advance':''}" title="Company" onclick="companySheet()">${pnIcon('company','',32)}${ready?`<i>${ready}</i>`:''}</button>`,note:(typeof tvTownNote==='function'?tvTownNote(G.town):'')+townNote,closeLabel:sq?'Town square':'Leave town',closeIcon:sq?'back':'x',onClose:sq?townBack:leaveTown,
+  tabs:(typeof tvTownTabs==='function'?tvTownTabs(t):TOWNTABS).map(([k,n])=>{const bl=typeof tvbIsTab==='function'&&tvbIsTab(k);return{k,n,icon:bl&&typeof tvBldIcon==='function'?tvBldIcon(k):k,badge:k==='temple'?cpInjured().length||'':''}}),tab:townTab,
+  onTab:k=>{if(typeof tvbIsTab==='function'&&tvbIsTab(k)&&typeof tvbOpen==='function')tvbOpen(k);else townGo(k)},
   list:v.list,listKey:'town:'+townTab+(townTab==='market'?':'+mkTabOf():townTab==='tavern'?':'+(townSel.tav||'rec'):''),railEnd:typeof openAmbitions==='function'?[{n:'Ambitions',icon:'ambition',fn:()=>openAmbitions(),badge:G.amb&&!G.amb.cur&&G.amb.offered.length?'!':''}]:[],detail:v.detail,detailKey:'town:'+v.key,foot:v.foot})}
-function acceptContract(i){const t=G.towns[G.town];if(G.contract)return;G.contract=Object.assign({town:G.town,done:false},t.contracts.splice(i,1)[0]);toast('Contract accepted');renderTown();save()}
-function hireCost(m){return typeof recruitCost==='function'?recruitCost(m):BG[m.bg].cost}
-function hire(i){const t=G.towns[G.town],m=t.recruits[i];if(!m)return;const c=hireCost(m);if(G.roster.length>=MAXROSTER){toast('The roster is full');return}if(G.crowns<c){toast('Not enough crowns');return}
+function acceptContract(i){const t=G.towns[G.town];if(G.contract)return false;const c=t.contracts[i];if(!c)return false;
+ if(typeof ctrAccept==='function'){if(!ctrAccept(c))return false}else G.contract=Object.assign({town:G.town,done:false},t.contracts.splice(i,1)[0]);
+ toast(c.adv?`Contract accepted: ${c.adv} crowns up front`:'Contract accepted');renderTown();save();return true}
+/* the notice board: a line and a detail page for any contract type, read through the ctr* hooks (16-contracts.js) */
+const TW_DIFFN=['Light','Serious','Grave','Deadly','Dire'];
+function twCtrSub(c){const T=typeof CTYPES==='object'&&CTYPES[c.type],f=c.f&&FACT[c.f]?', '+FACT[c.f].n.toLowerCase():'';return(T?T.n:c.type==='deliver'?'Delivery':'Hunt')+(c.type==='deliver'?'':f)+(c.due!=null?` · by day ${c.due}`:'')}
+function twCtrWhere(c,t){const L=[];for(const s of c.stages||[]){if(s.k==='go'){const d=leagues(s,t);L.push(`${s.label}: about ${d} league${d===1?'':'s'} ${compass(s.x-t.x,s.y-t.y)} of ${t.name}${s.fight?'':' (no fight expected)'}.`)}
+  else{const o=G.towns[s.ti];if(o)L.push(o===t?`${s.label} here in ${t.name}.`:`${s.label} in ${o.name}, ${leagues(o,t)} leagues ${compass(o.x-t.x,o.y-t.y)}.`)}}
+ if(!L.length){const o=c.type==='hunt'?c:G.towns[c.to];if(o)L.push(`About ${leagues(o,t)} leagues ${compass(o.x-t.x,o.y-t.y)} of ${t.name}.`)}return L}
+function twCtrObj(c){const s=(c.stages||[]).find(x=>x.k==='go'&&x.fight&&(x.fight.obj||x.fight.boss));if(!s)return'';const F=s.fight,o=F.obj;
+ if(F.boss)return`The target is <b>${F.boss.name}</b>${F.boss.title?', '+F.boss.title:''}: stronger than the rest of its kind.`;
+ if(o&&o.k==='escort')return'The caravan wagon fights at your back and cannot move: if it is destroyed, the contract is lost.';if(o&&o.k==='hold')return`Hold for ${o.rounds} rounds or rout them.`;if(o&&o.k==='siege')return'The foe fights from behind stakes, fortified for its first turns. Kill its leader and the rest break.';return''}
+function twCtrDetail(c,t){const T=typeof CTYPES==='object'&&CTYPES[c.type],mood=typeof ctrMood==='function'?ctrMood(c):null,neg=c.neg||{},ob=twCtrObj(c);
+ const facts=[['Employer',typeof ctrEmpName==='function'?ctrEmpName(c):t.name]];if(c.f&&FACT[c.f]&&c.type!=='deliver')facts.push(['Foe',FACT[c.f].n]);
+ facts.push(['Danger',twSkulls(c.diff,Math.max(3,c.diff))+' '+(typeof DIFFN!=='undefined'?DIFFN:TW_DIFFN)[c.diff-1]],['Pay',twIcon('coin',16)+c.pay+' crowns'+(c.adv?` <small>(${c.adv} up front)</small>`:'')],['Renown',twIcon('renown',16)+'+'+8*c.diff]);
+ if(c.due!=null)facts.push(['Deadline',twIcon('day',16)+'Day '+c.due+` <small>(${Math.max(0,c.due-G.day)} days)</small>`]);
+ if(mood)facts.push(['Employer’s mood',`<span class="tw-mood ${mood.n}">${mood.n}</span> <small>${mood.why}</small>`]);
+ const detail=`${twHead(twEmblem(c,48),T?T.n:'Contract',c.title)}<p class="pn-p">${T?T.d:''}</p>${twCtrWhere(c,t).map(x=>`<p class="pn-p dim">${x}</p>`).join('')}${ob?`<p class="pn-p">${ob}</p>`:''}
+  ${pnFacts(facts)}${neg.msg?`<p class="pn-p ${neg.ok?'good':'warn'}">${neg.msg}</p>`:''}${G.contract?'<p class="pn-p warn">You already hold a contract. Finish or abandon it before taking another.</p>':''}`;
+ const ix=t.contracts.indexOf(c),can=!G.contract&&!neg.gone,hag=typeof ctrNegotiate==='function'&&can&&(neg.r||0)<3,b=c.pay0||c.pay;
+ const foot=`<span class="pn-fl">${pnCoin(c.pay,'big')}<small>crowns on completion</small></span>${hag?`<button type="button" class="pn-btn" onclick="twHaggle(${ix},'pay')">Ask ${Math.round(b*1.15/10)*10}</button><button type="button" class="pn-btn" onclick="twHaggle(${ix},'adv')">Ask ${Math.round(c.pay*.3/10)*10} up front</button>`:''}${neg.counter?`<button type="button" class="pn-btn" onclick="twHaggle(${ix},'counter')">Take their offer</button>`:''}<button type="button" class="pn-btn pri" ${can?'':'disabled'} onclick="acceptContract(${ix})">Accept contract</button>`;
+ return{detail,foot}}
+// haggling from the board: 'pay' asks 15% over the posted pay, 'adv' a third up front, 'counter' takes the employer's last offer
+function twHaggle(i,how){const t=G.towns[G.town],c=t&&t.contracts[i];if(!c||typeof ctrNegotiate!=='function')return null;const b=c.pay0||c.pay,N=c.neg||{};
+ const ask=how==='counter'&&N.counter?N.counter:how==='adv'?{pay:c.pay,adv:Math.round(c.pay*.3/10)*10}:{pay:Math.round(b*1.15/10)*10,adv:c.adv||0};
+ const r=ctrNegotiate(c,ask);if(c.neg){c.neg.msg=r.msg;c.neg.ok=r.ok}renderTown(r.gone?`<p class="bad">${r.msg}</p>`:'');return r}
+function hireCost(m,ti){const c=typeof recruitCost==='function'?recruitCost(m):BG[m.bg].cost,k=twK('hire',ti);return k===1?c:Math.max(5,Math.round(c*k/5)*5)}
+function hire(i){if(twHostile()){toast('Nobody here will sign with the company');return}const t=G.towns[G.town],m=t.recruits[i];if(!m)return;const c=hireCost(m);if(G.roster.length>=MAXROSTER){toast('The roster is full');return}if(G.crowns<c){toast('Not enough crowns');return}
  G.crowns-=c;t.recruits.splice(i,1);m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);toast(m.name+' joins the company');renderTown();save()}
-function buyFood(){if(G.crowns<30){toast('Not enough crowns');return}G.crowns-=30;G.food+=10;renderTown()}
-function buyItem(i){const t=G.towns[G.town],id=t.stock[i];if(G.crowns<ITEMS[id].price){toast('Not enough crowns');return}G.crowns-=ITEMS[id].price;G.stash.push(id);t.stock.splice(i,1);renderTown()}
+function buyFood(){if(twShut())return false;const p=mkFoodPrice();if(G.crowns<p){toast('Not enough crowns');return false}G.crowns-=p;G.food+=10;renderTown();return true}
+function buyItem(i){if(twShut())return false;const t=G.towns[G.town],id=t.stock[i];if(!id)return false;const p=mkBuyPrice(id);if(G.crowns<p){toast('Not enough crowns');return false}G.crowns-=p;G.stash.push(id);t.stock.splice(i,1);renderTown();return true}
 /* tools: a company stock like food. n defaults to one lot. */
-function buyTools(n){n=Math.max(1,Math.round(+n||TOOLLOT));const c=toolPrice(n);if(G.crowns<c){toast('Not enough crowns');return false}G.crowns-=c;G.tools=cpTools()+n;renderTown();return true}
+function buyTools(n){if(twShut())return false;n=Math.max(1,Math.round(+n||TOOLLOT));const c=toolPrice(n);if(G.crowns<c){toast('Not enough crowns');return false}G.crowns-=c;G.tools=cpTools()+n;renderTown();return true}
 /* temple: treat injury id of roster[i] for crowns */
 function templeTreat(i,id){const m=G.roster[i];if(!m)return false;const j=cpInj(m).find(x=>x.id===id);if(!j)return false;const r=cpTreat(m,id);if(!r.ok){toast(r.why);return false}
  toast(`${m.name}: ${j.n.toLowerCase()} treated`);renderTown(`<p class="good">The healers see to ${htmlEsc(m.name)}. ${j.n} is mended for ${r.cost} crowns.</p>`);save();return true}
-function sellItem(i){const id=G.stash.splice(i,1)[0];if(!id)return;G.crowns+=sellPrice(id);renderTown()}
+function sellItem(i){if(twShut())return false;const id=G.stash.splice(i,1)[0];if(!id)return false;G.crowns+=mkSellPrice(id);renderTown();return true}
 function innRest(){const cost=G.roster.length*10;if(G.crowns<cost){toast('Not enough crowns');return}G.crowns-=cost;G.roster.forEach(m=>m.hp=calc(m).hp);const d0=G.day;advanceTime(8);G.roster.forEach(m=>m.hp=calc(m).hp);const rep=cpRepair(),rt=cpRepairText(rep);let note=rt?`<p class="${rep.pts?'good':'bad'}">${rt}.</p>`:'';
  if(G.day!==d0){let msg='';try{const e=$('toast');msg=e&&typeof e.textContent==='string'?e.textContent:''}catch(e){}   // newDay() only toasts its report; the next toast would replace it
   if(msg.indexOf('Day '+G.day)===0)note=`<p class="${/desert|cannot|starves/.test(msg)?'bad':'dim'}">${msg}.</p>`+note;if(G.note==='crisis')note+='<p class="bad">Something is wrong with the sky. Word of it will meet you at the gate.</p>'}
  toast(rep.pts?`The company is rested. ${rep.pts} armor mended`:'The company is rested');renderTown(note);save();return rep}
 function contractSheet(){const c=G.contract;let h='<h2>Contract</h2>';
  if(!c)h+='<p class="dim">You hold no contract. Towns post work on their notice boards.</p>';
- else{const t=G.towns[c.town];h+=`<div class="card"><b>${c.title}</b><p class="dim">${c.type==='deliver'?'Deliver to '+G.towns[c.to].name+'.':c.done?'Done. Return to '+t.name+' for your pay.':'Marked on the map with a red skull. Posted in '+t.name+'.'}</p><span class="coin">${c.pay} crowns</span></div><button class="warn" onclick="G.contract=null;G.renown=Math.max(0,G.renown-5);closeSheet();toast('Contract abandoned')">Abandon contract</button> `}
+ else{const t=G.towns[c.town];h+=`<div class="card"><b>${c.title}</b><p class="dim">${typeof ctrStatus==='function'?ctrStatus(c)+'.':c.type==='deliver'?'Deliver to '+G.towns[c.to].name+'.':c.done?'Done. Return to '+t.name+' for your pay.':'Marked on the map with a red skull. Posted in '+t.name+'.'}</p><span class="coin">${c.pay} crowns</span></div><button class="warn" onclick="if(typeof ctrAbandon==='function')ctrAbandon();else{G.contract=null;G.renown=Math.max(0,G.renown-5)}closeSheet();toast('Contract abandoned')">Abandon contract</button> `}
  sheet(h+'<button onclick="closeSheet()">Close</button>')}
 /* ---- the tavern's two pages: recruits looking for work, and the retinue (followers hired for good, slots by renown) ---- */
 function tavTabs(cur){const nR=G.towns[G.town].recruits.length,nF=(G.retinue||[]).length,sl=typeof followerSlots==='function'?followerSlots():1,b=(k,n,ic,c)=>`<button type="button" role="tab" class="mk-tab${cur===k?' on':''}" id="tavTab-${k}" aria-selected="${cur===k}" onclick="tavTab('${k}')">${twIcon(ic,16)}<span>${n}</span><i>${c}</i></button>`;

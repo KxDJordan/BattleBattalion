@@ -213,7 +213,7 @@ function orderHTML(u){const tok=(x,cls)=>{const hp=Math.max(0,Math.round(100*x.h
   return'<button class="oc s'+x.side+' '+cls+(fl?' flee':m===1?' brk':'')+(tele?' tele':'')+'" onclick="focusUnit('+x.id+')" aria-label="'+esc(x.name)+', '+x.hp+' of '+x.hpMax+' hitpoints'+(shLoaded(x)===false?', unloaded':'')+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')+'" title="'+esc(x.name)+(fl?' (fleeing)':'')+'">'+port(x,32)
    +(fl?'<span class="omk">'+pic('morale-0',16,'flag')+'</span>':tele?'<span class="omk">'+pic('telegraph',16,'a-burst')+'</span>':'')+(shLoaded(x)===false?'<span class="oul" title="Unloaded">'+shUnlMark()+'</span>':'')+'<i class="ohp'+(hp<34?' low':'')+'"><b style="width:'+hp+'%"></b></i></button>'};
  const rest=B.order.filter(x=>x&&x.alive);
- return'<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>'+tok(u,'cur')+rest.map(x=>tok(x,'')).join('')}
+ return'<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>'+objChipHTML()+tok(u,'cur')+rest.map(x=>tok(x,'')).join('')}
 function statI(icon,svg,val,cls,title,col){return'<span class="si '+cls+'" title="'+title+'"'+(col?' style="color:'+col+'"':'')+'>'+pic(icon,16,svg)+'<b>'+val+'</b></span>'}
 function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>(x.key!=='unloaded'||shLoaded(u)===null)&&x.key!=='tired');   // the weapon carries the unloaded badge; Tired has its own marker by the stamina
  for(let i=0;i<L.length&&i<6;i++)h+=SH_VALST[L[i].key]?stVal(L[i].key,L[i].turns|0):stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
@@ -423,3 +423,13 @@ const RET_BATTLE=[['banner','Standard-bearer','+5 resolve to every fielded sword
 function retBattle(){if(typeof followerHas!=='function')return[];return RET_BATTLE.filter(x=>{try{return followerHas(x[0])}catch(e){return false}})}
 function chipRetinue(){const L=retBattle();if(!L.length)return'';const t='Retinue: '+L.map(x=>x[1]+' '+x[2]).join('; ');
  return'<span class="ufol" title="'+esc(t)+'" aria-label="'+esc(t)+'">'+pic(L.some(x=>x[0]==='banner')?'fol-banner':'fol-'+L[0][0],16,'flag')+(L.length>1?'<b>'+L.length+'</b>':'')+'</span>'}
+
+/* the battle objective (contracts agent's objStatus()): a small chip in the turn strip. Escort: the VIP's hitpoints;
+   hold: rounds held of rounds asked; siege: the leader standing or dead. Tapping it centres the VIP or the leader. */
+function objChipHTML(){if(typeof objStatus!=='function')return'';let o=null;try{o=objStatus()}catch(e){o=null}if(!o)return'';
+ const st=o.state==='lost'?' lost':o.state==='won'?' won':'',ic=o.k==='escort'?'ct-escort':o.k==='hold'?'ct-defend':o.k==='siege'?'ct-siege':'star';let bar='',val='';
+ if(o.k==='escort'&&o.vip){const p=o.vip.hpMax?Math.round(100*o.vip.hp/o.vip.hpMax):0;val=o.vip.alive?o.vip.hp+'<small>/'+o.vip.hpMax+'</small>':'Lost';bar='<i class="ohp'+(p<34?' low':'')+'"><b style="width:'+p+'%"></b></i>'}
+ else if(o.k==='hold'){const n=Math.max(1,o.rounds|0),d=Math.min(n,Math.max(0,n-(o.left|0)));val=o.state==='won'?'Held':d+'<small>/'+n+'</small>';let pp='';for(let i=0;i<n&&i<8;i++)pp+='<b class="'+(i<d?'on':'')+'"></b>';bar='<span class="opip">'+pp+'</span>'}
+ else if(o.k==='siege'&&o.leader){val=o.leader.alive?o.leader.hp+'<small>/'+o.leader.hpMax+'</small>':'Slain';const p=o.leader.hpMax?Math.round(100*o.leader.hp/o.leader.hpMax):0;bar='<i class="ohp foe"><b style="width:'+p+'%"></b></i>'}
+ const tgt=o.vip&&o.vip.u?o.vip.u:o.leader&&o.leader.u?o.leader.u:null;
+ return'<button class="objc'+st+' k-'+o.k+'" '+(tgt?'onclick="focusUnit('+tgt.id+')" ':'')+'aria-label="'+esc((o.n||'Objective')+': '+(o.goal||'')+'. '+(o.line||''))+'" title="'+esc(o.goal||'')+'">'+pic(ic,16,'obj')+'<span class="oct"><b>'+esc(o.n||'Objective')+'</b><span class="ocv">'+val+'</span></span>'+bar+'</button>'}

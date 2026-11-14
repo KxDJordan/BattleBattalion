@@ -8,7 +8,7 @@
      Craft    RECIPES (13-craft.js): parts, crowns and hours into gear and supplies
      Parts    the stock of monster parts and where they come from
    campQuickRest() is the one-tap rest (what the world's old Camp button did). None of it uses the seeded RNG
-   (advanceTime may roll a new day, which does what any day does). */
+   (advanceTime may roll a new day, which does what any day does), except the camp event a rest may bring (campEvent: eventTick('camp')). */
 const CAMP={restH:6,trainH:3,trainCap:2,trainXP:.12,trainXP0:40,surgH:3,surgDays:2};
 const CAMPTABS=[['rest','Rest','camp'],['train','Train','level'],['surgery','Surgery','injury'],['craft','Craft','anvil'],['parts','Parts','parts']];
 const CM={tab:'rest',sel:{},note:''};
@@ -49,8 +49,10 @@ function campRestNow(){if(!G)return'';G.moving=false;G.route=[];const hp0=G.rost
  if(typeof campRest==='function')msg=campRest(CAMP.restH);   // the world's direct rest path (40-world.js): advanceTime(h,2), campReport, toast, save
  else{if(typeof advanceTime==='function')advanceTime(CAMP.restH,2);msg=typeof campReport==='function'?campReport(CAMP.restH):(typeof repairAll==='function'&&repairAll(),'Made camp for six hours')}
  const hp=G.roster.reduce((n,m)=>n+m.hp,0)-hp0;msg=String(msg||'Made camp for six hours');if(hp>0)msg+=`. ${hp} hitpoints mended`;return msg}
-function campQuickRest(){if(!G)return'';if(G.moving){G.moving=false;G.route=[];return''}const msg=campRestNow();if(typeof campRest!=='function')campToast(msg);if(typeof save==='function')save();return msg}
-function campRestTab(){const msg=campRestNow();campNote(`<p class="good">${msg}.</p>`);if(typeof save==='function')save();campRender()}
+function campQuickRest(){if(!G)return'';if(G.moving){G.moving=false;G.route=[];return''}const msg=campRestNow();if(typeof campRest!=='function')campToast(msg);if(typeof save==='function')save();campEvent();return msg}
+function campRestTab(){const msg=campRestNow();campNote(`<p class="good">${msg}.</p>`);if(typeof save==='function')save();campRender();campEvent(()=>{if(typeof panelOpen==='function'&&panelOpen()==='camp')campRender()})}
+// a camp event may follow a rest (17-events.js eventTick('camp'): seeded, at most once a day); then runs when its card closes
+function campEvent(then){if(typeof eventTick!=='function')return false;try{return eventTick('camp',then?{then}:{})}catch(e){return false}}
 function campCraft(id){const why=typeof craftWhy==='function'?craftWhy(id):'Crafting is not available';if(why){campToast(why);return false}const r=craftDo(id);if(!r)return false;
  campNote(`<p class="good">Crafted ${htmlEsc(recipeOut(id))} in ${r.hours} hour${r.hours===1?'':'s'}${r.out.item?': it waits in the stash':''}.</p>`);if(typeof save==='function')save();campRender();return r}
 function campToast(t){if(t&&typeof toast==='function')toast(t)}

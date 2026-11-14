@@ -243,6 +243,11 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
   P.r(cx-1,cy-13,2,7,'c');P.r(cx-3,cy-11,6,2,'c');P.p(cx-1,cy-13,'e');P.p(cx-3,cy-11,'d');P.r(cx,cy-12,1,6,'b');
   if(lamps)an.lights.push({x:cx,y:ty+4,r:18});
   an.bell={x:cx-2,y:cy+5};P.id=0;an.box.temple={x:x-5,y:cy-13,w:w+10,h:Math.max(24,bt-(cy-13))}};
+ /* -- guild houses (phase 7): the town's extra buildings (t.bld) as tall back-row houses that rise over the street, each with
+    its own silhouette and a hanging sign carrying the building's icon. Hot spots come from an.box (no pixel outline). -- */
+ {const ex=tvExtras(t);if(ex.length){const avoid=[tcx,tlx,lx],cand=[];for(let f=.05;f<.97;f+=.045)cand.push(Math.round(W*f));
+   const pick=[];for(const k of ex){let best=null,bd=-1;for(const c of cand){const d=Math.min(...avoid.map(a=>Math.abs(c-a)).concat(pick.map(q=>Math.abs(c-q.x)+4)));if(d>bd){bd=d;best=c}}if(best==null||bd<24)break;pick.push({k,x:best})}
+   for(const g of pick)tvGuild(P,g.k,g.x,yB,LH,{lit,snow,dim,dark,mat,wall,win,roofGable,roofSide,chimney,rr,ch,an,wallM})}}
  temple(tcx);
  /* -- tailor: a narrow jettied house behind the market stalls, its upper floor above the awnings; bolts of dyed cloth drying on a
     pole and a sign with the shears. Plum tiles so it reads apart from the other roofs. -- */
@@ -430,7 +435,7 @@ function tvFrame(ts){TV.raf=0;if(!TV.root||!TV.shown)return;
 /* ---- DOM ---- */
 function tvIcon(n,sz){return typeof pxIcon==='function'?pxIcon(n,sz||16):''}
 function tvRoot(){if(TV.root)return TV.root;const r=document.createElement('div');r.id='tv';r.className='tv';r.setAttribute('role','region');r.setAttribute('aria-label','Town');
- r.innerHTML=`<canvas class="tv-cv" aria-hidden="true"></canvas><div class="tv-top"><div class="tv-name"><b id="tvName"></b><span id="tvSub"></span></div><div class="tv-res" id="tvRes"></div></div>
+ r.innerHTML=`<canvas class="tv-cv" aria-hidden="true"></canvas><div class="tv-top"><div class="tv-name"><b id="tvName"></b><span id="tvSub"></span><span id="tvOwn" class="tv-own"></span></div><div class="tv-res" id="tvRes"></div></div>
 <div class="tv-note" id="tvNote" role="status"></div><div class="tv-places" id="tvPlaces"></div>
 <div class="tv-bar"><button type="button" class="tv-btn" id="tvCo" onclick="tvCompany()"></button><button type="button" class="tv-btn pri" id="tvLeave" onclick="leaveTown()"></button></div>`;
  const app=$('app')||document.body,pn=$('pn'),sh=$('sheet'),before=pn&&pn.parentNode===app?pn:sh&&sh.parentNode===app?sh:null;if(before)app.insertBefore(r,before);else app.appendChild(r);
@@ -439,17 +444,18 @@ function tvRoot(){if(TV.root)return TV.root;const r=document.createElement('div'
  TV.root=r;TV.cv=r.querySelector('canvas');TV.g=TV.cv.getContext('2d');return r}
 function tvBadges(t){const hurt=G.roster.filter(m=>m.hp<calc(m).hp).length,c=G.contract;
  return{contracts:TV.paid?{t:'Paid',c:'ok'}:c?{t:'In hand',c:'dim'}:t.contracts.length?{t:t.contracts.length,c:''}:null,
-  tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:null,tailor:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpInjured==='function'?cpInjured().length:0)}}
+  tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:lkHostile(G.town)?{t:'Closed',c:'bad'}:null,tailor:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpInjured==='function'?cpInjured().length:0)}}
 function tvRect(e){try{return e.getBoundingClientRect()}catch(_){return null}}
 function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=r.clientWidth||window.innerWidth,vh=r.clientHeight||window.innerHeight;
  const s=Math.max(2,Math.floor(Math.min(vw/300,vh/170))),W=Math.ceil(vw/s),H=Math.ceil(vh/s),tod=tvTod(),bio=tvBiome(t);
- const key=[G.town,t.name,W,H,tod,bio,t.contracts.length].join('|');
+ const key=[G.town,t.name,W,H,tod,bio,t.contracts.length,(t.bld||[]).join(',')].join('|');
  if(key!==TV.key){TV.key=key;TV.s=s;TV.W=W;TV.H=H;const o=tvPaint(t,G.town,W,H,tod,bio);TV.an=o.an;TV.pic=tvCompose(o.P,tod,o.an.lights);TV.out=tvOutlines(o.P);tvInitAnim(o.an,W,H);delete o.an.P;
   TV.cv.width=W;TV.cv.height=H;TV.cv.style.width=W*s+'px';TV.cv.style.height=H*s+'px';TV.g.imageSmoothingEnabled=false;r.style.setProperty('--s',s);r.dataset.tod=tod;r.dataset.bio=bio}
  const B=tvBadges(t),box=TV.an.box,P=$('tvPlaces');
- P.innerHTML=TVPLACES.map(([k,n,ic],i)=>{const b=box[ic]||box[k],bd=B[k],x=Math.max(0,b.x)*TV.s,w=Math.max(44,(Math.min(TV.W,b.x+b.w)-Math.max(0,b.x))*TV.s),top=b.y*TV.s,h=Math.max(44,b.h*TV.s);
+ P.innerHTML=tvExtras(t).filter(k=>box[k]).map(k=>{const b=box[k],x=Math.max(0,b.x)*TV.s,w=Math.max(44,(Math.min(TV.W,b.x+b.w)-Math.max(0,b.x))*TV.s);
+  const sx=b.sx!=null?(b.sx-Math.max(0,b.x))*TV.s-13:w/2-13,sy=b.sy!=null?(b.sy-b.y)*TV.s+b.ss*TV.s+4:8;return`<button type="button" class="tv-place tv-guild" style="left:${x}px;top:${b.y*TV.s}px;width:${w}px;height:${Math.max(44,b.h*TV.s)}px" aria-label="${tvBldName(k)}" title="${tvBldName(k)}" onclick="tvGo('${k}')"><span class="tv-plate ic" style="left:${Math.round(sx)}px;top:${Math.round(sy)}px">${tvIcon(tvBldIcon(k),16)}<b>${tvBldName(k)}</b></span></button>`}).join('')+TVPLACES.map(([k,n,ic],i)=>{const b=box[ic]||box[k],bd=B[k],x=Math.max(0,b.x)*TV.s,w=Math.max(44,(Math.min(TV.W,b.x+b.w)-Math.max(0,b.x))*TV.s),top=b.y*TV.s,h=Math.max(44,b.h*TV.s);
   return`<button type="button" class="tv-place" data-i="${i}" style="left:${x}px;top:${top}px;width:${w}px;height:${h}px" aria-label="${n}${bd?', '+bd.t+(k==='contracts'&&+bd.t?' contracts posted':k==='tavern'?' looking for work':k==='inn'?' wounded':k==='temple'?' injured':''):''}" onclick="tvGo('${k}')"><span class="tv-plate${k==='temple'||k==='tailor'?' up':''}">${typeof cpIcon==='function'?cpIcon(ic,16):tvIcon(ic,16)}<b>${n}</b>${bd?`<i class="tv-badge ${bd.c}${typeof bd.t==='string'?' txt':''}">${bd.t}</i>`:''}</span></button>`}).join('');
- P.querySelectorAll('.tv-place').forEach(el=>{const i=+el.dataset.i,set=(h,d)=>{if(h!==null)TV.hot=h;if(d!==null)TV.down=d;TV.dirty=true};
+ P.querySelectorAll('.tv-place:not(.tv-guild)').forEach(el=>{const i=+el.dataset.i,set=(h,d)=>{if(h!==null)TV.hot=h;if(d!==null)TV.down=d;TV.dirty=true};
   el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')set(i,null)});el.addEventListener('pointerleave',()=>set(TV.hot===i?-1:TV.hot,TV.down===i?-1:TV.down));
   el.addEventListener('pointerdown',()=>set(null,i));el.addEventListener('pointerup',()=>set(null,-1));el.addEventListener('pointercancel',()=>set(-1,-1));
   el.addEventListener('focus',()=>set(i,null));el.addEventListener('blur',()=>set(TV.hot===i?-1:TV.hot,null))});
@@ -458,7 +464,7 @@ function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=
   if(r.left<6)dx=6-r.left;else if(r.right>vw-6)dx=vw-6-r.right;
   for(let k=0;k<2;k++)if(done.some(q=>r.left+dx<q.right+m&&r.right+dx+m>q.left&&r.top+dy<q.bottom+m&&r.bottom+dy+m>q.top))dy+=r.height+8;
   if(dx)o.e.style.marginLeft=dx+'px';if(dy)o.e.style.marginTop=dy+'px';done.push({left:r.left+dx,right:r.right+dx,top:r.top+dy,bottom:r.bottom+dy})});
- $('tvName').textContent=t.name;$('tvSub').textContent=`Day ${G.day} · ${TVTODN[tod]} · ${TVBION[bio]}`;
+ $('tvName').textContent=t.name;{const O=$('tvOwn');if(O){const bn=tvTownBanner(G.town);O.innerHTML=bn+tvTownNote(G.town);O.classList.toggle('on',!!O.innerHTML)}}$('tvSub').textContent=`Day ${G.day} · ${TVTODN[tod]} · ${TVBION[bio]}`;
  $('tvRes').innerHTML=`<span class="tv-chip coin">${tvIcon('coin',16)}<b>${G.crowns}</b></span><span class="tv-chip">${tvIcon('food',16)}<b>${G.food}</b></span><span class="tv-chip" title="Tools">${typeof cpIcon==='function'?cpIcon('tools',16):''}<b>${typeof cpTools==='function'?cpTools():0}</b></span><span class="tv-chip">${tvIcon('swords',16)}<b>${G.roster.length}</b></span>`;
  const ready=G.roster.filter(m=>m.pend||m.pp).length;
  $('tvCo').innerHTML=`${tvIcon('company',16)}<span>Company</span>${ready?`<i class="tv-badge">${ready}</i>`:''}`;$('tvLeave').innerHTML=`${tvIcon('back',16)}<span>Leave town</span>`;
@@ -476,5 +482,102 @@ function tvShow(note){if(!tvCan()||!G||G.town==null||!G.towns[G.town])return fal
  if(fresh){r.classList.remove('in');void r.offsetWidth;r.classList.add('in')}
  TV.dirty=true;tvDraw();tvOutline();if(!TV.raf)TV.raf=requestAnimationFrame(tvFrame);return true}
 function tvHide(){if(!TV.root)return;TV.shown=false;TV.root.classList.remove('on','in');TV.note='';TV.paid=false;if(TV.raf){cancelAnimationFrame(TV.raf);TV.raf=0}}
-function tvGo(k){TV.note='';TV.paid=false;townAt='panel';townTab=k;renderTown()}
+function tvGo(k){TV.note='';TV.paid=false;townAt='panel';townTab=k;if(TVX.includes(k)&&typeof tvbOpen==='function'){tvbOpen(k);return}renderTown()}
 function tvCompany(){if(typeof companySheet==='function')companySheet()}
+
+/* ---- phase 7 (look): extra buildings in the scene and their own panels ---- */
+const TVX=['armorer','weaponsmith','fletcher','college','hall','harbour'];
+const TVXN={armorer:'Armorer',weaponsmith:'Weaponsmith',fletcher:'Fletcher',college:'Arcane college',hall:'Training hall',harbour:'Harbour'};
+function tvExtras(t){return t&&Array.isArray(t.bld)?TVX.filter(k=>t.bld.includes(k)):[]}
+function tvBldName(k){const B=typeof BLD==='object'&&BLD?BLD[k]:null;return B&&B.n||TVXN[k]||k}
+function tvBldIcon(k){return typeof icHas==='function'&&icHas('bld-'+k)?'bld-'+k:(typeof BLD==='object'&&BLD&&BLD[k]&&BLD[k].icon)||'board'}
+/* one guild house at centre x, standing on the back-row line; K = the painter's kit from tvPaint */
+function tvGuild(P,k,cx,yB,LH,K){const SG={x:null,y:null};const by=yB-3,top=by-Math.round(clamp(LH*1.15,86,124)),w=k==='college'?20:k==='hall'?34:28,x=cx-(w>>1),stone=K.wallM==='adobe'?'adobe':'stone';
+ const sign=(sx,sy)=>{SG.x=sx+9;SG.y=sy;const R=typeof iconRows==='function'?iconRows(tvBldIcon(k)):null;P.r(sx-1,sy-3,20,1,'0');P.r(sx+3,sy-2,1,2,'0');P.r(sx+14,sy-2,1,2,'0');P.r(sx,sy,18,18,'0');P.r(sx+1,sy+1,16,16,'l');P.r(sx+1,sy+16,16,1,'m');P.r(sx+16,sy+1,1,16,'m');if(R)P.s(R.map(r=>r.replace(/0/g,'.')),sx+1,sy+1)};
+ if(k==='harbour'){// a ship's mast and furled sail over the roofs, a crane and a warehouse
+  const mx=cx,mt=top-6;P.r(mx,mt,2,by-mt,'i');P.r(mx,mt,1,by-mt,'j');P.r(mx-14,mt+12,30,2,'i');for(let i=-12;i<14;i++)P.p(mx+i,mt+14,i%3?'l':'m');P.r(mx-12,mt+15,26,2,'m');
+  P.r(mx-9,mt+34,20,2,'i');P.r(mx-8,mt+36,18,3,'l');P.r(mx,mt-6,1,6,'j');for(let i=0;i<7;i++)P.r(mx+1,mt-6+i,Math.max(1,7-i),1,i<3?'g':'f');
+  for(let i=0;i<10;i++)P.p(mx-1-i,mt+1+i*2,'4');for(let i=0;i<10;i++)P.p(mx+2+i,mt+1+i*2,'4');
+  K.wall(x-8,by-34,w+16,34,'wood');K.roofSide(x-11,by-46,w+22,13,TVRAMP.slate,.3);P.r(x-1,by-20,10,20,'i');P.r(x,by-19,8,19,'1');sign(x+14,by-30);
+  return void(K.an.box.harbour={x:x-14,y:mt-8,w:w+28,h:Math.min(56,by-mt),sx:SG.x,sy:SG.y,ss:18})}
+ // the house body
+ K.wall(x,top+14,w,by-top-14,k==='college'?'stone':k==='hall'?K.wallM:stone);
+ if(k==='college'){// a slender tower, a blue cone roof with a star finial, a lit round window
+  for(let j=0;j<22;j++){const hw=Math.round((j+1)*(w/2+3)/22);for(let i=-hw;i<hw;i++)P.p(cx+i,top-8+j,K.snow&&i<0&&j<18?'r':i<0?'x':i<hw-2?'X':'G')}
+  P.r(cx-1,top-14,2,6,'c');P.p(cx-1,top-16,'F');P.p(cx,top-15,'F');P.p(cx-2,top-15,'F');P.p(cx-1,top-17,'r');
+  P.r(cx-4,top+18,8,8,'0');P.em=1;P.r(cx-3,top+19,6,6,K.lit(.95)?'F':'x');P.p(cx-3,top+19,'r');P.em=0;P.r(cx-4,top+22,8,1,'0');P.r(cx-1,top+19,1,6,'0');
+  K.win(cx-2,top+40,4,8,{});sign(x+w+2,top+30)}
+ else if(k==='hall'){// a long timber hall under a steep roof with a crossed-swords banner
+  K.roofGable(x-4,top-4,w+8,20,TVRAMP.red,K.wallM);P.r(x-4,top+15,w+8,1,'1');P.r(cx-1,top-18,1,16,'i');P.p(cx-1,top-19,'d');P.r(cx,top-17,9,8,'g');P.r(cx,top-17,9,1,'h');P.r(cx,top-10,9,1,'f');P.p(cx+8,top-13,'.');P.s(['l...l','.l.l.','..l..','.l.l.'],cx+2,top-16);
+  K.win(x+5,top+22,6,8,{});K.win(x+w-11,top+22,6,8,{});sign(x+(w>>1)-9,top+34)}
+ else{// forge or workshop: a pitched roof, a fat chimney (smoke, a red glow for the forges)
+  const forge=k==='armorer'||k==='weaponsmith';K.roofSide(x-3,top,w+6,15,forge?TVRAMP.slate:TVRAMP.wood,.5);
+  K.chimney(x+w-9,top-10,7,14,1);if(forge){P.em=1;P.r(x+w-8,top-11,5,1,'E');P.p(x+w-6,top-12,'y');P.em=0;K.an.lights.push({x:x+w-6,y:top-6,r:14})}
+  if(k==='fletcher'){P.r(x+4,top+22,11,11,'0');P.r(x+5,top+23,9,9,'l');P.r(x+6,top+24,7,7,'g');P.r(x+7,top+25,5,5,'l');P.r(x+8,top+26,3,3,'g');P.p(x+9,top+27,'y');P.r(x+11,top+25,5,1,'j');P.p(x+16,top+25,'l')}
+  else{P.r(x+4,top+24,9,10,'i');P.em=K.lit(.9)?1:0;P.r(x+5,top+25,7,8,P.em?'E':'1');if(P.em)P.r(x+5,top+30,7,3,'y');P.em=0}
+  sign(x+w+1,top+22)}
+ K.an.box[k]={x:x-4,y:top-18,w:w+26,h:58,sx:SG.x,sy:SG.y,ss:18}}
+
+/* ---- the town's header pieces, for the scene and the town panel (50-towns.js may use them: tvTownBanner(ti), tvTownNote(ti), tvTownTabs(t)) ---- */
+function tvTownBanner(ti){const t=G.towns[ti],h=t&&t.own&&t.own!=='free'?lkHouse(t.own):null;return h&&typeof bannerHTML==='function'?bannerHTML({name:h.n,c1:h.c1,c2:h.c2,emblem:h.emblem},32):''}
+function tvPriceLine(ti,kind){if(typeof townPriceWhy!=='function')return'';let L=[];try{L=townPriceWhy(ti,kind)||[]}catch(e){L=[]}if(!L.length)return'';
+ return L.map(x=>{const p=Math.round((x.k-1)*100);const good=kind==='sell'?p>0:p<0;return`<span class="tw-pw ${good?'good':'bad'}">${p>0?'+':'−'}${Math.abs(p)}% <small>${htmlEsc(x.why)}</small></span>`}).join('')}
+function tvTownNote(ti){const t=G.towns[ti];if(!t)return'';const own=t.own||null,S=lkSits(t),hostile=lkHostile(ti);let h='';
+ if(own){const rt=lkRepTier(own);h+=`<span class="tw-own">${tvTownBanner(ti)?'':''}<b>${htmlEsc(lkFacName(own))}</b><span class="fx-tier t-${rt.k}">${tvIcon('rep-'+rt.k,16)}${htmlEsc(rt.n)}</span></span>`}
+ for(const x of S){const k=x.k||x,D=lkSitDef(k);h+=`<span class="tw-sit" title="${htmlEsc(D.d||'')}">${tvIcon(lkSitIcon(k),16)}<b>${htmlEsc(D.n)}</b>${x.days?`<small>${x.days}d</small>`:''}</span>`}
+ {const pk=[['buy','Goods'],['sell','Selling'],['food','Food'],['hire','Hiring']].map(([k,n])=>{const v=lkPriceK(ti,k),p=Math.round((v-1)*100);if(!p)return'';let why='';if(typeof townPriceWhy==='function'){try{why=townPriceWhy(ti,k).map(x=>x.why+' '+(x.k>1?'+':'−')+Math.abs(Math.round((x.k-1)*100))+'%').join(', ')}catch(e){}}
+   const good=k==='sell'?p>0:p<0;return`<span class="tw-pw ${good?'good':'bad'}" title="${htmlEsc(why)}">${n} ${p>0?'+':'−'}${Math.abs(p)}%</span>`}).join('');if(pk&&!hostile)h+=`<span class="tw-prices">${pk}</span>`}
+ if(hostile)h+=`<span class="tw-sit bad">${tvIcon('lock',16)}<b>Markets closed to you</b></span>`;
+ return h?`<div class="tw-town">${h}</div>`:''}
+function tvTownTabs(t){const base=typeof TOWNTABS!=='undefined'?TOWNTABS.slice():[];return base.concat(tvExtras(t).map(k=>[k,tvBldName(k)]))}
+function tvbIsTab(k){return TVX.includes(k)}
+
+/* ---- building panels: everything goes through the world agent's bldServe(i,key,arg) ---- */
+const TVB={k:null,sel:{}};
+function tvbSv(k,arg){if(typeof bldServe!=='function')return{ok:false,msg:'Closed today'};try{return bldServe(G.town,k,arg)||{ok:false,msg:'Closed'}}catch(e){return{ok:false,msg:'Closed'}}}
+function tvbPrice(id){return typeof mkBuyPrice==='function'?mkBuyPrice(id):(ITEMS[id]?ITEMS[id].price:0)}
+function tvbBuy(id){if(lkHostile(G.town)){toast('The '+tvBldName(TVB.k).toLowerCase()+' will not deal with you');return false}const p=tvbPrice(id);if(G.crowns<p){toast('Not enough crowns');return false}
+ G.crowns-=p;G.stash.push(id);toast(ITEMS[id].n+' to the stash');tvbOpen(TVB.k);if(typeof save==='function')save();return true}
+function tvbDo(op,a,b){const k=TVB.k,arg={op};if(op==='hint'||op==='train'||op==='respec')arg.m=a;if(op==='respec')arg.tree=b;if(op==='sail')arg.to=a;
+ const r=tvbSv(k,arg);if(op==='hint'&&r.ok){TVB.hint=r.text;tvbOpen(k);return r}
+ toast(r.msg||(r.ok?'Done':'Not possible'));if(r.ok&&op==='sail'){if(typeof closePanel==='function')closePanel(true);if(typeof tvHide==='function')tvHide();G.townOpen=false;sheetOpen=false;if(typeof save==='function')save();return r}
+ if(r.ok&&typeof save==='function')save();tvbOpen(k);return r}
+function tvbPick(v){TVB.sel[TVB.k]=v;TVB.hint='';tvbOpen(TVB.k)}
+function tvbStock(k,sel){const r=tvbSv(k,{op:'stock'}),L=r.ok&&Array.isArray(r.items)?r.items:[];let list='';
+ L.forEach(id=>{const it=ITEMS[id];if(!it)return;const p=tvbPrice(id);list+=pnRow({on:`tvbPick('i${id}')`,sel:sel==='i'+id,cls:'tw-row',lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${it.tier?`<span class="pn-tier t${it.tier}">${TIERN[it.tier]}</span>`:''}${twItemStats(id)}</span>`,right:pnCoin(p,G.crowns<p?'short':'')})});
+ return{list:L.length?pnSec('For sale',L.length)+list:pnSec('For sale',0)+pnEmpty(r.msg||'Nothing on the racks today.'),items:L}}
+function tvbView(t,k){const ti=G.town,info=tvbSv(k,{}),B=typeof BLD==='object'&&BLD?BLD[k]:null,shut=lkHostile(ti);let sel=TVB.sel[k]||'',list='',detail='',foot='';
+ const head=`${twHead(tvIcon(tvBldIcon(k),48),htmlEsc(t.name),htmlEsc(tvBldName(k)))}<p class="pn-p">${htmlEsc(B?B.d:'')}</p>${shut?'<p class="pn-p warn">'+htmlEsc(lkFacName(t.own))+' has closed its doors to the company.</p>':''}`;
+ const offers=(info.ok&&info.offers||[]).map(o=>[htmlEsc(o.n),htmlEsc(o.d)+(o.cost?' <b>'+o.cost+' crowns</b>':'')]);
+ const mercRow=(m,mi,right,sub)=>pnRow({on:`tvbPick('m${m.id}')`,sel:sel==='m'+m.id,cls:'tw-row',lead:twPortrait(m,32),title:htmlEsc(m.name),sub:sub||`Level ${m.lvl} ${BG[m.bg]?BG[m.bg].n.toLowerCase():''}`,right});
+ const selM=()=>{const id=sel[0]==='m'?sel.slice(1):null;return G.roster.find(m=>String(m.id)===id)||null};
+ if(k==='armorer'||k==='weaponsmith'||k==='fletcher'||k==='college'){
+  let svc='';if(k==='armorer'){const o=(info.offers||[]).find(x=>x.op==='repair');if(o)svc+=pnRow({on:`tvbPick('repair')`,sel:sel==='repair',cls:'tw-row',lead:tvIcon('tools',32),title:'Full repair',sub:htmlEsc(o.d),right:o.cost?pnCoin(o.cost,G.crowns<o.cost?'short':''):''})}
+  if(k==='college'){svc+=pnRow({on:`tvbPick('hint')`,sel:sel==='hint',cls:'tw-row',lead:tvIcon('mana',32),title:'Read a gift',sub:'What each sword carries, and how to wake it'})+pnRow({on:`tvbPick('respec')`,sel:sel==='respec'||sel[0]==='m',cls:'tw-row',lead:tvIcon('quill',32),title:'Unlearn a tree',sub:'Take back a tree’s perks for crowns'})}
+  const st=tvbStock(k,sel);list=(svc?pnSec('Services')+svc:'')+st.list;
+  if(!sel)sel=svc&&k==='armorer'?'repair':st.items.length?'i'+st.items[0]:k==='college'?'hint':'';
+  if(sel[0]==='i'&&ITEMS[sel.slice(1)]){const id=sel.slice(1),p=tvbPrice(id);detail=itemDetail(id);foot=`<span class="pn-fl">${pnCoin(p,'big'+(G.crowns<p?' short':''))}<small>${shut?'<em>Closed to you</em>':G.crowns<p?'<em>Not enough crowns</em>':'to the stash'}</small></span><button type="button" class="pn-btn pri${G.crowns<p||shut?' off':''}" onclick="tvbBuy('${id}')">Buy for ${p}</button>`}
+  else if(sel==='repair'){const o=(info.offers||[]).find(x=>x.op==='repair')||{};detail=head+pnFacts([['Armor to mend',htmlEsc(o.d||'')],['Price',o.cost?tvIcon('coin',16)+o.cost+' crowns':'Nothing to mend']]);foot=`<span class="pn-fl">${o.cost?pnCoin(o.cost,'big'):''}<small>no tools used</small></span><button type="button" class="pn-btn pri${!o.cost||G.crowns<o.cost||shut?' off':''}" onclick="tvbDo('repair')">Mend everything</button>`}
+  else if(sel==='hint'){detail=head+pnHead('The gifts of your swords')+`<div class="bl-hints">${G.roster.map(m=>{const r=tvbSv('college',{op:'hint',m:m.id});return`<div class="bl-hint">${twPortrait(m,32)}<span>${htmlEsc(r.ok?r.text:r.msg||'')}</span></div>`}).join('')}</div>`}
+  else if(sel==='respec'||sel[0]==='m'){const m=selM();list=list.replace(/<\/div>$/,'')+'';
+   if(!m){detail=head+pnHead('Unlearn a tree')+`<p class="pn-p dim">Pick a sword:</p><div class="bl-mercs">${G.roster.map(x=>`<button type="button" class="pn-btn" onclick="tvbPick('m${x.id}')">${twPortrait(x,16)}<span>${htmlEsc(x.name)}</span></button>`).join('')}</div>`}
+   else{const trees=typeof tlTrees==='function'?tlTrees(m):[];const rows=trees.map(x=>{const r=tvbSv('college',{op:'respecCost',m:m.id,tree:x.key});return r.ok&&r.n?`<div class="bl-tree">${twIcon(tlTreeIcon(x.key),32)}<span><b>${htmlEsc(x.tree&&x.tree.n||x.key)}</b><small>${r.n} perk${r.n===1?'':'s'} back to spend</small></span><button type="button" class="pn-btn${G.crowns<r.cost||shut?' off':''}" onclick="tvbDo('respec','${m.id}','${x.key}')">${pnCoin(r.cost)}Unlearn</button></div>`:''}).join('');
+    detail=twHead(twPortrait(m,48),'Unlearn a tree',htmlEsc(m.name))+(rows||pnEmpty('Nothing learned yet that could be unlearned.'))+`<p class="pn-p dim">The points come back at once, to spend again in any tree this sword can learn.</p>`}}
+  else detail=head+(offers.length?pnFacts(offers):'')}
+ else if(k==='hall'){list=pnSec('Your swords',G.roster.length);G.roster.forEach((m,mi)=>{const r=tvbSv('hall',{op:'trainCost',m:m.id});list+=mercRow(m,mi,r.ok&&!r.why?pnCoin(r.cost,G.crowns<r.cost?'short':''):'<span class="tw-t">Max</span>',`Level ${m.lvl} · ${r.ok&&!r.why?'+'+r.xp+' XP':htmlEsc(r.why||r.msg||'')}`)});
+  const m=selM()||G.roster[0];if(m&&!sel)sel='m'+m.id;
+  if(m){const r=tvbSv('hall',{op:'trainCost',m:m.id});detail=twHead(twPortrait(m,48),'Training hall',htmlEsc(m.name))+`<p class="pn-p">${htmlEsc(B?B.d:'')}</p>`+pnFacts([['Drill',tvIcon('day',16)+(r.hours||3)+' hours'],['Experience',tvIcon('xp',16)+(r.xp?'+'+r.xp:'None')],['Price',tvIcon('coin',16)+(r.cost||0)+' crowns']]);
+   foot=`<span class="pn-fl">${pnCoin(r.cost||0,'big'+(G.crowns<(r.cost||0)?' short':''))}<small>${r.why?'<em>'+htmlEsc(r.why)+'</em>':shut?'<em>Closed to you</em>':'no daily limit'}</small></span><button type="button" class="pn-btn pri${r.why||!r.ok||G.crowns<r.cost||shut?' off':''}" onclick="tvbDo('train','${m.id}')">Train</button>`}}
+ else if(k==='harbour'){const r=tvbSv('harbour',{op:'list'}),L=r.ok&&Array.isArray(r.list)?r.list:[];list=pnSec('Ships sailing',L.length);if(!L.length)list+=pnEmpty('No ships sail from here to another harbour.');
+  L.forEach(x=>{list+=pnRow({on:`tvbPick('s${x.to}')`,sel:sel==='s'+x.to,cls:'tw-row',lead:tvIcon('bld-harbour',32),title:htmlEsc(x.n),sub:`${x.days} day${x.days===1?'':'s'} at sea${x.closed?' · <span class="tw-bad">closed to you</span>':''}`,right:pnCoin(x.cost,G.crowns<x.cost?'short':'')})});
+  const x=L.find(o=>'s'+o.to===sel)||L[0];if(x){sel='s'+x.to;const o=G.towns[x.to],road=Math.max(1,Math.round(Math.hypot(o.x-t.x,o.y-t.y)/TS));
+   detail=twHead(tvIcon('bld-harbour',48),'Passage to',htmlEsc(x.n))+`<p class="pn-p">The company boards with its wagons and stores. No battles at sea, but the days pass as they would on the road.</p>`+pnFacts([['At sea',tvIcon('day',16)+x.days+' day'+(x.days===1?'':'s')],['By road',leagues?leagues(o,t)+' leagues':road+' leagues'],['Fare',tvIcon('coin',16)+x.cost+' crowns'],['Food eaten',tvIcon('food',16)+'about '+x.days*G.roster.length]]);
+   foot=`<span class="pn-fl">${pnCoin(x.cost,'big'+(G.crowns<x.cost?' short':''))}<small>${x.closed?'<em>Closed to you</em>':'for the whole company'}</small></span><button type="button" class="pn-btn pri${G.crowns<x.cost||x.closed||shut?' off':''}" onclick="tvbDo('sail',${x.to})">Set sail</button>`}
+  else detail=head}
+ TVB.sel[k]=sel;if(!detail)detail=head+(offers.length?pnFacts(offers):'');
+ if(TVB.hint&&k==='college')detail=`<p class="pn-p good">${htmlEsc(TVB.hint)}</p>`+detail;
+ return{list,detail,foot,key:k+':'+sel}}
+function tvbOpen(k){const t=G.towns[G.town];if(!t||typeof showPanel!=='function')return;TVB.k=k;if(typeof townTab!=='undefined')townTab=k;G.townOpen=true;const v=tvbView(t,k),sq=typeof tvCan==='function'&&tvCan();
+ showPanel({id:'town',title:t.name,sub:`Day ${G.day}`,banner:tvTownBanner(G.town),meta:typeof pnPurse==='function'?pnPurse():'',note:tvTownNote(G.town),closeLabel:sq?'Town square':'Leave town',closeIcon:sq?'back':'x',onClose:sq&&typeof townBack==='function'?townBack:leaveTown,
+  tabs:tvTownTabs(t).map(([kk,n])=>({k:kk,n,icon:TVX.includes(kk)?tvBldIcon(kk):kk})),tab:k,onTab:kk=>{if(TVX.includes(kk))tvbOpen(kk);else townGo(kk)},
+  list:v.list,listKey:'town:'+k,detail:v.detail,detailKey:'town:'+v.key,foot:v.foot})}

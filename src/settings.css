@@ -110,3 +110,12 @@ kbd{display:inline-block;min-width:1.4em;padding:0 4px;font:600 .85rem var(--pxf
 @media (max-height:440px){#sheetBody.wide>.ncs-h:first-child{padding-bottom:4px;margin-bottom:6px!important}#sheetBody.wide>.ncs-h h2{font-size:1.45rem}#sheetBody.wide>.ncs-h button{min-height:40px}
  .ncs-flag .ncs-big{width:48px!important;height:64px!important}.ncs-cap b{font-size:1rem}.ncs-cap small{margin-top:2px}.ncs-nl{margin-top:0}}
 @media (max-width:520px){.ncs{gap:6px}.ncs-l{display:contents}.ncs-r{order:5}#sheetBody .ncs-go{order:9;position:sticky;bottom:0;z-index:2;box-shadow:0 -10px 0 #182a28}}
+/* origin picker (phase 7) */
+.ncs-ors{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:4px}
+#sheetBody .ncs-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:62px;padding:4px 4px 3px;text-align:center}
+.ncs-or b{font-size:.84rem;line-height:1.05;font-weight:600}
+.ncs-ord{display:flex;gap:10px;align-items:flex-start;margin-top:6px;padding:8px 10px;background:#101d1c;border:2px solid #0b1514;box-shadow:inset 0 0 0 2px #35554f}
+.ncs-ord>div{min-width:0}.ncs-ord b{font-family:var(--pxfont);font-size:1.05rem;color:#fff4c8}
+.ncs-ord p{margin:3px 0 0;font-size:.84rem;line-height:1.3}
+.ncs-rule{color:#e9e0c9}.ncs-rule i{font-style:normal;font-family:var(--pxfont);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-right:6px}
+.ncs-orf{display:flex;align-items:center;gap:4px;color:var(--dim)}

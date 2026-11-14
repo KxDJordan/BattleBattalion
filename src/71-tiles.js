@@ -335,13 +335,20 @@ function txProp(id){let S=TXPC.get(id);if(S)return S;const a=id.split('|'),bk=a[
  else if(kind==='crystal'){txBoulder(P,R,0,0,9,4,bk==='hollow'?['D','G','1','0']:['5','7','3','2']);txPrism(P,-7,-1,13+v*2,4,-4,cry);txPrism(P,7,0,15,5,4,cry);txPrism(P,-1,1,27+v*3,7,v-1,cry);txPrism(P,4,3,9,4,3,cry);txPrism(P,-5,3,7,3,-2,cry);gl.push([-1+v-1,-27-v*3],[9,-14],[-10,-13])}
  else if(kind==='crystal2'){txBoulder(P,R,0,1,10,4,bk==='hollow'?['D','G','1','0']:['5','7','3','2']);txPrism(P,-5,0,22+v*2,6,-3,cry);txPrism(P,4,1,30+v*2,6,2,cry);txPrism(P,9,2,11,4,5,cry);txPrism(P,-9,3,9,4,-4,cry);txPrism(P,0,4,6,3,0,cry);gl.push([5,-30-v*2],[-7,-21])}
  else if(kind==='fan'){for(let i=0;i<7;i++){const a=(i-3)/3;txBlade(P,Math.round(a*7),1+Math.round((1-Math.abs(a))*3)-1,Math.round(30-Math.abs(a)*14-(i&1)*4),3+(i===3?1:0),Math.round(a*9),'r','F','5','r')}txBoulder(P,R,0,2,9,3,['5','7','3','2']);gl.push([0,-28],[-9,-12])}
+ else if(kind==='stakes')txStakes(P,R,v);
  else if(kind==='monolith'){for(let y=0;y<30;y++){const w=y<4?y+1:y>25?30-y+1:5;for(let x=-w;x<=w;x++){let k=x<-w+2?'D':x>w-2?'1':'G';if(y>7&&y<23&&(x===0||(Math.abs(x)===2&&y%5===0)||(y===15&&Math.abs(x)<4)))k=x===0&&y%4?'C':'r';P.p(x,-6-y,k)}}
   txPrism(P,-10,2,7,3,-2,cry);txPrism(P,9,3,9,4,2,cry);P.p(-9,-16,'C');P.p(10,-22,'C');P.p(-7,-27,'D');gl.push([0,-21],[9,-6])}
  txOutline(P);
  let x0=99,x1=-99,y0=99;for(let y=0;y<TXPH;y++)for(let x=0;x<TXPW;x++)if(P.d[y*TXPW+x]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y}
  S={P,cv:undefined,w:2*Math.max(TXPAX-x0,x1-TXPAX+1),h:TXPAY-y0+1,gl,ember:bk==='ashen'};TXPC.set(id,S);return S}
+/* siege stakes (a 'block' tile with fort set, 16-contracts.js objFortify): sharpened posts in a bank of earth, lashed with a rail */
+function txStakes(P,R,v){txEll(P,0,1,15,5,'k','j','i',.5);
+ const N=5;for(let i=0;i<N;i++){const t=i/(N-1)*2-1,x0=Math.round(t*12),y0=Math.round(t*6)+1,H=15+((i*7+v*3)%4)*2-(i&1)*3,ln=i&1?1:-1;
+  for(let y=0;y<H;y++){const b=Math.round(ln*y/14),x=x0+b,w=y>H-4?(y>H-2?0:1):1;P.p(x-w,y0-y,'k');if(w)P.p(x,y0-y,'j');if(w)P.p(x+w,y0-y,'i');if(y===H-1)P.p(x,y0-y,'l');if(y===H-3)P.p(x-1,y0-y,'c')}
+  if(i&&i<N)P.line(x0-12,y0-6-Math.round(H*.45)+3,x0,y0-Math.round(H*.45)+2,'H')}
+ for(let i=0;i<6;i++){const x=Math.round((R()-.5)*26),y=Math.round(3+(R()-.5)*5);P.p(x,y,'u')}}
 const TXPL=new Map();
-function txPropBox(bk,c,r){if(!TXPK[bk])bk='plains';const k=(TXBI[bk]*128+(c&127))*128+(r&127);let S=TXPL.get(k);if(!S){S=txProp(txPropId(bk,c,r));TXPL.set(k,S)}return S}
+function txPropBox(bk,c,r){if(typeof B==='object'&&B&&B.tiles&&typeof key==='function'){const t=B.tiles[key(c,r)];if(t&&t.fort)return txProp('fort|stakes|'+((txHash(c,r,91)*3)|0))}if(!TXPK[bk])bk='plains';const k=(TXBI[bk]*128+(c&127))*128+(r&127);let S=TXPL.get(k);if(!S){S=txProp(txPropId(bk,c,r));TXPL.set(k,S)}return S}
 function propBoxPx(bk,c,r){const S=txPropBox(bk,c,r);return{w:S.w,h:S.h}}
 function drawPropPx(q,x,y,o){const S=txPropBox(o.bk,o.c|0,o.r|0);if(S.cv===undefined)S.cv=txCv(S.P);if(!S.cv)return false;x=Math.round(x);y=Math.round(y);q.drawImage(S.cv,x-TXPAX,y-TXPAY);
  if(S.gl.length&&!txRM()){const f=(o.frame|0)+((o.c*7+o.r*13)&15);for(let i=0;i<S.gl.length;i++){const t=(f+i*6)%18;if(t>2)continue;const gx=x+S.gl[i][0],gy=y+S.gl[i][1];q.fillStyle=PAL.r;q.fillRect(gx,gy,1,1);if(t===1){q.fillRect(gx-1,gy,3,1);q.fillRect(gx,gy-1,1,3)}}return true}

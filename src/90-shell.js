@@ -178,6 +178,7 @@ function menuSheet(){const b=G&&typeof bannerHTML==='function'?bannerHTML(G.bann
  sheet(`<div class="row sp mhd">${b}<div class="mht"><h2>The ledger</h2><small>${G?htmlEsc(companyName()):''}</small></div><span class="chip pxtag">Day ${G?G.day:1}</span></div>
 <p class="dim">The company's book is kept in this browser. It is written whenever you enter a town or finish a battle.</p>
 <div class="menu">${mbtn('back','Back to the march','Close this menu','closeSheet()','pri','play')}
+${G&&Array.isArray(G.houses)&&G.houses.length&&typeof factionsSheet==='function'?mbtn('factions','Factions','Houses, wars and your standing','closeSheet();factionsSheet()','',''):''}
 ${mbtn('save','Save now','Write the ledger','menuSave()','','save')}
 ${mbtn('settings','Settings','Speed, colours, motion','settingsSheet()','','sun')}
 ${mbtn('info','How to play','Controls and the rules of the road','howSheet()','','scroll')}
@@ -192,10 +193,17 @@ function confirmNew(){const st=saveStatus(),nm=st.name?htmlEsc(st.name):'This co
    NCS holds the choices while the dialog is open. Cosmetic dice use Math.random (never the game stream). */
 const NCNAMES=['The Ashen Banner','The Grey Wolves','The Brass Lanterns','The Sundered Oath','Kestrel Company','The Black Hollow','The Last Pennant','Thornmarch Swords','The Hollow Crowns',
  'The Saltmarsh Irregulars','The Iron Ravens','The Lantern Guard','The Oathless','The Ninefold Shield','The Cinder Company','The Wayward Spears','The Stag Riders','The Long Road Company'];
-const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',open:false};
+const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',origin:'free',open:false};
+/* origins (events agent's ORIGINS): icon, name, the story, and the one rule each, picked in the setup dialog */
+const NCORIC={free:'or-free',deserters:'or-deserters',noble:'or-noble',academy:'or-academy',beast:'or-hunters',hunters:'or-hunters',pilgrims:'or-pilgrims'};
+function ncOrigins(){return typeof ORIGINS==='object'&&ORIGINS?Object.keys(ORIGINS):[]}
+function ncOrIcon(k){const O=ORIGINS[k]||{},a=NCORIC[k];if(a&&typeof icHas==='function'&&icHas(a))return a;return O.icon||'banner'}
+function ncOriginHTML(){const L=ncOrigins();if(!L.length)return'';if(!ORIGINS[NCS.origin])NCS.origin=L.includes('free')?'free':L[0];const O=ORIGINS[NCS.origin];
+ return`<div class="ncs-sec"><b>Origin</b><small>How the company began: its first swords, purse and one rule</small></div><div class="ncs-ors" role="radiogroup" aria-label="Origin">${L.map(k=>{const o=ORIGINS[k];return`<button class="ncs-or${NCS.origin===k?' on':''}" role="radio" aria-checked="${NCS.origin===k}" onclick="ncSet('origin','${k}')">${pnIcon(ncOrIcon(k),'',32)}<b>${htmlEsc(o.n)}</b></button>`}).join('')}</div>
+ <div class="ncs-ord">${pnIcon(ncOrIcon(NCS.origin),'',32)}<div><b>${htmlEsc(O.n)}</b><p>${htmlEsc(O.d||'')}</p>${O.rule?`<p class="ncs-rule"><i>Rule</i>${htmlEsc(O.rule)}</p>`:''}${typeof O.crowns==='number'?`<p class="ncs-orf">${pnIcon('coin','',16)}${O.crowns} crowns${Array.isArray(O.roster)?` · ${O.roster.length} swords`:''}</p>`:''}</div></div>`}
 function ncRand(a){return a[Math.floor(Math.random()*a.length)]}
 function newCompanySetup(){const st=saveStatus();if(st.state==='newer'||st.state==='corrupt'){saveNotice(st);return}
- NCS.name=ncRand(NCNAMES);NCS.wsize='small';const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.open=true;
+ NCS.name=ncRand(NCNAMES);NCS.wsize='small';NCS.origin='free';const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.open=true;
  sheet(`<div class="row sp seth ncs-h"><h2>Raise a company</h2><button onclick="ncCancel()">Back</button></div>
 <div class="ncs"><div class="ncs-l"><div class="ncs-flag" id="ncsFlag"></div>
  <label class="ncs-nl" for="ncsName">Company name</label><div class="ncs-name"><input id="ncsName" type="text" maxlength="${NAMEMAX}" autocomplete="off" spellcheck="false" value="${htmlEsc(NCS.name)}" oninput="ncName(this.value)" onkeydown="if(event.key==='Enter'){this.blur()}"><button class="pxb sm icon" aria-label="Suggest a name" title="Suggest a name" onclick="ncDice()">${pnIcon('dice','',16)}</button></div>
@@ -208,15 +216,15 @@ function ncSet(k,v){if(k==='c1'&&v===NCS.c2)NCS.c2=NCS.c1;else if(k==='c2'&&v===
 function ncShuffle(){const ks=Object.keys(BANNERC);NCS.c1=ncRand(ks);do{NCS.c2=ncRand(ks)}while(NCS.c2===NCS.c1);NCS.emblem=ncRand(Object.keys(EMBLEMS));ncDraw()}
 function ncFlag(){const f=$('ncsFlag');if(!f)return;const b={name:NCS.name,c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem};
  f.innerHTML=`${bannerHTML(b,128,'ncs-big')}<div class="ncs-cap"><b>${htmlEsc(cleanName(NCS.name))}</b><small>${BANNERC[NCS.c2].n} ${EMBLEMS[NCS.emblem].n.toLowerCase()} on ${BANNERC[NCS.c1].n.toLowerCase()}</small></div>`;
- const g=$('ncsGoSub');if(g)g.textContent=`${WORLDSZ[NCS.wsize].name} world, ${WORLDSZ[NCS.wsize].towns} towns`}
+ const g=$('ncsGoSub');if(g)g.textContent=`${typeof ORIGINS==='object'&&ORIGINS&&ORIGINS[NCS.origin]&&NCS.origin!=='free'?ORIGINS[NCS.origin].n+', ':''}${WORLDSZ[NCS.wsize].name} world, ${WORLDSZ[NCS.wsize].towns} towns`}
 function ncDraw(){const o=$('ncsOpts');if(!o)return;const st=o.scrollTop;
  const sw=(k,c)=>`<button class="ncs-sw${NCS[k]===c?' on':''}" role="radio" aria-checked="${NCS[k]===c}" title="${BANNERC[c].n}" aria-label="${BANNERC[c].n}" onclick="ncSet('${k}','${c}')"><i style="background:linear-gradient(180deg,${PAL[BANNERC[c].r[2]]} 0 25%,${PAL[BANNERC[c].r[1]]} 25% 75%,${PAL[BANNERC[c].r[0]]} 75%)"></i></button>`;
- o.innerHTML=`<div class="ncs-sec"><b>Land</b><small>${WORLDSZ[NCS.wsize].note}</small></div><div class="ncs-sizes" role="radiogroup" aria-label="World size">${Object.keys(WORLDSZ).map(k=>{const z=WORLDSZ[k];return`<button class="ncs-size${NCS.wsize===k?' on':''}" role="radio" aria-checked="${NCS.wsize===k}" onclick="ncSet('wsize','${k}')"><b>${z.name}</b><small>${z.n}×${z.n} · ${z.towns} towns</small></button>`}).join('')}</div>
+ o.innerHTML=ncOriginHTML()+`<div class="ncs-sec"><b>Land</b><small>${WORLDSZ[NCS.wsize].note}</small></div><div class="ncs-sizes" role="radiogroup" aria-label="World size">${Object.keys(WORLDSZ).map(k=>{const z=WORLDSZ[k];return`<button class="ncs-size${NCS.wsize===k?' on':''}" role="radio" aria-checked="${NCS.wsize===k}" onclick="ncSet('wsize','${k}')"><b>${z.name}</b><small>${z.n}×${z.n} · ${z.towns} towns</small></button>`}).join('')}</div>
  <div class="ncs-sec"><b>Field</b><small>${BANNERC[NCS.c1].n}</small><button class="pxb sm ncs-rnd" onclick="ncShuffle()" title="Roll a banner">${pnIcon('dice','',16)}<span>Roll</span></button></div><div class="ncs-sws" role="radiogroup" aria-label="Field colour">${Object.keys(BANNERC).map(c=>sw('c1',c)).join('')}</div>
  <div class="ncs-sec"><b>Charge</b><small>${BANNERC[NCS.c2].n}: the border and the emblem</small></div><div class="ncs-sws" role="radiogroup" aria-label="Charge colour">${Object.keys(BANNERC).map(c=>sw('c2',c)).join('')}</div>
  <div class="ncs-sec"><b>Emblem</b><small>${EMBLEMS[NCS.emblem].n}</small></div><div class="ncs-ems" role="radiogroup" aria-label="Emblem">${Object.keys(EMBLEMS).map(e=>`<button class="ncs-em${NCS.emblem===e?' on':''}" role="radio" aria-checked="${NCS.emblem===e}" title="${EMBLEMS[e].n}" aria-label="${EMBLEMS[e].n}" onclick="ncSet('emblem','${e}')">${emblemHTML(e,NCS.c2,NCS.c1,32)}</button>`).join('')}</div>`;
  o.scrollTop=st;ncFlag()}
-function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:{c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem}})}
+function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:{c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem},origin:NCS.origin})}
 
 /* ---- how to play, credits ---- */
 function howSheet(){const r=(ic,svg,t,d)=>`<div class="how-r">${ic==='map'?'<i class="pxi pxi-map s32" aria-hidden="true"></i>':pic(ic,32,svg)}<div><b>${t}</b><p>${d}</p></div></div>`;

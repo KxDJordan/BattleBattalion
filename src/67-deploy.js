@@ -151,9 +151,11 @@ function dpTok(m,size){const s=calc(m),hp=Math.min(m.hp,s.hp),inj=typeof cpInj==
 /* a small sidearm marker: the backup weapon's family icon in the token's lower-left corner */
 function dpSide(m){const b=m.eq&&ITEMS[m.eq.b];if(!b)return'';const n=typeof itemIconName==='function'?itemIconName(m.eq.b):b.wt;
  const ic=typeof pxIcon==='function'?pxIcon(n,16):'';return`<i class="dp-side" title="Backup: ${b.n}">${typeof pnFamedWrap==='function'?pnFamedWrap(m.eq.b,ic):ic}</i>`}
-function dpHeadHTML(o,bk,tod){const F=FACT[o.f]||{n:'Foes'},s=o.src||{},kick=s.type==='lair'?'The lair you were sent to clear':s.type==='dun'?`Rift battle ${G.dun?G.dun.stage+1:1} of 3`:'A band bars the way';
+/* the contract fight's objective as the deployment kicker: escort / hold / siege / a named foe */
+function dpObjKick(o){const b=o.obj,n=o.boss;if(b&&b.k==='escort')return'Escort: keep the caravan wagon alive';if(b&&b.k==='hold')return`Hold for ${b.rounds} rounds or rout them`;if(b&&b.k==='siege')return'Siege: the foe is dug in. Kill its leader';if(n)return`The quarry: ${n.name}`;return''}
+function dpHeadHTML(o,bk,tod){const F=FACT[o.f]||{n:'Foes'},s=o.src||{},kick=s.type==='lair'?(dpObjKick(o)||'The lair you were sent to clear'):s.type==='twist'?'An ambush on the road':s.type==='dun'?`Rift battle ${G.dun?G.dun.stage+1:1} of 3`:'A band bars the way';
  const em=typeof twEmblem==='function'?twEmblem({type:'hunt',f:o.f},DP.big?48:32):'',lost=G.crowns-Math.floor(G.crowns*.9);
- if(DP.ask){const c=G.contract,why=s.type==='lair'&&c&&c.type==='hunt'&&!c.done?' The contract is forfeit.':s.type==='dun'?' The rift spits you back out and must be entered anew.':s.type==='party'?' The band stays on the map.':'';
+ if(DP.ask){const c=G.contract,why=s.type==='lair'&&c&&!c.done?' The contract is forfeit.':s.type==='twist'&&c&&(c.type==='deliver'||c.type==='escort'||c.type==='relic')?' The cargo is lost and the contract with it.':s.type==='dun'?' The rift spits you back out and must be entered anew.':s.type==='party'?' The band stays on the map.':'';
   return`<div class="dp-ask" role="alert">${dpIc('retreat',32)}<p><b>Withdraw before the first blow?</b><small>The company scatters and drops ${lost?`<span class="coin">${lost} crowns</span>`:'nothing'} on the run.${why}</small></p></div>
 <button type="button" class="pxb" id="dpStay" onclick="dpAsk(0)">Stand fast</button><button type="button" class="pxb warn" id="dpGo" onclick="dpWithdraw()">Withdraw</button>`}
  return`<div class="dp-title">${em}<div><span class="dp-kick">${kick}</span><b>${F.n}</b></div></div>

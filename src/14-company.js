@@ -72,13 +72,14 @@ function dismissFollower(id){if(!followerHas(id))return false;G.retinue=G.retinu
 function wageOf(m){if(!m||!BG[m.bg])return 0;let w;
  if(typeof mercWage==='function'){try{w=mercWage(m)}catch(e){w=null}}
  if(typeof w!=='number'||!isFinite(w)){const b=BG[m.bg].wage||0;w=b;if(Array.isArray(m.traits)&&typeof TRAITS==='object'&&TRAITS)for(const k of m.traits){const T=TRAITS[k];if(T&&typeof T.wage==='number'&&isFinite(T.wage))w+=Math.abs(T.wage)<1?b*T.wage:T.wage}}
- return Math.max(0,w*(followerHas('paymaster')?.85:1))}
+ return Math.max(0,w*(followerHas('paymaster')?.85:1)*(typeof originK==='function'?originK('wage'):1))}
 function companyWages(){let w=0;if(G&&G.roster)G.roster.forEach(m=>w+=wageOf(m));return Math.round(w)}
 // hiring price of a recruit: the background's price, a third more per level beyond the first, a quarter off with the recruiter
 function recruitCost(m){if(!m||!BG[m.bg])return 0;const c=BG[m.bg].cost*(1+.35*Math.max(0,(m.lvl||1)-1));return Math.max(5,Math.round(c*(followerHas('recruiter')?.75:1)/5)*5)}
 // tavern backgrounds: the rules' bgWeight(key, town) when it exists, else BG[key].w; rare ones (weight 1 or less) scale with renown,
+// and with the standing of the town's owner (REPK[tier].recruit: friends send their best, a cold house its worst),
 // and a background whose BG.bio / BG.biomes lists the town's ground is twice as common there. Seeded.
-function recruitBG(t){const ks=Object.keys(BG),R=renownDef().rare,bio=t&&typeof tileAt==='function'&&W?BIOKEY[tileAt(t.x,t.y)]:null,ws=[];let tot=0;
+function recruitBG(t){const ti=G&&G.towns&&t?G.towns.indexOf(t):-1,RQ=ti>=0&&typeof repTier==='function'&&typeof REPK!=='undefined'&&t.own?REPK[repTier(t.own).k].recruit:1,ks=Object.keys(BG),R=renownDef().rare*RQ,bio=t&&typeof tileAt==='function'&&W?BIOKEY[tileAt(t.x,t.y)]:null,ws=[];let tot=0;
  for(const k of ks){const b=BG[k];let w=typeof bgWeight==='function'?+bgWeight(k,t):+b.w;if(!(w>0))w=0;if(b.w<=1)w*=R;
   const bl=b.bio||b.biomes;if(bio&&Array.isArray(bl)&&bl.includes(bio))w*=2;if(t&&b.size&&+t.size<+b.size)w*=.25;ws.push(w);tot+=w}
  if(!(tot>0))return typeof wpickBG==='function'?wpickBG():ks[0];let x=rnd()*tot;for(let i=0;i<ks.length;i++){x-=ws[i];if(x<=0)return ks[i]}return ks[ks.length-1]}
@@ -90,7 +91,8 @@ function makeVeteran(m,L){L=clamp(Math.floor(L||1),1,typeof MAXLV==='number'?MAX
  m.rolls=null;if(typeof autoLearn==='function')autoLearn(m);if(typeof syncMast==='function')syncMast(m);m.hp=calc(m).hp;m.vet=1;return m}
 // what the scout reads of a band: null without a scout, else {line, mult, str, count}
 function bandIntel(p){if(!p||!followerHas('scout')||!FACT[p.f])return null;const pct=Math.round((p.mult||1)*100),F=FACT[p.f];
- return{mult:p.mult,str:typeof partyStrength==='function'?partyStrength(p):0,pct,line:`Your scout counts them: ${pct}% of an even fight for the company, ${F.n.toLowerCase()}.`}}
+ const who=typeof partyLabel==='function'&&p.goal&&p.goal!=='roam'?partyLabel(p):F.n;
+ return{mult:p.mult,str:typeof partyStrength==='function'?partyStrength(p):0,pct,line:`Your scout counts them: ${pct}% of an even fight for the company, ${p.goal&&p.goal!=='roam'?who:who.charAt(0).toLowerCase()+who.slice(1)}.`}}
 
 /* ---- ambitions ---- */
 const AMB_MONF=['beast','serpent','ent','ogre'];

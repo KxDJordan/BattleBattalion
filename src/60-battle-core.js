@@ -152,6 +152,7 @@ function previewEnemies(o){const L=o.foes||o.fixedAll,n={};return(Array.isArray(
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
 function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',budget=battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);
+ if(o.obj&&o.obj.k==='siege'&&typeof objFortify==='function'&&!tiles.fortified){objFortify(tiles);tiles.fortified=1}   // the siege works (no rnd)
  return{bk,tiles,foes:previewEnemies(o),budget}}
 /* startBattle(o): o = {f, mult, src:{type,...}, biome?, fixed?} plus optional engine flags:
    auto (AI plays the company from the first turn), quiet (no result sheet), onEnd(result) callback,
@@ -167,7 +168,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
  B=b;const used=new Set(),pu=place(f.map(m=>{const u=mkPlayerUnit(m),s=m.slot;if(dep[m.id])u.slot=dep[m.id];else if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:s.col,r:s.row?DEPLOY.p.back:DEPLOY.p.front};return u}),DEPLOY.p.front,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used),
   eu=place(pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)}),DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
- b.units=pu.concat(eu);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
+ b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o,used);else b.obj=null;b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
  mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${FACT[o.f].n} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} foes.`);nextTurn();return b}
 /* spawnUnit(u): adds a unit mid-battle (reserves, summons, the raised dead). u needs side and its stats (mkEnemy(id,f) and
    mkPlayerUnit(m) make complete ones); u.c/u.r is where it should appear: the nearest free walkable tile is used when that
@@ -475,7 +476,7 @@ async function knockback(u,t,n,crash){if(kbImmune(t))return;if(rollsWith(t))retu
    ends up (the target, or the ally it strays into). A stray emits 'miss' on the target (stray: the ally), then 'ff' {u, t: ally,
    from: target}, then strikes the ally (auto, FFDMG of the damage, no projectile of its own).
    Order of the seeded draws: hit roll; on a miss the stray-shot roll (only with allies in the line) and its victim;
-   on a hit the damage roll, the location roll, then whatever hurt() needs (injury, morale), statuses, knockback, a hook's pull, a scare. */
+   on a hit the damage roll, the location roll, then whatever hurt() needs (injury, morale), statuses, knockback (never from a stray), a hook's pull, a scare. */
 async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const d=mdist(u,t),shot=(d>1||a.magic)&&!o.noShot&&!o.stray,
   col=a.magic?'#c9a8ff':a.cost?RESC[a.cost[0]]:'#e9e0c9',fly=x=>{if(shot)FX.shot(u,x,col,26,22)};
  if(a.split){fly(t);if(!t.shield)return false;damageShield(t,Math.round(ri(u.wpn.d[0],u.wpn.d[1])*splitMult(u,a)),u);await sleep(240);return true}
@@ -491,7 +492,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
  let hpd=0;if(dmg>0){const head=rnd()*100<headChance(u,t,a);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1,crush:crushOf(u,a)})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
  if(t.alive){const st=Object.assign({},a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);
   for(const k in st)addStatus(t,k,st[k]);
-  const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t))await knockback(u,t,kb,a.crash||u.crashD||0);
+  const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t)&&!o.stray)await knockback(u,t,kb,a.crash||u.crashD||0);
   if(a.pull&&t.alive&&u.alive&&!kbImmune(t))await pullUnit(u,t,a.pull);
   if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1)}
  else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(!t.gone&&u.alive)onKill(u)}
@@ -578,13 +579,15 @@ function afterAction(){if(checkEnd())return;if(!B.cur.alive||B.cur.mor===0){next
 function computeReach(){const u=B.cur;B.reach=null;if(u&&u.side===0&&u.alive&&!u.rooted&&u.ap>=2)B.reach=dijkstra(u,u.ap)}
 // True once the battle is decided. The first time, it locks the battle and schedules endBattle (at once in instant mode).
 // A side is beaten when nobody of it is left standing on the field: the dead, the fled and the withdrawn all count as gone.
-function checkEnd(){const b=B;if(!b||b.over)return true;const p=b.units.some(u=>u.alive&&u.side===0),e=b.units.some(u=>u.alive&&u.side===1);if(p&&e)return false;
- b.over=true;b.busy=true;if(!p&&b.units.some(u=>u.side===0&&u.gone))b.fled=true;battleSync();const done=()=>{if(B===b)endBattle(p)};if(SPEEDF>0)setTimeout(done,700*SPEEDF);else done();return true}
+// A battle objective (b.obj: escort, hold, siege; objCheck in 16-contracts.js) can decide it first: the VIP falls, the rounds are held, the leader dies.
+function checkEnd(){const b=B;if(!b||b.over)return true;const p=b.units.some(u=>u.alive&&u.side===0&&!u.vip),e=b.units.some(u=>u.alive&&u.side===1);let win=p;
+ if(p&&e){const r=b.obj&&typeof objCheck==='function'?objCheck(b):null;if(r===null)return false;win=r}else if(b.obj)b.obj.state=p?'won':'lost';
+ b.over=true;b.busy=true;if(!p&&b.units.some(u=>u.side===0&&u.gone&&!u.vip))b.fled=true;battleSync();const done=()=>{if(B===b)endBattle(win)};if(SPEEDF>0)setTimeout(done,700*SPEEDF);else done();return true}
 async function nextTurn(){const b=B;if(!b||checkEnd())return;
  if(b.opts.turnCap&&b.turns>=b.opts.turnCap){b.over=true;b.busy=true;b.stuck=true;battleSync();if(b.onEnd)b.onEnd({stuck:true,win:false,rounds:b.round,turns:b.turns});return}
  b.turns++;let u=null;
- while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);b.order=al.sort((x,y)=>y.roll-x.roll||x.id-y.id)}
-  const x=b.order.shift();if(x.alive)u=x}
+ while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);b.order=al.sort((x,y)=>y.roll-x.roll||x.id-y.id);if(b.obj&&checkEnd())return}
+  const x=b.order.shift();if(x.alive&&!x.vip)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
  u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic
  u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;auraScan();
