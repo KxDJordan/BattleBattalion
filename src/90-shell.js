@@ -169,9 +169,14 @@ function costPopRender(force){const e=CP.el;if(!e||e.hidden)return;const k=costP
 function costPopPlace(){const e=CP.el,b=CP.from;if(!e||e.hidden)return;const hud=$('hud'),hr=hud?hud.getBoundingClientRect():{bottom:40},vw=innerWidth,br=b&&b.getBoundingClientRect?b.getBoundingClientRect():{left:12};
  const rail=$('wbar'),rx=rail&&!rail.classList.contains('hidden')&&rail.getBoundingClientRect().width?rail.getBoundingClientRect().left:vw,w=e.offsetWidth,left=clamp(Math.round(br.left-8),6,Math.max(6,rx-w-6));e.style.left=left+'px';e.style.top=Math.round(hr.bottom+4)+'px';e.style.maxHeight=Math.max(160,innerHeight-hr.bottom-12)+'px'}
 function costPopClose(refocus){const e=CP.el;if(!e||e.hidden)return;e.hidden=true;document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded','false'));if(refocus&&CP.from&&CP.from.focus)try{CP.from.focus({preventScroll:true})}catch(er){}CP.from=null}
-function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world')worldChrome()
+function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world'){worldChrome();rivalWonCheck()}
  if(CP.el&&!CP.el.hidden){if(mode!=='world'||sheetOpen)costPopClose(false);else costPopRender(false)}}
 
+/* ---- a race lost to a rival company (16-contracts.js ctrRivalFail sets G.ctrLast.rival): one notice with their banner, once ---- */
+function rivalWonCheck(){const L=G&&G.ctrLast;if(!L||!L.rival||L.shown||sheetOpen||typeof sheet!=='function'||typeof lkRival!=='function')return;const r=lkRival(L.rival);L.shown=1;if(!r)return;
+ sheet(`<div class="rv-hd">${rivalBannerHTML(r,64)}<div><div class="pn-kick">${typeof lkIc==='function'?lkIc('contract',16):''}Contract lost</div><h2>${htmlEsc(r.n)} got there first</h2><p class="rv-job">${htmlEsc(L.title||'The contract')}</p></div></div>
+ <p class="pn-p">${htmlEsc(String(L.why||'A rival company reached the target first and claimed the work').replace(/\.?$/,'.'))}</p><p class="pn-p dim">No standing is lost with the employer: the company did nothing wrong. ${htmlEsc(r.short||r.n)} take the pay and the renown.</p>
+ <div class="row"><button onclick="closeSheet();factionsSheet('${r.id}')">${typeof lkIc==='function'?lkIc('rival',16):''}About ${htmlEsc(r.short||r.n)}</button><button class="pri" onclick="closeSheet()">On the road again</button></div>`,'rv')}
 /* ---- menu (in the field) ---- */
 function mbtn(icon,label,sub,on,cls,svg){return`<button class="mi ${cls||''}" onclick="${on}">${pic(icon,32,svg)}<span><b>${label}</b><small>${sub}</small></span></button>`}
 function menuSheet(){const b=G&&typeof bannerHTML==='function'?bannerHTML(G.banner,40,'mhb'):'';

@@ -163,7 +163,10 @@ function ctrTurnInAt(ti){const c=G&&G.contract;if(!c||!ctrDone(c)||ctrTurnInTown
  return{c,pay:Math.max(0,c.pay-(c.adv||0)),renown:8*c.diff,rep:3+2*c.diff}}
 function ctrNote(c,txt){(c.log||(c.log=[])).push({day:G.day,t:txt});if(c.log.length>8)c.log.shift()}
 // acting: the company stands on the current stage. Fight, twist card or a stage step. Returns true when it took over.
-function ctrArrive(x,y){const t=ctrTargetAt(x,y);if(!t)return false;const c=t.c,s=ctrStage(c);G.moving=false;G.route=[];
+function ctrArrive(x,y){const t=ctrTargetAt(x,y);if(!t)return false;const c=t.c,s=ctrStage(c);
+ // a waypoint with nothing to fight, crossed on a march that goes on elsewhere: ticked off in passing, the march is not halted
+ if(!s.fight&&!(c.twist&&!c.twist.fired&&c.twist.when==='arrive')&&G.moving&&G.tap&&Math.hypot(G.tap.x-s.x,G.tap.y-s.y)>=.6*TS){ctrAdvance(c);if(typeof toast==='function')toast(ctrStatus(c));return false}
+ G.moving=false;G.route=[];
  if(c.twist&&!c.twist.fired&&c.twist.when==='arrive'){ctrTwistFire(c);return true}
  if(s.fight){const o=ctrBattle(c,t);if(typeof engage==='function')engage(o);else startBattle(o);return true}
  ctrAdvance(c);if(typeof toast==='function')toast(ctrStatus(c));if(typeof save==='function')save();return true}
@@ -186,10 +189,10 @@ function ctrAbandon(){const c=G.contract;if(!c)return false;ctrFail(c,'Contract 
 // acting: pays out at town ti. {ok, pay, renown, text}
 function ctrTurnIn(ti){const q=ctrTurnInAt(ti);if(!q)return null;const c=q.c;
  if(c.twist&&!c.twist.fired&&c.twist.when==='turnin'){const tw=CTWIST[c.twist.k];c.twist.fired=true;const r=tw.apply(c)||{};if(r.pay!=null)q.pay=r.pay;if(r.text)ctrNote(c,r.text);c.twistText=r.text||''}
- const bonus=c.bonus||0;G.crowns+=q.pay+bonus;G.renown+=q.renown;ctrRepGain(c.emp,q.rep,'Contract fulfilled');if(c.rival)ctrRepGain(c.rival,-3,'Refused their offer');
+ const bonus=c.bonus||0;G.crowns+=q.pay+bonus;G.renown+=q.renown;ctrRepGain(c.emp,q.rep,'Contract fulfilled');if(c.outbid)ctrRepGain(c.outbid,-3,'Refused their offer');
  G.contract=null;G.ctrLast={id:c.id,title:c.title,ok:true,day:G.day};if(typeof ambEvent==='function')ambEvent('contract',c);
  const adv=c.adv?` (${c.adv} was paid up front)`:'';return{ok:true,c,pay:q.pay+bonus,renown:q.renown,text:`${c.twistText?c.twistText+' ':''}Contract fulfilled. You are paid ${q.pay+bonus} crowns${adv} and gain ${q.renown} renown.`}}
-function ctrAccept(c){if(!c||G.contract)return false;const t=ctrTown(c.town);if(t&&Array.isArray(t.contracts)){const i=t.contracts.indexOf(c);if(i>=0)t.contracts.splice(i,1)}
+function ctrAccept(c){if(!c||G.contract||c.rtook)return false;   // a notice a rival company took is no longer openconst t=ctrTown(c.town);if(t&&Array.isArray(t.contracts)){const i=t.contracts.indexOf(c);if(i>=0)t.contracts.splice(i,1)}
  if(c.neg&&c.neg.gone)return false;c.taken=G.day;c.tickDay=G.day;G.contract=c;if(c.adv>0)G.crowns+=c.adv;ctrSync(c);return true}
 // acting: once a day
 function ctrDaily(){const c=G&&G.contract;if(!c)return null;
@@ -237,7 +240,7 @@ const CTWIST={
   apply(c){const R=(G.houses||[]).filter(h=>h&&h.id!==c.emp),rv=R.length?R[(c.id>>>3)%R.length]:null,rn=rv?rv.short||rv.n:'a free merchant',g=Math.round(c.pay*1.5/10)*10;
    return{text:`An agent of ${rn} rides up beside the wagons. They will pay ${g} crowns for ${c.relic||c.cargo||'the cargo'}, here and now.`,
     opts:[{t:`Sell to ${rn} (${g} crowns)`,d:`+${g} crowns. The contract fails: −${8+2*c.diff} reputation with ${ctrEmpName(c)}${rv?`, +8 with ${rn}`:''}.`,go:()=>{G.crowns+=g;if(rv)ctrRepGain(rv.id,8,'Sold them the cargo');ctrRepGain(c.emp,-4,'Sold the cargo to a rival');ctrFail(c,'Sold to a rival');return{text:'The agent smiles. Your old employer will not.'}}},
-     {t:'Refuse',d:`Stay true: +${4} reputation with ${ctrEmpName(c)} when you deliver${rv?`, −3 with ${rn}`:''}.`,go:()=>{c.rival=rv?rv.id:null;c.loyal=1;ctrRepGain(c.emp,4,'Refused a rival');return{text:'The agent shrugs and rides off.'}}}]}}},
+     {t:'Refuse',d:`Stay true: +${4} reputation with ${ctrEmpName(c)} when you deliver${rv?`, −3 with ${rn}`:''}.`,go:()=>{c.outbid=rv?rv.id:null;c.loyal=1;ctrRepGain(c.emp,4,'Refused a rival');return{text:'The agent shrugs and rides off.'}}}]}}},
  cursed:{n:'The cargo is cursed',d:'Something in the cargo is wrong.',when:'travel',types:['deliver','relic'],
   apply(c){const gifted=G.roster.find(m=>typeof tlRes==='function'&&tlRes(m));return{text:'At night the cargo whispers. Men wake with bloody noses and nobody sleeps well.',
    opts:[{t:'Carry on',d:'Until delivered, one sword loses 8 hitpoints every day.',go:()=>{c.curse=1;return{text:'You lash the crate tighter and march on.'}}},
@@ -314,6 +317,27 @@ function ctrRepair(c){if(!svObj(c))return false;if(!CTYPES[c.type])return false;
  c.stage=clamp(Math.floor(svNum(c.stage,0)),0,c.stages.length-1);if(!svFin(c.id))c.id=Math.floor(ctrH(Math.round(c.pay)+c.diff*977,c.town)*2147483646)+1;
  if(c.emp==null||typeof c.emp!=='string')c.emp=(G.towns[c.town]&&G.towns[c.town].own)||'free';
  c.due=svFin(c.due)?Math.floor(c.due):null;if(c.twist&&(!svObj(c.twist)||!CTWIST[c.twist.k]))c.twist=null;if(c.twist)delete c.twist.card;
- if(c.neg&&!svObj(c.neg))delete c.neg;c.failed=!!c.failed;ctrSync(c);return true}
+ if(c.neg&&!svObj(c.neg))delete c.neg;c.failed=!!c.failed;
+ if(typeof c.rival==='string'&&/^h[0-9]$/.test(c.rival)){c.outbid=c.rival;delete c.rival}if(c.rival!=null&&!/^r[0-9]+$/.test(String(c.rival)))delete c.rival;if(c.outbid!=null&&typeof c.outbid!=='string')delete c.outbid;
+ if(svFin(c.rtook))c.rtook=Math.floor(c.rtook);else delete c.rtook;if(c.rivalWon!=null&&typeof c.rivalWon!=='string')delete c.rivalWon;ctrSync(c);return true}
 // the world's clock (40-world.js advanceTime) calls this with the hours that passed: ctrDaily() once for every day turned
 function ctrTick(h){let c=G&&G.contract;if(!c)return;if(!svFin(c.tickDay))c.tickDay=G.day;for(let g=0;g<40&&c&&G.contract===c&&c.tickDay<G.day;g++){c.tickDay++;ctrDaily();c=G.contract}}
+
+/* ---- rival companies (40-world.js "RIVAL COMPANIES") ----
+   c.rival  the rival company's id: on a board notice with c.rtook (the day they took it) the notice is theirs and cannot be accepted;
+            on the company's own contract it means they race for the same target (another employer posted the same head).
+   c.rivalWon  the rival that got there first (the contract failed).
+     ctrTakenBy(c)    -> the rival that took this notice off the board, or null
+     ctrRace(c)       -> {r, n, eta, text} while a rival races the company for c's target, else null
+     ctrRivalTook(c)  -> the line that says a rival took the work ("Taken by the Black Hounds" / "The Black Hounds reached the lair first"), or ''
+     ctrRivalFail(c, r, why)  acting (the world calls it): the race is lost. The contract fails with that notice and NO reputation or renown
+                      loss (the company did nothing wrong); the employer only takes back an advance. */
+function ctrRvById(id){return typeof rivalById==='function'?rivalById(id):null}
+function ctrTakenBy(c){return c&&c.rtook!=null&&c.rival?ctrRvById(c.rival):null}
+function ctrRace(c){c=c||(G&&G.contract);if(!c||c.failed||!c.rival||c.rtook!=null)return null;const r=ctrRvById(c.rival);if(!r||!r.alive||!r.ctr||r.ctr.race!==c.id)return null;
+ const eta=Math.max(0,Math.round(svNum(r.ctr.eta,0)));const p=typeof rivalParty==='function'?rivalParty(r):null,d=p?Math.hypot(p.x-r.ctr.x,p.y-r.ctr.y)/TS:null;
+ const days=d!=null?Math.max(0,Math.ceil(d/10)):eta;return{r,n:r.n,eta:days,text:`${r.n} race you for it: about ${days?days+' day'+(days===1?'':'s'):'less than a day'} from the target`}}
+function ctrRivalTook(c){if(!c)return'';if(c.rivalWon){const r=ctrRvById(c.rivalWon),n=r?r.n:'A rival company';const s=Array.isArray(c.stages)?c.stages.find(x=>x&&x.k==='go'&&x.fight):null;return`${n} reached ${s?s.label.toLowerCase()==='lair'?'the lair':s.label:'the target'} first and claimed the work`}
+ const r=ctrTakenBy(c);return r?'Taken by '+r.n:''}
+function ctrRivalFail(c,r,why){if(!c||c.failed)return;c.failed=true;c.done=false;c.rivalWon=r?r.id:c.rival||'';const adv=Math.max(0,c.adv|0);if(adv&&G.crowns>0)G.crowns=Math.max(0,G.crowns-adv);
+ ctrNote(c,why||'A rival got there first');if(G.contract===c)G.contract=null;G.ctrLast={id:c.id,title:c.title,ok:false,why:(why||'A rival got there first')+(adv?`. The employer took back the ${adv} crowns paid up front`:''),day:G.day,rival:c.rivalWon}}

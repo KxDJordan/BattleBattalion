@@ -76,3 +76,46 @@ function emblemHTML(key,c,field,size){size=size||32;const u=typeof pxURL==='func
  return u?`<i class="bnr em" style="width:${size}px;height:${size}px;background-image:url(${u})" aria-hidden="true"></i>`:''}
 function htmlEsc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function companyName(){return G&&typeof G.name==='string'&&G.name?G.name:BANNERDEF.name}
+
+/* ================= RIVAL COMPANIES (look side) =================
+   Readers of the world agent's G.rivals (CONTRACT.md): every screen that shows a rival goes through these, with typeof fallbacks.
+   lkRivals() lkRival(id) lkIsRival(f) lkRivalBn(r) lkRivalName(r) lkRivalShort(r) lkRivalPers(r) lkRivalStance(r) lkRivalTier(r)
+   lkRivalStr(r) lkRivalSwords(r) rivalBannerHTML(r,size) rivalChipHTML(id,size) rivalOfMerc(m) mercLook(m) (the colours a merc's
+   sprite and portrait wear: their own m.colors, else their rival company's livery from its banner). Nothing here touches rnd(). */
+const LKRPERS={honour:{n:'Honourable',icon:'pers-honour',d:'Keeps its word and fights fair. Will not ambush, and will not be ambushed without a fight to remember.'},
+ cutthroat:{n:'Cutthroats',icon:'pers-cutthroat',d:'Falls on anyone weaker met on the road. Expect no quarter and no warning.'},
+ greedy:{n:'Greedy',icon:'pers-greedy',d:'Anything for coin. Sells news and swords, and can be bought off.'},
+ glory:{n:'Glory-hounds',icon:'pers-glory',d:'Chase the biggest beasts and the strongest rivals, for the songs as much as the pay.'}};
+function lkRivals(){return typeof G!=='undefined'&&G&&Array.isArray(G.rivals)?G.rivals:[]}
+function lkRival(id){if(id&&typeof id==='object')return id;if(typeof rivalById==='function'){try{const r=rivalById(id);if(r)return r}catch(e){}}const L=lkRivals();for(let i=0;i<L.length;i++)if(L[i]&&L[i].id===id)return L[i];return null}
+function lkIsRival(f){if(f==null)return false;if(typeof isRival==='function'){try{return!!isRival(f)}catch(e){}}return!!lkRival(f)}
+function lkRivalBn(r){r=lkRival(r);return r?{name:r.n||'A rival company',c1:r.c1,c2:r.c2,emblem:r.emblem}:null}
+function lkRivalName(r){r=lkRival(r);if(!r)return'A rival company';if(typeof rivalLabel==='function'){try{const s=rivalLabel(r);if(s)return String(s)}catch(e){}}return r.n||'A rival company'}
+function lkRivalShort(r){r=lkRival(r);return r?String(r.short||r.n||'Rivals'):'Rivals'}
+function lkRivalPers(r){r=lkRival(r);const k=r&&r.pers||'honour',W=typeof RVPERS==='object'&&RVPERS&&RVPERS[k]||typeof RPERS==='object'&&RPERS&&RPERS[k]||null,L=LKRPERS[k]||LKRPERS.honour;return{k,n:W&&W.n||L.n,d:W&&W.d||L.d,icon:L.icon}}
+function lkRivalStance(r){r=lkRival(r);if(!r)return 0;const v=typeof r.stance==='number'?r.stance:G&&G.rep&&typeof G.rep[r.id]==='number'?G.rep[r.id]:0;return Math.max(-100,Math.min(100,Math.round(v)))}
+function lkRivalTier(r){r=lkRival(r);const v=r?+r.renown||0:0;let t=1;if(typeof renownTier==='function'){try{t=renownTier(v)}catch(e){}}const D=typeof RENOWN==='object'&&Array.isArray(RENOWN)?RENOWN[t-1]:null;return{t,n:D&&D.n||['Unknown','Known','Respected','Famed','Renowned','Legendary'][t-1]||'Unknown'}}
+function lkRivalSwords(r){r=lkRival(r);if(!r||!Array.isArray(r.roster))return 0;let n=0;for(let i=0;i<r.roster.length;i++){const m=r.roster[i];if(m&&!(m.hp<=0&&m.dead))n++}return n}   // no allocation: the world view reads it every frame
+/* strength against the company, 1 weaker .. 3 stronger (partyStrength's scale); rivalStr(r) when the world has it */
+function lkRivalStr(r){r=lkRival(r);if(!r)return 2;if(typeof rivalStr==='function'){try{const s=+rivalStr(r);if(s>0)return s}catch(e){}}
+ const lv=m=>+m.lvl||+m.lv||+m.level||1,a=Array.isArray(r.roster)?r.roster.reduce((s,m)=>s+(m?lv(m):0),0):0,b=G&&Array.isArray(G.roster)?G.roster.reduce((s,m)=>s+lv(m),0):1,k=a/Math.max(1,b);return k<.8?1:k<1.15?2:3}
+function lkStrWord(s){s=Math.round(+s||2);return s<=1?'Weaker than you':s===2?'An even match':'Stronger than you'}
+function rivalBannerHTML(r,size,cls){const b=lkRivalBn(r);if(!b||typeof bannerHTML!=='function')return'';return bannerHTML(b,size||32,'rv-bn'+(cls?' '+cls:'')+(lkRival(r)&&lkRival(r).alive===false?' dead':''))}
+function rivalChipHTML(id,size){const r=lkRival(id);if(!r)return'';return`<span class="rv-chip">${rivalBannerHTML(r,size||20)}<b>${htmlEsc(lkRivalShort(r))}</b></span>`}
+/* which rival company a merc marches with (null for the company's own and everyone else). A few dozen compares; no allocation. */
+function rivalOfMerc(m){if(!m||typeof m!=='object')return null;if(m.rv){const r=lkRival(m.rv);if(r)return r}const L=lkRivals();
+ for(let i=0;i<L.length;i++){const R=L[i]&&L[i].roster;if(Array.isArray(R))for(let j=0;j<R.length;j++)if(R[j]===m)return L[i]}return null}
+/* the colours a merc wears in the art: their own tailored colours win; a rival's merc without them wears the rival's livery
+   (cloth from the banner field c1, trim from c2: the tailor's "banner colours"). The livery object is cached per banner so the
+   sprite caches' identity checks hold. */
+const LKLIV=new Map();
+function rivalLivery(r){r=lkRival(r);if(!r)return null;const k=r.c1+'.'+r.c2;let v=LKLIV.get(k);if(v!==undefined)return v;const D=typeof BANNERDYE==='object'&&BANNERDYE?BANNERDYE:{};
+ v=D[r.c1]||D[r.c2]?{cloth:D[r.c1]||undefined,accent:D[r.c2]||undefined,rival:1}:null;if(v){if(!v.cloth)delete v.cloth;if(!v.accent)delete v.accent}LKLIV.set(k,v);return v}
+function mercLook(m){const c=m&&m.colors;if(c&&typeof c==='object')return c;const r=rivalOfMerc(m);return r?rivalLivery(r):null}
+/* a rival's pennant as a 16x16 icon (turn strip, chips, notices): field c1, border and charge c2. Registered once per colour pair. */
+const LKPEN=['................','..d.............','..kyyyyyyyyyy...','..kycbbbbbbby...','..kybbbzbbbay...','..kybbzzzbbay...','..kybbbzbbbay...','..kybbbbbbbay...',
+ '..kybbayyabay...','..kybay..ybay...','..kyay....yay...','..kyy......yy...','..j.............','..j.............','..i.............','................'];
+function rivalPennantIcon(r){r=lkRival(r);if(!r||typeof ICONS!=='object')return'rival';const n='rvp-'+r.c1+r.c2;if(typeof icHas==='function'&&icHas(n))return n;
+ const A=BANNERC[r.c1]?BANNERC[r.c1].r:['f','g','h'],C=BANNERC[r.c2===r.c1?'l':r.c2]?BANNERC[r.c2===r.c1?'l':r.c2].r:['m','l','r'],m={a:A[0],b:A[1],c:A[2],y:C[1],z:C[2]};
+ try{ICONS[n]=_icOutline(LKPEN.map(s=>s.split('').map(k=>m[k]||k).join('')));if(typeof icCss==='function')icCss(n)}catch(e){return'rival'}return n}
+function rivalMiniHTML(r,size,cls){const n=rivalPennantIcon(r);return typeof pxIcon==='function'?pxIcon(n,size||16,'rv-pen'+(cls?' '+cls:'')):''}

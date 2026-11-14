@@ -18,7 +18,11 @@
    are used without code here.
    Fatigue: hit chances (hitChance) carry both sides' tiredPen, a tired foe is a slightly better target (aiPrio), an action's fatigue is
    taxed by the penalty it would add (aiTire), rest abilities are worth more the more tired the unit is; Slippery (light armor) makes the
-   first step of a turn free of free attacks, so it is not priced. */
+   first step of a turn free of free attacks, so it is not priced.
+   Rivals: a rival company's merc (side 1 with u.m) is played by the same engine with its real abilities, its role read from its gear
+   like the company's (bow or crossbow or firearm: sniper; an awake caster gift: caster; a raised shield: shield, the line's anchor; a
+   polearm or greatsword: reach, the second rank) and its company's plan by personality (AI_RIVAL; never the company's hold). The
+   company's sensible pilot fights it with AI_PLAN.rival. */
 const AI_CAP=7,AI_LATE=9;
 let AI_CLOCK=null;                       // set to a ()=>ms clock by the balance harness to measure decision cost
 const AI_STAT={n:0,ms:0,max:0};
@@ -71,6 +75,9 @@ const AI_ROLE={
  sniper:{care:1.1,form:.4,high:2.5,adv:2.5,back:1.1,shy:1},
  caster:{care:1.4,form:.5,high:1.5,adv:2.5,back:1.1,shy:1},
  beast:{care:.08,form:0,high:.2,adv:3,back:1.15},
+ // mercs by their gear (aiProfile): a raised shield anchors the line, a polearm or greatsword works from the second rank
+ shield:{care:.18,form:1.7,high:.3,adv:3,back:1},
+ reach:{care:.3,form:1.2,high:.3,adv:2.8,back:1},
  boss:{care:.04,form:0,high:.2,adv:3,back:1}
 };
 /* The sensible player's answer to each faction. Every key is a tactic the pilot can be run without
@@ -97,15 +104,22 @@ const AI_PLAN={
  serpent:{hunt:{gserp:1.5,viper:1.3},lock:.8},
  ent:{burn:1.5,hunt:{elder:1.4}},
  ogre:{spread:1},
- wyvern:{dodge:1,spread:1,ground:1.5}
+ wyvern:{dodge:1,spread:1,ground:1.5},
+ // a rival company: mercs like ours. Take the bows away (lock), shoot their shooters first (volley). AI_RIVAL is the rival's own
+ // answer to the company, by its personality (cutthroats go for the wounded and the back line harder).
+ rival:{lock:.8,volley:1}
 };
+const AI_RIVAL={honour:{lock:.6,volley:1},cutthroat:{lock:.6,volley:1,cut:1},greedy:{lock:.5,volley:1},glory:{lock:.7,volley:1}};
+// The plan a rival company's merc plays by (never the company's hold: that one reads the company's own edge).
+function aiRivalPlan(u){const r=typeof battleRival==='function'?battleRival(u.rival||B.rival):null,p=r&&AI_RIVAL[r.pers]||AI_RIVAL.honour;return B.opts.rivalPlan||p}
 /* Deadlock guard: the sum of every living unit's hitpoints is sampled once a round; if it has not changed for AI_STALL rounds,
    aiProfile makes every AI unit drop caution and advance, so two careful sides can never stand apart forever. */
 const AI_STALL=12;
 function aiStalled(){const b=B;if(!b||!b.units)return false;const S=b.aiStall||(b.aiStall={r:-1,sum:-1,since:0});if(S.r!==b.round){S.r=b.round;let sum=0;for(const x of b.units)if(x.alive)sum+=x.hp;if(sum!==S.sum){S.sum=sum;S.since=b.round}}return b.round-S.since>=AI_STALL}
-function aiPlan(u){const b=B;if(u.side!==0)return null;const p=b.opts.plan||AI_PLAN[b.opts.f]||{};return b.obj&&typeof objPlan==='function'?objPlan(p,u):p}   // a battle objective reshapes the plan (16-contracts.js)
+function aiPlan(u){const b=B;if(u.side!==0)return null;const p=b.opts.plan||AI_PLAN[b.opts.f]||(b.rival?AI_PLAN.rival:null)||{};return b.obj&&typeof objPlan==='function'?objPlan(p,u):p}   // a battle objective reshapes the plan (16-contracts.js)
 function aiProfile(u){let role=u.role;
- if(!role){role='line';if(aiHasBow(u))role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster'}
+ if(!role){role='line';if(aiHasBow(u))role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster';
+  else if(u.m&&!AI_DBG.noroles){if(u.shield)role='shield';else if(u.wpn&&u.wpn.rng>=2&&!aiRngW(u.wpn))role='reach'}}   // mercs: the shield line, the second-rank polearm
  const P=Object.assign({role},AI_ROLE[role]||AI_ROLE.line);if(u.def&&u.def.dive)P.back=1.8;if(u.fly&&u.side===1)P.back=Math.max(P.back,1.7);   // fliers go over the line for the casters and archers
  if(u.def&&u.def.flee&&u.hp<u.hpMax*u.def.flee)P.care*=2.5;            // the skittish hang back when hurt, but they keep fighting
  if(B.round>AI_LATE){P.care*=.3;P.shy=0}                                // a long battle: everyone presses, so it ends
@@ -114,6 +128,7 @@ function aiProfile(u){let role=u.role;
 async function aiTurn2(u){const b=B;if(!b||!u||!u.alive)return;
  if(u.side===0&&b.opts.pilot==='naive')return AI_NAIVE(u);
  if(u.side===0)return AI_SENSIBLE(u);
+ if(u.m)return aiRun(u,aiProfile(u),aiRivalPlan(u));   // a rival company's merc: the engine with its own gear's role and the rival's plan
  return aiRun(u,aiProfile(u),null)}
 // The scripted competent player: the engine with the company's roles and the plan against this faction.
 async function AI_SENSIBLE(u){return aiRun(u,aiProfile(u),aiPlan(u)||{})}
@@ -254,7 +269,7 @@ function aiPrio(X,t){const u=X.u,P=X.P,plan=X.plan;let p=1;const fo=B.aiFoc&&B.a
  if(u.def&&u.def.pack){let n=0;for(const o of X.allies)if(o.def&&o.def.pack&&mdist(o,t)===1)n++;p+=.35*Math.min(2,n);if(t.st.harried)p+=.3;       // the pack goes for whoever a wolf already has by the leg,
   else if(!n){let s=0;for(const o of X.foes)if(o!==t&&mdist(o,t)===1)s++;if(s<2)p+=.3}}                                                         // and for prey that stands alone
  if(fo===t)p+=.15;if(t.back||t.role==='caster'||t.role==='sniper')p*=P.back;if(t.vip)p*=u.side===1?1.7:0;   // foes go for the escorted wagon
- if(plan){const h=plan.hunt&&plan.hunt[t.eid];if(h)p*=h;if(plan.volley&&P.shy&&(t.role==='sniper'||t.role==='caster'))p*=1.5;
+ if(plan){const h=plan.hunt&&plan.hunt[t.eid];if(h)p*=h;if(plan.volley&&P.shy&&(t.role==='sniper'||t.role==='caster'||(t.m&&t.back)))p*=1.5;if(plan.cut&&t.hp<t.hpMax*.5)p*=1.25;
   if(plan.outlast&&t.def&&t.def.tire)p*=t.st.winded||t.st.spent?1.3:1}
  if(t.st.ward)p*=.6;if(t.mor===0)p*=.5;if(typeof tiredPen==='function'&&t.fatMax<999)p*=1+tiredPen(t)*.012;   // a tired foe is easier to hit and slower to hit back
  return p}
@@ -350,7 +365,7 @@ async function aiRun(u,P,plan){const b=B,S={fc:new Map(),X:null,stamp:0,swN:0,ju
  if(u.dive&&AB.wdiveb){await foeUse(u,abilityInfo(u,'wdiveb'),key(u.c,u.r));if(B!==b)return;b.busy=true;if(checkEnd()||!u.alive)return}   // a telegraphed dive lands first
  for(let n=0;n<AI_CAP&&u.alive&&B===b&&!b.over;n++){
   const t0=AI_CLOCK?AI_CLOCK():0;
-  if(n&&u.side===0&&!u.role)P=aiProfile(u);
+  if(n&&(u.side===0||u.m)&&!u.role)P=aiProfile(u);
   const X=aiScan(u,P,plan,S);if(!X.foes.length)return;
   // The sensible player pulls a merc who is about to die out of the fight when he already stands on the company's edge.
   if(plan&&!plan.noWithdraw&&u.side===0&&u.m&&u.hp<u.hpMax*.25&&X.thr[X.at]>=u.hp*.5&&canWithdraw(u)&&X.allies.length>=2){const ok=await withdraw(u);if(B!==b||b.over)return;b.busy=true;if(checkEnd()||ok||!u.alive)return}

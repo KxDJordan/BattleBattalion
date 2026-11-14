@@ -108,13 +108,36 @@ function initUnit(u){const d=(k,v)=>{if(u[k]===undefined||u[k]===null)u[k]=v};
    G.hour), the standard-bearer follower (+5 resolve to every fielded merc, reserves called in too) and the cook (+5 resolve to those who
    start the battle: B.round is 0 until the first round begins). Cocky starts Confident (mkPlayerUnit). */
 const isNight=()=>!!(G&&typeof G.hour==='number'&&(G.hour>=20||G.hour<5));
-function unitTraitB(m,s){const o={ms:0,rs:0,init:0,brv:0},f=s.flags||{};if(f.nightowl&&isNight()){o.ms+=NIGHTOWL.ms;o.rs+=NIGHTOWL.rs;o.init+=NIGHTOWL.init}
+function unitTraitB(m,s,side){const o={ms:0,rs:0,init:0,brv:0},f=s.flags||{};if(f.nightowl&&isNight()){o.ms+=NIGHTOWL.ms;o.rs+=NIGHTOWL.rs;o.init+=NIGHTOWL.init}
+ if(side)return o;   // the company's followers serve the company only: a rival's mercs get their traits, not our standard-bearer
  if(fHas('banner')||fHas('standardbearer'))o.brv+=5;if(fHas('cook')&&!(B&&B.round>0))o.brv+=5;return o}
-function mkPlayerUnit(m){const s=calc(m),res={},c=armorCond(m),sh=s.shield;for(const k in s.res)res[k]={cur:s.res[k].max,max:s.res[k].max,regen:s.res[k].regen};
- const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m)),tb=unitTraitB(m,s);
- return initLoad(initUnit({side:0,mor:s.flags.cocky?4:3,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init+tb.init,ms:s.ms+tb.ms,rs:s.rs+tb.rs,md:s.md,rd:s.rd,brv:s.brv+tb.brv,
+function mkPlayerUnit(m){return mkMercUnit(m,0)}
+/* mkMercUnit(m, side): a battle unit for merc m on either side. Side 0 is the company; side 1 a rival company's merc (mkRivalUnit):
+   the same calc(m), gear, hands, shield, armor condition, talents, gift resource and abilities, so every merc rule applies to both. */
+function mkMercUnit(m,side){const s=calc(m),res={},c=armorCond(m),sh=s.shield;for(const k in s.res)res[k]={cur:s.res[k].max,max:s.res[k].max,regen:s.res[k].regen};
+ const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m)),tb=unitTraitB(m,s,side?1:0);
+ return initLoad(initUnit({side:side?1:0,mor:s.flags.cocky?4:3,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init+tb.init,ms:s.ms+tb.ms,rs:s.rs+tb.rs,md:s.md,rd:s.rd,brv:s.brv+tb.brv,
   wpn:s.wpn,abs:s.abs.slice(),res,flags:s.flags,dmgB:s.dmg,buffs:[],st:{},alive:true,shield:!!sh&&sh.raised,slung:!!sh&&!sh.raised,shp:sh?sh.hp:0,shpMax:sh?sh.hp:0,shb:sh?{md:sh.md,rd:sh.rd}:null,
   hand:'w',wid:s.wid,alt:s.alt,cld:s,back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null,aw:s.aw||0,acl:s.acl||'light'}))}
+/* ---- Rival companies (CONTRACT.md) ----
+   battleRival(id): the rival company record (rivalById from 15-factions.js / 40-world.js, else G.rivals), or null.
+   rivalField(r): the mercs it fields, at most MAXRIVAL: those not benched (m.field!==false) first, in roster order; the dead never.
+   mkRivalUnit(m,r): the enemy unit for rival merc m (u.m = m, u.side = 1, u.f = u.rival = r.id). Its formation slot m.slot
+   ({row:0 front | 1 back, col}) is mirrored onto the enemy's edge, so the company it faces sees it as its own Lines tab set it.
+   rivalPreview(r): what the deployment screen may show of it: [{id,name,bg,bgN,lvl,back,role,hp,hpMax,inj}] (no rnd). */
+const MAXRIVAL=12;
+function battleRival(id){if(id==null||id===false)return null;if(typeof id==='object')return id&&Array.isArray(id.roster)?id:null;
+ if(typeof rivalById==='function'){try{const r=rivalById(id);if(r&&Array.isArray(r.roster))return r}catch(e){}}
+ const L=typeof G!=='undefined'&&G&&Array.isArray(G.rivals)?G.rivals:[];for(const r of L)if(r&&r.id===id&&Array.isArray(r.roster))return r;return null}
+function rivalName(r){return r&&r.n?String(r.n):'A rival company'}
+// The name of whoever the battle is against: a faction, or a rival company.
+function battleFoeN(o){const f=o&&o.f;if(FACT[f])return FACT[f].n;const r=battleRival(o&&o.rival||f);return r?rivalName(r):'Foes'}
+function rivalField(r){const L=(r&&Array.isArray(r.roster)?r.roster:[]).filter(m=>m&&m.eq&&m.base&&!m.dead&&!(m.hp<=0));
+ return L.filter(m=>m.field!==false).concat(L.filter(m=>m.field===false)).slice(0,MAXRIVAL)}
+function mkRivalUnit(m,r){const u=mkMercUnit(m,1),s=m.slot;u.f=r.id;u.rival=r.id;
+ if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:BW-1-s.col,r:s.row?DEPLOY.e.back:DEPLOY.e.front};return u}
+function rivalPreview(r){return rivalField(r).map(m=>{const s=calc(m),gk=m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m);
+ return{id:m.id,name:m.name,bg:m.bg,bgN:BG[m.bg]?BG[m.bg].n:m.bg,lvl:m.lvl,back:!!(isRangedW(s.wpn)||gk),w:s.wid||null,s:m.eq.s||null,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,inj:Array.isArray(m.inj)?m.inj.length:0}})}
 /* Enemy fields read from EN[id] beyond the old ones (all optional): helm (head armor; default 60% of arm), brv (resolve; default from xp),
    fearless (never tests morale; default: mindless undead and bosses), shield (hitpoints, or {hp,md,rd}: md/rd are what breaking it removes), noHead. */
 // An enemy's weapon: its own d, from EN[id].w (an item: family, range, reach, reload, crush, to-hit) or a plain blade / bow (rng).
@@ -148,18 +171,22 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 function battleBudget(o){let budget=0;battleField(o).forEach(m=>budget+=12+m.lvl*5);return budget*(o&&o.mult||1)*(1+G.day*.008)*(typeof BUDGETK==='number'?BUDGETK:1)}
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
-function previewEnemies(o){const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
+function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
-function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',budget=battleBudget(o);
+function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',rv=o.rival?battleRival(o.rival):null,budget=rv?0:battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);
  if(o.obj&&o.obj.k==='siege'&&typeof objFortify==='function'&&!tiles.fortified){objFortify(tiles);tiles.fortified=1}   // the siege works (no rnd)
+ if(rv)return{bk,tiles,foes:[],rival:rivalPreview(rv),rv:rv.id,budget};   // a rival company: its own swords, no budget
  return{bk,tiles,foes:previewEnemies(o),budget}}
-/* startBattle(o): o = {f, mult, src:{type,...}, biome?, fixed?} plus optional engine flags:
+/* startBattle(o): o = {f, mult, src:{type,...}, biome?, fixed?, rival?} plus optional engine flags:
+   rival: a rival company id (CONTRACT.md): the enemy side is its roster (rivalField, mkRivalUnit) instead of EN defs; o.f is set to the
+   rival id when it names no faction. B.rival holds the id. An unknown rival (or one with nobody left) falls back to brigands.
    auto (AI plays the company from the first turn), quiet (no result sheet), onEnd(result) callback,
    turnCap (abort as stuck after this many unit turns; tests only), pilot (which AI plays side 0; read by the AI),
    deploy [{id: mercId, c, r}] (who is fielded and where, inside the deployment zone; everyone else is a reserve),
    tiles / foes (a battlePreview() result, so the battle is the one that was shown; fixedAll is read as foes). */
 function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeof closeSheet==='function')closeSheet(true);
+ const rv=o.rival?battleRival(o.rival):null,rf=rv?rivalField(rv):null;if(o.rival&&!(rf&&rf.length)){o.rival=null;if(!FACT[o.f])o.f='bandit'}else if(rv){o.rival=rv.id;if(!FACT[o.f])o.f=rv.id}
  const pv=battlePreview(o),bk=pv.bk,dep={};if(Array.isArray(o.deploy))for(const d of o.deploy)if(d&&!dep[d.id]&&Number.isInteger(d.c)&&Number.isInteger(d.r)&&inb(d.c,d.r)&&deployRow(d.r))dep[d.id]={c:d.c,r:d.r};
  const ctr=boardCenter(),b={opts:o,bk,P:BIO[bk],tiles:pv.tiles,units:[],order:[],round:0,turns:0,cur:null,sel:null,targets:null,reach:null,busy:true,over:false,stuck:false,fled:false,result:null,onEnd:o.onEnd||null,
   reserves:G.roster.filter(m=>!f.includes(m)),gone:[],rout:[false,false],fledN:[0,0],resRound:0,retreat:false,synced:false,
@@ -167,9 +194,10 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  // B.auto is a live switch: turning it on while the company is waiting for orders hands the turn to the AI at once.
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
  B=b;const used=new Set(),pu=place(f.map(m=>{const u=mkPlayerUnit(m),s=m.slot;if(dep[m.id])u.slot=dep[m.id];else if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:s.col,r:s.row?DEPLOY.p.back:DEPLOY.p.front};return u}),DEPLOY.p.front,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used),
-  eu=place(pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)}),DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
+  eu=place(o.rival?rf.map(m=>mkRivalUnit(m,rv)):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)}),DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
+ b.rival=o.rival||null;
  b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o,used);else b.obj=null;b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
- mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${FACT[o.f].n} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} foes.`);nextTurn();return b}
+ mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${battleFoeN(o)} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} ${b.rival?'swords':'foes'}.`);nextTurn();return b}
 /* spawnUnit(u): adds a unit mid-battle (reserves, summons, the raised dead). u needs side and its stats (mkEnemy(id,f) and
    mkPlayerUnit(m) make complete ones); u.c/u.r is where it should appear: the nearest free walkable tile is used when that
    one is taken, blocked or missing. It joins the turn order from the next round. Returns u, or null when the board is full. */
@@ -210,8 +238,11 @@ function moraleCheck(u,bonus,dir){if(!B||!u.alive||u.fearless||u.gone)return nul
 // Inspiring presence: the best brvAura of an ally within 3 tiles adds to u's morale checks.
 function brvAura(u){let v=0;if(!B)return 0;for(const o of B.units)if(o.alive&&o!==u&&o.side===u.side&&o.flags&&o.flags.brvAura>v&&mdist(o,u)<=3)v=o.flags.brvAura;return v}
 // A side of three or more routs when more than half of those still alive (on the field or fled from it) are fleeing: everyone but the fearless runs, and nobody rallies.
-function checkRout(side){const b=B;if(!b||b.rout[side])return false;const al=b.units.filter(u=>u.alive&&u.side===side),n=al.length+b.fledN[side],f=al.filter(u=>u.mor===0).length+b.fledN[side];
- if(!al.length||n<3||f*2<=n)return false;b.rout[side]=true;say(side===0?'The company breaks. Every sword for himself!':'The enemy breaks and runs!');
+// A rival company (B.rival) also breaks once RIVALBRK of the swords it fielded are down, dead or gone: hired men do not die to the last.
+const RIVALBRK=.5;
+function rivalBroken(b){if(!b.rival)return false;let n=0,l=0;for(const u of b.units)if(u.side===1&&u.m&&!u.spawned){n++;if(!u.alive)l++}return n>=2&&l>=Math.ceil(n*RIVALBRK)}
+function checkRout(side){const b=B;if(!b||b.rout[side])return false;const al=b.units.filter(u=>u.alive&&u.side===side),n=al.length+b.fledN[side],f=al.filter(u=>u.mor===0).length+b.fledN[side],rb=side===1&&rivalBroken(b);
+ if(!al.length||(!rb&&(n<3||f*2<=n)))return false;b.rout[side]=true;say(side===0?'The company breaks. Every sword for himself!':rb?`${battleFoeN(b.opts)} have lost half their swords. They break and run!`:'The enemy breaks and runs!');
  for(const u of al)if(!u.fearless&&u.mor>0)setMorale(u,0);return true}
 const adjFoes=u=>B.units.filter(e=>e.alive&&e.side!==u.side&&mdist(e,u)===1);
 // Start-of-turn morale for u. Returns true when u spends this turn fleeing.
@@ -399,7 +430,7 @@ const burnDmg=u=>Math.round(8*(1+(u.fw||0)));
 const kbImmune=t=>(t.sz||1)>1||!!(t.def&&t.def.kbImm)||buffSum(t,'indom')>0||!!(t.flags&&t.flags.kbImm);
 // Steady footing (medium armor) halves what a step costs in fatigue.
 const moveFat=u=>u&&u.flags&&u.flags.footing?1:2;
-const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0?u.lvl*.03:0));
+const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0||u.m?u.lvl*.03:0));   // a merc's level (either side)
 const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)+(u.flags&&u.flags.ignB||0);
 // The damage roll of a weapon ability (a Spiked bash rolls the shield's spike), and the armor crushing of the blow (hammers).
 const rollOf=(u,a)=>a.dmgD||u.wpn.d;
@@ -425,9 +456,10 @@ const heavyHit=t=>Math.max(8,Math.ceil(t.hpMax*HEAVYHIT));              // hitpo
 function applyInjury(u,id){const st=INJ[id].st;for(const k in st){const v=st[k];if(k==='hp'){u.hpMax=Math.max(5,u.hpMax+v);u.hp=Math.min(u.hp,u.hpMax)}else if(k==='fat')u.fatMax=Math.max(20,u.fatMax+v);else if(k==='dmg')u.dmgB=(u.dmgB||0)+v;else u[k]+=v}}
 // Rolls an injury for the merc behind unit t (head or body, permanent or not). Returns its id, or null.
 function inflictInjury(t,head,perm,slow){if(!t.m)return null;const id=rollInjury(t.m,head,perm,slow);if(!id)return null;if(t.alive)applyInjury(t,id);float(t,INJ[id].n,'#ff7a6b');say(`${t.name}: ${INJ[id].n.toLowerCase()}.`);FX.emit('injury',{t,id});return id}
-function killUnit(t,src,head){t.hp=0;t.alive=false;if(t.side===0&&t.m){t.down=rnd()<DOWNCH;if(t.down)inflictInjury(t,head,rnd()<PERMCH,true)}   // struck down and alive: always at the price of an injury
- say(`${t.name} ${t.side===0&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
- for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}}
+function killUnit(t,src,head){t.hp=0;t.alive=false;if(t.m){t.down=rnd()<DOWNCH;if(t.down)inflictInjury(t,head,rnd()<PERMCH,true)}   // struck down and alive: always at the price of an injury (a rival's merc too)
+ say(`${t.name} ${t.m&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
+ for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
+ if(t.side===1&&B.rival)checkRout(1)}
 /* hurt(t,dmg,ign,src,o): applies damage. The armor of the struck location soaks first (o.head: the helmet, else body armor);
    `ign` is the share that pierces it; o.pierce skips armor altogether; head hits do HEADMULT to hitpoints.
    o.crush (hammers): the armor loses round(dmg x (1 + crush)) instead of dmg (capped by what it has); what it soaks stays dmg.

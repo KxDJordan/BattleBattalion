@@ -152,7 +152,7 @@ section('save round trip');
 { const G=fresh(SEED);for(let d=0;d<12;d++)day(G);G.towns[1].sit.push({k:'siege',days:3,by:'h0'});X.repGain('h1',-25,'x');
   X.mode='world';ok(X.save(),'save');const r=X.readSave();ok(r.state==='ok','read back: '+r.state+' '+(r.why||''));const g=r.g;
   const pick=o=>JSON.stringify({h:o.houses,rep:o.rep,log:o.repLog,hrel:o.hrel,wars:o.wars,nests:o.nests,news:o.news,wsim:o.wsim,t:o.towns.map(t=>[t.own,t.bld,t.spec,t.sit,t.pros]),p:o.parties.map(p=>[p.id,p.goal,p.f,p.from,p.to,p.home,p.siege,p.hunt,p.cargo,p.pts&&p.pts.length,p.pi])});
-  {const a=pick(g),b=pick(G);if(a!==b){let i=0;while(a[i]===b[i])i++;fail('world fields differ after load near: '+a.slice(Math.max(0,i-120),i+80)+' VS '+b.slice(Math.max(0,i-120),i+80))}}ok(g.v===10&&X.SAVEVER===10,'save version 10');
+  {const a=pick(g),b=pick(G);if(a!==b){let i=0;while(a[i]===b[i])i++;fail('world fields differ after load near: '+a.slice(Math.max(0,i-120),i+80)+' VS '+b.slice(Math.max(0,i-120),i+80))}}ok(g.v===X.SAVEVER&&X.SAVEVER===11,'save version 11');
   // a damaged world record is repaired, never fatal
   const bad=X.clone(G);bad.houses[0].pers='nonsense';bad.towns[0].sit=[{k:'nope',days:2},{k:'raided',days:'x'}];bad.towns[1].own='h9';bad.nests.push({id:'x'});bad.parties.push({id:9999,x:100,y:100,tx:100,ty:100,f:'h0',mult:1,goal:'caravan'});bad.rep.h0='x';
   ok(X.repairSave(bad)==='','damaged world fields repaired');ok(bad.houses[0].pers==='proud'&&bad.towns[0].sit.length===0&&typeof bad.towns[1].own==='string'&&bad.nests.every(n=>typeof n.id==='number')&&bad.rep.h0===0,'repairs');
@@ -165,7 +165,7 @@ section('v9 save migrates');
   for(const t of old.towns)for(const k of ['own','spec','bld','sit','pros'])delete t[k];old.parties=old.parties.filter(p=>!X.humanFact(p.f)).map(p=>{const q=Object.assign({},p);delete q.goal;delete q.home;delete q.from;delete q.to;delete q.cargo;delete q.siege;delete q.hunt;return q});
   if(old.contract&&old.contract.type!=='deliver'&&old.contract.type!=='hunt')old.contract=null;old.towns.forEach(t=>t.contracts=(t.contracts||[]).filter(c=>c.type==='deliver'||c.type==='hunt'));
   const raw=JSON.stringify(old);X.store.set(X.SAVEKEY,raw);const r1=X.readSave();ok(r1.state==='ok','v9 save reads: '+r1.state+' '+(r1.why||''));X.store.set(X.SAVEKEY,raw);const r2=X.readSave();
-  const g=r1.g;ok(g.v===10&&Array.isArray(g.houses)&&g.houses.length===2&&g.nests.length===0&&(g.evt&&typeof g.evt==='object')&&g.origin==='free','migrated fields');
+  const g=r1.g;ok(g.v===X.SAVEVER&&Array.isArray(g.houses)&&g.houses.length===2&&g.nests.length===0&&(g.evt&&typeof g.evt==='object')&&g.origin==='free','migrated fields');
   ok(JSON.stringify(g.houses)===JSON.stringify(ref.h)&&JSON.stringify(g.towns.map(t=>t.own))===JSON.stringify(ref.own),'migration gives the houses the seed gives');
   ok(JSON.stringify([r1.g.houses,r1.g.towns,r1.g.rep])===JSON.stringify([r2.g.houses,r2.g.towns,r2.g.rep]),'migrating twice gives the same world');
   ok(g.parties.every(p=>p.goal==='roam'),'old bands roam');ok(Object.values(g.rep).every(v=>v===0),'rep neutral');

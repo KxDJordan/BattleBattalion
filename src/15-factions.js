@@ -16,8 +16,8 @@
 function houseById(id){if(!G||!Array.isArray(G.houses))return null;for(const h of G.houses)if(h.id===id)return h;return null}
 function isHouse(f){return typeof f==='string'&&f.length===2&&f[0]==='h'&&!!houseById(f)}
 function humanFact(f){return f==='free'||isHouse(f)}
-function factName(f){const h=houseById(f);if(h)return h.n;if(f==='free')return 'Free towns';return FACT[f]?FACT[f].n:'Unknown'}
-function factColor(f){const h=houseById(f);if(h&&typeof BANNERC!=='undefined'&&BANNERC[h.c1])return PAL[BANNERC[h.c1].r[1]];return FACT[f]?FACT[f].col:PAL.n}
+function factName(f){const h=houseById(f);if(h)return h.n;const rv=rivalById(f);if(rv)return rv.n;if(f==='free')return 'Free towns';return FACT[f]?FACT[f].n:'Unknown'}
+function factColor(f){const h=houseById(f)||rivalById(f);if(h&&typeof BANNERC!=='undefined'&&BANNERC[h.c1])return PAL[BANNERC[h.c1].r[1]];return FACT[f]?FACT[f].col:PAL.n}
 function houseTowns(id){const L=[];if(G&&G.towns)G.towns.forEach((t,i)=>{if(t.own===id)L.push(i)});return L}
 
 /* ---- generation (deterministic from the seed) ---- */
@@ -60,6 +60,7 @@ function factionsInit(g,opt){g=g||G;if(!g||!Array.isArray(g.towns)||!g.towns.len
  if(!Array.isArray(g.wars))g.wars=[];if(!Array.isArray(g.news))g.news=[];
  if(!Array.isArray(g.nests)){g.nests=[];if(opt.nests!==false)fxSeedNests(g,w,r)}
  if(!svObj(g.wsim))g.wsim={day:svNum(g.day,1)};
+ if(!Array.isArray(g.rivals)&&typeof rivalsInit==='function')rivalsInit(g);   // the rival companies (40-world.js): from the seed, no game randomness drawn
  houseFactReg(g);return g}
 // the first nests of a new world: 2 (small) to 4 (vast), far from the towns, of the early monster factions
 function fxSeedNests(g,w,r){const n=Math.max(2,Math.round(2*Math.sqrt(WN*WN/4096))),fs=['gob','bandit','beast'],T=g.towns;let nid=Math.floor(svNum(g.nid,1));
@@ -68,23 +69,32 @@ function fxSeedNests(g,w,r){const n=Math.max(2,Math.round(2*Math.sqrt(WN*WN/4096
   if(pos)g.nests.push({id:nid++,x:pos.x,y:pos.y,f:fs[k%fs.length],str:1,day:svNum(g.day,1)})}
  g.nid=nid}
 /* the noble houses fight as FACT entries of their own (house soldiers in the house's colours) so that every FACT[p.f] lookup works */
-function houseFactReg(g){g=g||G;for(const k of Object.keys(FACT))if(FACT[k].house&&k!=='free'&&!(g&&Array.isArray(g.houses)&&g.houses.some(h=>h.id===k)))delete FACT[k];
- if(!g||!Array.isArray(g.houses))return;for(const h of g.houses){const c=typeof BANNERC!=='undefined'&&BANNERC[h.c1]?PAL[BANNERC[h.c1].r[1]]:'#5a5a66';
+function houseFactReg(g){g=g||G;for(const k of Object.keys(FACT))if(FACT[k].house&&k!=='free'&&!(FACT[k].rival?g&&Array.isArray(g.rivals)&&g.rivals.some(r=>r.id===k):g&&Array.isArray(g.houses)&&g.houses.some(h=>h.id===k)))delete FACT[k];
+ rivalFactReg(g);if(!g||!Array.isArray(g.houses))return;for(const h of g.houses){const c=typeof BANNERC!=='undefined'&&BANNERC[h.c1]?PAL[BANNERC[h.c1].r[1]]:'#5a5a66';
   FACT[h.id]={n:h.n,g:'H',col:c,skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a patrol of '+h.n,units:HOUSEUNITS,rank:[.5,1.15,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])}}}
 // lazy guard: a campaign that reached the world without factionsInit (older code paths) gets its factions now. Draws no game randomness.
-function worldEnsure(){if(G&&Array.isArray(G.towns)&&G.towns.length&&(!Array.isArray(G.houses)||!G.houses.length||!svObj(G.rep)||!Array.isArray(G.nests)||G.towns.some(t=>typeof t.own!=='string'||!Array.isArray(t.sit))))factionsInit(G);else if(G&&Array.isArray(G.houses)&&G.houses.length&&!FACT[G.houses[0].id])houseFactReg(G)}
+function worldEnsure(){if(G&&Array.isArray(G.towns)&&G.towns.length&&(!Array.isArray(G.houses)||!G.houses.length||!svObj(G.rep)||!Array.isArray(G.nests)||G.towns.some(t=>typeof t.own!=='string'||!Array.isArray(t.sit)||!Array.isArray(G.rivals))))factionsInit(G);else if(G&&Array.isArray(G.houses)&&G.houses.length&&(!FACT[G.houses[0].id]||(Array.isArray(G.rivals)&&G.rivals.length&&!FACT[G.rivals[0].id])))houseFactReg(G)}
 
 /* ---- reputation ---- */
-function repOf(f){if(!humanFact(f))return FACT[f]?-100:0;return G&&G.rep&&svFin(G.rep[f])?G.rep[f]:0}
+function repOf(f){const rv=rivalById(f);if(rv)return svFin(rv.stance)?rv.stance:0;if(!humanFact(f))return FACT[f]?-100:0;return G&&G.rep&&svFin(G.rep[f])?G.rep[f]:0}
 function repTierIx(f){const v=repOf(f);let k=0;for(let i=0;i<REPT.length;i++)if(v>=REPT[i].min)k=i;return k}
 function repTier(f){return REPT[repTierIx(f)]}
 /* repGain(f, n, why): changes the standing with a human faction (monsters ignore it). Proud houses take losses twice as hard. Clamped to
    -100..100, logged in G.repLog (last 30) and a toast says when the tier changes. Returns the change actually made. */
-function repGain(f,n,why){if(!G||!humanFact(f)||!svFin(n)||!n)return 0;worldEnsure();const h=houseById(f),P=h&&HPERS[h.pers];if(n<0&&P&&P.proud>1)n*=P.proud;n=Math.round(n);
- const v0=repOf(f),t0=repTierIx(f),v=clamp(v0+n,-100,100);G.rep[f]=v;const d=v-v0;if(!d)return 0;
+function repGain(f,n,why){const rv=rivalById(f);if(!G||!(rv||humanFact(f))||!svFin(n)||!n)return 0;worldEnsure();const h=houseById(f),P=h&&HPERS[h.pers];if(n<0&&P&&P.proud>1)n*=P.proud;n=Math.round(n);
+ const v0=repOf(f),t0=repTierIx(f),v=clamp(v0+n,-100,100);if(rv)rv.stance=v;else G.rep[f]=v;const d=v-v0;if(!d)return 0;
  G.repLog.push({day:G.day,f,n:d,why:typeof why==='string'?why.slice(0,80):''});if(G.repLog.length>30)G.repLog.splice(0,G.repLog.length-30);
- const t1=repTierIx(f);if(t1!==t0&&typeof toast==='function'){const T=REPT[t1];try{toast(`${factName(f)}: ${T.n.toLowerCase()}${t1===0?'. Their markets close and their patrols hunt you':t1>t0?'. They think better of you':''}`)}catch(e){}}
+ const t1=repTierIx(f);if(t1!==t0&&typeof toast==='function'){const T=REPT[t1];try{toast(`${factName(f)}: ${T.n.toLowerCase()}${t1===0?(rv?'. They will fight the company on sight':'. Their markets close and their patrols hunt you'):t1>t0?'. They think better of you':''}`)}catch(e){}}
  return d}
+
+/* ---- rival mercenary companies: the small lookups (the simulation is in 40-world.js "RIVAL COMPANIES") ----
+   G.rivals = [{id:'r0', n, short, c1, c2, emblem, pers, renown, crowns, home, roster, stance, alive, day, deeds, ...}]. Their standing with the
+   company is rv.stance, read and changed through repOf / repTier / repGain like a house's. Each one is registered in FACT (house soldiers'
+   units as a fallback, its banner colour) with house:1 rival:1, so FACT[p.f] lookups work and it never spawns as a monster faction. */
+function isRival(f){return typeof f==='string'&&f[0]==='r'&&!!rivalById(f)}
+function rivalById(id){if(typeof id!=='string'||id[0]!=='r'||!G||!Array.isArray(G.rivals))return null;for(const r of G.rivals)if(r&&r.id===id)return r;return null}
+function rivalFactReg(g){g=g||G;if(!g||!Array.isArray(g.rivals))return;for(const r of g.rivals){if(!r||typeof r.id!=='string')continue;const c=typeof BANNERC!=='undefined'&&BANNERC[r.c1]?PAL[BANNERC[r.c1].r[1]]:'#6a5a4a';
+  FACT[r.id]={n:r.n,g:'R',col:c,skin:'#d9b99a',tier:'early',house:1,rival:1,biomes:null,lair:'Fight '+r.n,units:HOUSEUNITS,rank:[.5,1.15,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])}}}
 
 /* ---- town economy: every factor with its reason ---- */
 function goodMatch(g,id){const S=GOODS[g],it=ITEMS[id];if(!S||!S.items||!it)return false;const I=S.items;

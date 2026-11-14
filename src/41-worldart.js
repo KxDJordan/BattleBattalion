@@ -477,7 +477,7 @@ function waMonBand(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&
 function waBandSprite(fk,k,f,dir,moving,co){const key='band'+fk+'|'+(co?co.k+'.'+co.fs+(co.bn?'.'+co.bn.sig:''):k)+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(moving?1:0),w=co?48:40,h=co?38:30;
  return waSprite(key,w,h,w>>1,h-3,P=>{if(WAMONF[fk])waMonBand(P,fk,k,f&3,moving);else waBandPaint(P,fk,k,f&3,moving,co);if(dir<0)P.mirror()})}
 const WAMONF={serpent:1,ent:1,ogre:1,wyvern:1};
-function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const gl=o.goal;if(gl==='caravan'||gl==='patrol'||gl==='raid'){drawGoalPx(q,x,y,o);return} const fk=WAFIG[o.f]||o.f==='beast'||WAMONF[o.f]?o.f:'bandit',k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,s=waBandSprite(fk,k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),null);
+function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const gl=o.goal;if(gl==='caravan'||gl==='patrol'||gl==='raid'||gl==='merc'){drawGoalPx(q,x,y,o);return} const fk=WAFIG[o.f]||o.f==='beast'||WAMONF[o.f]?o.f:'bandit',k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,s=waBandSprite(fk,k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),null);
  if(fk!=='wyvern')waShadow(q,x,y,fk==='beast'||fk==='serpent'?12+k*5:fk==='ogre'||fk==='ent'?11+k*7:8+k*7,5);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
 /* the company banner (G.banner {c1,c2,emblem}, 46-banner.js): a waving flag in the field colour c1, a c2 border and the emblem shrunk to fit.
    Absent (old saves, no banner module): the brass and verdigris pennant as before. Recomputed only when the banner changes. */
@@ -657,12 +657,25 @@ function drawTownDecoPx(q,x,y,o){if(!waInit())return;o=o||{};const sz=clamp(o.si
  if(!mask&&!own&&pr===1)return;const key='deco'+sz+'|'+mask+'|'+pr+'|'+(own?own.sig:'-')+'|'+night+'|'+f;
  const s=waSprite(key,W,H,W>>1,H-2,P=>waTownDeco(P,sz,own,mask,pr,night,f));   // 4 px wider each side and 18 px taller than the town box, same ground line
  q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
+/* ---- a rival mercenary company (goal 'merc'): a file of swords in the rival's livery (cloth c1, trim c2) under its banner;
+   k = 1..4 figures by strength, a captain with a c2 plume leads from k >= 3 ---- */
+function waMercPaint(P,k,f,moving,bn){const B=P.h-4,cx=P.w>>1,F=WAFIG.co,n=clamp(k,1,4)+1,gap=7,x1=cx+((n-1)*gap>>1)+1,L=[],A=bn?bn.A:['f','g','h'],C=bn?bn.C:['m','l','r'];
+ for(let i=0;i<n;i++)L.push({i,x:x1-i*gap,y:B-(i&1?2:0)+1-(i===3?1:0)});
+ const kits=[{'5':A[1],'7':A[0],c:C[1]},{'5':A[1],'7':A[0],c:C[1],q:C[1],p:C[0],o:C[0]},{'5':C[1],'7':C[0],c:A[1],q:'p',p:'o'},{'5':A[1],'7':A[0],c:C[2],q:'o',p:'o'},{'5':A[0],'7':A[0],c:C[1]}];
+ const wps=['sword','spear','bow','shield','axe'],bi=1;
+ L.slice().sort((a,b)=>a.y-b.y).forEach(e=>{const i=e.i,st=moving?((f+i)&1):0,up=moving&&((f+i)&3)===1?1:0;
+  if(i===bi){const px=e.x-(F.b[0].length>>1)-1,py=e.y-up,ph=21;P.r(px,py-ph,1,ph+1,'i');P.p(px,py-ph-1,'d');
+   if(bn&&bn.em)waBanner(P,px,py-ph,bn,moving?f:f>>1);else waPennant(P,px,py-ph,8,5,bn,moving?f:f>>1,-1)}
+  const bx=waFigure(P,F,e.x,e.y,st,up,kits[i%kits.length]);if(i!==bi)waWeapon(P,wps[i%wps.length],bx);
+  if(i===0&&k>=3){P.p(bx.x0+3,bx.y-1,C[1]);P.p(bx.x0+2,bx.y-2,C[2]);P.p(bx.x0+1,bx.y-2,C[1]);P.p(bx.x0+1,bx.y-3,C[2])}});
+ P.outline()}
 function drawGoalPx(q,x,y,o){const gl=o.goal,k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,mv=!!o.moving&&!waRM(),dir=o.dir<0?-1:1;let key,paint,w=48,h=40;
  if(gl==='caravan'){const bn=waBnOf(o.house);key='car'+k+(bn?bn.sig:'-');paint=P=>waCaravanPaint(P,k,f&3,mv,bn)}
  else if(gl==='patrol'){const bn=waBnOf(o.house);key='pat'+k+(bn?bn.sig:'-');paint=P=>waPatrolPaint(P,k,f&3,mv,bn);h=44}
+ else if(gl==='merc'){const bn=waBnOf(o.house),kk=clamp(Math.round(+o.str||1)+(o.n>8?1:0),1,4);key='mrc'+kk+(bn?bn.sig:'-');paint=P=>waMercPaint(P,kk,f&3,mv,bn);w=52;h=44}
  else{const fk=WAFIG[o.f]?o.f:'bandit';key='raid'+fk+k;paint=P=>waRaidPaint(P,fk,k,f&3,mv)}
  const s=waSprite(key+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(mv?1:0),w,h,w>>1,h-3,P=>{paint(P);if(dir<0)P.mirror()});
- waShadow(q,x,y,gl==='caravan'?30:gl==='patrol'?14+k*8:10+k*7,6);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
+ waShadow(q,x,y,gl==='caravan'?30:gl==='patrol'?14+k*8:gl==='merc'?16+k*7:10+k*7,6);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
 
 /* Warm-up: the ground textures and the tree/peak pool are pure tables. Made while the title is idle, the first world frame after a
    new game does not wait for them (the same tables, only made earlier; nothing is drawn). */

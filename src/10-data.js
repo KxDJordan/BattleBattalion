@@ -186,7 +186,7 @@ const WSK={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['pu
 Object.assign(WSKID,{falchion:['slash'],estoc:['riposte'],bardiche:['split','round'],pitchfork:['hook'],waster:['gswing'],repeater:['reload'],handgonne:['reload']});
 Object.assign(SHIELDHP,{targe:36,steelbuckler:44,pavise:100,kite2:84,heater2:96,dwarfround:90});
 for(const id in ITEMS){const i=ITEMS[id];if(i.k==='w')i.sk=WSKID[id]||WSK[i.wt]||[];else if(i.k==='s'){i.sk=SHIELDSK[id]||['shieldwall','bash'];i.hp=SHIELDHP[id]||48}}
-function itemDesc(id){const i=ITEMS[id];
+function itemDesc(id){const i=ITEMS[id];if(i.k==='t')return`Trade good, worth ${i.price} crowns where it is not made (half where it is)`;
  if(i.k==='w')return`${i.d[0]}–${i.d[1]} dmg, ${i.ap} AP${i.rng>1?(isRangedW(i)?', range ':', reach ')+i.rng:''}${i.two?', two-handed':''}${i.reload?', reload '+i.reload.ap+' AP':''}${i.crush?', crushes armor (+'+Math.round(i.crush*100)+'%)':''}${i.ign>=.5?', '+Math.round(i.ign*100)+'% through armor':''}${i.spell?', +'+Math.round(i.spell*100)+'% spell dmg':''}`;
  if(i.k==='s')return`+${i.md} melee def, +${i.rd} ranged def, ${i.hp} shield hp, −${i.fat} fatigue${i.wallB?', shield wall +'+i.wallB:''}${i.guard?', covers allies beside it (−'+i.guard+' to be shot)':''}${i.spike?', spiked bash '+i.spike[0]+'–'+i.spike[1]:''}`;
  return`${i.arm} ${i.k==='h'?'head ':''}armor, −${i.fat} fatigue`}
@@ -968,3 +968,52 @@ const GOODS={
 /* the house soldiers: every noble house and the free towns field these (their banner colours are filled in by houseFactReg, 15-factions.js) */
 const HOUSEUNITS=[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],HOUSELOOT=['shortsword','mace','heater','kite','mail','padded','leather','spear','crossbow','lightxbow','arming','cap'];
 FACT.free={n:'Free towns',g:'F',col:'#7d8f86',skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a free town militia',units:HOUSEUNITS,rank:[.5,1.1,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])};
+
+/* ================= CARAVAN CARGO AND RIVAL COMPANIES (world agent) =================
+   GOODS[k].cargo  what a caravan out of a town with specialty k carries (rolled once when it sets out, cargoRoll in 40-world.js):
+                   {crowns:[lo,hi] (tens), food:[lo,hi], tools:[lo,hi], salves:[lo,hi], parts:{partKey:[lo,hi]},
+                    items:{n:[lo,hi], k:[slots], wt:[weapon types], heavy?, light?, spell?, tier:+n (above the day's market tier)},
+                    trade:[[tradeItemId, lo, hi]]}   every range inclusive; a missing key carries none.
+   Trade goods are ITEMS of kind 't' {k:'t', n, d, price, good (the GOODS key that makes it), trade:1, uniq:1 (never on a stall,
+   never loot, never famed), icon:'tg-<id>'}. Markets pay the full price where the good is not made, half where it is
+   (tradePrice in 50-towns.js), with the usual reputation and situation factors.
+   RVPERS[k]       rival company personalities: {n, d, hunt (hires itself out against the company), ambush (attacks the weak on the road),
+                   greed (fee factor in parley), glory (eagerness to race for named work), honour}
+   RVNAMES         [[short name, emblem]] the rival companies' names (the company is 'The <short>') and their banner's charge */
+Object.assign(GOODS.grain,{cargo:{crowns:[4,10],food:[40,70],trade:[['flour',1,2]]}});
+Object.assign(GOODS.cattle,{cargo:{crowns:[5,12],food:[30,55],parts:{meat:[2,4]},trade:[['hides',1,2]]}});
+Object.assign(GOODS.fish,{cargo:{crowns:[4,10],food:[35,60],trade:[['saltfish',1,2]]}});
+Object.assign(GOODS.timber,{cargo:{crowns:[5,12],tools:[8,16],items:{n:[1,2],k:['s'],wt:['staff']}}});
+Object.assign(GOODS.ore,{cargo:{crowns:[5,12],tools:[10,20],parts:{scrap:[2,5]},items:{n:[1,1],k:['a','h'],heavy:1},trade:[['ironbar',1,2]]}});
+Object.assign(GOODS.steel,{cargo:{crowns:[6,14],tools:[4,10],items:{n:[2,3],wt:['sword','axe','mace','spear','polearm','dagger','hammer','greatsword'],tier:1}}});
+Object.assign(GOODS.yew,{cargo:{crowns:[5,12],items:{n:[1,2],wt:['bow','crossbow']},trade:[['yewstaves',1,1]]}});
+Object.assign(GOODS.leather,{cargo:{crowns:[5,12],items:{n:[1,2],k:['a','h'],light:1},trade:[['hides',1,2]]}});
+Object.assign(GOODS.furs,{cargo:{crowns:[6,14],parts:{pelt:[2,4]},trade:[['furbale',1,2]]}});
+Object.assign(GOODS.herbs,{cargo:{crowns:[5,12],salves:[2,4],food:[10,20],trade:[['herbbundle',1,2]]}});
+Object.assign(GOODS.salt,{cargo:{crowns:[6,14],food:[15,30],trade:[['saltbrick',2,3]]}});
+Object.assign(GOODS.spice,{cargo:{crowns:[8,18],trade:[['spices',1,3]]}});
+Object.assign(GOODS.glass,{cargo:{crowns:[7,16],items:{n:[1,1],wt:['staff','focus'],spell:1},trade:[['riftglass',1,2]]}});
+Object.assign(GOODS.ale,{cargo:{crowns:[6,14],food:[10,20],trade:[['alecask',2,3]]}});
+const TRADEGOODS={
+ flour:{n:'Sacks of flour',price:60,good:'grain',d:'Milled white flour, dear in towns that grow none.'},
+ hides:{n:'Tanned hides',price:110,good:'leather',d:'A bundle of cured cowhides, stiff and sweet-smelling.'},
+ saltfish:{n:'Barrel of salt fish',price:70,good:'fish',d:'Cod packed in salt. Inland towns pay well for it.'},
+ ironbar:{n:'Iron bars',price:130,good:'ore',d:'Smelted pig iron, stamped with the mine\'s mark.'},
+ yewstaves:{n:'Yew staves',price:150,good:'yew',d:'Seasoned bow staves, split and bound. Every bowyer wants them.'},
+ furbale:{n:'Bale of furs',price:180,good:'furs',d:'Fox, marten and wolf, prime winter pelts.'},
+ herbbundle:{n:'Medicinal herbs',price:120,good:'herbs',d:'Bundled marsh herbs, dried. Healers pay for them.'},
+ saltbrick:{n:'Salt bricks',price:90,good:'salt',d:'Pressed sea salt. The salt of every larder in the land.'},
+ spices:{n:'Chest of spices',price:260,good:'spice',d:'Pepper, saffron and clove in a small locked chest. A fortune by weight.'},
+ riftglass:{n:'Crate of rift glass',price:320,good:'glass',d:'Strange violet glass packed in straw. Scholars pay anything for it.'},
+ alecask:{n:'Cask of strong ale',price:65,good:'ale',d:'A famous brew, sealed with the brewer\'s wax.'}};
+for(const id in TRADEGOODS){const T=TRADEGOODS[id];ITEMS[id]={k:'t',n:T.n,d:T.d,price:T.price,good:T.good,trade:1,uniq:1,tier:1,look:id,icon:'tg-'+id}}
+const RVPERS={
+ honour:{n:'Honourable',d:'They keep their word and fight in the open. They never ambush and never hire out to hunt other companies.',hunt:0,ambush:0,greed:1,glory:.8,honour:1},
+ cutthroat:{n:'Cutthroat',d:'Any purse is fair game. They fall on weaker companies on the road and sell their swords to anyone.',hunt:1,ambush:1,greed:1.2,glory:.7,honour:0},
+ greedy:{n:'Greedy',d:'Gold first. They take any job, sell anything, and can be bought off for a price.',hunt:1,ambush:0,greed:.75,glory:.9,honour:0},
+ glory:{n:'Glory-hounds',d:'They chase named beasts and famous bounties, and race anyone to the prize.',hunt:0,ambush:0,greed:1.1,glory:1.6,honour:0}};
+const RVNAMES=[['Black Hounds','wolf'],['Iron Crows','raven'],['Red Lanterns','sun'],['Grey Wolves','wolf'],['Silver Spurs','crown'],['Ashen Blades','swords'],['Bitter Oaks','oak'],
+ ['Crimson Hand','skull'],['Gallows Men','skull'],['Brass Lions','lion'],['Night Ravens','raven'],['Salt Dogs','anchor'],['Hollow Crowns','crown'],['Seventh Banner','tower'],
+ ['Thorn Company','rose'],['Wild Boars','boar'],['Stag Riders','stag'],['Moon Wardens','moon'],['Lily Guard','fleur'],['Tower Swords','tower']];
+// backgrounds a rival company signs on (weights): fighters first, a few casters
+const RVBG={sellsword:5,militia:4,hunter:3,squire:2,wildling:3,thief:2,knight:1,hedge:1,acolyte:1,monk:1,spellblade:1};

@@ -1068,6 +1068,67 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    closeAll(X);X.B=null;X.mode='world';
    console.log('monsters: data, footprints, placement, targeting, knockback immunity, line of sight, flight, aoe, dive, fire, crash, coils, spawn ranges, contracts: ok') }
 
+ section('rivals');
+ { // a rival company of the same tier: its roster is the enemy side (CONTRACT.md); every merc rule applies to it
+   const T=TIERS[2],ours=buildCompany(X,T,SEED+3100),theirs=buildCompany(X,Object.assign({traits:1},T),SEED+3200),G=X.G;
+   const setup=(pers,seed)=>{X.seedRng(seed);X.G.roster=X.clone(ours);X.G.day=T.day;X.B=null;X.mode='world';const R=X.clone(theirs);R.forEach((m,k)=>{m.id=700000+k;m.field=true});
+    if(R[1])R[1].slot={row:1,col:2};
+    X.G.rivals=(X.G.rivals||[]).filter(r=>r.id!=='rH').concat([{id:'rH',n:'The Iron Hounds',short:'Hounds',c1:'r',c2:'k',emblem:'wolf',pers,renown:120,crowns:500,home:0,roster:R,stance:-30,alive:true,day:T.day,deeds:[]}]);return X.rivalById?X.rivalById('rH')||X.G.rivals.find(r=>r.id==='rH'):X.G.rivals.find(r=>r.id==='rH')};
+   const dig=b=>digest(b.units.map(u=>[u.side,u.name,u.hp,u.arm,u.helm,u.c,u.r,u.alive?1:0,u.gone||'',u.down?1:0,u.mor].join(',')).join('|'));
+   // preview: the rival's own swords, from the same seeded stream the battle uses
+   let rv=setup('honour',SEED+3300);const pv=X.battlePreview({f:'rH',rival:'rH',biome:'hills'}),st0=X.rngState();
+   ok(Array.isArray(pv.rival)&&pv.rival.length===Math.min(12,rv.roster.length)&&pv.foes.length===0&&pv.rival.every(x=>x.name&&x.bgN&&x.lvl>=1&&x.hpMax>0),'battlePreview does not show the rival company');
+   ok(X.previewEnemies({f:'rH',rival:'rH'}).length===0&&X.rngState()===st0,'previewEnemies drew for a rival battle');
+   ok(X.dpFoes(pv.foes)===null&&typeof X.dpRivalHTML==='function','deployment cannot show a rival company');
+   { const b=X.startBattle({f:'rH',rival:'rH',biome:'hills',tiles:pv.tiles,quiet:true,src:{type:'test'},turnCap:TURNCAP,onEnd(){} });ok(b&&b.rival==='rH','a rival battle did not start');
+     const eu=b.units.filter(u=>u.side===1);ok(eu.length===pv.rival.length&&eu.every(u=>u.m&&rv.roster.includes(u.m)&&u.f==='rH'&&u.rival==='rH'&&!u.def),'enemy units are not the rival mercs');
+     for(const u of eu){const s=X.calc(u.m);ok(u.hpMax===s.hp&&u.armMax===s.arm&&u.helmMax===s.helm&&u.wpn.d.join()===s.wpn.d.join()&&u.abs.join()===s.abs.join()&&u.apMax===s.ap&&u.md===s.md&&u.init===s.init+(u.flags.nightowl&&X.isNight()?X.NIGHTOWL.init:0),'rival merc '+u.name+' does not carry calc(m)')}
+     ok(eu.some(u=>u.shield)&&eu.some(u=>u.back)&&eu.some(u=>Object.keys(u.res).length),'the rival company has no shields, no back line or no gifts');
+     const s1=eu.find(u=>u.m===rv.roster[1]);ok(s1&&s1.c===X.BW-1-2&&s1.r===X.DEPLOY.e.back,'a rival formation slot is not mirrored onto the enemy edge');
+     ok(eu.map(u=>X.aiProfile(u).role).some(r=>r==='shield')&&eu.map(u=>X.aiProfile(u).role).some(r=>r==='sniper'||r==='caster'),'the AI does not read roles from rival gear');
+     // forecast on a rival merc: exact, no rnd, no state change
+     const a=b.units.find(u=>u.side===0&&!X.isRangedW(u.wpn)),t=eu[0],r0=X.rngState(),f=X.forecast(a,t,X.abilityInfo(a,'attack'));ok(X.rngState()===r0&&f.injure===(f.hpMax>=X.heavyHit(t)&&!f.sure),'forecast on a rival merc is off (injuries)');
+     X.B=null;X.mode='world'}
+   // full battles: deterministic replay, the dead leave the roster, survivors keep their wounds, loot, purse, renown, joiners, no stuck turns
+   let wins=0,joins=0,lootN=0,routs=0,deadN=0,downN=0,battles=0,inj=0;const P=['honour','cutthroat','greedy','glory'];
+   for(let i=0;i<(QUICK?8:16);i++){const pers=P[i%4],seed=SEED+3400+i;
+    const run=async()=>{const r=setup(pers,seed);const res=await X.autoBattle({f:'rH',rival:'rH',mult:1,biome:['plains','forest','hills','snow'][i%4],src:{type:'test'},turnCap:TURNCAP,pilot:i%3?'sensible':'naive'});return{r,res,b:X.B}};
+    const A=await run(),dA=dig(A.b)+X.rngState(),rosA=A.r.roster.map(m=>m.id+':'+m.hp+':'+(m.inj||[]).length).join();X.B=null;
+    const Bq=await run(),dB=dig(Bq.b)+X.rngState(),rosB=Bq.r.roster.map(m=>m.id+':'+m.hp+':'+(m.inj||[]).length).join();
+    ok(dA===dB&&rosA===rosB&&JSON.stringify(A.res.rival)===JSON.stringify(Bq.res.rival),'rival battle replay diverged (seed '+seed+')');
+    const {r,res,b}=Bq;ok(!res.stuck,'rival battle '+i+' hit the turn cap');scan(b,'B');battles++;
+    const eu=b.units.filter(u=>u.side===1&&u.m),rr=res.rival;ok(rr&&rr.id==='rH'&&rr.n==='The Iron Hounds','no rival record in the result');
+    for(const u of eu){const m=u.m,inR=r.roster.includes(m);
+     if(!u.alive&&!u.gone&&!u.down){deadN++;ok(!inR&&rr.dead.includes(m.name)&&m.dead,'a killed rival merc stayed on the roster')}
+     else{ok(inR,'a surviving rival merc left the roster');if(u.down){downN++;ok(m.hp===1&&rr.down.includes(m.name),'a struck-down rival is not at 1 hitpoint')}else ok(m.hp===Math.max(1,Math.min(Math.round(u.hp),X.calc(m).hp)),'a rival survivor did not keep its hitpoints');
+      const c=X.armorCond(m);ok(c.a===Math.min(c.aMax,Math.round(u.arm))&&c.h===Math.min(c.hMax,Math.round(u.helm)),'a rival survivor did not keep its armor condition')}}
+    inj+=r.roster.reduce((n,m)=>n+(m.inj||[]).length,0);
+    const left=b.units.filter(u=>u.alive);ok(left.length&&left.every(u=>u.side===left[0].side)&&(left[0].side===0)===res.win,'rival battle ended with both sides standing');
+    if(res.win){wins++;if(rr.routed)routs++;lootN+=rr.loot.length;ok(rr.loot.every(x=>res.loot.includes(x.id)),'rival loot is not in the spoils');
+     const html=X.battleResultHTML(res);ok(/The Iron Hounds/.test(html)&&/br-rv/.test(html),'the results sheet does not show the rival');
+     if(rr.joiner){joins++;ok(/brJoin\(1\)/.test(html)===rr.joiner.room,'the joiner offer is wrong');const n0=X.G.roster.length,rn=r.roster.length,full=i%2===1;
+      if(full){const pad=X.G.roster.slice();while(X.G.roster.length<X.MAXROSTER)X.G.roster.push(X.clone(pad[0]));ok(X.rivalJoin(res)===null&&r.roster.length===rn,'a joiner joined a full roster');X.G.roster=pad}
+      else{const m=X.rivalJoin(res);ok(m&&X.G.roster.length===n0+1&&r.roster.length===rn-1&&X.G.roster.includes(m)&&m.hp===1&&!r.roster.includes(m)&&rr.joiner.taken,'rivalJoin did not move the merc');ok(X.rivalJoin(res)===null,'a joiner joined twice');
+       ok(/joins the company/.test(X.battleResultHTML(res)),'the sheet does not show the joiner taken')}}}
+    X.settleBattle(res.win);scan(X.G,'G');ok(X.B===null,'settleBattle left the rival battle open')}
+   ok(wins>0&&wins<battles,'rival battles must be won and lost ('+wins+'/'+battles+')');ok(deadN>0&&downN>0,'no rival merc was killed or struck down');ok(inj>0,'no injuries persisted on rival mercs');
+   if(!QUICK)ok(joins>0&&lootN>0,'no joiner or no loot in '+battles+' rival battles');
+   // a rival with nobody left falls back to a brigand fight; a rival company that loses half its swords breaks
+   rv=setup('honour',SEED+3500);rv.roster.length=0;const fb=X.startBattle({f:'rH',rival:'rH',quiet:true,src:{type:'test'},turnCap:TURNCAP,onEnd(){}});ok(fb&&!fb.rival&&X.FACT[fb.opts.f],'an empty rival company did not fall back to a faction');X.B=null;X.mode='world';
+   rv=setup('honour',SEED+3501);{const b=X.startBattle({f:'rH',rival:'rH',quiet:true,src:{type:'test'},turnCap:TURNCAP,onEnd(){}}),eu=b.units.filter(u=>u.side===1);b.busy=true;
+    for(let k=0;k<Math.ceil(eu.length/2)-1;k++){eu[k].alive=false;eu[k].hp=0}ok(!X.rivalBroken(b),'the rival broke too early');X.killUnit(eu[Math.ceil(eu.length/2)-1],null,false);ok(b.rout[1]&&eu.filter(u=>u.alive&&!u.fearless).every(u=>u.mor===0),'a rival that lost half its swords did not break');b.over=true;X.B=null;X.mode='world'}
+   // caravan cargo on the results sheet (the world hands it over through worldBattleEnd)
+   if(typeof X.cargoText==='function'){X.G.roster=X.clone(ours);const p={id:99901,goal:'caravan',f:X.G.houses&&X.G.houses[0]?X.G.houses[0].id:'free',x:X.G.p.x,y:X.G.p.y,mult:.5,cargo:{good:'grain',crowns:40,items:[],food:6,tools:0,salves:0,parts:{},trade:[]}};X.G.parties.push(p);
+    const cc=X.caravanCargo({type:'party',id:p.id});ok(cc&&typeof cc.text==='string'&&cc.text.length>0,'caravanCargo does not read the cargo');X.G.parties=X.G.parties.filter(q=>q!==p)}
+   // the world's own rivals, through partyBattle and settleBattle (worldBattleEnd): the roster loses its dead and nothing breaks
+   let real='';if(typeof X.partyBattle==='function'){X.seedRng(SEED+3600);X.newGame(true);closeAll(X);const r=(X.G.rivals||[]).find(r=>r&&r.alive&&Array.isArray(r.roster)&&r.roster.length);
+    if(r){X.G.roster.forEach(m=>{m.field=true});const o=X.partyBattle({id:-77,goal:'merc',f:r.id,x:X.G.p.x,y:X.G.p.y,mult:1});ok(o&&o.rival===r.id&&o.src&&o.src.type==='party','partyBattle does not make a rival battle');
+     const ids0=r.roster.map(m=>m.id),res=await X.autoBattle(Object.assign({},o,{turnCap:TURNCAP}));ok(res&&!res.stuck&&res.rival,'the world rival battle did not run');
+     const killed=X.B.units.filter(u=>u.side===1&&u.m&&!u.alive&&!u.gone&&!u.down).map(u=>u.m.id);const out=X.settleBattle(res.win);scan(X.G,'G');ok(out&&(out.kind==='world'||out.kind==='wiped'),'settleBattle failed after a rival battle');
+     ok(killed.every(id=>!r.roster.some(m=>m.id===id))&&r.roster.every(m=>ids0.includes(m.id)),'the world rival kept its dead');real=`; ${r.n} (${ids0.length} swords) ${res.win?'beaten':'won'}, ${killed.length} killed`}}
+   X.G.rivals=(X.G.rivals||[]).filter(r=>r.id!=='rH');closeAll(X);X.B=null;X.mode='world';
+   console.log(`${battles} rival battles replayed twice (${wins} won, ${routs} by rout): ${deadN} rival mercs killed and struck off, ${downN} struck down, ${inj} injuries carried, ${lootN} items looted, ${joins} joiner offers; preview, formation, roles, fallback, rout: ok${real}`) }
+
  section('campaign');
  const flags={},NEED=['hire','buy','sell','food','equip','inn','accept','deliver','hunt','level','perk','crisis','dungeon','route','site','weather','repair','temple'];let camp=null;
  { let s=SEED+100,runs=0;for(;runs<6;runs++,s++){const log=[],own={},r=await campaign(X,s,own,log,32);const G=X.G;Object.assign(flags,own);   // each campaign decides from its own flags, so a replay is independent of history

@@ -8,6 +8,8 @@
 //   - Phase 5: brackets head and body hits separately (helmet against body armor, x1.5 on the head), prices cover into the
 //     hit chance, names every ally a missed shot can stray into, announces ripostes, heavy hits (morale check, injury),
 //     armor-piercing blows and shield damage, and carries both sides' morale.
+//   - Rivals: battles against a rival mercenary company (startBattle o.rival): rival mercs strike with their own gear, talents and gift
+//     abilities and are struck in their own armor, and every one of those strikes is checked the same way.
 // Two sources of strikes: scripted battles (company uses every ability, enemies use the AI) and a directed
 // sweep over weapons, abilities, armor states, heights, buffs, perks, morale, cover, shields and splash/arc options.
 'use strict';
@@ -221,7 +223,15 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  const facs=Object.keys(X.FACT),bios=Object.keys(X.BIO);let nb=0;
  for(let ti=0;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17);
   for(let i=0;i<9;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.seedRng(SEED+100*ti+i);await scripted(X,{f:facs[(i+ti)%facs.length],mult:[.8,1,1.3][i%3],biome:bios[(i*2+ti)%bios.length],src:{type:'sim'}});nb++}}
- const nBattle=S.n;console.log(`${nb} battles, ${nBattle} strikes checked`);
+ const n0=S.n;console.log(`${nb} battles, ${n0} strikes checked`);
+ console.log('== strikes against rival companies ==');
+ { const st=X.ctx.strike,R={u:0,t:0,ab:new Set()};X.ctx.strike=async function(u,t,a,o){if(u.m&&u.side===1){R.u++;R.ab.add(a.id||a.n)}if(t.m&&t.side===1)R.t++;return st(u,t,a,o)};
+   for(let ti=0;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17),rv=company(X,TIERS[ti],SEED+ti*17+555);rv.forEach((m,k)=>{m.id=800000+k});
+    for(let i=0;i<3;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.rivals=[{id:'rF',n:'The Forecasters',pers:['honour','cutthroat','glory'][i],renown:50,crowns:100,roster:JSON.parse(JSON.stringify(rv)),stance:0,alive:true,deeds:[]}];
+     X.seedRng(SEED+700+10*ti+i);await scripted(X,{f:'rF',rival:'rF',mult:1,biome:bios[(i+ti)%bios.length],src:{type:'sim'}});nb++}}
+   X.ctx.strike=st;X.G.rivals=[];ok(R.u>200&&R.t>200,`too few rival strikes checked (${R.u} by rival mercs, ${R.t} on them)`);
+   console.log(`12 battles, ${S.n-n0} strikes checked: ${R.u} by rival mercs (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
+ const nBattle=S.n;
  console.log('== directed sweep ==');
  await sweep(X,company(X,TIERS[2],SEED+5),6000);
  console.log(`${S.n-nBattle} strikes checked`);

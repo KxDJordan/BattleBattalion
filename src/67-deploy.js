@@ -11,7 +11,7 @@
    top-down miniature of the ground, and the height of each deployment tile. With only previewEnemies(o) the foes are
    shown without the map; with neither, only the faction and its possible troops.
    This file itself never draws from the game's seeded rnd(): the vignette is cosmetic and hashed from the place and the day. */
-const DP={root:null,o:null,raw:null,pv:null,foes:null,at:null,pick:null,drag:null,ask:false,bound:false,sx:null,big:false,key:''};
+const DP={root:null,o:null,raw:null,pv:null,foes:null,rv:null,at:null,pick:null,drag:null,ask:false,bound:false,sx:null,big:false,key:''};
 function dpCan(){try{return typeof window!=='undefined'&&typeof document!=='undefined'&&typeof HTMLCanvasElement!=='undefined'&&typeof ImageData!=='undefined'&&!!document.body&&typeof document.body.appendChild==='function'}catch(e){return false}}
 function dpWanted(){return typeof SET==='undefined'||!SET||SET.deploy!==false}
 function deployOpen(){return!!DP.o}
@@ -69,7 +69,7 @@ function dpBegin(){const o=DP.o;if(!o)return;const dep=dpList();if(!dep.length)r
 function dpAsk(v){DP.ask=!!v;dpRender()}
 function dpWithdraw(){const o=DP.o;if(!o)return;dpHide();const out=fleeEncounter(o);if(typeof setUI==='function')setUI();
  toast(out.toast?out.toast:out.lost?`The company slips away and drops ${out.lost} crowns on the run`:'The company slips away');save();return out}
-function dpHide(){DP.o=null;DP.raw=null;DP.pv=null;DP.foes=null;DP.at=null;DP.pick=null;DP.ask=false;if(DP.drag)dpDragEnd();if(DP.root)DP.root.classList.remove('on','in');sheetOpen=false}
+function dpHide(){DP.o=null;DP.raw=null;DP.pv=null;DP.foes=null;DP.rv=null;DP.at=null;DP.pick=null;DP.ask=false;if(DP.drag)dpDragEnd();if(DP.root)DP.root.classList.remove('on','in');sheetOpen=false}
 /* ---- pixel vignette of the field: sky for the hour, far ridge, the biome's ground and its cover, the two banners ---- */
 const DPGROUND={plains:{g:['v','w','B'],far:'n',farH:'m',prop:'leafy'},forest:{g:['B','7','3'],far:'7',farH:'5',prop:'pine'},hills:{g:['w','n','o'],far:'p',farH:'q',prop:'rock',sharp:1},
  swamp:{g:['7','3','2'],far:'4',farH:'n',prop:'dead',pool:'4'},desert:{g:['d','c','k'],far:'k',farH:'d',prop:'rock',sharp:1},snow:{g:['r','q','p'],far:'q',farH:'r',prop:'pine',sharp:1,snow:1},
@@ -142,7 +142,7 @@ function dpRoot(){if(DP.root)return DP.root;const r=document.createElement('div'
 function dpShow(o){if(typeof closeSheet==='function')closeSheet(true);if(typeof tvHide==='function')tvHide();
  const r=dpRoot();DP.o=o;DP.pick=null;DP.ask=false;DP.sx=null;DP.raw=null;DP.foes=null;DP.pv=null;
  // the rules roll the field and the foes now (seeded) and the battle is then fought on exactly what was shown
- if(typeof battlePreview==='function'){try{const pv=battlePreview(o);if(pv&&Array.isArray(pv.foes)){DP.foes=dpFoes(pv.foes);if(DP.foes){DP.raw=pv.foes;DP.pv=pv}}}catch(e){DP.raw=null;DP.foes=null;DP.pv=null}}
+ DP.rv=null;if(typeof battlePreview==='function'){try{const pv=battlePreview(o);if(pv&&Array.isArray(pv.rival)&&pv.rival.length){DP.rv=pv.rival;DP.pv=pv}else if(pv&&Array.isArray(pv.foes)){DP.foes=dpFoes(pv.foes);if(DP.foes){DP.raw=pv.foes;DP.pv=pv}}}catch(e){DP.raw=null;DP.foes=null;DP.pv=null;DP.rv=null}}
  else if(typeof previewEnemies==='function'){try{DP.raw=previewEnemies(o);DP.foes=dpFoes(DP.raw)}catch(e){DP.raw=null;DP.foes=null}if(!DP.foes)DP.raw=null}
  DP.at=dpFromFormation();if(!Object.keys(DP.at).length){DP.o=null;return false}
  r.classList.add('on');r.classList.remove('in');void r.offsetWidth;r.classList.add('in');sheetOpen=true;dpRender(true);return true}
@@ -153,14 +153,24 @@ function dpSide(m){const b=m.eq&&ITEMS[m.eq.b];if(!b)return'';const n=typeof ite
  const ic=typeof pxIcon==='function'?pxIcon(n,16):'';return`<i class="dp-side" title="Backup: ${b.n}">${typeof pnFamedWrap==='function'?pnFamedWrap(m.eq.b,ic):ic}</i>`}
 /* the contract fight's objective as the deployment kicker: escort / hold / siege / a named foe */
 function dpObjKick(o){const b=o.obj,n=o.boss;if(b&&b.k==='escort')return'Escort: keep the caravan wagon alive';if(b&&b.k==='hold')return`Hold for ${b.rounds} rounds or rout them`;if(b&&b.k==='siege')return'Siege: the foe is dug in. Kill its leader';if(n)return`The quarry: ${n.name}`;return''}
-function dpHeadHTML(o,bk,tod){const F=FACT[o.f]||{n:'Foes'},s=o.src||{},kick=s.type==='lair'?(dpObjKick(o)||'The lair you were sent to clear'):s.type==='twist'?'An ambush on the road':s.type==='dun'?`Rift battle ${G.dun?G.dun.stage+1:1} of 3`:'A band bars the way';
- const em=typeof twEmblem==='function'?twEmblem({type:'hunt',f:o.f},DP.big?48:32):'',lost=G.crowns-Math.floor(G.crowns*.9);
+function dpHeadHTML(o,bk,tod){const rv=o.rival&&typeof battleRival==='function'?battleRival(o.rival):null,F=FACT[o.f]&&!rv?FACT[o.f]:{n:typeof battleFoeN==='function'?battleFoeN(o):'Foes'},s=o.src||{},kick=rv?'A rival company bars the way':s.type==='lair'?(dpObjKick(o)||'The lair you were sent to clear'):s.type==='twist'?'An ambush on the road':s.type==='dun'?`Rift battle ${G.dun?G.dun.stage+1:1} of 3`:'A band bars the way';
+ const em=rv&&typeof rivalBannerHTML==='function'?rivalBannerHTML(rv,DP.big?48:32):typeof twEmblem==='function'?twEmblem({type:'hunt',f:o.f},DP.big?48:32):'',lost=G.crowns-Math.floor(G.crowns*.9);
  if(DP.ask){const c=G.contract,why=s.type==='lair'&&c&&!c.done?' The contract is forfeit.':s.type==='twist'&&c&&(c.type==='deliver'||c.type==='escort'||c.type==='relic')?' The cargo is lost and the contract with it.':s.type==='dun'?' The rift spits you back out and must be entered anew.':s.type==='party'?' The band stays on the map.':'';
   return`<div class="dp-ask" role="alert">${dpIc('retreat',32)}<p><b>Withdraw before the first blow?</b><small>The company scatters and drops ${lost?`<span class="coin">${lost} crowns</span>`:'nothing'} on the run.${why}</small></p></div>
 <button type="button" class="pxb" id="dpStay" onclick="dpAsk(0)">Stand fast</button><button type="button" class="pxb warn" id="dpGo" onclick="dpWithdraw()">Withdraw</button>`}
  return`<div class="dp-title">${em}<div><span class="dp-kick">${kick}</span><b>${F.n}</b></div></div>
 <button type="button" class="pxb warn" id="dpWithdraw" onclick="dpAsk(1)">${dpIc('retreat')}<span>Withdraw</span></button><button type="button" class="pxb pri" id="dpBegin" onclick="dpBegin()">${dpIc('swords')}<span>Begin battle</span></button>`}
-function dpFoeHTML(o){const F=FACT[o.f]||{n:'Foes',units:[]},L=DP.foes,por=id=>id&&typeof portraitHTML==='function'?portraitHTML(id,32):`<span class="dp-unk">?</span>`;
+/* how much the company knows of a rival's swords: 0 the count only, 1 backgrounds and levels (seen on the road), 2 names too.
+   rivalIntel(r) (world) when it exists, else r.intel, else 1. */
+function dpIntel(r){if(!r)return 0;if(typeof rivalIntel==='function'){try{const v=+rivalIntel(r);if(v>=0)return Math.min(2,Math.floor(v))}catch(e){}}return typeof r.intel==='number'?clamp(Math.floor(r.intel),0,2):1}
+// A rival company's composition (battlePreview's rival list), as far as it is scouted.
+function dpRivalHTML(o){const r=typeof battleRival==='function'?battleRival(o.rival):null,L=DP.rv,q=dpIntel(r),n=L.length,lv=Math.round(L.reduce((a,x)=>a+(x.lvl||1),0)/Math.max(1,n));
+ const nm=typeof battleFoeN==='function'?battleFoeN(o):'A rival company',head=`<div class="dp-sec" title="${nm}"><span>They field</span><i>${n} sword${n===1?'':'s'}${q>=1?' · avg Lv '+lv:''}</i></div>`;
+ if(!q)return head+`<div class="dp-foes"><span class="dp-en" title="Not scouted"><span class="dp-unk">?</span><b>×${n}</b><small>Unscouted</small></span></div>`;
+ const merc=id=>r&&Array.isArray(r.roster)?r.roster.find(m=>m.id===id):null;
+ return head+`<div class="dp-foes dp-rv">${L.map(x=>{const m=merc(x.id),por=m&&typeof portraitHTML==='function'?portraitHTML(m,32):`<span class="dp-unk">?</span>`,w=x.w&&ITEMS[x.w]?ITEMS[x.w].n:'Fists';
+  return`<span class="dp-en${x.back?' bk':''}" title="${q>=2?x.name+', ':''}level ${x.lvl} ${String(x.bgN).toLowerCase()}: ${w}${x.s&&ITEMS[x.s]?', '+ITEMS[x.s].n:''}${x.hp<x.hpMax?', wounded':''}${x.inj?', injured':''}">${por}<b>Lv ${x.lvl}</b><small>${q>=2?x.name:x.bgN}</small></span>`}).join('')}</div>`}
+function dpFoeHTML(o){if(DP.rv&&o.rival)return dpRivalHTML(o);const F=FACT[o.f]||{n:'Foes',units:[]},L=DP.foes,por=id=>id&&typeof portraitHTML==='function'?portraitHTML(id,32):`<span class="dp-unk">?</span>`;
  if(L){const tot=L.reduce((a,x)=>a+x.n,0);
   return`<div class="dp-sec"><span>They field</span><i>${tot} foe${tot===1?'':'s'}</i></div><div class="dp-foes">${L.map(x=>`<span class="dp-en" title="${x.id?EN[x.id].n:'Unknown'}">${por(x.id)}<b>×${x.n}</b><small>${x.id?EN[x.id].n:'Unseen'}</small></span>`).join('')}</div>`}
  const fx=(o.fixed||[]).filter(id=>EN[id]),ids=fx.concat(F.units.map(u=>u[0]).filter(id=>EN[id]&&!fx.includes(id)));
