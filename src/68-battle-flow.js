@@ -32,9 +32,9 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    row.arm=Math.max(0,c0.a-a);row.helm=Math.max(0,c0.h-h);res.armorLost+=row.arm;res.helmLost+=row.helm;row.hp=m.hp;
    row.inj=unitNewInj(u,snap).map(j=>({id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}));row.inj.forEach(j=>res.injuries.push({name:m.name,id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}))}
   rows.set(m,row);res.men.push(row)}
- G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
+ G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
  if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=e.def&&e.def.xp||0);const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.share=Math.round(res.xp/Math.max(1,surv.length));
-  surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl});rows.get(m).lvl=m.lvl}});
+  surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
   res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]?FACT[e.f].loot:[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
   {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq);
@@ -43,6 +43,12 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
   res.loot.forEach(id=>G.stash.push(id))}
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
  b.result=res;return res}
+/* what a level-up from level a to level b opens: ['New tier unlocked', 'Weapon trees open', ...] (tierLevel from the rules, else t / 3t) */
+function brTierLv(kind,t){if(typeof tlTierLv==='function')return tlTierLv(kind,t);if(typeof tierLevel==='function'){try{const v=tierLevel(kind,t);if(typeof v==='number')return v}catch(e){}}return kind==='weapon'?3*t:t}
+function brOpens(a,b){const out=[],R=['I','II','III','IV','V','VI','VII','VIII','IX'];if(!(b>a))return out;
+ for(let t=1;t<=9;t++){const L=brTierLv('style',t);if(L>a&&L<=b&&t<=6)out.push('New tier unlocked: tier '+R[t-1])}
+ for(let t=1;t<=3;t++){const L=brTierLv('weapon',t);if(L>a&&L<=b)out.push(t===1?'Weapon trees open':'Weapon tier '+R[t-1]+' opens')}
+ return out}
 /* the results dialog: outcome, spoils, then one line per sword that has something to report */
 function brIcon(n,sz){return typeof cpIcon==='function'?cpIcon(n,sz||16):''}
 function brItem(id){const it=ITEMS[id];if(!it)return'';return`<span class="br-it">${typeof pnItemIcon==='function'?pnItemIcon(id,32):''}<b>${it.n}</b></span>`}
@@ -52,13 +58,13 @@ function brMan(r){const u=B&&B.units?B.units.find(u=>u.side===0&&u.m&&u.m.id===r
  if(r.shield)bits.push('<span class="br-w">'+brIcon('shield')+'shield lost</span>');
  if(r.arm||r.helm)bits.push(`<span class="br-w">${r.arm?brIcon('armor')+'−'+r.arm:''}${r.helm?brIcon('helmet')+'−'+r.helm:''}</span>`);
  const inj=r.inj.map(j=>`<span class="br-inj">${typeof cpInjIcon==='function'?cpInjIcon(j.id):''}<b>${j.n}</b> ${j.d}${j.perm?', for good':j.days>0?', '+j.days+' day'+(j.days===1?'':'s'):''}</span>`).join('');
- return`<div class="br-man ${r.state}">${por}<div><span class="br-nm"><b>${r.name}</b>${tag?`<em class="${tag[0]}">${tag[1]}</em>`:''}${r.lvl?`<em class="up">Level ${r.lvl}</em>`:''}</span>${bits.length?`<span class="br-bits">${bits.join(' ')}</span>`:''}${inj}</div></div>`}
+ return`<div class="br-man ${r.state}">${por}<div><span class="br-nm"><b>${r.name}</b>${tag?`<em class="${tag[0]}">${tag[1]}</em>`:''}${r.lvl?`<em class="up">Level ${r.lvl}</em>`:''}</span>${bits.length?`<span class="br-bits">${bits.join(' ')}</span>`:''}${r.lvl?brOpens(r.from!=null?r.from:r.lvl-1,r.lvl).map(t=>`<span class="br-tier">${brIcon(/Weapon/.test(t)?'swords':'level')}${t}</span>`).join(''):''}${inj}</div></div>`}
 function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'||r.inj.length||r.arm||r.helm||r.lvl||r.shield),fine=(res.men||[]).length-men.length;let h;
  if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
  // the plain lines stay (and stay first) for anyone reading the dialog as text
- const lines=res.down.map(n=>`${n} was struck down but lives.`).concat(res.dead.map(n=>`<span class="bad">${n} is dead.</span>`),res.levels.map(l=>`<span class="coin">${l.name} reached level ${l.lvl}.</span>`),
+ const lines=res.down.map(n=>`${n} was struck down but lives.`).concat(res.dead.map(n=>`<span class="bad">${n} is dead.</span>`),res.levels.map(l=>`<span class="coin">${l.name} reached level ${l.lvl}${(l.opens||[]).length?'. '+l.opens.join('. '):''}.</span>`),
   (res.withdrew||[]).map(n=>`${n} withdrew from the field.`),(res.routed||[]).map(n=>`<span class="bad">${n} broke and fled.</span>`),(res.injuries||[]).map(j=>`<span class="bad">${j.name}: ${j.n.toLowerCase()} (${j.d}).</span>`));
  if(men.length)h+=`<div class="br-men">${men.map(brMan).join('')}</div><div class="br-txt">${lines.map(l=>`<p>${l}</p>`).join('')}</div>`;
  else h+=lines.map(l=>`<p>${l}</p>`).join('');

@@ -116,3 +116,11 @@
 #tv i.pn-i{display:inline-block;flex:none;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated}
 #tv .tv-plate.up{top:auto;bottom:100%;transform:translate(-50%,-2px)}
 #tv .tv-place:active .tv-plate.up{transform:translate(-50%,0)}
+/* builds rework: recruit trees on the tavern rows and in the detail */
+#pn .tw-trees{gap:2px;height:18px;min-height:18px;margin-top:1px}
+#pn .tw-gv{color:var(--pn-gift);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-weight:600}
+#pn .tw-trees .tw-gv{margin-left:5px;font-size:12px;line-height:1;overflow:hidden;text-overflow:ellipsis}
+#pn .tw-wts{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:2px 0 6px}
+#pn .tw-wt{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px 0 3px;border:2px solid var(--pn-ink);background:#182a28;color:#9fe0cd;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:.9em}
+#pn .tw-wt .pxi{vertical-align:0}
+#pn .tw-wts>small{color:var(--dim)}

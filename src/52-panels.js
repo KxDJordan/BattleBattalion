@@ -116,6 +116,7 @@ PNOWN.resolve=pnOut(['','','...ccc..ccc','..cdddccdddc','..cdedddddcb','..cddddd
 PNOWN.injury=pnOut(['','..ll........ll','..lml......lml','...lml....lml','....lml..lml','.....lmgglm','......ghhg','......ghgg','.....lmgglm','....lml..lml','...lml....lml','..lml......lml','..ll........ll']);
 PNOWN.temple=pnOut(['.......c','......ccc','.......c','......pqp','.....pqcqp','.....pqcqp','....gggggggh','...gggggggggh','..fqqqqqqqqqpf','...qqqyyqqqpp','...qqyeeyqqpp','...qqyeeyqqpp','...qqqjjqqqpp','...qqqjjqqqpp','...oooooooooo']);
 PNOWN.reserve=pnOut(['','','....jjjjjj','...jkkkkkkj','..jkkkkkkkkj','..jkkiiiikkj','..jkkkkkkkkj','..jkkkkkkkkj','...jkkkkkkj','...ji....ij','...ji....ij','...ji....ij','...ii....ii']);
+PNOWN.swap=pnOut(['','.....d','....dd','...ddddddddddd','..dcccccccccc','...ccb','....cb','.....b','........b','........bc','........bcc','..bbbbbbbbbbcc','..ccccccccccc','.........cc','.........c','']);
 function cpIcon(names,size,cls){for(const n of [].concat(names))if(pnHasPx(n)||PNOWN[n])return pnIcon(n,cls||'',size||16);return pnIcon([].concat(names).pop(),cls||'',size||16)}
 function cpNum(v){return typeof v==='number'&&isFinite(v)}
 function cpTools(){return G&&cpNum(G.tools)?Math.max(0,Math.floor(G.tools)):0}
@@ -161,3 +162,74 @@ function cpRepairText(r){if(!r)return'';if(r.pts>0)return`Repaired ${r.pts} armo
 /* camp(): one call repairs and returns the line to show. hours is only for the wording. */
 function campReport(hours){const r=cpRepair(),t=cpRepairText(r),h=hours===undefined?6:hours;campReport.last=r;
  return`Made camp for ${h===6?'six':h} hours`+(t?'. '+t:'')}
+
+/* ================= TALENT READERS (trees, perks, gift variant, weapon trees, equip rules) =================
+   One place where the out-of-battle screens read the talents API (mercTrees, perkOptions, canLearn, learnPerk,
+   perkById, giftVariant, weaponTrees, mercStyle, tierLevel, equipRules). Each prefers the rules' own function and
+   falls back to reading MAST and the merc directly (old m.mast saves, tier-less trees), so every screen still
+   runs while the rules move. Nothing here touches the DOM or the seeded RNG. */
+const TL_WTN={sword:'Sword',axe:'Axe',mace:'Mace',dagger:'Dagger',spear:'Spear',bow:'Bow',staff:'Staff',fist:'Fist'};
+const TL_STYN={melee:'Melee',ranged:'Ranged',caster:'Caster',support:'Support'};
+function tlTry(f,d){try{const v=f();return v===undefined?d:v}catch(e){return d}}
+function tlKind(T){return!T?'style':T.kind||(T.wt?'weapon':T.res?'gift':'style')}
+/* a tree's tiers as [[perk,...],...]; old trees (p:[...]) read as one perk a tier */
+function tlTiers(T){if(!T)return[];if(Array.isArray(T.tiers))return T.tiers.map(t=>Array.isArray(t)?t:[t]);return Array.isArray(T.p)?T.p.map(p=>[p]):[]}
+function tlTierLv(kind,t){if(typeof tierLevel==='function'){const v=tlTry(()=>tierLevel(kind,t),null);if(cpNum(v))return v}return kind==='weapon'?3*t:t}
+function tlPid(k,p,t,j){return p&&p.id!=null?String(p.id):k+'#'+t+'.'+j}
+function tlLegacy(m){return!Array.isArray(m.perks)&&!!m.mast&&typeof m.mast==='object'}
+/* the merc's gift tree key (its variant), or null */
+function tlGift(m){if(!m)return null;if(typeof giftVariant==='function'){const g=tlTry(()=>giftVariant(m),null);if(typeof g==='string'&&MAST[g])return g;if(g&&g.key&&MAST[g.key])return g.key}
+ if(m.gift&&MAST[m.gift])return m.gift;if(m.mast)for(const k in m.mast)if(MAST[k]&&MAST[k].res)return k;return null}
+function tlRes(m){const g=tlGift(m);if(g&&MAST[g].res)return MAST[g].res;if(typeof mercRes==='function')return tlTry(()=>mercRes(m),null);return null}
+function tlStyle(m){if(typeof mercStyle==='function'){const s=tlTry(()=>mercStyle(m),null);if(s)return s}const b=BG[m.bg]||{};return b.style||'melee'}
+/* the gift label: "Aura: Archer's way" */
+function tlGiftLabel(g){const T=MAST[g];if(!T)return'';const r=T.res&&typeof RESN!=='undefined'?RESN[T.res]:'';return r&&T.n.indexOf(r)!==0?r+': '+T.n:T.n}
+/* the weapon families this merc's background allows (minus its race's), and the weapon tree key of each */
+function tlWtAllowed(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[];return(Array.isArray(b.wt)?b.wt:[]).filter(w=>!no.includes(w))}
+function tlWtKey(w){if(MAST[w]&&tlKind(MAST[w])==='weapon')return w;for(const k in MAST)if(tlKind(MAST[k])==='weapon'&&MAST[k].wt===w)return k;return null}
+function tlWeaponKeys(m){if(typeof weaponTrees==='function'){const L=tlTry(()=>weaponTrees(m),null);if(Array.isArray(L))return L.map(x=>typeof x==='string'?(MAST[x]?x:tlWtKey(x)):x&&x.key).filter(k=>k&&MAST[k])}
+ return tlWtAllowed(m).map(tlWtKey).filter(Boolean)}
+function tlStyleKeys(m){const g=tlGift(m);if(Array.isArray(m.trees))return m.trees.filter(k=>MAST[k]&&k!==g&&tlKind(MAST[k])!=='gift'&&tlKind(MAST[k])!=='weapon');return m.mast?Object.keys(m.mast).filter(k=>MAST[k]&&!MAST[k].res):[]}
+/* [{key,tree,kind}]: style trees, then the gift, then the weapon trees */
+function tlTrees(m){if(typeof mercTrees==='function'){const L=tlTry(()=>mercTrees(m),null);if(Array.isArray(L)&&L.length)return L.map(x=>typeof x==='string'?{key:x,tree:MAST[x],kind:tlKind(MAST[x])}:{key:x.key,tree:x.tree||MAST[x.key],kind:x.kind||tlKind(x.tree||MAST[x.key])}).filter(x=>x.tree)}
+ const out=tlStyleKeys(m).map(k=>({key:k,tree:MAST[k],kind:'style'})),g=tlGift(m);if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
+ tlWeaponKeys(m).forEach(k=>out.push({key:k,tree:MAST[k],kind:'weapon'}));return out}
+/* every perk of every tree the merc has: [{id,perk,key,tree,tier,kind,owned,unlocked,need}] */
+function tlOpts(m){if(typeof perkOptions==='function'&&!tlLegacy(m)){const L=tlTry(()=>perkOptions(m),null);if(Array.isArray(L)&&L.length)return L.map(o=>Object.assign({},o,{kind:o.kind||tlKind(o.tree||MAST[o.key]),tree:o.tree||MAST[o.key],need:cpNum(o.need)?o.need:tlTierLv(o.kind||tlKind(MAST[o.key]),o.tier)}))}
+ const own=Array.isArray(m.perks)?m.perks.map(String):[],out=[];
+ tlTrees(m).forEach(({key,tree,kind})=>{const legacy=tlLegacy(m)&&!Array.isArray(tree.tiers),n=legacy?(m.mast[key]|0):0;
+  tlTiers(tree).forEach((ps,ti)=>ps.forEach((p,j)=>{const t=ti+1,id=tlPid(key,p,t,j),need=tlTierLv(kind,t);
+   out.push({id,perk:p,key,tree,tier:t,kind,owned:legacy?ti<n:own.includes(id),unlocked:legacy?ti<=n&&m.lvl>=need:m.lvl>=need,need})}))});
+ return out}
+function tlOpt(m,id){return tlOpts(m).find(o=>o.id===String(id))||null}
+function tlOwnedIn(m,key){return tlOpts(m).filter(o=>o.key===key&&o.owned).length}
+function tlCan(m,id){if(!m||!(m.pp>0))return false;const o=tlOpt(m,id);if(!o||o.owned)return false;
+ if(typeof canLearn==='function'&&!tlLegacy(m))return!!tlTry(()=>canLearn(m,o.id),false);return!!o.unlocked}
+/* learns perk id; returns true when a point was spent */
+function tlLearn(m,id){const o=tlOpt(m,id);if(!o||o.owned||!(m.pp>0))return false;
+ if(typeof learnPerk==='function'&&!tlLegacy(m)){const pp=m.pp,r=tlTry(()=>learnPerk(m,o.id),false);return!!r||m.pp<pp}
+ if(!o.unlocked)return false;const p=o.perk;
+ if(tlLegacy(m))m.mast[o.key]=(m.mast[o.key]|0)+1;else{(m.perks||(m.perks=[])).push(o.id)}
+ m.pp--;if(p.st&&p.st.hp&&typeof calc==='function'){const s=calc(m);m.hp=Math.min(s.hp,m.hp+p.st.hp)}return true}
+/* the first perk of tree key the merc can learn now (lowest tier first), for old learn(i, treeKey) callers */
+function tlFirstIn(m,key){const L=tlOpts(m).filter(o=>o.key===key&&!o.owned&&o.unlocked).sort((a,b)=>a.tier-b.tier);return L.length?L[0].id:null}
+const TL_STIC={hp:'hp',fat:'fatigue',init:'init',ms:'melee',rs:'ranged',md:'mdef',rd:'rdef',brv:'resolve',arm:'armor',dmg:'swords',ap:'ap'};
+/* a tree's icon: the art's m-<key> when drawn, else the weapon family / gift, else the tree's first ability or stat */
+function tlTreeIcon(key){const T=MAST[key]||{};if(pnHasPx('m-'+key))return'm-'+key;if(T.icon&&pnHasPx(T.icon))return T.icon;if(T.wt)return T.wt;if(T.res)return T.res;
+ const old=({vanguard:'melee',bulwark:'shield',marksman:'bow',skirmisher:'init'})[key];if(old)return old;
+ const P=[].concat(...tlTiers(T));for(const p of P)if(p&&p.ab&&pnHasPx('ab-'+p.ab))return'ab-'+p.ab;
+ for(const p of P)if(p&&p.st)for(const q in p.st)if(TL_STIC[q])return TL_STIC[q];return'star'}
+function tlPerkIcon(o){const p=o.perk||{};if(p.ab)return'ab-'+p.ab;if(pnHasPx('perk-'+o.id))return'perk-'+o.id;return tlTreeIcon(o.key)}
+function tlGiftRes(key){const T=MAST[key];return T&&T.res||''}
+/* ---- arms: one- and two-handed, the backup weapon, the shield ---- */
+function tlTwo(id){const it=ITEMS[id];return!!(it&&it.k==='w'&&it.two)}
+function tlGrip(id){const it=ITEMS[id];return it&&it.k==='w'?(it.two?'2H':'1H'):''}
+/* {ok, why}: can item id go into slot ('w' main, 'b' backup, 's' shield, 'a', 'h') of merc m? equipRules decides when present. */
+function tlEquipRule(m,slot,id){const it=ITEMS[id];if(!it)return{ok:false,why:'Unknown item'};const want=slot==='b'?'w':slot;if(it.k!==want)return{ok:false,why:'That does not go in this slot'};
+ if(typeof equipRules==='function'){const r=tlTry(()=>equipRules(m,slot,id),undefined);
+  if(r===true||r===null)return{ok:true,why:''};if(r===false)return{ok:false,why:'Cannot be equipped'};if(typeof r==='string')return r?{ok:false,why:r}:{ok:true,why:''};
+  if(r&&typeof r==='object'){const why=r.why||r.reason||r.msg||r.err||'';return{ok:r.ok!==false&&!r.err,why,drop:r.drop||null}}}
+ const e=m.eq||{};if(slot==='s'&&tlTwo(e.w)&&tlTwo(e.b))return{ok:false,why:'Both hands are full: a shield needs a one-handed weapon in one of the two weapon slots'};return{ok:true,why:''}}
+/* would putting weapon id into slot ('w'|'b') leave a shield with no one-handed weapon to go with? */
+function tlDropsShield(m,slot,id){const e=m.eq||{};if(!e.s||!tlTwo(id))return false;const other=slot==='b'?e.w:e.b;return tlTwo(other)}
+function tlSlung(m){const e=m.eq||{};return!!(e.s&&tlTwo(e.w))}

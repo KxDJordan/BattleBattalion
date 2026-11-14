@@ -25,7 +25,7 @@ function anOf(u){let s=ANIM.get(u);if(s)return s;const h=anTileH(u.c,u.r);
  s={c:u.c,r:u.r,h,fc:u.c,fr:u.r,fh:h,vc:u.c,vr:u.r,vh:h,lift:0,va:1,mv:false,mt0:-1e9,mdur:1,mk:0,hop:0,wt0:-1e9,mend:-1e9,next:-1,
   dc:0,dr:u.side===0?-1:1,act:0,at0:-1e9,adur:1,lc:0,lr:0,hold:false,
   hitT:-1e9,hdur:1,hc:0,hr:0,dgT:-1e9,dead:!u.alive,deadT:-1e9,
-  stm:0,hp:u.hp,arm:u.arm,helm:u.helm||0,lag:u.hp,lag0:u.hp,lagT:-1e9,spT:-1e9,spD:1,spK:0,wd:false,rev:-1,revT:-1e9,icn:0,ic:[null,null,null,null],tint:null,run:false,gath:false,ph:(((u.id|0)*7+(u.c|0)*3+(u.r|0)*5)%16)/16};
+  stm:0,hp:u.hp,arm:u.arm,helm:u.helm||0,lag:u.hp,lag0:u.hp,lagT:-1e9,spT:-1e9,spD:1,spK:0,wd:false,rev:-1,revT:-1e9,icn:0,ic:[null,null,null,null],tint:null,run:false,gath:false,hw:undefined,ha:undefined,swT:-1e9,swD:1,ow:null,oa:null,lkR:-1,ph:(((u.id|0)*7+(u.c|0)*3+(u.r|0)*5)%16)/16};
  ANIM.set(u,s);return s}
 function anFace(s,dc,dr){if(!dc&&!dr)return;if(Math.abs(dc)>=Math.abs(dr)){s.dc=dc>0?1:-1;s.dr=0}else{s.dc=0;s.dr=dr>0?1:-1}}
 function anAct(s,kind,t,dur,lc,lr){s.act=dur>0?kind:0;s.at0=t;s.adur=dur>0?dur:1;s.lc=lc;s.lr=lr}
@@ -53,7 +53,7 @@ function anMove(u,s,kind){const t=anNow(),sp=anSp(),nh=anTileH(u.c,u.r),oc=s.c,o
 function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
  if(type==='move'){if(d.u)anMove(d.u,anOf(d.u),-1)}
  else if(type==='kb'){if(d.t)anMove(d.t,anOf(d.t),AN_KB)}
- else if(type==='cast'){const u=d.u;if(!u)return;const s=anOf(u),ab=d.ab||{};
+ else if(type==='cast'){const u=d.u;if(!u)return;const s=anOf(u),ab=d.ab||{};if(ab.id==='swap'||ab.swap){anSwapPoll(u,s,anNow(),anSp());return}
   const fx=ab.fx||'';s.next=ab.id==='blink'||fx==='blink'?AN_BLINK:ab.id==='gale'?AN_LEAP:ab.id==='footwork'||fx==='dash'?AN_STEP:ab.dash||fx==='charge'?AN_DASH:ab.tgt==='move'&&ab.leap?AN_LEAP:-1;s.hold=false;
   if(d.t&&d.t!==u)anFace(s,d.t.c-u.c,d.t.r-u.r);else if(d.k>=0&&ab.tgt==='tile')anFace(s,d.k%BW-u.c,((d.k/BW)|0)-u.r);
   if(ab.tgt==='aoe')anAct(s,1,t,260*sp,0,0);else if(!(ab.wpn||ab.id==='shove'||fx==='shove'||ab.tgt==='move'||ab.withdraw)){anAct(s,2,t,380*sp,0,0);s.hold=true}}
@@ -71,11 +71,18 @@ function animImpact(tg,u,at,miss){if(!tg)return;const s=anOf(tg),sp=anSp();
  if(miss){s.dgT=sp?at:-1e9;return}
  s.hitT=SPEEDF>0?at:-1e9;s.hdur=Math.max(130,230*(sp||1));s.hc=0;s.hr=0;
  if(u&&u!==tg&&sp){const dc=tg.c-u.c,dr=tg.r-u.r;if(Math.abs(dc)>=Math.abs(dr))s.hc=dc>0?1:-1;else s.hr=dr>0?1:-1}}
+/* ---- weapon swap: the rules exchange u.wid / u.alt (an enemy's u.wpn) at once; the figure takes ~0.45 s to follow:
+   swap frame 0 puts the old weapon away (still drawn: anHandOv hands the old pair to the sprite), 1 draws the other from its place, 2 brings it to guard */
+const AN_H={w:null,a:null},AN_HO={w:null,a:null};
+function anSwapPoll(u,s,t,sp){if(typeof usHand!=='function'||t-s.swT<s.swD*.34)return;const pw=s.hw,pa=s.ha;usHand(u,AN_H);
+ if(pw!==undefined&&(AN_H.w!==pw||AN_H.a!==pa)&&u.alive&&!s.dead){if(sp){s.swT=t;s.swD=Math.max(240,460*sp);s.ow=pw;s.oa=pa}if(typeof fxSwap==='function')try{fxSwap(u,s.swD)}catch(e){}}
+ s.hw=AN_H.w;s.ha=AN_H.a}
+function anHandOv(u){const s=ANIM.get(u);if(!s||!(anNow()-s.swT<s.swD*.34))return null;AN_HO.w=s.ow;AN_HO.a=s.oa;return AN_HO}
 function anLunge(a){return a<.2?-.07*(a/.2):a<AN_HIT_AT?-.07+.41*((a-.2)/(AN_HIT_AT-.2)):a<.56?.34:.34*(1-(a-.56)/.44)*(1-(a-.56)/.44)}
 function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
  if(u.c!==s.c||u.r!==s.r)anMove(u,s,-1);
  if(!u.alive&&!s.dead&&!s.wd){if(u.gone)s.wd=true;else{s.dead=true;s.deadT=SPEEDF>0?Math.max(t,s.hitT):-1e9}}else if(u.alive&&(s.dead||s.wd)){s.dead=false;s.wd=false}
- anVis(u,s,t);
+ anVis(u,s,t);anSwapPoll(u,s,t,sp);
  // displayed hp/armor follow the rules only once the blow has visibly landed
  if(t>=s.hitT){if(u.hp<s.hp){s.lag0=Math.max(s.lag,s.hp);s.lagT=t}s.hp=u.hp;s.arm=u.arm;s.helm=u.helm||0;if(s.rev!==SHV.rev||t-s.revT>700)anStRefresh(u,s,t)}else{if(u.hp>s.hp)s.hp=u.hp;if(u.arm>s.arm)s.arm=u.arm;if(u.helm>s.helm)s.helm=u.helm}
  {const k=(t-s.lagT-300)/260;s.lag=k<=0?s.lag0:k>=1?s.hp:s.lag0+(s.hp-s.lag0)*k;if(s.lag<s.hp)s.lag=s.lag0=s.hp}
@@ -91,6 +98,7 @@ function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
    else if(k===AN_KB){n=anN('hit');state='hit';frame=n-1}
    else if(k===AN_DASH){state='attack';frame=0}
    else{n=anN('walk');state='walk';frame=(((t-s.wt0)*anFps('walk')/1000/Math.max(sp,.5))|0)%n;if(frame<0)frame=0}}
+  else if(t-s.swT<s.swD){const a=(t-s.swT)/s.swD;state='swap';frame=a<.34?0:a<.67?1:2;if(anN('swap')<3)state='idle',frame=0}
   else if(s.act&&t-s.at0<s.adur){const a=(t-s.at0)/s.adur;
    if(s.act===1){n=anN('attack');state='attack';frame=Math.min(n-1,(a*n)|0);if(s.lc||s.lr){const L=anLunge(a);gx+=s.lc*L;gy+=s.lr*L}}
    else{n=anN('cast');state='cast';frame=Math.min(n-1,((t-s.at0)*anFps('cast')/1000/Math.max(sp,.45))|0)}}
@@ -123,6 +131,7 @@ const AN_TINT={chill:'F',webbed:'l',web:'l',poison:'A',hex:'C',enrage:'g',ward:'
 function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic;let n=0,tint=null,tp=9;const m=typeof shMor==='function'?shMor(u):-1;
  s.run=m===0||!!(u.st&&u.st.panic);s.gath=!!(u.st&&u.st.nova);
  if(m>=0&&m!==3){const c=anSprite('morale-'+m);if(c)ic[n++]=c}
+ let lk=false;try{lk=typeof shLocked==='function'&&shLocked(u)}catch(e){}if(lk){const c=anSprite('ranged-lock');if(c)ic[n++]=c}
  let L=null;try{L=shStatuses(u)}catch(e){}
  if(L){for(let pass=0;pass<4&&n<4;pass++)for(let i=0;i<L.length&&n<4;i++){const k=L[i].key,S=shStatus(k),pr=AN_PRI[k]!=null?AN_PRI[k]:S&&S.good?5:4,band=pr<=1?0:pr<=3?1:pr===4?2:3;if(band!==pass)continue;
     const c=anSprite('st-'+k);if(!c)continue;let dup=false;for(let j=0;j<n;j++)if(ic[j]===c)dup=true;if(!dup)ic[n++]=c}

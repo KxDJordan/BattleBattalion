@@ -65,7 +65,7 @@ function makeContext(){const els=new Map(),store=new Map();
  X.FX.on=null;X.SPEEDF=0;return X}
 
 /* ---------- the check, wrapped around the real strike() ---------- */
-const S={n:0,hits:0,expHits:0,varHits:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
+const S={tal:0,swap:0,wmod:0,weak:0,undy:0,undySaved:0,marked:0,slung:0,n:0,hits:0,expHits:0,varHits:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
  head:0,body:0,headAtMax:0,cover:0,ffRisk:0,stray:0,riposte:0,free:0,pierce:0,split:0,splitBroke:0,bleed:0,shake:0,inj:0,morAtt:0,morDef:0,byAb:{},byWt:{}};
 const snap=(X,u,t)=>JSON.stringify([u,t,X.B.tiles]);
 let DIRECTED=false;const nested=[];                 // strikes started from inside another strike (strays, ripostes): {u,t,o}
@@ -89,7 +89,7 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
     if(f.cover>0&&!sure)S.cover++;
     if(f.ff.length){S.ffRisk++;ok(f.ff.every(x=>x.t&&x.t.side===u.side&&x.t!==u&&x.ch>0&&L.ff.includes(x.t))&&f.ff.length===L.ff.length,'forecast friendly-fire list differs from losInfo: '+tag)} }
   const hp0=t.hp,arm0=t.arm,helm0=t.helm,shp0=t.shp,shield0=t.shield,st0=Object.assign({},t.st),inj0=t.m?t.m.inj.length:0,heavyAt=Math.max(8,Math.ceil(t.hpMax*X.HEAVYHIT)),hd=X.B.tiles[u.r*X.BW+u.c].h-X.B.tiles[t.r*X.BW+t.c].h,d0=dist(u,t);let ev=null,died=false,injured=false;
-  const on0=X.FX.on;X.FX.on=(type,d)=>{if(type==='hit'&&d.u===u&&d.t===t&&!ev){ev={dmg:d.dmg,armor:d.armor,head:!!d.head};died=t.hp<=0}if(type==='injury'&&d.t===t)injured=true;if(on0)on0(type,d)};
+  const on0=X.FX.on;X.FX.on=(type,d)=>{if(type==='hit'&&d.u===u&&d.t===t&&!ev){ev={dmg:d.dmg,armor:d.armor,head:!!d.head,hpAt:t.hp};died=t.hp<=0}if(type==='injury'&&d.t===t)injured=true;if(on0)on0(type,d)};
   let hit;try{hit=await strike0(u,t,a,o)}finally{X.FX.on=on0}
   const kids=nested.slice(mark).filter(x=>x.u===u||x.t===u);
   S.n++;S.expHits+=f.hit/100;S.varHits+=f.hit/100*(1-f.hit/100);const id=a.id||a.n;S.byAb[id]=(S.byAb[id]||0)+1;S.byWt[u.wpn.wt]=(S.byWt[u.wpn.wt]||0)+1;
@@ -118,7 +118,8 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
    if(died)ok(L.kill,'the hit killed but the forecast for that location said it could not: '+tag);else ok(!L.sure,'the forecast promised a kill on that location: '+tag)}
   if(hp===f.hpMin&&arm===f.armMin)S.atMin++;if(hp===f.hpMax&&arm===f.armMax)S.atMax++;
   if(died){S.kills++;ok(f.kill,'the hit killed but the forecast said it could not: '+tag)}else ok(!f.sure,'the forecast promised a kill that did not happen: '+tag);
-  if(f.kill)S.lethal++;ok(f.kill===(f.hpMax>=hp0)&&f.sure===(f.hpMin>=hp0),'kill flags disagree with the range: '+tag);
+  if(f.undying&&ev&&hp>=hp0){S.undySaved++;ok(ev.hpAt===1&&!f.kill,'Undying did not hold: '+tag)}
+  if(f.kill)S.lethal++;ok(f.kill===(!f.undying&&f.hpMax>=hp0)&&f.sure===(!f.undying&&f.hpMin>=hp0),'kill flags disagree with the range: '+tag);
   if(!died&&ev&&t.alive){const heavy=hp>=heavyAt;                      // (a knockback that then kills is not this hit's doing)
    if(heavy&&!t.fearless){S.shake++;ok(f.shake,'a heavy hit shook the target but the forecast did not warn: '+tag)}
    if(injured){S.inj++;ok(f.injure&&heavy&&t.m&&t.m.inj.length===inj0+1,'an injury the forecast did not warn of: '+tag)}}
@@ -134,7 +135,7 @@ const TIERS=[{lvl:1,size:4,day:2,w:[],a:[]},{lvl:5,size:6,day:12,w:['arming','wa
  {lvl:10,size:9,day:30,w:['runeblade','greataxe','warspear','mace','rondel'],a:['mail','scale','robe']},{lvl:14,size:12,day:50,w:['riftedge','waraxe','pike','mace','greataxe'],a:['plate','scale','mail']}];
 function company(X,tier,seed){X.seedRng(seed);X.newGame(true);X.closeSheet(true);const G=X.G;G.roster.length=0;
  for(let i=0;i<tier.size;i++){const m=X.newMerc(BGS[(i+seed)%BGS.length]);m.field=true;X.gainXP(m,X.XPT[tier.lvl]);m.pend=0;m.pp=0;
-  for(const k in m.mast)m.mast[k]=Math.min(X.MAST[k].p.length,1+Math.floor(tier.lvl/3));
+  m.pp=tier.lvl;X.autoLearn(m);
   const wt=m.eq.w?X.ITEMS[m.eq.w].wt:'fist';
   if(wt==='bow'){if(tier.lvl>4)m.eq.w='warbow'}else if(wt==='staff'){if(tier.lvl>4)m.eq.w='focus'}else if(tier.w.length){m.eq.w=tier.w[(i+seed)%tier.w.length];if(X.ITEMS[m.eq.w].two)m.eq.s=null}
   if(tier.a.length)m.eq.a=tier.a[(i+seed)%tier.a.length];m.hp=X.calc(m).hp;G.roster.push(m)}
@@ -150,6 +151,9 @@ async function scripted(X,opts){let done=null;const b=X.startBattle(Object.assig
  ok(!done.stuck,'scripted battle did not end');X.settleBattle(done.win)}
 
 /* ---------- directed sweep: every weapon x ability x armor and helmet state x height x buff x morale x cover, struck for real ---------- */
+// talent flags and mods the sweep puts on attackers (TALU) and targets (TALT); every one changes a number the forecast must match
+const TALU=[['vsHurt',.15],['vsFull',.2],['dmgMelee',.1],['dmgRanged',.15],['twoDmg',.1],['lowHpDmg',.2],['duelHit',6],['duelDmg',.15],['flankDmg',.15],['flank',10],['spellB',.1],['ignB',.15],['headB',10],['bleedOn',2],['splitB',.5],['coverIgn',1],['longShot',1]],
+ TALT=[['adjDef',6],['loneDef',10],['drB',.1],['drRanged',.15],['drMelee',.1],['lastStand',.15],['undying',1]],mates0=new Set();
 async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X.seedRng(SEED+900);
  const b=X.startBattle({f:'orc',mult:1,biome:'hills',src:{type:'sim'},quiet:true,turnCap:1e9});ok(b,'sweep battle did not start');b.busy=true;DIRECTED=true;
  const R=(a,c)=>X.ri(a,c),P=a=>a[X.ri(0,a.length-1)],BW=X.BW,BH=X.BH,key=(c,r)=>r*BW+c;
@@ -166,19 +170,26 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
   if(fromFoe){const d=X.EN[P(foes)];u.def=d;u.wpn={n:'',wt:d.rng?'bow':'sword',d:d.d,ap:4,fat:0,rng:d.rng||1,ign:.25};u.kbN=d.kb||0;u.kbCh=d.kbCh||0;u.onhit=d.onhit;u.ms=d.ms;u.rs=d.rs||0;
    a=d.spell&&R(0,1)?{id:'spell',n:d.spell.n,magic:d.spell.d,ign:.5,status:d.spell.status}:R(0,5)?X.abilityInfo(u,'attack'):X.FREEAB}
   else{u.wpn=P(weapons);u.flags={};if(R(0,2)===0)u.flags.exec=1;if(R(0,3)===0)u.flags.berserk=1;u.dmgB=P([0,0,.1,.2]);u.lvl=R(1,15);
+   if(R(0,1)===0){S.tal++;for(const [k,v] of TALU)if(R(0,3)===0)u.flags[k]=v}                     // talent flags and mods on the attacker
+   if(R(0,4)===0&&u.m&&u.m.eq.b&&X.swapWeapons(u)){S.swap++;if(R(0,1))u.wpn=Object.assign({},u.wpn,{d:u.wpn.d.slice()})}      // the weapon in hand after a real swap
+   if(R(0,5)===0){u.wpn=Object.assign({},u.wpn,{d:[u.wpn.d[0]+R(0,6),u.wpn.d[1]+R(6,9)],stun:P([0,.1,.25]),ign:(u.wpn.ign||.2)+P([0,.1,.2]),hit:(u.wpn.hit||0)+P([0,5])});S.wmod++}   // weapon-tree changes
+   if(R(0,6)===0){u.st.weak=1;S.weak++}
    a=X.abilityInfo(u,P(abIds));if(R(0,3)===0)u.buffs.push({dmg:.2,ms:12,rs:12,dur:2})}
   if(a.aoe&&R(0,2)===0)o={splash:.7};else if(a.chain&&R(0,1)===0)o={splash:.6,auto:1};else if(a===X.FREEAB)o={free:'zoc'};
   t.flags=t.side===0?Object.assign({},t.flags):{};if(R(0,2)===0)t.flags.forged=1;else delete t.flags.forged;
+  if(R(0,1)===0)for(const [k,v] of TALT)if(R(0,3)===0)t.flags[k]=v;t.undy=R(0,1);if(t.flags.undying&&!t.undy)S.undy++;if(R(0,5)===0){t.st.marked=1;S.marked++}
+  for(const x of b.units)if(x!==u&&x!==t){x.flags=R(0,3)===0?{cmd:5}:R(0,3)===0?{guard:8}:{}}
   const bt=R(0,5);if(bt===0)t.buffs.push({dr:.5,indom:1,dur:2});else if(bt===1)t.buffs.push({md:15,rd:15,dr:.25,dur:2});else if(bt===2){t.buffs.push({dr:.5,indom:1,dur:2});t.buffs.push({md:15,rd:15,dr:.25,dur:2})}
   t.armMax=P([0,15,60,150,300]);const am=R(0,4);t.arm=am===0?0:am===1?Math.min(t.armMax,R(1,12)):am===2?Math.round(t.armMax*R(10,90)/100):t.armMax;
   t.helmMax=P([0,20,70,140,240]);const hm=R(0,4);t.helm=hm===0?0:hm===1?Math.min(t.helmMax,R(1,12)):hm===2?Math.round(t.helmMax*R(10,90)/100):t.helmMax;
   t.hp=R(0,3)===0?R(1,12):R(0,2)===0?Math.max(1,Math.round(t.hpMax*R(15,49)/100)):t.hpMax;if(R(0,5)===0)t.st.stun=1;
   if(R(0,2)===0)u.mor=R(1,4);if(R(0,2)===0)t.mor=R(0,4);if(R(0,7)===0)t.fearless=true;if(R(0,6)===0)u.st.daze=1;if(R(0,9)===0)t.st.webbed=1;
-  if(a.split||R(0,3)===0){t.shield=true;t.shpMax=P([32,64,80]);t.shp=R(0,2)?t.shpMax:R(1,t.shpMax);t.shb={md:0,rd:0}}
+  if(a.split||R(0,3)===0){t.shield=true;t.shpMax=P([32,64,80]);t.shp=R(0,2)?t.shpMax:R(1,t.shpMax);t.shb={md:0,rd:0};if(R(0,4)===0){t.shield=false;t.slung=true;S.slung++}else t.slung=false}else t.slung=false
   const d=Math.min(BW-2,Math.max(1,Math.min(a.rng||1,R(1,7))));u.c=R(0,BW-1-d);u.r=R(1,BH-2);t.c=u.c+d;t.r=u.r;
   const hs=R(0,2);b.tiles[key(u.c,u.r)].h=hs===0?2:hs===1?1:0;b.tiles[key(t.c,t.r)].h=hs===0?0:hs===1?1:2;
   if(d===1&&!a.magic&&R(0,2)===0)t.buffs.push({key:'riposte',rip:1,dur:1});
   if(d>1){const mates=b.units.filter(x=>x!==u&&x!==t);let n=0;for(let c=u.c+1;c<t.c&&n<3;c++)if(R(0,2)===0){const x=mates.splice(R(0,mates.length-1),1)[0];x.c=c;x.r=u.r;n++}}   // bodies in the line of fire: cover, and allies to hit by mistake
+  X.auraScan();
   await X.strike(u,t,a,o)}
  b.over=true;DIRECTED=false}
 
@@ -206,4 +217,6 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  const abs=['attack'].concat(Object.keys(X.AB).filter(id=>X.AB[id].tgt==='enemy'||X.AB[id].tgt==='aoe'));for(const id of abs)ok(S.byAb[id]>0,'ability never struck: '+id);
  ok(X.FREEAB&&X.MORFX&&X.STATUS&&X.HEAVYHIT>0,'rules constants are missing');
  for(const wt of ['sword','axe','mace','dagger','spear','bow','staff','fist'])ok(S.byWt[wt]>0,'weapon type never struck: '+wt);
+ console.log(`talents and arms: ${S.tal} attackers with talent mods, ${S.swap} after a real swap, ${S.wmod} with weapon-tree changes, ${S.weak} weakened; ${S.undy} targets with Undying (${S.undySaved} saved by it), ${S.marked} marked, ${S.slung} slung shields`);
+ ok(S.tal>1500&&S.swap>30&&S.wmod>300&&S.weak>300&&S.undy>100&&S.undySaved>5&&S.marked>300&&S.slung>50,'a talents and arms case was not covered: '+JSON.stringify({tal:S.tal,swap:S.swap,wmod:S.wmod,weak:S.weak,undy:S.undy,undySaved:S.undySaved,marked:S.marked,slung:S.slung}));
  finished=true;console.log(`\nOK forecast matches strike() (${((Date.now()-T0)/1000).toFixed(1)}s)`)})();

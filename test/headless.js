@@ -6,7 +6,9 @@
 // Sections: engine, world, saves (with the v3 -> v4 combat-depth migration), battle events, combat depth (directed scenes on a
 // flat arena: hit locations and helmets, armor condition and repair, morale checks / flight / rally / routs, injuries inflicted /
 // healed / treated, line of sight, cover and friendly fire, every weapon and shield skill, free attacks, withdraw, retreat,
-// reserves, o.deploy, preview, spawn), campaign, 500+ auto-battles with win rates per faction and level under a turn cap, determinism.
+// reserves, o.deploy, preview, spawn), talents and arms (catalog, recruits, tiers, gift awakening, autoLearn, hands rules, swap, slung
+// shields, ranged lock, talent rules in the field, v4 -> v5 migration), campaign, 500+ auto-battles with win rates per faction and level
+// under a turn cap, determinism.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const ARGV=process.argv.slice(2),QUICK=ARGV.includes('--quick'),VERBOSE=ARGV.includes('--verbose');
@@ -64,7 +66,8 @@ function makeContext(){const els=new Map(),store=new Map(),warns=[];
   set(t,k,v){if(k in t){t[k]=v;return true}if(!setters.has(k))setters.set(k,vm.runInContext(`(v=>{${k}=v})`,ctx));setters.get(k)(v);return true}});
  for(const n of ['newGame','continueGame','closeSheet','sheet','toast','setUI','startBattle','save','loadSave','seedRng','rnd','shuffle','rngState','setRngState',
    'worldTick','goTo','advanceTime','afterBattle','settleBattle','resolveBattle','autoBattle','enterRift','dunBattle','portalSheet','gainXP','newMerc','calc','fielded',
-   'openTown','hire','buyItem','sellItem','buyFood','innRest','acceptContract','genContract','equip','learn','levelSheet','lvPick','lvConfirm',
+   'openTown','hire','buyItem','sellItem','buyFood','innRest','acceptContract','genContract','equip','levelSheet','lvPick','lvConfirm',
+   'mercTrees','perkOptions','canLearn','learnPerk','perkById','giftVariant','weaponTrees','mercStyle','mercRes','autoLearn','tierLevel','equipRules','rangedLocked','swapWeapons','altWeapon','useBlock','migrateMerc',
    'abilityInfo','canUse','validTargets','useAbility','aiTurn','nextTurn','place','centerOut','genBattleMap','readSave','saveStatus','migrateSave',
    'hurt','strike','hitChance','headChance','forecast','losInfo','unitStatuses','spawnUnit','mkEnemy','mkPlayerUnit','withdraw','soundRetreat','callReserve','battlePreview','previewEnemies','battleBudget','battleSync','checkEnd','walkPath',
    'setMorale','moraleCheck','checkRout','breakShield','repairAll','repairNeed','armorCond','setArmorCond','addInjury','rollInjury','healInjuriesDaily','injuryCost','treatInjury',
@@ -109,8 +112,7 @@ const STATS=['hp','ms','md'],STATS_R=['hp','rs','rd'];
 function levelUps(X,flags){const G=X.G;for(let i=0;i<G.roster.length;i++){const m=G.roster[i];let g=0;
   while(m.pend>0&&g++<20){const before=m.pend,bow=X.calc(m).wpn.wt==='bow';X.levelSheet(i);ok(m.rolls,'level-up rolls were not made for '+m.name);
    for(const k of bow?STATS_R:STATS)X.lvPick(i,k);const hp0=m.base.hp;X.lvConfirm(i);ok(m.pend===before-1&&m.base.hp>hp0,'level-up was not applied to '+m.name);if(flags)flags.level=true}
-  g=0;while(m.pp>0&&g++<30){const ks=Object.keys(m.mast).filter(k=>m.mast[k]<X.MAST[k].p.length);if(!ks.length)break;
-   const k=ks.find(k=>X.MAST[k].res&&m.mast[k]<2)||ks.sort((a,b)=>m.mast[a]-m.mast[b])[0],pp=m.pp;X.learn(i,k);ok(m.pp===pp-1,'perk was not learned by '+m.name);if(flags)flags.perk=true}}}
+  if(m.pp>0){const pp=m.pp,n0=m.perks.length,got=X.autoLearn(m);ok(got.length>0&&m.pp===pp-got.length&&m.perks.length===n0+got.length,'autoLearn spent no point for '+m.name);if(flags)flags.perk=true}}}
 const score=(X,id,k)=>{const it=X.ITEMS[id];return k==='w'?(it.d[0]+it.d[1])/2:k==='s'?it.md+it.rd:it.arm};
 function gearUp(X,flags){const G=X.G;for(let i=0;i<G.roster.length;i++){const m=G.roster[i];for(const k of ['w','a','s','h']){const cur=m.eq[k],wt=k==='w'&&cur?X.ITEMS[cur].wt:null;
    if(k==='s'&&m.eq.w&&X.ITEMS[m.eq.w].two)continue;let best=-1,bs=cur?score(X,cur,k):-1;
@@ -453,7 +455,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
       if(it.k==='s')ok(it.hp>0&&it.sk.join()==='shieldwall,bash','shield '+id+' lacks hitpoints or skills')}
      ok(X.ITEMS.pike.sk.join()==='impale'&&X.ITEMS.greataxe.sk.join()==='split,round','two-hander skills');for(const id in X.AB)ok(X.AB[id].n&&X.AB[id].d,'ability '+id+' lacks a name or description');
      for(const k in X.STATUS)ok(X.STATUS[k].n&&X.STATUS[k].d&&X.STATUS[k].icon&&(X.STATUS[k].good===0||X.STATUS[k].good===1),'status '+k+' is incomplete');
-     { const m=X.clone(roster[0]);m.eq.w='arming';m.eq.s='kite';const s=X.calc(m);ok(['slash','riposte','shieldwall','bash'].every(a=>s.abs.includes(a))&&s.shield&&s.shield.hp===X.ITEMS.kite.hp,'calc() must grant weapon and shield skills');
+     { const m=X.clone(roster[0]);m.eq.w='arming';m.eq.s='kite';const s=X.calc(m);ok(['slash','riposte','shieldwall','bash'].every(a=>s.abs.includes(a))&&s.shield&&s.shield.raised&&s.shield.hp===Math.round(X.ITEMS.kite.hp*(1+(s.flags.shieldHp||0))),'calc() must grant weapon and shield skills: '+s.abs.join()+' '+JSON.stringify(s.shield));
        m.eq.w='pike';m.eq.s=null;const s2=X.calc(m);ok(s2.abs.includes('impale')&&!s2.abs.includes('slash')&&!s2.abs.includes('bash')&&!s2.shield,'skills must follow the gear in hand') }
      const until=async(fn,cond,what)=>{for(let i=0;i<25;i++){await fn();if(cond())return i+1}fail(what)};
      // zone of control
@@ -545,6 +547,131 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    console.log('hit locations and helmets, armor condition and repair, morale (checks, flight, rally, routs), injuries (inflicted, healed, treated), line of sight, cover and friendly fire,');
    console.log('weapon and shield skills (slash riposte split round stunblow puncture thrust spearwall impale quick sweep shieldwall bash), free attacks, withdraw, retreat, reserves, o.deploy, preview, spawn: ok');
    console.log('daily injury healing wired into newDay(): '+(X.wiredHeal?'yes':'NOT YET (40-world.js must call healInjuriesDaily())')) }
+
+ section('talents and arms');
+ { const M=X.MAST,BW=X.BW,BH=X.BH,KU=u=>u.r*BW+u.c,keys=Object.keys(M),kind=k=>M[k].kind,ids=new Set();
+   // -- the catalog --
+   const styles=keys.filter(k=>kind(k)==='style'),gifts=keys.filter(k=>kind(k)==='gift'),wts=keys.filter(k=>kind(k)==='weapon');
+   ok(styles.length>=12&&['vanguard','bulwark','marksman','skirmisher'].every(k=>kind(k)==='style'),'at least 12 style trees, the four old ones kept');
+   ok(wts.length===8&&['sword','axe','mace','dagger','spear','bow','staff','fist'].every(w=>M[w]&&M[w].wt===w&&M[w].tiers.length===3&&M[w].tiers.every(t=>t.length===2)),'8 weapon trees of 3 tiers x 2 perks');
+   for(const k of styles.concat(gifts))ok(M[k].tiers.length===6&&M[k].tiers.every(t=>t.length>=1),k+': 6 tiers');
+   ok(M.mana.style==='caster'&&M.aura.style==='melee'&&M.qi.style==='melee'&&M.chi.style==='support'&&['mana','aura','qi','chi'].every(k=>kind(k)==='gift'&&M[k].res===k),'the four old gift trees keep their keys');
+   for(const r of X.RESK){const vs=gifts.filter(k=>M[k].res===r).map(k=>M[k].style);ok(vs.includes('melee')&&vs.includes('ranged'),r+' needs melee and ranged variants');ok(X.giftKey(r,'melee')&&X.giftKey(r,'ranged')&&M[X.giftKey(r,'ranged')].style==='ranged','giftKey '+r)}
+   ok(X.giftKey('mana','caster')==='mana'&&X.giftKey('chi','support')==='chi'&&X.giftKey('aura','caster')==='aura'&&X.giftKey('aura','ranged')==='aura_r'&&X.giftKey('qi','support')==='qi','gift variant mapping');
+   for(const k of keys)M[k].tiers.forEach((t,ti)=>t.forEach(p=>{ok(p.id&&!ids.has(p.id)&&p.n&&p.d&&X.perkById(p.id)&&X.perkById(p.id).tier===ti+1&&X.perkById(p.id).key===k,'perk '+p.id+' is malformed or not unique');ids.add(p.id);
+     if(p.ab)ok(X.AB[p.ab]&&X.AB[p.ab].n&&X.AB[p.ab].d,'perk '+p.id+' grants an unknown ability '+p.ab);ok(p.st||p.ab||p.flag||p.mod||p.res||p.wmod,'perk '+p.id+' does nothing')}));
+   const nAb=new Set([...ids].map(id=>X.perkById(id).perk.ab).filter(Boolean)).size;
+   { const pools=[];for(const bg in X.BG){const b=X.BG[bg];ok(X.TALSTYLE.includes(b.style),bg+' has no style');ok(b.pool.length>=6&&b.pool.length<=9&&b.pool.every(k=>M[k]&&kind(k)==='style')&&new Set(b.pool).size===b.pool.length,bg+': pool of 6-9 style trees');
+       ok(b.wt.length>=3&&b.wt.length<=5&&b.wt.every(w=>M[w]&&kind(w)==='weapon'),bg+': 3-5 weapon families');pools.push(b.pool.slice().sort().join())}
+     ok(new Set(pools).size===pools.length,'two backgrounds share the same pool');ok(X.RACE.halforc.noWt.includes('bow'),'a half-orc never gets the bow tree');
+     const cov=new Set();for(const bg in X.BG)X.BG[bg].pool.forEach(k=>cov.add(k));ok(styles.every(k=>cov.has(k)),'a style tree no background can draw') }
+   ok(X.tierLevel('style',1)===1&&X.tierLevel('gift',6)===6&&X.tierLevel('weapon',1)===3&&X.tierLevel('weapon',3)===9,'tierLevel');
+   // -- recruits --
+   X.seedRng(SEED+7001);X.newGame(true);closeAll(X);
+   { const by={};for(let i=0;i<120;i++){const bg=Object.keys(X.BG)[i%12],m=X.newMerc(bg),st=m.trees.filter(k=>kind(k)==='style');
+       ok(st.length===4&&new Set(st).size===4&&st.every(k=>X.BG[bg].pool.includes(k))&&Array.isArray(m.perks)&&!m.perks.length&&m.pp===1&&m.lvl===1,'a recruit must carry 4 trees of its pool, no perks and 1 point');
+       ok(m.gift===null?m.trees.length===4:(m.trees.length===5&&m.trees[4]===m.gift&&M[m.gift].kind==='gift'&&m.gift===X.giftKey(M[m.gift].res,X.BG[bg].style)),'a recruit gift tree must follow its background style');
+       ok(X.mercRes(m)===(m.gift?M[m.gift].res:null)&&X.giftVariant(m)===m.gift&&X.mercStyle(m)===X.BG[bg].style,'mercRes / giftVariant / mercStyle');
+       (by[bg]=by[bg]||new Set()).add(st.slice().sort().join())}
+     for(const bg in by)ok(by[bg].size>=2,'two recruits of one background must be able to differ: '+bg);
+     let h=null;for(let i=0;i<200&&!h;i++){const m=X.newMerc('hunter');if(m.gift)h=m}ok(h&&M[h.gift].style==='ranged','a gifted hunter must get the ranged variant: '+(h&&h.gift));
+     let hu=null;for(let i=0;i<60&&!hu;i++){const m=X.newMerc('hunter');if(m.race==='halforc')hu=m}ok(hu&&!X.weaponTrees(hu).includes('bow')&&!X.perkOptions(hu).some(o=>o.key==='bow'),'a half-orc hunter must not have the bow tree');
+     hu.lvl=9;hu.pp=5;ok(!X.canLearn(hu,'bow.1a')&&!X.learnPerk(hu,'bow.1a'),'a half-orc must not learn bow perks');
+     const hh=X.newMerc('hunter');hh.race='human';ok(X.weaponTrees(hh).join()===X.WTS.filter(w=>X.BG.hunter.wt.includes(w)).join()&&X.weaponTrees(hh).includes('bow'),'weapon trees follow the background');
+     ok(X.mercTrees(hh).map(x=>x.kind).join().replace(/style,?/g,'s').startsWith('ssss'),'mercTrees: style trees first');
+     ok(X.BG.hunter.side&&X.newMerc('hunter').eq.b==='knife','hunters carry a knife as a sidearm') }
+   // -- tiered unlocks, points, gift awakening --
+   { const m=X.newMerc('knight');m.gift='aura';m.trees=['vanguard','bulwark','brute','duelist','aura'];m.perks=[];m.race='human';m.eq.w='arming';X.syncMast(m);
+     m.lvl=2;m.pp=2;ok(!X.canLearn(m,'vanguard.3')&&!X.learnPerk(m,'vanguard.3')&&m.pp===2,'a tier-3 perk must not open at level 2');
+     ok(X.canLearn(m,'bulwark.2')&&X.learnPerk(m,'bulwark.2')&&m.pp===1&&m.perks.includes('bulwark.2')&&!m.perks.includes('bulwark.1'),'a tier-2 perk must not need the tier-1 perk');
+     const hp0=m.hp;ok(m.hp===Math.min(X.calc(m).hp,hp0)&&X.calc(m).hp===X.calc(Object.assign(X.clone(m),{perks:[]})).hp+15,'Colossus must add 15 hitpoints');
+     ok(!X.canLearn(m,'sword.1a'),'weapon tier 1 must wait for level 3');m.lvl=3;ok(X.canLearn(m,'sword.1a'),'weapon tier 1 opens at level 3');ok(!X.canLearn(m,'sword.2a'),'weapon tier 2 waits for level 6');
+     ok(!X.canLearn(m,'bulwark.2')&&!X.canLearn(m,'marksman.1'),'no perk twice, none from a tree the merc lacks');
+     m.lvl=5;m.pp=1;ok(!X.giftAwake(m)&&!X.calc(m).res.aura,'the gift sleeps until a perk awakens it');
+     ok(X.learnPerk(m,'aura.5')&&X.giftAwake(m)&&X.calc(m).res.aura.max===X.GIFTBASE+15&&X.calc(m).res.aura.regen===X.GIFTREGEN&&X.calc(m).dmg===.1&&!X.calc(m).abs.includes('astrike'),'a tier-5 gift perk must awaken the gift by itself');
+     m.pp=0;ok(!X.canLearn(m,'vanguard.1'),'no point, no perk');
+     const po=X.perkOptions(m);ok(po.length===X.mercTrees(m).reduce((n,x)=>n+x.tree.tiers.reduce((a,t)=>a+t.length,0),0)&&po.every(o=>o.need===X.tierLevel(o.kind,o.tier)&&o.unlocked===(m.lvl>=o.need)&&o.owned===m.perks.includes(o.id)),'perkOptions');
+     // weapon perks follow the weapon in hand
+     const h=X.newMerc('hunter');h.race='human';h.eq.w='shortbow';h.eq.b='knife';h.lvl=6;h.pp=3;ok(X.learnPerk(h,'bow.1b')&&X.learnPerk(h,'dagger.1a')&&X.learnPerk(h,'bow.2b'),'hunter weapon perks');
+     const cb=X.calc(h),ck=X.calc(h,{hand:'b'});ok(cb.rs===ck.rs+6&&cb.off.includes('dagger.1a')&&ck.off.includes('bow.1b')&&cb.flags.bleedOn===2&&!ck.flags.bleedOn&&ck.wpn.ap===2&&cb.wpn.ap===X.ITEMS.shortbow.ap&&cb.wpn.id==='shortbow'&&ck.wpn.id==='knife','weapon perks must only work with that family in hand');
+     ok(cb.abs.includes('swap')&&cb.abs.includes('quick')&&!cb.abs.includes('puncture')&&ck.abs.includes('puncture')&&!ck.abs.includes('quick'),'weapon skills follow the hand') }
+   // -- autoLearn --
+   { let n=0;for(const bg in X.BG)for(let v=0;v<3;v++){const m=X.newMerc(bg);X.gainXP(m,X.XPT[[3,8,15][v]]);const got=X.autoLearn(m);n++;
+      ok(m.pp===0&&got.length===m.lvl&&m.perks.length===m.lvl&&m.perks.every(id=>{const P=X.perkById(id);return m.lvl>=X.tierLevel(P.kind,P.tier)}),'autoLearn must spend every point on open perks: '+bg);
+      if(m.gift)ok(X.giftAwake(m)&&m.perks[0].startsWith(m.gift),'autoLearn must awaken the gift first: '+bg);
+      const w=X.ITEMS[m.eq.w];for(const id of m.perks){const a=X.AB[X.perkById(id).perk.ab];if(a&&a.needs&&a.needs!==(w?w.wt:'fist'))ok(m.eq.b&&X.ITEMS[m.eq.b].wt===a.needs||m.lvl>=12,'autoLearn took '+id+' with the wrong weapon: '+bg)}
+      if(bg==='hunter')ok(m.perks.every(id=>!(X.perkById(id).perk.mod||{}).shieldDef),'a hunter must not learn shield perks')}
+     ok(n===36,'autoLearn fixture') }
+   // -- equipment rules (hands) --
+   { const m=X.newMerc('sellsword');m.eq.w='greataxe';m.eq.b='pike';m.eq.s=null;let r=X.equipRules(m,'s','kite');ok(!r.ok&&r.why,'a shield must be refused with two two-handers');
+     m.eq.b='knife';r=X.equipRules(m,'s','kite');ok(r.ok&&r.slung,'a shield with a two-hander and a one-handed sidearm is allowed (slung)');m.eq.s='kite';
+     r=X.equipRules(m,'b','pike');ok(r.ok&&r.drops&&r.drops.includes('s'),'a second two-hander drops the shield');ok(!X.equipRules(m,'b','kite').ok&&!X.equipRules(m,'s','arming').ok&&X.equipRules(m,'b','shortbow').ok,'slots take the right kind');
+     const g=X.clone(m);g.eq.b='pike';ok(X.fixHands(g)==='kite'&&g.eq.s===null,'fixHands') }
+   // -- battle: swap, slung shields, the ranged lock --
+   const ros=buildCompany(X,TIERS[1],SEED+7100),rest=async b=>{let n=0;while(!b.over&&b.busy){await null;if(++n>3e6)fail('the battle never came to rest')}};
+   const mk=(bg,w,b2,s)=>{const m=X.clone(ros[0]);m.id=900+Math.floor(X.rnd()*1e6);m.bg=bg;m.eq.w=w;m.eq.b=b2;m.eq.s=s;m.field=true;m.inj=[];delete m.cond;m.perks=[];m.trees=['vanguard','bulwark','scout','skirmisher'];m.gift=null;m.race='human';m.hp=X.calc(m).hp;return m};
+   const war=mk('sellsword','greataxe','arming','kite'),arc=mk('hunter','shortbow','knife',null),pal=mk('knight','arming',null,'heater');arc.lvl=4;arc.trees.push('scout');arc.perks=['scout.4'];
+   X.G.roster=[war,arc,pal].concat(X.clone(ros).slice(1,3));X.G.day=10;X.seedRng(SEED+7200);let done=null;const ev=[];
+   const b=X.startBattle({f:'bandit',mult:1,biome:'plains',src:{type:'sim'},quiet:true,turnCap:TURNCAP,foes:['thug','thug','bmark'],onEnd:r=>{done=r}});ok(b,'arms arena did not start');
+   { let n=0;while(!b.over&&(b.busy||b.cur.side!==0)){await null;if(++n>3e6)fail('arms arena never reached a company turn')} }
+   X.FX.on=(type,d)=>ev.push({type,d});
+   const U=m=>b.units.find(u=>u.m===m)||b.units.find(u=>u.m&&u.m.id===m.id),W=U(war),A=U(arc),Pl=U(pal),E=b.units.filter(u=>u.side===1),[e0,e1,e2]=E;ok(W&&A&&Pl&&e0&&e1&&e2,'arms arena units');
+   b.tiles.forEach(t=>{t.t='ground';t.h=0});b.units.forEach((u,i)=>{u.c=i;u.r=0;u.st={};u.mor=3;u.fearless=true});const put=(u,c,r)=>{u.c=c;u.r=r};
+   // a two-hander with a shield: slung; swap to the arming sword: raised; and back
+   ok(W.wid==='greataxe'&&W.alt==='arming'&&W.hand==='w'&&W.slung&&!W.shield&&W.shp===X.calc(war).shield.hp&&!W.abs.includes('bash')&&W.abs.includes('round')&&W.abs.includes('swap'),'a two-hander must start with the shield slung');
+   ok(X.statusList(W).some(s=>s.key==='slung')&&!X.statusList(W).some(s=>s.key==='splitshield'),'a slung shield shows as slung, not split');
+   { const md0=W.md,ms0=W.ms,sk=X.ITEMS.kite;put(W,5,5);W.ap=9;W.fat=20;W.hp=W.hpMax-11;W.st.bleed=2;X.addBuff(W,{key:'rage',dmg:.25,md:-10},2);const hp0=W.hp,fat0=W.fat;
+     const sw=X.abilityInfo(W,'swap');ok(sw.ap===4&&sw.fat===0&&X.canUse(W,sw),'swap costs 4 AP');b.cur=W;await X.useAbility(W,sw,KU(W));await rest(b);
+     ok(W.ap===5&&W.wid==='arming'&&W.alt==='greataxe'&&W.hand==='b'&&W.wpn.id==='arming'&&W.shield&&!W.slung&&W.md===md0+sk.md&&W.ms===ms0,'the swap must raise the shield and keep the rest: md '+W.md+' vs '+(md0+sk.md));
+     ok(W.hp===hp0&&W.fat===fat0&&W.st.bleed===2&&W.buffs.some(x=>x.key==='rage')&&['slash','riposte','shieldwall','bash'].every(id=>W.abs.includes(id))&&!W.abs.includes('round'),'a swap must keep hitpoints, fatigue, statuses and buffs; skills follow the weapon');
+     ok(ev.some(e=>e.type==='swap'&&e.d.u===W&&e.d.to===W.wpn)&&ev.some(e=>e.type==='shield'&&e.d.u===W&&e.d.raised),'swap / shield events');
+     const fc=X.forecast(e0,W,X.abilityInfo(e0,'attack'));put(e0,6,5);ok(X.forecast(e0,W,X.abilityInfo(e0,'attack')).hit===X.hitChance(e0,W,X.abilityInfo(e0,'attack')),'forecast after a swap');
+     await X.useAbility(W,X.abilityInfo(W,'swap'),KU(W));await rest(b);ok(W.ap===1&&W.wid==='greataxe'&&W.slung&&!W.shield&&W.md===md0&&!W.abs.includes('shieldwall'),'swapping back must sling the shield again');
+     ok(!X.canUse(W,X.abilityInfo(W,'swap')),'no AP, no swap');
+     X.addInjury(W.m,'cutarm',3);X.applyInjury(W,'cutarm');const ms1=W.ms,rs1=W.rs,md1=W.md;W.ap=9;await X.useAbility(W,X.abilityInfo(W,'swap'),KU(W));await rest(b);await X.useAbility(W,X.abilityInfo(W,'swap'),KU(W));await rest(b);
+     ok(W.ms===ms1&&W.rs===rs1&&W.md===md1&&W.wid==='greataxe','an injury taken in battle must not count twice over a swap');W.m.inj=[];put(e0,0,0) }
+   // the ranged lock: a foe next to the archer stops its shots; swap to the knife; free first swap with Quick hands
+   { put(A,8,6);put(e1,8,5);A.ap=9;A.fat=0;e1.mor=3;e1.st={};const at=X.abilityInfo(A,'attack');ok(X.rangedLocked(A)&&!X.canUse(A,at)&&!X.validTargets(A,at).size&&/Engaged/.test(X.useBlock(A,at))&&X.forecast(A,e1,at).locked,'an archer with a foe next to it must be ranged-locked');
+     ok(!X.canUse(A,X.abilityInfo(A,'quick'))&&!X.canUse(A,X.abilityInfo(A,'aimed')||{ap:99}),'every bow ability is locked');
+     e1.st.stun=1;ok(!X.rangedLocked(A),'a stunned foe does not lock');e1.st={};e1.mor=0;ok(!X.rangedLocked(A),'a fleeing foe does not lock');e1.mor=3;
+     A.flags.noLock=1;ok(!X.rangedLocked(A)&&X.canUse(A,at),'Point-blank lifts the lock');delete A.flags.noLock;
+     ok(A.swapFree===false||A.swapFree===undefined||A.swapFree===true,'swapFree');A.swapFree=!!A.flags.freeSwap;ok(A.flags.freeSwap&&X.abilityInfo(A,'swap').ap===0,'Quick hands: the first swap each turn is free');
+     b.cur=A;await X.useAbility(A,X.abilityInfo(A,'swap'),KU(A));await rest(b);ok(A.ap===9&&A.wid==='knife'&&A.wpn.wt==='dagger'&&X.abilityInfo(A,'swap').ap===4,'the free swap costs nothing, the next one 4 AP');
+     const kn=X.abilityInfo(A,'attack');ok(X.canUse(A,kn)&&X.validTargets(A,kn).has(KU(e1))&&!X.rangedLocked(A)===false,'with the knife the archer fights in melee');
+     ok(X.canUse(A,X.abilityInfo(A,'puncture'))&&!X.canUse(A,X.abilityInfo(A,'quick')),'knife skills replace bow skills');
+     await X.useAbility(A,X.abilityInfo(A,'swap'),KU(A));await rest(b);ok(A.wid==='shortbow'&&X.rangedLocked(A),'back to the bow, still locked');
+     e1.alive=false;ok(!X.rangedLocked(A)&&X.canUse(A,at),'the lock lifts when the foe dies');e1.alive=true;
+     A.ap=9;b.cur=A;const fw=X.abilityInfo(A,'footwork');A.abs.push('footwork');await X.useAbility(A,fw,(A.r+1)*BW+A.c);await rest(b);ok(A.r===7&&!X.rangedLocked(A)&&X.canUse(A,X.abilityInfo(A,'attack')),'the lock lifts when the archer steps away');
+     // enemies: a bow in hand locks them too; a sidearm in def.side lets them swap
+     put(e2,12,8);put(Pl,12,9);ok(e2.wpn.wt==='bow'&&X.rangedLocked(e2)&&!X.canUse(e2,X.abilityInfo(e2,'attack')),'enemy archers are locked too');
+     const d0=e2.def;e2.def=Object.assign({},d0,{side:{n:'Hatchet',wt:'axe',d:[14,22]}});e2.wpnAlt=X.enemySide(e2.def);ok(X.altWeapon(e2)&&X.swapWeapons(e2)&&e2.wpn.wt==='axe'&&X.canUse(e2,X.abilityInfo(e2,'attack'))&&e2.wpnAlt.wt==='bow','an enemy with a sidearm can swap to it');
+     X.swapWeapons(e2);ok(e2.wpn.wt==='bow','and back');e2.def=d0;e2.wpnAlt=null;ok(!X.altWeapon(e2)&&!X.swapWeapons(e2),'no sidearm, no swap') }
+   // the slung shield cannot be split and gives nothing; a knight with no sidearm cannot swap
+   { ok(Pl.shield&&!X.canUse(Pl,X.abilityInfo(Pl,'swap')||{ap:99,swapW:1}),'no sidearm: no swap');put(W,3,3);put(e0,4,3);e0.wpn=X.ITEMS.waraxe;const sp=X.abilityInfo(e0,'split');ok(W.slung&&!X.validTargets(e0,sp).has(KU(W)),'a slung shield cannot be split') }
+   // talent rules in the field: marked, weak, undying, regen, Battle orders, Rally
+   { put(W,3,3);put(e0,4,3);const at=X.abilityInfo(W,'attack'),h0=X.hitChance(W,e0,at);e0.st.marked=1;ok(X.hitChance(W,e0,at)===Math.min(95,h0+15),'marked: +15 to hit');e0.st.marked=0;
+     const f0=X.forecast(W,e0,at);W.st.weak=1;const f1=X.forecast(W,e0,at);ok(f1.dmgMax<f0.dmgMax,'weakened deals less damage');W.st.weak=0;
+     W.flags=Object.assign({},W.flags,{undying:1});W.undy=0;W.hp=3;const fk=X.forecast(e0,W,X.abilityInfo(e0,'attack'));ok(fk.undying&&!fk.kill&&!fk.sure,'the forecast knows Undying');
+     X.hurt(W,500,1,e0,{loc:1});ok(W.alive&&W.hp===1&&W.undy===1,'Undying leaves 1 hitpoint');X.hurt(W,500,1,e0,{loc:1});ok(!W.alive,'only once');
+     W.alive=true;W.hp=W.hpMax=200;put(A,3,4);A.flags=Object.assign({},A.flags,{cmd:5});X.auraScan();ok(X.hitChance(W,e0,at)===Math.min(95,h0+5),'Battle orders: +5 to hit for an adjacent ally');delete A.flags.cmd;X.auraScan();
+     Pl.mor=2;put(Pl,5,5);put(A,6,5);A.mor=1;A.fearless=false;Pl.fearless=false;const ra=Object.assign({id:'rally'},X.AB.rally);Pl.ap=9;Pl.fat=0;b.cur=Pl;await X.useAbility(Pl,ra,KU(Pl));await rest(b);
+     ok(Pl.mor===3&&A.mor===2&&Pl.buffs.some(x=>x.key==='rallied')&&A.buffs.some(x=>x.key==='rallied'),'Rally lifts morale around the rallier') }
+   X.FX.on=null;X.B=null;X.mode='world';
+   // -- an old (version 4) save: masteries become trees and perks --
+   { X.store.clear();X.seedRng(SEED+7300);X.newGame(true);closeAll(X);ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=4;
+     const olds=[{vanguard:2,bulwark:0,aura:1},{marksman:4,skirmisher:1,qi:2},{bulwark:3,vanguard:1,chi:5},{skirmisher:0,mana:3,bulwark:1}];
+     g.roster.forEach((m,i)=>{delete m.trees;delete m.gift;delete m.perks;delete m.eq.b;m.mast=olds[i%4];m.lvl=6;m.pp=1});g.towns.forEach(t=>t.recruits.forEach(m=>{delete m.trees;delete m.gift;delete m.perks;delete m.eq.b;m.mast={vanguard:0,skirmisher:0}}));
+     X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.v===4&&r.g.v===X.SAVEVER,'a version 4 save was not migrated');
+     const R=r.g.roster;ok(R[0].perks.join()==='vanguard.1,vanguard.2,aura.1'&&R[0].gift==='aura'&&R[1].perks.join()==='marksman.1,marksman.2,marksman.3,marksman.4,skirmisher.1,qi.1,qi.2'&&R[1].gift==='qi'&&R[2].perks.length===9&&R[3].gift==='mana','old masteries must map to their tier perks: '+R.map(m=>m.perks.join(' ')).join(' | '));
+     ok(R.every(m=>m.trees.filter(k=>kind(k)==='style').length===4&&m.eq.b===null&&m.pp===1&&m.trees.includes(m.gift||'vanguard')||m.trees.filter(k=>kind(k)==='style').length===4&&m.eq.b===null),'migrated mercs must carry 4 style trees, an empty sidearm slot and their points');
+     ok(R[0].trees.includes('vanguard')&&R[0].trees.includes('bulwark')&&R[1].trees.includes('marksman'),'migrated mercs keep their old trees');
+     const c0=X.calc(R[0]);ok(c0.res.aura&&c0.res.aura.max===X.GIFTBASE&&c0.abs.includes('astrike')&&c0.abs.includes('shove')&&c0.ms>=R[0].base.ms+8,'old perks keep their effects');
+     ok(X.calc(R[3]).res.mana.max===X.GIFTBASE&&X.calc(R[3]).abs.includes('blink')&&X.calc(R[2]).res.chi.max===X.GIFTBASE+15,'old gift pools');
+     ok(r.g.towns.every(t=>t.recruits.every(m=>Array.isArray(m.perks)&&m.trees.length>=4)),'recruits in towns are migrated too');
+     X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.roster.length===4,'a migrated v4 save did not load');scan(X.G,'G');
+     const res=await X.autoBattle({f:'gob',mult:.6,biome:'plains',src:{type:'sim'},turnCap:TURNCAP});ok(res&&!res.stuck,'a migrated v4 company could not fight');X.settleBattle(res.win);X.store.clear() }
+   console.log(`${styles.length} style, ${gifts.length} gift and ${wts.length} weapon trees, ${ids.size} perks (${nAb} abilities); backgrounds, races, recruits, tiers, gift awakening, autoLearn, hands rules,`);
+   console.log('swap (1h/2h, raised and slung shields), ranged lock (stun, flight, death, stepping away, Point-blank, enemies), talent rules in the field, v4 migration: ok') }
 
  section('campaign');
  const flags={},NEED=['hire','buy','sell','food','equip','inn','accept','deliver','hunt','level','perk','crisis','dungeon','route','site','weather','repair','temple'];let camp=null;

@@ -12,8 +12,9 @@
    every event that can change them, so hitChance(), strike() and forecast() see them like any other buff.
    Statuses added here live in u.st like the rules' own and are described in FOE_ST (merged into STATUS). */
 let BUDGETK=1;      // scales every enemy budget (tuned by test/balance.js)
-let FOE_TICK=1;   // 0 if the rules ever tick every u.st key themselves
-const FOE_RANK={base:17,hp:.35,dmg:.55,arm:.25,ms:8,md:3,max:24};  // how enemy quality follows the budget (see foeRank; the exponents g and cap are per faction, FACT[f].rank)
+let FOE_TICK=1;
+const FOE_FURY={dmg:.09,ms:3};   // orc battle fury per turn of fury left (they start with 6): the reason to outlast them   // 0 if the rules ever tick every u.st key themselves
+const FOE_RANK={base:21,hp:.35,dmg:.55,arm:.25,ms:8,md:3,max:24};  // how enemy quality follows the budget (see foeRank; the exponents g and cap are per faction, FACT[f].rank)
 const FOE_ST={
  poison:{n:'Poisoned',d:'Loses 6 hitpoints at the start of each of its turns.',icon:'st-poison',good:0,t:1},
  hex:{n:'Hexed',d:'−15 melee and ranged skill, −15 resolve.',icon:'st-hex',good:0,t:1},
@@ -49,7 +50,7 @@ function foeBleed(u,n){hurt(u,n,1,null,{pierce:1})}
 /* ---- rank: enemy quality follows the budget ----
    The budget buys bodies (buildEnemies), but a level 12 company is far more than four times a level 1 company, and
    a warband stops at MAXFOES. So every foe also gets a rank x >= 1 from the same budget:
-     x = pm^(g(1+h log2 pm))  x  (budget / what MAXFOES average foes cost, if more than 1)^cap,   pm = budget per fielded merc / FOE_RANK.base,   [g, cap, h] = FACT[f].rank
+     x = pm^(g(1+h log2 pm))  x  (budget / what MAXFOES average foes cost, if more than 1)^cap,   pm = budget per fielded merc / FOE_RANK.base,   [g, cap, h, base?] = FACT[f].rank (base: the faction's own FOE_RANK.base)
    and with it hp x^.hp, damage x^.dmg, armor x^.arm and .ms / .md points of skill / defense per doubling.
    A company's level, the days passed, the band's strength (mult) and BUDGETK all reach the foes this way. */
 function foeBudget(o){if(typeof battleBudget==='function')return battleBudget(o);let b=0;(typeof battleField==='function'?battleField(o):fielded()).forEach(m=>b+=12+m.lvl*5);return b*(o&&o.mult||1)*(1+G.day*.008)*BUDGETK}
@@ -57,12 +58,13 @@ function foeRank(f){const b=B;if(!b||!FACT[f])return 1;if(b.frank&&b.frank.f===f
  const U=FACT[f].units;let avg=0;U.forEach(u=>avg+=u[1]);avg/=U.length;let bud=foeBudget(b.opts);
  for(const id of b.opts.fixed||[]){const e=U.find(u=>u[0]===id);bud-=e?e[1]:0}
  const R=FOE_RANK,n=Math.max(1,(typeof battleField==='function'?battleField(b.opts):fielded()).length);
- const q=FACT[f].rank||[.5,1],pm=Math.max(1,bud/n/R.base),x=clamp(Math.pow(pm,q[0]*(1+(q[2]||0)*Math.log2(pm)))*Math.pow(Math.max(1,bud/(MAXFOES*avg)),q[1]),1,R.max);b.frank={f,x};return x}
+ const q=FACT[f].rank||[.5,1],pm=Math.max(1,bud/n/(q[3]||R.base)),x=clamp(Math.pow(pm,q[0]*(1+(q[2]||0)*Math.log2(pm)))*Math.pow(Math.max(1,bud/(MAXFOES*avg)),q[1]),1,R.max);b.frank={f,x};return x}
 /* enemyInit(u,id): called by the rules for every enemy at battle start (and by foeSpawn for late arrivals). */
 function enemyInit(u,id){let d=u.def||EN[id];
  // A warband has only so many leaders: the ones beyond def.max take the field as def.sub instead.
  if(d.max&&d.sub&&EN[d.sub]&&B&&!u.spawned){const n=B.fcnt||(B.fcnt={});n[id]=(n[id]||0)+1;if(n[id]>d.max){const e=mkEnemy(d.sub,u.f);for(const k in e)u[k]=e[k];id=d.sub;d=u.def}}
- u.eid=id;u.role=d.role||'line';u.abs=(d.abs||[]).filter(a=>AB[a]);u.cds={};u.usedN={};u.spell=undefined;
+ u.eid=id;u.role=d.role||'line';u.abs=(d.abs||[]).filter(a=>AB[a]);if(u.wpnAlt&&AB.swap)u.abs.push('swap');   // a sidearm (def.side): the archer is not helpless when a foe gets close
+u.cds={};u.usedN={};u.spell=undefined;
  if(d.res)for(const k in d.res)u.res[k]={cur:d.res[k][0],max:d.res[k][0],regen:d.res[k][1]};
  if(d.fatMax){u.fatMax=d.fatMax;u.wpn.fat=d.wfat||10}
  if(d.ign)u.wpn.ign=d.ign;if(d.wap)u.wpn.ap=d.wap;
@@ -71,7 +73,7 @@ function enemyInit(u,id){let d=u.def||EN[id];
  if(x>1&&!d.boss){const L=Math.log2(x),R=FOE_RANK;u.rank=L;u.lvl=1+Math.round(L*4);
   u.hp=u.hpMax=Math.round(u.hp*Math.pow(x,R.hp));u.arm=u.armMax=Math.round(u.arm*Math.pow(x,R.arm));
   if(typeof u.helm==='number'){u.helm=u.helmMax=Math.round(u.helm*Math.pow(x,R.arm))}
-  const k=Math.pow(x,R.dmg);u.wpn.d=[Math.round(d.d[0]*k),Math.round(d.d[1]*k)];u.wpn.spell=k-1;u.ms+=Math.round(R.ms*L);if(u.rs)u.rs+=Math.round(R.ms*L);u.md+=Math.round(R.md*L);u.rd+=Math.round(R.md*L);u.dmgK=k;if(u.side===1&&B)B.venom=Math.round(6*k);
+  const k=Math.pow(x,R.dmg);u.wpn.d=[Math.round(d.d[0]*k),Math.round(d.d[1]*k)];if(u.wpnAlt&&d.side&&typeof d.side==='object'){const sd=d.side.d;u.wpnAlt.d=[Math.round(sd[0]*k),Math.round(sd[1]*k)]}u.wpn.spell=k-1;u.ms+=Math.round(R.ms*L);if(u.rs)u.rs+=Math.round(R.ms*L);u.md+=Math.round(R.md*L);u.rd+=Math.round(R.md*L);u.dmgK=k;if(u.side===1&&B)B.venom=Math.round(6*k);
   if(L>=1.5)u.name=(L>=2.75?'Elite ':'Veteran ')+String(d.n).toLowerCase()}
  return u}
 // Adds a unit mid-battle through the rules' spawnUnit() when it exists.
@@ -97,7 +99,7 @@ function foeAuras(){const b=B;if(!b||!b.units)return;const U=b.units,n=U.length;
    if(d.pack){if(pack){pack=Math.min(pack,3);st.pack=pack;ms+=4*pack}else if(st.pack)delete st.pack}
    if(d.wall){if(wall){wall=Math.min(wall,2);st.bonewall=wall;md+=8*wall;rd+=10*wall}else if(st.bonewall)delete st.bonewall}
    if(d.tire){if(u.fat>=u.fatMax*.7)st.winded=1;else if(st.winded)delete st.winded}
-   if(st.fury>0){dmg+=.09*st.fury;ms+=3*st.fury}
+   if(st.fury>0){dmg+=FOE_FURY.dmg*st.fury;ms+=FOE_FURY.ms*st.fury}
    if(d.enrage&&!u.enr&&u.hp<=u.hpMax*d.enrage){u.enr=1;st.enrage=1;u.apMax+=2;float(u,'Enraged','#ff7a6b');say(`${u.name} is enraged.`);FX.emit('status',{t:u,key:'enrage'})}}
   let fk=null;for(const k in st){const M=FOE_MOD[k];if(st[k]>0&&STATUS[k]&&!fk)fk=k;if(!M||!(st[k]>0))continue;if(M.ms)ms+=M.ms;if(M.rs)rs+=M.rs;if(M.md)md+=M.md;if(M.rd)rd+=M.rd;if(M.dmg)dmg+=M.dmg;if(M.dr)dr+=M.dr;if(M.brv)brv+=M.brv}
   fb.ms=ms;fb.rs=rs;fb.md=md;fb.rd=rd;fb.dmg=dmg;fb.dr=dr;fb.brv=brv;fb.dur=1e9;
@@ -132,7 +134,8 @@ function foeReq(u,a,t){if(!a.req)return true;
  if(a.req==='shield')return !!t.shield;
  if(a.req==='held')return !!(t.st.webbed||t.st.root||t.rooted||t.st.stun);
  return true}
-function foeReady(u,a){if(a.cd&&u.cds&&u.cds[a.id]>0)return false;if(a.uses&&u.usedN&&(u.usedN[a.id]||0)>=a.uses)return false;if(a.hpBelow&&u.hp>u.hpMax*a.hpBelow)return false;return canUse(u,a)}
+// free: as if no foe stood beside u (the AI asks whether a locked archer could shoot after stepping clear)
+function foeReady(u,a,free){if(a.cd&&u.cds&&u.cds[a.id]>0)return false;if(a.uses&&u.usedN&&(u.usedN[a.id]||0)>=a.uses)return false;if(a.hpBelow&&u.hp>u.hpMax*a.hpBelow)return false;return free&&typeof aiCanUseFree==='function'?aiCanUseFree(u,a):canUse(u,a)}
 function foeMark(u,a){if(a.cd)(u.cds||(u.cds={}))[a.id]=a.cd+1;if(a.uses){const n=u.usedN||(u.usedN={});n[a.id]=(n[a.id]||0)+1}}
 // Executes an ability that carries its own mechanic. Mirrors useAbility(): pay, announce, emit 'cast', act.
 async function foeUse(u,a,k){const b=B;payFor(u,a);foeMark(u,a);say(`${u.name} uses ${a.n}.`);FX.ui();const c=k%BW,r=(k/BW)|0;
@@ -146,7 +149,7 @@ const FOE_AB={
  /* ---------- goblins: fragile, fast, numerous; kill the shaman and they break ---------- */
  gslip:{n:'Slip away',d:'Darts up to 2 tiles without provoking attacks.',ap:2,fat:0,rng:2,tgt:'move',cd:2,fx:'dash'},
  gstab:{n:'Backstab',d:'A vicious stab at a foe already fighting another goblin: +10 to hit, +40% damage.',fat:0,tgt:'enemy',wpn:1,mult:1.4,hit:10,req:'flank',fx:'stab'},
- gpoison:{n:'Poison arrow',d:'A light arrow that poisons for 3 turns (6 hitpoints a turn, through armor).',fat:0,tgt:'enemy',wpn:1,mult:.7,status:{poison:3},cd:2,fx:'poison'},
+ gpoison:{n:'Poison arrow',d:'A light arrow that poisons for 3 turns (6 hitpoints a turn, through armor).',fat:0,tgt:'enemy',wpn:1,needs:'bow',mult:.7,status:{poison:3},cd:2,fx:'poison'},
  ghex:{n:'Hex',d:'Curses a foe within 5 tiles: −15 skill and resolve for 2 turns.',ap:4,fat:0,cost:['mana',6],rng:5,tgt:'enemy',magic:[12,20],ign:.5,status:{hex:2},fx:'hex'},
  gchant:{n:'War chant',d:'Goblins within 5 tiles gain +20 skill and +50% damage for 4 turns. The chant dies with the shaman.',ap:4,fat:0,cost:['mana',6],rng:5,tgt:'self',cd:2,fx:'chant',
   ai(u,X){const n=foeAllies(u,5).filter(o=>o!==u&&!(o.st.chant>1)&&X.near(o)<=6).length;return n>=2?[{k:X.at,v:9*n}]:[]},

@@ -1,30 +1,44 @@
 /* ================= MERCS ================= */
 function wpickBG(){const ks=Object.keys(BG);let tot=0;ks.forEach(k=>tot+=BG[k].w);let x=rnd()*tot;for(const k of ks){x-=BG[k].w;if(x<=0)return k}return ks[0]}
-/* A merc: {id,name,bg,race,lvl,xp,pp,pend,base:{hp,fat,init,ms,rs,md,rd,brv},tal,mast,eq:{w,s,a,h},hp,field,inj:[{id,days}],cond?:{a,h}}
-   base.brv is resolve (morale checks); eq.h a helmet; cond the armor points left on body (a) and head (h), absent = whole;
-   inj the injuries carried (days left, -1 = permanent). */
+/* A merc: {id,name,bg,race,lvl,xp,pp,pend,base:{hp,fat,init,ms,rs,md,rd,brv},tal,trees,gift,perks,eq:{w,b,s,a,h},hp,field,inj:[{id,days}],cond?:{a,h}}
+   base.brv is resolve (morale checks); eq.h a helmet, eq.b a sidearm (any weapon; swapped in battle); cond the armor points left on body (a)
+   and head (h), absent = whole; inj the injuries carried (days left, -1 = permanent). trees / gift / perks: see 61-talents.js. */
 function newMerc(bg){const b=BG[bg],race=rnd()<.55?'human':pick(['elf','dwarf','halforc']);
  const base={hp:ri(50,60),fat:ri(90,100),init:ri(98,112),ms:ri(47,56),rs:ri(32,42),md:ri(0,5),rd:ri(0,5),brv:ri(32,44)};
  for(const k in b.st)base[k]+=b.st[k];for(const k in RACE[race].st)base[k]+=RACE[race].st[k];
  const tal={};shuffle(Object.keys(base)).slice(0,3).forEach(k=>tal[k]=ri(1,3));
- const mast={};b.m.forEach(k=>mast[k]=0);
- let x=rnd();for(const [k,p] of (b.r||[])){if(x<p){mast[k]=0;break}x-=p}   // one resource only
- let g=0;while(Object.keys(mast).length<3&&g++<20)mast[pick(MUNDANE)]=0;
- const eq={w:null,s:null,a:null,h:null};b.gear.forEach(gs=>{const id=pick(gs.split('|'));if(ITEMS[id])eq[ITEMS[id].k]=id});
- if(eq.w&&ITEMS[eq.w].two)eq.s=null;
- return{id:G.nid++,name:pick(NAMES),bg,race,lvl:1,xp:0,pp:1,pend:0,base,tal,mast,eq,hp:base.hp,field:false,inj:[]}}
-function mercRes(m){return RESK.find(k=>k in m.mast)||null}
-/* calc(m): the merc's fighting numbers from base stats, perks, gear and injuries.
-   {hp,fat,init,ms,rs,md,rd,brv, arm (body armor max), helm (head armor max), res, abs (perk abilities, then weapon and shield skills),
-    flags, dmg, wpn, shield:{hp,md,rd}|null, inj:[ids]} */
-function calc(m){const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[]};
- for(const k in m.mast){const M=MAST[k];if(!M)continue;for(let i=0;i<m.mast[k]&&i<M.p.length;i++){const p=M.p[i];if(p.st)for(const q in p.st)s[q]+=p.st[q];if(p.ab)s.abs.push(p.ab);if(p.flag)s.flags[p.flag]=1;
-  if(p.res){const R=s.res[M.res]||(s.res[M.res]={max:0,regen:4});R.max+=p.res;if(p.regen)R.regen+=p.regen}}}
- const w=ITEMS[m.eq.w],sh=ITEMS[m.eq.s],a=ITEMS[m.eq.a],h=ITEMS[m.eq.h];s.wpn=w||FIST;
- if(sh){s.md+=sh.md;s.rd+=sh.rd;s.fat-=sh.fat;s.shield={hp:sh.hp||48,md:sh.md,rd:sh.rd}}if(a){s.arm=a.arm;s.fat-=a.fat}if(h){s.helm=h.arm;s.fat-=h.fat}
- for(const id of (s.wpn.sk||[]).concat(sh&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
+ const trees=rollTrees(bg);let gift=null;
+ let x=rnd();for(const [k,p] of (b.r||[])){if(x<p){gift=giftKey(k,b.style||'melee');break}x-=p}   // one resource only
+ const eq={w:null,b:null,s:null,a:null,h:null};b.gear.forEach(gs=>{const id=pick(gs.split('|'));if(ITEMS[id])eq[ITEMS[id].k]=id});
+ if(b.side){const id=pick(b.side.split('|'));if(ITEMS[id]&&ITEMS[id].k==='w')eq.b=id}
+ const m={id:G.nid++,name:pick(NAMES),bg,race,lvl:1,xp:0,pp:1,pend:0,base,tal,trees:gift?trees.concat([gift]):trees,gift,perks:[],eq,hp:base.hp,field:false,inj:[]};
+ fixHands(m);syncMast(m);return m}
+// The merc's gift resource (mana aura qi chi) or null.
+function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)return MAST[m.gift].res;if(!Array.isArray(m.perks)&&m.mast&&typeof m.mast==='object')return RESK.find(k=>k in m.mast)||null;return null}
+/* calc(m, o?): the merc's fighting numbers from base stats, perks, gear and injuries, with the main weapon in hand
+   (o.hand 'b': the sidearm in hand instead; battle units recompute on a swap).
+   {hp,fat,init,ms,rs,md,rd,brv,ap, arm (body armor max), helm (head armor max), res, abs (perk abilities, then weapon and shield skills, swap),
+    flags (perk flags and summed mods), dmg, wpn (a copy of the weapon in hand with weapon-tree changes, id = item id or null for fists),
+    shield:{hp,md,rd,raised}|null (md/rd are what it adds when raised; slung with a two-handed weapon in hand),
+    hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand), inj:[ids]} */
+function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null;
+ const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,ap:9,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[],
+  hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[]};
+ const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();
+ for(const id of (Array.isArray(m.perks)?m.perks:legacyPerks(m.mast))){const P=perkById(id);if(!P)continue;const p=P.perk,T=P.tree;
+  if(T.kind==='weapon'&&T.wt!==wpn.wt){s.off.push(id);continue}s.perks.push(id);
+  if(p.st)for(const q in p.st)s[q]=(s[q]||0)+p.st[q];if(p.ab&&AB[p.ab]&&!s.abs.includes(p.ab))s.abs.push(p.ab);
+  if(p.flag)s.flags[p.flag]=1;if(p.mod)for(const q in p.mod)s.flags[q]=(s.flags[q]||0)+p.mod[q];
+  if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
+   if(x.hit)wpn.hit=(wpn.hit||0)+x.hit;if(x.stun)wpn.stun=(wpn.stun||0)+x.stun;if(x.spell)wpn.spell=(wpn.spell||0)+x.spell}
+  if(T.kind==='gift'&&T.res){const R=s.res[T.res]||(s.res[T.res]={max:GIFTBASE,regen:GIFTREGEN});if(p.res)R.max+=p.res;if(p.regen)R.regen+=p.regen}}
+ const sh=ITEMS[eq.s]&&ITEMS[eq.s].k==='s'?ITEMS[eq.s]:null,a=ITEMS[eq.a],h=ITEMS[eq.h];s.wpn=wpn;
+ if(sh){const sd=s.flags.shieldDef||0,raised=!wpn.two;s.fat-=sh.fat;s.shield={hp:Math.round((sh.hp||48)*(1+(s.flags.shieldHp||0))),md:sh.md+sd,rd:sh.rd+sd,raised};if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd}}
+ if(a){s.arm=a.arm;s.fat-=a.fat}if(h){s.helm=h.arm;s.fat-=h.fat}
+ for(const id of (wpn.sk||[]).concat(sh&&!wpn.two&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
+ if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}
- if(s.hp<5)s.hp=5;if(s.fat<20)s.fat=20;return s}
+ if(s.hp<5)s.hp=5;if(s.fat<20)s.fat=20;s.ap=clamp(Math.round(s.ap),4,12);return s}
 function gainXP(m,x){m.xp+=x;while(m.lvl<MAXLV&&m.xp>=XPT[m.lvl+1]){m.lvl++;m.pp++;m.pend++}}
 function fielded(){let f=G.roster.filter(m=>m.field);if(!f.length){G.roster.slice(0,MAXFIELD).forEach(m=>m.field=true);f=G.roster.filter(m=>m.field)}return f.slice(0,MAXFIELD)}
 

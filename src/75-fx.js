@@ -195,9 +195,10 @@ function fxOnMiss(d){const t=d.t,u=d.u;if(!t)return;const f=fxTail(t,/^Miss$/);i
   else if(FXS.sty===S_BLAST){const b=fxUP(t);ringFx(b.x+20,b.y+8,3,18,300,R_FIRE,delay,.5,2);for(let i=0;i<fxN(14);i++)spawn(K_SQ,R_FIRE,b.x+20+rr(-8,8),b.y+8,rr(-60,60),rr(-170,-50),rr(.3,.6),i&1?2:1,-40,2,delay/1000)}}
  const at=now+delay;fxQueue(t,u,at,0,0,0,true);animImpact(t,u,at,true)}
 function fxOnDeath(t){if(!t)return;fxU(t).dead=true;let e=null;for(let i=0;i<IMP.length;i++)if(IMP[i].on&&IMP[i].t===t&&!IMP[i].miss&&(!e||IMP[i].at>e.at))e=IMP[i];if(e)e.dead=true;else fxDeathNow(t)}
-function fxOnCast(u,t,ab,k){if(!u||!ab)return;const id=ab.id==='spell'?(/hex/i.test(ab.n)?'hex':/grave/i.test(ab.n)?'grave':/void/i.test(ab.n)?'void':u.f==='void'?'void':u.f==='undead'?'grave':'hex'):fxKey(ab);
+function fxOnCast(u,t,ab,k){if(!u||!ab)return;if(ab.id==='swap'||ab.swap){FXS.cu=null;return}   // staged by fxSwap when the figure changes hands
+const id=ab.id==='spell'?(/hex/i.test(ab.n)?'hex':/grave/i.test(ab.n)?'grave':/void/i.test(ab.n)?'void':u.f==='void'?'void':u.f==='undead'?'grave':'hex'):fxKey(ab);
  FXS.cu=u;FXS.cid=id;FXS.cn=0;FXS.clast=null;FXS.cab=ab;FXS.rmp=fxTintR(ab);FXS.bR=ab.foe?R_VOID:R_MANA;FXS.dS=ab.foe?'g':'y';FXS.dR=ab.foe?R_DUST:R_AURA;
- FXS.multi=id==='fireball'||id==='chain'||id==='thunder'||ab.tgt==='aoe'||!!ab.aoe||!!ab.chain||id==='nova'||id==='chant'||id==='warcry'||id==='rally';const p=fxUP(u),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),R=ab.cost?(ab.cost[0]==='mana'?R_MANA:ab.cost[0]==='aura'?R_AURA:ab.cost[0]==='qi'?R_QI:R_CHI):id==='hex'?R_HEX:id==='grave'?R_GRAVE:id==='void'?R_VOID:R_GOLD;
+ FXS.multi=id==='fireball'||id==='chain'||id==='thunder'||ab.tgt==='aoe'||!!ab.aoe||!!ab.chain||!!ab.hits||!!ab.through||!!ab.party||id==='nova'||id==='chant'||id==='warcry'||id==='rally';const p=fxUP(u),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),R=ab.cost?(ab.cost[0]==='mana'?R_MANA:ab.cost[0]==='aura'?R_AURA:ab.cost[0]==='qi'?R_QI:R_CHI):id==='hex'?R_HEX:id==='grave'?R_GRAVE:id==='void'?R_VOID:R_GOLD;
  switch(id){
   case 'bolt':case 'fireball':case 'chain':case 'hex':case 'grave':case 'void':ringFx(x,y,4,15,300*sp,id==='fireball'?R_FIRE:R,0,.5);break;
   case 'blink':for(let i=0;i<fxN(16);i++){const yy=y-rr(0,h);spawn(K_SQ,FXS.bR,x+rr(-12,12),yy,0,rr(-30,-90),rr(.25,.5),i%3?1:2,0,0,rr(0,.06))}{const o=fxo(T_COL,x,y,0,190*sp,FXS.bR);o.a=h;o.b=0}break;
@@ -228,8 +229,8 @@ function fxOnTurn(u){if(!u)return;FXS.turnU=u;FXS.turnBurn=!!(u.st&&u.st.burn);F
  if(fxTail(u,/^Chilled$/))for(let i=0;i<fxN(10);i++)spawn(K_SQ,R_ICE,p.x+rr(-12,12),p.y-rr(p.h*.3,p.h),rr(-6,6),rr(20,50),rr(.5,.9),1,0,.5,rr(0,.2))}
 function fxEvent(type,d){if(!d||typeof B==='undefined'||!B||mode!=='battle')return;
  const vis=typeof document!=='undefined'&&SPEEDF>0&&typeof now==='number';
- if(type==='kb'&&d.t&&FXS.cu&&(FXS.cid==='shove'||FXS.cid==='bash')){const u=FXS.cu,t=d.t,bash=FXS.cid==='bash';FXS.cu=null;      // a shove deals no damage, so no 'hit' is emitted: stage the push here
-  try{animEvent('miss',{u,t});const at=anNow()+240*fxSp()*AN_HIT_AT;animImpact(t,u,at,false);if(vis){const e=fxQueue(t,u,at,-1,0,bash?S_BASH:S_SHOVE,false);const a=fxUP(u),ax=a.x,ay=a.y,b=fxUP(t);e.dx=b.x-ax;e.dy=b.y-ay;const L=Math.hypot(e.dx,e.dy)||1;e.dx/=L;e.dy/=L}}catch(e){}}
+ if(type==='kb'&&d.t&&FXS.cu&&(FXS.cid==='shove'||FXS.cid==='bash'||FXS.cid==='kick')&&!(FXS.cab&&!FXS.cab.noDmg)){const u=FXS.cu,t=d.t,bash=FXS.cid==='bash',kick=FXS.cid==='kick';FXS.cu=null;      // a shove deals no damage, so no 'hit' is emitted: stage the push here
+  try{animEvent('miss',{u,t});const at=anNow()+240*fxSp()*AN_HIT_AT;animImpact(t,u,at,false);if(vis){const e=fxQueue(t,u,at,-1,0,kick?S_KICK:bash?S_BASH:S_SHOVE,false);const a=fxUP(u),ax=a.x,ay=a.y,b=fxUP(t);e.dx=b.x-ax;e.dy=b.y-ay;const L=Math.hypot(e.dx,e.dy)||1;e.dx/=L;e.dy/=L}}catch(e){}}
  try{animEvent(type,d)}catch(e){}
  if(type==='withdraw'&&d.u)try{const v=fxU(d.u);v.dead=true;v.alive=false}catch(e){}
  if(typeof document==='undefined'||!(SPEEDF>0)||typeof now!=='number')return;FXS.live=true;
@@ -253,7 +254,7 @@ const FX_WORD=[[/ripost|parry|guard|brace|wall/,'guard'],[/split|sunder|smash/,'
  [/cry|roar|howl|shout/,'warcry'],[/rally|inspire/,'rally'],[/ward|barrier|aegis/,'ward'],[/summon|conjure|veil/,'summon'],[/raise|reanim/,'raise'],[/nova|cataclysm/,'nova'],[/gather|channel/,'gather'],[/blink|phase|rift step/,'blink'],[/withdraw|flee/,'withdraw']];
 const FX_TINTR={mana:R_MANA,aura:R_AURA,qi:R_QI,chi:R_CHI,steel:R_STEEL,foe:R_RED,void:R_VOID,fire:R_FIRE,ice:R_ICE,green:R_HEX,gold:R_GOLD,bone:R_BONE,verd:R_QI};
 function fxTintR(ab){let t='gold';try{if(typeof abTint==='function')t=abTint(ab)}catch(e){}const r=FX_TINTR[t];return r===undefined?R_GOLD:r}
-function fxKey(ab){const id=ab.id||'';if(FX_OLD[id]&&!ab.foe)return id;const h=ab.fx&&FX_HINT[ab.fx];
+function fxKey(ab){const id=ab.id||'';if(FX_OLD[id]&&!ab.foe)return id;if(FX_ID[id]&&!ab.foe)return FX_ID[id];{const h2=ab.fx&&FX_HINT2[ab.fx];if(h2){const k2=h2(ab);if(k2)return k2}}const h=ab.fx&&FX_HINT[ab.fx];
  if(h){if(h==='sweep'&&/reap|scyth/i.test(id+' '+(ab.n||'')))return'reap';if(h==='bolt')return ab.foe?(/void/i.test(ab.n||'')?'void':'grave'):'bolt';return h}
  const s=(id+' '+(ab.n||'')).toLowerCase();for(let i=0;i<FX_WORD.length;i++)if(FX_WORD[i][0].test(s))return FX_WORD[i][1];
  FXS.cat=typeof abCategory==='function'?abCategory(ab,id):'melee';return'gen'}
@@ -265,6 +266,7 @@ function fxOrb(r){let a=FXORB[r];if(a)return a;const m=r===R_AURA?':xyFe':r===R_
 let FXWEBS=null;
 function fxWebs(){return FXWEBS||(FXWEBS=[fxSpr('webb'),fxSpr('webb')])}
 function fxStrikeX(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const ab=FXS.cab||FXO_NIL,R=FXS.rmp|0;let o,fly,ld;
+ {const n=fxStrikeN(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}
  switch(id){
   case'slash':ld=fxMelee(u,t,R_RED,S_SLASH,sp);if(!miss){const o2=fxo(T_SLASH,bx-ux*14,by-uy*14,ld+50*ss,170*ss,R_BLOOD);o2.a=Math.atan2(uy,ux);o2.b=9;o2.c=2}FXS.sty=S_BLEED;return ld;
   case'split':ld=fxMelee(u,t,R_WHITE,S_SLASH,sp);FXS.sty=S_SPLIT;return ld;
@@ -289,7 +291,7 @@ function fxStrikeX(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const a
    if(d>1){fly=Math.max(70,L/1.15)*ss;o=fxArrow(ax,ay,bx,by,fly,Math.min(28,L*.13),R,40*sp);o.c=miss?1:0;FXS.sty=S_GEN;return 40*sp+fly}
    ld=fxMelee(u,t,R,fxWpnKind(u),sp);FXS.sty=S_GEN;return ld}}
  return -1}
-function fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){const R=e.rmp|0;
+function fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){const R=e.rmp|0;if(sty>=S_N0){fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp);return}
  switch(sty){
   case S_BLEED:if(dmg>0){for(let i=0;i<fxN(7);i++)spawn(K_SQ,R_BLOOD,x+rr(-6,6),y+rr(-4,6),rr(-10,10),rr(10,60),rr(.5,.9),i&1?2:1,420,.4,rr(.05,.4));cone(K_TRAIL,R_BLOOD,x,y,dx,dy*.4-.3,8,90,250,.36,1,300,2,.5)}break;
   case S_SPLIT:{cone(K_SQ,R_ROOT,x,y,dx,dy*.5-.5,12,70,240,.5,2,620,1,1.1);cone(K_TRAIL,R_DUST,x,y,dx,dy*.5-.3,8,110,280,.3,1,300,2,.8);const o=fxo(T_CRACK,x-6,y+4,0,420,0);o.a=0;fxShake(3);
@@ -309,7 +311,7 @@ function fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){const R=e.rmp|0;
   case S_RIP:burst(K_TRAIL,R_GOLD,x,y,8,100,260,.24,1,0,4);glyphFx('glint:rd',x,y,0,140,0);fxFloat(t,u&&fxFree(u,t)==='spearwall'?'SPEAR WALL':'RIPOSTE',FS_GOLD);break;
   case S_GEN:burst(K_TRAIL,R,x,y,11,80,240,.3,1,0,4);ringFx(x,y,2,13,240,R,0,1);cone(K_SQ,R,x,y,dx,dy*.5-.4,6,50,170,.4,1,260,2,1);break}}
 /* what the caster does before the blow, for the keys that have a wind-up of their own */
-function fxCastX(u,t,ab,id,k,x,y,h,sp){const R=FXS.rmp|0;
+function fxCastX(u,t,ab,id,k,x,y,h,sp){const R=FXS.rmp|0;if(fxCastN(u,t,ab,id,k,x,y,h,sp))return;
  switch(id){
   case'round':{const o=fxo(T_SPIN,x,y-h*.42,40*sp,340*sp,R_WHITE);o.a=17;o.b=6.6;o.c=-2.4;puff(x,y,7);for(let i=0;i<fxN(12);i++){const a=i/12*6.283;spawn(K_TRAIL,R_WHITE,x+Math.cos(a)*26,y-h*.42+Math.sin(a)*13,-Math.sin(a)*170,Math.cos(a)*85,.22,1,0,3,(.04+i*.018)*sp)}fxShake(2);break}
   case'reap':{const o=fxo(T_SPIN,x,y-h*.42,40*sp,400*sp,R_VOID);o.a=21;o.b=6.9;o.c=-2.4;o.d=1;glowFx(x,y-h*.4,80,'C',.5,340);for(let i=0;i<fxN(18);i++){const a=i/18*6.283;spawn(K_TRAIL,R_VOID,x+Math.cos(a)*32,y-h*.42+Math.sin(a)*16,-Math.sin(a)*190,Math.cos(a)*95,.26,1,0,3,(.04+i*.016)*sp)}fxShake(2.5);break}
@@ -333,7 +335,7 @@ function fxCastX(u,t,ab,id,k,x,y,h,sp){const R=FXS.rmp|0;
    else if(cat==='summon'){const o=fxo(T_PORTAL,x,y,0,800*sp,R);o.a=20;emitFx(1,null,x,y-h*.4,80,480*sp,0,R)}break}
   default:break}}
 /* a buff landing on t while the cast that gave it is live; true when it was drawn here */
-function fxBuffX(t,id,x,y,h,sp){const ab=FXS.cab||FXO_NIL,R=FXS.rmp|0;
+function fxBuffX(t,id,x,y,h,sp){const ab=FXS.cab||FXO_NIL,R=FXS.rmp|0;if(fxBuffN(t,id,x,y,h,sp))return true;
  switch(id){
   case'reinforce':case'indom':case'empower':case'swift':case'adren':return false;
   case'guard':{const key=ab.buff&&ab.buff.key||ab.id||'';
@@ -464,7 +466,7 @@ function fxWarm(){if(FXS.warm||typeof document==='undefined')return;FXS.warm=tru
   for(const k of ['glint:rd','ic:morale-0','ic:morale-1','ic:morale-2','ic:morale-3','ic:morale-4','ic:injury','ic:telegraph','ic:rallied','ic:st-splitshield'])fxSpr(k)}catch(e){}}
 function fxReset(){fxWarm();pN=0;FXS.amp=0;FXS.cu=null;FXS.turnU=null;FXS.haz=null;FXS.hazT=null;FXS.b=typeof B!=='undefined'?B:null;for(let i=0;i<FXO.length;i++){const o=FXO[i];o.on=false;o.u=null;o.cv=null}
  for(let i=0;i<IMP.length;i++){IMP[i].on=false;IMP[i].t=IMP[i].u=null}for(let i=0;i<FLT.length;i++){FLT[i].on=false;FLT[i].u=null}}
-function fxScan(dt){if(!B)return;if(FXS.b!==B)fxReset();FXS.scanT=now;const S=B.shots,F=B.floats,live=SPEEDF>0;
+function fxScan(dt){if(!B)return;if(FXS.b!==B)fxReset();FXS.scanT=now;try{fxLockScan()}catch(e){}const S=B.shots,F=B.floats,live=SPEEDF>0;
  if(!B.busy)FXS.cu=null;
  if(S.length){let n=0;for(let i=0;i<S.length;i++)if(now-S[i].t<300)S[n++]=S[i];S.length=n}
  for(let i=0;i<F.length;i++){const f=F[i];if(f.fx)continue;f.fx=1;if(!live||!f.u)continue;const s=f.txt;
@@ -622,3 +624,150 @@ function fxAmbient(kind,dt,ctx){if(reduced)return;const q=ctx||g;if(!q)return;co
   if(M.x[i]>W+10)M.x[i]=-8;else if(M.x[i]<-10)M.x[i]=W+8;if(M.y[i]>H+10)M.y[i]=-8;else if(M.y[i]<-10)M.y[i]=H+8;
   if(a<=.12)continue;q.globalAlpha=a>.5?.9:.45;const X=Math.floor(M.x[i]/ap)*ap,Y=Math.floor(M.y[i]/ap)*ap;q.fillRect(X,Y,ap*w,ap);if(mo==='glint'&&a>.5){q.fillRect(X-ap,Y,ap*3,ap);q.fillRect(X,Y-ap,ap,ap*3)}}
  q.globalAlpha=1;q.setTransform(m)}
+
+/* ================= arms: weapon swap and the ranged lock =================
+   fxSwap(u,dur)     called by the animation controller the moment a unit's weapon in hand changes (74-anim.js anSwapPoll):
+                     a sheathing glint at the old weapon's place, a whip of steel as the other comes out, the swap glyph overhead.
+   fxLockPop(u,force) a small crossed-arrows pop over an archer whose bow is pinned by an adjacent foe: once per unit per round
+                     (force: the player just tried to shoot). fxLockScan() watches for archers that become locked. */
+function fxSwap(u,dur){if(typeof document==='undefined'||!(SPEEDF>0)||!B||typeof now!=='number'||!u)return;const p=fxUB(u),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),d=dur||420;
+ const side=fxSDir(anOf(u).dc,anOf(u).dr)===0||fxSDir(anOf(u).dc,anOf(u).dr)===3?1:-1;
+ glyphFx('glint:rd',x-side*8,y-h*.32,0,150,0);for(let i=0;i<fxN(5);i++)spawn(K_SQ,R_SPARK,x-side*8+rr(-2,2),y-h*.32,rr(-30,30),rr(-60,-10),rr(.15,.3),1,200,1,0);
+ {const o=fxo(T_SLASH,x+side*4,y-h*.55,d*.4,180*sp,R_STEEL);o.a=-Math.PI/2+side*.6;o.b=11;o.c=side}
+ glyphFx('glint',x+side*10,y-h*.7,0,160,d*.62);
+ glyphFx('ic:swap',x,y-h-14,10,620*sp,d*.25,null);ringFx(x,y,3,12,240*sp,R_GOLD,d*.5,.5)}
+const FXLK=new WeakMap(),FXLKS=new WeakMap();
+function fxLockPop(u,force){if(typeof document==='undefined'||!(SPEEDF>0)||!B||typeof now!=='number'||!u||!u.alive)return;const r=B.round|0,v=FXLK.get(u);if(!force&&v===r)return;if(force&&v===r&&FXS.lkT&&now-FXS.lkT<700)return;FXLK.set(u,r);FXS.lkT=now;
+ const p=fxUB(u),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp());const g=glyphFx('ic:ranged-lock',x,y-h-12,8,760*sp,0,null);
+ ringFx(x,y-h*.5,3,14,260*sp,R_RED,0,1);for(let i=0;i<fxN(8);i++){const a=i/8*6.283;spawn(K_STREAK,R_RED,x+Math.cos(a)*6,y-h-12+Math.sin(a)*6,Math.cos(a)*140,Math.sin(a)*140,.18,1,0,3)}
+ if(u.side===0)fxFloat(u,'LOCKED',FS_HP,60)}
+function fxLockScan(){if(typeof shLocked!=='function'||!B||!B.units)return;const rv=typeof SHV==='object'?SHV.rev:0;if(FXS.lkRev===rv&&FXS.lkB===B)return;FXS.lkRev=rv;FXS.lkB=B;
+ for(const u of B.units){if(!u.alive||u.gone)continue;let lk=false;try{lk=shLocked(u)}catch(e){}const was=!!FXLKS.get(u);FXLKS.set(u,lk);if(lk&&!was&&B.cur&&(B.cur.side!==u.side||B.cur===u))fxLockPop(u,false)}}
+
+/* ================= talent abilities: one choreography per new ability =================
+   FX_ID pins an AB id to a key; FX_HINT2 turns an unknown ability's fx hint (plus whether it shoots a bow) into one, so a
+   future ability with the same hint animates in kind. Keys: the gift arrows (aura, elemental, mana-guided, chi), the bow
+   craft (volley, double shot, headshot, through-shots, crippling shot, mark), and the melee / support arts. */
+const S_N0=40,S_AARW=40,S_SUN=41,S_CONC=42,S_SEEK=43,S_ARCV=44,S_BIND=45,S_STARP=46,S_SPIRIT=47,S_PRESS=48,S_VOLLEY=49,S_QUAKE=50,S_PALM=51,S_STORM=52,S_RUNE=53,S_DECAP=54,S_KICK=55,S_MULTI=56,S_STAR=57,S_SHATTER=58;
+const FX_ID={aarrow:'aarrow',carrow:'carrow',sunarrow:'sunarrow',pvolley:'pvolley',farrow:'farrow',iarrow:'iarrow',tarrow:'tarrow',tempest:'tempest',seeker:'seeker',avolley:'avolley',
+ bindshot:'bindshot',starpierce:'starpierce',spiritarrow:'spirit',pparrow:'pparrow',volley:'volley',doubleshot:'dshot',headshot:'headshot',pshot:'pshot',cripple:'cripple',mark:'mark',breath:'breath',
+ flurry:'multi',hundred:'multi',fistflurry:'multi',earthsplit:'quake',staffquake:'quake',palm:'palm',shatter:'palm',overload:'overload',dragon:'dragon',runeedge:'runeedge',blinkstrike:'blinkstr',
+ manashield:'manashield',starfall:'starfall',avatar:'avatar',rage:'rage',decap:'decap',axeexec:'decap',kick:'kick',dragonkick:'dkick',lotus:'lotus',surge:'surge',secwind:'secwind',
+ bandage:'bandage',triage:'bandage',tumble:'tumble',vault:'tumble',vanish:'vanish',bastion:'bastion',phalanx:'phalanx',parry:'parry',masterstroke:'master',bladedance:'round',whirl:'round',cleave:'round'};
+const FX_BOWAB=ab=>ab.needs==='bow'||(ab.wpn&&B&&B.cur&&B.cur.wpn&&B.cur.wpn.wt==='bow');
+const FX_HINT2={swap:()=>'swapk',volley:()=>'volley',leap:()=>'tumble',multi:()=>'multi',quake:()=>'quake',heal:ab=>ab.party?'lotus':'bandage',mark:()=>'mark',rage:()=>'rage',
+ pierce:ab=>FX_BOWAB(ab)?'pshot':'stab',storm:ab=>FX_BOWAB(ab)?'tarrow':'overload',aura:ab=>ab.tgt==='self'?'avatar':FX_BOWAB(ab)?'aarrow':null,flame:ab=>FX_BOWAB(ab)?'farrow':null,
+ frost:ab=>FX_BOWAB(ab)?'iarrow':null,chi:ab=>ab.tgt==='self'?'breath':FX_BOWAB(ab)?'spirit':'palm',arcane:ab=>ab.tgt==='self'?'manashield':ab.magic?'starfall':FX_BOWAB(ab)?'seeker':ab.dash?'blinkstr':'runeedge'};
+const FXG2={rune:['.xFx.','xF.Fx','F.r.F','xF.Fx','.xFx.'],petal:['.eA.','eAAB','.AB.'],boot:['.kk..','.kj..','.kj..','.kjjj','.iiii'],ret:['..h..','.h.h.','h.g.h','.h.h.','..h..'],
+ cross:['..r..','.rrr.','rrrrr','.rrr.','..r..'],xarr:['q...q','.k.k.','..k..','.k.k.','h...h']};
+for(const k in FXG2)FXG[k]=FXG2[k];
+function fxPrev(t,k){return k>0&&FXS.clast&&FXS.clast!==t?FXS.clast:null}
+// an arrow with an elemental trail and a glint riding its head; returns ms to impact
+function fxGArrow(ax,ay,bx,by,L,ss,sp,ramp,arc,speed,delay){const fly=Math.max(60,L/(speed||1.15))*ss,o=fxArrow(ax,ay,bx,by,fly,arc==null?Math.min(28,L*.13):arc,ramp,delay);return{o,at:delay+fly}}
+function fxStrikeN(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){let o,r,ld,at;const prev=fxPrev(t,k),D=40*sp;
+ const from=()=>{if(!prev)return null;const s=fxUP(prev);return{x:s.x,y:s.y-s.h*.48}};
+ const splash=(sty)=>{FXS.sty=sty;return Math.max(30*sp,FXS.cAt-now+40*sp)};
+ switch(id){
+  case'aarrow':case'carrow':{glowFx(ax,ay,30,'y',.5,120,0);r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_AURA,null,1.4,D);r.o.c=miss?1:0;FXS.sty=id==='carrow'?S_CONC:S_AARW;return r.at}
+  case'sunarrow':if(k>0)return splash(S_AURA);r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_AURA,Math.min(40,L*.2),1,D);r.o.c=miss?1:0;glowFx(ax,ay,40,'y',.6,160,0);FXS.cAt=now+r.at;FXS.sty=S_SUN;return r.at;
+  case'pvolley':case'pshot':{const R2=id==='pvolley'?R_AURA:R_WHITE,f=from();if(f){const fl=Math.max(40,Math.hypot(bx-f.x,by-f.y)/1.8)*ss,dl=Math.max(20*sp,FXS.cAt-now);o=fxArrow(f.x,f.y,bx,by,fl,2,R2,dl);FXS.cAt=now+dl+fl;FXS.clast=t;FXS.sty=S_AARW;return dl+fl}
+   r=fxGArrow(ax,ay,bx,by,L,ss,sp,R2,4,1.8,D);r.o.c=miss?1:0;FXS.cAt=now+r.at;FXS.clast=t;FXS.sty=id==='pshot'?S_PUNC:S_AARW;return r.at}
+  case'farrow':r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_FIRE,null,1.1,D);r.o.c=miss?1:0;emitFx(2,null,ax,ay,60,D,0,R_FIRE);FXS.sty=S_FIRE;return r.at;
+  case'iarrow':r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_ICE,null,1.2,D);r.o.c=miss?1:0;burst(K_SQ,R_ICE,ax,ay,6,20,60,.3,1,0,2);FXS.sty=S_FROST;return r.at;
+  case'tarrow':{if(prev){const f=from(),dl=Math.max(40*sp,FXS.cAt-now+30*sp);o=fxo(T_BOLT,f.x,f.y,dl,230*ss,R_QI);o.x2=bx;o.y2=by;o.a=8;FXS.clast=t;FXS.cAt=now+dl+50*sp;FXS.sty=S_ZAP;return dl+50*sp}
+   r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_QI,6,1.6,D);r.o.c=miss?1:0;o=fxo(T_BOLT,ax,ay,r.at-60*sp,200*ss,R_QI);o.x2=bx;o.y2=by;o.a=3;FXS.clast=t;FXS.cAt=now+r.at;FXS.sty=S_THUN;return r.at}
+  case'tempest':{if(k>0)return splash(S_STORM);const n=5;at=0;for(let i=0;i<n;i++){const ox=rr(-26,26),oy=rr(-10,10),q=fxGArrow(ax+rr(-6,6),ay,bx+ox,by+oy,L,ss,sp,i&1?R_ICE:R_FIRE,Math.min(60,L*.3)+i*4,1,D+i*45*sp);if(i===0){q.o.c=miss?1:0;at=q.at}}
+   FXS.cAt=now+at+90*sp;FXS.sty=S_STORM;return at+90*sp}
+  case'seeker':{r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_MANA,Math.min(56,24+L*.18),.9,D);o=fxo(T_PROJ,ax,ay-4,D,r.at-D,R_MANA);o.x2=bx;o.y2=by;o.a=5;o.b=Math.min(56,24+L*.18)+6;o.s=fxOrb(R_MANA);FXS.sty=S_SEEK;return r.at}
+  case'avolley':{if(prev||k>0){const s0=FXS.clast||t,a0=fxUP(s0),dl=Math.max(30*sp,FXS.cAt-now);o=fxo(T_PROJ,a0.x,a0.y-a0.h*.48,dl,140*ss,R_MANA);o.x2=bx;o.y2=by;o.a=5;o.b=10;o.s=fxOrb(R_MANA);FXS.sty=S_ARCV;return dl+140*ss}
+   r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_MANA,null,1.2,D);r.o.c=miss?1:0;FXS.clast=t;FXS.cAt=now+r.at;FXS.sty=S_ARCV;return r.at}
+  case'bindshot':r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_MANA,null,1.2,D);r.o.c=miss?1:0;FXS.sty=S_BIND;return r.at;
+  case'starpierce':{if(prev){FXS.sty=S_STARP;return Math.max(20*sp,FXS.cAt-now+(k*30)*sp)}const ex=bx+ux*90,ey=by+uy*90;o=fxo(T_BEAM,ax,ay,90*sp,340*ss,R_ICE);o.x2=ex;o.y2=ey;glowFx(ax,ay,46,'F',.7,200,0);emitFx(1,null,ax,ay,80,90*sp,0,R_MANA);FXS.cAt=now+110*sp;FXS.clast=t;FXS.sty=S_STARP;return 110*sp}
+  case'spirit':{r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_CHI,4,1.5,D);r.o.c=miss?1:0;for(let i=0;i<fxN(8);i++)spawn(K_STREAK,i&1?R_WHITE:R_CHI,ax,ay,ux*rr(260,380),uy*rr(260,380),.2,1,0,1,(D/1000)+i*.012);FXS.sty=S_SPIRIT;return r.at}
+  case'pparrow':r=fxGArrow(ax,ay,bx,by,L,ss,sp,R_CHI,6,1.7,D);r.o.c=miss?1:0;FXS.sty=S_PRESS;return r.at;
+  case'volley':{if(k>0)return splash(S_VOLLEY);at=0;for(let i=0;i<3;i++){const q=fxGArrow(ax+(i-1)*5,ay,bx+(i-1)*rr(8,16),by+rr(-6,6),L,ss,sp,-1,Math.min(80,30+L*.3),.9,D+i*60*sp);if(i===1){q.o.c=miss?1:0;at=q.at}}FXS.cAt=now+at;FXS.sty=S_VOLLEY;return at}
+  case'dshot':{const sg=k&1?1:-1;r=fxGArrow(ax,ay+sg*3,bx,by+sg*3,L,ss,sp,R_WHITE,6,2,20*sp);r.o.c=miss?1:0;FXS.sty=S_ARROW;return r.at}
+  case'headshot':{const hy=fy1-bh*.86,dl=170*sp;o=fxo(T_RET,bx,hy,0,dl+260,0);o.a=dl+120;r=fxGArrow(ax,ay,bx,miss?by:hy,L,ss,sp,R_WHITE,2,1.9,dl);r.o.c=miss?1:0;FXS.sty=S_AIMED;return r.at}
+  case'cripple':{const ly=fy1-bh*.18;r=fxGArrow(ax,ay,bx,miss?by:ly,L,ss,sp,-1,Math.min(20,L*.1),1.3,D);r.o.c=miss?1:0;FXS.sty=S_PIN;return r.at}
+  case'multi':{const R2=FXS.cab&&FXS.cab.cost&&FXS.cab.cost[0]==='chi'?R_CHI:R_WHITE;ld=fxMelee(u,t,R2,fxWpnKind(u)===S_BLUNT||R2===R_CHI?S_BLUNT:S_SLASH,sp*.7);FXS.sty=S_MULTI;return ld}
+  case'quake':{if(k>0){FXS.sty=S_QUAKE;return Math.max(30*sp,FXS.cAt-now)}ld=fxMelee(u,t,R_DUST,S_BLUNT,sp*1.2);FXS.cAt=now+ld;FXS.sty=S_QUAKE;return ld}
+  case'palm':ld=fxMelee(u,t,R_CHI,S_BLUNT,sp);FXS.sty=(FXS.cab&&FXS.cab.ignB>=.4)?S_SHATTER:S_PALM;return ld;
+  case'overload':case'dragon':{const R2=id==='dragon'?R_FIRE:R_MANA;if(prev){const f=from(),dl=Math.max(40*sp,FXS.cAt-now+30*sp);o=fxo(T_BOLT,f.x,f.y,dl,240*ss,id==='dragon'?R_QI:R_MANA);o.x2=bx;o.y2=by;o.a=6;FXS.clast=t;FXS.cAt=now+dl+50*sp;FXS.sty=id==='dragon'?S_STORM:S_ZAP;return dl+50*sp}
+   ld=fxMelee(u,t,R2,S_SLASH,sp);if(id==='dragon'){emitFx(2,null,fx1-ux*10,fy1-bh*.48,90,200*ss,ld*.5,R_FIRE);o=fxo(T_SPIN,fx1,fy1-bh*.45,ld,360*ss,R_FIRE);o.a=15;o.b=5;o.c=-1.6}FXS.clast=t;FXS.cAt=now+ld;FXS.sty=id==='dragon'?S_STORM:S_RUNE;return ld}
+  case'runeedge':ld=fxMelee(u,t,R_MANA,S_SLASH,sp);FXS.sty=S_RUNE;return ld;
+  case'blinkstr':ld=fxMelee(u,t,R_MANA,fxWpnKind(u),sp);FXS.sty=S_MANA;return ld;
+  case'decap':{ld=fxMelee(u,t,R_RED,S_SLASH,sp*1.15);if(!miss){o=fxo(T_SLASH,bx-ux*10,by-bh*.3-uy*10,ld+30*ss,200*ss,R_BLOOD);o.a=Math.atan2(uy,ux);o.b=15;o.c=-1}FXS.sty=S_DECAP;return ld}
+  case'kick':case'dkick':FXS.sty=S_KICK;return 240*sp*AN_HIT_AT;
+  case'starfall':{if(k>0)return splash(S_MANA);const sx=bx-50,sy=by-230,fl=Math.max(160,260*ss);o=fxo(T_PROJ,sx,sy,90*sp,fl,R_GOLD);o.x2=bx;o.y2=by;o.a=5;o.b=0;o.s=[fxSpr('star'),fxSpr('star1')];
+   emitFx(1,null,ax,ay-20,60,90*sp,0,R_MANA);FXS.cAt=now+90*sp+fl;FXS.sty=S_STAR;return 90*sp+fl}
+  case'master':{ld=fxMelee(u,t,R_GOLD,S_SLASH,sp*1.1);if(!miss){o=fxo(T_SLASH,bx-ux*14,by-uy*14,ld+40*ss,200*ss,R_GOLD);o.a=Math.atan2(uy,ux)+.5;o.b=14;o.c=-1;glyphFx('glint:rd',bx,by-6,0,200,ld)}FXS.sty=S_AIMED;return ld}}
+ return -1}
+function fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
+ switch(sty){
+  case S_AARW:burst(K_TRAIL,R_AURA,x,y,12,110,280,.26,1,0,4);for(let i=0;i<fxN(6);i++)spawn(K_STREAK,R_AURA,x,y,dx*rr(200,320)+rr(-40,40),dy*rr(200,320)+rr(-60,20),.22,1,0,2);ringFx(x,y,3,13,220,R_AURA,0,1);glowFx(x,y,40,'y',.5,150);break;
+  case S_SUN:ringFx(x,fy,4,30,380,R_AURA,0,.5,2);ringFx(x,y,3,20,300,R_GOLD,60,1,2);glowFx(x,y,90,'y',.8,300);glowFx(x,y,40,'r',.6,120);fxShake(4);
+   for(let i=0;i<fxN(16);i++){const a=i/16*6.283;spawn(K_STREAK,i&1?R_AURA:R_WHITE,x+Math.cos(a)*6,y+Math.sin(a)*4,Math.cos(a)*rr(220,340),Math.sin(a)*rr(120,200),.3,1,0,2)}break;
+  case S_CONC:for(let i=-2;i<=2;i++)spawn(K_STREAK,R_AURA,x-dx*8-dy*i*7,y-dy*8+dx*i*7,dx*rr(240,330),dy*rr(240,330),.2,1,0,3);ringFx(x,y,3,15,240,R_AURA,0,1,2);puff(x,fy,6);
+   for(let i=0;i<3;i++){const g=glyphFx('star1',x,y-h*.4,0,300,0);g.c=(i-1)*70;g.d=-140}fxShake(3.5);break;
+  case S_SEEK:burst(K_TRAIL,R_MANA,x,y,12,80,230,.3,1,0,4);ringFx(x,y,2,14,260,R_MANA,0,1);glyphFx('glint:rF',x,y,0,140,0);for(let i=0;i<fxN(6);i++){const a=i/6*6.283;spawn(K_SQ,R_MANA,x+Math.cos(a)*14,y+Math.sin(a)*8,-Math.cos(a)*80,-Math.sin(a)*50,.2,1,0,1)}break;
+  case S_ARCV:{burst(K_SQ,R_MANA,x,y,14,60,200,.4,1,0,3);ringFx(x,y,2,15,260,R_MANA,0,1,2);glowFx(x,y,46,'x',.55,180);const o=fxOrb(R_MANA);for(let i=0;i<4;i++){const g=glyphFx('orb1',x,y,0,260,0);g.c=Math.cos(i*1.57+.7)*110;g.d=Math.sin(i*1.57+.7)*60-60}break}
+  case S_BIND:{const g=glyphFx('rune',x,fy-2,0,900,0);ringFx(x,fy,16,4,360,R_MANA,0,.5,2);ringFx(x,fy,4,16,420,R_MANA,120,.5);burst(K_SQ,R_MANA,x,y,8,40,120,.4,1,0,2);{const o=fxo(T_PIN,x,fy,0,900,0);o.a=dx<0?-1:1}break}
+  case S_STARP:cone(K_TRAIL,R_ICE,x,y,dx,dy,10,180,380,.25,1,0,3,.35);burst(K_SQ,R_MANA,x,y,8,40,140,.35,1,0,3);glowFx(x,y,40,'F',.6,140);glyphFx('glint:rF',x,y,0,150,0);break;
+  case S_SPIRIT:{const o=fxo(T_COL,x,fy,0,320*sp,R_CHI);o.a=h;o.b=0;for(let i=0;i<fxN(10);i++)spawn(K_TRAIL,i&1?R_WHITE:R_CHI,x+rr(-8,8),y+rr(-6,6),0,rr(-220,-110),rr(.25,.45),1,0,1.2,rr(0,.08));glowFx(x,y,44,'A',.55,180);break}
+  case S_PRESS:for(let i=0;i<4;i++){const a=i*1.57+.4;glyphFx('glint',x+Math.cos(a)*8,y+Math.sin(a)*8,0,160,i*50)}ringFx(x,y-h*.35,3,11,240,R_CHI,0,1);burst(K_SQ,R_CHI,x,y,7,40,120,.3,1,0,3);break;
+  case S_VOLLEY:puff(x,fy,7);for(let i=0;i<3;i++){const o=fxo(T_PIN,x+(i-1)*10+rr(-3,3),fy+rr(-3,3),i*40,700,0);o.a=i&1?1:-1}fxShake(1.5);break;
+  case S_QUAKE:{const o=fxo(T_CRACK,x,fy,0,1000,0);o.a=1;ringFx(x,fy,4,26,360,R_DUST,0,.5,2);ringFx(x,fy,3,18,300,R_STEEL,80,.5);fxShake(5);puff(x,fy,10);
+   for(let i=0;i<fxN(14);i++)spawn(K_SQ,i%3?R_DUST:R_ROOT,x+rr(-16,16),fy+rr(-4,4),rr(-60,60),rr(-260,-120),rr(.4,.7),i&1?2:1,720,.6);break}
+  case S_PALM:ringFx(x,y,3,17,260,R_CHI,0,1,2);ringFx(x,y,2,11,200,R_WHITE,60,1);burst(K_TRAIL,R_CHI,x,y,12,120,280,.24,1,0,4);glyphFx('fist:AeBA',x-dx*6,y-dy*6,0,170,0);glowFx(x,y,44,'A',.55,160);fxShake(3);break;
+  case S_SHATTER:{ringFx(x,y,3,20,320,R_CHI,0,1,2);const o=fxo(T_CRACK,x,y,0,700,0);o.a=0;cone(K_SQ,R_STEEL,x,y,dx,dy*.5-.4,10,90,260,.4,1,500,2,1);glowFx(x,y,60,'A',.7,200);fxShake(5);break}
+  case S_STORM:burst(K_SQ,R_FIRE,x,y,10,60,200,.4,2,-80,2);burst(K_SQ,R_ICE,x,y,8,40,160,.4,1,100,2);{const o=fxo(T_BOLT,x+rr(-8,8),y-h*1.4,0,170*sp,R_QI);o.x2=x;o.y2=fy-4;o.a=0}glowFx(x,y,52,'z',.6,170);emitFx(0,t,0,0,16,500,0,R_EMBER);fxShake(3);break;
+  case S_RUNE:{glyphFx('rune',x,y-4,10,420,0);burst(K_TRAIL,R_MANA,x,y,10,90,240,.26,1,0,4);ringFx(x,y,2,12,220,R_MANA,0,1);glyphFx('glint:rF',x,y,0,140,0);break}
+  case S_DECAP:if(dmg>0){cone(K_SQ,fxBloodR(t),x,y-h*.25,dx,-1,12,80,260,.5,2,620,1,1.3);cone(K_TRAIL,fxBloodR(t),x,y-h*.25,dx,dy*.4-.4,8,120,300,.3,1,300,2,.6)}fxShake(4);glyphFx('glint:rd',x,y-h*.3,0,140,0);break;
+  case S_KICK:{const fire=FXS.cid==='dkick'||(e.u&&e.u===FXS.cu&&FXS.cid==='dkick');for(let i=-2;i<=2;i++)spawn(K_STREAK,fire?R_FIRE:R_WHITE,x-dx*8-dy*i*6,y-dy*8+dx*i*6+8,dx*rr(240,330),dy*rr(240,330),.2,1,0,3);
+   {const g=glyphFx('boot',x-dx*12,y-dy*12+8,0,180,0);g.c=dx*80;g.d=dy*40}puff(x,fy,6);for(let i=0;i<3;i++){const g=glyphFx('star1',x,y-h*.4,0,300,0);g.c=(i-1)*70;g.d=-140}fxShake(3);break}
+  case S_MULTI:{const o=fxo(T_SLASH,x+rr(-4,4),y+rr(-4,4),0,120,R_WHITE);o.a=Math.atan2(dy,dx)+rr(-.8,.8);o.b=8;o.c=Math.random()<.5?-1:1;burst(K_TRAIL,R_WHITE,x,y,6,90,220,.18,1,0,4);break}
+  case S_STAR:ringFx(x,fy,4,34,420,R_GOLD,0,.5,2);ringFx(x,fy,4,24,360,R_MANA,80,.5,2);glowFx(x,y,100,'d',.8,320);glowFx(x,y,50,'r',.6,140);fxShake(5);
+   for(let i=0;i<fxN(24);i++){const a=Math.random()*6.283,s2=rr(80,300);spawn(i%3?K_TRAIL:K_SQ,i&1?R_GOLD:R_MANA,x,y,Math.cos(a)*s2,Math.sin(a)*s2*.55-rr(40,140),rr(.3,.6),i&1?2:1,200,1.6)}{const o=fxo(T_CRACK,x,fy,0,900,0);o.a=1}break}}
+/* the caster's own beat, before the blow; true when drawn here */
+function fxCastN(u,t,ab,id,k,x,y,h,sp){
+ switch(id){
+  case'swapk':return true;
+  case'aarrow':case'carrow':case'sunarrow':case'pvolley':ringFx(x,y,3,13,240*sp,R_AURA,0,.5);for(let i=0;i<fxN(8);i++)spawn(K_TRAIL,R_AURA,x+rr(-10,10),y-rr(0,8),0,rr(-230,-120),rr(.2,.36),1,0,1.5,rr(0,.08));if(id==='sunarrow')glowFx(x,y-h*.5,60,'y',.5,260);return true;
+  case'farrow':case'iarrow':case'tarrow':case'tempest':{const R2=id==='farrow'?R_FIRE:id==='iarrow'?R_ICE:R_QI;ringFx(x,y,3,14,260*sp,R2,0,.5);if(id==='tempest'){ringFx(x,y,3,20,300*sp,R_FIRE,60*sp,.5);ringFx(x,y,3,20,300*sp,R_ICE,120*sp,.5)}
+   for(let i=0;i<fxN(8);i++){const a=i/8*6.283;spawn(K_SQ,i&1&&id==='tempest'?R_ICE:R2,x+Math.cos(a)*12,y-h*.5+Math.sin(a)*8,-Math.cos(a)*40,-Math.sin(a)*30-20,.3,1,0,1)}return true}
+  case'seeker':case'avolley':case'bindshot':case'starpierce':ringFx(x,y,4,15,300*sp,R_MANA,0,.5);glyphFx('rune',x,y-h-8,8,480*sp,0,null);emitFx(1,u,0,0,60,260*sp,0,R_MANA);return true;
+  case'spirit':case'pparrow':ringFx(x,y,3,14,280*sp,R_CHI,0,.5);glowFx(x,y-h*.5,40,'A',.45,220);return true;
+  case'breath':{for(let i=0;i<3;i++)ringFx(x,y-h*.4,24-i*4,4,420*sp,R_CHI,i*110*sp,.6,1);for(let i=0;i<fxN(12);i++){const a=i/12*6.283;spawn(K_SQ,R_CHI,x+Math.cos(a)*26,y-h*.4+Math.sin(a)*14,-Math.cos(a)*70,-Math.sin(a)*40,.36,1,0,0,i*.02)}return true}
+  case'volley':case'dshot':case'pshot':case'cripple':return true;
+  case'headshot':glyphFx('glint',x,y-h*.8,0,160,0);return true;
+  case'mark':{if(t){const b=fxUP(t),o=fxo(T_RET,b.x,b.y-b.h*.5,0,900,0);o.a=520;glyphFx('ic:ab-mark',b.x,b.y-b.h-14,10,800*sp,200*sp,null);ringFx(b.x,b.y,4,16,320*sp,R_RED,200*sp,.5)}
+   const o2=fxo(T_PIERCE,x,y-h*.6,0,240*sp,R_RED);if(t){const b=fxUP(t);o2.x2=b.x;o2.y2=b.y-b.h*.5}return true}
+  case'multi':case'palm':case'decap':case'kick':case'dkick':case'runeedge':case'master':return true;
+  case'quake':{const o=fxo(T_SPIN,x,y-h*.2,0,240*sp,R_DUST);o.a=14;o.b=3.4;o.c=-3.1;glowFx(x,y-h,40,'l',.35,200);return true}
+  case'overload':ringFx(x,y,3,14,260*sp,R_MANA,0,.5);emitFx(1,u,0,0,90,300*sp,0,R_MANA);return true;
+  case'dragon':ringFx(x,y,3,16,260*sp,R_FIRE,0,.5);ringFx(x,y,3,16,260*sp,R_ICE,90*sp,.5);emitFx(2,null,x,y-h*.4,70,320*sp,0,R_FIRE);return true;
+  case'blinkstr':FXS.bR=R_MANA;FXS.dS='x';FXS.dR=R_MANA;ringFx(x,y,3,13,240*sp,R_MANA,0,.5);return true;
+  case'starfall':ringFx(x,y,4,15,300*sp,R_MANA,0,.5);glowFx(x,y-h-10,50,'d',.6,300);glyphFx('star',x,y-h-12,16,500*sp,0,null);return true;
+  case'avatar':{const o=fxo(T_COL,x,y,0,560*sp,R_AURA);o.a=h+20;o.b=1;ringFx(x,y,4,22,420*sp,R_AURA,0,.5,2);glowFx(x,y-h*.5,90,'y',.7,420);fxShake(2);
+   for(let i=0;i<fxN(20);i++)spawn(K_TRAIL,i&1?R_AURA:R_WHITE,x+rr(-14,14),y-rr(0,10),0,rr(-320,-160),rr(.3,.5),i&1?2:1,0,1.2,rr(0,.3));return true}
+  case'rage':{ringFx(x,y-h*.5,3,16,280*sp,R_RED,0,1,2);ringFx(x,y-h*.5,3,16,280*sp,R_FIRE,140*sp,1);glowFx(x,y-h*.5,60,'g',.6,300);glyphFx('ic:ab-rage',x,y-h-12,10,600*sp,0,null);fxShake(2.5);
+   for(let i=0;i<fxN(14);i++)spawn(K_SQ,i&1?R_RED:R_FIRE,x+rr(-10,10),y-rr(0,h),rr(-20,20),rr(-150,-60),rr(.3,.5),i&1?2:1,-30,1);return true}
+  case'manashield':{const o=fxo(T_WARD,0,0,0,620*sp,R_MANA);o.u=u;o.a=h;o.b=1;glowFx(x,y-h*.5,56,'x',.45,300);return true}
+  case'lotus':{for(let i=0;i<8;i++){const a=i/8*6.283,g=glyphFx('petal',x+Math.cos(a)*6,y-h*.3+Math.sin(a)*3,0,640*sp,i*30*sp,null);g.c=Math.cos(a)*90;g.d=Math.sin(a)*45-220}
+   ringFx(x,y,4,(ab.party||2)*30,600*sp,R_CHI,0,.5,2);ringFx(x,y,4,(ab.party||2)*22,520*sp,R_WHITE,140*sp,.5);glowFx(x,y-h*.4,70,'A',.5,360);return true}
+  case'surge':{const o=fxo(T_COL,x,y,0,600*sp,R_CHI);o.a=h+30;o.b=1;glyphFx('cross',x,y-h-14,14,700*sp,80*sp,null);ringFx(x,y,4,(ab.party||2)*30,640*sp,R_WHITE,0,.5,2);glowFx(x,y-h*.5,100,'r',.55,400);return true}
+  case'secwind':{for(let i=0;i<fxN(14);i++){const yy=y-rr(4,h);spawn(K_STREAK,i%3?R_WIND:R_WHITE,x-rr(30,44),yy,rr(260,400),rr(-20,20),rr(.18,.28),1,0,1,i*.025*sp)}glyphFx('heart',x,y-h-8,12,600*sp,120*sp,null);ringFx(x,y,3,14,280*sp,R_WIND,0,.5);return true}
+  case'bandage':if(t){const b=fxUP(t);for(let i=0;i<fxN(12);i++){const a=i/12*6.283*2;spawn(K_SQ,R_WHITE,b.x+Math.cos(a)*10,b.y-b.h*.45+i*1.5,-Math.sin(a)*60,Math.cos(a)*20,.3,1,0,1,i*.03)}}return true;
+  case'tumble':puff(x,y,8);for(let i=0;i<fxN(6);i++)spawn(K_TRAIL,R_DUST,x+rr(-8,8),y-rr(0,10),rr(-60,60),rr(-80,-20),.3,1,60,2);return true;
+  case'vanish':{for(let i=0;i<fxN(22);i++)spawn(K_SQ,i%3?R_SMOKE:R_DUST,x+rr(-14,14),y-rr(0,h),rr(-30,30),rr(-60,-10),rr(.5,.9),2,0,.9,rr(0,.1));glowFx(x,y-h*.4,40,'n',.4,260);return true}
+  case'bastion':case'phalanx':case'parry':return false}
+ return false}
+/* a buff landing (the cast that gave it is live); true when drawn here */
+function fxBuffN(t,id,x,y,h,sp){
+ switch(id){
+  case'bastion':{const o=fxo(T_BARS,0,0,0,760*sp,R_STEEL);o.u=t;o.a=h;glyphFx('ic:ab-bastion',x,y-h-10,6,640*sp,60*sp,t);ringFx(x,y,4,20,300*sp,R_STEEL,0,.5,2);puff(x,y,8);fxShake(2);return true}
+  case'phalanx':{const g=glyphFx('shield:AqBpeq',x,y-h*.45,0,560*sp,0,t);g.b=-4;ringFx(x,y,4,15,280*sp,R_STEEL,0,.5);return true}
+  case'parry':{for(const sg of[-1,1]){const o=fxo(T_SLASH,x,y-h*.5,(sg>0?90:0)*sp,200*sp,R_GOLD);o.a=sg>0?-.7:-2.4;o.b=13;o.c=sg}glyphFx('glint:rd',x,y-h*.75,0,260*sp,120*sp);ringFx(x,y,3,13,280*sp,R_GOLD,0,.5);return true}
+  case'breath':glyphFx('ic:ab-breath',x,y-h-10,10,560*sp,0,t);return true;
+  case'avatar':case'rage':case'manashield':case'vanish':case'surge':case'lotus':case'secwind':return true}
+ return false}

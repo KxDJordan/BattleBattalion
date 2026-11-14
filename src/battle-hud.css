@@ -188,3 +188,25 @@
 #bTop .pxi,#bLeft .pxi,#bRight .pxi,#fcw .pxi{display:block;background-repeat:no-repeat;background-size:100% 100%}
 /* small screens: the forecast drops the portrait (the foe is on the board, bracketed) so it fits beside the target, clear of the line of fire */
 @media (max-width:760px){.fcp{display:none}#fcw{max-width:226px;padding-left:9px}.fcn b{min-width:60px}}
+/* ---- arms: weapon swap control, ranged-lock badges, the weapon in hand on the chip ---- */
+#bend{display:flex;align-items:flex-end;gap:6px}
+#bend .swp{position:relative;flex:none;width:58px;height:48px;margin-bottom:2px;display:flex;align-items:center;justify-content:center;gap:1px;padding:0 2px;overflow:visible}
+#bend .swp .swh{display:block;width:32px;height:32px;line-height:0}
+#bend .swp .swa{display:flex;flex-direction:column;gap:0;line-height:0}
+#bend .swp .swa .pxi:last-child{opacity:.8}
+#bend .swp .apc{position:absolute;left:-6px;bottom:-4px;box-sizing:border-box;min-width:16px;height:16px;padding:0 2px;font-family:'Jersey 15',serif;font-size:.72rem;font-weight:700;font-style:normal;line-height:12px;text-align:center;color:#0b1514;background:#d1a94e;border:2px solid #0b1514}
+#bend .swp.free .apc{background:#9bd96f;letter-spacing:.03em}
+#bRight .off .pxi,#bRight .off .ic{opacity:.45}
+#app.nopxb #bRight button.off{background:#182a28;color:#4d5a5c;box-shadow:inset 0 0 0 2px #213a36,0 3px 0 #0b1514a6}
+#app.nopxb #bRight button.off:active{transform:none}
+#bRight .off .apc{background:#7d8f86}
+#abar .ab.lk{box-shadow:inset 0 0 0 2px #c4493f,0 3px 0 #0b1514a6}
+#abar .ab .lkb{position:absolute;right:-5px;top:-6px;width:16px;height:16px;line-height:0;background:#5a1f1c;box-shadow:0 0 0 2px #0b1514}
+#abar .ab.lk .lkb .pxi{opacity:1}
+#ahdr u.bad{display:inline-flex;align-items:center;gap:3px}
+.uwp{flex:none;display:inline-flex;align-items:center;gap:0;height:16px;line-height:0}
+.uwp i{display:block;margin-left:-3px;opacity:.6;transform:scale(.75);transform-origin:left bottom}
+.uwp.lk{box-shadow:0 2px 0 #c4493f}
+.si.sl .pxi{opacity:.6}.si.sl b{color:#7d8f86}
+.fcs.fclk{gap:4px;font-family:'Alegreya Sans',sans-serif;font-size:.74rem;color:#b9ad8f}.fcs.fclk i{font-style:normal}
+@media (max-width:700px){#bend .swp{width:52px;height:44px}}

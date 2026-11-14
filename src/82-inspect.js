@@ -40,11 +40,32 @@ function insTraits(u){const d=u.def||{},L=[],S=k=>typeof STATUS==='object'&&STAT
  if(u.noHead)L.push(['helmet','No head to hit','Every blow lands on the body.']);
  if(u.flags&&u.flags.berserk)L.push(['enraged','Berserk','Regains 4 AP on a kill, once a turn.']);
  return L.map(x=>`<div class="ins-ab">${insIc(x[0])}<div><b>${x[1]}</b><span>${x[2]}</span></div></div>`).join('')}
+/* ---- arms and talents (mercs): weapon in hand and backup, shield raised or slung, gift variant, trees, learned perks ---- */
+function insWn(w){return w?(w.n||w.wt||'Weapon'):'Bare hands'}
+function insArms(u){const sh=typeof shHand==='function'?shHand(u):u.wpn,al=typeof shAlt==='function'?shAlt(u):null,ic=w=>typeof shWIcon==='function'?shWIcon(w):'sword';let h='';
+ const wl=w=>w&&w.d?`${w.d[0]}–${w.d[1]} dmg${w.rng>1?' · range '+w.rng:''}${w.two?' · two-handed':''}`:'';
+ if(al||u.side===0){h+=`<div class="ins-ab">${insIc(ic(sh))}<div><b>${insWn(sh)}</b><i>in hand</i><span>${wl(sh)}</span></div></div>`;
+  if(al)h+=`<div class="ins-ab ins-alt">${insIc(ic(al))}<div><b>${insWn(al)}</b><i>backup${AB.swap?' · swap '+(typeof swapCost==='function'&&B&&B.cur===u?(swapCost(u)<=0?'free':swapCost(u)+' AP'):(AB.swap.ap|0)+' AP'):''}</i><span>${wl(al)}</span></div></div>`}
+ if(u.shpMax>0&&(u.shield||u.slung)){const sl=typeof shSlung==='function'&&shSlung(u);h+=`<div class="ins-ab">${insIc(sl?'slung':'shield')}<div><b>${sl?'Shield slung':'Shield raised'}</b><span>${sl?'On the back while a two-handed weapon is in hand: no defence, no shield skills.':'Defence and shield skills while a one-handed weapon is in hand.'}</span></div></div>`}
+ if(typeof shLocked==='function'&&shLocked(u))h+=`<div class="ins-ab ins-s bd">${insIc('ranged-lock')}<div><b>Ranged lock</b><span>An enemy is adjacent: no bow shots until it falls or ${u.side===0?'this sword steps':'it steps'} away.</span></div></div>`;
+ return h}
+function insAbChips(u){const L=[];for(const id of u.abs||[]){const a=AB[id];if(!a||L.includes(id))continue;L.push(id)}if(!L.length)return'';
+ return`<div class="ins-trees">${L.map(id=>`<span title="${AB[id].d||''}">${insIc('ab-'+id)}<b>${AB[id].n}</b></span>`).join('')}</div>`}
+function insPerkFx(p){if(!p)return'';if(p.d)return p.d;const L=[];if(p.st)for(const k in p.st)L.push(insSt(k,p.st[k]));if(p.res)L.push('+'+p.res+' pool');if(p.regen)L.push('+'+p.regen+' regeneration');return L.join(', ')}
+function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&MAST?MAST:{};
+ let trees=[];try{if(typeof mercTrees==='function')trees=mercTrees(m)||[]}catch(e){}if(!trees.length&&Array.isArray(m.trees))trees=m.trees.map(k=>({key:k,tree:T[k]}));
+ const gk=m.gift||(typeof giftVariant==='function'?(()=>{try{const g=giftVariant(m);return typeof g==='string'?g:g&&g.key}catch(e){return null}})():null);
+ if(gk&&T[gk]){const G_=T[gk],res=G_.res,sty=G_.style;h+=`<div class="ins-ab">${insIc('m-'+gk)}<div><b>${G_.n}</b><i style="color:${RESC[res]||'inherit'}">${RESN[res]||''}${sty?' · '+sty:''}</i><span>${G_.d||''}</span></div></div>`}
+ if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}">${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
+ const P=Array.isArray(m.perks)?m.perks:[];
+ for(const id of P){let r=null;try{r=typeof perkById==='function'?perkById(id):null}catch(e){}const p=r&&r.perk;if(!p)continue;const icn=p.ab&&AB[p.ab]?'ab-'+p.ab:'perk-'+id;
+  h+=`<div class="ins-ab ins-pk" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b><span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
+ return h}
 function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor=typeof shMor==='function'?shMor(u):-1,brv=typeof shBrv==='function'?shBrv(u):null;
  let h=`<div class="ins-h"><b class="ins-n">${u.name}</b><span class="ins-tag ${pl?'ally':'foe'}">${pl?'Level '+u.lvl:FACT[u.f]?FACT[u.f].n:'Foe'}</span></div>`;
  h+=`<div class="ins-sub">${pl&&m?RACE[m.race].n+' '+BG[m.bg].n.toLowerCase():(d.boss?'Tyrant':INS_ROLE[u.role||d.role]||(d.big?'Huge':d.quad?'Beast':u.spell?'Caster':u.wpn.rng>1?'Ranged':'Melee'))+(d.big&&!d.boss?' · huge':'')}${u===cur?' · acting now':''}</div>`;
  h+=insBar('hp',u.hp,u.hpMax,'HP');if(u.helmMax>0)h+=insBar('arm hd',u.helm,u.helmMax,'Head armor');if(u.armMax>0)h+=insBar('arm',u.arm,u.armMax,'Body armor');
- if(u.shpMax>0)h+=u.shield?insBar('arm sh',u.shp,u.shpMax,'Shield'):`<div class="ins-bar arm sh"><span class="ins-bad">Shield split</span></div>`;
+ if(u.shpMax>0)h+=u.shield||u.slung?insBar('arm sh',u.shp,u.shpMax,u.slung?'Shield (slung)':'Shield'):`<div class="ins-bar arm sh"><span class="ins-bad">Shield split</span></div>`;
  for(const k in u.res)h+=`<div class="ins-bar res"><i style="width:${u.res[k].cur/u.res[k].max*100}%;background:${RESC[k]}"></i><span>${RESN[k]} ${u.res[k].cur}/${u.res[k].max}</span></div>`;
  if(mor>=0){const F=typeof MORFX==='object'&&MORFX&&MORFX[mor]||{hit:0,def:0},fx=F.hit||F.def?` · ${F.hit>0?'+':'−'}${Math.abs(F.hit)} to hit, ${F.def>0?'+':'−'}${Math.abs(F.def)} defense`:'';
   h+=`<div class="ins-mor m${mor}">${insIc('morale-'+mor)}<b>${shMorN(mor)}</b><span>${brv!=null?'resolve '+brv:''}${fx}</span></div>`}
@@ -57,7 +78,9 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  for(const x of L){const S=shStatus(x.key)||{n:x.key,d:'',good:0};r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
  for(const b of u.buffs||[])if(!b.key&&!b.foe&&!b.indom)r+=`<div class="ins-ab ins-s gd">${insIc('buff')}<div><b>Bolstered</b><span>${buffText(b)}</span></div></div>`;
  if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd">${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
- const ab=insAbs(u),tr=pl?'':insTraits(u);if(ab||tr)r+=`<div class="ins-hd">${pl?'Abilities':'What it does'}</div>`+tr+ab;
+ const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;
+ if(pl&&m){const tl=insTalents(m);if(tl)r+=`<div class="ins-hd">Talents</div>`+tl}
+ const ab=pl&&m?insAbChips(u):insAbs(u),tr=pl?'':insTraits(u);if(ab||tr)r+=`<div class="ins-hd">${pl?'Abilities':'What it does'}</div>`+tr+ab;
  let note=`Stands on ${tileName(tl).toLowerCase()}, height ${tl.h}.`;
  if(!pl&&cur&&cur.side===0&&cur.alive&&!B.auto){const a=abilityInfo(cur,B.sel||'attack');if(a.tgt==='enemy'){const dist=mdist(cur,u),los=typeof shLos==='function'?shLos(cur,u,a):null;
    note=(dist>a.rng?`Out of reach of ${cur.name}'s ${a.n} (${dist} tiles, reach ${a.rng}).`:los&&los.blocked?`<b class="ins-bad">No line of fire</b> from ${cur.name}: something stands in the way.`

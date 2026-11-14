@@ -6,9 +6,9 @@
    Two views are drawn (front and back three-quarter, facing screen-right) and mirrored for the other two; the
    weapon stays in the right hand and the shield on the left arm, so which arm is nearer the camera changes.
    face: 0 bottom-right, 1 bottom-left, 2 top-left, 3 top-right. Nothing here touches rnd(). */
-const UNIT_FRAMES={idle:2,walk:4,attack:3,cast:3,hit:2,death:3};
-const UNIT_FPS={idle:2,walk:8,attack:9,cast:7,hit:8,death:5};
-const US_ST=['idle','walk','attack','cast','hit','death'],US_OFF={};
+const UNIT_FRAMES={idle:2,walk:4,attack:3,cast:3,hit:2,death:3,swap:3};
+const UNIT_FPS={idle:2,walk:8,attack:9,cast:7,hit:8,death:5,swap:9};
+const US_ST=['idle','walk','attack','cast','hit','death','swap'],US_OFF={},US_WARM=['idle','walk','attack','cast','hit','death'];   // swap frames are built on demand
 const US_NF=(()=>{let n=0;US_ST.forEach(s=>{US_OFF[s]=n;n+=UNIT_FRAMES[s]});return n})();
 const US_DIM=[{w:52,h:52,ax:26,ay:45},{w:88,h:80,ax:44,ay:71}];   // working canvas: standard (24x32 figure), large (40x48 figure)
 const US={looks:new Map(),byUnit:new WeakMap(),en:null,grid:[null,null],tmp:[null,null],rgb:null,builds:0,ms:0};
@@ -56,7 +56,7 @@ function usSkin(a){const k='s'+a.join('');let r=US_RC.get(k);if(!r){r=usRamp(a[2
 function usHairR(a){const k='h'+a.join('');let r=US_RC.get(k);if(!r){r=usRamp(a.join(''),1);US_RC.set(k,r)}return r}
 
 /* ---- weapons: cells along an axis from the grip. [i, off, ramp, bias, group] ---- */
-const USD={U:[0,-1,0,0,0],UL2:[0,-1,-1,0,2],UR2:[0,-1,1,0,2],UL3:[0,-1,-1,0,3],UR3:[0,-1,1,0,3],UL:[-1,-1,0,0,0],UR:[1,-1,0,0,0],R:[1,0,0,0,0],RD2:[1,0,0,1,2],RU2:[1,0,0,-1,2],RD3:[1,0,0,1,3],RU3:[1,0,0,-1,3],RD:[1,1,0,0,0],L:[-1,0,0,0,0],D:[0,1,0,0,0]};
+const USD={DL:[-1,1,0,0,0],U:[0,-1,0,0,0],UL2:[0,-1,-1,0,2],UR2:[0,-1,1,0,2],UL3:[0,-1,-1,0,3],UR3:[0,-1,1,0,3],UL:[-1,-1,0,0,0],UR:[1,-1,0,0,0],R:[1,0,0,0,0],RD2:[1,0,0,1,2],RU2:[1,0,0,-1,2],RD3:[1,0,0,1,3],RU3:[1,0,0,-1,3],RD:[1,1,0,0,0],L:[-1,0,0,0,0],D:[0,1,0,0,0]};
 const US_W={};
 function usWdef(id){let w=US_W[id];if(w)return w;const c=[],S=USR,add=(i0,i1,o0,o1,r,g,b)=>{for(let i=i0;i<=i1;i++)for(let o=o0;o<=o1;o++)c.push([i,o,r,b|0,g])};
  let cls='swing',two=0,h2=0,tip=8,gem=null;
@@ -115,6 +115,31 @@ function usShield(type,cx,cy,col,inside){if(usCrk&&!inside){usCrk=0;usShield(typ
  else if(type==='heater'){for(let j=0;j<8;j++)usP(cx,cy-3+j,USR.white,j>4?-1:0);for(let x=-3;x<=3;x++)usP(cx+x,cy-1,USR.white,x>0?-1:0);usP(cx,cy-1,USR.brass)}
  else{for(let x=-2;x<=2;x++){usP(cx+x,cy-4,USR.brass,0);usP(cx+x,cy+4,USR.brass,-1)}usGrp=2;usPart();usGrp=0;usRect(cx-1,cy-1,cx+1,cy+1,USR.brass,(x,y)=>x===cx&&y===cy?1:-1);usP(cx,cy,USR.brass,1)}}
 
+/* ---- stowed gear: the weapon not in hand (u.alt / m.eq.b / an enemy's def.side) and a shield slung on the back ----
+   'belt' a dagger in its sheath at the belt, 'sword' a scabbard at the hip, 'axe' / 'mace' hung from the belt,
+   'bow' carried across the back, 'back' a long or two-handed weapon slung diagonally across the back. */
+function usStowCls(W){if(!W||W.cls==='fist'||!W.c)return W&&W.cls==='bow'?'bow':null;if(W.cls==='bow')return'bow';if(W.two||W.cls==='thrust'||W.cls==='staff')return'back';
+ const id=W.id||'';if(/knife|rondel|dagger/.test(id))return'belt';if(/axe/.test(id))return'axe';if(/club|mace/.test(id))return'mace';return'sword'}
+function usWeaponSeg(W,gx,gy,d,i0,i1){const nx=d[0]===0?1:0,ny=1-nx;let g=-1;
+ for(const c of W.c){if(c[0]<i0||c[0]>i1)continue;if(c[4]!==g){g=c[4];usPart()}let r=c[2];if(r==='GEM')r=USR.ice;usAx(d,c[0]-i0,usT2);const y=gy+usT2[1]+ny*c[1];if(y>-1)continue;usP(gx+usT2[0]+nx*c[1],y,r,c[3])}}
+function usPC(x,y,r,b){if(y<=-1)usP(x,y,r,b)}                                                           // stowed parts never dip below the ground line
+/* back-mounted: a bow, a long weapon, a slung shield. v 0: drawn behind the body (only the ends show); v 1: over the back */
+function usStowBack(S,v,x0,x1,ty,th){const W=S.alt,cl=S.altCls,b=S.b,by=ty+th-(th>=8?2:1);
+ if(S.slung){const cx=v?((x0+x1)>>1):x0-2,cy=ty+(S.slung==='buckler'?3:4);usShield(S.slung,cx,cy,S.shR||usCloth('red'),0)}
+ if(cl==='bow'){const n=W.bow||5,xa=v?x0:x0-1,ya=ty-2-(n>5?1:0),xb=v?x1:x1+1,yb=by+2,m=Math.max(Math.abs(xb-xa),Math.abs(yb-ya));usPart();
+  for(let i=0;i<=m;i++)usPC(xa+Math.round((xb-xa)*i/m)+1,ya+Math.round((yb-ya)*i/m)-1,'m');
+  usPart();for(let i=0;i<=m;i++){const t=i/m,bg=Math.round(Math.sin(Math.PI*t)*1.6);usPC(xa+Math.round((xb-xa)*t)-bg,ya+Math.round((yb-ya)*t)+bg,n>5?USR.dwood:USR.wood,i===0||i===m?1:0)}
+  if(n>5){usPC(xa,ya,USR.brass);usPC(xb,yb,USR.brass)}}
+ else if(cl==='back'){const tip=W.tip,i0=Math.max(-3,tip-12);if(v)usWeaponSeg(W,x0+1,by+1,USD.UR2,i0,tip+1);else usWeaponSeg(W,x1,by+2,USD.UL2,i0,tip+1)}}
+/* belt-mounted, drawn over the torso in both views */
+function usStowHip(S,v,x0,x1,ty,th){const cl=S.altCls,by=ty+th-(th>=8?2:1),R=USR;if(!cl||cl==='bow'||cl==='back')return;usPart();
+ if(cl==='belt'){const x=v?x0+2:x1-1;for(let j=1;j<=3;j++)usPC(x,by+j,R.dleather,j===3?-1:0);usPC(x,by+4,R.brass,-1);usPart();usPC(x,by,R.brass);usPC(x,by-1,R.dleather);usPC(x,by-2,R.brass,1);return}
+ const hx=v?x0+1:x1;
+ if(cl==='sword'){const n=S.alt.tip>8?7:S.alt.tip>6?6:5;for(let i=0;i<n;i++)usPC(hx-((i+1)>>1),by+1+i,R.dleather,i===n-1?-1:0);usPC(hx-((n+1)>>1),by+1+n,R.brass,-1);
+  usPart();usPC(hx-1,by,R.brass);usPC(hx,by,R.brass);usPC(hx+1,by,R.brass,-1);usPC(hx+1,by-1,R.dleather);usPC(hx+2,by-2,R.brass,1);return}
+ if(cl==='axe'){for(let i=0;i<5;i++)usPC(hx-(i>>1),by-1+i,R.wood,0);usPart();usPC(hx+1,by-2,R.plate,1);usPC(hx+1,by-1,R.plate,0);usPC(hx+2,by-2,R.plate,0);usPC(hx+2,by-1,R.plate,-1);usPC(hx+2,by,R.plate,-1);usPC(hx,by-2,R.plate,0);return}
+ if(cl==='mace'){const club=/club/.test(S.alt.id||'');for(let i=0;i<4;i++)usPC(hx-(i>>1),by-1+i,club?R.wood:R.dwood,0);usPart();const r=club?R.wood:R.steel,y=by+3;usPC(hx-2,y,r,0);usPC(hx-1,y,r,0);usPC(hx-2,y+1,r,-1);usPC(hx-1,y+1,r,-1);if(!club)usPC(hx-1,y+2,R.brass,-1);return}}
+
 /* ---- humanoid rig ---- */
 const US_BUILD={human:{hw:8,hh:8,tw:8,th:8,ll:7,lw:3,aw:2,jaw:1},elf:{hw:8,hh:8,tw:7,th:8,ll:8,lw:3,aw:2,jaw:2},
  dwarf:{hw:8,hh:7,tw:10,th:7,ll:4,lw:4,aw:3,jaw:0,er:3,eh:1},halforc:{hw:9,hh:8,tw:10,th:9,ll:7,lw:4,aw:3,jaw:0},
@@ -168,6 +193,9 @@ function usPoseOf(S,st,fr,v,wslot){const b=S.b,al=b.th-3,W=S.wd,cls=W.cls,oW=wsl
    else if(fr===1){P.W.x=0;P.W.o=1;P.W.y=-3*k;P.W.d=D.U;if(!S.shield){P.O.x=0;P.O.o=1;P.O.y=-3*k}P.ub=-1;P.spark={s:2}}
    else{both(3*k,0);P.W.d=cls==='staff'?(v?D.UR:D.UR2):D.U;P.ln=1;P.spark={s:1}}
    break;
+  case'swap':{const hi=cls==='bow'||!!W.two||cls==='thrust'||cls==='staff';   // 0 the weapon in hand goes to its place, 1 the other comes out of its place, 2 brought to guard
+   if(fr<2){if(hi){P.W.x=-2;P.W.y=-3*k;P.W.o=1;P.W.d=D.U;P.ub=-1;P.hx=-1}else{P.W.x=-2;P.W.y=al+1;P.W.o=0;P.W.d=D.D;P.ln=fr?0:-1}P.O.y=al-1;P.lg=[fr?1:0,0,0,0]}
+   else{P.W.x=k;P.W.y=-1;P.W.o=1;P.W.d=oW<0?D.UL2:D.UR2;P.ln=1;P.lg=[1,0,0,0]}break}
   case'hit':if(fr===0){P.ln=-2;P.hx=-1;P.W.x=-1;P.W.o=1;P.W.y=al-3;P.O.x=-1;P.O.o=1;P.O.y=al-3;P.W.d=tilt;P.lg=[-1,0,-1,0]}else{P.ln=-1;P.ub=1}break;
   case'death':if(fr===0){P.ln=-2;P.ub=1;P.hx=-1;P.W.x=-1;P.W.o=2;P.W.y=0;P.O.x=-1;P.O.o=2;P.O.y=1;P.W.d=v||far?D.U:D.UL;P.lg=[-2,0,-1,0]}
    else if(fr===1){P.kneel=1;P.ub=b.ll-3;P.hx=1;P.hy=1;P.W.y=al;P.O.y=al;P.O.x=0;P.drop=1}else{P.lie=1;P.drop=1;P.W.y=al;P.O.y=al;P.O.x=0}break}
@@ -352,6 +380,7 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
   else{for(let xx=x;xx<=x+aw-1;xx++)usP(xx,sy-1,A.paul,bi);for(let xx=x-(far?0:1);xx<=x+aw-(far?1:0);xx++)usP(xx,sy,A.paul,bi);if(S.spike){usP(cxp+(aw&1?0:(o<0?-1:0)),sy-2,sp,1);usP(cxp+(aw&1?0:(o<0?-1:0))+o,sy-3,sp,1)}}};
  // ---- behind the body
  if(S.back)S.back(ctx);
+ if(v===0&&!b.big&&(S.altCls==='bow'||S.altCls==='back'||S.slung))usStowBack(S,0,x0,x1,ty,th);
  if(S.cape&&v===0){usPart();const cr=S.cape;for(let y=ty+2;y<=-3+(P.kneel?2:0);y++){const e=y>ty+th?1:0;for(let x=x0-e;x<=x1+e;x++)if(y<-3||((x+y)&1))usP(x,y,cr,-1)}}
  if(v===1&&S.shield){const c=shc();usShield(S.shield,c.x+(wFar?1:-1)*(S.shield==='buckler'?1:0),c.y,S.shR,1)}
  if(bowA&&v)drawW();
@@ -361,6 +390,7 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
  if(S.cape&&v===1){usPart();const cr=S.cape;for(let y=ty;y<=-3+(P.kneel?2:0);y++){const e=y>ty+th?1:0;for(let x=x0-e+(y===ty?1:0);x<=x1+e-(y===ty?1:0);x++)if(y<-3||((x+y)&1))usP(x,y,cr,b.big?(((x-x0)%5===2&&y>ty+1)?1:((x-x0)%5===3&&y>ty+3)?-1:0):((x===x0+2||x===x1-2)&&y>ty+2?-1:0))}
   if(b.big&&S.trimR){usP(x0+1,ty,S.trimR);usP(x0+2,ty,S.trimR,-1);usP(x1-1,ty,S.trimR,-1);usP(x1-2,ty,S.trimR);if(S.capeFn)S.capeFn(ctx)}}
  if(S.quiver){usPart();if(v){for(let i=0;i<th-1;i++){const x=x0+1+Math.round(i*.5);usP(x,ty+i,USR.dleather);usP(x+1,ty+i,USR.dleather,-1)}usP(x0,ty-1,'l');usP(x0+1,ty-1,'g');usP(x0,ty-2,'l')}else{usP(x0,ty-1,USR.dleather);usP(x0-1,ty-2,'l');usP(x0,ty-2,'g')}}
+ if(!b.big){if(v===1&&(S.altCls==='bow'||S.altCls==='back'||S.slung))usStowBack(S,1,x0,x1,ty,th);if(S.altCls)usStowHip(S,v,x0,x1,ty,th)}
  if(S.mid)S.mid(ctx);
  usHead(S,v,hcx,hy0);
  if(v===0&&S.shield&&wFar===false){const c=shc();/* shield on the far arm, held ahead of the body */usShield(S.shield,c.x,c.y,S.shR,0)}
@@ -396,7 +426,13 @@ function usHumanStand(S,v){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.A,al=
 
 /* ---- looks: mercs from the portrait spec, enemies per type ---- */
 const US_WMAP={knife:'knife',rondel:'rondel',club:'club',mace:'mace',shortsword:'shortsword',arming:'arming',runeblade:'runeblade',handaxe:'handaxe',waraxe:'waraxe',greataxe:'greataxe',spear:'spear',warspear:'warspear',pike:'pike',shortbow:'shortbow',warbow:'warbow',staff:'staff',focus:'focus',riftedge:'riftedge'};
-function usMercSpec(m){let P=null;try{if(typeof ptMercSpec==='function')P=ptMercSpec(m)}catch(e){}
+const US_WT={dagger:'knife',sword:'shortsword',axe:'handaxe',mace:'club',spear:'spear',bow:'shortbow',staff:'staff',fist:'fist'},US_WT2={axe:'greataxe',spear:'pike',bow:'warbow',sword:'runeblade',staff:'staff',mace:'mace'};
+/* any weapon (item id, an enemy's sidearm object, null) -> the sprite weapon drawn for it */
+function usWpnOf(x){if(!x)return'fist';if(typeof x==='object'){const w=x.wt||'fist';return x.two?US_WT2[w]||US_WT[w]||'fist':US_WT[w]||'knife'}
+ if(US_WMAP[x])return US_WMAP[x];const I=typeof ITEMS!=='undefined'&&ITEMS[x];if(!I||I.k!=='w')return'fist';const w=I.wt||'fist';
+ if(I.two)return US_WT2[w]||US_WT[w]||'fist';if(w==='sword')return(I.price||0)>=500?'arming':'shortsword';if(w==='mace')return(I.price||0)>=300?'mace':'club';if(w==='axe')return(I.price||0)>=400?'waraxe':'handaxe';if(w==='dagger')return(I.price||0)>=200?'rondel':'knife';return US_WT[w]||'fist'}
+function usSetAlt(S,a){S.alt=null;S.altCls=null;if(!a)return;const W=a&&a.c&&a.cls?a:usWdef(usWpnOf(a));const cl=usStowCls(W);if(cl){S.alt=W;S.altCls=cl}}
+function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMercSpec(m)}catch(e){}
  const eq=m.eq||{},race=typeof RACE!=='undefined'&&RACE[m.race]?m.race:'human',S={kind:'hum',seed:P?P.seed&255:(m.id|0)&255};
  S.b=US_BUILD[race];S.fem=P?P.fem:0;if(S.fem&&race==='human')S.b=Object.assign({},S.b,{jaw:2});
  const skA=P&&P.skin?P.skin:['s','t','u','i'];S.skin=usSkin(skA);S.hair=P?P.hair:'short';S.hairR=usHairR(P&&P.hairC?P.hairC:['i','H','k']);
@@ -407,8 +443,11 @@ function usMercSpec(m){let P=null;try{if(typeof ptMercSpec==='function')P=ptMerc
  S.armor=ITEMS[eq.a]?eq.a:'rags';if(!(typeof ptHelmsExist==='function'&&ptHelmsExist())){if(S.armor==='plate')S.hat='great';else if(S.armor==='scale')S.hat='nasal'}   // helmets are gear now (eq.h -> P.hat); without that rule the armor tier still picks one
  if(S.hat==='cap'&&ITEMS[eq.h])S.hatR=USR.leather;
  if(S.hat==='hood'||S.hat==='great'||S.hat==='kettle'||S.hat==='cap'||S.hat==='straw'||S.hat==='nasal'||S.hat==='coif'||S.hat==='barbute'){if(S.hair==='mohawk'||S.hair==='bun'||S.hair==='curly'||S.hair==='mane'||S.hair==='shaggy'||S.hair==='swept')S.hair='short'}
- S.wd=usWdef(US_WMAP[eq.w]||'fist');S.shield=ITEMS[eq.s]&&!S.wd.two?eq.s:null;if(S.shield&&!S.shR)S.shR=usCloth('red');
- S.res=typeof mercRes==='function'?mercRes(m):null;S.quiver=S.wd.cls==='bow';
+ const wid=H?H.w:eq.w,alt=H?H.a:(eq.b||null);S.wd=usWdef(usWpnOf(wid));
+ const two=typeof wid==='string'&&ITEMS[wid]?!!ITEMS[wid].two:!!S.wd.two;
+ if(ITEMS[eq.s]){if(two)S.slung=eq.s;else S.shield=eq.s;if(!S.shR)S.shR=usCloth('red')}
+ usSetAlt(S,alt);
+ S.res=typeof mercRes==='function'?mercRes(m):null;S.quiver=S.wd.cls==='bow'||S.altCls==='bow';
  return S}
 function usEnemySpec(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined'?PT_SKIN:{},sk=n=>usSkin(SK[n]||['s','t','u','i']),HC=typeof PT_HAIRC!=='undefined'?PT_HAIRC:{},hr=n=>usHairR(HC[n]||['0','G','o']);
  const B=US_BUILD,S={kind:'hum',seed:7,b:B.human,skin:sk('fair'),armor:'rags',wd:usWdef('fist')},set=o=>Object.assign(S,o);
@@ -542,22 +581,32 @@ function usSpider(v,mir,st,fr){const p=usBeastPose(st,fr),b=usRamp('0Gop',1),lgR
 
 /* ---- cache + public API ---- */
 function usEnKey(def){if(!US.en){US.en=new Map();for(const k in EN)US.en.set(EN[k],k)}let k=US.en.get(def);if(!k&&def&&def.n)for(const e in EN)if(EN[e].n===def.n){k=e;break}return k||null}
-function usLookKey(u){if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+usShs(u)+':'+(typeof mercRes==='function'?mercRes(m)||'':'')}
- if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u);return'x:?'}
+/* what the unit holds right now: H.w the weapon in hand, H.a the one stowed. Mercs: u.wid / u.alt (the rules' battle fields),
+   else m.eq.w / m.eq.b. Enemies: '@main' (their own weapon) or def.side, swapped when the weapon in the rules is no longer the main one.
+   During the first beat of a swap animation (anHandOv in 74-anim.js) the figure still shows what it held before. */
+const US_H={w:null,a:null};
+function usHand(u,o){o=o||US_H;let ov=null;try{if(typeof anHandOv==='function')ov=anHandOv(u)}catch(e){}if(ov){o.w=ov.w;o.a=ov.a;return o}
+ if(u&&u.m&&u.m.eq){const e=u.m.eq;o.w=u.wid!==undefined?u.wid:e.w;o.a=u.alt!==undefined?u.alt:(e.b||null);return o}
+ const d=u&&u.def;if(!d||!d.side){o.w='@main';o.a=null;return o}
+ const base=d.rng?'bow':(u.wpn0&&u.wpn0.wt)||'sword',sw=!!(u.wpn&&u.wpn.wt&&u.wpn.wt!==base&&!d.spell);o.w=sw?d.side:'@main';o.a=sw?'@main':d.side;return o}
+const usHK=x=>x==null?'-':typeof x==='object'?(x.wt||'?')+(x.two?'2':''):String(x);
+function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+usHK(H.w)+':'+usHK(H.a)+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+usShs(u)+':'+(typeof mercRes==='function'?mercRes(m)||'':'')}
+ if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a);return'x:?'}
 /* what the shield in hand looks like now: 0 whole, 1 cracked (half its hitpoints gone), 2 split (gone); 3 a merc whose shield the foes smashed */
-function usShs(u){if(!u)return 0;if(u.shpMax>0)return!u.shield?2:u.shp<=u.shpMax*.5?1:0;return u.sund?2:0}
-function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u);
- if(c&&c.shs===shs&&(!e||(c.w===e.w&&c.s===e.s&&c.a===e.a&&c.h===e.h)))return c.L;
+function usShs(u){if(!u)return 0;if(u.shpMax>0)return!(u.shield||(u.slung&&u.shp>0))?2:u.shp<=u.shpMax*.5?1:0;return u.sund?2:0}
+function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=usHand(u),hw=H.w,ha=H.a;
+ if(c&&c.shs===shs&&c.hw===hw&&c.ha===ha&&(!e||(c.s===e.s&&c.a===e.a&&c.h===e.h)))return c.L;
  const key=usLookKey(u);let L=US.looks.get(key);
- if(!L){let S=null;try{S=u.m&&u.m.eq?usMercSpec(u.m):usEnemySpec(usEnKey(u.def)||u.eid,u)}catch(er){S=null}
+ if(!L){let S=null;try{S=u.m&&u.m.eq?usMercSpec(u.m,{w:hw,a:ha}):usEnemySpec(usEnKey(u.def)||u.eid,u)}catch(er){S=null}
   if(!S)S={kind:'hum',seed:1,b:US_BUILD.human,skin:usSkin(['s','t','u','i']),armor:'rags',wd:usWdef('fist')};
+  if(u.def&&S.kind==='hum'){const main=S.wd;if(hw!=='@main'&&hw){S.wd=usWdef(usWpnOf(hw));S.quiver=S.quiver||main.cls==='bow'}if(ha)usSetAlt(S,ha==='@main'?main:ha)}   // an archer's sidearm: in hand once it has swapped, else at the belt
   if(u.def&&S.kind==='hum'&&u.shpMax>0&&!S.shield&&!(S.wd&&S.wd.two)){S.shield=u.shpMax>=60?'heater':'buckler';if(!S.shR)S.shR=usCloth(u.f==='bandit'?'night':'red')}   // an enemy type that carries a shield in the rules shows one
-  if(shs===2)S.shield=null;else if(shs===1&&S.shield)S.shCrack=1;
+  if(shs===2){S.shield=null;S.slung=null}else if(shs===1&&S.shield)S.shCrack=1;
   const id=u.def?usEnKey(u.def)||u.eid:null;if(id==='wolf')S={kind:'quad',Q:US_WOLF};else if(id==='bear')S={kind:'quad',Q:US_BEAR,b:{big:1}};else if(id==='spider')S={kind:'spider'};
   const big=S.kind==='quad'?(S.Q.big?1:0):S.kind==='spider'?0:(S.b.big?1:0);
   L={key,S,big,fr:new Array(4*US_NF).fill(null)};US.looks.set(key,L);
-  if(US.looks.size>120){const k0=US.looks.keys().next().value;US.looks.delete(k0)}}
- if(u&&typeof u==='object')US.byUnit.set(u,{L,w:e?e.w:0,s:e?e.s:0,a:e?e.a:0,h:e?e.h:0,shs});return L}
+  if(US.looks.size>160){const k0=US.looks.keys().next().value;US.looks.delete(k0)}}
+ if(u&&typeof u==='object')US.byUnit.set(u,{L,hw,ha,s:e?e.s:0,a:e?e.a:0,h:e?e.h:0,shs});return L}
 function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?performance.now():0,S=L.S,v=face>=2?1:0,mir=face===1||face===2,d=US_DIM[L.big];
  usBegin(L.big);usCrk=S.shCrack?1:0;
  try{if(S.kind==='quad')usQuad(S.Q,v,mir,st,fr);else if(S.kind==='spider')usSpider(v,mir,st,fr);else usHuman(S,v,mir,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.err){US.err=1;console.error('unit sprite',L.key,st,fr,e)}}
@@ -565,5 +614,5 @@ function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?perform
 function unitSpritePx(u,face,state,frame){const L=usLook(u),n=UNIT_FRAMES[state];if(!n){state='idle'}const nf=UNIT_FRAMES[state];
  face=((face|0)%4+4)%4;frame=((frame|0)%nf+nf)%nf;const i=face*US_NF+US_OFF[state]+frame;return L.fr[i]||(L.fr[i]=usBuild(L,face,state,frame))}
 /* pre-build every frame of a unit (call at battle start); returns the number of frames built */
-function unitSpriteWarm(u,faces){const L=usLook(u);let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of US_ST)for(let k=0;k<UNIT_FRAMES[st];k++){const i=f*US_NF+US_OFF[st]+k;if(!L.fr[i]){L.fr[i]=usBuild(L,f,st,k);n++}}}return n}
+function unitSpriteWarm(u,faces){const L=usLook(u);let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of US_WARM)for(let k=0;k<UNIT_FRAMES[st];k++){const i=f*US_NF+US_OFF[st]+k;if(!L.fr[i]){L.fr[i]=usBuild(L,f,st,k);n++}}}return n}
 function unitSpriteBox(u){const L=usLook(u);return L.big?{w:40,h:48}:{w:24,h:32}}

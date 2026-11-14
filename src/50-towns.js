@@ -11,7 +11,7 @@ function openTown(i){G.town=i;const t=G.towns[i];if(G.day-t.ref>=3)stockTown(t);
  if(c&&((c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i))){G.crowns+=c.pay;G.renown+=8*c.diff;note=`<p class="good">Contract fulfilled. You are paid ${c.pay} crowns.</p>`;G.contract=null}
  townTab='contracts';townSel={contracts:0,tavern:0,market:'food',temple:0};panelForget('town:');
  townAt=typeof tvCan==='function'&&tvCan()?'scene':'panel';renderTown(note);save()}
-function mastChips(m){return Object.keys(m.mast).map(k=>`<span class="chip" style="${MAST[k].res?'border-color:'+RESC[MAST[k].res]+';color:'+RESC[MAST[k].res]:''}">${MAST[k].n}${m.mast[k]?' '+m.mast[k]:''}</span>`).join('')}
+function mastChips(m){return tlTrees(m).filter(x=>x.kind!=='weapon').map(x=>{const r=tlGiftRes(x.key);return`<span class="chip" style="${r?'border-color:'+RESC[r]+';color:'+RESC[r]:''}">${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</span>`}).join('')}
 /* ---- town panel (two-pane, see 52-panels.js) ---- */
 /* townAt: 'scene' = the illustrated town square (51-townview.js) is in front, 'panel' = one of its four places is open.
    Without a real canvas (headless tests) the scene is skipped and the town is the panel alone, as before. */
@@ -28,11 +28,11 @@ function leagues(a,b){return Math.max(1,Math.round(Math.hypot(a.x-b.x,a.y-b.y)/T
 /* ---- pixel helpers for the town panel (art's pxIcon / company's portraitHTML, with fallbacks until they exist) ---- */
 function twIcon(n,sz,fb){if(typeof pxIcon==='function'){try{if(typeof iconRows!=='function'||iconRows(n))return pxIcon(n,sz||16);if(PNOWN[n])return pnIcon(n,'',sz||16);return pxIcon(n,sz||16)}catch(e){}}return fb?pnIcon(fb):''}
 function twItemIcon(id,sz){const it=ITEMS[id];if(typeof pxIcon!=='function'||!it)return pnItemIcon(id);if(it.k==='h')return twIcon('helmet',sz||32);return pxIcon(it.k==='s'?'shield':it.k==='a'?(it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy'):it.wt||'sword',sz||32)}
-function twPortrait(m,sz){if(typeof portraitHTML==='function'){try{const h=portraitHTML(m,sz||32);if(h)return`<span class="tw-por">${h}</span>`}catch(e){}}const r=mercRes(m);return`<span class="tw-por none" style="width:${sz||32}px;height:${sz||32}px"><span class="pn-pip${r?' g-'+r:''}"></span></span>`}
+function twPortrait(m,sz){if(typeof portraitHTML==='function'){try{const h=portraitHTML(m,sz||32);if(h)return`<span class="tw-por">${h}</span>`}catch(e){}}const r=tlRes(m);return`<span class="tw-por none" style="width:${sz||32}px;height:${sz||32}px"><span class="pn-pip${r?' g-'+r:''}"></span></span>`}
 function twSkulls(n,of){if(typeof pxIcon!=='function')return pnSkulls(n,of);let h='';for(let i=0;i<(of||n);i++)h+=`<span class="${i<n?'':'off'}">${pxIcon('skull',16)}</span>`;return`<span class="tw-skulls" aria-label="Danger ${n} of ${of||n}">${h}</span>`}
 function twStat(ic,v,fb){return`<span class="tw-s">${twIcon(ic,16)}${fb&&typeof pxIcon!=='function'?fb+' ':''}${v}</span>`}
 function twItemStats(id){const i=ITEMS[id];if(typeof pxIcon!=='function')return itemDesc(id);
- if(i.k==='w')return twStat(i.rng>2?'ranged':'melee',`${i.d[0]}–${i.d[1]}`)+twStat('ap',i.ap)+(i.rng>1?`<span class="tw-t">reach ${i.rng}</span>`:'')+(i.two?'<span class="tw-t">2H</span>':'')+(i.spell?`<span class="tw-t">+${Math.round(i.spell*100)}% spell</span>`:'');
+ if(i.k==='w')return twStat(i.rng>2?'ranged':'melee',`${i.d[0]}–${i.d[1]}`)+twStat('ap',i.ap)+`<span class="tw-t">${i.two?'2H':'1H'}</span>`+(i.rng>1?`<span class="tw-t">reach ${i.rng}</span>`:'')+(i.spell?`<span class="tw-t">+${Math.round(i.spell*100)}% spell</span>`:'');
  if(i.k==='s')return twStat('mdef','+'+i.md)+twStat('rdef','+'+i.rd)+twStat('fatigue','−'+i.fat);if(i.k==='h')return twStat('helmet',i.arm)+twStat('fatigue','−'+(i.fat||0))+'<span class="tw-t">head</span>';return twStat('armor',i.arm)+twStat('fatigue','−'+i.fat)}
 /* faction emblems: a heater shield in the faction's colours with its mark (16x16, drawn here) */
 const TWSHIELD=['................','.00000000000000.','.0++++++++++++0.','.0+##########-0.','.0+##########-0.','.0+##########-0.','.0+##########-0.','.0+##########-0.','.0+##########-0.','.0+##########-0.','.0+#########--0.','..0+########-0..','..0+#######--0..','...0+#####--0...','....00----00....','......0000......'];
@@ -49,15 +49,25 @@ function twEmblem(c,sz){const key=c.type==='hunt'?c.f:'cargo',u=typeof pxURL==='
  if(!u)return pnIcon(c.type==='deliver'?'contracts':'skull');return`<i class="tw-em" style="width:${sz||32}px;height:${sz||32}px;background-image:url(${u})" aria-hidden="true"></i>`}
 function twHead(icon,kick,title){return`<div class="tw-head">${icon?`<span class="tw-hi">${icon}</span>`:''}<div><div class="pn-kick">${kick}</div><div class="pn-h">${title}</div></div></div>`}
 
-function giftRow(m){const r=mercRes(m);return`<div class="pn-gifts">${RESK.map(k=>`<span class="pn-gift g-${k}${k===r?' on':''}">${typeof pxIcon==='function'?pxIcon(k,16):'<i></i>'}${RESN[k]}</span>`).join('')}</div><p class="pn-p dim">${r?`Carries the gift of ${RESN[r]}. ${MAST[r].n} can awaken it.`:'No gift stirs here. This one fights with steel alone.'}</p>`}
-function gearRows(m){return[['w','Weapon'],['s','Shield'],['a','Armor'],['h','Helmet']].map(([k,n])=>{const id=m.eq[k];return`<div class="pn-gear${id?'':' none'}">${id?twItemIcon(id,32):twIcon(k==='w'?'fist':k==='s'?'shield':k==='h'?'helmet':'armor-light',32,k==='w'?'sword':k==='s'?'shield':'armor')}<span class="pn-rmain"><span class="pn-rt">${id?ITEMS[id].n:k==='w'?'Unarmed':'No '+n.toLowerCase()}</span>${id?`<span class="pn-rs tw-line">${twItemStats(id)}</span>`:''}</span><span class="pn-slot">${n}</span></div>`}).join('')}
+function giftRow(m){const r=tlRes(m),g=tlGift(m),st=g&&MAST[g].style;return`<div class="pn-gifts">${RESK.map(k=>`<span class="pn-gift g-${k}${k===r?' on':''}">${typeof pxIcon==='function'?pxIcon(k,16):'<i></i>'}${RESN[k]}</span>`).join('')}</div><p class="pn-p dim">${r?`Carries the gift of ${RESN[r]}${st&&TL_STYN[st]?', shaped to a '+TL_STYN[st].toLowerCase()+' hand':''}: <b class="tw-gv g-${r}">${tlGiftLabel(g)}</b>. The first perk learned in it awakens the gift.`:'No gift stirs here. This one fights with steel alone.'}</p>`}
+/* the recruit's trees, one line each: style trees with their theme, the gift variant, then the weapon families from level 3 */
+function twTreeList(m){const T=tlTrees(m),wl=tlTierLv('weapon',1),abN=x=>[].concat(...tlTiers(x.tree)).filter(p=>p&&p.ab&&AB[p.ab]).map(p=>AB[p.ab].n||p.n);
+ let h=T.filter(x=>x.kind!=='weapon').map(x=>{const r=tlGiftRes(x.key),ab=abN(x);return`<div class="pn-mast tw-mast${r?' g-'+r:''}" data-tree="${x.key}">${twIcon(tlTreeIcon(x.key),32)}<b>${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</b><span>${x.tree.d||''}</span>${ab.length?`<small>${ab.slice(0,3).join(', ')}${ab.length>3?'…':''}</small>`:''}</div>`}).join('');
+ const W=T.filter(x=>x.kind==='weapon');
+ h+=W.length?`<div class="tw-wts">${W.map(x=>`<span class="tw-wt" title="${x.tree.n}${x.tree.d?': '+x.tree.d:''}">${twIcon(tlTreeIcon(x.key),16)}${TL_WTN[x.tree.wt]||x.tree.n}</span>`).join('')}<small>weapon trees, from level ${wl}</small></div>`
+  :`<p class="pn-p dim">No weapon trees${(tlWtAllowed(m).length?'':' for this background')}.</p>`;
+ const no=(RACE[m.race]&&RACE[m.race].noWt)||[],lost=no.filter(w=>(BG[m.bg].wt||[]).includes(w));if(lost.length)h+=`<p class="pn-p dim">A ${RACE[m.race].n.toLowerCase()} never learns the ${lost.map(w=>(TL_WTN[w]||w).toLowerCase()).join(' or ')} tree.</p>`;
+ return h}
+function gearRows(m){return[['w','Weapon']].concat(m.eq&&m.eq.b?[['b','Backup']]:[],[['s','Shield'],['a','Armor'],['h','Helmet']]).map(([k,n])=>{const id=m.eq[k];return`<div class="pn-gear${id?'':' none'}">${id?twItemIcon(id,32):twIcon(k==='w'?'fist':k==='s'?'shield':k==='h'?'helmet':'armor-light',32,k==='w'?'sword':k==='s'?'shield':'armor')}<span class="pn-rmain"><span class="pn-rt">${id?ITEMS[id].n:k==='w'?'Unarmed':'No '+n.toLowerCase()}</span>${id?`<span class="pn-rs tw-line">${twItemStats(id)}</span>`:''}</span><span class="pn-slot">${n}</span></div>`}).join('')}
 function statGrid(m,s){const c=(ic,v,n)=>`<div><b>${v}</b>${twIcon(ic,16)}<span>${n}</span></div>`;
  return`<div class="pn-stats tw-stats${typeof s.brv==='number'?' five':''}">${c('hp',m.hp<s.hp?m.hp+'<small>/'+s.hp+'</small>':s.hp,'HP')}${c('armor',s.arm,'Armor')}${c('fatigue',s.fat,'Fatigue')}${c('init',s.init,'Init')}${c('melee',s.ms,'Melee')}${c('ranged',s.rs,'Ranged')}${c('mdef',s.md,'M def')}${c('rdef',s.rd,'R def')}${typeof s.helm==='number'?c('helmet',s.helm,'Helmet'):''}${typeof s.brv==='number'?c('resolve',s.brv,'Resolve'):''}</div>`}
 function marketCompare(id){const k=ITEMS[id].k;return G.roster.map(m=>{const cur=m.eq[k],w=ITEMS[m.eq.w];let x='';
-  if(k==='s'&&w&&w.two)x='<span class="pn-d same">Hands full</span>';else{x=pnDeltaChips(id,cur);if(k==='w'&&ITEMS[id].two&&m.eq.s&&id!==cur)x+='<span class="pn-d same">drops shield</span>'}
+  if(k==='s'&&!tlEquipRule(m,'s',id).ok)x='<span class="pn-d same">Hands full</span>';else{x=pnDeltaChips(id,cur);if(k==='w'&&id!==cur&&tlDropsShield(m,'w',id))x+='<span class="pn-d same">drops shield</span>';if(k==='s'&&tlSlung(m))x+='<span class="pn-d same">slung</span>'}
   return`<div class="pn-cmp${m.field?'':' res'}">${twPortrait(m,32)}<span class="pn-cn"><b>${m.name}</b><small>${cur?ITEMS[cur].n:k==='w'?'Unarmed':'None'}</small></span><span class="pn-cd">${x}</span></div>`}).join('')}
 function itemDetail(id){return`${twHead(twItemIcon(id,48),itemKind(id),ITEMS[id].n)}${pnFacts(itemFacts(id))}${pnHead('Against what the company carries')}<div class="pn-cmps">${marketCompare(id)}</div>`}
-function twRecruitLine(m){const r=mercRes(m),b=BG[m.bg];return`${r?twIcon(r,16):''}${m.eq.w?twItemIcon(m.eq.w,16):twIcon('fist',16)}${m.eq.s?twItemIcon(m.eq.s,16):''}${m.eq.a?twItemIcon(m.eq.a,16):''}<span class="tw-t0">${RACE[m.race].n} ${b.n.toLowerCase()}</span>`}
+function twRecruitLine(m){const b=BG[m.bg];return`${m.eq.w?twItemIcon(m.eq.w,16):twIcon('fist',16)}${m.eq.b?twItemIcon(m.eq.b,16):''}${m.eq.s?twItemIcon(m.eq.s,16):''}${m.eq.a?twItemIcon(m.eq.a,16):''}<span class="tw-t0">${RACE[m.race].n} ${b.n.toLowerCase()}</span>`}
+/* the recruit's build at a glance: style trees, the gift in its colour with its variant, the weapon families */
+function twRecruitTrees(m){const g=tlGift(m);return`${typeof coTreeStrip==='function'?coTreeStrip(m):''}${g?`<span class="tw-gv g-${tlGiftRes(g)}">${MAST[g].n}</span>`:''}`}
 function townView(t){let list='',detail='',foot='',key=townTab;
  if(townTab==='contracts'){const n=t.contracts.length,i=clamp(+townSel.contracts||0,0,n-1);townSel.contracts=i;key+=':'+i;
   if(G.contract)list+=`<div class="pn-hint tw-hint">${twEmblem(G.contract,32)}<span><b>Contract in hand</b>${G.contract.title}</span></div>`;
@@ -73,12 +83,12 @@ function townView(t){let list='',detail='',foot='',key=townTab;
  else if(townTab==='tavern'){const n=t.recruits.length,i=clamp(+townSel.tavern||0,0,n-1),full=G.roster.length>=MAXROSTER;townSel.tavern=i;key+=':'+i;
   list+=pnSec('Looking for work',`Roster ${G.roster.length} of ${MAXROSTER}`);
   if(!n){list+=pnEmpty('Nobody is looking for work today.');detail=`<div class="pn-blank">${twIcon('tavern',48,'tavern')}<p>Nobody is looking for work today. New faces drift in every three days.</p></div>`}
-  t.recruits.forEach((m,j)=>{const b=BG[m.bg];list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row',lead:twPortrait(m,32),title:m.name,sub:`<span class="tw-line">${twRecruitLine(m)}</span>`,right:pnCoin(b.cost,G.crowns<b.cost?'short':'')})});
+  t.recruits.forEach((m,j)=>{const b=BG[m.bg];list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row',lead:twPortrait(m,32),title:m.name,sub:`<span class="tw-line">${twRecruitLine(m)}</span><span class="tw-line co-trees tw-trees">${twRecruitTrees(m)}</span>`,right:pnCoin(b.cost,G.crowns<b.cost?'short':'')})});
   if(n){const m=t.recruits[i],b=BG[m.bg],s=calc(m);
    detail=`${twHead(twPortrait(m,64),`${RACE[m.race].n} ${b.n.toLowerCase()}, level ${m.lvl}`,m.name)}${statGrid(m,s)}
    ${pnHead('The four gifts')}${giftRow(m)}
-   ${pnHead('Starting gear')}<div class="pn-gears">${gearRows(m)}</div>
-   ${pnHead('Masteries')}${Object.keys(m.mast).map(k=>{const M=MAST[k];return`<div class="pn-mast tw-mast${M.res?' g-'+M.res:''}">${twIcon('m-'+k,32)}<b>${M.n}</b><span>${M.d}</span><small>${M.p.map(p=>p.n).join(', ')}</small></div>`}).join('')}`;
+   ${pnHead('Trees')}${twTreeList(m)}
+   ${pnHead('Starting gear')}<div class="pn-gears">${gearRows(m)}</div>`;
    foot=`<span class="pn-fl">${pnCoin(b.cost,'big'+(G.crowns<b.cost?' short':''))}<small>${full?'<em>The roster is full</em>':G.crowns<b.cost?'<em>Not enough crowns</em>':'+ '+b.wage+' a day'}</small></span><button type="button" class="pn-btn pri${full||G.crowns<b.cost?' off':''}" onclick="hire(${i})">Hire</button>`}}
  else if(townTab==='market'){let sel=String(townSel.market||'food'),kind=sel[0],i=+sel.slice(1);
   if(kind==='b'){i=Math.min(i,t.stock.length-1);if(!(i>=0))kind='f'}else if(kind==='s'){i=Math.min(i,G.stash.length-1);if(!(i>=0))kind='f'}else if(kind!=='t')kind='f';

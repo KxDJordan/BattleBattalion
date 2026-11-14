@@ -146,7 +146,10 @@ function dpShow(o){if(typeof closeSheet==='function')closeSheet(true);if(typeof 
  DP.at=dpFromFormation();if(!Object.keys(DP.at).length){DP.o=null;return false}
  r.classList.add('on');r.classList.remove('in');void r.offsetWidth;r.classList.add('in');sheetOpen=true;dpRender(true);return true}
 function dpTok(m,size){const s=calc(m),hp=Math.min(m.hp,s.hp),inj=typeof cpInj==='function'?cpInj(m).length:0,sel=DP.pick===m.id;
- return`<span class="dp-tok${sel?' sel':''}${fmBack(m)?' bk':''}" role="button" tabindex="0" data-dp="${m.id}" aria-label="${m.name}, ${coRole(m,s).toLowerCase()}${hp<s.hp?', wounded':''}${inj?', injured':''}${sel?', picked':''}" onclick="event.stopPropagation();dpTap(${m.id},event.detail)">${portraitHTML(m,size)}${hp<s.hp?`<i class="dp-hp"><i style="width:${Math.max(8,Math.round(100*hp/s.hp))}%"></i></i>`:''}${inj?'<i class="dp-inj"></i>':''}</span>`}
+ return`<span class="dp-tok${sel?' sel':''}${fmBack(m)?' bk':''}" role="button" tabindex="0" data-dp="${m.id}" aria-label="${m.name}, ${coRole(m,s).toLowerCase()}${m.eq&&ITEMS[m.eq.b]?', backup '+ITEMS[m.eq.b].n:''}${hp<s.hp?', wounded':''}${inj?', injured':''}${sel?', picked':''}" onclick="event.stopPropagation();dpTap(${m.id},event.detail)">${portraitHTML(m,size)}${hp<s.hp?`<i class="dp-hp"><i style="width:${Math.max(8,Math.round(100*hp/s.hp))}%"></i></i>`:''}${inj?'<i class="dp-inj"></i>':''}${dpSide(m)}</span>`}
+/* a small sidearm marker: the backup weapon's family icon in the token's lower-left corner */
+function dpSide(m){const b=m.eq&&ITEMS[m.eq.b];if(!b)return'';const n=typeof itemIconName==='function'?itemIconName(m.eq.b):b.wt;
+ return`<i class="dp-side" title="Backup: ${b.n}">${typeof pxIcon==='function'?pxIcon(n,16):''}</i>`}
 function dpHeadHTML(o,bk,tod){const F=FACT[o.f]||{n:'Foes'},s=o.src||{},kick=s.type==='lair'?'The lair you were sent to clear':s.type==='dun'?`Rift battle ${G.dun?G.dun.stage+1:1} of 3`:'A band bars the way';
  const em=typeof twEmblem==='function'?twEmblem({type:'hunt',f:o.f},DP.big?48:32):'',lost=G.crowns-Math.floor(G.crowns*.9);
  if(DP.ask){const c=G.contract,why=s.type==='lair'&&c&&c.type==='hunt'&&!c.done?' The contract is forfeit.':s.type==='dun'?' The rift spits you back out and must be entered anew.':s.type==='party'?' The band stays on the map.':'';

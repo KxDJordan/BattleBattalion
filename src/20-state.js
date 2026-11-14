@@ -6,7 +6,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=4;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=5;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -29,8 +29,20 @@ const MIGRATE={
     no injuries; the company is handed 20 tools. Applies to recruits waiting in towns as well. */
  3:g=>{const fix=m=>{if(!svObj(m))return;if(svObj(m.base)&&!svFin(m.base.brv))m.base.brv=defaultResolve(m);if(svObj(m.eq)&&m.eq.h===undefined)m.eq.h=null;if(!Array.isArray(m.inj))m.inj=[];delete m.cond;m.rolls=null};
   if(Array.isArray(g.roster))g.roster.forEach(fix);if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});
-  if(!svFin(g.tools))g.tools=20;return g}
+  if(!svFin(g.tools))g.tools=20;return g},
+ /* v5: talents and arms. m.mast {tree: perks taken} becomes m.trees / m.gift / m.perks (see 61-talents.js): the merc keeps its old
+    trees (topped up to 4 style trees from its background pool), its old gift tree (old keys stay valid), and the first n tier perks
+    of every tree it had n in (the old perks kept their ids' effects); unspent points stay. The sidearm slot eq.b starts empty. */
+ 4:g=>{const fix=m=>{if(!svObj(m))return;migrateMerc(m)};if(Array.isArray(g.roster))g.roster.forEach(fix);
+  if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});return g}
 };
+// One merc of a version 4 save to talents (v5). Draws no game randomness: the top-up trees come from a stream seeded by the merc's id.
+function migrateMerc(m){if(Array.isArray(m.trees)&&Array.isArray(m.perks)){if(svObj(m.eq)&&m.eq.b===undefined)m.eq.b=null;return m}   // already in the new shape
+ const old=svObj(m.mast)?m.mast:{},trees=[],perks=[];let gift=null;
+ for(const k in old){const T=MAST[k];if(!T||T.kind==='weapon')continue;const n=clamp(Math.floor(svNum(old[k],0)),0,T.tiers.length);
+  if(T.kind==='gift'){if(gift)continue;gift=k}else if(!trees.includes(k))trees.push(k);for(let t=0;t<n;t++)perks.push(T.tiers[t][0].id)}
+ if(BG[m.bg]){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57),add=rollTrees(m.bg,r).concat(rollTrees(m.bg,r));for(const k of add){if(trees.length>=4)break;if(!trees.includes(k))trees.push(k)}}
+ m.trees=gift?trees.concat([gift]):trees;m.gift=gift;m.perks=perks;if(svObj(m.eq)&&m.eq.b===undefined)m.eq.b=null;delete m.mast;return m}
 // Resolve for a merc that has none (old saves): the middle of the creation roll plus background and race.
 function defaultResolve(m){const b=BG[m.bg],r=RACE[m.race];return clamp(38+((b&&b.st.brv)||0)+((r&&r.st.brv)||0),5,95)}
 function storeGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -39,11 +51,15 @@ function storeDel(k){try{localStorage.removeItem(k);return true}catch(e){return 
 const svFin=x=>typeof x==='number'&&isFinite(x),svNum=(x,d)=>svFin(x)?x:d,svObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 function saveVersion(g){return svFin(g.v)&&g.v>=1?Math.floor(g.v):1}
 function migrateSave(g){let v=saveVersion(g);while(v<SAVEVER){const f=MIGRATE[v];if(!f)throw new Error('no migration from version '+v);g=f(g)||g;g.v=++v}return g}
-function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base)||!svObj(m.mast))return false;
+function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  for(const k of ['hp','fat','init','ms','rs','md','rd'])if(!svFin(m.base[k]))return false;
- for(const k in m.mast){if(!MAST[k]){delete m.mast[k];continue}m.mast[k]=clamp(Math.floor(svNum(m.mast[k],0)),0,MAST[k].p.length)}
- if(!svObj(m.eq))m.eq={};for(const k of ['w','s','a','h']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===k?m.eq[k]:null}
- if(m.eq.w&&ITEMS[m.eq.w].two)m.eq.s=null;
+ if(!Array.isArray(m.trees)&&!Array.isArray(m.perks))migrateMerc(m);                      // an unmigrated record (written by older code)
+ { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
+   const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift);
+   if(!m.trees.some(k=>MAST[k].kind==='style')){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57);m.trees=rollTrees(m.bg,r).concat(m.trees)}
+   const have=new Set(m.trees.concat(weaponTrees(m))),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>typeof id==='string'&&perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
+ if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
+ fixHands(m);
  if(!svObj(m.tal))m.tal={};for(const k in m.tal)if(!svFin(m.tal[k]))delete m.tal[k];
  if(typeof m.name!=='string'||!m.name)m.name='Nameless';if(!RACE[m.race])m.race='human';
  m.base.brv=svFin(m.base.brv)?clamp(Math.round(m.base.brv),0,200):defaultResolve(m);
@@ -53,7 +69,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base)||!svObj(m.mast))r
  m.lvl=clamp(Math.floor(svNum(m.lvl,1)),1,MAXLV);m.xp=Math.max(0,svNum(m.xp,0));m.pp=Math.max(0,Math.floor(svNum(m.pp,0)));m.pend=clamp(Math.floor(svNum(m.pend,0)),0,m.lvl-1);
  if(m.rolls){if(!svObj(m.rolls))m.rolls=null;else for(const k in ROLL)if(!svFin(m.rolls[k])){m.rolls=null;break}}
  m.slot=svObj(m.slot)&&(m.slot.row===0||m.slot.row===1)&&Number.isInteger(m.slot.col)&&m.slot.col>=0&&m.slot.col<(typeof BW==='number'?BW:12)?{row:m.slot.row,col:m.slot.col}:null;   // formation tile; null = default deployment
- m.field=!!m.field;m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
+ m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
 function repairContract(c,nTowns){if(!svObj(c))return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,3);if(!svFin(c.pay)||typeof c.title!=='string')return false;
  if(c.type==='deliver')return Number.isInteger(c.to)&&c.to>=0&&c.to<nTowns;
  if(c.type==='hunt')return !!FACT[c.f]&&svFin(c.x)&&svFin(c.y);return false}

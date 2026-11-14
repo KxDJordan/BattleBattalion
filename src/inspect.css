@@ -55,3 +55,11 @@
 #inspect .ins-ab i{font-style:normal;font-size:.66rem;color:var(--brass);white-space:nowrap}
 #inspect .ins-ab span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 #inspect .ins-ab.ins-s.bd b{color:#ef8a78}#inspect .ins-ab.ins-s.gd b{color:#9bd96f}
+/* ---- arms and talents ---- */
+#inspect .ins-ab.ins-alt b{color:var(--dim)}
+#inspect .ins-trees{display:flex;flex-wrap:wrap;gap:2px 6px;margin:0 0 4px}
+#inspect .ins-trees>span{display:inline-flex;align-items:center;gap:2px;font-size:.66rem;color:var(--dim)}
+#inspect .ins-trees b{font-weight:600;color:var(--vellum)}
+#inspect .ins-pk{margin-bottom:2px}#inspect .ins-pk>div{display:flex;align-items:baseline;min-width:0;white-space:nowrap}#inspect .ins-pk b{flex:none}#inspect .ins-pk span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#inspect .ins-trees{font-size:.62rem}#inspect .ins-trees .pxi{width:16px;height:16px}
+#inspect .ins-r{overflow-y:auto;scrollbar-width:none}

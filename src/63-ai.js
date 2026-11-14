@@ -9,10 +9,53 @@
                closing the distance, the plan) - the free attack for leaving a foe's reach - resource cost
    The role profile P (AI_ROLE, from def.role or the merc's gear) and, for the company, the plan against the
    faction (AI_PLAN) set the weights. Nothing here draws from rnd(): the same battle state gives the same
-   decision, so battles stay deterministic under the seeded stream. Hard caps: AI_CAP decisions, 3 walks. */
+   decision, so battles stay deterministic under the seeded stream. Hard caps: AI_CAP decisions, 3 walks.
+   Arms: bow shots are scored as impossible from any tile beside an able foe (the ranged lock), so a locked archer weighs stepping
+   clear (the free attack it draws is priced in; tumbles and blinks draw none) against drawing its sidearm. A swap is judged one
+   decision ahead (aiSwapPlan: the swap is tried on a copy of the unit's state, then the best plan with the AP left is scored), and units
+   with two weapons also weigh which one they hold at the end of the turn (aiHandV). Fighters like standing beside foe archers. Abilities
+   are scored from their fields (hits, through, aoe, chain, status, heal, cleanse, party, rally, rest, buff, giveAP, move), so new ones
+   are used without code here. */
 const AI_CAP=7,AI_LATE=9;
 let AI_CLOCK=null;                       // set to a ()=>ms clock by the balance harness to measure decision cost
 const AI_STAT={n:0,ms:0,max:0};
+const AI_DBG={};   // tuning switches (test/balance.js --set "AI_DBG.x=1")
+/* ---- the ranged lock (rangedLocked() in the rules; a stand-in here while the rules lack it) ----
+   A unit with an able foe beside it cannot use a bow. aiBowAb: does ability a shoot a bow for u (spells never do).
+   aiLockAt: would u be locked standing on tile k (u.c/u.r are moved there for the question and put back). */
+const aiAble=e=>e.alive&&e.mor!==0&&!e.st.stun&&!e.gone;
+function aiBowAb(u,a){return !a.magic&&(a.needs==='bow'||(!!a.wpn&&!!u.wpn&&u.wpn.wt==='bow'))}
+function aiLocked(u){if(typeof rangedLocked==='function')return !!rangedLocked(u);if(!u.wpn||u.wpn.wt!=='bow')return false;for(const e of B.units)if(e.side!==u.side&&aiAble(e)&&mdist(e,u)===1)return true;return false}
+let AI_LM=null,AI_LMU=null;   // per decision: tiles beside an able foe of AI_LMU (set by aiScan)
+function aiLockAt(u,k){if(u===AI_LMU&&AI_LM)return AI_LM[k]===1;const c=k%BW,r=(k/BW)|0;for(const e of B.units)if(e!==u&&e.side!==u.side&&aiAble(e)&&Math.abs(e.c-c)+Math.abs(e.r-r)===1)return true;return false}
+// canUse as if u stood clear of every foe: a locked archer may still step away and shoot.
+// The weapon u does not hold (its sidearm, or the main weapon while the sidearm is out), as a weapon object, or null.
+function aiAltW(u){if(u.wpnAlt)return u.wpnAlt;if(u.m&&u.alt&&typeof ITEMS==='object'&&ITEMS[u.alt]&&ITEMS[u.alt].k==='w')return ITEMS[u.alt];return null}
+// Does u carry a bow in either hand (its fighting role stays the archer's while the sidearm is out)?
+function aiHasBow(u){if(u.wpn&&u.wpn.wt==='bow')return true;const w=aiAltW(u);return!!(w&&w.wt==='bow')}
+/* ---- the weapon swap: one look ahead ----
+   aiHypo(u, fn): runs fn() with u's weapons swapped (swapWeapons() of the rules, the swap's AP paid) and puts every field of u back
+   afterwards. Nothing reaches the scene or the log meanwhile, and nothing draws from rnd(). */
+function aiHypo(u,fn){const snap=Object.assign({},u),abs=u.abs.slice(),buffs=u.buffs.slice(),res=Object.keys(u.res),b=B,fl=b.floats.length,lg=b.log;
+ const e=FX.emit,f=FX.float,sy=FX.say,ui=FX.ui,noop=()=>{};FX.emit=noop;FX.float=noop;FX.say=noop;FX.ui=noop;
+ try{if(!swapWeapons(u))return null;return fn()}
+ finally{FX.emit=e;FX.float=f;FX.say=sy;FX.ui=ui;for(const k of Object.keys(u))if(!(k in snap))delete u[k];Object.assign(u,snap);u.abs=abs;u.buffs=buffs;for(const k of Object.keys(u.res))if(!res.includes(k))delete u.res[k];b.floats.length=fl;b.log=lg}}
+/* Worth of the weapon in hand for the next turn from tile k (only for units with a second weapon, so the swap is judged on more than
+   this turn's blows): a bow beside a foe is worth nothing, a melee weapon is worth what can reach a foe next turn. */
+function aiHandV(X,k){const u=X.u,w=u.wpn,atk=X.atk,c=k%BW,r=(k/BW)|0,d=X.nearTile(c,r),ap=u.apMax||9;let n,f=1;
+ const bow=w.wt==='bow';if(bow){if(!(u.flags&&u.flags.noLock)&&aiLockAt(u,k))return 0;n=Math.max(1,Math.floor(ap/(atk.ap||4)));if(d>atk.rng+1)f=.6}
+ else{const mv=Math.max(0,d-(w.rng||1))*2;if(mv>ap-(atk.ap||4))return(w.d[0]+w.d[1])/2*.06;n=Math.max(1,Math.floor((ap-mv)/(atk.ap||4)))}
+ const sk=bow?eff(u,'rs'):eff(u,'ms'),hit=clamp((sk+(w.hit||0)-10)/100,.15,.9);
+ return .3*(w.d[0]+w.d[1])/2*(1+(u.dmgB||0))*Math.min(3,n)*hit*f}
+// Would swapping now (and then doing the best thing with the AP left) beat the best plan with the weapon in hand?
+function aiSwapPlan(u,P,plan,X,best,walks,S){if(typeof swapWeapons!=='function'||!AB.swap||!u.abs.includes('swap')||S.swN>=2||S.justSw)return null;
+ const a=abilityInfo(u,'swap');if(!canUse(u,a))return null;const alt=aiAltW(u);if(!alt)return null;
+ // only where a swap can matter: a bow that is (or is about to be) useless, the bow back once clear, or a shield to raise or sling
+ const bow=u.wpn.wt==='bow',near=X.near(u);
+ if(!(bow&&near<=2||alt.wt==='bow'&&near>1||!bow&&alt.wt!=='bow'&&(u.slung||u.shield&&alt.two)&&near<=3))return null;
+ const v=aiHypo(u,()=>{u.ap-=a.ap;const S2={fc:new Map(),X:null,stamp:0},X2=aiScan(u,P,plan,S2);if(!X2.foes.length)return null;return aiBest(u,X2,walks).v});
+ if(v==null)return null;return v-(a.ap?1:.3)>best.v+2?a:null}
+function aiCanUseFree(u,a){if(canUse(u,a))return true;if(!aiBowAb(u,a))return false;const c0=u.c,r0=u.r;u.c=-99;u.r=-99;try{return canUse(u,a)}finally{u.c=c0;u.r=r0}}
 /* care: weight of expected damage taken on the end tile      form: liking for allies alongside
    high: liking for height (ranged)   adv: pull towards the enemy per tile   back: appetite for the back line */
 const AI_ROLE={
@@ -33,18 +76,19 @@ const AI_ROLE={
      weather  raise defences and trade carefully while orcs are fresh; kill them once they are winded
      volley   archers and casters shoot the enemy's shooters first
      dodge    leave telegraphed tiles
-     screen   melee stays near the back line to catch blinkers and raiders */
+     screen   melee stays near the back line to catch blinkers and raiders
+     lock     how much a fighter wants to stand beside a foe archer (its bow is useless while it is engaged); default .35 */
 const AI_PLAN={
  gob:{hunt:{gobsham:3.5}},
  undead:{hunt:{necro:3},press:1},
  beast:{hold:1,holdR:3,tight:.2},
- orc:{outlast:1,holdR:5},
- bandit:{hunt:{blead:3.5}},
+ orc:{outlast:1,holdR:3},
+ bandit:{hunt:{blead:1.6},lock:.8,hold:1,holdR:2},
  void:{spread:1,dodge:1,hunt:{vmage:1.6}}
 };
 function aiPlan(u){const b=B;if(u.side!==0)return null;if(b.opts.plan)return b.opts.plan;return AI_PLAN[b.opts.f]||{}}
 function aiProfile(u){let role=u.role;
- if(!role){role='line';if(u.wpn.wt==='bow')role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster'}
+ if(!role){role='line';if(aiHasBow(u))role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster'}
  const P=Object.assign({role},AI_ROLE[role]||AI_ROLE.line);if(u.def&&u.def.dive)P.back=1.8;
  if(u.def&&u.def.flee&&u.hp<u.hpMax*u.def.flee)P.care*=2.5;            // the skittish hang back when hurt, but they keep fighting
  if(B.round>AI_LATE){P.care*=.3;P.shy=0}                                // a long battle: everyone presses, so it ends
@@ -55,8 +99,11 @@ async function aiTurn2(u){const b=B;if(!b||!u||!u.alive)return;
  return aiRun(u,aiProfile(u),null)}
 // The scripted competent player: the engine with the company's roles and the plan against this faction.
 async function AI_SENSIBLE(u){return aiRun(u,aiProfile(u),aiPlan(u)||{})}
-// The careless player: walk at the nearest foe and hit it with the basic attack.
-async function AI_NAIVE(u){const b=B;for(let n=0;n<6&&u.alive&&B===b&&!b.over;n++){const foes=b.units.filter(x=>x.alive&&x.side!==u.side);if(!foes.length)return;
+// The careless player: walk at the nearest foe and hit it with the basic attack. An archer with a foe in its face draws its sidearm
+// (and puts the bow back up once nobody is next to it); that much every player works out.
+async function AI_NAIVE(u){const b=B;let sw=0;for(let n=0;n<6&&u.alive&&B===b&&!b.over;n++){const foes=b.units.filter(x=>x.alive&&x.side!==u.side);if(!foes.length)return;
+  if(!sw&&typeof canSwap==='function'&&AB.swap&&canSwap(u)){const sa=abilityInfo(u,'swap'),alt=aiAltW(u),lk=aiLocked(u);
+   if(canUse(u,sa)&&alt&&((lk&&alt.wt!=='bow'&&u.ap>=sa.ap+(alt.ap||4))||(!lk&&alt.wt==='bow'&&u.wpn.wt!=='bow'&&!foes.some(f=>mdist(f,u)<=1)))){sw=1;await aiUse(u,sa,key(u.c,u.r));if(B!==b||b.over)return;continue}}
   const atk=abilityInfo(u,'attack'),vt=validTargets(u,atk),inr=foes.filter(f=>vt.has(key(f.c,f.r))).sort((x,y)=>mdist(u,x)-mdist(u,y)||x.hp-y.hp||x.id-y.id);
   if(inr.length&&canUse(u,atk)){await aiUse(u,atk,key(inr[0].c,inr[0].r));if(B!==b||checkEnd())return;continue}
   if(inr.length||u.rooted||u.ap<2)return;
@@ -77,7 +124,8 @@ function aiNoop(){}
 /* ---- reading the board ---- */
 function aiScan(u,P,plan,S){const b=B,N=BW*BH,X=S.X||(S.X={thr:new Float32Array(N),sw:new Float32Array(N),goal:new Uint8Array(N),pv:new Float32Array(N),ps:new Int32Array(N)});
  X.u=u;X.P=P;X.plan=plan;X.at=key(u.c,u.r);X.foes=[];X.allies=[];X.adj=[];X.S=S;S.stamp=(S.stamp||0)+1;
- for(const o of b.units){if(!o.alive)continue;if(o.side!==u.side){X.foes.push(o);if(mdist(o,u)===1)X.adj.push(o)}else if(o!==u)X.allies.push(o)}
+ const lm=X.lm||(X.lm=new Uint8Array(N));lm.fill(0);AI_LM=lm;AI_LMU=u;
+ for(const o of b.units){if(!o.alive)continue;if(o.side!==u.side){X.foes.push(o);if(mdist(o,u)===1)X.adj.push(o);if(o.mor!==0&&!o.st.stun)for(const [x,y] of DIRS)if(inb(o.c+x,o.r+y))lm[(o.r+y)*BW+o.c+x]=1}else if(o!==u)X.allies.push(o)}
  X.near=o=>{let m=99;for(const f of X.foes){const d=mdist(f,o);if(d<m)m=d}return m};
  X.nearTile=(c,r)=>{let m=99;for(const f of X.foes){const d=Math.abs(f.c-c)+Math.abs(f.r-r);if(d<m)m=d}return m};
  X.frail=1+(1-u.hp/u.hpMax)*1.5;
@@ -95,13 +143,18 @@ function aiScan(u,P,plan,S){const b=B,N=BW*BH,X=S.X||(S.X={thr:new Float32Array(
   if(plan.dodge&&b.tele&&b.tele.length){X.tele=new Set();for(const t of b.tele)if(t.u.side!==u.side)for(const k of t.keys)X.tele.add(k)}}
  const atk=abilityInfo(u,'attack');let want=atk.rng;X.atk=atk;
  X.abs=[];for(const id of ['attack'].concat(u.abs)){if(id!=='attack'&&!AB[id])continue;const a=id==='attack'?atk:abilityInfo(u,id);
-  if(a.withdraw||!(a.foe?foeReady(u,a):canUse(u,a)))continue;X.abs.push(a);if(a.tgt==='enemy'&&a.magic&&a.rng>want)want=a.rng}
- X.want=want;aiGoal(u,X);return X}
+  if(a.withdraw||a.swap||!(a.foe?foeReady(u,a,1):aiCanUseFree(u,a)))continue;X.abs.push(a);if(a.tgt==='enemy'&&a.magic&&a.rng>want)want=a.rng}
+ X.want=want;X.hand=!!(AB.swap&&u.abs.includes('swap')&&aiAltW(u));
+ // the lock: a fighter that can stand beside a foe archer takes its bow away (the sensible player goes out of its way for it)
+ X.lockW=!AI_DBG.nolockw&&want<=2&&!P.shy?(plan?plan.lock!=null?plan.lock:.35:.15):0;
+ aiGoal(u,X);return X}
 // Expected damage a foe deals to u per turn on each tile it can strike next turn.
 function aiThreat(u,X){const th=X.thr,sw=X.sw;th.fill(0);sw.fill(0);const armK=u.arm>0?.75:1,bw=BW,bh=BH;
  for(const e of X.foes){let rng=e.wpn.rng,avg=(e.wpn.d[0]+e.wpn.d[1])/2,hit,n=Math.min(2,Math.floor(e.apMax/(e.wpn.ap||4)))||1,mag=null;
   for(const id of e.abs){const a=AB[id];if(a&&a.magic&&a.rng>1&&(!a.cost||(e.res[a.cost[0]]&&e.res[a.cost[0]].cur>=a.cost[1]))){mag=a;break}}
   if(mag){rng=mag.rng;avg=(mag.magic[0]+mag.magic[1])/2;hit=.7;n=Math.min(2,Math.floor(e.apMax/(mag.ap||4)))||1}
+  else if(rng>1&&e.wpn.wt==='bow'&&aiLocked(e)){const w=aiAltW(e);            // a locked archer: it fights with its sidearm, or steps clear and shoots less
+   if(w&&w.rng<=1){rng=1;avg=(w.d[0]+w.d[1])/2*(e.dmgK||1);n=1;hit=clamp(eff(e,'ms')-eff(u,'md'),5,95)/100}else{n=.4;hit=clamp(eff(e,'rs')+(e.wpn.hit||0)-eff(u,'rd'),5,95)/100}}
   else hit=clamp((rng>1?eff(e,'rs'):eff(e,'ms'))+(e.wpn.hit||0)-(rng>1?eff(u,'rd'):eff(u,'md')),5,95)/100;
   const dm=avg*(1+buffSum(e,'dmg')+(e.dmgB||0));e.aiW=dm*n*.55+(mag||e.back?6:0)+(e.def&&e.def.lead?8:0);
   if(e.st.stun||e.mor===0)continue;
@@ -118,14 +171,15 @@ function aiGoal(u,X){const g=X.goal,tl=B.tiles,bk=[],hunt=X.plan&&X.plan.press&&
    for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=nr*BW+nc;if(g[nk]<=d+1||tl[nk].t==='block'||h-tl[nk].h>1)continue;(bk[d+1]||(bk[d+1]=[])).push(nk)}}}}
 // Worth of ending on tile k (higher is better). Cached per decision.
 function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan=X.plan,t=B.tiles[k],c=k%BW,r=(k/BW)|0;
- let v=-P.care*X.thr[k]*X.frail+P.high*t.h-(t.t==='haz'?60:0);
+ let v=-P.care*X.thr[k]*X.frail+P.high*t.h-(t.t==='haz'?60:0);if(X.hand)v+=aiHandV(X,k);
  const g=X.goal[k]>X.want?X.goal[k]-X.want:0;
- if(X.hold===2||X.brace){const front=DEPLOY.p.front;v-=(r<front-1?(front-1-r)*7:0)}else{v-=P.adv*g;if(X.hold===1){const front=DEPLOY.p.front;if(r<front-2)v-=(front-2-r)*5}}
+ if(X.hold===2){const front=DEPLOY.p.front;v-=(r<front-1?(front-1-r)*7:0)}else{v-=P.adv*g;if(X.hold===1){const front=DEPLOY.p.front;if(r<front-2)v-=(front-2-r)*5}}
  if(P.shy&&X.goal[k]<=2)v-=6*(3-X.goal[k]);
  if(X.lead>=0&&r>X.lead)v-=5*(r-X.lead);
 
  let al=0,open=0,blk=0;
- for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const tt=B.tiles[nr*BW+nc];if(tt.t==='block'){blk++;continue}const o=unitAt(nc,nr);if(o&&o!==u&&o.alive&&o.side===u.side)al++;else if(!o||o===u)open++}
+ for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const tt=B.tiles[nr*BW+nc];if(tt.t==='block'){blk++;continue}const o=unitAt(nc,nr);if(o&&o!==u&&o.alive&&o.side===u.side)al++;else if(!o||o===u)open++;
+  else if(X.lockW&&o.wpn.wt==='bow'&&aiAble(o)){let held=0;for(const q of X.allies)if(mdist(q,o)===1){held=1;break}v+=X.lockW*(o.aiW||10)*(held?.25:1)}}   // standing beside an archer locks its bow
  let form=P.form;if(plan){if(plan.tight&&!P.shy)form+=1.6*plan.tight;if(plan.spread)form=-2.5}
  v+=form*al;if(plan&&plan.tight&&!P.shy&&open>1)v-=2.5*plan.tight*(open-1);
  if(P.shy&&blk)v+=1.2;
@@ -134,12 +188,14 @@ function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan
  X.ps[k]=X.S.stamp;return X.pv[k]=v}
 function aiStatusVal(k,n,t){const W=t.aiW||10;let v;
  if(k==='stun')v=W*1.1;else if(k==='root'||k==='webbed')v=t.wpn.rng>1||t.back?2:W*.35*Math.min(2,n);else if(k==='daze')v=W*.12;else if(k==='bleed')v=5*n;else if(k==='chill')v=W*.3;else if(k==='burn')v=6*n;else if(k==='poison')v=5*n;else if(k==='hex')v=W*.3;
+ else if(k==='marked')v=W*.12*Math.min(2,n);else if(k==='weak')v=W*.2*Math.min(2,n)/2+2;
  else if(k==='web'||k==='grab')v=4;else v=3;
  return t.st[k]>0?v*.2:v}
 // What a hit with a on t is worth, from forecast(). Cached for the unit's turn.
 function aiHit(u,a,t,S){const id=a.id+'|'+t.id+'|'+t.hp+'|'+t.arm+'|'+(t.helm||0)+'|'+(t.shp||0),C=S.fc;let v=C.get(id);if(v)return v;
  const W=t.aiW||10;let hp=0,arm=0,kill=0,sv=0;
- if(a.split){const f=forecast(u,t,a);v={v:f.shield?f.shield.max*.2+(f.shield.brk?(f.shield.sure?10:5)+W*.3:0):0,kill:0,kv:0};C.set(id,v);return v}
+ if(a.split){const f=forecast(u,t,a);const sb=t.shb?(t.shb.md||0)+(t.shb.rd||0)*.3:10,gone=W*sb/45;   // a split shield takes its defense away for the rest of the battle
+  v={v:f.shield?f.shield.max*.2+Math.min(1,f.shield.max/Math.max(1,f.shield.hp))*gone*.5+(f.shield.brk?(f.shield.sure?10:5)+W*.3+gone*.5:0):0,kill:0,kv:0};C.set(id,v);return v}
  /* The forecast's own arithmetic (fcDamage, fcSoak, headChance) at the low, middle and high roll, for a hit on the body and on
     the head: the same numbers forecast() shows the player, without walking every roll for every candidate. */
  let lo=0,hi=0,ign=1;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];ign=a.ign||.5}else{lo=u.wpn.d[0];hi=u.wpn.d[1];ign=(u.wpn.ign||.2)+(a.ignB||0)}
@@ -163,16 +219,28 @@ function aiPrio(X,t){const u=X.u,P=X.P,plan=X.plan;let p=1;const fo=B.aiFoc&&B.a
 // Chance (0..1) that a used from tile s hits t; 0 when the shot is blocked from there.
 let AI_RISK=0;   // set by aiChance: what a miss from there costs (a stray shot into an ally, a riposte)
 function aiChance(u,a,t,s){const c0=u.c,r0=u.r;let p;AI_RISK=0;if(s!==c0+r0*BW){u.c=s%BW;u.r=(s/BW)|0}
- try{p=hitChance(u,t,a)/100;const d=mdist(u,t);
+ try{if(!AI_DBG.nolock&&aiBowAb(u,a)&&!(u.flags&&u.flags.noLock)&&aiLockAt(u,s)){p=0;return 0}p=hitChance(u,t,a)/100;const d=mdist(u,t);
   if(p>0&&d>1&&!a.dash){const L=losInfo(u,t,a);if(L.blocked)p=0;else if(L.ff.length&&p<1)AI_RISK=(1-p)*FFCH*14}
   else if(d===1&&!a.magic&&!a.sure&&buffSum(t,'rip')>0&&canFree(t))AI_RISK=(1-p)*(t.wpn.d[0]+t.wpn.d[1])*.3}finally{u.c=c0;u.r=r0}return p}
 /* ---- choosing ---- */
+// What u's own blows are worth this turn if a foe is in reach (for buffs to damage and skill), else 0.
+function aiOwn(u,X,atk){const k=X.at,r=atk.rng+(u.rooted?0:Math.floor(Math.max(0,u.ap-atk.ap)/2.4));if(X.nearTile(k%BW,(k/BW)|0)>r)return 0;return(u.wpn.d[0]+u.wpn.d[1])/2*Math.max(1,Math.floor(u.apMax/(atk.ap||4)))*.6}
+/* A timed buff on unit o: th = the damage o expects to take while it lasts (defense, damage reduction), own = what o deals per turn
+   (damage, skill), X (o is the acting unit) for riposte and spear wall, apLeft = AP o has left this turn to use it at once. */
+function aiBuffVal(o,bf,dur,th,own,X,apLeft){if(bf.dr&&buffSum(o,'dr')>=bf.dr&&!bf.md)return 0;if(bf.md&&!bf.dr&&buffSum(o,'md')>=bf.md)return 0;
+ const turns=Math.min(2,dur||1);let v=th*((bf.dr||0)+(bf.md||0)/90+(bf.rd||0)/200)*.7*(turns>1?1.3:1)-(bf.md<0?th*(-bf.md)/90*.7:0);
+ if(own>0){const off=(bf.dmg||0)+((o.wpn.wt==='bow'?bf.rs:bf.ms)||0)/70;if(off>0)v+=own*off*(apLeft>=4?1:.5)*(turns>1?1.4:.8)}
+ if(bf.brv&&o.mor<3)v+=4;if(bf.indom)v+=2;
+ if(X&&bf.rip){const w=(o.wpn.d[0]+o.wpn.d[1])/2;v+=X.adj.filter(e=>e.wpn.rng<=2&&e.mor!==0).length*w*.3}
+ if(X&&bf.sw&&!X.adj.length){const w=(o.wpn.d[0]+o.wpn.d[1])/2;let n=0;for(const e of X.foes)if(e.wpn.rng<=2&&e.mor!==0&&!e.rooted&&mdist(e,o)<=4)n++;v+=Math.min(2,n)*w*.4}
+ return v}
+function aiHealVal(o,h){const miss=o.hpMax-o.hp;if(miss<=0)return 0;return Math.min(miss,(h[0]+h[1])/2)*.9+(o.hp<o.hpMax*.4?8:0)}
 function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.atk,foes=X.foes;
  const tiles=[];D.forEach((v,k)=>{if(k===cur||!unitAt(k%BW,(k/BW)|0))tiles.push({k,cost:v.cost,pos:aiPos(X,k)})});
  if(!tiles.some(t=>t.k===cur))tiles.push({k:cur,cost:0,pos:aiPos(X,cur)});
  tiles.sort((a,b)=>b.pos-a.pos||a.k-b.k);
  const pos0=aiPos(X,cur);let aoo=0;
- for(const e of X.adj)if(!e.aoo&&canFree(e)){aoo=(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6;break}
+ for(const e of X.adj)if(!e.aoo&&canFree(e)){const p=hitChance(e,u,FREEAB)/100;aoo=AI_DBG.oldaoo?(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6:((e.wpn.d[0]+e.wpn.d[1])/2*.6*1.3*X.frail+6)*(.4+p);break}   // leaving a foe's reach: its free attack, and a hit halts the walk
  let best={v:pos0,s:cur,a:null,k:cur};
  const take=(v,s,a,k)=>{if(v>best.v+1e-6){best={v,s,a,k}}};
  const canWalk=walks<3&&!u.rooted;
@@ -183,37 +251,53 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
  for(const a of X.abs){const tax=(a.cost?a.cost[1]*.25:0)+(a.fat&&u.fatMax<999&&u.fat+a.fat>u.fatMax*.8?6:0);
   if(a.ai){for(const c of a.ai(u,X)){const s=c.s==null?cur:c.s,co=tcost(s);if(co+a.ap>u.ap||(s!==cur&&!canWalk))continue;const end=a.tgt==='move'?c.k:s;
     take(c.v+aiPos(X,end)-(s!==cur?aoo:0)-tax,s,a,c.k)}continue}
-  if(a.tgt==='enemy'){const dash=!!a.dash,melee=a.rng<=1;let vt=null;if(dash)vt=validTargets(u,a);
+  if(a.swapW)continue;                                                   // the swap is weighed by aiSwapPlan (one look ahead)
+  if(a.tgt==='enemy'){const dash=!!a.dash,melee=a.rng<=1,nh=a.hits>1?a.hits:1;let vt=null;if(dash)vt=validTargets(u,a);
    for(const t of foes){if(a.foe&&!foeReq(u,a,t))continue;const d0=mdist(u,t);if(d0>a.rng+Math.floor(u.ap/2))continue;
-    const h=aiHit(u,a,t,S),pr=aiPrio(X,t),hv=(h.v+h.kill*h.kv)*pr;let extra=0;
-    if(a.aoe)for(const o of foes)if(o!==t&&mdist(o,t)===1)extra+=aiHit(u,a,o,S).v*.7*.7;
+    const h=aiHit(u,a,t,S),pr=aiPrio(X,t);let extra=0;
+    // what a hit is worth at chance p: several blows (hits) land while the foe stands, each one a chance to kill
+    const hv=p=>{if(nh===1)return(h.v+h.kill*h.kv)*pr;const m=1+(nh-1)*p*(1-h.kill);return(h.v*m+Math.min(1,h.kill*m)*h.kv)*pr};
+    if(a.aoe)for(const o of foes)if(o!==t&&mdist(o,t)===1)extra+=aiHit(u,a,o,S).v*.7*.7*aiPrio(X,o);
     if(a.chain){let n=0;for(const o of foes)if(o!==t&&mdist(o,t)<=3)n++;extra+=Math.min(a.chain,n)*h.v*.5}
     const bh=a===atk?h:aiHit(u,atk,t,S);
     if(dash){if(!vt.has(key(t.c,t.r)))continue;const p=aiChance(u,a,t,cur),sp=d0>1?dashSpot(u,t):null,end=sp?key(sp[0],sp[1]):cur;
-     take(p*(hv+extra)-AI_RISK+follow(u.ap-a.ap,bh.v*pr*(1-p*h.kill)*.6)+aiPos(X,end)-(end!==cur?aoo*.5:0)-tax,cur,a,key(t.c,t.r));continue}
-    let cnt=0;for(const tl of tiles){const s=tl.k,dc=(s%BW)-t.c,dr=((s/BW)|0)-t.r,m=(dc<0?-dc:dc)+(dr<0?-dr:dr);if(m>a.rng||!m)continue;
+     take(p*(hv(p)+extra)-AI_RISK+follow(u.ap-a.ap,bh.v*pr*(1-p*h.kill)*.6)+aiPos(X,end)-(end!==cur?aoo*.5:0)-tax,cur,a,key(t.c,t.r));continue}
+    let cnt=0;for(const tl of tiles){const s=tl.k,sc=s%BW,sr=(s/BW)|0,dc=sc-t.c,dr=sr-t.r,m=(dc<0?-dc:dc)+(dr<0?-dr:dr);if(m>a.rng||!m)continue;
      if(tl.cost+a.ap>u.ap||(s!==cur&&!canWalk))continue;if(!melee&&s!==cur&&++cnt>5)continue;
-     const p=aiChance(u,a,t,s);if(p<=0)continue;
-     take(p*(hv+extra)-AI_RISK+follow(u.ap-tl.cost-a.ap,bh.v*pr*(1-p*h.kill)*(m<=atk.rng?p:0))+tl.pos-(s!==cur?aoo+X.sw[s]:0)-tax,s,a,key(t.c,t.r))}}}
+     const p=aiChance(u,a,t,s);if(p<=0)continue;const risk=AI_RISK;let ex=extra;
+     // through: the shot flies on into foes standing behind the target, seen from s
+     if(a.through){let n=0;for(const o of foes){if(o===t||n>=a.through)continue;const e=mdist(o,t);if(e<=a.through&&Math.abs(o.c-sc)+Math.abs(o.r-sr)===m+e){ex+=aiHit(u,a,o,S).v*.75*.6*aiPrio(X,o);n++}}}
+     take(p*(hv(p)+ex)-risk+follow(u.ap-tl.cost-a.ap,bh.v*pr*(1-p*h.kill)*(m<=atk.rng?p:0))+tl.pos-(s!==cur?aoo+X.sw[s]:0)-tax,s,a,key(t.c,t.r))}}}
   else if(a.tgt==='aoe'){for(const tl of tiles){const s=tl.k;if(tl.cost+a.ap>u.ap||(s!==cur&&!canWalk))continue;const c=s%BW,r=(s/BW)|0;let v=0,n=0;
     for(const t of foes){if(Math.abs(t.c-c)+Math.abs(t.r-r)!==1)continue;const h=aiHit(u,a,t,S);v+=aiChance(u,a,t,s)*(h.v+h.kill*h.kv)*aiPrio(X,t);n++}
     if(n>=2||(n&&a.foe&&s===cur&&u.ap<a.ap+atk.ap))take(v+tl.pos-(s!==cur?aoo:0)-tax,s,a,s)}}
-  else if(a.tgt==='self'){let v=0;const th=X.thr[cur];
+  else if(a.tgt==='self'){let v=0;const th=X.thr[cur],own=aiOwn(u,X,atk);
    if(a.gainAP){if(X.adj.length&&u.ap<atk.ap&&u.fat+a.fat+atk.fat<=u.fatMax)v=10}
-   if(a.buff){const bf=a.buff,own=(u.wpn.d[0]+u.wpn.d[1])/2;if(!(bf.key&&u.buffs.some(x=>x.key===bf.key))&&!(bf.dr&&buffSum(u,'dr')>=bf.dr)&&!(bf.md&&buffSum(u,'md')>=bf.md)){v=th*((bf.dr||0)+(bf.md||0)/90+(bf.rd||0)/200)*.7;
-     if(bf.rip)v+=X.adj.filter(e=>e.wpn.rng<=2&&e.mor!==0).length*own*.3;
-     if(bf.sw&&!X.adj.length){let n=0;for(const e of foes)if(e.wpn.rng<=2&&e.mor!==0&&!e.rooted&&mdist(e,u)<=4)n++;v+=Math.min(2,n)*own*.4}
-     if(X.brace&&v<26)v=26}}
+   if(a.buff&&!(a.buff.key&&u.buffs.some(x=>x.key===a.buff.key)))v+=aiBuffVal(u,a.buff,a.dur,th,own,X,u.ap-a.ap);
+   if(a.party){const R=a.party===true?1:a.party;for(const o of X.allies){if(mdist(o,u)>R||o.mor===0)continue;
+     if(a.buff&&!(a.buff.key&&o.buffs.some(x=>x.key===a.buff.key))){let adj=0;for(const f of foes)if(mdist(f,o)<=1)adj++;v+=aiBuffVal(o,a.buff,a.dur,adj*((o.hpMax>0?18:0)),adj?(o.wpn.d[0]+o.wpn.d[1])/2:0,null,0)*.8}
+     if(a.heal)v+=aiHealVal(o,a.heal);if(a.rally&&o.mor>0&&o.mor<3)v+=10}}
+   if(a.heal)v+=aiHealVal(u,a.heal);if(a.rally&&u.mor>0&&u.mor<3)v+=10;
+   if(a.rest&&u.fatMax<9000&&u.fat>u.fatMax*.45)v+=Math.min(a.rest,u.fat)*.25;
+   if(X.brace&&a.buff&&(a.buff.md||a.buff.dr)&&v>0&&v<26)v=26;
    if(v>0)take(v+pos0-tax,cur,a,cur)}
   else if(a.tgt==='ally'){for(const o of X.allies.concat(a.noSelf?[]:[u])){if(mdist(o,u)>a.rng)continue;let v=0;
-    if(a.heal){const miss=o.hpMax-o.hp;if(miss<10)continue;v=Math.min(miss,(a.heal[0]+a.heal[1])/2)*.9+(o.hp<o.hpMax*.4?8:0)}
-    if(a.buff){if(buffSum(o,'dmg')>0||X.near(o)>2)continue;v+=6+(o.aiW||((o.wpn.d[0]+o.wpn.d[1])/2))*.25}
+    if(a.heal){const miss=o.hpMax-o.hp;if(miss>=10||a.cleanse)v+=aiHealVal(o,a.heal)}
+    if(a.cleanse)for(const k of a.cleanse)if(o.st[k]>0)v+=k==='bleed'||k==='poison'||k==='burn'?5*o.st[k]:k==='root'&&X.near(o)>1?6:3;
+    if(a.buff&&!(a.buff.key&&o.buffs.some(x=>x.key===a.buff.key))){const bf=a.buff;
+     if(bf.dmg||bf.ms||bf.rs){if(!(buffSum(o,'dmg')>0)&&X.near(o)<=2)v+=6+(o.aiW||((o.wpn.d[0]+o.wpn.d[1])/2))*.25}
+     else{let adj=0;for(const f of foes)if(mdist(f,o)<=1)adj++;v+=aiBuffVal(o,bf,a.dur,adj*18,0,null,0)}}
     if(a.giveAP){if(o.bonusAP||X.near(o)>1||o.wpn.rng>1)continue;v+=(o.wpn.d[0]+o.wpn.d[1])/2*.4}
     if(v>0)take(v+pos0-tax,cur,a,key(o.c,o.r))}}
-  else if(a.tgt==='move'){if(!X.adj.length&&!(P.back>1.2&&!P.shy))continue;const vt=validTargets(u,a);
-   for(const k of vt){if(B.tiles[k].t==='haz')continue;take(aiPos(X,k)-1.5-tax,cur,a,k)}}}
- return best.a||best.s!==cur?best:null}
-async function aiRun(u,P,plan){const b=B,S={fc:new Map(),X:null,stamp:0};let walks=0;
+  else if(a.tgt==='move'){const locked=X.adj.length&&aiLocked(u);if(!X.adj.length&&!(P.back>1.2&&!P.shy))continue;const vt=validTargets(u,a),cand=[];
+   for(const k of vt){if(B.tiles[k].t==='haz')continue;let v=aiPos(X,k)-1.5-tax;if(a.buff)v+=aiBuffVal(u,a.buff,a.dur,X.thr[k],0,X,0);cand.push({k,v})}
+   // a locked archer (or anyone whose weapon reaches) slips clear without free attacks and still has a shot: look one action ahead from the best few spots
+   if(!AI_DBG.nomovef&&cand.length&&u.ap-a.ap>=atk.ap){cand.sort((x,y)=>y.v-x.v||x.k-y.k);for(let i=0;i<cand.length&&i<6;i++){const k=cand[i].k;let fb=0;
+     for(const t of foes){if(Math.abs(t.c-k%BW)+Math.abs(t.r-((k/BW)|0))>atk.rng)continue;const p=aiChance(u,atk,t,k);if(p>0){const h=aiHit(u,atk,t,S),w=p*(h.v+h.kill*h.kv)*aiPrio(X,t);if(w>fb)fb=w}}
+     cand[i].v+=fb*.8}}
+   for(const c of cand)take(c.v,cur,a,c.k)}}
+ best.idle=!(best.a||best.s!==cur);return best}
+async function aiRun(u,P,plan){const b=B,S={fc:new Map(),X:null,stamp:0,swN:0,justSw:0};let walks=0;
  if(u.nova&&AB.tnovab){await foeUse(u,abilityInfo(u,'tnovab'),key(u.c,u.r));if(B!==b)return;b.busy=true;if(checkEnd()||!u.alive)return}
  for(let n=0;n<AI_CAP&&u.alive&&B===b&&!b.over;n++){
   const t0=AI_CLOCK?AI_CLOCK():0;
@@ -221,9 +305,10 @@ async function aiRun(u,P,plan){const b=B,S={fc:new Map(),X:null,stamp:0};let wal
   const X=aiScan(u,P,plan,S);if(!X.foes.length)return;
   // The sensible player pulls a merc who is about to die out of the fight when he already stands on the company's edge.
   if(plan&&!plan.noWithdraw&&u.side===0&&u.m&&u.hp<u.hpMax*.25&&X.thr[X.at]>=u.hp*.5&&canWithdraw(u)&&X.allies.length>=2){const ok=await withdraw(u);if(B!==b||b.over)return;b.busy=true;if(checkEnd()||ok||!u.alive)return}
-  const best=aiBest(u,X,walks);
+  const best=aiBest(u,X,walks),sw=aiSwapPlan(u,P,plan,X,best,walks,S);
   if(AI_CLOCK){const dt=AI_CLOCK()-t0;AI_STAT.ms+=dt;if(!n)AI_STAT.n++;if(dt>AI_STAT.max)AI_STAT.max=dt}
-  if(!best)return;
+  if(sw){const ap=u.ap,w=u.wpn;await aiUse(u,sw,X.at);if(B!==b||b.over||!u.alive)return;S.fc.clear();S.swN++;S.justSw=1;if(u.wpn===w&&u.ap>=ap)return;continue}
+  S.justSw=0;if(best.idle)return;
   if(best.s!==X.at){walks++;const at=X.at;await walkPath(u,pathTo(X.D,best.s));if(B!==b||b.over||!u.alive)return;if(checkEnd())return;
    const k=key(u.c,u.r);if(k===at&&!best.a)return;if(k!==best.s)continue}
   if(best.a){const ap=u.ap,k0=key(u.c,u.r);await aiUse(u,best.a,best.k);if(B!==b||b.over)return;if(checkEnd())return;if(!u.alive)return;

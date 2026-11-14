@@ -1,5 +1,6 @@
 // Balance harness and the phase-5 done-criterion.   node test/balance.js [--n N] [--quick] [--jobs J] [--seed S]
 //                                                      [--only fac,fac] [--prof id,id] [--no-abl] [--no-cross] [--boss] [--json file]
+//                                                      [--set "JS statement"] [--src 63-ai.js=/other/file.js] [--srcdir dir] (tuning and A/B runs)
 // Loads src/*.js like test/headless.js (vm context, DOM stubs), then fights N seeded battles per cell:
 //   faction x company profile x pilot ('naive' = AI_NAIVE, 'sensible' = AI_SENSIBLE, chosen through B.opts.pilot).
 // An "even fight" is what the game itself generates for that company at mult 1 (startBattle's budget x BUDGETK).
@@ -10,21 +11,22 @@
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
-const SRC=path.join(__dirname,'..','src'),SEED=+arg('--seed',20261113),TURNCAP=4000;
+const SRC=ARGV.includes('--srcdir')?path.resolve(ARGV[ARGV.indexOf('--srcdir')+1]):path.join(__dirname,'..','src'),SEED=+arg('--seed',20261113),TURNCAP=4000;
 const FACS=['gob','undead','beast','orc','bandit','void'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8;
 /* ---------- company profiles ---------- */
-// role -> level-up picks, masteries (first is the main tree), and gear by tier [L4, L8, L12]
+// role -> level-up stat picks and gear by tier [L4, L8, L12] (b: the sidearm). Perks are spent by the game's own autoLearn(m)
+// on the trees the merc rolled from its background pool, after the gear is on (autoLearn reads the weapons and the shield).
 const ROLES={
- tank:{st:['hp','ms','md'],m:['bulwark','vanguard'],w:['arming','arming','runeblade'],s:['kite','heater','heater'],a:['leather','mail','plate'],h:['cap','kettle','greathelm']},
- axe:{st:['hp','ms','md'],m:['vanguard','bulwark'],w:['handaxe','waraxe','waraxe'],s:['buckler','kite','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
- mace:{st:['hp','ms','md'],m:['bulwark','vanguard'],w:['club','mace','mace'],s:['buckler','kite','heater'],a:['padded','mail','scale'],h:['cap','kettle','barbute']},
- spear:{st:['hp','ms','md'],m:['bulwark','vanguard'],w:['spear','warspear','warspear'],s:['kite','heater','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
- two:{st:['hp','ms','md'],m:['vanguard','skirmisher'],w:['handaxe','greataxe','greataxe'],s:['buckler',null,null],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
- pike:{st:['hp','ms','md'],m:['vanguard','bulwark'],w:['spear','pike','pike'],s:['buckler',null,null],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
- blade:{st:['hp','ms','md'],m:['vanguard','skirmisher'],w:['shortsword','arming','runeblade'],s:['buckler','buckler','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
- bow:{st:['rs','hp','rd'],m:['marksman','skirmisher'],w:['shortbow','warbow','warbow'],s:[null,null,null],a:['padded','leather','mail'],h:['hood','cap','kettle']},
- mage:{st:['hp','rd','md'],m:['skirmisher','bulwark'],w:['staff','focus','focus'],s:[null,null,null],a:['robe','robe','leather'],h:['hood','hood','cap']},
- heal:{st:['hp','ms','md'],m:['bulwark','vanguard'],w:['club','mace','mace'],s:['buckler','kite','heater'],a:['padded','mail','scale'],h:['cap','kettle','barbute']}
+ tank:{st:['hp','ms','md'],w:['arming','arming','runeblade'],b:[null,null,null],s:['kite','heater','heater'],a:['leather','mail','plate'],h:['cap','kettle','greathelm']},
+ axe:{st:['hp','ms','md'],w:['handaxe','waraxe','waraxe'],b:[null,'greataxe','greataxe'],s:['buckler','kite','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ mace:{st:['hp','ms','md'],w:['club','mace','mace'],b:[null,null,null],s:['buckler','kite','heater'],a:['padded','mail','scale'],h:['cap','kettle','barbute']},
+ spear:{st:['hp','ms','md'],w:['spear','warspear','warspear'],b:[null,null,null],s:['kite','heater','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ two:{st:['hp','ms','md'],w:['handaxe','greataxe','greataxe'],b:[null,'waraxe','waraxe'],s:['buckler','kite','kite'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ pike:{st:['hp','ms','md'],w:['spear','pike','pike'],b:[null,null,null],s:['buckler',null,null],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ blade:{st:['hp','ms','md'],w:['shortsword','arming','runeblade'],b:[null,null,null],s:['buckler','buckler','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ bow:{st:['rs','hp','rd'],w:['shortbow','warbow','warbow'],b:['knife','knife','rondel'],s:[null,null,null],a:['padded','leather','mail'],h:['hood','cap','kettle']},
+ mage:{st:['hp','rd','md'],w:['staff','focus','focus'],b:[null,null,null],s:[null,null,null],a:['robe','robe','leather'],h:['hood','hood','cap']},
+ heal:{st:['hp','ms','md'],w:['club','mace','mace'],b:[null,null,null],s:['buckler','kite','heater'],a:['padded','mail','scale'],h:['cap','kettle','barbute']}
 };
 const S=(bg,role,gift)=>({bg,role,gift:gift||null});
 const PROFILES=[
@@ -56,7 +58,8 @@ function makeContext(){const els=new Map(),store=new Map(),warns=[];
   matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}}),getComputedStyle:()=>hole({getPropertyValue:()=>''}),navigator:{userAgent:'node',maxTouchPoints:0,vibrate(){}},screen:hole(),location:{href:'',reload(){}},
   performance:{now:()=>0},ResizeObserver:function(){return{observe(){},disconnect(){},unobserve(){}}},MutationObserver:function(){return{observe(){},disconnect(){}}},IntersectionObserver:function(){return{observe(){},disconnect(){}}},Image:function(){return element()},Audio:function(){return hole()},CSS:{supports:()=>false,escape:s=>s}};
  sb.window=sb;sb.self=sb;sb.globalThis=sb;sb.top=sb;sb.parent=sb;const ctx=vm.createContext(sb);
- const js=fs.readdirSync(SRC).filter(f=>f.endsWith('.js')).sort().map(f=>`/* ---- ${f} ---- */\n`+fs.readFileSync(path.join(SRC,f),'utf8')).join('\n');
+ const OVR={};for(let i=0;i<ARGV.length;i++)if(ARGV[i]==='--src'){const [f,file]=ARGV[i+1].split('=');OVR[f]=file}   // A/B runs: --src 63-ai.js=/path/to/other.js
+ const js=fs.readdirSync(SRC).filter(f=>f.endsWith('.js')).sort().map(f=>`/* ---- ${f} ---- */\n`+fs.readFileSync(OVR[f]||path.join(SRC,f),'utf8')).join('\n');
  vm.runInContext("'use strict';\n"+js,ctx,{filename:'wyrdmarch-src.js'});
  const getters=new Map(),setters=new Map(),extra={ctx,warns};
  const X=new Proxy(extra,{get(t,k){if(k in t)return t[k];if(typeof k!=='string')return undefined;if(k in ctx)return ctx[k];
@@ -67,15 +70,21 @@ function makeContext(){const els=new Map(),store=new Map(),warns=[];
  return X}
 /* ---------- companies ---------- */
 function closeAll(X){for(let i=0;i<6&&X.sheetOpen;i++)X.closeSheet(true);if(X.sheetOpen)X.sheetOpen=false}
-function spend(X,m,order){let g=0;while(m.pp>0&&g++<60){const k=order.find(k=>k in m.mast&&m.mast[k]<X.MAST[k].p.length);if(!k)break;m.mast[k]++;m.pp--;order.push(order.shift())}}
-function mkMerc(X,spec,P){const R=ROLES[spec.role],m=X.newMerc(spec.bg);m.field=true;const mast={};if(spec.gift)mast[spec.gift]=0;for(const k of R.m)mast[k]=0;m.mast=mast;
+// The perk build: the game's autoLearn(m) (the Auto button), or, on an older build without the talent API, the old mastery spend.
+function learnAll(X,m){if(typeof X.autoLearn==='function'&&Array.isArray(m.perks)){X.autoLearn(m);if(typeof X.syncMast==='function')X.syncMast(m);return}
+ let g=0;const order=Object.keys(m.mast||{});while(m.pp>0&&g++<60){const k=order.find(k=>X.MAST[k]&&X.MAST[k].p&&m.mast[k]<X.MAST[k].p.length);if(!k)break;m.mast[k]++;m.pp--;order.push(order.shift())}}
+// The gift the profile asks for (in the variant the background's style gets), or none.
+function setGift(X,m,res){if(!Array.isArray(m.trees)||typeof X.giftKey!=='function')return;const g=res?X.giftKey(res,X.mercStyle(m)):null;
+ m.trees=m.trees.filter(k=>!(X.MAST[k]&&X.MAST[k].kind==='gift'));m.gift=g;if(g)m.trees.push(g)}
+function mkMerc(X,spec,P){const R=ROLES[spec.role],m=X.newMerc(spec.bg);m.field=true;setGift(X,m,spec.gift);
+ const eq={w:R.w[P.tier],b:R.b[P.tier],s:R.s[P.tier],a:R.a[P.tier],h:X.ITEMS[R.h[P.tier]]?R.h[P.tier]:null};m.eq=Object.assign(m.eq||{},eq);
+ if(X.ITEMS[eq.w].two&&(!eq.b||X.ITEMS[eq.b].two)&&!(typeof X.fixHands==='function'))m.eq.s=null;if(typeof X.fixHands==='function')X.fixHands(m);
  X.gainXP(m,X.XPT[P.lvl]);let g=0;
  while(m.pend>0&&g++<40){for(const k of R.st){const t=m.tal[k]||0;m.base[k]+=X.ri(X.ROLL[k][0]+Math.floor(t/2),X.ROLL[k][1]+Math.ceil(t/2))}m.pend--}
- spend(X,m,spec.gift?[spec.gift,R.m[0]]:[R.m[0],R.m[1]]);spend(X,m,Object.keys(m.mast));
- const eq={w:R.w[P.tier],s:R.s[P.tier],a:R.a[P.tier]};if(X.ITEMS[R.h[P.tier]])eq.h=R.h[P.tier];if(X.ITEMS[eq.w].two)eq.s=null;m.eq=Object.assign(m.eq||{},eq);delete m.cond;m.hp=X.calc(m).hp;return m}
+ learnAll(X,m);delete m.cond;m.hp=X.calc(m).hp;return m}
 function buildCompany(X,P,seed){X.seedRng(seed);X.newGame(true);closeAll(X);const G=X.G;
  if(P.team){G.roster.length=0;for(const s of P.team)G.roster.push(mkMerc(X,s,P))}
- else G.roster.forEach(m=>{m.field=true;const g=X.mercRes(m);spend(X,m,g?[g]:[Object.keys(m.mast)[0]]);m.hp=X.calc(m).hp});
+ else G.roster.forEach(m=>{m.field=true;learnAll(X,m);m.hp=X.calc(m).hp});
  G.stash.length=0;closeAll(X);return X.clone(G.roster)}
 /* ---------- one battle ---------- */
 const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
@@ -109,7 +118,8 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
   'outlast the fury':p=>{if(p.outlast){delete p.outlast;delete p.holdR}},
   'kill the chief':p=>{if(p.hunt)delete p.hunt.blead},
   'spread out':p=>{delete p.spread},
-  'hunt the weavers':p=>{if(p.hunt)delete p.hunt.vmage}
+  'hunt the weavers':p=>{if(p.hunt)delete p.hunt.vmage},
+  'engage the archers':p=>{if(p.lock!=null)p.lock=0}
  };
  const jobs=[];let jid=0;const add=(kind,f,prof,pilot,n,plan,tag,fixed)=>{const j={id:jid++,kind,f,prof,pilot,n,plan:plan||null,tag:tag||null,fixed:fixed||null};jobs.push(j);return j};
  for(const f of facs)for(const p of profs)for(const pilot of ['naive','sensible'])add('main',f,p,pilot,N);
@@ -123,7 +133,7 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const todo=[...uniq.values()].sort((a,b)=>b.job.n*PROFILES.findIndex(p=>p.id===b.job.prof)-a.job.n*PROFILES.findIndex(p=>p.id===a.job.prof));
  console.log(`balance: ${todo.length} cells, ${todo.reduce((s,t)=>s+t.job.n,0)} battles, ${J} workers, seed ${SEED}, BUDGETK ${X0.BUDGETK}`);
  await new Promise((done,fail)=>{let next=0,left=todo.length,dead=false;if(!left)return done();
-  const sets=[];for(let i=0;i<ARGV.length;i++)if(ARGV[i]==='--set')sets.push('--set',ARGV[i+1]);
+  const sets=[];for(let i=0;i<ARGV.length;i++)if(ARGV[i]==='--set'||ARGV[i]==='--src'||ARGV[i]==='--srcdir')sets.push(ARGV[i],ARGV[i+1]);
   const ws=[];for(let i=0;i<J;i++){const w=cp.fork(__filename,['--worker','--seed',String(SEED)].concat(sets));ws.push(w);
    const feed=()=>{if(next<todo.length){const t=todo[next++];w.cur=t;w.send(t.job)}else w.send('quit')};
    w.on('message',m=>{if(m.err){if(!dead){dead=true;ws.forEach(x=>x.kill());fail(new Error(`cell ${w.cur.job.f}/${w.cur.job.prof}/${w.cur.job.pilot}: ${m.err}`))}return}w.cur.res=m.r;if(!has('--quiet'))process.stderr.write('.');if(--left===0){ws.forEach(x=>{try{if(x.connected)x.send('quit')}catch(e){}});done()}else feed()});
