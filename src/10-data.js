@@ -3,7 +3,7 @@ const RESC={mana:'#62a6ee',aura:'#ecc64f',qi:'#3fd0b6',chi:'#9bd96f'},RESN={mana
 const STATN={hp:'Hitpoints',fat:'Fatigue',init:'Initiative',ms:'Melee skill',rs:'Ranged skill',md:'Melee defense',rd:'Ranged defense',brv:'Resolve'};
 const ROLL={hp:[2,4],fat:[2,4],init:[3,5],ms:[1,3],rs:[2,4],md:[1,3],rd:[2,4],brv:[2,4]};
 const XPT=[0,0,200,500,1000,1700,2600,3700,5000,6500,8200,10100,12200,14500,17000,20000];
-const MAXLV=15,MAXROSTER=16,MAXFIELD=12;
+const MAXLV=15,MAXROSTER=20,MAXFIELD=12;   // the roster holds 20 swords, 12 take the field
 const FIST={n:'Fists',wt:'fist',d:[6,12],ap:4,fat:6,rng:1,ign:.1};
 const ITEMS={
  knife:{k:'w',n:'Knife',wt:'dagger',d:[15,25],ap:3,fat:5,rng:1,ign:.2,price:40},
@@ -381,6 +381,7 @@ Object.assign(STATUS,{
  weak:{n:'Weakened',d:'Deals 25% less damage. Wears off as its turns pass.',icon:'weak',good:0},
  slung:{n:'Shield slung',d:'Its shield hangs on its back while a two-handed weapon is in hand: no shield defense, no shield skills, cannot be split.',icon:'slung',good:0},
  undying:{n:'Undying',d:'Survived a killing blow at 1 hitpoint (once per battle).',icon:'undying',good:1},
+ lucky:{n:'Lucky',d:'Luck held: survived a killing blow at 1 hitpoint (the Lucky trait, once per battle).',icon:'undying',good:1},
  bastion:{n:'Bastion',d:'+20 melee and ranged defense, takes 20% less damage, cannot be knocked back.',icon:'bastion',good:1},
  parry:{n:'Parry',d:'+15 melee defense; strikes back at every melee attack that misses it.',icon:'riposte',good:1},
  phalanx:{n:'Phalanx',d:'+10 melee and ranged defense.',icon:'shieldwall',good:1},
@@ -671,6 +672,131 @@ Object.assign(BG.wildling,{style:'melee',pool:['berserker','brute','survivor','v
 Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor'],wt:['sword','mace','hammer','greatsword','shield'],at:['medarmor','heavyarmor']});
 BG.hunter.r=[['qi',.2],['aura',.12],['chi',.08],['mana',.05]];      // a hunter's gift, if any, comes as its archery variant
 RACE.human.noWt=[];RACE.elf.noWt=['flintlock','hammer'];RACE.dwarf.noWt=['bow','polearm'];RACE.halforc.noWt=['bow','crossbow','flintlock'];   // weapon trees a race never learns
+/* ---- More backgrounds (phase 6): every field in one entry. w is the rarity weight in the tavern draw (wpickBG), town (1-3) the
+   smallest settlement that hires them out, bio the biomes where they turn up more often (x2). tr: trait weights (see TRAITS; 1 when
+   absent, 0 = never). look: appearance hints for the art {hat, cloth, accent, trim, hair?, beard?} in the portrait vocabulary
+   (the look agent's vocabulary: hat hood straw cap band feather circlet skullcap mask coif kettle nasal wide capotain feathercap cowl wrap bandana furcap
+   miner scholar; cloth green night brown tan red purple blue white steel straw bone verd black; accent crimson ochre forest verdigris teal sky royal violet
+   charcoal black bone brown tan white grey rust; trim gold white steel or ''; garb apron smith fine rope welts sash stripes patches fleece bandolier tabard
+   vials eye tatters manica; prop (portrait only) shovel lute book scourge pick net crook censer cleaver tongs flask axe chisel; hair; beard). ---- */
+Object.assign(BG,{
+ gravedigger:{n:'Gravedigger',cost:110,wage:9,w:3,st:{hp:4,fat:8,brv:8,init:-4},r:[['chi',.12],['mana',.04]],gear:['mallet|club|hatchet','rags|jack','hood|-'],
+  style:'melee',pool:['survivor','brawler','bulwark','medic','vanguard','brute'],wt:['hammer','mace','axe','polearm','dagger'],at:['lightarmor','medarmor'],
+  tr:{superstitious:0,brave:2,craven:.5,nightowl:2.5,drunkard:2,tough:1.5},look:{hat:'nasal',cloth:'night',accent:'crimson',trim:'gold',garb:'tabard'}},
+ butcher:{n:'Butcher',cost:140,wage:10,w:4,st:{hp:6,ms:5,md:-2,brv:2},r:[['qi',.1]],gear:['handaxe|hatchet|knife|seax','jack|padded','-|cap'],
+  style:'melee',pool:['brute','berserker','vanguard','brawler','survivor','medic','duelist'],wt:['axe','dagger','mace','hammer'],at:['lightarmor','medarmor'],
+  tr:{bloodthirsty:3,tough:2,hulking:1.5,fragile:.3,tiny:.3,superstitious:.5},look:{hat:'',cloth:'white',accent:'crimson',trim:'',garb:'apron',prop:'cleaver',beard:'full'}},
+ blacksmith:{n:'Blacksmith',cost:260,wage:15,w:3,st:{hp:6,fat:10,ms:5,init:-6},r:[['aura',.1],['qi',.06]],gear:['mallet|mallet|horsepick','leather|padded|hide','-|-|roundshield','armcap|cap'],
+  style:'melee',pool:['brute','bulwark','shieldbearer','vanguard','survivor','brawler','tactician'],wt:['hammer','mace','axe','polearm','shield'],at:['medarmor','heavyarmor'],
+  tr:{hulking:3,athletic:2,tough:1.5,tiny:.2,fragile:.4,steady:1.5,asthmatic:1.5},look:{hat:'',cloth:'brown',accent:'rust',trim:'steel',garb:'smith',prop:'tongs',beard:'short'}},
+ miner:{n:'Miner',cost:150,wage:11,w:4,st:{hp:5,fat:12,init:-5,rd:-2},r:[['chi',.08],['qi',.06]],gear:['horsepick|mallet|hatchet','jack|padded','armcap|cap'],bio:['hills','snow'],
+  style:'melee',pool:['survivor','brute','bulwark','brawler','shieldbearer','medic','scout'],wt:['hammer','axe','mace','dagger'],at:['lightarmor','medarmor'],
+  tr:{athletic:2,asthmatic:2,nearsight:2,tough:1.5,tiny:1.5,nightowl:2,eagle:.4},look:{hat:'miner',cloth:'black',accent:'ochre',trim:'',garb:'patches',prop:'pick',beard:'stache'}},
+ woodcutter:{n:'Woodcutter',cost:150,wage:11,w:4,st:{hp:6,ms:5,fat:6,md:-2},r:[['qi',.12],['chi',.05]],gear:['hatchet|handaxe|handaxe','jack|hide','-|hood'],bio:['forest'],
+  style:'melee',pool:['brute','vanguard','survivor','scout','berserker','brawler'],wt:['axe','polearm','bow','dagger'],at:['lightarmor','medarmor'],
+  tr:{athletic:2,hulking:2,beastwise:1.5,tough:1.5,superstitious:1.5,tiny:.3},look:{hat:'furcap',cloth:'red',accent:'brown',trim:'',garb:'fleece',prop:'axe',beard:'full'}},
+ poacher:{n:'Poacher',cost:180,wage:12,w:4,st:{rs:9,init:6,brv:-3},r:[['qi',.15],['aura',.06],['chi',.04]],gear:['huntbow|huntbow|huntxbow|shortbow','rags|jack','hood'],side:'knife|dirk',bio:['forest','swamp'],
+  style:'ranged',pool:['marksman','scout','skirmisher','survivor','sharpshooter','brawler'],wt:['bow','crossbow','dagger','axe'],at:['lightarmor'],
+  tr:{eagle:3,nightowl:3,beastwise:2,greedy:1.5,nearsight:.2,loyal:.5},look:{hat:'hood',cloth:'green',accent:'forest',trim:'',garb:'bandolier',prop:'net'}},
+ caravan:{n:'Caravan guard',cost:280,wage:16,w:3,st:{ms:6,md:4,brv:4,hp:3},r:[['aura',.2],['chi',.05]],gear:['spear|boarspear|shortsword|ironmace','padded|leather','roundshield|buckler|kite','cap|coif'],bio:['desert','plains'],town:2,
+  style:'melee',pool:['bulwark','shieldbearer','vanguard','tactician','survivor','marksman','scout'],wt:['spear','sword','mace','crossbow','shield'],at:['medarmor','heavyarmor'],
+  tr:{loyal:2,steady:1.5,brave:1.5,athletic:1.5,craven:.6},look:{hat:'cap',cloth:'tan',accent:'teal',trim:'steel',garb:'sash'}},
+ deserter:{n:'Deserter',cost:200,wage:13,w:4,st:{ms:6,md:3,brv:-8,init:4},r:[['aura',.12],['qi',.06]],gear:['spear|bill|oldsword|warspear','padded|leather|jack','-|buckler','cap|kettle|-'],
+  style:'melee',pool:['vanguard','skirmisher','survivor','tactician','shieldbearer','scout','brute'],wt:['spear','polearm','sword','crossbow','shield'],at:['lightarmor','medarmor'],
+  tr:{craven:4,brave:.3,quick:2,greedy:1.5,drunkard:1.5,loyal:.2},look:{hat:'cap',cloth:'red',accent:'grey',trim:'',garb:'tatters',beard:'goatee'}},
+ brigand:{n:'Brigand',cost:210,wage:13,w:4,st:{ms:7,init:4,brv:2,md:-2},r:[['qi',.15],['aura',.06]],gear:['hatchet|club|seax|falchion|spikedclub','jack|hide|leather','-|targe|roundshield','hood|cap|-'],
+  style:'melee',pool:['berserker','skirmisher','brawler','duelist','vanguard','scout'],wt:['axe','mace','sword','dagger','shield'],at:['lightarmor','medarmor'],
+  tr:{greedy:3,cocky:2,bloodthirsty:2,loyal:.3,brave:1.5},look:{hat:'bandana',cloth:'night',accent:'crimson',trim:'',garb:'bandolier',beard:'goatee'}},
+ pitfighter:{n:'Pit fighter',cost:300,wage:18,w:2,st:{ms:9,hp:6,init:5,md:-3,brv:6},r:[['qi',.3],['chi',.08]],gear:['spikedclub|knife|-|hatchet','rags|hide','-'],town:2,
+  style:'melee',pool:['brawler','berserker','duelist','survivor','brute','skirmisher','vanguard'],wt:['fist','mace','axe','dagger'],at:['lightarmor','medarmor'],
+  tr:{hardhead:3,glassjaw:1.5,cocky:3,tough:2,bloodthirsty:2,craven:.3,fragile:.3},look:{hat:'',cloth:'red',accent:'tan',trim:'',garb:'manica',hair:'mohawk'}},
+ veteran:{n:'Retired soldier',cost:520,wage:26,w:2,st:{ms:10,md:6,brv:10,init:-6,fat:-5,hp:2},r:[['aura',.3],['chi',.05]],gear:['warspear|arming|bill|ironmace','mail|brigandine|leather','kite|roundshield','kettle|nasal|coif'],town:2,
+  style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','duelist','medic','brute'],wt:['spear','polearm','sword','mace','shield'],at:['medarmor','heavyarmor'],
+  tr:{steady:3,brave:2,sluggish:2.5,drunkard:2,asthmatic:1.5,quick:.4,craven:.3,cocky:.4},look:{hat:'kettle',cloth:'steel',accent:'crimson',trim:'steel',garb:'tabard',beard:'stache'}},
+ watchman:{n:'Watchman',cost:170,wage:12,w:4,st:{md:4,rd:3,brv:4,init:2},r:[['aura',.12],['chi',.05]],gear:['club|spear|bill|ironmace','padded|jack','buckler|-','cap|kettle|hood'],town:2,
+  style:'melee',pool:['bulwark','shieldbearer','tactician','vanguard','marksman','survivor'],wt:['mace','spear','polearm','crossbow','shield'],at:['lightarmor','medarmor'],
+  tr:{nightowl:4,eagle:1.5,loyal:1.5,drunkard:1.5},look:{hat:'kettle',cloth:'blue',accent:'ochre',trim:'',garb:'tabard'}},
+ noble:{n:'Noble scion',cost:600,wage:34,w:1,st:{ms:6,md:4,brv:8,fat:-6,hp:-3},r:[['aura',.35],['mana',.1]],gear:['arming|falchion|shortsword','brigandine|leather|padded','heater|kite|buckler','coif|cap'],side:'pistol|-|-|rondel',town:3,
+  style:'melee',pool:['duelist','tactician','vanguard','bulwark','shieldbearer','skirmisher','sharpshooter'],wt:['sword','greatsword','flintlock','dagger','shield'],at:['medarmor','heavyarmor'],
+  tr:{cocky:4,greedy:3,fragile:1.5,dexterous:2,loyal:.5,drunkard:1.5,hulking:.5},look:{hat:'feathercap',cloth:'purple',accent:'royal',trim:'gold',garb:'fine',hair:'swept'}},
+ hedgeknight:{n:'Hedge knight',cost:700,wage:32,w:1,st:{ms:12,md:6,hp:8,fat:4,brv:8,init:-8},r:[['aura',.6],['qi',.1]],gear:['bastard|greatsword|warhammer|beardaxe','mail|brigandine','kite|roundshield|-','nasal|kettle|spangen'],town:2,
+  style:'melee',pool:['brute','vanguard','bulwark','duelist','berserker','survivor','shieldbearer','brawler'],wt:['greatsword','sword','hammer','axe','shield'],at:['medarmor','heavyarmor'],
+  tr:{hulking:3,greedy:2,drunkard:1.5,brave:2,tough:1.5,tiny:.2},look:{hat:'nasal',cloth:'brown',accent:'crimson',trim:'steel',garb:'tabard',beard:'short'}},
+ witchhunter:{n:'Witch hunter',cost:520,wage:26,w:1,st:{rs:10,brv:12,init:4,ms:-2},r:[['aura',.2],['mana',.15],['chi',.1]],gear:['lightxbow|huntxbow|crossbow|pistol','leather|padded','cap|hood'],side:'shortsword|dirk',town:2,
+  style:'ranged',pool:['sharpshooter','marksman','tactician','duelist','survivor','scout','skirmisher'],wt:['crossbow','flintlock','sword','dagger','bow'],at:['lightarmor','medarmor'],
+  tr:{superstitious:0,brave:3,steady:2,eagle:1.5,craven:.2,cocky:1.5},look:{hat:'capotain',cloth:'black',accent:'bone',trim:'white',garb:'bandolier'}},
+ apothecary:{n:'Apothecary',cost:300,wage:18,w:2,st:{hp:-4,ms:-4,init:2,brv:-2,rs:2},r:[['chi',.45],['mana',.15]],gear:['knife|staff|dirk','robe|padded|jack','hood|-'],town:2,
+  style:'support',pool:['medic','tactician','survivor','scout','sharpshooter','skirmisher'],wt:['dagger','staff','crossbow','fist'],at:['lightarmor'],
+  tr:{steady:3,dexterous:2,nearsight:2,asthmatic:1.5,bloodthirsty:.2,drunkard:.5},look:{hat:'scholar',cloth:'green',accent:'white',trim:'',garb:'vials',prop:'flask'}},
+ flagellant:{n:'Flagellant',cost:160,wage:9,w:2,st:{hp:10,brv:14,md:-6,init:-2},r:[['chi',.25],['aura',.15]],gear:['club|spikedclub|knife','rags','-'],
+  style:'melee',pool:['berserker','survivor','brawler','medic','vanguard','bulwark'],wt:['mace','fist','dagger','staff'],at:['lightarmor'],
+  tr:{superstitious:3,brave:3,craven:0,tough:2,fragile:0,cocky:0,greedy:0,loyal:2},look:{hat:'cowl',cloth:'bone',accent:'crimson',trim:'',garb:'welts',prop:'scourge',hair:'bald'}},
+ sailor:{n:'Sailor',cost:170,wage:12,w:3,st:{fat:8,init:6,md:2,rd:2,hp:2},r:[['qi',.12],['aura',.08]],gear:['seax|hatchet|falchion|boarspear','jack|rags|padded','hood|-|-'],bio:['swamp','plains'],
+  style:'melee',pool:['skirmisher','brawler','duelist','survivor','scout','marksman','berserker'],wt:['dagger','axe','sword','spear','flintlock'],at:['lightarmor'],
+  tr:{drunkard:3,superstitious:3,athletic:2,dexterous:1.5,asthmatic:.4},look:{hat:'bandana',cloth:'blue',accent:'white',trim:'',garb:'stripes',beard:'chops'}},
+ nomad:{n:'Nomad rider',cost:280,wage:15,w:2,st:{rs:8,init:10,md:2,hp:-2},r:[['qi',.2],['aura',.1]],gear:['shortbow|huntbow|recurve','hide|leather|jack','cap|hood'],side:'falchion|seax|knife',bio:['desert','plains','snow'],
+  style:'ranged',pool:['marksman','skirmisher','scout','sharpshooter','duelist','survivor','berserker'],wt:['bow','sword','dagger','spear','axe'],at:['lightarmor','medarmor'],
+  tr:{quick:3,beastwise:3,eagle:2,sluggish:.3,loyal:1.5},look:{hat:'wrap',cloth:'tan',accent:'rust',trim:'gold',garb:'sash'}},
+ beggar:{n:'Beggar',cost:40,wage:4,w:4,st:{hp:-6,fat:-8,ms:-6,brv:-6,init:4},r:[['chi',.1],['mana',.05],['qi',.05]],gear:['knife|club|-','rags','-'],
+  style:'melee',pool:['survivor','skirmisher','scout','brawler','medic','duelist'],wt:['dagger','mace','fist','staff'],at:['lightarmor'],
+  tr:{lucky:3,fragile:2,drunkard:2.5,craven:2,asthmatic:2,hulking:.2,cocky:.3},look:{hat:'',cloth:'brown',accent:'grey',trim:'',garb:'tatters',hair:'shaggy',beard:'long'}},
+ cultist:{n:'Ex-cultist',cost:380,wage:20,w:1,st:{brv:4,hp:-4,ms:-4},r:[['mana',.7],['chi',.15]],gear:['staff|knife|pilgrim','robe|rags','hood'],town:2,
+  style:'caster',pool:['survivor','medic','tactician','skirmisher','scout','berserker','brawler'],wt:['staff','dagger','mace'],at:['lightarmor'],
+  tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}}
+});
+for(const k in BG)if(!BG[k].m)BG[k].m=BG[k].pool.slice(0,2);
+for(const k in BG){const b=BG[k];if(b.town)b.size=b.town;if(b.bio)b.biomes=b.bio}   // the names 50-towns' recruitBG also reads (size: minimum town size, biomes)                              // the old two-mastery list (read by nothing new; kept for shape)
+/* Trait weights and looks of the first twelve backgrounds (the portraits already draw these hats). */
+Object.assign(BG.farmhand,{tr:{athletic:2,tough:2,hulking:1.5,drunkard:1.5,loyal:1.5,superstitious:2,cocky:.5},look:{hat:'straw',cloth:'tan',accent:'brown',trim:''}});
+Object.assign(BG.militia,{tr:{loyal:2,brave:1.5,craven:1.5,steady:1.2},look:{hat:'kettle',cloth:'red',accent:'tan',trim:''}});
+Object.assign(BG.hunter,{tr:{eagle:3,nightowl:2,beastwise:3,quick:1.5,nearsight:.2},look:{hat:'hood',cloth:'green',accent:'brown',trim:''}});
+Object.assign(BG.thief,{tr:{quick:3,dexterous:3,greedy:3,lucky:2,craven:1.5,hulking:.2,loyal:.3},look:{hat:'hood',cloth:'night',accent:'black',trim:''}});
+Object.assign(BG.sellsword,{tr:{greedy:3,cocky:2,brave:1.5,bloodthirsty:1.5,loyal:.4},look:{hat:'band',cloth:'red',accent:'steel',trim:'steel'}});
+Object.assign(BG.squire,{tr:{loyal:3,brave:2,cocky:2,athletic:1.5,drunkard:.3,greedy:.5},look:{hat:'',cloth:'blue',accent:'white',trim:'white',hair:'bowl'}});
+Object.assign(BG.hedge,{tr:{nearsight:2,fragile:2,superstitious:1.5,steady:1.5,nightowl:2,hulking:.2},look:{hat:'circlet',cloth:'purple',accent:'blue',trim:'gold'}});
+Object.assign(BG.acolyte,{tr:{loyal:2,brave:2,superstitious:2,drunkard:.3,greedy:.3,bloodthirsty:.3},look:{hat:'band',cloth:'white',accent:'straw',trim:'gold'}});
+Object.assign(BG.monk,{tr:{athletic:3,quick:2,dexterous:2,brave:2,drunkard:0,greedy:0,cocky:.3},look:{hat:'',cloth:'straw',accent:'brown',trim:'',hair:'tonsure'}});
+Object.assign(BG.spellblade,{tr:{cocky:3,quick:2,dexterous:2,greedy:1.5,asthmatic:1.5},look:{hat:'circlet',cloth:'blue',accent:'white',trim:'gold'}});
+Object.assign(BG.wildling,{tr:{hulking:2,tough:2,superstitious:3,beastwise:3,bloodthirsty:2,nearsight:.3},look:{hat:'feather',cloth:'tan',accent:'green',trim:'',hair:'shaggy'}});
+Object.assign(BG.knight,{tr:{brave:3,cocky:2,drunkard:2,greedy:1.5,steady:1.5,craven:.3,tiny:.3},look:{hat:'nasal',cloth:'night',accent:'red',trim:'gold'}});
+/* ---- Character traits (phase 6). 0-2 per merc, rolled at creation (rollTraits in 30-mercs.js) weighted by background (BG[bg].tr, also
+   mirrored as TRAITS[k].bg {bgKey: weight}); never a trait together with its opp. TRAITS[k] = {n, d, good, st?:{stat deltas, added in calc},
+   mod?:{flag: number, summed into calc(m).flags}, flag?:string (a 1 in calc(m).flags), wage?:fraction of the background's wage (mercWage)}.
+   The battle flags (60-battle-core.js): badMor (to every morale check against bad news), killMor (to the morale check after its own kill),
+   superst (taken off every morale check in a battle against TRAITF.superst factions), beastwise (no bad-news morale checks at all against
+   TRAITF.beast factions), headDef (head-hit chance against it lowered), headB (its weapon attacks' head-hit chance, as the perk), vsHurt,
+   dmgMelee (as the perks), fatRec (fatigue recovered each turn on top of 15), lucky (one killing blow a battle leaves it at 1 hitpoint),
+   cocky (starts a battle Confident), nightowl (NIGHTOWL bonus in battles that start at night: from 20:00 to 05:00). d states the numbers. ---- */
+const TRAITF={superst:['undead','void','wyvern'],beast:['beast','serpent','ogre','wyvern']},NIGHTOWL={ms:5,rs:8,init:10};
+const TRAITS={
+ brave:{n:'Brave',good:true,opp:'craven',st:{brv:10},d:'+10 resolve.'},
+ craven:{n:'Craven',good:false,opp:'brave',st:{brv:-10},mod:{badMor:-10},d:'-10 resolve, and a further -10 on every morale check against bad news (allies falling, heavy blows, being surrounded).'},
+ hardhead:{n:'Hard-headed',good:true,opp:'glassjaw',mod:{headDef:10},d:'Blows land on its head 10% less often (head-hit chance -10 against it).'},
+ glassjaw:{n:'Glass-jawed',good:false,opp:'hardhead',mod:{headDef:-10},d:'Blows land on its head 10% more often (head-hit chance +10 against it).'},
+ athletic:{n:'Athletic',good:true,opp:'asthmatic',st:{fat:6},mod:{fatRec:3},d:'+6 maximum fatigue; sheds 18 fatigue at the start of each turn instead of 15.'},
+ asthmatic:{n:'Asthmatic',good:false,opp:'athletic',st:{fat:-6},mod:{fatRec:-4},d:'-6 maximum fatigue; sheds only 11 fatigue at the start of each turn instead of 15.'},
+ quick:{n:'Quick',good:true,opp:'sluggish',st:{init:10},d:'+10 initiative.'},
+ sluggish:{n:'Sluggish',good:false,opp:'quick',st:{init:-10},d:'-10 initiative.'},
+ eagle:{n:'Eagle-eyed',good:true,opp:'nearsight',st:{rs:6},d:'+6 ranged skill.'},
+ nearsight:{n:'Near-sighted',good:false,opp:'eagle',st:{rs:-6},d:'-6 ranged skill.'},
+ tough:{n:'Tough',good:true,opp:'fragile',st:{hp:6},d:'+6 hitpoints.'},
+ fragile:{n:'Fragile',good:false,opp:'tough',st:{hp:-6},d:'-6 hitpoints.'},
+ hulking:{n:'Hulking',good:true,opp:'tiny',st:{hp:4,init:-4},mod:{dmgMelee:.05},d:'+4 hitpoints, +5% melee damage, -4 initiative.'},
+ tiny:{n:'Slight',good:false,opp:'hulking',st:{hp:-4,init:4,rd:3},d:'-4 hitpoints, +4 initiative, +3 ranged defense.'},
+ dexterous:{n:'Dexterous',good:true,opp:'clumsy',st:{md:3,init:3},d:'+3 melee defense, +3 initiative.'},
+ clumsy:{n:'Clumsy',good:false,opp:'dexterous',st:{md:-3,ms:-2},d:'-3 melee defense, -2 melee skill.'},
+ steady:{n:'Steady-handed',good:true,st:{rs:3},mod:{headB:5},d:'+3 ranged skill; +5 head-hit chance with weapon attacks.'},
+ bloodthirsty:{n:'Bloodthirsty',good:true,mod:{vsHurt:.1,killMor:10},d:'+10% damage against foes below half health; +10 to its morale check after making a kill.'},
+ lucky:{n:'Lucky',good:true,flag:'lucky',d:'Once per battle, a blow that would kill it leaves it at 1 hitpoint instead (after Undying, if it has that too).'},
+ drunkard:{n:'Drunkard',good:false,st:{ms:-4,rs:-6,brv:8},d:'-4 melee skill, -6 ranged skill, +8 resolve (Dutch courage).'},
+ greedy:{n:'Greedy',good:false,opp:'loyal',wage:.25,d:'Wants 25% more wages (rounded).'},
+ loyal:{n:'Loyal',good:true,opp:'greedy',st:{brv:5},wage:-.1,d:'+5 resolve; asks 10% less wages (rounded, at least 1).'},
+ superstitious:{n:'Superstitious',good:false,mod:{superst:15},d:'-15 on every morale check when fighting the restless dead, riftspawn or wyverns.'},
+ beastwise:{n:'Beast-wise',good:true,flag:'beastwise',d:'Never tests morale against bad news when fighting beasts, serpents, ogres or wyverns (0 checks: it holds 100% steady against them).'},
+ nightowl:{n:'Night owl',good:true,flag:'nightowl',d:'In a battle that starts at night (20:00 to 05:00): +5 melee skill, +8 ranged skill, +10 initiative.'},
+ cocky:{n:'Cocky',good:false,st:{md:-4},flag:'cocky',d:'Starts every battle Confident (+10 to hit, +5 defense until shaken); -4 melee defense.'}
+};
+for(const k in TRAITS){const T=TRAITS[k];T.id=k;T.bg={};for(const b in BG){const w=BG[b].tr&&BG[b].tr[k];if(w!=null&&w!==1)T.bg[b]=w}}   // TRAITS[k].bg mirrors BG[b].tr
 // Every ability carries a one-line description: mastery abilities take theirs from the perk that grants them.
 for(const k in MAST)for(const p of MAST[k].p)if(p.ab&&AB[p.ab]&&!AB[p.ab].d){const d=p.d.replace(/^Unlocks[^.]*\.\s*/,'').replace(/^Ability:\s*/,'');AB[p.ab].d=d[0].toUpperCase()+d.slice(1)+'.'}
 const NAMES=['Aldric','Brenna','Corvin','Dagny','Edda','Fenn','Garrick','Hesper','Ivo','Jorah','Kestrel','Lysa','Marek','Nessa','Osric','Petra','Quill','Rurik','Sable','Torvald','Una','Varek','Wren','Yara','Zane','Bram','Isolde','Tamsin','Hroth','Mira','Dunstan','Sorrel','Kael','Ottoline','Grett','Halvard'];

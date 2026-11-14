@@ -65,7 +65,7 @@ function makeContext(){const els=new Map(),store=new Map();
  X.FX.on=null;X.SPEEDF=0;return X}
 
 /* ---------- the check, wrapped around the real strike() ---------- */
-const S={tired:0,tiredT:0,armP:0,sidestep:0,brace:0,crush:0,reach:0,tal:0,swap:0,wmod:0,weak:0,undy:0,undySaved:0,marked:0,slung:0,n:0,hits:0,expHits:0,varHits:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
+const S={trU:0,trT:0,lucky:0,luckySaved:0,bwise:0,tired:0,tiredT:0,armP:0,sidestep:0,brace:0,crush:0,reach:0,tal:0,swap:0,wmod:0,weak:0,undy:0,undySaved:0,marked:0,slung:0,n:0,hits:0,expHits:0,varHits:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
  head:0,body:0,headAtMax:0,cover:0,ffRisk:0,stray:0,riposte:0,free:0,pierce:0,split:0,splitBroke:0,bleed:0,shake:0,inj:0,morAtt:0,morDef:0,byAb:{},byWt:{}};
 const snap=(X,u,t)=>JSON.stringify([u,t,X.B.tiles]);
 let DIRECTED=false;const nested=[];                 // strikes started from inside another strike (strays, ripostes): {u,t,o}
@@ -123,10 +123,12 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
    if(died)ok(L.kill,'the hit killed but the forecast for that location said it could not: '+tag);else ok(!L.sure,'the forecast promised a kill on that location: '+tag)}
   if(hp===f.hpMin&&arm===f.armMin)S.atMin++;if(hp===f.hpMax&&arm===f.armMax)S.atMax++;
   if(died){S.kills++;ok(f.kill,'the hit killed but the forecast said it could not: '+tag)}else ok(!f.sure,'the forecast promised a kill that did not happen: '+tag);
+  if(f.undying&&ev&&hp>=hp0&&t.flags&&t.flags.lucky&&t.lck){S.luckySaved++;ok(ev.hpAt===1&&!f.kill,'Lucky did not hold: '+tag)}
   if(f.undying&&ev&&hp>=hp0){S.undySaved++;ok(ev.hpAt===1&&!f.kill,'Undying did not hold: '+tag)}
   if(f.kill)S.lethal++;ok(f.kill===(!f.undying&&f.hpMax>=hp0)&&f.sure===(!f.undying&&f.hpMin>=hp0),'kill flags disagree with the range: '+tag);
   if(!died&&ev&&t.alive){const heavy=hp>=heavyAt;                      // (a knockback that then kills is not this hit's doing)
-   if(heavy&&!t.fearless&&!(t.flags&&t.flags.noStun)){S.shake++;ok(f.shake,'a heavy hit shook the target but the forecast did not warn: '+tag)}
+   if(heavy&&!t.fearless&&!(t.flags&&t.flags.noStun)&&X.moraleImmune(t)){S.beastwise=(S.beastwise||0)+1;ok(!f.shake,'the forecast warned of a shake on a Beast-wise merc against beasts: '+tag)}
+   else if(heavy&&!t.fearless&&!(t.flags&&t.flags.noStun)){S.shake++;ok(f.shake,'a heavy hit shook the target but the forecast did not warn: '+tag)}
    if(injured){S.inj++;ok(f.injure&&heavy&&t.m&&t.m.inj.length===inj0+1,'an injury the forecast did not warn of: '+tag)}}
   if(!died){for(const s of f.statuses){if(s.ch>=1)ok((t.st[s.k]||0)>=s.n||!t.alive,`status ${s.k} was forecast as certain but not applied: `+tag)}
    if(t.alive)for(const k of new Set(given.slice(gmark).filter(x=>x.t===t).map(x=>x.key)))if((t.st[k]||0)>(st0[k]||0)){S.statuses++;if(k==='bleed')S.bleed++;ok(f.statuses.some(s=>s.k===k&&s.n>=t.st[k]&&s.ch>0),`status ${k} was applied but not forecast: `+tag)}
@@ -189,6 +191,13 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
   if(a.aoe&&R(0,2)===0)o={splash:.7};else if(a.chain&&R(0,1)===0)o={splash:.6,auto:1};else if(a===X.FREEAB)o={free:'zoc'};
   t.flags=t.side===0?Object.assign({},t.flags):{};if(R(0,2)===0)t.flags.forged=1;else delete t.flags.forged;
   if(R(0,1)===0)for(const [k,v] of TALT)if(R(0,3)===0)t.flags[k]=v;
+  // character traits (phase 6) the forecast must follow: Hard-headed / Glass-jawed on the target, Lucky (spent or not), Beast-wise in a fight with
+  // beasts (no shake), and Steady-handed / Bloodthirsty / Hulking on a company attacker
+  b.opts.f=R(0,4)===0?'beast':'orc';
+  if(R(0,2)===0){S.trT++;const k=P(['hard','glass','lucky','beast']);if(k==='hard')t.flags.headDef=(t.flags.headDef||0)+10;else if(k==='glass')t.flags.headDef=(t.flags.headDef||0)-10;
+   else if(k==='lucky'){t.flags.lucky=1;t.lck=R(0,1);if(!t.lck)S.lucky++}else if(t.side===0){t.flags.beastwise=1;if(b.opts.f==='beast')S.bwise++}}else t.lck=0;
+  if(fromFoe&&R(0,2)===0){b.opts.f='beast';t.flags.beastwise=1;S.bwise++}
+  if(!fromFoe&&R(0,2)===0){S.trU++;const k=P(['steady','blood','hulk']);if(k==='steady')u.flags.headB=(u.flags.headB||0)+5;else if(k==='blood')u.flags.vsHurt=(u.flags.vsHurt||0)+.1;else u.flags.dmgMelee=(u.flags.dmgMelee||0)+.05}
   // fatigue on both sides (units that tire), and the turn state the armor perks read
   for(const x of [u,t]){x.fat=x.fatMax<999&&R(0,1)===0?R(0,x.fatMax):0}if(R(0,5)===0){u.fatMax=R(40,110);u.fat=R(0,u.fatMax)}
   t.aw=R(0,40);t.mvd=R(0,1);t.dnc=R(0,4);t.ss=R(0,2)===0?1:0;t.brc=R(0,2)===0?1:0;t.undy=R(0,1);if(t.flags.undying&&!t.undy)S.undy++;if(R(0,5)===0){t.st.marked=1;S.marked++}
@@ -236,5 +245,7 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  console.log(`arms update: ${S.crush} crushing blows, ${S.reach} reach blows over the tile between; by family `+['hammer','polearm','greatsword','crossbow','flintlock'].map(w=>w+' '+S.byWt[w]).join(', '));
  ok(S.crush>150&&S.reach>60&&['hammer','polearm','greatsword','crossbow','flintlock'].every(w=>S.byWt[w]>60),'an arms-update case was not covered');
  console.log(`talents and arms: ${S.tal} attackers with talent mods, ${S.swap} after a real swap, ${S.wmod} with weapon-tree changes, ${S.weak} weakened; ${S.undy} targets with Undying (${S.undySaved} saved by it), ${S.marked} marked, ${S.slung} slung shields`);
+ console.log(`traits: ${S.trU} attackers with trait mods, ${S.trT} targets with traits (${S.lucky} with luck unspent, ${S.luckySaved} saved by it; ${S.bwise} Beast-wise against beasts, ${S.beastwise||0} heavy hits that could not shake them)`);
+ ok(S.trU>500&&S.trT>800&&S.lucky>80&&S.luckySaved>3&&S.bwise>150&&(S.beastwise||0)>15,'a trait case was not covered: '+JSON.stringify({trU:S.trU,trT:S.trT,lucky:S.lucky,luckySaved:S.luckySaved,bwise:S.bwise,beastwise:S.beastwise}));
  ok(S.tal>1500&&S.swap>30&&S.wmod>300&&S.weak>300&&S.undy>100&&S.undySaved>5&&S.marked>300&&S.slung>50,'a talents and arms case was not covered: '+JSON.stringify({tal:S.tal,swap:S.swap,wmod:S.wmod,weak:S.weak,undy:S.undy,undySaved:S.undySaved,marked:S.marked,slung:S.slung}));
  finished=true;console.log(`\nOK forecast matches strike() (${((Date.now()-T0)/1000).toFixed(1)}s)`)})();

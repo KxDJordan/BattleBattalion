@@ -41,14 +41,14 @@ function coTreeStrip(m,O){O=O||tlOpts(m);let h='',sep=false;
 function coCard(m,i){const s=calc(m),hp=Math.min(m.hp,s.hp),w=ITEMS[m.eq.w],bk=ITEMS[m.eq.b],a=ITEMS[m.eq.a],hl=ITEMS[m.eq.h],cd=cpCond(m),inj=cpInj(m),g=tlGift(m);
  return`<div class="co-card${m.field?' fld':''}${m.pend||m.pp?' rdy':''}${inj.length?' inj':''}" role="button" tabindex="0" data-merc="${i}" aria-label="${htmlEsc(m.name)}, level ${m.lvl} ${BG[m.bg].n}${g?', '+tlGiftLabel(g):''}${m.field?'':', in reserve'}${inj.length?', '+inj.length+' injur'+(inj.length===1?'y':'ies'):''}" onclick="coPick(${i})">
 <span class="co-pt">${portraitHTML(m,64)}<b class="co-lv">${m.lvl}</b></span>
-<span class="co-ci"><span class="co-nm">${coRenaming(m,'card')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'card')}`}${inj.length?`<em class="inj" title="${inj.map(j=>j.n+': '+j.d).join('; ')}">${cpInjIcon(inj[0].id)}${inj.length}</em>`:''}${m.field?'':'<em class="res">RESERVE</em>'}${m.pend?'<em class="up">LEVEL UP</em>':m.pp?'<em class="perk">PERK</em>':''}</span>
+<span class="co-ci"><span class="co-nm">${coRenaming(m,'card')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'card')}`}${inj.length?`<em class="inj" title="${inj.map(j=>j.n+': '+j.d).join('; ')}">${cpInjIcon(inj[0].id)}${inj.length}</em>`:''}${m.field?'':'<em class="res">RESERVE</em>'}${m.pend?'<em class="up">LEVEL UP</em>':m.pp?'<em class="perk">PERK</em>':''}${typeof traitChips==='function'?traitChips(m,{compact:1}):''}</span>
 <span class="co-role"><b>${coRole(m,s)}</b> · ${BG[m.bg].n}${g?` · <span class="co-gv g-${tlGiftRes(g)}">${MAST[g].n}</span>`:''}</span>
 <span class="co-hp">${pnBar(100*hp/s.hp,'hp')}<b class="${hp<s.hp?'hurt':''}">${hp}/${s.hp}</b></span>
 <span class="co-ics"><u title="${s.wpn.n}${w?' ('+(w.two?'two':'one')+'-handed)':''}">${w?pnFamedWrap(m.eq.w,coIc(itemIconName(m.eq.w))):coIc('fist')}${s.wpn.d[0]}–${s.wpn.d[1]}</u>${bk?`<u class="bk" title="Backup: ${bk.n}">${pnFamedWrap(m.eq.b,coIc(itemIconName(m.eq.b)))}</u>`:''}<u title="${a?a.n+(cd.a<cd.aM?', damaged':''):'No armor'}" class="${cd.a<cd.aM?'worn':''}">${a?pnFamedWrap(m.eq.a,coIc(itemIconName(m.eq.a))):coIc('armor-light','','dimi')}${a?cd.a:s.arm}</u>${hl?`<u title="${hl.n}${cd.h<cd.hM?', damaged':''}" class="${cd.h<cd.hM?'worn':''}">${pnFamedWrap(m.eq.h,coIc('helmet'))}${cd.h}</u>`:''}${m.eq.s?`<u class="${tlSlung(m)?'slung':''}" title="${ITEMS[m.eq.s].n}${tlSlung(m)?', slung':''}">${pnFamedWrap(m.eq.s,coIc('shield'))}</u>`:''}</span>
 <span class="co-trees">${coTreeStrip(m)}</span></span></div>`}
 /* the fielded twelve first, then the reserves under their own heading */
 function coRoster(){const R=G.roster.map((m,i)=>[m,i]),f=R.filter(x=>x[0].field),r=R.filter(x=>!x[0].field);
- let h=`<div class="co-grid"><div class="co-gh"><span>${coIc('swords')}Fielded</span><i>${f.length} of ${MAXFIELD}</i></div>`;f.forEach(([m,i])=>{h+=coCard(m,i)});
+ let h=coStanding()+`<div class="co-grid"><div class="co-gh"><span>${coIc('swords')}Fielded</span><i>${f.length} of ${MAXFIELD}</i></div>`;f.forEach(([m,i])=>{h+=coCard(m,i)});
  if(r.length){h+=`<div class="co-gh res"><span>${coIc('reserve')}Reserves</span><i>${typeof callReserve==='function'?'One may join a battle each round while fewer than '+MAXFIELD+' stand':'They sit out the battle'}</i></div>`;r.forEach(([m,i])=>{h+=coCard(m,i)})}
  return h+'</div>'}
 
@@ -167,7 +167,7 @@ ${coInjList(m)}<div class="pd" aria-label="Equipment">${coSlotBtn(m,i,'w')}<div 
 <div class="pd-bkr">${coSlotBtn(m,i,'b')}<button type="button" class="pn-btn sm ico pd-swap" data-swap="1" aria-label="Swap main and backup weapons" title="Swap main and backup" ${m.eq.w||m.eq.b?'':'disabled'} onclick="coSwap(${i})">${coIc('swap')}</button></div>
 ${tlSlung(m)?`<div class="pd-an slung">${coIc('shield')}<span><b>Shield slung</b> <small>while a two-handed weapon is in hand: no defense from it until the backup is drawn</small></span></div>`:''}
 <div class="pd-cs">${coCondRow('h',m.eq.h,cd.h,cd.hM)}${coCondRow('a',m.eq.a,cd.a,cd.aM)}</div></div>
-<div class="cst2">${coStatKeys(m,s).map(k=>coStat(m,s,k)).join('')}</div>`;
+<div class="cst2">${coStatKeys(m,s).map(k=>coStat(m,s,k)).join('')}</div>${typeof traitChips==='function'?`<div class="ch-tr">${pnHead('Traits')}${traitChips(m,{full:1})}</div>`:''}`;
  h+=ask?`<div class="ch-ask">Send ${htmlEsc(m.name)} away for good? Their gear returns to the stash.<div><button type="button" class="pn-btn" onclick="coRender()">Keep</button><button type="button" class="pn-btn warn solid" onclick="dismiss(${i})">Dismiss</button></div></div>`
   :`<div class="ch-act"><button type="button" class="pn-btn sm${m.field?' on':''}" aria-pressed="${!!m.field}" onclick="toggleField(${i})">${coIc('swords')}<span>${m.field?'Fielded':'In reserve'}</span></button><button type="button" class="pn-btn sm warn" onclick="coDismissAsk(${i})">Dismiss</button></div>`;
  return h+'</div>'}
@@ -250,15 +250,16 @@ function coGripTag(id){const g=tlGrip(id);return g?` <span class="pn-grip">${g}<
 function coItemDesc(id){const it=ITEMS[id];const fm=it&&it.famed&&typeof famedLines==='function'?`<span class="fmd-lines in">${famedLines(id).map(x=>`<i>${x.t}</i>`).join('')}</span>`:'';if(it&&it.k==='h')return`${it.arm} head armor, −${it.fat||0} fatigue`+fm;return itemDesc(id)+fm}
 function coWornNote(m,k){if(k!=='a'&&k!=='h')return'';const c=cpCond(m),cur=k==='a'?c.a:c.h,mx=k==='a'?c.aM:c.hM;return cur<mx?` · ${cur}/${mx} left, repaired with tools at camp`:''}
 function coRender(){const ask=coAsk;coAsk=null;const sel=coIndex(),nf=G.roster.filter(m=>m.field).length,ready=G.roster.filter(m=>m.pend||m.pp).length;
- const o={id:'company',view:coScreen,title:typeof companyName==='function'?companyName():'The company',banner:typeof bannerHTML==='function'&&G.banner?bannerHTML(G.banner,32):'',sub:`Fielded ${nf}/${MAXFIELD}  ·  Renown ${G.renown}  ·  Stash ${G.stash.length}`,meta:pnPurse(),
+ const o={id:'company',view:coScreen,title:typeof companyName==='function'?companyName():'The company',banner:typeof bannerHTML==='function'&&G.banner?bannerHTML(G.banner,32):'',sub:`Roster ${G.roster.length}/${typeof MAXROSTER==='number'?MAXROSTER:G.roster.length}  ·  Fielded ${nf}/${MAXFIELD}  ·  ${coHasCo()?renownInfo().n+' ('+G.renown+')':'Renown '+G.renown}  ·  Stash ${G.stash.length}`,meta:pnPurse(),
   closeLabel:G.townOpen?'Back to town':'Close',closeIcon:G.townOpen?'back':'x',onClose:coClose,
-  tabs:[{k:'roster',n:'Roster',icon:'company',badge:ready||''},{k:'formation',n:'Lines',icon:'swords'}],tab:coScreen,onTab:coTabGo,after:fmBind};
+  tabs:[{k:'roster',n:'Roster',icon:'company',badge:ready||''},{k:'formation',n:'Lines',icon:'swords'}].concat(typeof FOLLOWERS==='object'?[{k:'retinue',n:'Retinue',icon:'retinue'}]:[]),tab:coScreen,onTab:coTabGo,after:fmBind,railEnd:typeof openAmbitions==='function'?[{n:'Ambitions',icon:'ambition',fn:()=>openAmbitions()}]:[]};
  if(coScreen==='merc'){const m=G.roster[sel],s=calc(m);m.hp=Math.min(m.hp,s.hp);
   const v=m.pend?coLevel(m,sel):coView==='slot'?coSlotView(m,sel,coSlot):coTalents(m,sel);
   o.title=m.name;o.sub=`${sel+1} of ${G.roster.length}`;o.banner='';o.closeLabel='Roster';o.closeIcon='back';o.onClose=coBack;
   o.meta=`<button type="button" class="pn-btn sm ico" aria-label="Previous sword" onclick="coStep(-1)">${coIc('back')}</button><button type="button" class="pn-btn sm ico" aria-label="Next sword" onclick="coStep(1)">${coIc('back',16,'flipx')}</button>`;
   o.list=coLeft(m,sel,s,ask===m.id);o.listKey='co:m'+m.id;o.detail=v.detail;o.detailKey='co:'+v.key;o.foot=v.foot}
  else if(coScreen==='formation'){o.single=true;o.list=coFormation();o.listKey='co:form'}
+ else if(coScreen==='retinue'){o.single=true;o.list=coRetinue();o.listKey='co:ret'}
  else{o.single=true;o.list=coRoster();o.listKey='co:roster'}
  showPanel(o)}
 function companySheet(){if(panelOpen()!=='company'){coScreen='roster';coView='main';FM.pick=null}coRender()}
@@ -302,3 +303,22 @@ function refundSheet(){const L=Array.isArray(G.refund)?G.refund:[];delete G.refu
  sheet(`<h2>Perk points returned</h2><p>Each background now trains at most five weapon families and one or two weights of armor. Perks learned in a tree a sword can no longer learn were taken back, and the points returned to spend again:</p>
  <ul class="rf-list">${L.map(r=>`<li><b>${htmlEsc(r.name)}</b> ${r.n} point${r.n===1?'':'s'}</li>`).join('')}</ul>
  <p class="dim">${tot} point${tot===1?'':'s'} in all. Spend them in the company screen, on a merc's Talents.</p><button class="pri" onclick="closeSheet()">Understood</button>`)}
+/* ================= COMPANY STANDING: renown tier, retinue, ambition (progression agent's 14-company.js) =================
+   coStanding(): a strip over the roster: the renown badge and progress (tap: renown popover / tiers), the retinue (tab), the active
+   ambition (openAmbitions). coRetinue(): every follower with its icon and exact effect; hiring happens in a town's tavern. */
+function coHasCo(){return typeof renownInfo==='function'&&typeof RENOWN!=='undefined'}
+function coRenownBadge(sz,cls){if(!coHasCo())return'';const R=renownInfo();return`<span class="rt-badge t${R.tier}${cls?' '+cls:''}" title="${htmlEsc(R.n)}: ${R.renown} renown">${pnIcon('rt-'+R.tier,'',sz||16)}<b>${htmlEsc(R.n)}</b></span>`}
+function coAmbNow(){const a=G&&G.amb,id=a&&a.cur;if(!id||typeof AMBITIONS==='undefined'||!AMBITIONS[id])return null;let p={p:0,goal:1,pct:0};try{p=ambProgress(id)}catch(e){}
+ const goal=Math.max(1,+p.goal||1),cur=clamp(+p.p||0,0,goal);return{id,A:AMBITIONS[id],p:cur,goal,pct:Math.round(100*cur/goal)}}
+function coRetN(){return Array.isArray(G.retinue)?G.retinue.length:0}
+function coStanding(){if(!coHasCo())return'';const R=renownInfo(),nx=R.next!=null?`${R.next-R.renown} to ${htmlEsc(R.nextN||'')}`:'The highest tier',am=coAmbNow(),sl=typeof followerSlots==='function'?followerSlots():1;
+ const ambIc=am&&am.A.icon&&pnHasPx(am.A.icon)?am.A.icon:'ambition';
+ return`<div class="co-stand"><button type="button" class="co-st rn" onclick="renownPop(this)" aria-label="Renown: ${htmlEsc(R.n)}, ${R.renown}">${pnIcon('rt-'+R.tier,'',32)}<span><b>${htmlEsc(R.n)}</b><small>${R.renown} renown · ${nx}</small>${pnBar(100*R.progress,'rn')}</span></button>
+<button type="button" class="co-st" onclick="coTabGo('retinue')">${pnIcon('retinue','',32)}<span><b>Retinue</b><small>${coRetN()} of ${sl} follower${sl===1?'':'s'}</small></span></button>
+<button type="button" class="co-st am${am?'':' none'}" onclick="openAmbitions()">${pnIcon(ambIc,'',32)}<span><b>${am?htmlEsc(am.A.n):'Ambitions'}</b><small>${am?am.p+' / '+am.goal:'None taken up · choose one'}</small>${am?pnBar(am.pct,'am'):''}</span></button></div>`}
+function coRetinue(){if(typeof FOLLOWERS==='undefined')return pnEmpty('No followers yet.');const t=renownTier(),sl=typeof followerSlots==='function'?followerSlots():1,n=coRetN();
+ const ids=Object.keys(FOLLOWERS).sort((a,b)=>(followerHas(b)-followerHas(a))||(FOLLOWERS[a].renown-FOLLOWERS[b].renown)||(FOLLOWERS[a].cost-FOLLOWERS[b].cost));
+ let h=`<div class="co-ret"><div class="co-reth">${coRenownBadge(16)}<span><b>${n} of ${sl}</b> follower slot${sl===1?'':'s'} filled. Followers are hired in a town's tavern; more slots come with renown.</span></div><div class="co-retl">`;
+ for(const id of ids){const F=FOLLOWERS[id],has=followerHas(id),lock=!has&&t<F.renown,rq=RENOWN[F.renown-1];
+  h+=`<div class="co-fol${has?' has':lock?' lock':''}">${pnIcon('fol-'+id,'',32)}<div><b>${htmlEsc(F.n)}${has?' <em>With the company</em>':''}</b><span>${htmlEsc(F.effect||'')}</span><small>${has?htmlEsc(F.d||''):lock?`Needs ${htmlEsc(rq?rq.n:'more')} renown`:`Hire in a tavern · ${F.cost} crowns`}</small></div></div>`}
+ return h+'</div></div>'}

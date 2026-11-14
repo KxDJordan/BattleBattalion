@@ -97,6 +97,7 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd">${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
  const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;
  if(pl&&m){const tl=insTalents(m);if(tl)r+=`<div class="ins-hd">Talents</div>`+tl}
+ if(pl&&m){const tr=insMercTraits(m),rt=insRetinue();if(tr||rt)r+=`<div class="ins-hd">Traits</div>`+tr+rt}
  const ab=pl&&m?insAbChips(u):insAbs(u),tr=pl?'':insTraits(u);if(ab||tr)r+=`<div class="ins-hd">${pl?'Abilities':'What it does'}</div>`+tr+ab;
  let note=`Stands on ${tileName(tl).toLowerCase()}, height ${tl.h}.`;
  if(!pl&&cur&&cur.side===0&&cur.alive&&!B.auto){const a=abilityInfo(cur,B.sel||'attack');if(a.tgt==='enemy'){const dist=mdist(cur,u),los=typeof shLos==='function'?shLos(cur,u,a):null;
@@ -135,7 +136,7 @@ function worldCard(wx,wy){const k=worldPick(wx,wy,true);if(!k)return'';const p=G
  if(k.type==='portal'){const q=k.o;return`<div class="ins-h"><b class="ins-n">Rift</b><span class="ins-tag rift">${BIO[q.realm].n.replace(/^The /,'')}</span></div><div class="ins-sub">A tear into ${BIO[q.realm].n}</div><div class="ins-note">Three battles with no rest between them, and a tyrant at the end.</div><div class="ins-note">${hrs(q.x,q.y)}</div>`}
  if(k.type==='lair'){const c=k.o;return`<div class="ins-h"><b class="ins-n">${c.title||'Contract'}</b><span class="ins-tag foe">${'☠'.repeat(c.diff||1)}</span></div><div class="ins-sub">Contract target · ${FACT[c.f].n}</div><div class="ins-note">Worth <span class="ins-gold">${c.pay} crowns</span>, paid in ${G.towns[c.town].name}.</div><div class="ins-note">${k.vis?'':'Out of sight for now. '}${hrs(c.x,c.y)}</div>`}
  if(k.type==='band'){const e=k.o,F=FACT[e.f],d=Math.hypot(e.x-p.x,e.y-p.y),st=typeof partyStrength==='function'?partyStrength(e):e.mult<.8?1:e.mult<1?2:3,sight=typeof bandSight==='function'?bandSight():3.75*TS;
-  return`<div class="ins-h"><b class="ins-n">${F.n}</b><span class="ins-tag foe">Hostile</span></div><div class="ins-sub">${st===1?'A small band, weaker than the company':st===2?'A warband, about an even match':'A large host, stronger than the company'}</div><div class="ins-note">${G.grace>0?'They keep their distance for now.':e.ch||d<sight?'They have seen you and are closing.':'They have not noticed you yet.'}</div><div class="ins-note">Fights with: ${F.units.map(x=>EN[x[0]].n.toLowerCase()).join(', ')}.</div>`}
+  return`<div class="ins-h"><b class="ins-n">${F.n}</b><span class="ins-tag foe">Hostile</span></div><div class="ins-sub">${st===1?'A small band, weaker than the company':st===2?'A warband, about an even match':'A large host, stronger than the company'}</div><div class="ins-note">${G.grace>0?'They keep their distance for now.':e.ch||d<sight?'They have seen you and are closing.':'They have not noticed you yet.'}</div><div class="ins-note">Fights with: ${F.units.map(x=>EN[x[0]].n.toLowerCase()).join(', ')}.</div>${insIntel(e)}`}
  if(k.type==='company'){const tt=tileAt(p.x,p.y);if(sky)L.push(sky);L.push(G.contract?'Under contract: '+(G.contract.title||'yes')+'.':'No contract held.');
   return`<div class="ins-h"><b class="ins-n">Your company</b><span class="ins-tag ally">${G.roster.length} swords</span></div><div class="ins-sub">Day ${G.day} · ${WNAME[tt].toLowerCase()}</div><div class="ins-note"><span class="ins-gold">${G.crowns} crowns</span> · ${G.food} food · renown ${G.renown}</div>`+note()}
  if(k.type==='site'){const o=k.o,R=typeof RUINS==='object'&&RUINS&&RUINS[(o.n|0)%RUINS.length];return`<div class="ins-h"><b class="ins-n">${R&&R[0]||'Ruin'}</b><span class="ins-tag">Ruin</span></div><div class="ins-sub">${o.v?'Visited':'Old stones, not yet visited'}</div><div class="ins-note">${hrs(o.x,o.y)} Tap to march there.</div>`}
@@ -150,3 +151,9 @@ function inspectAt(sx,sy,touch){if(sheetOpen)return false;let h='';insK=-1;insW=
  if(mode==='battle'&&B){const p=boardXY(sx,sy),u=battlePick(p.x,p.y);if(u){h=unitCard(u);insK=key(u.c,u.r)}else{const k=tileAtBoard(p.x,p.y);if(k>=0){h=tileCard(k);insK=k}}}
  else if(mode==='world'&&G&&W){const w=worldXY(sx,sy);h=worldCard(w.x,w.y)}
  if(!h){Inspect.hide();return false}Inspect.show(h,sx,sy,touch);return true}
+
+/* a merc's traits (icon, name, exact effect) and the retinue's battle bonuses */
+function insMercTraits(m){if(typeof trList!=='function')return'';return trList(m).map(t=>`<div class="ins-ab ins-s ${t.good?'gd':'bd'} ins-tr">${typeof trIconHTML==='function'?trIconHTML(t.key,16):''}<div><b>${t.n}</b><span>${t.d||t.fx||''}</span></div></div>`).join('')}
+function insRetinue(){if(typeof retBattle!=='function')return'';const L=retBattle();if(!L.length)return'';
+ return`<div class="ins-ab ins-s gd ins-ret">${insIc(L.some(x=>x[0]==='banner')?'fol-banner':'fol-'+L[0][0])}<div><b>Retinue</b><span>${L.map(x=>x[1]+': '+x[2]).join('. ')}.</span></div></div>`}
+function insIntel(e){let I=null;try{I=typeof bandIntel==='function'?bandIntel(e):null}catch(er){I=null}return I&&I.line?`<div class="ins-note ins-scout">${insIc('fol-scout')}<span>${I.line}</span></div>`:''}

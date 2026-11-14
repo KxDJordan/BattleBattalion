@@ -243,3 +243,7 @@
 .utired small{font-size:.66rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#d9a08f}
 .utired b{font-size:.8rem;font-variant-numeric:tabular-nums}
 .fcm.fct{gap:2px}.fcm.fct .fcfa{margin-right:1px}
+/* traits (icons only) on the unit chip, and the retinue marker (65-battle-ui.js chipTraits / chipRetinue) */
+.uname .utr{flex:none;display:inline-flex;line-height:0}
+.uname .utr .tr-chips.compact{gap:1px}
+.ufol{flex:none;display:inline-flex;align-items:center;gap:1px;height:16px;padding:0 2px 0 0;font-family:'Jersey 15',serif;font-size:.74rem;font-weight:700;line-height:1;color:#f3d98b;box-shadow:inset 0 -2px 0 #8a6a2a}

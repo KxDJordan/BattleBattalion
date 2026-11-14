@@ -20,7 +20,9 @@ function unitNewInj(u,snap){const m=u.m,all=typeof cpInj==='function'?cpInj(m):[
 // (arm / helm = armor points lost in this battle; shield = its shield was destroyed; lvl = the new level when one was gained, else 0).
 function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSync();const pu=b.units.filter(u=>u.side===0&&u.m),dead=[],snap=b.opts&&b.opts.inj0||null,
   res={win:!!win,fled:!!b.fled,stuck:false,famed:[],f:b.opts.f,rounds:b.round,turns:b.turns,foes:b.units.filter(u=>u.side===1).length,down:[],dead:[],levels:[],xp:0,share:0,crowns:0,loot:[],
-   withdrew:[],routed:[],injuries:[],men:[],armorLost:0,helmLost:0,repair:0,toolsNeed:0,tools:0};
+   withdrew:[],routed:[],injuries:[],men:[],armorLost:0,helmLost:0,repair:0,toolsNeed:0,tools:0,slain:[],foeKeys:[],parts:[],xpK:1};
+ // the foes by EN key: every one that took the field (foeKeys) and those killed (slain); partsDrop and the ambitions read them
+ {const ek=enKeyOf();for(const u of b.units)if(u.side===1&&u.def){const k=ek.get(u.def)||u.eid||u.key||null;if(!k)continue;res.foeKeys.push(k);if(!u.alive&&!u.left&&!u.withdrawn)res.slain.push(k)}}
  const num=v=>typeof v==='number'&&isFinite(v),rows=new Map();
  for(const u of pu){const m=u.m,left=unitLeft(u),c0=typeof cpCond==='function'?cpCond(m):{a:0,aM:0,h:0,hM:0},row={id:m.id,name:m.name,state:'ok',hp:0,hpMax:u.hpMax,arm:0,helm:0,shield:u.shpMax>0&&!u.shield,inj:[],lvl:0};
   if(left){m.hp=Math.max(1,Math.min(num(u.hp)?Math.round(u.hp):1,calc(m).hp));row.state=left;(left==='fled'?res.routed:res.withdrew).push(m.name)}
@@ -33,7 +35,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    row.inj=unitNewInj(u,snap).map(j=>({id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}));row.inj.forEach(j=>res.injuries.push({name:m.name,id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}))}
   rows.set(m,row);res.men.push(row)}
  G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
- if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=e.def&&e.def.xp||0);const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.share=Math.round(res.xp/Math.max(1,surv.length));
+ if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=e.def&&e.def.xp||0);const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
   surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
   res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
@@ -41,11 +43,18 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    if(H.length&&L.length&&!L.some(id=>ITEMS[id]&&ITEMS[id].k==='h')){const top=Math.max(...L.map(id=>ITEMS[id]?ITEMS[id].price||0:0)),ok=H.filter(k=>(ITEMS[k].price||0)<=top);
     if(ok.length)en.forEach(()=>{if(rnd()<.07)res.loot.push(pick(ok))})}}
   res.famed=battleFamed(b,en);res.famed.forEach(id=>res.loot.push(id));
-  res.loot.forEach(id=>G.stash.push(id))}
+  res.loot.forEach(id=>G.stash.push(id));
+  // monster parts (13-craft.js partsDrop), the herbalist adding one more of a kind half the time
+  if(typeof partsDrop==='function'){let L=null;try{L=partsDrop(res)}catch(e){L=null}
+   if(Array.isArray(L)){const herb=typeof followerHas==='function'&&followerHas('herbalist'),by={};
+    for(const x of L){if(!x||typeof x.key!=='string'||!(x.n>0))continue;if(typeof PARTS!=='undefined'&&!PARTS[x.key])continue;by[x.key]=(by[x.key]||0)+Math.floor(x.n)}
+    if(!G.parts||typeof G.parts!=='object')G.parts={};for(const k in by){let n=by[k];if(herb&&rnd()<.5)n++;G.parts[k]=(G.parts[k]||0)+n;res.parts.push({key:k,n})}}}}
+ if(typeof ambEvent==='function')ambEvent('battle',res);
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
  b.result=res;return res}
 /* famed drops of a won battle (12-famed.js famedPlan): guaranteed from end-game kills, else a chance late in the campaign
    that grows with the foes' rank and the day. Draws game randomness only when a drop is possible. Returns the new item ids. */
+function enKeyOf(){const m=new Map();if(typeof EN==='object'&&EN)for(const k in EN)m.set(EN[k],k);return m}
 function battleFamed(b,en){if(typeof famedPlan!=='function'||typeof makeFamed!=='function')return[];
  const rank=b.frank&&b.frank.x>1?Math.log2(b.frank.x):0,plan=famedPlan(en,{day:G.day,rank,f:b.opts.f}),out=[];
  for(const s of plan.sure){const id=makeFamed(famedBasePick(s.power,b.opts.f),s.power,{from:s.from,day:G.day});if(id)out.push(id)}
@@ -71,6 +80,8 @@ function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'|
  if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
+ if(res.win&&res.parts&&res.parts.length)h+=`<div class="br-parts"><span class="br-ph">${brIcon(['parts','stash'])}Monster parts${typeof followerHas==='function'&&followerHas('herbalist')?' <small>(herbalist)</small>':''}</span>${res.parts.map(x=>{const P=typeof PARTS!=='undefined'&&PARTS[x.key]||{};return`<span class="br-pt">${typeof pxIcon==='function'?pxIcon(P.icon||'part-'+x.key,16):''}<b>${P.n||x.key}</b><i>x${x.n}</i></span>`}).join('')}</div>`;
+ if(res.win&&res.xpK>1)h+=`<p class="dim br-drill">${brIcon('xp')}The drillmaster drives them on: +${Math.round((res.xpK-1)*100)}% experience.</p>`;
  if(res.win&&res.famed&&res.famed.length)h+=res.famed.map(id=>{const L=typeof famedLines==='function'?famedLines(id):[];return`<p class="br-fm"><b class="fmd-n">${ITEMS[id].n}</b>: a famed ${ITEMS[ITEMS[id].base].n.toLowerCase()}. ${L.map(x=>x.t).join(', ')}.</p>`}).join('');
  // the plain lines stay (and stay first) for anyone reading the dialog as text
  const lines=res.down.map(n=>`${n} was struck down but lives.`).concat(res.dead.map(n=>`<span class="bad">${n} is dead.</span>`),res.levels.map(l=>`<span class="coin">${l.name} reached level ${l.lvl}${(l.opens||[]).length?'. '+l.opens.join('. '):''}.</span>`),
@@ -89,11 +100,11 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{};B=null;mode='world
  if(!G.roster.length){clearSave();return{kind:'wiped',days:G.day}}
  G.grace=3;const out={kind:'world',toast:null};
  if(s.type==='party'){if(win){G.parties=G.parties.filter(p=>p.id!==s.id);G.renown+=3}}
- else if(s.type==='lair'){const c=G.contract;if(c&&c.type==='hunt'&&!c.done){if(win){c.done=true;out.toast='Contract done. Return to '+G.towns[c.town].name+' for pay'}else{G.contract=null;G.renown=Math.max(0,G.renown-5);out.toast='Contract failed'}}}
+ else if(s.type==='lair'){const c=G.contract;if(c&&c.type==='hunt'&&!c.done){if(win){c.done=true;if(typeof ambEvent==='function')ambEvent('lair',{f:c.f,diff:c.diff});out.toast='Contract done. Return to '+G.towns[c.town].name+' for pay'}else{G.contract=null;G.renown=Math.max(0,G.renown-5);out.toast='Contract failed'}}}
  else if(s.type==='dun'&&G.dun){const d=G.dun;
   if(!win){G.dun=null;out.toast='The rift spits you back out'}
   else if(d.stage<2){d.stage++;G.roster.forEach(m=>{const mx=calc(m).hp;m.hp=Math.min(mx,m.hp+Math.round(mx*.15))});return{kind:'dunNext',stage:d.stage,realm:d.realm}}
-  else{const pay=800+G.day*20;G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
+  else{const pay=800+G.day*20;G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');if(typeof ambEvent==='function')ambEvent('rift');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
    if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total)G.crisis.ended=ended=true}
    return{kind:'dunDone',pay,ended}}}
  return out}
@@ -107,7 +118,7 @@ function afterBattle(win){if(!B)return null;const out=settleBattle(win);setUI();
   if(out.ended)msg+=`<p class="good">The last of the three rifts is closed. The Sundering is over, though lesser rifts may still open.</p>`;
   sheet(msg+`<button class="pri" onclick="closeSheet()">Return to the world</button>`)}
  else if(out.toast)toast(out.toast);
- save();return out}
+ save();if(typeof ambNotify==='function'&&!sheetOpen)ambNotify();return out}
 // Headless: fight o to the end with the AI on both sides and no result sheet. Resolves with the result record
 // (result.stuck is set if o.turnCap was hit), or null if nobody can be fielded. Follow with settleBattle(result.win).
 function autoBattle(o){return new Promise(done=>{const p=Object.assign({},o,{auto:true,quiet:true,onEnd:done});battleSnap(p);if(!startBattle(p))done(null)})}

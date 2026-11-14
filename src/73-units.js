@@ -78,7 +78,7 @@ function usHairR(a){const k='h'+a.join('');let r=US_RC.get(k);if(!r){r=usRamp(a.
 /* ---- weapons: cells along an axis from the grip. [i, off, ramp, bias, group] ---- */
 const USD={DL:[-1,1,0,0,0],U:[0,-1,0,0,0],UL2:[0,-1,-1,0,2],UR2:[0,-1,1,0,2],UL3:[0,-1,-1,0,3],UR3:[0,-1,1,0,3],UL:[-1,-1,0,0,0],UR:[1,-1,0,0,0],R:[1,0,0,0,0],RD2:[1,0,0,1,2],RU2:[1,0,0,-1,2],RD3:[1,0,0,1,3],RU3:[1,0,0,-1,3],RD:[1,1,0,0,0],L:[-1,0,0,0,0],D:[0,1,0,0,0]};
 const US_W={};
-function usWdef(id){let w=US_W[id];if(w)return w;if(id.indexOf('*')>=0)return US_W[id]=usFamedW(usWdef(id.replace('*','')),id);if(id.slice(0,2)==='g:'){w=usWgen(id);w.id=w.id||id;return US_W[id]=w}const c=[],S=USR,add=(i0,i1,o0,o1,r,g,b)=>{for(let i=i0;i<=i1;i++)for(let o=o0;o<=o1;o++)c.push([i,o,r,b|0,g])};
+function usWdef(id){let w=US_W[id];if(w)return w;if(id.indexOf('*')>=0)return US_W[id]=usFamedW(usWdef(id.replace('*','')),id);if(id.slice(0,2)==='g:'){w=usWgen(id);w.id=w.id||id;return US_W[id]=w}if(typeof US_CRW==='object'&&US_CRW[id.replace(/:L$/,'')])return US_W[id]=usCraftW(id);const c=[],S=USR,add=(i0,i1,o0,o1,r,g,b)=>{for(let i=i0;i<=i1;i++)for(let o=o0;o<=o1;o++)c.push([i,o,r,b|0,g])};
  let cls='swing',two=0,h2=0,tip=8,gem=null;
  const sword=(len,wide,blade,guard)=>{add(-2,-2,0,0,guard||S.brass,0);add(-1,0,0,0,S.dleather,0);add(1,1,-1,wide?2:1,guard||S.brass,1);add(2,len+1,0,wide?1:0,blade,2);add(len+2,len+2,0,0,blade,2);tip=len+2};
  const axehead=(top,sz,side)=>{const s=side||1;for(let k=0;k<sz+2;k++){const i=top-k,n=k===0?Math.max(1,sz-1):k<=sz-1?sz:k===sz?sz-1:1,o0=k>sz-1?(k===sz?2:sz):1;for(let o=o0;o<=Math.max(o0,n+(k>sz-1?1:0));o++)c.push([i,o*s,S.plate,o>=sz?1:0,2])}};
@@ -294,11 +294,12 @@ function usShieldAt(look,cx,top,k,col,inside){const G=usShG(look,k),V=usShVar(lo
     case'bands':if(Math.abs(t-.25)*H<.6||Math.abs(t-.75)*H<.6)R=A;break;case'bend':if(Math.abs(u-(t*2-1))<(big?.3:.4))R=A;break;
     case'rivets':if(!edge&&(((x+j)&3)===0)&&Math.abs(x)!==0)b=1;if(x===0)R=A;break;case'studs':{const d=Math.hypot(u,2*t-1);if(Math.abs(d-.62)<(big?.12:.2)&&((x+j)&1)===0)R=A;break}
     case'rings':{const d=Math.hypot(u,2*t-1);if(Math.abs(d-.6)<(big?.1:.22))b=-1;break}case'runes':{const d=Math.hypot(u,2*t-1);if(Math.abs(d-.58)<(big?.12:.2)&&((x*3+j)%3===0))R=A;break}
-    case'ridge':if(x===0){R=A;b=1}else if(x===1)R=A;break}
+    case'ridge':if(x===0){R=A;b=1}else if(x===1)R=A;break;case'scales':if((j&1)===0?((x&1)===0):((x&1)===1))b=-1;else if(((x+j)%3)===0)b=1;break}
    if(edge&&Rm)R=Rm;usP(cx+x,y,R,b+(edge&&Rm?(x>0||t>.6?-1:0):0))}}
  if(inside){const m=top+(H>>1);usPart();usP(cx,m-1,USR.dleather);usP(cx-1,m-1,USR.dleather);usP(cx,m+1,USR.dleather);usP(cx-1,m+1,USR.dleather);return G}
  const my=top+(f==='kite'?Math.round(H*.36):f==='heater'?Math.round(H*.4):H>>1),bs=Math.max(0,Math.round(k)-1);
  if(V.boss==='brass'||V.boss==='steel'){usGrp=2;usPart();usGrp=0;const B=USR[V.boss];for(let a=-bs-(f==='round'||f==='targe'||f==='tower'?1:0);a<=bs+1;a++)for(let b2=-bs-1;b2<=bs+1;b2++)if(Math.abs(a)+Math.abs(b2)<=bs+1)usP(cx+a,my+b2,B,a+b2<0?1:a+b2>0?-1:0)}
+ if(V.leaf){usPart();for(const [a,q,k2] of[[-1,-1,'B'],[0,-2,'A'],[1,-1,'A'],[0,0,'c'],[-2,1,'B'],[2,1,'B']])usP(cx+a,my+q,USR.leaf,k2==='A'?1:k2==='c'?0:-1);usF(cx,my,'c')}
  if(V.boss==='spike'){usGrp=2;usPart();usGrp=0;usP(cx,my,USR.plate,1);usP(cx-1,my,USR.iron);usP(cx+1,my,USR.iron,-1);usP(cx,my-1,USR.iron,1);usP(cx,my+1,USR.iron,-1);if(big){usP(cx,my-2,USR.plate,1);usP(cx+1,my-1,USR.plate)}
   if(V.spikes||f==='spiked'){usPart();usP(cx,top-1,USR.plate,1);usP(cx,top+H,USR.plate,-1);if(V.spikes){usP(cx-n-1,my,USR.plate,0);usP(cx+n+1,my,USR.plate,-1);if(big){usP(cx,top-2,USR.plate,1);usP(cx-n-2,my,USR.plate)}}}}
  return G}
@@ -343,7 +344,7 @@ function usHelmHat(id){const lk=ITEMS[id]?usLookOf(id):id;if(US_HV[lk])return US
 /* ---- off-figure armor, helmet and shield icons (16x16), from the rig's own painters ---- */
 const US_IB={tw:8,th:8,ll:6,lw:3,aw:2,hw:10,hh:9,er:4,eh:2,jaw:1},US_IA={tw:8,th:8,ll:5,lw:3,aw:2,hw:8,hh:8};
 function usArmorIconRows(id){let r=US_WI.get('a'+id);if(r)return r;const av=usArmorV(id),S={kind:'hum',seed:3,b:US_IA,skin:usSkin(['s','t','u','i']),armor:av.k,av,robeC:'blue',ragC:'tan'};
- if(av.trim==='white')S.trim=USR.white;else if(av.trim==='steel')S.trim=USR.steel;else if(av.trim==='gold')S.trim=USR.gold;if(av.spikes)S.spike=1;
+ if(av.trim==='white')S.trim=USR.white;else if(av.trim==='steel')S.trim=USR.steel;else if(av.trim==='gold')S.trim=USR.gold;if(av.spikes)S.spike=1;if(av.spikeR)S.spikeR=USR[av.spikeR];
  const A=usArmor(S),P={st:'idle',fr:0,lg:[0,0,0,0]};usBeginAt(16,16,8,15);const x0=-4,x1=3,ty=-13,sy=ty+1;
  usArm(S,A,x0-2,sy,x0-4,sy+6,1);usArm(S,A,x1+1,sy,x1+3,sy+6,1);usTorso(S,A,0,P,x0,ty);usSkirt(S,A,0,P,x0,ty);
  if(A.paul){usPart();for(const xs of[x0-3,x1+1])for(let x=xs;x<=xs+2;x++){usP(x,sy-1,A.paul,x>0?-1:1);usP(x,sy,A.paul,x>0?-1:0)}if(S.spike){usP(x0-2,sy-2,A.paul,1);usP(x1+2,sy-2,A.paul,1)}}
@@ -400,7 +401,7 @@ function usArmDet(S,A,v,x0,x1,ty,th,fc){const V=S.av;if(!V)return;const a=S.armo
  if(V.mantle){usPart();const r=a==='robe'?(S.accR||usCloth('purple')):USR.fur;for(let x=x0-1;x<=x1+1;x++){usP(x,ty,r,((x*7)%5===0)?1:0);usP(x,ty+1,r,-1);if(x>x0&&x<x1&&((x+ty)&1))usP(x,ty+2,r,-1)}if(a==='robe'&&v===0){usF(fc,ty+1,'c');usF(fc-1,ty+1,'d')}}
  if(V.mailtop&&v===0){for(let x=x0+1;x<=x1-1;x++)usF(x,y1,'4')}
  if(V.sig&&v===0){const g=S.res?USR[S.res].t[1]:'x',G2=S.res?USR[S.res].t[2]||'r':'F';const ys=V.sig===2?[ty+2,ty+4,ty+6]:[ty+3,ty+5];for(const y of ys){usF(x0+1,y,g);usF(x1-1,y,g)}usF(x0+1,ty+1,G2);if(V.sig===2){usF(x1-1,ty+1,G2);usF(fc+1,ty+2,'d')}}
- if(V.tex==='flute'&&v===0){usF(x0+1,ty+1,'r');usF(fc,ty+th-3,'r')}}
+ if(V.tex==='flute'&&v===0){usF(x0+1,ty+1,'r');usF(fc,ty+th-3,'r')}if(V.cr)usArmCraft(S,A,v,x0,x1,ty,th,fc)}
 /* ---- humanoid rig ---- */
 const US_BUILD={human:{hw:8,hh:8,tw:8,th:8,ll:7,lw:3,aw:2,jaw:1},elf:{hw:8,hh:8,tw:7,th:8,ll:8,lw:3,aw:2,jaw:2},
  dwarf:{hw:8,hh:7,tw:10,th:7,ll:4,lw:4,aw:3,jaw:0,er:3,eh:1},halforc:{hw:9,hh:8,tw:10,th:9,ll:7,lw:4,aw:3,jaw:0},
@@ -426,10 +427,10 @@ function usArmor(S){const a=S.armor,sk=S.skin,R=S.MR||USR,C=usCloth,cl=S.clothR,
   default:A={body:cl||C(S.ragC||'tan'),up:.2,fore:sk,hand:sk,leg:lg,boot:sk,skirt:1}}
  const V=S.av;if(V){if(V.body)A.body=typeof PT_CLOTH!=='undefined'&&PT_CLOTH[V.body]?(cl||C(V.body)):V.body==='fur'?R.fur:R[V.body]||A.body;if(V.mailtop){A.skB=A.body;A.body=R.steel;A.slv=cl||C(S.robeC||'blue')}if(V.tex==='flute'){A.paul=R.steel}}
  A.slv=A.slv||A.body;A.fore=A.fore||A.slv;if(S.b.bony){A.slv=A.fore=A.hand=A.leg=A.boot=R.bone;A.shin=null;A.skirt=Math.min(A.skirt,1)}
- if(S.Aov)Object.assign(A,S.Aov);return A}
+ if(V&&V.A)for(const k in V.A)A[k]=R[V.A[k]]||USR[V.A[k]]||A[k];if(S.Aov)Object.assign(A,S.Aov);return A}
 function usTex(S){const a=S.armor,t=S.av&&S.av.tex,m3=y=>((y%3)+3)%3;
  if(S.av&&S.av.mailtop)return(x,y)=>((x+y)&1)?0:-1;
- if(t==='diamond')return(x,y)=>(((x+y)&3)===0||((x-y)&3)===0)?-1:0;if(t==='hide')return(x,y)=>((x*5+y*3)%7<2)?1:((x*3+y)%5===0?-1:0);if(t==='flute')return(x,y)=>(((x%3)+3)%3===0)?1:((((x%3)+3)%3===2)?-1:0);
+ if(t==='scales')return(x,y)=>(y&1)?((x&1)?-1:0):((x&1)?0:1);if(t==='diamond')return(x,y)=>(((x+y)&3)===0||((x-y)&3)===0)?-1:0;if(t==='hide')return(x,y)=>((x*5+y*3)%7<2)?1:((x*3+y)%5===0?-1:0);if(t==='flute')return(x,y)=>(((x%3)+3)%3===0)?1:((((x%3)+3)%3===2)?-1:0);
  if(a==='lamellar')return(x,y)=>m3(y)===2?-1:(x&1)?0:1;if(a==='coat')return(x,y)=>m3(y)===0?-2:0;if(a==='brig')return(x,y)=>(m3(y)===0)?-1:0;
  if(a==='mail')return(x,y)=>((x+y)&1)?0:-1;
  if(a==='scale')return(x,y)=>(y&1)?((x&1)?-1:0):((x&1)?1:-1);
@@ -576,7 +577,7 @@ function usBeard(S,v,x0,y0){const bd=S.beard,hc=S.beardR||S.hairR;if(!bd||!hc||v
  if(bd==='long'){for(let r=hh;r<=hh+2;r++)for(let c=3+(r-hh>1?1:0);c<hw-1-(r-hh>1?1:0);c++)H(c,r,r>hh?-1:0);return}
  const n=bd==='fork'?4:4;for(let j=0;j<n;j++){const r=hh+j,i0=j<2?1:j,i1=j<2?hw-1:hw-j;for(let c=i0;c<=i1;c++){if(bd==='fork'&&j>=2&&c===(hw>>1))continue;H(c,r,(c===(hw>>1)||j===n-1)?-1:0)}}
  if(S.ring)usF(x0+(hw>>1)+1,y0+hh+2,'c')}
-function usHat(S,v,x0,y0,er){const t=S.hat;if(!t)return;const b=S.b,hw=b.hw,hh=b.hh,c=S.hatR||USR.leather,R=S.MR||USR,k=hw>=11?2:1;
+function usHat(S,v,x0,y0,er){const t=S.hat;if(!t)return;if(usHatBg(S,v,x0,y0,er))return;const b=S.b,hw=b.hw,hh=b.hh,c=S.hatR||USR.leather,R=S.MR||USR,k=hw>=11?2:1;
  const dome=(r,rim)=>{for(let x=1;x<hw-1;x++)usP(x0+x,y0-1,r);for(let y=0;y<=rim;y++)for(let x=0;x<hw;x++)usP(x0+x,y0+y,r)};
  if(t==='hood'||t==='coif'){const r=t==='coif'?R.steel:c,tex=t==='coif'?((x,y)=>((x+y)&1)?0:-1):null,put=(x,y,bi)=>usP(x0+x,y0+y,r,(tex?tex(x,y):0)+(bi|0));usPart();
   for(let x=1;x<hw-1;x++)put(x,-1);
@@ -722,6 +723,100 @@ function usHumanStand(S,v){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.A,al=
  usArm(S,A,shx(nearL?'L':'R'),sy,shx(nearL?'L':'R')+(nearL?-1:1),sy+al-2,0);
  if(S.over)S.over(ctx)}
 
+/* ---- background looks on the battle figure (07-portraits.js ptBgLook): headwear, cloth, a garb overlay over the torso ---- */
+function usLookSpec(S,P){if(!P)return;if(P.bgCloth){const r=usCloth(P.bgCloth);S.clothR=r;S.legR=usRamp(r.t,0)}
+ if(P.garbC)S.garbR=usRamp(P.garbC.join(''),1);if(P.garb){S.garb=P.garb;S.mid=usGarb}if(P.bgTrim&&!S.trim)S.trim=P.bgTrim==='gold'?USR.gold:P.bgTrim==='white'?USR.white:USR.steel;if(P.veil)S.veilR=usCloth(P.veil)}
+function usGarb(ctx){const S=ctx.S,v=ctx.v,x0=ctx.x0,x1=ctx.x1,ty=ctx.ty,b=S.b,th=b.th,tw=b.tw,g=S.garb,a=S.armor,y1=ty+th-1,fc=v?x0+Math.round(tw*.4)-1:x0+Math.round(tw*.6),R=USR,ac=S.garbR||R.red;
+ if(b.big)return;const light=a==='rags'||a==='padded'||a==='leather'||a==='fur'||a==='robe'||a==='bare'||a==='brig';
+ const diag=(xa,ya,xb,yb,r)=>{usPart();const n=Math.max(Math.abs(xb-xa),Math.abs(yb-ya));for(let i=0;i<=n;i++)usP(Math.round(xa+(xb-xa)*i/n),Math.round(ya+(yb-ya)*i/n),r,0)};
+ switch(g){
+  case'apron':case'butcher':case'smith':{const r=g==='butcher'?R.white:g==='smith'?R.dleather:(S.garbR||R.white);usPart();
+   if(v===0){for(let y=ty+3;y<=y1+2;y++)for(let x=x0+1;x<=x1-1;x++)usP(x,y,r,x===x1-1?-1:0);usP(fc,ty+1,r,0);usP(fc,ty+2,r,0);usP(fc-2,ty+1,r,0);usP(fc-2,ty+2,r,0);
+    if(g==='butcher'){usF(x0+2,ty+4,'g');usF(x1-2,ty+6,'f');usF(fc,ty+5,'g');usF(x0+3,y1+1,'g')}else if(g==='smith'){usF(x0+1,ty+3,'c');usF(x1-1,ty+3,'c')}}
+   else{for(let x=x0;x<=x1;x++)usP(x,ty+3,r,-1);usP(fc,ty+4,r,0);usP(fc+1,ty+5,r,-1)}break}
+  case'fine':if(v===0){usPart(1);for(let x=x0+1;x<=x1-1;x++)usP(x,ty,R.gold,x<fc?1:0);usF(fc,ty+2,'d');usF(fc,ty+4,'d');usF(fc,ty+6,'c');usF(x0+1,ty+2,'c');usF(x1-1,ty+3,'b')}else{usPart(1);for(let x=x0+1;x<=x1-1;x++)usP(x,ty,R.gold,0)}break;
+  case'rope':case'welts':{const by=y1-1;usPart(1);for(let x=x0;x<=x1;x++)usP(x,by,R.wood,(x&1)?0:-1);if(v===0){usP(fc,by+1,R.wood,-1);usP(fc,by+2,R.wood,-1)}
+   if(g==='welts'){usF(x0+1,ty+2,'g');usF(x0+2,ty+3,'f');usF(x1-2,ty+1,'g');usF(x1-1,ty+2,'f');usF(fc-1,ty+4,'g')}break}
+  case'sash':diag(v?x1:x0,ty,v?x0:x1,y1,ac);break;
+  case'bandolier':diag(v?x0:x1,ty,v?x1:x0,y1,R.dleather);if(v===0){usF(fc-1,ty+3,'c')}break;
+  case'straps':diag(x0,ty,x1,y1,R.dleather);diag(x1,ty,x0,y1,R.dleather);usF(fc,ty+(th>>1),'q');break;
+  case'braces':usPart(1);for(let y=ty;y<=y1;y++){usP(x0+1,y,R.dleather,0);usP(x1-1,y,R.dleather,-1)}break;
+  case'tabard':{usPart();const t0=v?fc:fc-1;for(let y=ty+1;y<=y1+1;y++)for(let x=t0;x<=t0+1;x++)usP(x,y,ac,x===t0+1?-1:0);if(v===0)usF(t0,ty+3,'l');break}
+  case'stripes':if(light){for(let y=ty+1;y<=y1;y+=2){usPart();for(let x=x0;x<=x1;x++)usP(x,y,ac,0)}}break;
+  case'plaid':if(light){for(let y=ty;y<=y1;y++)for(let x=x0;x<=x1;x++)if(((x-x0)%3===1)||((y-ty)%3===1))usB(x,y,-1)}break;
+  case'motley':if(light){usPart();for(let y=ty;y<=y1;y++)for(let x=x0;x<=(v?x1:fc-1);x++)if(v?x>=fc:true)usP(x,y,ac,0)}break;
+  case'patches':if(light){usF(x0+1,ty+2,'j');usF(x0+2,ty+2,'k');usF(x0+1,ty+3,'j');usF(x1-1,ty+5,'v');usF(x1-2,ty+5,'w')}break;
+  case'fleece':case'pelt':{const r=g==='fleece'?R.white:R.fur;usPart();for(let x=x0-1;x<=x1+1;x++){usP(x,ty,r,((x*5)%3===0)?1:0);if((x&1))usP(x,ty-1,r,1);if(x>x0&&x<x1&&!(x&1))usP(x,ty+1,r,-1)}break}
+  case'vials':{const by=y1-1;for(let x=x0;x<=x1;x++)usF(x,by,(x&1)?'a':'i');if(v===0){usF(x0+1,by+1,'A');usF(fc,by+1,'x');usF(x1-1,by+1,'g')}break}
+  case'eye':if(v===0){usF(fc-2,ty+3,'C');usF(fc-1,ty+2,'C');usF(fc,ty+2,'D');usF(fc+1,ty+3,'D');usF(fc-1,ty+3,'0');usF(fc,ty+3,'0');usF(fc-1,ty+4,'D');usF(fc,ty+4,'D')}break;
+  case'tatters':{const sk=S.skin.t[S.skin.b];usF(x0+1,ty+3,sk);usF(x1-1,ty+5,sk);usF(fc,y1,'0');usF(x0,y1,'0');usF(x1,y1-1,'0');break}
+  case'manica':{usPart();const sx=v?x1:x0;for(let y=ty-1;y<=ty+2;y++)for(let k=-1;k<=1;k++)usP(sx+(v?-k:k),y,(y&1)?R.steel:R.iron,k<0?1:0);diag(v?x0:x1,ty,v?x1:x0,y1,R.dleather);break}
+ }
+ if(S.trim&&!S.av&&v===0){}}
+function usHatBg(S,v,x0,y0,er){if(usHatCraft(S,v,x0,y0,er))return true;const t=S.hat,b=S.b,hw=b.hw,hh=b.hh,c=S.hatR||USR.leather,R=S.MR||USR,front=v?0:hw-1;
+ const dome=(r,y1,top)=>{for(let x=1;x<hw-1;x++)usP(x0+x,y0-1-(top||0),r,1);if(top)for(let x=2;x<hw-2;x++)usP(x0+x,y0-1,r);for(let y=0;y<=y1;y++)for(let x=0;x<hw;x++)usP(x0+x,y0+y,r,x>=hw-2?-1:0)};
+ switch(t){
+  case'wide':case'capotain':{usPart();const tall=t==='capotain';for(let y=tall?-4:-2;y<=0;y++)for(let x=1;x<hw-1;x++)usP(x0+x,y0+y,c,(x===1?1:x>=hw-2?-1:0));
+   usPart();for(let x=-2;x<=hw+1;x++)usP(x0+x,y0+1,c,x<1?1:x>hw-2?-1:0);for(let x=1;x<hw-1;x++)usP(x0+x,y0,S.garbR||USR.blk,0);if(tall&&v===0)usF(x0+hw-3,y0,'c');return true}
+  case'feathercap':{usPart();for(let x=0;x<=hw;x++){usP(x0+x,y0-1,c,x<2?1:0);usP(x0+x,y0,c,x>hw-2?-1:0)}for(let x=1;x<hw-1;x++)usP(x0+x,y0-2,c,1);usP(x0+(v?hw:0),y0+1,c,-1);
+   usPart();const fx=v?hw-1:1,d=v?1:-1,f=S.garbR||USR.white;[[0,-3],[d,-4],[d,-5],[2*d,-6],[2*d,-7]].forEach(([a,q],i)=>usP(x0+fx+a,y0+q,i<2?f:USR.white,i>2?1:0));return true}
+  case'cowl':{usPart();for(let y=-4;y<0;y++){const w=Math.max(1,(y+5));for(let x=(hw>>1)-w;x<(hw>>1)+w;x++)usP(x0+x,y0+y,c,x<(hw>>1)?1:-1)}
+   for(let y=0;y<=hh;y++)for(let x=-1;x<=hw;x++)usP(x0+x,y0+y,c,x>=hw-1?-1:x<=0?0:0);if(v===0){const ex1=hw-2,ex0=ex1-3;usF(x0+ex0,y0+er,'0');usF(x0+ex1,y0+er,'0')}return true}
+  case'wrap':{usPart();for(let y=-2;y<=2;y++)for(let x=(y===-2?1:-1);x<=hw-(y===-2?2:0);x++)usP(x0+x,y0+y,c,((x+y*2)%4===0)?-1:x>=hw-1?-1:0);
+   if(v===0){usPart();for(let y=er+(b.eh||2);y<hh;y++)for(let x=2;x<hw;x++)usP(x0+x,y0+y,S.veilR||c,0)}else{usPart();for(let y=3;y<=hh;y++)usP(x0+hw,y0+y,c,-1)}return true}
+  case'bandana':{usPart();for(let x=1;x<hw-1;x++)usP(x0+x,y0-1,c,1);for(let y=0;y<=1;y++)for(let x=-1;x<=hw;x++)usP(x0+x,y0+y,c,((x+y)%3===0)?-1:0);
+   usPart();const kx=v?x0+hw:x0-1,d=v?1:-1;usP(kx,y0+2,c,0);usP(kx+d,y0+3,c,-1);usP(kx,y0+3,c,-1);if(S.veilR&&v===0){usPart();for(let y=er+(b.eh||2);y<hh;y++)for(let x=2;x<hw;x++)usP(x0+x,y0+y,S.veilR,0)}return true}
+  case'furcap':{usPart();for(let x=1;x<hw-1;x++)usP(x0+x,y0-2,c,1);for(let y=-1;y<=1;y++)for(let x=-1;x<=hw;x++)usP(x0+x,y0+y,c,((x*7+y*5)%4===0)?-1:x>=hw-1?-1:0);for(let y=2;y<=er+1;y++){usP(x0-1,y0+y,c,-1);if(v)usP(x0+hw,y0+y,c,-1)}return true}
+  case'scholar':{usPart();const r=USR.blk;dome(r,1);for(let y=2;y<=er+1;y++){usP(x0-1,y0+y,r,0);if(v)usP(x0+hw,y0+y,r,0)}return true}
+  case'miner':{usPart();dome(USR.leather,0);for(let x=-1;x<=hw;x++)usP(x0+x,y0+1,USR.dleather,0);usPart();const cx=x0+(v?2:hw-3);usP(cx,y0-2,USR.white,1);usP(cx,y0-3,USR.white,0);usF(cx,y0-4,'E');usF(cx,y0-5,'y');return true}}
+ if(S.veilR&&v===0&&(t==='hood')){usPart();for(let y=er+(b.eh||2);y<hh;y++)for(let x=2;x<hw;x++)usP(x0+x,y0+y,S.veilR,0)}
+ return false}
+
+/* ================= CRAFTED GEAR (13-craft.js: craft:1, look 'craft_<id>' or a shield look) =================
+   Monster materials as ramps; weapons are a hand-built base re-cut in those materials plus their own extra cells
+   (US_CRW: base weapon, ramp remap, extra cells, field overrides); armor through US_AV (body ramp, texture, pm = the
+   bust's colour remap, ptC = the bust's cloth, cr = an extra painter: feathers leaves bones spines), helmets as new hats
+   (ogreskull tuskbarbute wyvcrest), shields through US_SHV (scales dev, leaf boss). Icons follow from the same painters. */
+Object.assign(USR,{ivory:usRamp('mlr',1),serp:usRamp('4wv',1),wyv:usRamp('fKgh',1),venom:usRamp('BAe',1),vglass:usRamp('GDCF',1),heart:usRamp('aibc',2),owl:usRamp('iHnm',1),ogre:usRamp('4nm',1),leaf:usRamp('wBA',1)});
+const US_CRW={
+ craft_fangknife:{b:'rondel',m:{plate:'ivory',brass:'venom',dleather:'serp'},x:[[7,0,'ivory',1,2],[3,1,'A',0,2]]},
+ craft_tuskspear:{b:'warspear',m:{plate:'ivory',brass:'dleather'},x:[[13,2,'ivory',-1,2],[14,2,'ivory',-1,2],[12,-2,'ivory',1,2]]},
+ craft_heartstave:{b:'staff',m:{wood:'heart'},x:[[11,-1,'leaf',1,2],[11,1,'leaf',-1,2],[12,0,'leaf',1,2],[12,-1,'leaf',1,2],[8,1,'leaf',0,1],[7,-1,'leaf',0,1],[10,0,'c',1,2]]},
+ craft_bonemaul:{b:'maul',m:{dwood:'ivory',iron:'bone',plate:'ivory'},x:[[11,0,'iron',0,1],[-3,0,'iron',0,0],[16,0,'ivory',1,2],[13,3,'ivory',-1,2]]},
+ craft_sinewxbow:{b:'xbow:H',m:{dwood:'ivory',iron:'bone',brass:'red',wood:'dwood'}},
+ craft_tailglaive:{b:'glaive',m:{plate:'wyv',brass:'ivory'},x:[[18,2,'ivory',-1,2],[15,-1,'ivory',1,2],[22,0,'wyv',1,2]]},
+ craft_voidgreat:{b:'greatsword',m:{plate:'vglass',brass:'iron',dleather:'blk'},x:[[5,0,'C',1,2],[9,1,'C',1,2],[13,0,'r',1,2]],o:{gem:1}},
+ craft_silkbow:{b:'warbow',o:{bowR:'white',recurve:1,nock:'gold',wrap:1}}};
+for(const k in US_CRW)US_WHAND[k]=k;
+function usCraftW(id){const L=/:L$/.test(id),k=id.replace(/:L$/,''),D=US_CRW[k],B=usWdef(D.b+(L?':L':'')),rev=new Map();for(const n in USR)rev.set(USR[n],n);const m=D.m||{};
+ const c=B.c.map(q=>{let r=q[2];if(r&&typeof r==='object'){const n=rev.get(r);if(n&&m[n])r=USR[m[n]]}return[q[0],q[1],r,q[3],q[4]]});
+ if(D.x)for(const e of D.x)c.push([e[0],e[1],USR[e[2]]||e[2],e[3]|0,e[4]|0]);c.sort((a,b)=>a[4]-b[4]);return Object.assign({},B,{id,c},D.o||{})}
+Object.assign(US_AV,{
+ craft_serpjerkin:{k:'leather',body:'serp',tex:'scales',collar:1,pm:{i:'4',j:'w',k:'v',a:'2'},A:{fore:'serp'}},
+ craft_owlcoat:{k:'leather',body:'owl',tex:'hide',mantle:1,cr:'feathers',pm:{i:'H',j:'n',k:'m'}},
+ craft_barkrobe:{k:'robe',body:'heart',trim:'gold',sig:1,cr:'leaves',ptC:['a','i','b'],A:{leg:'heart'}},
+ craft_ogreharness:{k:'brig',body:'ogre',tex:'studs',cr:'bones',ptC:['4','n','m'],A:{paul:'ivory',skB:'ivory'}},
+ craft_wyvcuirass:{k:'scale',body:'wyv',cr:'spines',spikes:1,spikeR:'ivory',pm:{o:'f',p:'K',q:'g',r:'h'},A:{paul:'wyv',shin:'wyv',boot:'wyv',fore:'wyv'}}});
+Object.assign(US_HV,{craft_ogrehelm:'ogreskull',craft_tuskhelm:'tuskbarbute',craft_wyvhelm:'wyvcrest'});
+Object.assign(US_SHV,{targe_serpent:{dev:'scales',field:'serp',rim:'dleather',boss:'brass',alt:'serp'},round_heart:{dev:'rings',field:'heart',rim:'dwood',boss:'none',alt:'heart',leaf:1},
+ kite_wyvern:{dev:'scales',field:'wyv',rim:'iron',boss:'spike',alt:'wyv'}});
+/* sprite headgear for the crafted helmets (called from usHatBg) */
+function usHatCraft(S,v,x0,y0,er){const t=S.hat,b=S.b,hw=b.hw,hh=b.hh,R=USR;
+ if(t==='tuskbarbute'){S.hat='barbute';try{usHat(S,v,x0,y0,er)}finally{S.hat=t}usPart();const fx=v?x0+hw:x0+hw-1,sx=v?x0-1:x0;
+  for(const [x,d] of[[sx,-1],[v?x0+hw:fx,1]]){usP(x,y0+er+2,R.ivory,0);usP(x+d,y0+er+1,R.ivory,1);usP(x+d,y0+er,R.ivory,1)}return true}
+ if(t==='wyvcrest'){S.hat='great';const ac=S.accR,rs=S.res;S.accR=R.wyv;S.res=null;try{usHat(S,v,x0,y0,er)}finally{S.hat=t;S.accR=ac;S.res=rs}usPart();
+  for(let x=1;x<hw-1;x++){usP(x0+x,y0-2,R.wyv,x<(hw>>1)?1:0);if(x>1&&x<hw-2)usP(x0+x,y0-3,R.wyv,(x&1)?1:-1)}usP(x0+(hw>>1),y0-4,R.wyv,1);return true}
+ if(t==='ogreskull'){usPart();for(let x=2;x<hw-2;x++)usP(x0+x,y0-4,R.bone,1);for(let x=1;x<hw-1;x++)usP(x0+x,y0-3,R.bone,1);for(let y=-2;y<=2;y++)for(let x=-1;x<=hw;x++)usP(x0+x,y0+y,R.bone,x>=hw-1?-1:y<0?1:0);
+  if(v===0){for(const sx of[hw-2,hw-5]){usF(x0+sx,y0-1,'0');usF(x0+sx+1,y0-1,'0');usF(x0+sx,y0,'0');usF(x0+sx+1,y0,sx===hw-2?'f':'g')}usF(x0+hw-3,y0+1,'0');for(let x=1;x<=hw;x++)usF(x0+x,y0+2,(x&1)?'r':'0');
+   usPart();usP(x0+hw+1,y0+3,R.ivory,0);usP(x0+hw+1,y0+2,R.ivory,1);usP(x0+hw,y0+1,R.ivory,1);usP(x0-1,y0+3,R.ivory,0);usP(x0-2,y0+2,R.ivory,1)}
+  else{usF(x0+2,y0-1,'n');usF(x0+hw-3,y0,'n');usF(x0+3,y0+1,'n')}return true}
+ return false}
+function usArmCraft(S,A,v,x0,x1,ty,th,fc){const V=S.av,c=V.cr,y1=ty+th-1;
+ if(c==='feathers'){usPart(1);for(let x=x0-1;x<=x1+1;x++){usP(x,ty+((x&1)?1:2),USR.white,(x&1)?0:-1)}}
+ else if(c==='leaves'){usF(x0+1,ty+2,'A');usF(x0+2,ty+3,'B');usF(x1-1,ty+4,'A');usF(x1-2,ty+5,'B');usF(x0+1,y1-1,'B')}
+ else if(c==='bones'){if(v===0){usPart();usP(fc,ty+2,USR.ivory,1);usP(fc-1,ty+3,USR.ivory,0);usP(fc+1,ty+3,USR.ivory,-1);usP(x0+1,ty+5,USR.ivory,0)}}
+ else if(c==='spines'){usPart();for(let x=x0+1;x<=x1-1;x+=2)usP(x,ty-1,USR.ivory,1)}}
+
 /* ---- looks: mercs from the portrait spec, enemies per type ---- */
 const US_WMAP={knife:'knife',rondel:'rondel',club:'club',mace:'mace',shortsword:'shortsword',arming:'arming',runeblade:'runeblade',handaxe:'handaxe',waraxe:'waraxe',greataxe:'greataxe',spear:'spear',warspear:'warspear',pike:'pike',shortbow:'shortbow',warbow:'warbow',staff:'staff',focus:'focus',riftedge:'riftedge',
  mallet:'warhammer',warhammer:'pickhammer',maul:'maul',warmaul:'warmaul',bill:'bill',halberd:'halberd',glaive:'glaive',greatsword:'greatsword',zweihander:'zweihander',runegreat:'runegreat',
@@ -752,7 +847,7 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
  if(P){S.beard=P.beard||null;if(P.beardC)S.beardR=usHairR(P.beardC);S.ring=P.ring;S.stubble=P.marks&&P.marks.stubble;S.patch=P.marks&&P.marks.patch;if(P.marks&&P.marks.paint)S.paint=P.marks.paintC;
   if(P.face&&P.face.iris&&P.face.iris!=='0'&&race==='elf')S.eye='1';S.hat=P.hat||null;if(P.hatC)S.hatR=usCloth(P.hatC);S.famH=!!(ITEMS[eq.h]&&ITEMS[eq.h].famed);if(P.gemC)S.gemC=P.gemC[0];if(P.beads)S.beads=P.beads[0];
   S.ragC=P.ragC;S.robeC=P.robeC;if(P.shC)S.shR=usCloth(P.shC)}
- {const av=ITEMS[eq.a]&&ITEMS[eq.a].k==='a'?usArmorV(eq.a):US_AV.rags;S.armor=av.k;S.av=av;S.famA=!!(ITEMS[eq.a]&&ITEMS[eq.a].famed);if(av.spikes)S.spike=1;
+ {const av=ITEMS[eq.a]&&ITEMS[eq.a].k==='a'?usArmorV(eq.a):US_AV.rags;S.armor=av.k;S.av=av;S.famA=!!(ITEMS[eq.a]&&ITEMS[eq.a].famed);if(av.spikes)S.spike=1;if(av.spikeR)S.spikeR=USR[av.spikeR];
   if(av.trim==='white')S.trim=USR.white;else if(av.trim==='steel')S.trim=USR.steel;else if(av.trim==='gold')S.trim=USR.gold}if(!(typeof ptHelmsExist==='function'&&ptHelmsExist())){if(S.armor==='plate')S.hat='great';else if(S.armor==='scale')S.hat='nasal'}   // helmets are gear now (eq.h -> P.hat); without that rule the armor tier still picks one
  if(S.hat==='cap'&&ITEMS[eq.h])S.hatR=USR.leather;
  if(/^(hood|great|kettle|cap|straw|nasal|coif|barbute|armcap|spangen|sallet|bascinet|armet)$/.test(S.hat||'')){if(S.hair==='mohawk'||S.hair==='bun'||S.hair==='curly'||S.hair==='mane'||S.hair==='shaggy'||S.hair==='swept')S.hair='short'}
@@ -762,7 +857,7 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
  usSetAlt(S,alt);
  S.res=typeof mercRes==='function'?mercRes(m):null;S.quiver=S.wd.cls==='bow'||S.altCls==='bow';
  if(S.shield||S.slung){const k=usShLook(eq.s);if(S.shield)S.shield=k;else S.slung=k}
- S.famed=!!(S.wd&&S.wd.famed)||!!(S.av&&S.av.gold)||/\*$/.test(S.shield||'')||S.famH;usLivery(S,m);return S}
+ S.famed=!!(S.wd&&S.wd.famed)||!!(S.av&&S.av.gold)||/\*$/.test(S.shield||'')||S.famH;usLookSpec(S,P);usLivery(S,m);return S}
 function usEnemySpec(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined'?PT_SKIN:{},sk=n=>usSkin(SK[n]||['s','t','u','i']),HC=typeof PT_HAIRC!=='undefined'?PT_HAIRC:{},hr=n=>usHairR(HC[n]||['0','G','o']);
  const B=US_BUILD,S={kind:'hum',seed:7,b:B.human,skin:sk('fair'),armor:'rags',wd:usWdef('fist')},set=o=>Object.assign(S,o);
  switch(id){
@@ -945,3 +1040,6 @@ function unitSpritePx(u,face,state,frame){const M=usMon(u,face,state,frame);if(M
 /* pre-build every frame of a unit (call at battle start); returns the number of frames built */
 function unitSpriteWarm(u,faces){if(usMon(u,0,'idle',0))return 0;const L=usLook(u);let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of US_WARM)for(let k=0;k<UNIT_FRAMES[st];k++){const i=f*US_NF+US_OFF[st]+k;if(!L.fr[i]){L.fr[i]=usBuild(L,f,st,k);n++}}}return n}
 function unitSpriteBox(u){if(u&&u.def&&!u.m&&typeof monsterSpriteBox==='function'){try{const b=monsterSpriteBox(u);if(b)return b}catch(e){}}const M=usMon(u,0,'idle',0);if(M&&M.cv)return M.box||{w:M.cv.width,h:Math.max(8,Math.min(M.cv.height,(M.ay|0)||M.cv.height)),mon:1};const L=usLook(u);return L.big?{w:40,h:48}:{w:24,h:32}}
+/* crafted items draw their icon from the same painters as their sprite (06-icons.js icItemRows), replacing any stand-in registered earlier */
+(function(){if(typeof ITEMS!=='object'||typeof ICONS!=='object'||typeof icItemRows!=='function')return;for(const id in ITEMS){if(!ITEMS[id].craft)continue;const n='it-'+id;let r=null;try{r=icItemRows(id)}catch(e){r=null}if(!r)continue;
+ ICONS[n]=r;IC_MADE[n]='item';try{_pxCache.delete('ic:'+n+'@1');_pxCache.delete('u:ic:'+n+'@1');IC_MEMO.delete(n)}catch(e){}icCss(n)}})();

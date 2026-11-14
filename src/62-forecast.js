@@ -26,7 +26,7 @@
      riposte    a miss draws a riposte from the target
    Talents and arms:
      locked     the attacker is ranged-locked (a foe next to it): a shot cannot be ordered (canUse/validTargets refuse it)
-     undying    the target survives a killing blow at 1 hitpoint (kill / sure are false then)
+     undying    the target survives a killing blow at 1 hitpoint (Undying perk or Lucky trait not yet spent; kill / sure are false then)
      hits       strikes the ability makes on the target (a second or third only while it stands; each one is this forecast)
      through    foes behind the target the shot flies on into, for THROUGH (75%) of the damage: [unit]
    Arms update:
@@ -61,7 +61,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],
   headCh:0,head:null,body:null,cover:los.cover,blocked:los.blocked,ff:[],mor:{att:mu.hit,def:mt.def},shake:false,injure:false,shield:null,riposte:false,
   locked:isRangedAtk(u,a)&&rangedLocked(u),undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
-  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless,fire:t.fw&&fireAb(a)?t.fw:0,
+  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),fire:t.fw&&fireAb(a)?t.fw:0,
   tiredAtt:sure?0:tiredPen(u),tiredDef:sure?0:tiredPen(t),armDef:sure?0:armorDef(u,t,a),armDr:a.split||a.noDmg?0:armorDr(t),sidestep:false,soak:(t.flags&&t.flags.hpSoak)||0};
  if(a.split){const m=splitMult(u,a),lo=Math.round(u.wpn.d[0]*m),hi=Math.round(u.wpn.d[1]*m);if(t.shield)f.shield={min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp};f.body={hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false};return f}
  let lo=0,hi=0;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];f.ign=ignOf(u,a)}else{const wd=rollOf(u,a);lo=wd[0];hi=wd[1];f.ign=ignOf(u,a)}
@@ -76,7 +76,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const parts=[];if(useH)parts.push(H);if(useB)parts.push(Bd);
  f.hpMin=Math.min(...parts.map(p=>p.hpMin));f.hpMax=Math.max(...parts.map(p=>p.hpMax));f.armMin=Math.min(...parts.map(p=>p.armMin));f.armMax=Math.max(...parts.map(p=>p.armMax));
  f.kill=!f.undying&&f.hpMax>=t.hp;f.sure=!f.undying&&f.hpMin>=t.hp;
- f.shake=!t.fearless&&!(t.flags&&t.flags.noStun)&&f.hpMax>=heavyHit(t)&&!f.sure;
+ f.shake=!t.fearless&&!(t.flags&&t.flags.noStun)&&!moraleImmune(t)&&f.hpMax>=heavyHit(t)&&!f.sure;   // Beast-wise against beasts: no check
  {const tf=t.flags||{};f.sidestep=!!(tf.sidestep&&!t.ss&&!a.noDmg)}f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
  const st={};for(const k in a.status||{})st[k]={k,n:a.status[k],ch:1};
  { const sc=stunOf(u,a);if(sc&&!(st.stun))st.stun={k:'stun',n:1,ch:Math.min(1,sc)} }

@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=8;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=9;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -59,8 +59,17 @@ const MIGRATE={
  7:g=>{const out=[],fix=(m,own)=>{if(!svObj(m)||!BG[m.bg]||!Array.isArray(m.perks))return;delete m.armp;
    m.perks=m.perks.filter(id=>typeof id==='string');const n=refundTrees(m);if(n&&own)out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})};
   if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
-  if(out.length){g.refund=out;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
+  if(out.length){g.refund=out;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g},
+ /* v9: company depth (phase 6). Every merc gets character traits: old mercs (and recruits waiting in towns) ROLL them from their
+    background exactly as a new recruit does (rollTraits), from a stream seeded by the merc's id, so loading the same save twice gives
+    the same traits and no game randomness is drawn. The company gains monster parts (G.parts {key: count}, empty), a retinue of
+    followers (G.retinue [ids], empty) and ambitions (G.amb {cur, done, offered}, nothing yet). The roster now holds MAXROSTER (20). */
+ 8:g=>{const fix=m=>{if(!svObj(m))return;if(!Array.isArray(m.traits))m.traits=BG[m.bg]?migrateTraits(m):[]};
+  if(Array.isArray(g.roster))g.roster.forEach(fix);if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});
+  if(!svObj(g.parts))g.parts={};if(!Array.isArray(g.retinue))g.retinue=[];if(!svObj(g.amb))g.amb={cur:null,done:[],offered:[]};return g}
 };
+// The traits an old merc gets in the v9 migration (and a merc record that has none): rolled from its background by a stream seeded by its id.
+function migrateTraits(m){return rollTraits(m.bg,mulberry(((svNum(m.id,0)|0)^0x7a175)>>>0))}
 // One merc of a version 4 save to talents (v5). Draws no game randomness: the top-up trees come from a stream seeded by the merc's id.
 function migrateMerc(m){if(Array.isArray(m.trees)&&Array.isArray(m.perks)){if(svObj(m.eq)&&m.eq.b===undefined)m.eq.b=null;return m}   // already in the new shape
  const old=svObj(m.mast)?m.mast:{},trees=[],perks=[];let gift=null;
@@ -98,8 +107,10 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  if(m.rolls){if(!svObj(m.rolls))m.rolls=null;else for(const k in ROLL)if(!svFin(m.rolls[k])){m.rolls=null;break}}
  m.slot=svObj(m.slot)&&(m.slot.row===0||m.slot.row===1)&&Number.isInteger(m.slot.col)&&m.slot.col>=0&&m.slot.col<(typeof BW==='number'?BW:12)?{row:m.slot.row,col:m.slot.col}:null;   // formation tile; null = default deployment
  if(m.colors!==undefined){const c=typeof colorsFix==='function'?colorsFix(m.colors):null;if(c)m.colors=c;else delete m.colors}
+ if(!Array.isArray(m.traits))m.traits=migrateTraits(m);else{const seen={};m.traits=m.traits.filter(k=>typeof k==='string'&&TRAITS[k]&&!seen[k]&&(seen[k]=1));
+  m.traits=m.traits.filter((k,i)=>!m.traits.slice(0,i).some(o=>TRAITS[o].opp===k||TRAITS[k].opp===o)).slice(0,2)}   // known, no repeats, no opposed pair, at most 2
  m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
-function repairContract(c,nTowns){if(!svObj(c))return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,3);if(!svFin(c.pay)||typeof c.title!=='string')return false;
+function repairContract(c,nTowns){if(!svObj(c))return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skullsif(!svFin(c.pay)||typeof c.title!=='string')return false;
  if(c.type==='deliver')return Number.isInteger(c.to)&&c.to>=0&&c.to<nTowns;
  if(c.type==='hunt')return !!FACT[c.f]&&svFin(c.x)&&svFin(c.y);return false}
 // Fills defaults in place. Returns '' when the save is usable, 'empty' for a company with nobody left, else what is wrong.
@@ -129,6 +140,12 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;
  let nid=svNum(g.nid,1);const seen=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=x.id+1};g.roster.forEach(seen);g.parties.forEach(seen);g.portals.forEach(seen);g.sites.forEach(seen);g.towns.forEach(t=>t.recruits.forEach(seen));g.nid=Math.floor(nid);
  g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.refund=Array.isArray(g.refund)?g.refund.filter(r=>svObj(r)&&typeof r.name==='string'&&svFin(r.n)&&r.n>0).map(r=>({name:r.name.slice(0,40),n:Math.floor(r.n)})).slice(0,MAXROSTER):[];if(!g.refund.length){delete g.refund;if(g.note==='refund')g.note=null}else if(!g.note)g.note='refund';g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
+ // phase 6 company fields (the camp and progression agents validate their own contents through craftRepair / companyRepair)
+ {const P={};if(svObj(g.parts))for(const k in g.parts){const n=g.parts[k];if(svFin(n)&&n>0&&(typeof PARTS==='undefined'||PARTS[k]))P[k]=Math.floor(n)}g.parts=P}
+ g.retinue=Array.isArray(g.retinue)?g.retinue.filter((id,i,a)=>typeof id==='string'&&(typeof FOLLOWERS==='undefined'||FOLLOWERS[id])&&a.indexOf(id)===i):[];
+ {const a=svObj(g.amb)?g.amb:{},ids=x=>Array.isArray(x)?x.filter((id,i,l)=>typeof id==='string'&&l.indexOf(id)===i):[];g.amb={cur:typeof a.cur==='string'||svObj(a.cur)?a.cur:null,done:ids(a.done),offered:ids(a.offered)};
+  for(const k in a)if(!(k in g.amb))g.amb[k]=a[k]}
+ if(typeof craftRepair==='function')craftRepair(g);if(typeof companyRepair==='function')companyRepair(g);
  if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.
 function cleanName(s){s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,NAMEMAX):'';return s||BANNERDEF.name}

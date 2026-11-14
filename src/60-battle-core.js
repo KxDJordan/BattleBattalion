@@ -104,9 +104,15 @@ function initUnit(u){const d=(k,v)=>{if(u[k]===undefined||u[k]===null)u[k]=v};
  d('lvl',1);d('hp',1);d('hpMax',u.hp);d('arm',0);d('armMax',u.arm);d('helm',0);d('helmMax',u.helm);d('apMax',9);d('ap',u.apMax);d('fat',0);d('fatMax',9999);
  d('init',100);d('ms',50);d('rs',0);d('md',0);d('rd',0);d('brv',50);d('mor',3);d('fearless',false);d('wpn',FIST);d('abs',[]);d('res',{});d('flags',{});d('dmgB',0);
  d('buffs',[]);d('st',{});d('alive',true);d('sz',1);d('shield',false);d('shp',0);d('shpMax',u.shp);d('name','Unit');return u}
+/* What a merc gets on taking the field beyond calc(m): Night owl (NIGHTOWL in a battle that starts between 20:00 and 05:00, read from
+   G.hour), the standard-bearer follower (+5 resolve to every fielded merc, reserves called in too) and the cook (+5 resolve to those who
+   start the battle: B.round is 0 until the first round begins). Cocky starts Confident (mkPlayerUnit). */
+const isNight=()=>!!(G&&typeof G.hour==='number'&&(G.hour>=20||G.hour<5));
+function unitTraitB(m,s){const o={ms:0,rs:0,init:0,brv:0},f=s.flags||{};if(f.nightowl&&isNight()){o.ms+=NIGHTOWL.ms;o.rs+=NIGHTOWL.rs;o.init+=NIGHTOWL.init}
+ if(fHas('banner')||fHas('standardbearer'))o.brv+=5;if(fHas('cook')&&!(B&&B.round>0))o.brv+=5;return o}
 function mkPlayerUnit(m){const s=calc(m),res={},c=armorCond(m),sh=s.shield;for(const k in s.res)res[k]={cur:s.res[k].max,max:s.res[k].max,regen:s.res[k].regen};
- const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m));
- return initLoad(initUnit({side:0,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init,ms:s.ms,rs:s.rs,md:s.md,rd:s.rd,brv:s.brv,
+ const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m)),tb=unitTraitB(m,s);
+ return initLoad(initUnit({side:0,mor:s.flags.cocky?4:3,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init+tb.init,ms:s.ms+tb.ms,rs:s.rs+tb.rs,md:s.md,rd:s.rd,brv:s.brv+tb.brv,
   wpn:s.wpn,abs:s.abs.slice(),res,flags:s.flags,dmgB:s.dmg,buffs:[],st:{},alive:true,shield:!!sh&&sh.raised,slung:!!sh&&!sh.raised,shp:sh?sh.hp:0,shpMax:sh?sh.hp:0,shb:sh?{md:sh.md,rd:sh.rd}:null,
   hand:'w',wid:s.wid,alt:s.alt,cld:s,back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null,aw:s.aw||0,acl:s.acl||'light'}))}
 /* Enemy fields read from EN[id] beyond the old ones (all optional): helm (head armor; default 60% of arm), brv (resolve; default from xp),
@@ -192,8 +198,14 @@ function dropBuff(t,k){const n=t.buffs.length;t.buffs=t.buffs.filter(x=>x.key!==
    its turn (resolve +10, -15 per adjacent foe) and comes back wavering. Fearless units never test. */
 function setMorale(u,to){to=clamp(to,0,4);const from=u.mor;if(from===to||!u.alive)return false;u.mor=to;float(u,MORN[to],to>from?'#9bd96f':'#ffd27a');FX.emit('morale',{u,from,to});
  if(to===0){dropBuff(u,'riposte');dropBuff(u,'spearwall');dropBuff(u,'shieldwall');say(`${u.name} breaks and runs.`);checkRout(u.side)}return true}
-function moraleCheck(u,bonus,dir){if(!B||!u.alive||u.fearless||u.gone)return null;if(dir<0?u.mor<=0:u.mor<=0||u.mor>=4||B.rout[u.side])return null;
- const pass=rnd()*100<clamp(eff(u,'brv')+bonus+brvAura(u),5,95);if(dir<0&&!pass)setMorale(u,u.mor-1);else if(dir>0&&pass)setMorale(u,u.mor+1);return pass}
+/* Traits in morale checks (TRAITS in 10-data.js): moraleImmune(u) — Beast-wise against a TRAITF.beast faction takes no bad-news check at all;
+   traitMor(u,dir): Craven's badMor on bad news, Superstitious's -superst in a battle against a TRAITF.superst faction. The battle's faction is
+   B.opts.f; enemies use no traits. */
+const battleF=()=>B&&B.opts&&B.opts.f||null;
+function moraleImmune(u){const f=u&&u.flags;return!!(f&&f.beastwise&&u.side===0&&TRAITF.beast.includes(battleF()))}
+function traitMor(u,dir){const f=u.flags||{};let v=0;if(dir<0&&f.badMor)v+=f.badMor;if(f.superst&&TRAITF.superst.includes(battleF()))v-=f.superst;return v}
+function moraleCheck(u,bonus,dir){if(!B||!u.alive||u.fearless||u.gone)return null;if(dir<0?u.mor<=0:u.mor<=0||u.mor>=4||B.rout[u.side])return null;if(dir<0&&moraleImmune(u))return null;
+ const pass=rnd()*100<clamp(eff(u,'brv')+bonus+brvAura(u)+traitMor(u,dir),5,95);if(dir<0&&!pass)setMorale(u,u.mor-1);else if(dir>0&&pass)setMorale(u,u.mor+1);return pass}
 // Inspiring presence: the best brvAura of an ally within 3 tiles adds to u's morale checks.
 function brvAura(u){let v=0;if(!B)return 0;for(const o of B.units)if(o.alive&&o!==u&&o.side===u.side&&o.flags&&o.flags.brvAura>v&&mdist(o,u)<=3)v=o.flags.brvAura;return v}
 // A side of three or more routs when more than half of those still alive (on the field or fled from it) are fleeing: everyone but the fearless runs, and nobody rallies.
@@ -357,7 +369,8 @@ function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.mele
  ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;
  ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a);return clamp(Math.round(ch),5,95)}
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
-function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0),0,100)}
+// Traits: Hard-headed / Glass-jawed (t.flags.headDef) move it the other way; Steady-handed adds to headB.
+function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0)-((t.flags&&t.flags.headDef)||0),0,100)}
 // B.auraOn: some unit gives a Battle orders / Cover bonus to its neighbours (kept fresh at every turn, spawn and swap).
 function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cmd||x.flags.guard));B.wallOn=B.units.some(x=>x.alive&&x.flags&&x.flags.steelWall>0)}return!!(B&&B.auraOn)}
 /* ---- Damage pieces shared by strike() and forecast(), so the forecast cannot drift ----
@@ -394,7 +407,8 @@ const stunOf=(u,a)=>a.magic||a.nostun||a.dmgD?0:u.wpn.stun||0;
 const bleedOf=(u,a)=>Math.max(a.bleed||0,a.wpn&&!a.magic&&u.flags&&u.flags.bleedOn||0);
 const splitMult=(u,a)=>(a.smult||1)*(1+(u.flags&&u.flags.splitB||0));
 // Undying: a killing blow leaves t at 1 hitpoint, once per battle.
-const canUndy=t=>!!(t.flags&&t.flags.undying&&!t.undy);
+// Lucky (trait): the same, once per battle, after Undying is spent (t.lck marks it used).
+const canUndy=t=>!!(t.flags&&((t.flags.undying&&!t.undy)||(t.flags.lucky&&!t.lck)));
 // Where an Aura dash would land: the free tile next to t that is closest to u (null if none).
 function dashSpot(u,t){let best=null,bd=1e9;const s=u.sz||1,st=t.sz||1;
  if(s>1||st>1){for(let r=t.r-s;r<=t.r+st;r++)for(let c=t.c-s;c<=t.c+st;c++){if(fdist(c,r,s,t)!==1||!footFree(c,r,s,u))continue;const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(d<bd){bd=d;best=[c,r]}}return best}
@@ -412,7 +426,7 @@ function applyInjury(u,id){const st=INJ[id].st;for(const k in st){const v=st[k];
 function inflictInjury(t,head,perm,slow){if(!t.m)return null;const id=rollInjury(t.m,head,perm,slow);if(!id)return null;if(t.alive)applyInjury(t,id);float(t,INJ[id].n,'#ff7a6b');say(`${t.name}: ${INJ[id].n.toLowerCase()}.`);FX.emit('injury',{t,id});return id}
 function killUnit(t,src,head){t.hp=0;t.alive=false;if(t.side===0&&t.m){t.down=rnd()<DOWNCH;if(t.down)inflictInjury(t,head,rnd()<PERMCH,true)}   // struck down and alive: always at the price of an injury
  say(`${t.name} ${t.side===0&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
- for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25,1);else if(d<=3)moraleCheck(x,-10,1)}}
+ for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}}
 /* hurt(t,dmg,ign,src,o): applies damage. The armor of the struck location soaks first (o.head: the helmet, else body armor);
    `ign` is the share that pierces it; o.pierce skips armor altogether; head hits do HEADMULT to hitpoints.
    o.crush (hammers): the armor loses round(dmg x (1 + crush)) instead of dmg (capped by what it has); what it soaks stays dmg.
@@ -428,9 +442,9 @@ function hurt(t,dmg,ign,src,o){o=o||{};const head=!!o.head,pool=head?'helm':'arm
  if(head)hpd=Math.round(hpd*HEADMULT);
  if(o.loc){if(tf.sidestep&&!t.ss&&hpd>t.hpMax*tf.sidestep){hpd=Math.round(hpd/2);t.ss=1;float(t,'Sidestep','#8fd8ff')}
   if(tf.hpSoak&&hpd>0)hpd=Math.max(1,hpd-tf.hpSoak);if(tf.brace)t.brc=1}
- t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);if(undy){t.undy=1;t.hp=1}float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,'Undying','#ffd27a');FX.emit('status',{t,key:'undying',n:0})}
+ t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false;if(undy){if(tf.undying&&!t.undy)t.undy=1;else{t.lck=1;lk=true}t.hp=1}float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,lk?'Lucky':'Undying','#ffd27a');FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
  if(t.hp<=0){killUnit(t,src||null,head);return hpd}
- if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH)inflictInjury(t,head,false);if(!tf.noStun)moraleCheck(t,30,-1)}
+ if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH)inflictInjury(t,head,false);if(!tf.noStun)moraleCheck(t,30,-1)}   // (moraleCheck skips the Beast-wise against beasts)
  return hpd}
 // Unbowed: the most armor one blow can strip from t's body armor (or helmet).
 const armCap=(t,head)=>Math.max(1,Math.round(((head?t.helmMax:t.armMax)||0)*t.flags.unbowed));
@@ -572,7 +586,8 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
  while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);b.order=al.sort((x,y)=>y.roll-x.roll||x.id-y.id)}
   const x=b.order.shift();if(x.alive)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
- u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;u.fat=Math.max(0,u.fat-15);u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;auraScan();
+ u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic
+ u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;auraScan();
  if(u.flags&&u.flags.armRegen>0&&u.armMax>0&&u.arm<u.armMax){const a0=u.arm;u.arm=Math.min(u.armMax,u.arm+u.flags.armRegen);float(u,'Armor +'+(u.arm-a0),'#c8d0d8')}   // Mail mender
  for(const k in u.res)u.res[k].cur=Math.min(u.res[k].max,u.res[k].cur+u.res[k].regen);
  u.buffs=u.buffs.filter(x=>--x.dur>0);if(u.st.chill){u.ap=Math.max(0,u.ap-3);u.st.chill--;float(u,'Chilled','#8fd8ff')}u.rooted=false;if(u.st.root){u.rooted=true;u.st.root--}if(u.st.webbed){u.rooted=true;u.st.webbed--}

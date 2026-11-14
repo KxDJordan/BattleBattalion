@@ -634,3 +634,40 @@
 .rf-list{list-style:none;margin:6px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px}
 .rf-list li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);padding:1px 0}
 .rf-list b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---- traits (global: tavern, panels, inspect, battle chip) ---- */
+.tr-chips{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center;vertical-align:middle}
+.tr-chips .tr-c{display:inline-flex;align-items:center;gap:4px;padding:1px 6px 1px 1px;border:2px solid #0b1514;background:#182a28;font-size:.8em;font-weight:700;line-height:1.1;color:#9fe0cd;white-space:nowrap}
+.tr-chips .tr-c.bad{color:#ef8a78;background:#1a1414}
+.tr-chips.compact{gap:2px}.tr-chips.compact .tr-c{padding:0;border:0;background:none}
+.tr-ic{flex:none;image-rendering:pixelated}
+.tr-list{display:flex;flex-direction:column;gap:4px}
+.tr-row{display:flex;gap:8px;align-items:flex-start;padding:4px 6px;border:2px solid #0b1514;background:#182a28;box-shadow:inset 3px 0 0 #58b39c}
+.tr-row.bad{box-shadow:inset 3px 0 0 #c4493f;background:#1c1817}
+.tr-row>div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.tr-row b{color:#e9e0c9;font-size:.92em}.tr-row.good b{color:#9fe0cd}.tr-row.bad b{color:#ef8a78}
+.tr-row span{font-size:.84em;color:#b9ad8f;line-height:1.25}.tr-row small{font-size:.78em;color:#7d8f86}
+.tr-none{font-size:.84em;color:#7d8f86;font-style:italic}
+/* ---- company standing strip, retinue list, renown badge (55-company.js) ---- */
+.rt-badge{display:inline-flex;align-items:center;gap:4px;font-weight:700;color:#e9e0c9;white-space:nowrap}
+.rt-badge.t5 b,.rt-badge.t6 b{color:#f3d98b}
+#pn .co-stand{display:grid;grid-template-columns:1.3fr 1fr 1.3fr;gap:8px;padding:8px 8px 0}
+#pn .co-st{display:flex;align-items:center;gap:8px;min-width:0;min-height:52px;padding:4px 8px;text-align:left;background:#182a28;border:2px solid #0b1514;box-shadow:inset 0 -2px 0 #35554f;color:#e9e0c9;font:inherit;cursor:pointer}
+#pn .co-st:hover{background:#213a36}#pn .co-st:focus-visible{outline:2px solid #fff4c8;outline-offset:-2px}
+#pn .co-st>span{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+#pn .co-st b{font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pn .co-st small{font-size:.76em;color:#7d8f86;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pn .co-st .pn-bar.rn{--mc:var(--brass);--md:#8a6a2a}#pn .co-st .pn-bar.am{--mc:#58b39c;--md:#2c6a5d}
+#pn .co-st.am.none b{color:#7d8f86}
+#pn .co-ret{padding:8px;display:flex;flex-direction:column;gap:8px}
+#pn .co-reth{display:flex;gap:10px;align-items:center;font-size:.86em;color:#b9ad8f;padding:4px 6px;background:#101d1c;border:2px solid #0b1514}
+#pn .co-retl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#pn .co-fol{display:flex;gap:8px;align-items:flex-start;padding:6px;background:#182a28;border:2px solid #0b1514;box-shadow:inset 3px 0 0 #35554f}
+#pn .co-fol.has{box-shadow:inset 3px 0 0 #d1a94e;background:#213a36}
+#pn .co-fol.lock{opacity:.6}
+#pn .co-fol>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+#pn .co-fol b{color:#e9e0c9;font-size:.95em}#pn .co-fol b em{font-style:normal;font-size:.72em;color:#f3d98b;margin-left:6px;letter-spacing:.04em}
+#pn .co-fol span{font-size:.84em;color:#9fe0cd;line-height:1.25}#pn .co-fol small{font-size:.76em;color:#7d8f86}
+#pn .ch-tr{margin-top:8px}#pn .ch-tr .tr-list{margin-top:4px}
+#pn .co-nm .tr-chips{margin-left:4px}
+@media (max-width:760px){#pn .co-stand{grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px 4px 0}#pn .co-st{min-height:44px;padding:2px 4px;gap:4px}#pn .co-st .pn-i.px{width:16px!important;height:16px!important}#pn .co-retl{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){#pn .co-stand{grid-template-columns:1fr}}

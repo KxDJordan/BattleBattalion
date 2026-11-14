@@ -219,13 +219,14 @@ function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>(x.key!=='unlo
  for(let i=0;i<L.length&&i<6;i++)h+=SH_VALST[L[i].key]?stVal(L[i].key,L[i].turns|0):stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
 /* unit chip: name, level, morale (flag icon in the state's colour) with resolve, statuses; hitpoints, head and body armor, shield, stamina, gifts; action pips */
 function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u),P=B.plan&&B.plan.u===u?B.plan:null,keep=P?u.ap-P.cost:u.ap;let pips='';for(let i=0;i<n;i++)pips+='<i class="'+(i<u.ap?'on':'')+(i>=keep&&i<u.ap?' pl':'')+(i>=u.apMax?' x':'')+'"></i>';
- let h='<span class="uport s'+u.side+'">'+port(u,32)+'</span><div class="ubody"><div class="uname"><b>'+esc(u.name)+'</b>'+(mine?'<small class="ulv" title="Level '+u.lvl+'">'+u.lvl+'</small>':'')+chipArms(u)+chipStatuses(u)+'</div><div class="ustats">'+statI('hp','heart',u.hp,'hp','Hitpoints '+u.hp+' of '+u.hpMax);
+ let h='<span class="uport s'+u.side+'">'+port(u,32)+'</span><div class="ubody"><div class="uname"><b>'+esc(u.name)+'</b>'+(mine?'<small class="ulv" title="Level '+u.lvl+'">'+u.lvl+'</small>':'')+chipArms(u)+chipStatuses(u)+(mine&&u.m?chipTraits(u):'')+'</div><div class="ustats">'+statI('hp','heart',u.hp,'hp','Hitpoints '+u.hp+' of '+u.hpMax);
  if(u.helmMax>0)h+=statI('helmet','shield',u.helm,'arm hd'+(u.helm<=0?' out':''),'Head armor '+u.helm+' of '+u.helmMax);
  if(u.armMax>0)h+=statI('armor','shield',u.arm,'arm'+(u.arm<=0?' out':''),'Body armor '+u.arm+' of '+u.armMax);
  if(u.shpMax>0){const sl=shSlung(u),ok=u.shield||sl;const sn=shShieldName(u);h+=statI(!ok?'st-splitshield':sl?'slung':shShieldIcon(u),'shield',ok?u.shp:0,'arm sh'+(ok?'':' out')+(sl?' sl':''),!ok?sn+' split':sl?sn+' slung on the back ('+u.shp+' of '+u.shpMax+'): no defence and no shield skills while a two-handed weapon is in hand':sn+' raised: '+u.shp+' of '+u.shpMax)}
  h+='</div><div class="urow"><div class="pips'+(P?' plan':'')+'" title="Action points '+u.ap+(P?': the planned move spends '+P.cost+', '+P.left+' left':'')+'">'+pips+'</div>';
  if(m>=0)h+='<span class="umor m'+m+'" style="--sc:'+SH_MORC[m]+'" title="'+shMorN(m)+(brv!=null?': resolve '+brv:'')+'">'+pic('morale-'+m,16,'flag')+(brv!=null?'<b>'+brv+'</b>':'')+'</span>';
  else if(u.fearless)h+='<span class="umor" style="--sc:#c8d0d8" title="Fearless: never tests morale">'+pic('resolve',16,'flag')+'</span>';
+ if(mine)h+=chipRetinue();
  if(u.fatMax<=999)h+=statI('fatigue','drop',u.fatMax-u.fat,'fat'+(shTired(u)?' tired':''),'Stamina left: fatigue '+u.fat+' of '+u.fatMax)+tiredMark(u);
  for(const k in u.res)h+=statI(k,'gem',u.res[k].cur,'res',RESN[k]+' '+u.res[k].cur+' of '+u.res[k].max,RESC[k]);
  return h+'</div></div>'}
@@ -415,3 +416,10 @@ function initBattleHud(){try{if(typeof document==='undefined')return;const app=$
    c.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!FC.armed&&FC.t)fcClear()});
    c.addEventListener('pointerdown',()=>{logClose()})}
   window.addEventListener('keydown',e=>{if(e.key==='Escape'){logClose();if(fcClear()&&B)updateBUI()}})}catch(e){}}
+
+/* ---- traits on the unit chip (icons only; the inspect card has the words) and the retinue's battle bonuses as a small company marker ---- */
+function chipTraits(u){if(typeof traitChips!=='function'||!u||!u.m)return'';const h=traitChips(u.m,{compact:1});return h?'<span class="utr">'+h+'</span>':''}
+const RET_BATTLE=[['banner','Standard-bearer','+5 resolve to every fielded sword'],['cook','Cook','+5 resolve at the start of the battle']];
+function retBattle(){if(typeof followerHas!=='function')return[];return RET_BATTLE.filter(x=>{try{return followerHas(x[0])}catch(e){return false}})}
+function chipRetinue(){const L=retBattle();if(!L.length)return'';const t='Retinue: '+L.map(x=>x[1]+' '+x[2]).join('; ');
+ return'<span class="ufol" title="'+esc(t)+'" aria-label="'+esc(t)+'">'+pic(L.some(x=>x[0]==='banner')?'fol-banner':'fol-'+L[0][0],16,'flag')+(L.length>1?'<b>'+L.length+'</b>':'')+'</span>'}

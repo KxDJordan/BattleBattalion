@@ -124,8 +124,9 @@ const BGS=['sellsword','squire','hunter','acolyte','hedge','knight','militia','m
 const TIERS=[{lvl:1,size:4,day:2,gear:[]},{lvl:4,size:6,day:12,gear:['arming','waraxe','warspear','mace','shortbow','leather','kite','cap']},
  {lvl:8,size:9,day:30,gear:['arming','waraxe','warspear','mace','warbow','focus','mail','heater','kettle']},{lvl:12,size:12,day:50,gear:['runeblade','waraxe','warspear','mace','warbow','focus','scale','plate','heater','nasal','greathelm']}];
 // Builds a company of the tier through the real game functions and returns a JSON-safe snapshot of its roster.
+// (fixture companies carry no traits unless tier.traits: their directed scenes assert exact outcomes; traits are tested on their own)
 function buildCompany(X,tier,seed){X.seedRng(seed);X.newGame(true);closeAll(X);const G=X.G;G.roster.length=0;G.stash.length=0;
- for(let i=0;i<tier.size;i++){const m=X.newMerc(BGS[(i+seed)%BGS.length]);m.field=true;G.roster.push(m);X.gainXP(m,X.XPT[tier.lvl]);ok(m.lvl===tier.lvl,'gainXP did not reach level '+tier.lvl)}
+ for(let i=0;i<tier.size;i++){const m=X.newMerc(BGS[(i+seed)%BGS.length]);m.field=true;if(!tier.traits)m.traits=[];G.roster.push(m);X.gainXP(m,X.XPT[tier.lvl]);ok(m.lvl===tier.lvl,'gainXP did not reach level '+tier.lvl)}
  for(let n=0;n<tier.size;n++)tier.gear.forEach(id=>G.stash.push(id));
  levelUps(X);gearUp(X);G.roster.forEach(m=>{m.hp=X.calc(m).hp});closeAll(X);scan(G,'G');return X.clone(G.roster)}
 
@@ -140,7 +141,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
  G.crowns+=60000;                                     // fixture: the test is about rules, not about going broke
  G.roster.forEach(m=>{m.base.hp+=30;m.base.ms+=12;m.base.md+=8;m.base.brv+=25;m.hp=X.calc(m).hp});   // ... nor about four green swords surviving a month on autopilot (the auto-battle table below measures balance)
  let here=0,loops=0,vet=false,rifts=0;const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
- const wages=()=>G.roster.reduce((n,m)=>n+X.BG[m.bg].wage,0),mark=()=>({c:G.crowns,d:G.day,w:wages()}),paid=(m,pay)=>G.crowns>=m.c+pay-m.w*(G.day-m.d);   // wages fall due on the road
+ const wages=()=>typeof X.companyWages==='function'?X.companyWages():G.roster.reduce((n,m)=>n+(X.mercWage?X.mercWage(m):X.BG[m.bg].wage),0),mark=()=>({c:G.crowns,d:G.day,w:wages()}),paid=(m,pay)=>G.crowns>=m.c+pay-m.w*(G.day-m.d);   // wages fall due on the road
  const town=async(i,via)=>{const nb=log.length,r=await march(X,G.towns[i].x,G.towns[i].y,{type:'town',i},log,via);if(r==='wiped')return r;
   if(via&&log.length===nb&&X.G.townOpen&&X.G.town===i)flags.route=true;                // a two-leg route marched through the middle town and opened only the last
   if(G.weather.kind!=='clear')flags.weather=true;
@@ -174,7 +175,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
   const c=G.contract;
   if(c&&c.type==='deliver'){const m0=mark();if(await town(c.to)==='wiped')return'wiped';if(G.contract===null&&paid(m0,c.pay))flags.deliver=true;else fail('delivery was not paid')}
   else if(c&&c.type==='hunt'&&!c.done){const r=await march(X,c.x,c.y,null,log);if(r==='wiped')return r;
-   if(G.contract&&G.contract.done){closeAll(X);const m0=mark();if(await town(c.town)==='wiped')return'wiped';if(G.contract===null&&paid(m0,c.pay))flags.hunt=true;else fail('hunt was not paid')}
+   if(G.contract&&G.contract.done){closeAll(X);const m0=mark();if(await town(c.town)==='wiped')return'wiped';if(G.contract===null&&paid(m0,c.pay))flags.hunt=true;else fail('hunt was not paid: '+JSON.stringify({c:G.contract&&G.contract.type,cr:G.crowns,m0,pay:c.pay,day:G.day,w:wages()}))}
    else{ok(G.contract===null||dist(G.p,c)>8,'a lost hunt kept its contract');closeAll(X);if(await town(here)==='wiped')return'wiped'}}
   else if(!flags.site){const s=G.sites.slice().sort((a,b)=>dist(G.p,a)-dist(G.p,b))[0];X.sheets.length=0;const r=await march(X,s.x,s.y,null,log);if(r==='wiped')return r;
    if(dist(G.p,s)<2&&s.v===1&&X.sheets.some(h=>h.includes(X.RUINS[s.n][0].replace(/'/g,"'")))){flags.site=true;ok(G.crowns>=0&&G.stash,'a ruin changed the company')}closeAll(X);if(await town(here)==='wiped')return'wiped'}
@@ -386,9 +387,9 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    A.park();ok(X.MORN.length===5&&X.MORFX.length===5,'five morale states');
    { let fails=0;m0.brv=50;for(let i=0;i<400;i++){m0.mor=3;if(X.moraleCheck(m0,0,-1)===false)fails++}ok(fails>150&&fails<250&&m0.mor>=2,'a resolve-50 check must fail about half the time: '+fails);
      put(m0,2,mid);put(m1,3,mid);put(e0,2,mid-1);tough(e0);let drops=0;m0.brv=-100;ev.length=0;
-     for(let i=0;i<30;i++){m0.mor=3;m1.alive=true;m1.hp=1;m1.m.inj=[];X.hurt(m1,50,1,e0,{loc:1});ok(!m1.alive,'the fixture did not die');if(m0.mor===2)drops++}ok(drops>=22,'an ally dying next to a coward must shake him: '+drops+'/30');
+     for(let i=0;i<30;i++){m0.mor=3;m1.alive=true;m1.hp=1;m1.undy=1;m1.lck=1;m1.m.inj=[];X.hurt(m1,50,1,e0,{loc:1});ok(!m1.alive,'the fixture did not die: '+JSON.stringify({hp:m1.hp,fl:m1.flags,tr:m1.m.traits,lck:m1.lck,undy:m1.undy,i}));if(m0.mor===2)drops++}ok(drops>=22,'an ally dying next to a coward must shake him: '+drops+'/30');
      ok(seen('morale',d=>d.u===m0&&d.from===3&&d.to===2).length===drops&&seen('death',d=>d.t===m1).length===30,'morale events are wrong');
-     m0.brv=300;drops=0;for(let i=0;i<30;i++){m0.mor=3;m1.alive=true;m1.hp=1;m1.m.inj=[];X.hurt(m1,50,1,e0,{loc:1});if(m0.mor<3)drops++}ok(drops<=6,'a resolute merc must usually hold: '+drops+'/30');
+     m0.brv=300;drops=0;for(let i=0;i<30;i++){m0.mor=3;m1.alive=true;m1.hp=1;m1.undy=1;m1.lck=1;m1.m.inj=[];X.hurt(m1,50,1,e0,{loc:1});if(m0.mor<3)drops++}ok(drops<=6,'a resolute merc must usually hold: '+drops+'/30');
      A.park();put(m0,2,mid);put(e0,3,mid);m0.brv=-100;drops=0;for(let i=0;i<30;i++){m0.mor=3;m0.hp=m0.hpMax;m0.m.inj=[];X.hurt(m0,Math.ceil(m0.hpMax*.3),1,e0,{loc:1});if(m0.mor===2)drops++}ok(drops>=22,'a heavy hit must shake a coward: '+drops+'/30');
      m0.mor=3;m0.hp=m0.hpMax;X.hurt(m0,5,1,e0,{loc:1});ok(m0.mor===3,'a light hit must not test morale');
      let ups=0;m0.brv=300;for(let i=0;i<30;i++){m0.mor=3;e0.alive=true;e0.hp=1;e0.fearless=false;X.hurt(e0,99,1,m0,{loc:1});if(m0.mor===4)ups++}ok(ups>=22,'a kill must lift the killer: '+ups+'/30');
@@ -704,7 +705,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
       if(m.gift)ok(X.giftAwake(m)&&m.perks[0].startsWith(m.gift),'autoLearn must awaken the gift first: '+bg);
       const w=X.ITEMS[m.eq.w];for(const id of m.perks){const a=X.AB[X.perkById(id).perk.ab];if(a&&a.needs&&a.needs!==(w?w.wt:'fist'))ok(m.eq.b&&X.ITEMS[m.eq.b].wt===a.needs||m.lvl>=12,'autoLearn took '+id+' with the wrong weapon: '+bg)}
       if(bg==='hunter')ok(m.perks.every(id=>!(X.perkById(id).perk.mod||{}).shieldDef),'a hunter must not learn shield perks')}
-     ok(n===36,'autoLearn fixture') }
+     ok(n===Object.keys(X.BG).length*3&&n>=90,'autoLearn fixture') }
    // -- equipment rules (hands) --
    { const m=X.newMerc('sellsword');m.eq.w='greataxe';m.eq.b='pike';m.eq.s=null;let r=X.equipRules(m,'s','kite');ok(!r.ok&&r.why,'a shield must be refused with two two-handers');
      m.eq.b='knife';r=X.equipRules(m,'s','kite');ok(r.ok&&r.slung,'a shield with a two-hander and a one-handed sidearm is allowed (slung)');m.eq.s='kite';
@@ -852,7 +853,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      Object.assign(R0[1],{bg:'hunter',race:'human',lvl:9,pp:0,perks:['bow.1a','lightarmor.1a','heavyarmor.1b','shield.1a']});R0[2].perks=[];R0[2].pp=1;
      const tw=X.G.towns.find(t=>t.recruits&&t.recruits.length),rc=tw&&tw.recruits[0];if(rc)Object.assign(rc,{bg:'monk',lvl:6,pp:0,perks:['heavyarmor.1a','fist.1a']});
      ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=7;g.note='newlands';X.store.set(X.SAVEKEY,JSON.stringify(g));
-     const r=X.readSave();ok(r.state==='ok'&&r.v===7&&r.g.v===X.SAVEVER&&X.SAVEVER===8,'a version 7 save was not migrated to 8');const A=r.g.roster[0],H=r.g.roster[1];
+     const r=X.readSave();ok(r.state==='ok'&&r.v===7&&r.g.v===X.SAVEVER&&X.SAVEVER>=8,'a version 7 save was not migrated to 8');const A=r.g.roster[0],H=r.g.roster[1];
      ok(A.perks.join()==='sword.1a,medarmor.1a,heavyarmor.2a'&&A.pp===4&&A.armp===undefined,'v8: a sellsword keeps its own trees\' perks and gets 3 points back: '+A.perks.join()+' pp '+A.pp);
      ok(H.perks.join()==='bow.1a,lightarmor.1a'&&H.pp===2,'v8: a hunter loses its heavy armor and shield perks for 2 points: '+H.perks.join()+' pp '+H.pp);
      ok(r.g.roster[2].pp===1&&!r.g.roster[2].perks.length,'v8: a merc with nothing to refund is untouched');
@@ -879,6 +880,92 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const res=await X.autoBattle({f:'gob',mult:.6,biome:'plains',src:{type:'sim'},turnCap:TURNCAP});ok(res&&!res.stuck,'a migrated v4 company could not fight');X.settleBattle(res.win);X.store.clear() }
    console.log(`${styles.length} style, ${gifts.length} gift and ${wts.length} weapon trees, ${ids.size} perks (${nAb} abilities); backgrounds, races, recruits, tiers, gift awakening, autoLearn, hands rules,`);
    console.log('swap (1h/2h, raised and slung shields), ranged lock (stun, flight, death, stepping away, Point-blank, enemies), talent rules in the field, v4 migration: ok') }
+
+ section('traits, backgrounds and followers');
+ { const TR=X.TRAITS,BGS=X.BG,keys=Object.keys(TR),STK=['hp','fat','init','ms','rs','md','rd','brv'];
+   /* -- traits: data -- */
+   ok(keys.length>=22&&keys.length<=30,'about 24 traits: '+keys.length);ok(keys.some(k=>TR[k].good)&&keys.some(k=>!TR[k].good),'good and bad traits');
+   for(const k of keys){const T=TR[k];ok(T.n&&typeof T.d==='string'&&/\d/.test(T.d)&&typeof T.good==='boolean','trait '+k+': n, d with exact numbers, good');
+    ok(T.st||T.mod||T.flag||T.wage,'trait '+k+' does nothing');if(T.st)for(const q in T.st)ok(STK.includes(q)&&isFinite(T.st[q]),'trait '+k+': unknown stat '+q);
+    if(T.opp)ok(TR[T.opp]&&TR[T.opp].opp===k,'trait '+k+': opp is not mutual');
+    for(const b in BGS){const w=BGS[b].tr&&BGS[b].tr[k];ok(w==null||w===1?!(b in T.bg):T.bg[b]===w,'TRAITS.'+k+'.bg must mirror BG.'+b+'.tr')}}
+   ok(keys.filter(k=>TR[k].opp).length>=12,'some opposed pairs');
+   for(const b in BGS)for(const k in BGS[b].tr||{})ok(TR[k]&&BGS[b].tr[k]>=0,'background '+b+' weighs an unknown trait '+k);
+   /* -- traits: rolling -- */
+   X.seedRng(SEED+31);X.newGame(true);closeAll(X);const cnt=[0,0,0],seen={};
+   for(let i=0;i<3000;i++){const bg=Object.keys(BGS)[i%Object.keys(BGS).length],L=X.rollTraits(bg);cnt[L.length]++;ok(X.traitsValid(L),'rolled traits invalid: '+L);L.forEach(k=>{seen[k]=1;ok(X.traitW(bg,k)>0,bg+' rolled '+k+' at weight 0')})}
+   ok(cnt[0]>600&&cnt[1]>1100&&cnt[2]>450,'0, 1 and 2 traits all occur: '+cnt);ok(keys.every(k=>seen[k]),'a trait never rolls');
+   { let fc=0;for(let i=0;i<400;i++)if(X.rollTraits('flagellant').includes('craven'))fc++;ok(fc===0,'a flagellant is never craven') }
+   { const a=X.rollTraits('thief',X.mulberry(99)),b=X.rollTraits('thief',X.mulberry(99));ok(a.join()===b.join(),'rollTraits is seeded') }
+   ok(!X.traitsValid(['brave','craven'])&&!X.traitsValid(['brave','brave'])&&!X.traitsValid(['nope'])&&!X.traitsValid(['brave','quick','tough'])&&X.traitsValid([])&&X.traitsValid(['brave','quick']),'traitsValid');
+   { const m=X.newMerc('knight');ok(Array.isArray(m.traits)&&X.traitsValid(m.traits)&&m.hp===X.calc(m).hp,'a recruit carries valid traits and full hitpoints');
+     ok(X.traitsOf(m).length===m.traits.length&&X.traitsOf(m).every(T=>T.n),'traitsOf') }
+   /* -- traits: calc (stats, flags, wage) -- */
+   { const m=X.newMerc('militia');m.inj=[];m.traits=[];const c0=X.calc(m);
+     for(const k of keys){m.traits=[k];const c=X.calc(m),T=TR[k];for(const q of STK)ok(c[q]===Math.max(q==='hp'?5:q==='fat'?20:-1e9,c0[q]+((T.st&&T.st[q])||0)),'trait '+k+' must change '+q+' by its st');
+      for(const q in T.mod||{})ok(Math.abs((c.flags[q]||0)-(c0.flags[q]||0)-T.mod[q])<1e-9,'trait '+k+' must add its mod '+q);if(T.flag)ok(c.flags[T.flag]===1,'trait '+k+' must set its flag')}
+     m.traits=[];const w0=X.mercWage(m);ok(w0===BGS.militia.wage,'mercWage without traits');m.traits=['greedy'];ok(X.mercWage(m)===Math.round(BGS.militia.wage*1.25),'Greedy: +25% wages');
+     m.traits=['loyal'];ok(X.mercWage(m)===Math.max(1,Math.round(BGS.militia.wage*.9)),'Loyal: -10% wages');m.traits=[] }
+   /* -- backgrounds -- */
+   const bks=Object.keys(BGS),OLD=['farmhand','militia','hunter','thief','sellsword','squire','hedge','acolyte','monk','spellblade','wildling','knight'],LK=['hat','cloth','accent','trim'];
+   ok(bks.length>=28&&bks.length<=36,'about 30 backgrounds: '+bks.length);ok(OLD.every(k=>BGS[k]),'the twelve first backgrounds keep their keys');
+   for(const k of bks){const b=BGS[k];ok(b.n&&b.cost>0&&b.wage>0&&b.w>0&&b.w<=5&&b.st&&Array.isArray(b.r)&&b.r.every(([r,p])=>X.RESK.includes(r)&&p>0&&p<=1)&&b.r.reduce((s,x)=>s+x[1],0)<=1.0001,'background '+k+': n, cost, wage, rarity, stats, gift odds');
+    ok(Array.isArray(b.gear)&&b.gear.length>=2&&b.gear.every(gs=>gs.split('|').every(id=>id==='-'||(X.ITEMS[id]&&!X.ITEMS[id].craft&&!X.ITEMS[id].uniq))),'background '+k+': gear from existing items');
+    ok(b.gear.some(gs=>gs.split('|').some(id=>X.ITEMS[id]&&X.ITEMS[id].k==='a')),'background '+k+' starts with no armor');
+    ok(b.look&&LK.every(q=>typeof b.look[q]==='string'),'background '+k+': look {hat, cloth, accent, trim}');ok(b.tr&&typeof b.tr==='object','background '+k+': trait weights');
+    for(const q in b.st)ok(STK.includes(q),'background '+k+': unknown stat '+q);if(b.town!=null)ok([1,2,3].includes(b.town),'background '+k+': town size');
+    for(let i=0;i<4;i++){const m=X.newMerc(k);ok(m.bg===k&&X.weaponTrees(m).length>=1&&X.calc(m).hp>=5,'a '+k+' recruit')}}
+   ok(new Set(bks.map(k=>BGS[k].n)).size===bks.length,'background names are unique');ok(X.TALSTYLE.every(st=>bks.some(k=>BGS[k].style===st)),'every style has a background');
+   ok(bks.filter(k=>BGS[k].w<=1).length>=4,'some rare backgrounds');
+   { X.seedRng(SEED+33);const t={size:1,x:0,y:0},cnt={};for(let i=0;i<3000;i++){const k=X.wpickBG(t);cnt[k]=(cnt[k]||0)+1}
+     ok(bks.filter(k=>(BGS[k].town||1)>1).every(k=>!cnt[k])&&Object.keys(cnt).length>=15,'a hamlet hires no city backgrounds');
+     const all={};for(let i=0;i<6000;i++){const k=X.wpickBG();all[k]=(all[k]||0)+1}ok(bks.every(k=>all[k]>0)&&all.knight<all.farmhand,'every background turns up, the rare ones less') }
+   /* -- roster of 20 -- */
+   ok(X.MAXROSTER===20&&X.MAXFIELD===12,'roster 20, field 12');
+   { X.seedRng(SEED+34);X.newGame(true);closeAll(X);const G=X.G;while(G.roster.length<22){const m=X.newMerc(bks[G.roster.length%bks.length]);m.field=true;G.roster.push(m)}
+     ok(X.fielded().length===12,'twelve take the field from a big roster');ok(X.save(),'save a roster of 22');const r=X.readSave();ok(r.state==='ok'&&r.g.roster.length===20&&r.g.roster.filter(m=>m.field).length<=12,'a save keeps at most 20 swords, 12 fielded');
+     G.roster.length=20;ok(X.save()&&X.readSave().g.roster.length===20&&X.readSave().g.roster.every(m=>X.traitsValid(m.traits)),'20 swords survive a save with their traits');X.store.clear() }
+   /* -- the v8 -> v9 migration -- */
+   { X.seedRng(SEED+35);X.newGame(true);closeAll(X);ok(X.save(),'save');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=8;delete g.parts;delete g.retinue;delete g.amb;
+     for(const m of g.roster)delete m.traits;for(const t of g.towns)for(const m of t.recruits||[])delete m.traits;
+     X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave(),r2=X.readSave();ok(r.state==='ok'&&r.v===8&&r.g.v===X.SAVEVER&&X.SAVEVER>=9,'a version 8 save was not migrated');
+     ok(r.g.roster.every(m=>X.traitsValid(m.traits))&&r.g.towns.every(t=>t.recruits.every(m=>X.traitsValid(m.traits))),'old mercs and recruits get valid traits');
+     ok(JSON.stringify(r.g.roster.map(m=>m.traits))===JSON.stringify(r2.g.roster.map(m=>m.traits))&&r.g.roster.map(m=>m.traits.join()).join('|')===r.g.roster.map(m=>X.migrateTraits(m).join()).join('|'),'migrated traits are seeded by the merc id');
+     ok(JSON.stringify(r.g.parts)==='{}'&&Array.isArray(r.g.retinue)&&!r.g.retinue.length&&r.g.amb&&r.g.amb.cur===null&&Array.isArray(r.g.amb.done)&&Array.isArray(r.g.amb.offered),'G.parts, G.retinue, G.amb defaults');
+     // repairSave fixes broken traits: unknown, repeated, opposed, too many
+     const g2=JSON.parse(X.store.get(X.SAVEKEY));g2.v=X.SAVEVER;g2.roster[0].traits=['nope','brave','brave','craven','quick','tough'];g2.roster[1].traits='x';g2.parts={x:'y'};g2.retinue='bad';g2.amb=5;
+     X.store.set(X.SAVEKEY,JSON.stringify(g2));const r3=X.readSave();ok(r3.state==='ok'&&r3.g.roster[0].traits.join()==='brave,quick'&&X.traitsValid(r3.g.roster[1].traits)&&Array.isArray(r3.g.retinue)&&r3.g.amb&&r3.g.amb.cur===null,'repairSave validates traits and the company fields: '+r3.g.roster[0].traits);
+     X.store.clear() }
+   /* -- traits and followers in the field -- */
+   { X.seedRng(SEED+36);X.newGame(true);closeAll(X);const G=X.G;G.roster.length=0;for(const bg of ['knight','militia','hunter']){const m=X.newMerc(bg);m.field=true;m.traits=[];G.roster.push(m)}
+     G.hour=12;G.retinue=[];const mk=(tr,ret,hour)=>{G.roster[0].traits=tr;G.retinue=ret||[];G.hour=hour==null?12:hour;return X.mkPlayerUnit(G.roster[0])},u0=mk([]);
+     ok(mk(['cocky']).mor===4&&u0.mor===3,'Cocky starts Confident');
+     { const a=mk(['nightowl'],[],22),d=mk(['nightowl'],[],12);ok(a.ms===u0.ms+X.NIGHTOWL.ms&&a.rs===u0.rs+X.NIGHTOWL.rs&&a.init===u0.init+X.NIGHTOWL.init&&d.ms===u0.ms&&d.init===u0.init,'Night owl at night only') }
+     const hasF=typeof X.followerHas==='function';
+     if(hasF){ok(mk([],['banner']).brv===u0.brv+5&&mk([],['cook']).brv===u0.brv+5&&mk([],['banner','cook']).brv===u0.brv+10,'standard-bearer and cook: +5 resolve each');
+      ok(X.xpMult()===1&&(G.retinue=['drill'],X.xpMult()===1.2),'drillmaster: +20% battle XP (xpMult)');
+      G.retinue=[];ok(X.toolPts()===X.TOOLPTS,'tool points');G.retinue=['armorer'];ok(X.toolPts()===Math.round(X.TOOLPTS*1.5),'armorer: +50% per tool');
+      const m=G.roster[1];m.eq.a='mail';m.cond={a:0};G.tools=1;const rp=X.repairAll();ok(rp.pts===Math.round(X.TOOLPTS*1.5)&&rp.tools===1,'repairAll with the armorer');delete m.cond;
+      G.retinue=['surgeon'];m.inj=[{id:'cutarm',days:5}];G.day=2;X.healInjuriesDaily();ok(m.inj[0].days===3,'surgeon: two days off on an even day');G.day=3;X.healInjuriesDaily();ok(m.inj[0].days===2,'surgeon: one day off on an odd day');
+      G.retinue=[];X.healInjuriesDaily();ok(m.inj[0].days===1,'no surgeon: one day');m.inj=[]}
+     else console.log('  (followerHas() is not defined: follower effects skipped)');
+     G.retinue=[];G.hour=12;G.roster.forEach(m=>{m.traits=[]});
+     // a battle for the morale, head, luck and fatigue rules
+     let done=null;const b=X.startBattle({f:'bandit',mult:1,biome:'plains',src:{type:'sim'},quiet:true,turnCap:TURNCAP,foes:['thug','thug'],onEnd:r=>{done=r}});ok(b,'trait arena did not start');
+     let n=0;while(!b.over&&(b.busy||b.cur.side!==0)){await null;if(++n>3e6)fail('trait arena never reached a company turn')}
+     const P=b.units.filter(u=>u.side===0),E=b.units.filter(u=>u.side===1),u=P[0],t=E[0],a=X.abilityInfo(u,'attack');
+     const passRate=(x,fl,f,bonus,dir)=>{b.opts.f=f;x.flags=Object.assign({},fl);x.fearless=false;x.brv=50;x.buffs=[];let p=0,nn=0;for(let i=0;i<3000;i++){x.mor=3;b.rout=[false,false];const r=X.moraleCheck(x,bonus,dir);if(r===null)return null;nn++;if(r)p++}x.mor=3;return p/nn};
+     { const base=passRate(u,{},'bandit',0,-1),cr=passRate(u,{badMor:-10},'bandit',0,-1),sup=passRate(u,{superst:15},'undead',0,-1),supB=passRate(u,{superst:15},'bandit',0,-1),bw=passRate(u,{beastwise:1},'beast',0,-1),bwB=passRate(u,{beastwise:1},'bandit',0,-1);
+       ok(base>.45&&base<.55&&cr>.35&&cr<.45&&sup>.3&&sup<.4&&Math.abs(supB-base)<.04&&bw===null&&bwB!==null,'trait morale: craven, superstitious, beast-wise: '+[base,cr,sup,supB,bw,bwB].join());
+       ok(X.moraleImmune(u)===false&&(b.opts.f='beast',u.flags={beastwise:1},X.moraleImmune(u)===true),'moraleImmune');b.opts.f='bandit';u.flags={} }
+     { u.flags={};t.flags={};const h0=X.headChance(u,t,a);t.flags={headDef:10};const h1=X.headChance(u,t,a);t.flags={headDef:-10};const h2=X.headChance(u,t,a);u.flags={headB:5};t.flags={};const h3=X.headChance(u,t,a);
+       ok(h1===h0-10&&h2===h0+10&&h3===h0+5,'head-hit chance: hard-headed, glass-jawed, steady-handed');u.flags={};t.flags={} }
+     { const P0=P[1];P0.flags={lucky:1};P0.lck=0;P0.undy=0;P0.hp=10;X.hurt(P0,500,1,null,{pierce:1});ok(P0.alive&&P0.hp===1&&P0.lck===1,'Lucky: survives a killing blow at 1');
+       P0.hp=10;X.hurt(P0,500,1,null,{pierce:1});ok(!P0.alive,'Lucky works once per battle') }
+     { u.flags={vsHurt:.1};t.hp=Math.floor(t.hpMax/2)-1;const d1=X.dmgAfter(u,t,a,100);u.flags={};const d0=X.dmgAfter(u,t,a,100);ok(d1>d0,'Bloodthirsty: more damage against the wounded');t.hp=t.hpMax }
+     { for(const [fl,want] of [[{},15],[{fatRec:3},18],[{fatRec:-4},11]]){u.flags=fl;u.fat=50;b.order=[u];b.cur=null;b.busy=true;X.nextTurn();let k=0;while(b.busy&&!b.over){await null;if(++k>3e6)fail('stuck')}ok(!b.over&&b.cur===u&&u.fat===50-want,'fatigue recovery '+want+': '+u.fat)} }
+     b.over=true;X.B=null;X.mode='world' }
+   console.log(`${keys.length} traits (${keys.filter(k=>TR[k].opp).length/2} opposed pairs), ${bks.length} backgrounds, roster ${X.MAXROSTER}, v8 -> v9 migration, trait rules in calc and the field, followers: ok`) }
 
  section('monsters');
  { const BW=X.BW,BH=X.BH,K=(c,r)=>r*BW+c,EN=X.EN,FACT=X.FACT,AB=X.AB,NEW={serpent:['adder','viper','gserp'],ent:['thorn','ent','elder'],ogre:['ogre','aogre'],wyvern:['wyvern','whatch']};
@@ -991,7 +1078,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
 
  section('auto-battles');
  const factions=Object.keys(X.FACT),biomes=Object.keys(X.BIO),MULT=[.65,.9,1.15,1.5],PER=QUICK?3:21,stats={},byTier={},sim=[];let nb=0,turnsMax=0,roundsSum=0;
- { const comps=TIERS.map((t,ti)=>[0,1,2].map(v=>buildCompany(X,t,SEED+1000+ti*10+v)));
+ { const comps=TIERS.map((t,ti)=>[0,1,2].map(v=>buildCompany(X,Object.assign({traits:1},t),SEED+1000+ti*10+v)));
    for(const f of factions){stats[f]={n:0,w:0};for(let ti=0;ti<TIERS.length;ti++){const tier=TIERS[ti];byTier[ti]=byTier[ti]||{n:0,w:0};
      for(let i=0;i<PER;i++){X.G.roster=X.clone(comps[ti][i%3]);X.G.day=tier.day;X.seedRng(SEED+5000+nb);
       const res=await X.autoBattle({f,mult:MULT[i%4],biome:biomes[(nb+i)%biomes.length],src:{type:'sim'},turnCap:TURNCAP});
@@ -1006,7 +1093,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
 
  section('determinism');
  { const again=async(Y)=>{const log=[];await campaign(Y,camp.seed,{},log,32);const d=digest(JSON.stringify(Y.G)+log.join('|')+Y.rngState());
-     const comps=TIERS.map((t,ti)=>buildCompany(Y,t,SEED+1000+ti*10)),out=[];let n=0;
+     const comps=TIERS.map((t,ti)=>buildCompany(Y,Object.assign({traits:1},t),SEED+1000+ti*10)),out=[];let n=0;
      for(const f of factions)for(let ti=0;ti<TIERS.length;ti++){Y.G.roster=Y.clone(comps[ti]);Y.G.day=TIERS[ti].day;Y.seedRng(SEED+9000+n);n++;
       const res=await Y.autoBattle({f,mult:1,biome:biomes[n%biomes.length],src:{type:'sim'},turnCap:TURNCAP});out.push(`${f}${ti}:${res.win}:${res.turns}:${res.rounds}:${res.crowns}:${Y.B.units.map(u=>u.hp).join('.')}:${Y.rngState()}`);Y.settleBattle(res.win)}
      return{camp:d,battles:digest(out.join('|'))}};

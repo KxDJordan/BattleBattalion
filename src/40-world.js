@@ -149,6 +149,7 @@ function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WOR
 /* ---- queries ---- */
 function tileAt(px,py){const x=Math.floor(px/TS),y=Math.floor(py/TS);if(x<0||y<0||x>=WN||y>=WN)return 0;return W.tiles[y*WN+x]}
 function okAt(px,py){const x=Math.floor(px/TS),y=Math.floor(py/TS);if(x<0||y<0||x>=WN||y>=WN)return false;return !!W.ok[y*WN+x]}
+function roadAt(px,py){const x=Math.floor(px/TS),y=Math.floor(py/TS);return x>=0&&y>=0&&x<WN&&y<WN&&!!W.road[y*WN+x]}
 function speedAt(px,py){const x=Math.floor(px/TS),y=Math.floor(py/TS);if(x<0||y<0||x>=WN||y>=WN)return 0;return W.spd[y*WN+x]}   // march speed factor: ground, road, river
 function lineClear(x0,y0,x1,y1,minSpd){const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/5),lim=(minSpd||0)-1e-6;for(let i=1;i<=n;i++){const t=i/n,s=speedAt(x0+(x1-x0)*t,y0+(y1-y0)*t);if(s<=0||s<lim)return false}return true}
 function randOk(x,y,minT,maxT){for(let i=0;i<300;i++){const a=rnd()*6.283,d=(minT+rnd()*(maxT-minT))*TS,px=x+Math.cos(a)*d,py=y+Math.sin(a)*d;
@@ -187,8 +188,9 @@ function clearRoute(){G.route=[];G.path=[];G.moving=false;G.dest=null;G.tap=null
 
 /* ---- fog of war ---- */
 function nightK(h){return h<5||h>=20?1:h<7?(7-h)/2:h>18?(h-18)/2:0}
-function visionRadius(){if(!G||!W)return 0;return Math.max(2.5,WVISBASE*WVIS[tileAt(G.p.x,G.p.y)]*(1-.4*nightK(G.hour))*weatherFx().vis)*TS}
-function bandSight(){return clamp(visionRadius()*.55,2*TS,3.75*TS)}       // how far a band can pick the company out: never further than before, less at night, in cover or foul weather
+function visionBase(){if(!G||!W)return 0;return Math.max(2.5,WVISBASE*WVIS[tileAt(G.p.x,G.p.y)]*(1-.4*nightK(G.hour))*weatherFx().vis)*TS}
+function visionRadius(){if(!G||!W)return 0;return visionBase()+(typeof followerHas==='function'&&followerHas('scout')?2*TS:0)}   // the scout follower sees two tiles further
+function bandSight(){return clamp(visionBase()*.55,2*TS,3.75*TS)}       // how far a band can pick the company out: never further than before, less at night, in cover or foul weather
 function seenAt(tx,ty){return tx>=0&&ty>=0&&tx<WN&&ty<WN&&!!W&&W.seen[ty*WN+tx]===1}
 function visibleAt(tx,ty){if(!G||!W||tx<0||ty<0||tx>=WN||ty>=WN)return false;return Math.hypot((tx+.5)*TS-G.p.x,(ty+.5)*TS-G.p.y)<=visionRadius()}
 function fogRevealAt(x,y,rad){const x0=Math.max(0,Math.floor((x-rad)/TS)),x1=Math.min(WN-1,Math.floor((x+rad)/TS)),y0=Math.max(0,Math.floor((y-rad)/TS)),y1=Math.min(WN-1,Math.floor((y+rad)/TS));let ch=false;
@@ -266,14 +268,15 @@ function spawnParty(f){let pos=null;
  if(!f){const r=rollFaction({x:G.p.x,y:G.p.y,minT:9,maxT:26,crisis:false});if(r){f=r.f;pos={x:r.x,y:r.y}}}
  if(!f)f=pick(['gob','bandit','beast','undead']);if(!pos)pos=randOk(G.p.x,G.p.y,9,26);
  const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5};setPatrol(p);G.parties.push(p)}
-function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();let wage=0;G.roster.forEach(m=>wage+=BG[m.bg].wage);G.crowns-=wage;let msg=`Day ${G.day}: paid ${wage} crowns in wages`;
+// Wages: wageOf(m) (14-company.js: background, traits, paymaster). Rations: one a sword a day, 0.8 with the quartermaster (G.foodAcc keeps the fraction).
+function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();let wage=0;if(typeof companyWages==='function')wage=companyWages();else G.roster.forEach(m=>wage+=BG[m.bg].wage);G.crowns-=wage;let msg=`Day ${G.day}: paid ${wage} crowns in wages`;
  if(G.crowns<0){G.crowns=0;if(G.roster.length>1&&rnd()<.35){const m=G.roster.splice(ri(0,G.roster.length-1),1)[0];msg=`Day ${G.day}: unpaid, ${m.name} deserted`}else msg=`Day ${G.day}: you cannot pay the men`}
- G.food-=G.roster.length;if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
+ {const qm=typeof followerHas==='function'&&followerHas('quarter');if(qm){const e=G.roster.length*.8+(G.foodAcc||0),n=Math.floor(e+1e-9);G.foodAcc=Math.max(0,e-n);G.food-=n}else G.food-=G.roster.length}if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
  G.parties=G.parties.filter(e=>Math.hypot(e.x-G.p.x,e.y-G.p.y)<34*TS);     // bands left far behind disperse; the land near the company stays as busy as ever
  while(G.parties.length<worldBands()+(G.crisis?4:0))spawnParty();
  if(!G.crisis&&G.day>=G.crisisDay)startCrisis();
  else if(G.crisis&&G.crisis.ended&&G.day%6===0&&G.portals.length<2)addPortal();
- toast(msg)}
+ toast(msg);if(typeof ambTick==='function')ambTick()}
 function worldBands(){return Math.round(8*Math.sqrt(worldK()))}                     // bands kept near the company: 8 in the small world, a few more in larger ones
 function addPortal(){const pos=randOk(WS/2,WS/2,2,26*WN/64);G.portals.push({id:G.nid++,x:pos.x,y:pos.y,realm:pick(REALMS)})}
 function startCrisis(){G.crisis={closed:0,total:3,ended:false};for(let i=0;i<3;i++)addPortal();for(let i=0;i<3;i++)spawnParty('void');
@@ -286,7 +289,7 @@ function newLandsSheet(){const t=G.towns[0],n=G.portals.length;
  <p class="dim">Your swords, crowns, stores and renown came with you. Contracts from the old country were left behind${n?`, but the rifts have followed: ${n===1?'one burns':n+' burn'} in this land`:''}.</p><button class="pri" onclick="closeSheet()">March on</button>`)}
 function siteSheet(id){const s=G.sites&&G.sites.find(s=>s.id===id);if(!s)return;const R=RUINS[s.n%RUINS.length]||RUINS[0],first=!s.v;s.v=1;
  sheet(`<h2>${R[0]}</h2><p>${R[1]}</p><p class="dim">${first?'The company rests a moment among the stones. There is nothing here to carry off.':'Nothing has changed since the company last passed.'}</p><button class="pri" onclick="closeSheet()">Move on</button>`)}
-function advanceTime(h,rate){G.hour+=h;if(G.grace>0)G.grace-=h;G.healAcc+=h*(rate||1);while(G.healAcc>=1){G.healAcc--;G.roster.forEach(m=>{const mx=calc(m).hp;if(m.hp<mx)m.hp++})}
+function advanceTime(h,rate){G.hour+=h;if(G.grace>0)G.grace-=h;G.healAcc+=h*(rate||1)*(typeof followerHas==='function'&&followerHas('cook')?1.25:1);while(G.healAcc>=1){G.healAcc--;G.roster.forEach(m=>{const mx=calc(m).hp;if(m.hp<mx)m.hp++})}
  stepWeather(h);while(G.hour>=24){G.hour-=24;G.day++;newDay()}fogReveal()}
 // Bands walk a patrol of two or three points near where they formed (on their own kind of ground where they can). They turn on
 // the company only inside bandSight(), and give up the chase once it is well out of sight again.
@@ -297,20 +300,26 @@ function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd;for(const p 
    tx=p.tx;ty=p.ty}
   const d=Math.hypot(tx-p.x,ty-p.y)||1,sp=Math.min(d,WBAND*(speedAt(p.x,p.y)||.5)*wf*dt),nx=p.x+(tx-p.x)/d*sp,ny=p.y+(ty-p.y)/d*sp;
   if(okAt(nx,ny)){p.x=nx;p.y=ny}else if(!p.ch)patrolHop(p)}}
-function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNote();return}if(!G.moving)return;if(!G.path.length){G.moving=false;return}const p=G.p;let tgt=G.path[0];
+function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNote();return}
+ if(!sheetOpen&&G.amb&&typeof ambTick==='function'){ambTick();if(G.amb.cel.length&&ambNotify())return}   // a fulfilled ambition or a new renown tier
+ if(!G.moving)return;if(!G.path.length){G.moving=false;return}const p=G.p;let tgt=G.path[0];
  // cut corners only where the straight line is no slower than the planned way (so the company keeps to roads and bridges)
  {let ms=speedAt(p.x,p.y)||.5;const n=Math.min(G.path.length-1,6),mins=[];for(let i=0;i<=n;i++){ms=Math.min(ms,speedAt(G.path[i].x,G.path[i].y)||.5);mins.push(ms)}
   for(let i=n;i>0;i--)if(lineClear(p.x,p.y,G.path[i].x,G.path[i].y,mins[i])){G.path.splice(0,i);tgt=G.path[0];break}}
- const sp=WCO*(speedAt(p.x,p.y)||.5)*weatherFx().spd*dt,dx=tgt.x-p.x,dy=tgt.y-p.y,d=Math.hypot(dx,dy);
+ const sp=WCO*(speedAt(p.x,p.y)||.5)*weatherFx().spd*(roadAt(p.x,p.y)&&typeof followerHas==='function'&&followerHas('carto')?1.15:1)*dt,dx=tgt.x-p.x,dy=tgt.y-p.y,d=Math.hypot(dx,dy);
  if(d<=sp){p.x=tgt.x;p.y=tgt.y;G.path.shift();
   if(!G.path.length){if(G.route&&G.route.length>1){G.route.shift();const w=G.route[0];if(!goTo(w.x,w.y,w.dest,true))G.moving=false}else{G.route=[];G.moving=false}}}
  else{p.x+=dx/d*sp;p.y+=dy/d*sp}
  advanceTime(dt*WHRS);moveParties(dt);if(sheetOpen){if(!G.moving)G.route=[];return}
  if(G.grace<=0)for(const e of G.parties)if(Math.hypot(e.x-p.x,e.y-p.y)<.4*TS){G.moving=false;G.route=[];engage({f:e.f,mult:e.mult,src:{type:'party',id:e.id}});return}
- const c=G.contract;if(c&&c.type==='hunt'&&!c.done&&Math.hypot(c.x-p.x,c.y-p.y)<.4*TS){G.moving=false;G.route=[];engage({f:c.f,mult:[.85,1.15,1.5][c.diff-1],src:{type:'lair'}});return}
+ const c=G.contract;if(c&&c.type==='hunt'&&!c.done&&Math.hypot(c.x-p.x,c.y-p.y)<.4*TS){G.moving=false;G.route=[];engage({f:c.f,mult:CTR_DIFFK[clamp(c.diff,1,CTR_DIFFK.length)-1],src:{type:'lair'}});return}
  if(!G.moving)arrive()}
 function arrive(){const d=G.dest;G.dest=null;G.tap=null;G.route=[];if(!d)return;if(d.type==='town')openTown(d.i);else if(d.type==='portal')portalSheet(d.id);else if(d.type==='site')siteSheet(d.id)}
-function camp(){if(G.moving){G.moving=false;G.route=[];return}advanceTime(6,2);toast(typeof campReport==='function'?campReport(6):'Made camp for six hours');save()}
+/* camp(): the Camp button. On the road it halts the march; standing still it opens the camp screen (campOpen, 56-camp.js) in a real page,
+   else (headless, no camp screen, or called from inside an open screen) rests at once: campRest(). */
+function camp(){if(G.moving){G.moving=false;G.route=[];return}if(typeof campOpen==='function'&&!sheetOpen&&mode==='world'&&typeof tvCan==='function'&&tvCan()){campOpen();return}return campRest()}
+// the direct rest: six hours, wounds heal twice as fast, tools mend armor. Returns the line it reported.
+function campRest(h){h=h||6;advanceTime(h,2);const t=typeof campReport==='function'?campReport(h):'Made camp for '+h+' hours';toast(t);save();return t}
 function toggleZoom(){G.zoom=G.zoom===1?.5:1;if(typeof camOff!=='undefined')camOff.x=camOff.y=0}
 // Legacy flat-colour world image. The pixel-art world view does not use it; it is only built as a fallback when that view is absent.
 function renderWorldImg(){if(typeof document==='undefined'||!W||typeof worldArtScale==='function')return;const cv=document.createElement('canvas');if(!cv||!cv.getContext)return;cv.width=cv.height=WS;const g=cv.getContext('2d');if(!g||!g.fillRect)return;

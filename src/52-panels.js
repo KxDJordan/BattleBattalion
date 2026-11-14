@@ -269,3 +269,17 @@ function tlEquipRule(m,slot,id){const it=ITEMS[id];if(!it)return{ok:false,why:'U
 /* would putting weapon id into slot ('w'|'b') leave a shield with no one-handed weapon to go with? */
 function tlDropsShield(m,slot,id){const e=m.eq||{};if(!e.s||!tlTwo(id))return false;const other=slot==='b'?e.w:e.b;return tlTwo(other)}
 function tlSlung(m){const e=m.eq||{};return!!(e.s&&tlTwo(e.w))}
+/* ================= TRAITS in every UI =================
+   trList(m) -> [{key,n,d,good,fx}] from m.traits (rules: TRAITS[key] = {n,d,good,st,flag,mod,wage,opp}); traitsOf(m) when keys are missing.
+   traitChips(m,o) -> HTML: o.compact (icons only, battle chip), o.size (16), o.full (icon, name and the exact effects in a list),
+   default: icon + name chips with the description as a tooltip. Works anywhere (town tavern, inspect, panels); '' when the merc has none. */
+function trList(m){if(!m)return[];const T=typeof TRAITS==='object'&&TRAITS?TRAITS:{},out=[];let keys=Array.isArray(m.traits)?m.traits.slice(0,4):[];
+ if(!keys.length&&typeof traitsOf==='function'){let L=null;try{L=traitsOf(m)}catch(e){L=null}if(Array.isArray(L))L.forEach(d=>{if(!d)return;let k=d.key||d.id||null;if(!k)for(const q in T)if(T[q]===d){k=q;break}if(k)keys.push(k)})}
+ for(const k of keys){const d=T[k];if(!d&&typeof k!=='string')continue;const good=d&&typeof d.good==='boolean'?d.good:(typeof trGood==='function'?trGood(k):true);
+  out.push({key:k,n:d&&d.n||String(k).replace(/^\w/,c=>c.toUpperCase()),d:d&&d.d||'',good,fx:trFx(d)})}return out}
+function trFx(d){if(!d)return'';const a=[];const s=typeof cpStDesc==='function'&&d.st?cpStDesc(d.st):'';if(s)a.push(s);if(cpNum(d.wage)&&d.wage)a.push((d.wage>0?'+':'−')+(Math.abs(d.wage)<1?Math.round(Math.abs(d.wage)*100)+'% wages':Math.abs(d.wage)+' wage a day'));return a.join(', ')}
+function trEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c])}
+function traitChips(m,o){o=o||{};const L=trList(m);if(!L.length)return o.full?'<div class="tr-none">No notable traits.</div>':'';const sz=o.size||16,ic=t=>typeof trIconHTML==='function'?trIconHTML(t.key,sz):'';
+ if(o.compact)return`<span class="tr-chips compact" aria-label="Traits: ${trEsc(L.map(t=>t.n).join(', '))}">${L.map(t=>`<span class="tr-c ${t.good?'good':'bad'}" title="${trEsc(t.n+(t.d?': '+t.d:''))}">${ic(t)}</span>`).join('')}</span>`;
+ if(o.full)return`<div class="tr-list">${L.map(t=>`<div class="tr-row ${t.good?'good':'bad'}">${ic(t)}<div><b>${trEsc(t.n)}</b><span>${trEsc(t.d||t.fx||'')}</span></div></div>`).join('')}</div>`;
+ return`<span class="tr-chips">${L.map(t=>`<span class="tr-c ${t.good?'good':'bad'}" title="${trEsc(t.n+(t.d?': '+t.d:''))}">${ic(t)}<b>${trEsc(t.n)}</b></span>`).join('')}</span>`}

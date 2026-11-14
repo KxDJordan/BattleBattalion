@@ -154,6 +154,7 @@ function aiScan(u,P,plan,S){const b=B,N=BW*BH,X=S.X||(S.X={thr:new Float32Array(
  // enemies come on together: until the lines meet, nobody runs more than a couple of rows ahead of the band
  if(u.side===1&&b.round<=6){let m=99,s=0,n=0;for(const o of X.allies){if(o.back)continue;s+=o.r;n++;for(const f of X.foes){const d=mdist(f,o);if(d<m)m=d}}
   if(n>=2&&m>3&&X.near(u)>3)X.lead=s/n+(P.back>1.2?3:2)}
+ {const f=u.flags||{};X.shaky=u.side===0&&(f.badMor<0||(f.superst>0&&typeof TRAITF!=='undefined'&&TRAITF.superst.includes(b.opts&&b.opts.f)))}
  if(plan){
   // hold: nobody steps off the line until the enemy is on it; after contact the company fights within a short leash of its line
   if((plan.hold||plan.outlast)&&b.round<=(plan.holdR||5)&&X.foes.some(f=>f.wpn.rng<=2&&!f.back&&f.mor!==0&&!(f.st.root||f.rooted))){let m=99;for(const f of X.foes){const d=mdist(f,u);if(d<m)m=d;for(const o of X.allies){const e=mdist(f,o);if(e<m)m=e}}X.hold=m>2?2:1}
@@ -205,6 +206,7 @@ function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan
   else if(X.lockW&&aiRngW(o.wpn)&&aiAble(o)){let held=0;for(const q of X.allies)if(mdist(q,o)===1){held=1;break}v+=X.lockW*(o.aiW||10)*(held?.25:1)}}   // standing beside an archer locks its bow
  let form=P.form;if(plan){if(plan.tight&&!P.shy)form+=1.6*plan.tight;if(plan.spread)form=-2.5}
  v+=form*al;if(plan&&plan.tight&&!P.shy&&open>1)v-=2.5*plan.tight*(open-1);
+ if(X.shaky)v+=al?1.5*al:-2;                                     // traits: a Craven (or Superstitious in the wrong fight) merc is no anchor: it keeps to its friends
  if(P.shy&&blk)v+=1.2;
  if(X.tele){if(sz>1){for(let y=0;y<sz;y++)for(let x=0;x<sz;x++)if(X.tele.has(key(c+x,r+y)))v-=90}else if(X.tele.has(k))v-=90}
  if(P.ward||(plan&&plan.screen&&!P.shy)){let m=99;for(const o of X.allies)if(o.back||o.role==='caster'||o.role==='sniper'){const d=Math.abs(o.c-c)+Math.abs(o.r-r);if(d<m)m=d}if(m<99&&m>2)v-=(P.ward?2:1.2)*(m-2)}

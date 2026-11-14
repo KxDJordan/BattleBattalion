@@ -125,6 +125,7 @@ function playAnyway(){Layout.anyway=true;Layout.update()}
 let _hudCo='';
 function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
  {const e=$('hCo'),k=G.name+'|'+JSON.stringify(G.banner);if(e&&k!==_hudCo&&typeof bannerHTML==='function'){_hudCo=k;e.innerHTML=bannerHTML(G.banner,24,'hbn')+`<b>${htmlEsc(companyName())}</b>`;e.title=companyName()}}
+ hudCompany();
  if(cb){const c=G.contract;cb.classList.toggle('has',!!c);cb.classList.toggle('done',!!(c&&(c.done||c.type==='deliver')))}
  const zb=$('wbZoom');if(zb)zb.classList.toggle('on',G.zoom!==1&&G.zoom!=null);
  if(typeof drawMinimap!=='function'&&W&&W.img){const m=$('mini');if(!m)return;const x=m.getContext('2d'),k=m.width/WS;x.imageSmoothingEnabled=true;x.drawImage(W.img,0,0,m.width,m.height);
@@ -136,11 +137,12 @@ function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
    chance one random sword deserts. Out of food: rations go to 0 and every sword loses 10 hitpoints (never below 1).
    Nothing else is charged by the day. Reads state only; no randomness. ---- */
 const CP={el:null,kind:null,key:'',from:null,swallow:0};
-function upkeep(){const R=G&&G.roster||[],men=R.map(m=>({m,bg:BG[m.bg]||{},wage:(BG[m.bg]&&BG[m.bg].wage)|0,food:1})),wage=men.reduce((s,x)=>s+x.wage,0),food=men.length;
+function upkeep(){const R=G&&G.roster||[],qm=typeof followerHas==='function'&&followerHas('quarter'),fr=qm?.8:1,   // the same wage and ration rules newDay() pays
+ men=R.map(m=>({m,bg:BG[m.bg]||{},wage:typeof wageOf==='function'?wageOf(m):((BG[m.bg]&&BG[m.bg].wage)|0),food:fr})),wage=men.reduce((s,x)=>s+x.wage,0),food=Math.round(men.length*fr*10)/10;
  const hrs=Math.max(0,Math.ceil(24-(G?G.hour:0)));
  return{men,wage,food,hrs,payDays:wage>0?Math.floor(G.crowns/wage):Infinity,foodDays:food>0?Math.floor(G.food/food):Infinity}}
 function cpDays(n){return n===Infinity?'no end':n+' day'+(n===1?'':'s')}
-function cpBody(){const U=upkeep(),k=CP.kind,ic=(n,s)=>pic(n,s||16),short=G.crowns<U.wage,starve=G.food<U.food;
+function cpBody(){if(CP.kind==='renown')return rnBody();const U=upkeep(),k=CP.kind,ic=(n,s)=>pic(n,s||16),short=G.crowns<U.wage,starve=G.food<U.food;
  const warn=cpWarn(U,short,starve),tile=(kk,icon,amt,unit,days,lab,warn)=>`<div class="cp-t${k===kk?' on':''}${warn?' warn':''}">${ic(icon)}<span><b>−${amt}</b><small>${unit} a day</small></span><span class="cp-d"><b>${cpDays(days)}</b><small>${lab}</small></span></div>`;
  let rows='';const L=U.men.slice();if(k==='crowns')L.sort((a,b)=>b.wage-a.wage);
  for(const x of L)rows+=`<div class="cp-r" role="row"><span class="cp-n" role="cell"><b>${htmlEsc(x.m.name)}</b><small>${htmlEsc(x.bg.n||'')}${x.m.field?'':' · reserve'}</small></span><span class="cp-v c" role="cell">${x.wage}</span><span class="cp-v f" role="cell">${x.food}</span></div>`;
@@ -152,8 +154,8 @@ function cpBody(){const U=upkeep(),k=CP.kind,ic=(n,s)=>pic(n,s||16),short=G.crow
 function cpWarn(U,short,starve){const ic=n=>pic(n,16);return`${short?`<p class="cp-w">${ic('coin')}<span>Tonight's wages are short by ${U.wage-G.crowns}. Unpaid, the purse is emptied${U.men.length>1?' and there is a 35% chance a sword deserts':''}.</span></p>`:''}
 ${starve?`<p class="cp-w">${ic('food')}<span>${G.food?'Only '+G.food+' of '+U.food+' rations left for tonight':'No food left'}: a starving company loses 10 hitpoints a sword each day.</span></p>`:''}
 <p class="cp-note"><span class="cp-nl">Reserves draw wages and eat too. </span>Nothing else is charged by the day<span class="cp-nl">: inns, tools, the temple and the tailor cost only when used</span>.</p>`}
-function costPopKey(){return G?[CP.kind,G.crowns,G.food,G.day,Math.ceil(24-G.hour),G.roster.map(m=>m.id+m.name+m.bg+(m.field?1:0)).join(',')].join('|'):''}
-function costPop(kind,btn){if(!G||mode!=='world')return;if(CP.el&&CP.kind===kind&&!CP.el.hidden){costPopClose(true);return}
+function costPopKey(){return G?[CP.kind,G.renown,G.amb&&G.amb.cur,(G.retinue||[]).length,G.crowns,G.food,G.day,Math.ceil(24-G.hour),G.roster.map(m=>m.id+m.name+m.bg+(m.field?1:0)).join(',')].join('|'):''}
+function costPop(kind,btn){if(!G||(mode!=='world'&&kind!=='renown'))return;if(CP.el&&CP.kind===kind&&!CP.el.hidden){costPopClose(true);return}
  let e=CP.el;if(!e){e=document.createElement('div');e.id='costPop';e.className='pxf cp';e.setAttribute('role','dialog');e.setAttribute('aria-label','Daily upkeep');e.tabIndex=-1;$('app').appendChild(e);CP.el=e;
   e.addEventListener('keydown',ev=>{if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();costPopClose(true)}});
   document.addEventListener('pointerdown',ev=>{if(!CP.el||CP.el.hidden)return;const t=ev.target;if(CP.el.contains(t)||(t.closest&&t.closest('.hud-tap')))return;costPopClose(false);if(t&&t.id==='cv'){ev.stopPropagation();ev.preventDefault();CP.swallow=Date.now()}},true);
@@ -297,3 +299,22 @@ if(typeof document!=='undefined'){
  document.addEventListener('pointerdown',()=>{if(!WAKE.s)wakeOn()},{passive:true});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeOn()});
 }
+
+/* ---- renown and ambition on the world HUD: a compact tier badge (tap: tiers and what the next one opens) and the active
+   ambition as a small progress chip (tap: the ambitions panel). Both from 14-company.js; hidden when it is missing. ---- */
+let _hudRn='';
+function hudCompany(){const rb=$('hRen'),ab=$('hAmb');if(!rb||!ab||!G)return;if(typeof renownInfo!=='function'){rb.hidden=true;ab.hidden=true;return}
+ const R=renownInfo();let am=null;try{am=typeof coAmbNow==='function'?coAmbNow():null}catch(e){}const k=R.tier+'|'+R.renown+'|'+(am?am.id+am.p+'/'+am.goal:'-');if(k===_hudRn)return;_hudRn=k;
+ rb.hidden=false;rb.className='stat hud-tap rn t'+R.tier;rb.title=R.n+': '+R.renown+' renown'+(R.next!=null?', '+(R.next-R.renown)+' to '+R.nextN:'');rb.setAttribute('aria-label','Renown '+R.n+', '+R.renown);
+ rb.innerHTML=pic('rt-'+R.tier,16)+`<span class="rn-n">${htmlEsc(R.n)}</span><span class="rn-bar" aria-hidden="true"><i style="width:${Math.round(100*R.progress)}%"></i></span>`;
+ ab.hidden=false;ab.classList.toggle('none',!am);ab.title=am?am.A.n+': '+am.p+' / '+am.goal:'Choose an ambition';ab.setAttribute('aria-label',am?'Ambition '+am.A.n+', '+am.p+' of '+am.goal:'Choose an ambition');
+ ab.innerHTML=pic(am&&am.A.icon&&typeof icHas==='function'&&icHas(am.A.icon)?am.A.icon:'ambition',16)+(am?`<span class="am-n">${htmlEsc(am.A.n)}</span><span class="am-p">${am.p}/${am.goal}</span>`:'<span class="am-n">Ambition</span>')}
+function renownPop(btn){costPop('renown',btn)}
+function rnBody(){if(typeof renownInfo!=='function')return'';const R=renownInfo(),ic=(n,s)=>pic(n,s||16),nx=R.tier<RENOWN.length?R.tier+1:0,U=nx&&typeof renownUnlocks==='function'?renownUnlocks(nx):[],D=R.def||{};
+ let am=null;try{am=typeof coAmbNow==='function'?coAmbNow():null}catch(e){}const sl=typeof followerSlots==='function'?followerSlots():1,rn=(G.retinue||[]).length;
+ return`<div class="cp-hd"><span class="rn-big">${ic('rt-'+R.tier,32)}</span><span class="cp-ti"><b>${htmlEsc(R.n)}</b><small>${R.renown} renown · tier ${R.tier} of ${RENOWN.length}</small></span><button type="button" class="cp-x" aria-label="Close" onclick="costPopClose(true)">${ic('close')}</button></div>
+<div class="rn-pop"><p class="rn-d">${htmlEsc(D.d||'')}</p>
+<div class="rn-prog"><span class="rn-bar big"><i style="width:${Math.round(100*R.progress)}%"></i></span><small>${R.next!=null?`${R.next-R.renown} more renown to <b>${htmlEsc(R.nextN)}</b>`:'The highest tier there is'}</small></div>
+${U.length?`<div class="rn-sec">${ic('rt-'+nx)}<b>${htmlEsc(RENOWN[nx-1].n)} opens</b></div><ul class="rn-ul">${U.map(x=>`<li>${htmlEsc(x)}</li>`).join('')}</ul>`:''}
+<div class="rn-now"><span>Now: contracts up to ${D.diff} skulls · pay x${D.pay} · ${sl} follower slot${sl===1?'':'s'}</span></div>
+<div class="rn-act"><button type="button" class="sm" onclick="costPopClose();openAmbitions()">${ic('ambition')}<span>${am?htmlEsc(am.A.n)+' '+am.p+'/'+am.goal:'Ambitions'}</span></button><button type="button" class="sm" onclick="costPopClose();companySheet();coTabGo('retinue')">${ic('retinue')}<span>Retinue ${rn}/${sl}</span></button></div></div>`}

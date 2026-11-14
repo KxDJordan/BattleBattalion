@@ -5185,6 +5185,7 @@ function icResolveRaw(name){let rows=null;if(name.slice(0,3)==='it-'){let r=null
   if(r){ICONS[name]=r;IC_MADE[name]='item';icCss(name);return name}const n=icItem(name.slice(3));return n?icResolve(n):'none'}
  try{const c=IC_COMP[name]||(name.slice(0,3)==='st-'?IC_COMP[name.slice(3)]:null);
   if(c)rows=c.length===1?(icResolve0(c[0])!=='none'?ICONS[icResolve0(c[0])]:null):icCompose(c[0],c[1],c[2],c[3]);
+  else if(name.slice(0,6)==='trait-')rows=icTrait(name.slice(6));
   else if(name.slice(0,2)==='m-')rows=icMast(name.slice(2));
   else if(name.slice(0,5)==='perk-')rows=icPerk(name.slice(5));
   else if(name.slice(0,3)==='st-'||(typeof STATUS==='object'&&STATUS&&STATUS[name])){const key=name.slice(0,3)==='st-'?name.slice(3):name,S=typeof STATUS==='object'&&STATUS[key];
@@ -5199,3 +5200,73 @@ const GAME_ICON={16:[".00000000000000.", "0dddddd0ddddddc0", "0d11110r061111b0",
  32:["..0000000000000000000000000000..", ".0dddddddddddddddddddddddddddd0.", "0dccccccccccccc0cccccccccccccbb0", "0dcaaaaaaaaaaa0r0aaaaaaaaaaaabb0", "0dca11111111110rp01111111111abb0", "0dca11111111660rq06611111111abb0", "0dca11111166660rp0666511F111abb0", "0dca111e1666120rq02155511111abb0", "0dca11116612220rp02221551111abb0", "0dca11116622220rq02222551111abb0", "0dca11155122230rp03222155r11abb0", "0dca11155222330rq03322255111abb0", "0dca11151223330qo03332215111abb0", "0dca11651223330qp03332215111abb0", "0dca11151223330qo03332215111abb0", "0dca11151223330qp03332215111abb0", "0dca11170222330xY03322205111abb0", "0dca1110c00000xFeY00000b0111abb0", "0dca1110dddddxFreeYccccc0111abb0", "0dca1110cccccZ66AABbbbbb0111abb0", "0dca1110c00000Z6AB00000b0111abb0", "0dca11110177550ZB0557710d111abb0", "0dca11111111770ji07711111111abb0", "0dca11111111110kj01111111111abb0", "0dca11111111110ji01111111111abb0", "0dca11111111110kj01111111111abb0", "0dca1111111110ddbb0111111111abb0", "0dca11111111110ca01111111111abb0", "0dcaaaaaaaaaaaa00aaaaaaaaaaaabb0", "0dbbbbbbbbbbbbbbbbbbbbbbbbbbbbb0", ".0bbbbbbbbbbbbbbbbbbbbbbbbbbbb0.", "..0000000000000000000000000000.."]};
 function gameIconCanvas(size){size=Math.max(16,size|0||32);if(typeof document==='undefined')return null;const rows=size<32?GAME_ICON[16]:GAME_ICON[32],n=rows.length,k=Math.max(1,Math.floor(size/n)),c=pxCanvas(size,size);if(!c)return null;
  const g=c.getContext('2d'),src=px(rows);if(!src)return c;const o=Math.floor((size-n*k)/2);if(o>0){g.fillStyle=PAL['0'];g.fillRect(0,0,size,size)}g.imageSmoothingEnabled=false;g.drawImage(src,o,o,n*k,n*k);return c}
+
+/* ================= TRAIT ICONS: trait-<key> =================
+   A 10x10 hand-drawn glyph in a 16x16 frame: good traits in a verdigris frame with brass studs on a pine field, bad ones
+   in a madder frame on a dark field. The glyph is picked by the trait key, then by keywords in its key and name (so a
+   renamed or new trait still finds its drawing), else a star (good) or a crack (bad). */
+const TR_GLYPH={
+ brave:['..........','..hh..gg..','.hrhggggf.','.hhggggggf','.hgggggggf','..ggggggf.','...gggff..','....gff...','.....f....','..........'],
+ craven:['..........','.jlllm....','.jllllmm..','.jlllllmm.','.jllllmm..','.jlmmmm...','.jm.......','.j........','.j........','.i........'],
+ ironjaw:['..........','.rqqqqqqp.','qqqqqqqqpo','.opppppoo.','...ppoo...','...ppoo...','..qpppppo.','.qppppppoo','.oooooooo.','..........'],
+ glassjaw:['....rF....','...rFxF...','..rFx0xX..','..Fx0xxX..','.rF0xxxX..','.Fxx0xX...','.Fxxx0X...','..xX0XX...','...XXX....','..........'],
+ athletic:['..........','.....l.lm.','....lmlm..','..kj.lm...','..kj......','..kjj.....','..kjjj....','..kjjjjj..','..iiiiiiii','..........'],
+ asthmatic:['....m..mm.','...mlm.ml.','....mn.m..','.hh.n.hh..','hhggnngg..','hgg.n.ggf.','hgg...ggf.','hgg...ggf.','.gf...gf..','..........'],
+ quick:['.....dy...','....dyY...','...dyY....','..dyyyyY..','..YYyyY...','....yY....','...yY.....','..yY......','.yY.......','..........'],
+ sluggish:['..........','....kkj...','...kj.ij..','..kj.kjij.','..kjjj.ij.','..kiijjii.','m.mmmmmmmn','mmmmmmmmn.','..nnnnnn..','..........'],
+ eagle:['..........','...llll...','.lllllllm.','llcddbmmm.','llcd0bmmmm','.lcbbbmmm.','..lmmmmm..','...mmmm...','..........','..........'],
+ nearsight:['..........','..........','.ppp..ppp.','pxFpppxFpo','pxxp..pxXo','pxXp..pXXo','.poo..poo.','..........','..........','..........'],
+ blood:['.lll......','.lllm.....','..llm.....','..lm..g...','..lm..g...','...m.hgg..','....hgggf.','....hgggf.','.....gff..','..........'],
+ lucky:['..........','.dc....cb.','.dc....cb.','dc......cb','da......ab','dc......cb','.dc....cb.','..dccccb..','...bbbb...','..........'],
+ steady:['....cc....','....cb....','..dccccb..','.dc.cb.cb.','ccccggcccb','bbbbgfbbba','.cb.cb.ba.','..bbbbba..','....cb....','....ba....'],
+ drunk:['..lllll...','.llrllmm..','.kjjjjji..','.kjjjjiiii','.kcccbbi.i','.kjjjjji.i','.kjjjjiiii','.kcccbbi..','.kjjjjji..','..iiiii...'],
+ greedy:['....dccb..','...dcccbb.','...bbbbba.','..dcccb...','.dccccbb..','.bbbbbba..','.dccccbb..','.bbbbbba..','..aaaaa...','..........'],
+ loyal:['....xX....','...dxXb...','..dc..cb..','.dc....cb.','.c......b.','.c......b.','.dc....cb.','..bccccb..','...bbbb...','..........'],
+ supers:['....j.....','...j.j....','....c.....','..XXXXX...','.XxxxxxX..','.XxllxxX..','.Xxl0xxX..','.XxxxxxX..','..XXXXX...','..........'],
+ tough:['..........','...mmmn...','..mllmmn..','.mlmmmmn4.','.mmmmmnn4.','mmmmmmnnn4','mmmnmmnn44','.nnnnnnn4.','..444444..','..........'],
+ fragile:['...lll....','..lllll...','.llllllm..','.llrl0lm..','.ll0l0mm..','.l0lllmm..','.lllllmm..','..lmmmm...','...mmm....','..........'],
+ hulking:['..........','..tt......','.tsst.....','.tsstt....','..tsstt.tt','...tssttst','....tsssst','....uttttu','.....uuuu.','..........'],
+ tiny:['.......lm.','......llm.','.....llm..','....llmm..','...llmm...','..llmm....','..lmm.....','.jm.......','j.........','..........'],
+ night:['...dd.....','..dc......','.dc....d..','.dc...ded.','.dc....d..','.dcc......','..dccb....','...bbbb...','..........','..........'],
+ dext:['q........q','.qp....qp.','..qp..qp..','...qppp...','....jj....','...ji.ji..','..ji...ji.','.ii.....ii','..........','..........'],
+ clumsy:['.......q..','......qp..','.....qp...','..........','...qp.....','..qp......','.cc.......','cbb.......','.i........','i.........'],
+ beast:['..j..j....','.jkj.jkj..','..j...j...','j.......j.','kj.jjj.jk.','...jkkji..','..jkkkkji.','..jkkkkji.','...jiiij..','..........'],
+ cocky:['....xX....','...xzZX...','...zxXZ...','...XZZX...','....XX....','....j.....','....j.....','...j......','...j......','..........'],
+ pious:['....dc....','....cb....','.dccccccb.','.bbbccbba.','....cb....','....cb....','....cb....','....cb....','....ba....','..........'],
+ sickly:['..........','...vvvv...','..vAvvvB..','.vAvvvvvB.','.vvBvvBvB.','.vvvvvvvB.','..vBvvvB..','...BBBB...','..........','..........'],
+ strong:['..........','.qq....qq.','.qp....qp.','.qpqqqqqp.','.qpppppop.','.qp....op.','.op....op.','..........','..........','..........'],
+ learner:['..........','.kjjj.jjji','.klll.lmmi','.klml.mmmi','.klll.lmmi','.klml.mmmi','.klll.lmmi','.kiiiiiiii','..........','..........'],
+ star:['....dd....','....dc....','...dccb...','dddcccbbbb','.dcccccbb.','..dcccbb..','..dcbbcb..','.dcb..cbb.','.cb....bb.','..........'],
+ crack:['..........','..mmmmmm..','.mmn0mmmn.','.mmm0nmmn.','.mm0mmnmn.','.mmn0mmnn.','.mmmn0mnn.','..nnn0nn..','..........','..........']};
+const TR_KEYS=[[/craven|coward|timid|yellow|fearful/,'craven'],[/brave|bold|fearless(?!.*beast)|stout.?heart|lionheart/,'brave'],[/glass/,'glassjaw'],[/iron.?jaw|ironjaw|thick.?skull|hard.?head/,'ironjaw'],
+ [/asthm|wheez|short.?breath|winded/,'asthmatic'],[/athlet|tireless|endur|stamina|marathon/,'athletic'],[/slugg|slow(?!.?learn)|lazy|plodd/,'sluggish'],[/quick|swift|fast|nimble|alert/,'quick'],
+ [/near|myop|short.?sight|squint|blind/,'nearsight'],[/eagle|hawk|keen|sharp.?eye|far.?sight/,'eagle'],[/blood|savage|cruel|bloodthirst/,'blood'],[/lucky|fortun|charm/,'lucky'],[/steady|calm|cool|patient/,'steady'],
+ [/drunk|drink|sot|ale|wine/,'drunk'],[/greed|grasp|miser|avari|mercenar/,'greedy'],[/loyal|faith|devot|true/,'loyal'],[/supersti|omen|spook|nervous/,'supers'],[/tough|hardy|sturdy|resil|stone/,'tough'],
+ [/fragil|frail|brittle|weak|sickl/,'fragile'],[/hulk|huge|giant|big|brawn|strong/,'hulking'],[/tiny|small|slight|little|lithe/,'tiny'],[/night|owl|nocturn|dark/,'night'],[/dext|deft|nimble.?hand|light.?finger/,'dext'],
+ [/clums|butter|fumbl|oaf|awkward/,'clumsy'],[/beast|hunter|wild|animal|monster/,'beast'],[/cock|arrog|proud|vain|boast/,'cocky'],[/pious|holy|devout|zeal/,'pious'],[/sick|ill|plague|pox/,'sickly'],[/learn|clever|bright|study|quick.?study/,'learner']];
+function trDef(key){return typeof TRAITS==='object'&&TRAITS&&TRAITS[key]||null}
+function trGlyphOf(key){const T=trDef(key)||{};if(TR_GLYPH[key])return key;const s=(key+' '+(T.n||'')).toLowerCase();
+ for(const [re,g] of TR_KEYS)if(re.test(s)){if(g==='quick'&&/learn/.test(s))return'learner';return g}return T.good===false||/^(bad|neg)/.test(s)?'crack':'star'}
+function trGood(key){const T=trDef(key);if(T&&typeof T.good==='boolean')return T.good;const g=trGlyphOf(key);return!/^(craven|glassjaw|asthmatic|sluggish|nearsight|drunk|greedy|supers|fragile|clumsy|sickly|crack)$/.test(g)}
+function icTrait(key){const g=TR_GLYPH[trGlyphOf(key)],good=trGood(key),o=[];
+ const fr=good?{tl:'5',br:'7',st:'c',f:'3',f2:'2'}:{tl:'g',br:'f',st:'h',f:'1',f2:'1'};
+ for(let y=0;y<16;y++){const r=[];for(let x=0;x<16;x++){let k='.';const edge=x===0||y===0||x===15||y===15,cor=(x===0||x===15)&&(y===0||y===15);
+   if(cor)k='.';else if(edge)k='0';else if(x===1||y===1)k=((x===1&&y===1)||(x===1&&y===14)||(x===14&&y===1))?fr.st:fr.tl;else if(x===14||y===14)k=(x===14&&y===14)?fr.st:fr.br;else k=(x+y)%7===0&&!good?fr.f2:fr.f;
+   r.push(k)}o.push(r)}
+ // glyph at (3,3)..(12,12) with its own 1px outline
+ const on=(x,y)=>x>=0&&y>=0&&x<10&&y<10&&g[y][x]!=='.';
+ for(let y=-1;y<=10;y++)for(let x=-1;x<=10;x++){const X=x+3,Y=y+3;if(X<2||Y<2||X>13||Y>13)continue;if(on(x,y))o[Y][X]=g[y][x];else if(on(x-1,y)||on(x+1,y)||on(x,y-1)||on(x,y+1))o[Y][X]='0'}
+ return o.map(r=>r.join(''))}
+/* a strip of trait icons for a merc as HTML (no DOM needed); compact: icons only */
+function trIconHTML(key,size){return typeof pxIcon==='function'?pxIcon('trait-'+key,size||16,'tr-ic'+(trGood(key)?' good':' bad')):''}
+/* renown tier badges rt-1..rt-6: the renown crown in the tier's metal (iron, bronze, verdigris, silver, gold, gold and void gems)
+   over a row of pips, one per tier */
+const IC_RTMAP=[{d:'q',c:'p',b:'o',e:'r',g:'n',h:'m',f:'4'},{d:'k',c:'j',b:'i',e:'d'},{d:'6',c:'5',b:'7',e:'r'},{d:'r',c:'q',b:'p',e:'r',g:'x',h:'F',f:'X'},{},{g:'C',h:'r',f:'D',e:'r'}];
+(function(){const base=_IC_SRC.split('@renown\n')[1];if(!base)return;const src=base.split('\n').slice(0,16).map(r=>(r+'................').slice(0,16));
+ for(let t=1;t<=6;t++){const m=IC_RTMAP[t-1],rows=src.slice(2,13).map(r=>r.replace(/./g,k=>m[k]||k));while(rows.length<16)rows.push('................');
+  const g=rows.map(r=>r.split(''));const pc=t>=5?'d':t===4?'r':t===3?'6':t===2?'k':'q';for(let i=0;i<t;i++){const x=8-t+2*i;g[13][x]=pc}
+  ICONS['rt-'+t]=_icOutline(g.map(r=>r.join('')));icCss('rt-'+t)}})();
+/* ambition (a pennant planted on a summit) and retinue (three followers, the nearest in verdigris) */
+(function(){const S={ambition:['................','.......j........','.......jhgg.....','.......jggg.....','.......jgf......','.......j........','......lmn.......','.....lmmnn......','....lmlmnn4.....','...lmllmnnn4....','..lmlmmmnnn44...','.lmmmmmnnnn444..','.kkjjjjjjiiiiia.','................','................','................'],
+ retinue:['................','................','...ijk....ijk...','..ijtti..ijtti..','..ijsti..ijsti..','..iiuui..iiuui..','.ijjj.6ss.jjji..','.ijj.65tsu.jji..','.ijj.65stu.jji..','.ijj.6577u.jji..','.iij65555577ii..','..ii6555557.i...','....6555557.....','....7777777.....','................','................']};
+ for(const n in S){ICONS[n]=_icOutline(S[n]);icCss(n)}})();
