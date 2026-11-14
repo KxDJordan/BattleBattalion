@@ -14,19 +14,21 @@ through hiring and through events."
 ## Design (fixed; build to it)
 
 **Monster Hunter tree** `MAST.hunter = {n:'Monster hunter', kind:'hunter', ...}`: a new mastery group
-(talent tree kind `'hunter'`) with 4 tiers of 2 perks; each perk is one species ("quarry"):
-- Tier 1 (opens at level 2): Direwolves (`wolf`), Webspinners (`spider`)
-- Tier 2 (level 4): Serpents (`adder viper gserp`), Owlbears (`bear`)
-- Tier 3 (level 6): Ents (`thorn ent elder`), Ogres (`ogre aogre`)
-- Tier 4 (level 8): Restless dead (`skel zomb skelhal necro`), Riftspawn (`imp vknight vmage tyrant`)
+(talent tree kind `'hunter'`) with **9 tiers of ONE perk each** (owner change, overrides the first draft of 4x2);
+tier t opens at level t (like style trees); each perk is one species ("quarry"), weakest to strongest:
+1 Goblins (`gob gobarch gobsham`) · 2 Webspinners (`spider`) · 3 Direwolves (`wolf`) · 4 Restless dead
+(`skel zomb skelhal necro`) · 5 Serpents (`adder viper gserp`) · 6 Owlbears (`bear`) · 7 Riftspawn
+(`imp vknight vmage tyrant`) · 8 Ents (`thorn ent elder`) · 9 Ogres (`ogre aogre`). Perk ids `hunter.<quarry>`
+(`hunter.gob`, `hunter.spider`, `hunter.wolf`, `hunter.dead`, `hunter.serpent`, `hunter.bear`, `hunter.rift`,
+`hunter.ent`, `hunter.ogre`).
 Wyverns (`wyvern whatch`) are never a quarry. A table `QUARRY[perkKey] = {n, en:[EN ids], per, cap}`.
 - Kills are counted per merc and species, always (also before the perk is learned):
   `m.slain = {quarryKey: n}`, incremented when that merc lands the killing blow on a unit whose EN id is
   in the quarry (credit rules like XP kills). Shown on the character sheet.
 - A learned quarry perk grants, against units of that quarry: **+`per`% damage and +`per/2` (rounded down,
   min 1 per 2 kills) to hit, per kill counted, up to `cap` kills**, plus a flat starting bonus of +5%
-  damage the moment it is learned (so it is never empty). Suggested `per`/`cap`: tier 1: 1% per kill,
-  cap 30 kills; tier 2: 2%, cap 15; tier 3: 3%, cap 10; tier 4: 2%, cap 15 (max +30% damage, +15 hit).
+  damage the moment it is learned (so it is never empty). `per`/`cap` (each tier tops out at +30% damage / +15 hit on top of the +5%): tiers 1-3: 1% per kill,
+  cap 30; tiers 4-5: 2%, cap 15; tiers 6-7: 3%, cap 10; tiers 8-9: 5%, cap 6. Hit = floor(kills x per / 2).
   Tune if balance needs it, keep the numbers stated exactly in the perk text (`d`), and show the
   current stack ("12 slain: +12% damage, +6 to hit") on the perk and in the forecast/HUD breakdown.
   Exact in `forecast()`.
