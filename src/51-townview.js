@@ -589,8 +589,8 @@ function tvbOpen(k){const t=G.towns[G.town];if(!t||typeof showPanel!=='function'
    townView (50-towns.js) builds the page; this wraps its result so the rules' tavern stays the one source. ---- */
 function twSoloTavern(v){const why=htmlEsc(typeof tlSoloWhy==='function'?tlSoloWhy():'You ride alone');
  const note=`<div class="pn-hint tw-hint tw-alone">${twIcon(typeof icHas==='function'&&icHas('or-slayer')?'or-slayer':'skull',32)}<span><b>${why}</b>No sword signs on with a lone hunter. Followers can still be hired.</span></div>`;
- const i=v.list.indexOf('<div class="pn-sec');v.list=(i>=0?v.list.slice(0,i)+note+'<div class="tw-solo">'+v.list.slice(i):note+'<div class="tw-solo">'+v.list)+'</div>';
- if(v.detail&&!/pn-blank/.test(v.detail))v.detail=`<div class="tw-solo-d">${v.detail}</div>`;
+ const i=v.list.indexOf('<div class="pn-sec');v.list=(i>=0?v.list.slice(0,i)+'<div class="tw-solo">'+v.list.slice(i):'<div class="tw-solo">'+v.list)+'</div>';
+ v.detail=note+(v.detail&&!/pn-blank/.test(v.detail)?`<div class="tw-solo-d">${v.detail}</div>`:v.detail||'');
  v.foot=`<span class="pn-fl"><small><em class="tw-alone-f">${why}</em></small></span>`;
  v.key=(v.key||'')+':solo';return v}
 if(typeof townView==='function'){const twViewBase=townView;townView=function(t){const v=twViewBase(t);

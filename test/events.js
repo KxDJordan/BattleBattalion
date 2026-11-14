@@ -152,9 +152,9 @@ function run(seed,choose){const G=fresh(seed);const log=[];
   ok(c.h!==a.h,'different choices: a different company ('+c.h+')');console.log(`  ${a.log.length} events in 30 days; replay ${a.h} = ${b.h}; other choices ${c.h}`)}
 
 section('origins');
-{ const ORG=Object.keys(X.ORIGINS);ok(ORG.length===6&&ORG[0]==='free','six origins, Free company first');
+{ const ORG=Object.keys(X.ORIGINS);ok(ORG.length===7&&ORG[0]==='free'&&ORG.includes('slayer'),'seven origins (Solo: Beast Slayer too), Free company first');
   for(const k of ORG){const O=X.ORIGINS[k];ok(O.n&&O.d&&O.rule&&O.icon&&typeof O.n==='string','origin '+k+': n/d/rule/icon');
-   const G=fresh(70+ORG.indexOf(k),k);ok(G.origin===k,k+': G.origin');ok(G.roster.length===4,k+': four swords');ok(G.crowns===O.crowns,k+': crowns '+G.crowns);valid(G,'origin '+k);
+   const G=fresh(70+ORG.indexOf(k),k);ok(G.origin===k,k+': G.origin');ok(G.roster.length===O.roster.length&&G.roster.length===(O.solo?1:4),k+': '+(O.solo?'one sword':'four swords'));ok(G.crowns===O.crowns,k+': crowns '+G.crowns);valid(G,'origin '+k);
    const res=fightOnce({f:'bandit'});ok(res&&res.win!==false,k+': wins a battle');X.advanceTime(72);closeAll(X);valid(X.G,k+' after a battle and three days');
    X.mode='world';ok(X.save(),k+': saves');const r=X.readSave();ok(r.state==='ok',k+': loads ('+r.state+' '+(r.why||'')+')');ok(r.g.origin===k&&JSON.stringify(r.g.evt)===JSON.stringify(X.G.evt),k+': origin and event state survive the round trip');
    X.continueGame();closeAll(X);ok(X.G.origin===k&&X.G.roster.length===G.roster.length,k+': continues')}
