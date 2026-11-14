@@ -326,8 +326,8 @@ function ptBust(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38+((x^y)&1?0:0)||y>=29)C[y][x]=bg[1];
  if(bg[2])for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y<16)C[y][x]=bg[2];
  if(P.under)P.under(C);if(P.prop)ptProp(C,P);
- const sh=ptShield(P),shF=!!P.shRows;if(sh&&!shF)ptOver(C,sh);const wp=ptWeapon(P);if(wp)ptOver(C,wp);
- ptOver(C,P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P));if(sh&&shF)ptOver(C,sh);                             // an item's shield is held up in front of the shoulder
+ const sh=ptShield(P),wp=ptWeapon(P);
+ ptOver(C,P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P));if(sh)ptOver(C,sh);if(wp)ptOver(C,wp);               // shield and weapon are held in front of the body; the head stays on top
  const hd=ptHead(P,R),L=hd.L,E=hd.E;
  if(P.hairBack)P.hairBack(L,E);
  ptHair(L,P,E,R);if((P.ears==='elf'&&P.hat!=='hood')||P.ears==='gob')ptEars(L,P,E);ptBeard(L,P,E);
