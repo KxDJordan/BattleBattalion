@@ -284,7 +284,7 @@ function msOgrePose(st,fr,va,arm){const p={bx:0,by:0,lean:0,low:0,nf:[0,0],ff:[0
 function msOgre(v,st,fr,va,arm){const p=msOgrePose(st,fr,va,arm);if(p.dead){msOgreDead(v,arm);return}
  const S=MSO.sk,Pl=MSO.plate,by=p.by+p.low,X=(x,y)=>p.bx+x+Math.round(p.lean*(-y)/50),Y=y=>y+by-(y<-36?p.br:0),Q=(x,y)=>[X(x,y),Math.round(Y(y))];
  msOgOx=p.bx;msOgOy=by;const sk=msOgSk,dn=msOgDent;
- const sN=Q(15,-42),sF=Q(-14,-42);sN[1]+=p.br>0?0:0;
+ const sN=Q(15,-46),sF=Q(-14,-46);
  const r=p.wa*Math.PI/180,wc=Math.cos(r),ws=Math.sin(r),nh=[X(p.nh[0],p.nh[1]),Y(p.nh[1])];
  const fh=p.two?[nh[0]-wc*5,nh[1]-ws*5]:[X(p.fh[0],p.fh[1]),Y(p.fh[1])];
  /* ---- pieces ---- */
@@ -321,7 +321,7 @@ function msOgre(v,st,fr,va,arm){const p=msOgrePose(st,fr,va,arm);if(p.dead){msOg
  const dust=(n)=>{if(!n)return;const t=[nh[0]+wc*(arm?30:27),Math.min(-1,nh[1]+ws*(arm?30:25))];usGrp=13;const k=n===2?1:.7;
   for(const [dx,dy,rx,ry] of[[-7,1,4,2.4],[2,1,4.2,2.6],[-3,-1,3.6,2.8],[-12,-3,2,1.6],[4,-4,1.8,1.5]]){usPart();msOgOrb(t[0]+dx*k,Math.min(1,t[1]+dy*k),rx*k,ry*k,MSO.dust)}
   if(n===2)for(const [dx,dy] of[[-9,-8],[4,-9],[-2,-11]])usP(Math.round(t[0]+dx),Math.round(t[1]+dy),MSO.dust,0);usGrp=0};
- const head=()=>{const hb=v===0?[10,-46]:[4,-52],hx=Math.round(X(hb[0],hb[1])+p.hd[0]),hy=Math.round(Y(hb[1])+p.hd[1]);usGrp=8;
+ const head=()=>{const hb=v===0?[2,-46]:[1,arm?-51:-50],hx=Math.round(X(hb[0],hb[1])+p.hd[0]),hy=Math.round(Y(hb[1])+p.hd[1]);usGrp=8;
   if(v===0){
    if(arm){usPart();msOgOrb(hx-4.4,hy-7,1.4,2,MSO.horn);usPart();msOgLimb([[hx-4,hy-5],[hx-8,hy-9],[hx-8,hy-13]],t=>1.9-t*1.3,MSO.horn)}
    usPart();msOgOrb(hx-5.6,hy-.3,1.7,2.5,S);
@@ -341,7 +341,7 @@ function msOgre(v,st,fr,va,arm){const p=msOgrePose(st,fr,va,arm);if(p.dead){msOg
    usPart();msOgOrb(hx,hy-1,6,5.4,MSO.skH,sk);
    if(arm){usPart();msOgOrb(hx,hy-2,6.5,5.4,Pl,dn);usPart();msOgOrb(hx,hy+2.6,6,2.6,MSO.scale,(x,y)=>(x+y)&1?-1:0);for(const k of[-5,-2,1,4])usF(hx+k,hy-1,'q');usF(hx-2,hy-5,'r');usF(hx+2,hy-3,'H');
     usPart();msOgLimb([[hx+3,hy-5],[hx+6,hy-10],[hx+4,hy-13]],t=>2-t*1.4,MSO.horn)}
-   else{usPart();msOgOrb(hx-1,hy-3.5,2.2,1.9,MSO.hair);usPart();msOgLimb([[hx-1,hy-2],[hx-2,hy+1],[hx-1,hy+3]],t=>1.2-t*.5,MSO.hair);usF(hx-1,hy-2,'l');usF(hx,hy-2,'m');
+   else{usPart();msOgOrb(hx,hy-6.2,2.4,1.9,MSO.hair);usPart();msOgLimb([[hx-1,hy-7],[hx-4,hy-8],[hx-6,hy-6]],t=>1.3-t*.6,MSO.hair);usF(hx,hy-5,'l');usF(hx+1,hy-5,'m');
     for(let i=-3;i<=3;i++)usB(hx+i,hy+3,-1);usF(hx+4,hy-4,'h');usF(hx+5,hy-3,'h')}
    usF(hx+7,hy+2,'l');usF(hx+7,hy+1,'r')}
   usGrp=0};
@@ -349,9 +349,10 @@ function msOgre(v,st,fr,va,arm){const p=msOgrePose(st,fr,va,arm);if(p.dead){msOg
  const legN=v===0?6:-6,legF=v===0?-7:7;
  if(p.drop){usGrp=11;weapon(1)}
  usGrp=1;leg(legF,p.ff,0);
- usGrp=2;armSeg(sF,fh,0,12.5);if(p.two)fist(fh);
+ usGrp=2;armSeg(sF,fh,0,13.5);if(p.two)fist(fh);
  if(p.behind&&v===0){usGrp=3;weapon();if(p.two){usGrp=2;fist(fh)}}
  usGrp=4;leg(legN,p.nf,1);
+ if(v===1)head();
  /* ---- hips: hide loincloth, or a scale skirt with a leather tasset ---- */
  usGrp=5;usPart();
  const sk0=(x,y)=>(((x*7+(y>>1))&3)===0?-1:0)+(msOgH(x-p.bx,y-by)%11===0?1:0),sc0=(x,y)=>{const a=y-by+90,rw=Math.floor(a/3),q=(x-p.bx+90+(rw&1)*2)%4,m=a%3;return m===2?(q===0?-2:-1):(m===0&&q===2?1:0)};
@@ -361,33 +362,33 @@ function msOgre(v,st,fr,va,arm){const p=msOgrePose(st,fr,va,arm);if(p.dead){msOg
  if(arm&&v===0){usPart();msPoly([[-1,-24],[8,-24],[7,-13],[0,-13]].map(q=>Q(q[0],q[1])),MSO.belt,(x,y)=>(x+y)%5===0?-1:0);const t=Q(4,-16);usF(t[0],t[1],'q')}
  if(!arm&&v===1){usPart();msOgLimb([Q(-9,-24),Q(-11,-18),Q(-10,-13)],t=>2.2-t,MSO.hide)}
  /* ---- torso ---- */
- usGrp=6;usPart();msPoly([[-9,-44],[-3,-51],[7,-51],[13,-45]].map(q=>Q(q[0],q[1])),S,sk);
- usPart();const ch=Q(0,-40);msOgOrb(ch[0],ch[1],16.6,8.6,S,sk);
+ usGrp=6;usPart();msPoly((v===0?[[-15,-47],[-9,-52],[-5,-50],[8,-50],[12,-52],[17,-47]]:[[-15,-47],[-8,-53],[0,-55],[9,-53],[16,-47]]).map(q=>Q(q[0],q[1])),S,sk);
+ usPart();const ch=Q(0,-42);msOgOrb(ch[0],ch[1],17,9.6,S,sk);
  usPart();msPoly([[-13,-26],[15,-26],[15,-22],[-13,-22]].map(q=>Q(q[0],q[1])),MSO.belt,(x,y)=>(x*3+y)%7===0?-1:0);
  const g=v===0?Q(3,-31):Q(-1,-32);usPart();msOgOrb(g[0],g[1],(v===0?13.2:12.4)+p.br*.4,v===0?10.4:9.4,S,sk);
  if(v===0){if(!arm){usPart();const n0=Q(5,-28);usF(n0[0],n0[1],'H');usF(n0[0],n0[1]+1,'i');
-   for(let i=-7;i<=11;i++){const q=Q(i,-37+(Math.abs(i-2)>6?-1:0));usB(q[0],q[1],-1)}
-   for(let i=0;i<4;i++){const q=Q(-5+i,-43+i);usF(q[0],q[1],i&1?'t':'h')}
-   for(let i=-6;i<=12;i++){const yy=-46+Math.round(4.5*(1-Math.pow((i-3)/9.5,2))),q=Q(i,yy);usF(q[0],q[1],'a');if(i%3===0){usF(q[0],q[1]+1,'l');usF(q[0],q[1]+2,i%2?'m':'l')}}
-   const sk1=Q(3,-41);for(const [dx,dy,c] of[[-1,-1,'l'],[0,-1,'l'],[1,-1,'l'],[-1,0,'0'],[0,0,'l'],[1,0,'0'],[0,1,'m']])usF(sk1[0]+dx,sk1[1]+dy,c)}
+   for(let i=-9;i<=11;i++){const q=Q(i,-35+(Math.abs(i-1)>7?-1:0));usB(q[0],q[1],-1)}
+   for(let i=0;i<4;i++){const q=Q(-12+i,-43+i);usF(q[0],q[1],i&1?'t':'h')}
+   for(let i=-6;i<=12;i++){const yy=-43+Math.round(4.5*(1-Math.pow((i-3)/9.5,2))),q=Q(i,yy);usF(q[0],q[1],'a');if(i%3===0){usF(q[0],q[1]+1,'l');usF(q[0],q[1]+2,i%2?'m':'l')}}
+   const sk1=Q(3,-37);for(const [dx,dy,c] of[[-1,-1,'l'],[0,-1,'l'],[1,-1,'l'],[-1,0,'0'],[0,0,'l'],[1,0,'0'],[0,1,'m']])usF(sk1[0]+dx,sk1[1]+dy,c)}
   const bk=Q(5,-24);for(const [dx,dy,c] of[[-1,-1,'l'],[0,-1,'l'],[1,-1,'l'],[-1,0,'0'],[0,0,'m'],[1,0,'0'],[-1,1,'m'],[0,1,'l'],[1,1,'m']])usF(bk[0]+dx,bk[1]+dy,arm?(c==='0'?'G':c==='l'?'q':'p'):c)}
- else{for(let y=-48;y<=-28;y+=2){const q=Q(0,y);usB(q[0],q[1],-1)}for(let i=0;i<6;i++){let q=Q(-9+i,-43+Math.abs(i-3)*.6);usB(q[0],q[1]+2,-1);q=Q(4+i,-43+Math.abs(i-2)*.6);usB(q[0],q[1]+2,-1)}
-  if(!arm){for(let i=0;i<=24;i++){const q=Q(13-i,-47+i*.85);usP(q[0],q[1],MSO.belt,0);usP(q[0]+1,q[1],MSO.belt,0)}usPart();const pu=Q(-11,-22);msOgOrb(pu[0],pu[1]+2,3.6,3.4,MSO.hide);usF(pu[0],pu[1],'l');usF(pu[0]+1,pu[1],'l');usF(pu[0],pu[1]+1,'0')}}
+ else{for(let y=-52;y<=-28;y+=2){const q=Q(0,y);usB(q[0],q[1],-1)}for(let i=0;i<6;i++){let q=Q(-9+i,-43+Math.abs(i-3)*.6);usB(q[0],q[1]+2,-1);q=Q(4+i,-43+Math.abs(i-2)*.6);usB(q[0],q[1]+2,-1)}
+  if(!arm){for(let i=0;i<=24;i++){const q=Q(13-i,-50+i);usP(q[0],q[1],MSO.belt,0);usP(q[0]+1,q[1],MSO.belt,0)}usPart();const pu=Q(-11,-22);msOgOrb(pu[0],pu[1]+2,3.6,3.4,MSO.hide);usF(pu[0],pu[1],'l');usF(pu[0]+1,pu[1],'l');usF(pu[0],pu[1]+1,'0')}}
  if(arm){
-  if(v===0){usPart();msPoly([[-11,-47],[13,-47],[15,-38],[11,-33],[-8,-33],[-12,-38]].map(q=>Q(q[0],q[1])),Pl,(x,y)=>dn(x,y)+((x-msOgOx)===3?1:(x-msOgOx)===4?-1:0));
-   for(const [x,y] of[[-8,-45],[0,-45],[8,-45],[-9,-36],[12,-36]]){const q=Q(x,y);usF(q[0],q[1],'q');usF(q[0],q[1]+1,'G')}{const q=Q(-2,-40);usF(q[0],q[1],'H');usF(q[0]+1,q[1],'i')}
+  if(v===0){usPart();msPoly([[-12,-50],[14,-50],[16,-39],[11,-33],[-8,-33],[-13,-39]].map(q=>Q(q[0],q[1])),Pl,(x,y)=>dn(x,y)+((x-msOgOx)===3?1:(x-msOgOx)===4?-1:0));
+   for(const [x,y] of[[-10,-42],[12,-42],[-9,-36],[12,-36]]){const q=Q(x,y);usF(q[0],q[1],'q');usF(q[0],q[1]+1,'G')}{const q=Q(-2,-40);usF(q[0],q[1],'H');usF(q[0]+1,q[1],'i')}
    for(let k=0;k<2;k++){usPart();const q=Q(4,-28+k*4);msOgOrb(q[0],q[1],10.5-k*1.5,3,Pl,dn);usF(q[0]-8+k*2,q[1],'q');usF(q[0]+8-k,q[1],'q')}}
-  else{usPart();msPoly([[-13,-48],[13,-48],[14,-36],[11,-30],[-11,-30],[-14,-36]].map(q=>Q(q[0],q[1])),Pl,(x,y)=>dn(x,y)+((x-msOgOx)===0?1:(x-msOgOx)===1?-1:0)+(((y-by)+90)%6===0?-1:0));
+  else{usPart();msPoly([[-13,-52],[0,-54],[13,-52],[15,-36],[11,-30],[-11,-30],[-15,-36]].map(q=>Q(q[0],q[1])),Pl,(x,y)=>dn(x,y)+((x-msOgOx)===0?1:(x-msOgOx)===1?-1:0)+(((y-by)+90)%6===0?-1:0));
    for(const [x,y] of[[-10,-46],[-5,-46],[6,-46],[11,-46],[-11,-32],[10,-32]]){const q=Q(x,y);usF(q[0],q[1],'q')}{const q=Q(-6,-38);usF(q[0],q[1],'H')}
-   for(let i=0;i<=20;i++){const q=Q(-12+i*1.2,-48+i*.9);usF(q[0],q[1],i&1?'a':'i')}}
+   for(let i=0;i<=20;i++){const q=Q(-12+i*1.2,-50+i*1);usF(q[0],q[1],i&1?'a':'i')}}
   usGrp=7;pauldron(sF,-1)}
  if(p.behind&&v===1){usGrp=3;weapon();if(p.two){usGrp=2;fist(fh)}}
- if(v===1)head();
  /* ---- near arm, head, weapon, fists ---- */
- usGrp=9;armSeg(sN,nh,1,12.5);if(arm){usGrp=10;pauldron(sN,1)}
+ usGrp=9;armSeg(sN,nh,1,13.5);if(arm){usGrp=10;pauldron(sN,1)}
+ if(p.behind){usGrp=12;fist(nh)}
  if(v===0)head();
  if(!p.behind&&!p.drop){usGrp=11;weapon();if(p.two){usGrp=2;fist(fh)}}
- usGrp=12;fist(nh);dust(p.dust);usGrp=0}
+ if(!p.behind){usGrp=12;fist(nh)}dust(p.dust);usGrp=0}
 /* fallen on its back, the gut a mound, head to the right with the tusks up, feet up at the left, the weapon dropped behind it */
 function msOgreDead(v,arm){const S=MSO.sk,Pl=MSO.plate;msOgOx=0;msOgOy=0;const sk=msOgSk,dn=msOgDent,L=arm?Pl:S,lt=arm?dn:sk;
  usGrp=11;if(!arm){usPart();msOgLimb([[-10,-17],[4,-19],[16,-19]],t=>1.9+t*t*3.8,MSO.wood,(x,y)=>(x*3+y)%7===0?-1:0);for(const [x,y,dx,dy] of[[10,-23,0,-2],[14,-24,1,-2],[18,-22,2,-1]]){usPart();msL(x,y,x+dx,y+dy,MSO.nail,1)}}
@@ -410,8 +411,8 @@ function msAogre(v,st,fr,va){msOgre(v,st,fr,va,1)}
 /* portraits: a head-and-shoulders bust at twice the battle scale */
 function msOgBust(arm){if(typeof usBeginAt!=='function')return null;const S=MSO.sk,Pl=MSO.plate;usBeginAt(32,32,0,0);msOgOx=0;msOgOy=0;
  const sk=(x,y)=>msOgSk(x>>1,y>>1),dn=(x,y)=>msOgDent(x>>1,y>>1),P=(x,y,c)=>{usF(x,y,c);usF(x+1,y,c);usF(x,y+1,c);usF(x+1,y+1,c)},B2=(x,y,d)=>{usB(x,y,d);usB(x+1,y,d);usB(x,y+1,d);usB(x+1,y+1,d)};
- usGrp=2;usPart();msOgOrb(3,30,11,9,S,sk);if(arm){usPart();msOgOrb(3,25,11,7,Pl,dn);usPart();msOgOrb(4,31,10,4,Pl,dn);P(-1,28,'q');P(5,29,'q');usF(1,21,'r');usF(2,21,'q')}
- usGrp=3;usPart();msOgOrb(30,31,9,8,S,sk);if(arm){usPart();msOgOrb(30,26,9,6,Pl,dn);P(27,30,'q')}
+ usGrp=2;usPart();msOgOrb(3,26,11,10,S,sk);if(arm){usPart();msOgOrb(3,21,11,7,Pl,dn);usPart();msOgOrb(4,27,10,4,Pl,dn);P(-1,24,'q');P(5,25,'q');usF(1,17,'r');usF(2,17,'q')}
+ usGrp=3;usPart();msOgOrb(30,27,9,9,S,sk);if(arm){usPart();msOgOrb(30,22,9,6,Pl,dn);P(27,26,'q')}
  usGrp=4;usPart();msOgOrb(16,34,15,10,S,sk);if(arm){usPart();msPoly([[4,25],[28,25],[30,32],[2,32]],Pl,dn);for(const x of[6,12,18,24])P(x,27,'q')}
  else{for(let i=4;i<=27;i++){const y=Math.round(25+4*(1-Math.pow((i-15.5)/11.5,2)));usF(i,y,'a');if(i%4===0){P(i,y+1,'l');usF(i,y+3,'m')}}}
  usGrp=8;const hx=17,hy=14;
