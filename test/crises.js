@@ -89,7 +89,7 @@ for(const k of K){const G=fresh(SEED+5+K.indexOf(k),k);toStart(G);for(let d=0;d<
  else if(k==='deadmarch'){for(const p of G.parties.filter(p=>p.cr==='host').slice(0,4))X.worldBattleEnd({type:'party',id:p.id},true);ok(c.throne.known||c.clues>=4||G.parties.filter(p=>p.cr).length<4,'beaten hosts must give clues');X.crThroneReveal();ok(X.crSiteOf('throne'),'the throne site');X.worldBattleEnd({type:'crisis',k,what:'throne'},true)}
  else if(k==='horde'){X.crisisBattleEnd({type:'crisis',k,what:'camp'},true);ok(G.note==='crisisNext'&&c.as&&c.as.stage===1,'the horde camp is two fights');G.note=null;X.crisisBattleEnd({type:'crisis',k,what:'chief'},true)}
  else{for(const w of ['palisade','champions'])X.crisisBattleEnd({type:'crisis',k,what:w},true);ok(c.as&&c.as.stage===2,'the Emperor\'s camp is three fights');X.crisisBattleEnd({type:'crisis',k,what:'emperor'},true)}
- day(G);ok(c.won&&c.fin&&!c.lost,k+': the crisis was not won');ok(G.renown>=r0+X.CRK.renown*.9&&G.stash.includes(X.CRTROPHY[k])&&G.titles.includes(X.CRTITLE[k]),k+': victory rewards missing');
+ day(G);ok(c.won&&c.fin&&!c.lost&&X.CRISES[k].win(G)&&!X.CRISES[k].lose(G),k+': the crisis was not won');ok(G.renown>=r0+X.CRK.renown*.9&&G.stash.includes(X.CRTROPHY[k])&&G.titles.includes(X.CRTITLE[k]),k+': victory rewards missing');
  ok(G.parties.filter(p=>p.cr&&p.f===X.CRISES[k].f).length===0||k==='sunder',k+': hosts linger after the victory');
  for(let d=0;d<10;d++)day(G);ok(G.crisis.won,'the victory must hold');
  X.sheets.length=0;X.crisisEndSheet();ok(/victory/i.test(X.sheets.join()),'the victory sheet');closeAll(X);console.log(k+': won (scripted), rewards, title, trophy: ok')}

@@ -732,12 +732,12 @@ WASITK.push('crsiege','haunted','occupied','sacked','burned');
   if(!cr)return t0(P,size,own,mask,pr,night,f);
   const O=4,B=P.h-3,sz=clamp(size|0||1,1,3),TW=WASITE['town'+sz].w,TH=WASITE['town'+sz].h,X=x=>O+x,fl0=P.flat;
   if(bit('crsiege')){waTent(P,X(-1),B+1,3,7,['l','m','n']);waTent(P,X(TW),B+1,3,7,['l','m','n']);P.r(X(-3),B-12,1,12,'i');waFlag(P,X(-3),B-12,4,3,['1','G','D'],f>>1,1,'l')}
-  if(bit('haunted')){P.flat=true;for(let i=0;i<14;i++){const x=X(3+((waHash(i,sz,63)*(TW-6))|0)),y=B-3-((waHash(i,sz,64)*(TH*.6))|0);P.p(x,y,'1');P.p(x+1,y,'4')}P.flat=fl0;
-   P.s(X(-3),B-5,['.mm.','mllm','mlpm','mlpm']);P.s(X(TW-1),B-4,['.mm.','mllm','mlpm']);P.r(X(TW-6),B-20,1,20,'i');waFlag(P,X(TW-6),B-20,5,4,['D','G','1'],f>>1,-1,'Z')}
-  if(bit('occupied')){P.r(X(-2),B-22,1,22,'i');P.s(X(-3),B-25,['lll','0l0','.l.']);waFlag(P,X(-2),B-21,6,5,['4','w','1'],f>>1,1,'l');P.r(X(TW),B-16,1,16,'i');waFlag(P,X(TW),B-16,5,4,['4','w','1'],f>>1,-1,'l')}
-  if(bit('burned')){P.r(X(TW-2),B-18,1,18,'i');waFlag(P,X(TW-2),B-18,6,5,['x','X','G'],f>>1,-1,'n')}
-  if(bit('sacked')||bit('burned'))WARAIDF[sz].forEach((p,i)=>{if(bit('burned')||i<2)waBigFire(P,X(p[0]),B+p[1],f+i)});
+  if(bit('haunted')){P.flat=true;for(let i=0;i<22;i++){const x=X(3+((waHash(i,sz,63)*(TW-6))|0)),y=B-3-((waHash(i,sz,64)*(TH*.7))|0);P.p(x,y,'0');P.p(x+1,y,'1');P.p(x,y+1,'1');if(i%3===0)P.p(x+1,y+1,'4')}P.flat=fl0;
+   P.s(X(-3),B-5,['.mm.','mllm','mlpm','mlpm']);P.s(X(TW-1),B-4,['.mm.','mllm','mlpm']);P.r(X(TW-6),B-26,1,26,'i');P.p(X(TW-6),B-27,'l');waFlag(P,X(TW-6),B-26,9,6,['D','G','1'],f>>1,-1,'Z');for(const gx of [X(4),X(TW>>1),X(TW-10)])P.s(gx,B-2,['.mm.','mllm','mlpm'])}
+  if(bit('occupied')){P.r(X(-2),B-28,1,28,'i');P.s(X(-3),B-31,['lll','0l0','.l.']);waFlag(P,X(-2),B-27,9,6,['4','w','1'],f>>1,1,'l');P.r(X(TW),B-22,1,22,'i');P.s(X(TW-1),B-25,['lll','0l0','.l.']);waFlag(P,X(TW),B-21,8,6,['4','w','1'],f>>1,-1,'l');P.r(X(TW>>1),B-TH+4,1,10,'i');waFlag(P,X(TW>>1),B-TH+4,6,4,['4','w','1'],f>>1,1,'l')}
+  if(bit('burned')){P.r(X(TW-2),B-26,1,26,'i');waFlag(P,X(TW-2),B-26,9,6,['x','X','G'],f>>1,-1,'n');P.r(X(-2),B-20,1,20,'i');waFlag(P,X(-2),B-20,7,5,['x','X','G'],f>>1,1,'n')}
+  if(bit('sacked')||bit('burned'))WARAIDF[sz].forEach((p,i)=>waBigFire(P,X(p[0]),B+p[1],f+i));
   P.outline();P.flat=true;
-  if(bit('haunted'))for(let i=0;i<7;i++){const ph=(f*2+i*3)&7,x=X(2+((waHash(i,5,72)*(TW-4))|0)),y=B-5-((waHash(i,6,72)*(TH*.6))|0)-(ph>>1);if(ph<6){P.p(x,y,night?'Z':'6');if(ph<3)P.p(x,y-1,'7')}}
+  if(bit('haunted'))for(let i=0;i<14;i++){const ph=(f*2+i*3)&7,x=X(2+((waHash(i,5,72)*(TW-4))|0)),y=B-5-((waHash(i,6,72)*(TH*.6))|0)-(ph>>1);if(ph<6){P.p(x,y,night?'Z':'6');if(ph<3)P.p(x,y-1,'7')}}
   if(bit('sacked')||bit('burned'))for(let i=0;i<12;i++){const x=X(3+((waHash(i,sz,83)*(TW-6))|0)),y=B-2-((waHash(i,sz,84)*(TH*.55))|0);P.p(x,y,'0');P.p(x+1,y,'1')}
   P.flat=fl0}}

@@ -4,7 +4,7 @@
    The war hound is the direwolf rig. The Bone Throne is a monster kind of 76-monsters.js (MSK / MSD / MS_ID 'bthrone').
    Icons: it-<trophy> for the four victory trophies, cr-<crisis key> for the crisis sheets and the map legend. PAL colours only. */
 const CR_LOOKS={
- barbz:h=>({b:h.B.brute,skin:h.sk('tan'),armor:'fur',hair:'mohawk',hairR:h.hr('K'),beard:'full',beardR:h.hr('K'),brow:1,paint:'x',wd:usWdef('greataxe'),nobelt:0}),
+ barbz:h=>({b:h.B.brute,skin:h.sk('tan'),armor:'bare',hair:'mohawk',hairR:h.hr('K'),beard:'full',beardR:h.hr('K'),brow:1,paint:'x',wd:usWdef('greataxe'),nobelt:0}),
  barbax:h=>({b:h.B.human,skin:h.sk('fair'),armor:'leather',hat:'furcap',hair:'tail',hairR:h.hr('I'),beard:'short',beardR:h.hr('I'),wd:usWdef('handaxe')}),
  barbskald:h=>({b:h.B.slim,skin:h.sk('fair'),armor:'fur',hat:'band',hatR:h.C('blue'),hair:'mane',hairR:h.hr('W'),beard:'long',beardR:h.hr('W'),beads:'x',wd:usWdef('staff'),cape:h.C('blue')}),
  barbhus:h=>({b:h.B.knight,skin:h.sk('fair'),armor:'mail',hat:'spangen',beard:'full',beardR:h.hr('I'),wd:usWdef('waraxe'),shield:'round',shR:h.C('blue'),cape:h.C('blue'),Aov:{paul:h.R.iron}}),

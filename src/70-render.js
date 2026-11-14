@@ -286,14 +286,16 @@ function wvScratch(w,h,k){let c=WSC[k];if(!c){c=WSC[k]=mkCanvas(Math.max(96,w),M
 function wvPaint(q,x,y,kind,o){
  if(kind==='site'){if(WVA.site){try{drawSitePx(q,x,y,o);return}catch(e){wvFail('site',e)}}wvSiteOld(q,x,y,o)}
  else if(kind==='deco'){if(WVA.deco){try{drawTownDecoPx(q,x,y,o)}catch(e){wvFail('deco',e)}}}
+ else if(kind==='east'){try{drawEastPx(q,x,y,o)}catch(e){wvFail('east',e)}}   // the East (77-east-art.js): towns, hosts, scenery
  else if(kind==='band'){if(WVA.band){try{drawBandPx(q,x,y,o);return}catch(e){wvFail('band',e)}}wvBandOld(q,x,y,o,false)}
  else{if(WVA.co){try{drawCompanyPx(q,x,y,o);return}catch(e){wvFail('co',e)}}wvBandOld(q,x,y,o,true)}}
 // Cached sprite for a key. Two new sprites a frame at most: a third shows the last frame of the same thing meanwhile.
 function wvSprite(key,base,kind,o){let e=WSPR.get(key);if(e)return e;{const b=WSBX.get(base);if(b&&b.last&&WV.nc>=2&&!WV.boot)return b.last}WV.nc++;if(WSPR.size>420)WSPR.clear();let w=72,h=64,ax=36,ay=54;if(kind==='site'){const b=wvSiteBox(o);w=b.w+12;h=b.h+12;ax=w>>1;ay=b.h+6}else if(kind==='deco'){const b=wvSiteBox({kind:'town',size:o.size});w=b.w+20;h=b.h+32;ax=w>>1;ay=b.h+24}
- const night=(kind==='site'||kind==='deco')&&o.night,c=mkCanvas(w,h),q=c.getContext('2d',night?{willReadFrequently:true}:undefined);q.imageSmoothingEnabled=false;wvPaint(q,ax,ay,kind,o);
+ else if(kind==='east'){const b=eastBoxPx(o);w=b.w+12;h=b.h+12;ax=w>>1;ay=b.h+6}
+ const night=(kind==='site'||kind==='deco'||(kind==='east'&&o.k==='town'))&&o.night,c=mkCanvas(w,h),q=c.getContext('2d',night?{willReadFrequently:true}:undefined);q.imageSmoothingEnabled=false;wvPaint(q,ax,ay,kind,o);
  let bb=WSBX.get(base),d=null;if(!bb||night)d=q.getImageData(0,0,w,h).data;
  if(!bb){let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(d[(y*w+x)*4+3]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}   // measured on the first frame of a sprite, with room for its animation
-  if(x1<0){x0=ax-4;x1=ax+4;y0=ay-8;y1=ay}const pad=kind==='site'||kind==='deco'?1:3;bb={x0:Math.max(0,x0-pad)-ax,y0:Math.max(0,y0-pad)-ay,x1:Math.min(w,x1+1+pad)-ax,y1:Math.min(h,y1+1+(kind==='site'||kind==='deco'?1:0))-ay};bb.last=null;if(WSBX.size>300)WSBX.clear();WSBX.set(base,bb)}
+  if(x1<0){x0=ax-4;x1=ax+4;y0=ay-8;y1=ay}const pad=kind==='site'||kind==='deco'||kind==='east'?1:3;bb={x0:Math.max(0,x0-pad)-ax,y0:Math.max(0,y0-pad)-ay,x1:Math.min(w,x1+1+pad)-ax,y1:Math.min(h,y1+1+(kind==='site'||kind==='deco'?1:0))-ay};bb.last=null;if(WSBX.size>300)WSBX.clear();WSBX.set(base,bb)}
  e=bb.last={c,w,h,ax,ay,x0:bb.x0,y0:bb.y0,x1:bb.x1,y1:bb.y1,tc:null,tq:null,tk:'',lit:null,raw:kind==='site'&&o.kind==='portal'};
  if(night){   // the pixels that differ from the day sprite are the lit windows: they stay untinted
   const dq=wvScratch(w,h,'c'),was=o.night;o.night=false;wvPaint(dq,ax,ay,kind,o);o.night=was;const dd=dq.getImageData(0,0,w,h).data;let any=false;const im=new ImageData(w,h),ld=im.data;
@@ -363,12 +365,14 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  const vx0=WV.vx0=-bx/sc,vy0=WV.vy0=-by/sc,vx1=WV.vx1=(W_-bx)/sc,vy1=WV.vy1=(H_-by)/sc,AM=WN*WVT;
  const cx0=clamp(Math.floor(vx0/WVP),0,WCH.cols-1),cx1=clamp(Math.floor(vx1/WVP),0,WCH.cols-1),cy0=clamp(Math.floor(vy0/WVP),0,WCH.rows-1),cy1=clamp(Math.floor(vy1/WVP),0,WCH.rows-1);
  wchWork(cx0,cy0,cx1,cy1,vx0,vy0,vx1,vy1);if(WCH.w!==W){WV.boot=true;return}
+ wvEastFrame();
  // standing things, back to front
  WSN=0;WV.np=0;WV.tn=0;WV.nc=0;const vis=wvVisFn(),M=40,inV=(x,y)=>x>vx0-M&&x<vx1+M&&y>vy0-M&&y<vy1+M+24,fs=WV.fs,c=G.contract,CM=lkCtrMarks();let turnin=-1;WV.mkn=0;for(let i=0;i<CM.length;i++)if(CM[i].kind==='turnin'){turnin=CM[i].town;break}
  for(let i=0;i<G.towns.length;i++){const o=G.towns[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y))continue;const seen=worldSeen(o.x,o.y),so={kind:'town',size:o.size||2,frame:WV.f4%4,night:night>.5};let top=y-7;
-  if(seen){const e=wvSprite('T'+so.size+(so.night?'n':'d')+so.frame,'T'+so.size,'site',so);wvPush(y,e,x,false);top=y+e.y0;
+  if(seen){const ea=WVE.on&&!!o.east,e=ea?wvEastSpr(WVE.town,'town',so.size,so.night,so.frame):wvSprite('T'+so.size+(so.night?'n':'d')+so.frame,'T'+so.size,'site',so);wvPush(y,e,x,false);top=y+e.y0;
    if(WVA.deco){const dk=wvDecoOf(o,i);if(dk){const DO=WV.deco;DO.size=so.size;DO.frame=so.frame;DO.night=so.night;const e2=wvSprite(dk.key+(so.night?'n':'d')+so.frame,dk.key,'deco',DO);wvPush(y+.001,e2,x,false)}}}
   wvPlateAt(o.name,seen?(i===turnin?'d':'l'):'n',seen?'1':'0',x,top-2);if(i===turnin)WV.mk={x,y:top-13}}
+ if(WVE.on){const L=WVE.props;for(let i=0;i<L.length;i++){const o=L[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;wvPush(y,wvEastProp(o),x,false)}}   // eastern scenery: static sprites (their entries are in the draw list)
  if(G.sites)for(const o of G.sites){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;wvPush(y,wvSprite('R'+(o.kind||'ruin')+(o.n|0)%4,'R'+(o.kind||'ruin')+(o.n|0)%4,'site',{kind:o.kind||'ruin',size:1,frame:0,night:false,n:o.n}),x,false)}
  for(let i=0;i<CM.length;i++){const m=CM[i];if(m.kind==='turnin')continue;const x=m.x/WVU,y=m.y/WVU;let top=y-2;
   if(m.kind==='lair'&&inV(x,y)&&vis(m.x,m.y)){const fk=m.f||'bandit',e=wvSprite('L'+fk+WV.f4%4,'L'+fk,'site',{kind:'lair',f:fk,size:c.diff||1,frame:WV.f4%4,night:night>.5});wvPush(y,e,x,false);top=y+e.y0}
@@ -379,6 +383,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  for(const o of G.parties){const x=o.x/WVU,y=o.y/WVU;let b=WV.bd.get(o.id);if(!b){if(WV.bd.size>200)WV.bd.clear();b={x:o.x,dir:(o.tx||0)<o.x?-1:1,t:-1e9};WV.bd.set(o.id,b)}
   if(Math.abs(o.x-b.x)>.02){b.dir=o.x<b.x?-1:1;b.t=now}else if(o.x!==b.x||Math.abs((o.y-(b.y||0)))>.02)b.t=now;b.x=o.x;b.y=o.y;
   if(!inV(x,y)||!vis(o.x,o.y))continue;const mv=now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
+  if(o.f==='east'&&WVE.on){wvPush(y,wvEastBand(o,str,f,b.dir,mv),x,true);continue}   // a host of the Shogunate (77-east-art.js)
   if(o.goal==='merc'){const rv=wvRivalArt(o.f),sz=rv.n>8?'L':'s';   // a rival company under its own banner (41-worldart.js waMercPaint); the banner's colours are part of the key
    wvPush(y,wvSprite('Bm'+rv.sig+str+sz+b.dir+(mv?'m':'s')+f,'Bm'+rv.sig+str+sz+b.dir,'band',{f:o.f,str,n:rv.n,frame:f,dir:b.dir,moving:mv,goal:'merc',house:rv.bn}),x,true);continue}
   const hf=o.f==='free'||!!lkHouse(o.f),gl=o.goal==='caravan'||o.goal==='patrol'||o.goal==='raid'?o.goal:hf?'patrol':'',hs=gl==='patrol'||gl==='caravan'?lkHouse(o.f):null;
@@ -956,3 +961,13 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'){
  window.addEventListener('focus',()=>screenRecover(false));
  window.addEventListener('orientationchange',()=>setTimeout(()=>screenRecover(true),300));
 }
+
+/* ---- the East (19-east.js, 77-east-art.js): eastern towns (t.east, unless the East took them in the war: t.eastPrev0 marks those),
+   hosts of the Shogunate (party f 'east') and the region's scenery (eastProps). Every sprite goes through wvSprite (the cache and the
+   draw list), keyed by eastSpriteKey. Option objects are reused: nothing is allocated per frame once the sprites are made. ---- */
+const WVE={on:false,props:[],sig:'',town:{k:'town',size:1,night:false,frame:0},band:{k:'band',goal:'',n:1,frame:0,dir:1,moving:false},prop:{k:'prop',v:'',s:0}};
+function wvEastFrame(){WVE.on=typeof drawEastPx==='function'&&typeof eastSpriteKey==='function'&&typeof eastBoxPx==='function'&&!!(G&&G.east);if(!WVE.on)return;
+ if(typeof eastProps==='function'){const sig=(G.seed|0)+'|'+WN;if(WVE.sig!==sig){WVE.sig=sig;let L=[];try{L=eastProps()||[]}catch(e){L=[]}WVE.props=L.map(p=>({x:p.x,y:p.y,v:p.v,s:p.s|0,key:''}))}}else WVE.props=[]}
+function wvEastSpr(O,k,size,night,frame){O.size=size;O.night=!!night;O.frame=frame;const key=eastSpriteKey(O);return wvSprite(key,'E'+k+size,'east',O)}
+function wvEastBand(p,str,f,dir,mv){const O=WVE.band;O.goal=p.goal||'';O.n=p.mult||1;O.frame=f&3;O.dir=dir;O.moving=mv;return wvSprite(eastSpriteKey(O),'Eb'+(O.n>=1.35?3:O.n>=1.1?2:1),'east',O)}
+function wvEastProp(p){const O=WVE.prop;O.v=p.v;O.s=p.s;if(!p.key){p.key=eastSpriteKey(O);p.base='Ep'+p.v}return wvSprite(p.key,p.base,'east',O)}

@@ -108,7 +108,8 @@ function eastGen(w){const R=eastRegion(w);if(!R)return w;w.east=R.mask;w.eastT=R
  const r=mulberry(((w.seed|0)^0x2e57a11)>>>0),names=EASTN.towns.slice();for(let i=names.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=names[i];names[i]=names[j];names[j]=t}
  R.towns.forEach((ti,k)=>{const t=w.towns[ti];if(t&&!t.eastN){t.eastN=1;t.name=names[k%names.length]}t.east=1});return w}
 function eastW(){if(typeof W!=='undefined'&&W&&W.tiles){if(!W.east)eastGen(W);return W}return null}
-function isEastT(tx,ty){const w=eastW();if(!w||!w.east||tx<0||ty<0||tx>=WN||ty>=WN)return false;return w.east[(ty|0)*WN+(tx|0)]===1}
+function isEastT(tx,ty){const w=eastW();tx|=0;ty|=0;if(!w||!w.east||tx<0||ty<0||tx>=WN||ty>=WN)return false;const m=w.east,i=ty*WN+tx;if(m[i]===1)return true;if(w.tiles[i])return false;   // a shore or river tile counts with the land beside it
+ return(tx>0&&m[i-1]===1)||(tx<WN-1&&m[i+1]===1)||(ty>0&&m[i-WN]===1)||(ty<WN-1&&m[i+WN]===1)}
 function isEast(x,y){return isEastT(Math.floor(x/TS),Math.floor(y/TS))}
 function townEast(i){const t=typeof G!=='undefined'&&G&&G.towns&&G.towns[i];return!!(t&&t.east)}
 function eastTowns(){const L=[];if(G&&G.towns)G.towns.forEach((t,i)=>{if(t.east)L.push(i)});return L}
@@ -142,6 +143,7 @@ function eastWarOk(v){if(!v||typeof v!=='object'||Array.isArray(v))return false;
  if(!eastNumOk(v.day0))v.day0=1;if(!eastNumOk(v.wave))v.wave=1;if(!eastNumOk(v.waves))v.waves=EW.waves;if(!eastNumOk(v.next))v.next=v.day0+EW.gap;
  if(v.side!==null&&v.side!=='houses'&&v.side!=='east'&&v.side!=='out')v.side=null;if(!v.land||!eastNumOk(v.land.x)||!eastNumOk(v.land.y))v.land={x:0,y:0};return true}
 function eastName(){return G&&G.east?G.east.n:FACT.east.n}
+function eastNameL(){return eastName().replace(/^The /,'the ')}
 function eastHouse(){const e=G&&G.east;return e?{id:'east',n:e.n,short:e.short,c1:e.c1,c2:e.c2,emblem:e.emblem,seat:-1,pers:'proud'}:null}
 function eastBanner(){const e=G&&G.east;return e?{name:e.n,c1:e.c1,c2:e.c2,emblem:e.emblem}:{name:FACT.east.n,c1:'l',c2:'g',emblem:'sun'}}
 /* until 15-factions.js names 'east' a human faction itself (repOf / repTier / repGain / partyHostile read humanFact), it is wrapped here */
@@ -165,13 +167,13 @@ function eastSpawnHost(x,y,to,mult){if(typeof wsSpawnRaid!=='function')return nu
  return p}
 function eastStart(){const e=G.east,land=eastLanding();if(!land)return null;
  e.war={stage:'war',day0:G.day,side:null,wave:0,waves:EW.waves,next:G.day,land,hosts:[],sieges:[],taken:[],lost:[],ctr:[],outcome:null,end:null};
- eastNews(`The fleets of ${e.n} land on the eastern coast. The Eastern War has begun`,true);
+ eastNews(`The fleets of ${eastNameL()} land on the eastern coast. The Eastern War has begun`,true);
  // the houses: unite or not (a seeded draw for each pair at war)
  if(Array.isArray(G.wars)&&G.wars.length){G.wars=G.wars.filter(w=>{if(rnd()<.55){if(G.hrel)G.hrel[hrKey(w.a,w.b)]=Math.max(eastNum(G.hrel[hrKey(w.a,w.b)],0),5);eastNews(`${factName(w.a)} and ${factName(w.b)} set aside their quarrel against the invader`);return false}return true})}
  eastWave();if(!G.note)G.note='east';return e.war}
 function eastWave(){const v=eastWar();if(!v||v.wave>=v.waves)return;const k=v.wave,n=EW.hosts[k]||2,m=EW.mult[k]||1.2;v.wave++;v.next=G.day+EW.gap;
  const T=eastTargets(v.land.x,v.land.y);for(let j=0;j<n&&T.length;j++){const to=T[Math.min(j,T.length-1)],pos=typeof randOk==='function'?randOk(v.land.x,v.land.y,0,1.5):v.land,p=eastSpawnHost(pos.x,pos.y,to,Math.round((m+rnd()*.15)*100)/100);if(p)v.hosts.push(p.id)}
- if(k>0)eastNews(`A ${k===v.waves-1?'last ':''}wave of ${eastName()} lands on the coast`)}
+ if(k>0)eastNews(`A ${k===v.waves-1?'last ':''}wave of ${eastNameL()} lands on the coast`)}
 function eastNews(t,big){if(typeof worldNews==='function')worldNews(t);const L=G.eastNews||(G.eastNews=[]);if(big||L.length<3)L.push(t)}
 function eastHostOf(id){return G.parties.find(p=>p.id===id)||null}
 function eastSiegeOf(i){const v=eastWar();return v?v.sieges.find(s=>s.i===i)||null:null}
@@ -191,7 +193,7 @@ function eastWarDay(){const v=eastWar();if(!v||v.stage!=='war')return;
   const united=!G.wars||!G.wars.length,ch=clamp(.34+(p.mult-1)*.5-(united?.1:0)-(v.side==='houses'?.12:0)+(v.side==='east'?.14:0)-t.size*.07-(G.houses&&G.houses.some(h=>h.seat===s.i)?.15:0),.12,.85);
   if(rnd()<ch){const prev=t.own;t.own='east';t.pros=clamp(eastNum(t.pros,50)-10,0,100);t.ref=-99;v.taken.push({i:s.i,prev,day:G.day});eastNews(`${eastName()} took ${t.name}${prev&&prev!=='free'?' from '+factName(prev):''}`,true);
    p.gone=1;G.parties=G.parties.filter(q=>q!==p)}   // the host garrisons the town it took
-  else{p.gone=1;G.parties=G.parties.filter(q=>q!==p);eastNews(`The siege of ${t.name} failed: the host of ${eastName()} breaks`,true)}}
+  else{p.gone=1;G.parties=G.parties.filter(q=>q!==p);eastNews(`The siege of ${t.name} failed: the host of ${eastNameL()} breaks`,true)}}
  // the houses strike back at the towns the East holds
  for(const tk of v.taken){const t=G.towns[tk.i];if(!t||t.own!=='east'||townSit(tk.i,'siege'))continue;const h=G.houses&&G.houses.find(h=>h.id===tk.prev);if(!h||rnd()>=.1)continue;
   townSitAdd(tk.i,'siege',ri(SITS.siege.dur[0],SITS.siege.dur[1]),{by:h.id});const pos=randOk(t.x,t.y,1,1.6);if(typeof wsAdd==='function')wsAdd({x:pos.x,y:pos.y,f:h.id,goal:'patrol',siege:tk.i,mult:Math.round((1+rnd()*.3)*100)/100});eastNews(`${h.n} marches to retake ${t.name}`)}
@@ -203,7 +205,7 @@ function eastHeld(){const v=eastWar();if(!v)return 0;let n=0;for(const tk of v.t
 function eastEnd(){const v=eastWar();if(!v||v.stage!=='war')return;const held=eastHeld(),won=held>=2||(held>=1&&v.hosts.length>0);
  v.stage='over';v.end=G.day;v.outcome=won?'east':'houses';for(const id of v.hosts){const p=eastHostOf(id);if(p)p.gone=1}G.parties=G.parties.filter(p=>!p.ew);v.hosts=[];
  for(const s of v.sieges)townSitDel(s.i,'siege');v.sieges=[];
- if(!won){for(const tk of v.taken){const t=G.towns[tk.i];if(t&&t.own==='east'){t.own=tk.prev||'free';t.ref=-99}}eastNews(`The Eastern War is over: ${eastName()} sails home, and the houses keep their land`,true)}
+ if(!won){for(const tk of v.taken){const t=G.towns[tk.i];if(t&&t.own==='east'){t.own=tk.prev||'free';t.ref=-99}}eastNews(`The Eastern War is over: ${eastNameL()} sails home, and the houses keep their land`,true)}
  else eastNews(`The Eastern War is over: ${eastName()} keeps ${held} town${held===1?'':'s'} of the west`,true);
  const side=v.side||'out',H=Array.isArray(G.houses)?G.houses:[],why='The Eastern War';
  if(side==='houses'){if(!won){G.renown=eastNum(G.renown,0)+EW.renown.win;G.crowns=eastNum(G.crowns,0)+EW.pay.houses;for(const h of H)repGain(h.id,EW.rep.ally,why);eastTitle('Bane of the East')}else G.renown=eastNum(G.renown,0)+EW.renown.lose;
@@ -214,11 +216,11 @@ function eastEnd(){const v=eastWar();if(!v||v.stage!=='war')return;const held=ea
  if(G.note==null)G.note='eastend'}
 function eastTitle(t){const e=G.east;e.title=t;if(Array.isArray(G.titles)){if(!G.titles.includes(t))G.titles.push(t)}}
 function eastWarChoose(side){const v=eastWar();if(!v||v.stage!=='war'||v.side)return false;if(side!=='houses'&&side!=='east'&&side!=='out')return false;v.side=side;const H=Array.isArray(G.houses)?G.houses:[];
- if(side==='houses'){repGain('east',EW.rep.side,'Took up arms against '+eastName());for(const h of H)repGain(h.id,8,'Stood with the houses against the East');
+ if(side==='houses'){repGain('east',EW.rep.side,'Took up arms against '+eastNameL());for(const h of H)repGain(h.id,8,'Stood with the houses against the East');
   // the houses band together behind the company
   if(Array.isArray(G.wars)&&G.wars.length){for(const w of G.wars)eastNews(`${factName(w.a)} and ${factName(w.b)} make peace to face the East`);G.wars=[]}}
  else if(side==='east'){repGain('east',EW.rep.ally,'Took '+eastName()+'’s coin');for(const h of H)repGain(h.id,EW.rep.houseSide,'Sold its swords to the invader')}
- eastNews(side==='houses'?'The company stands with the houses':side==='east'?`The company takes the coin of ${eastName()}`:'The company stays out of the Eastern War');
+ eastNews(side==='houses'?'The company stands with the houses':side==='east'?`The company takes the coin of ${eastNameL()}`:'The company stays out of the Eastern War');
  eastPostWork(true);if(typeof save==='function')try{save()}catch(e){}return true}
 // contracts of the war: a free hand in every town to break an eastern siege (houses / out), or to take a town for the East (east / out)
 function eastPostSiege(i){}
@@ -238,8 +240,8 @@ function eastPostWork(force){const v=eastWar();if(!v||v.stage!=='war'||typeof ct
 function eastBattleEnd(src,win){const v=eastWar();if(!v||v.stage!=='war'||!win)return false;const c=G.contract;if(!c||!c.ew||c.ewDone)return false;if(!(c.stage>=1||c.done))return false;
  c.ewDone=1;const i=c.ew.i,t=G.towns[i];if(!t)return false;
  if(c.ew.k==='siege'){const s=eastSiegeOf(i);if(s){const p=eastHostOf(s.host);if(p){p.gone=1;G.parties=G.parties.filter(q=>q!==p)}v.sieges=v.sieges.filter(q=>q!==s);townSitDel(i,'siege');
-   repGain(t.own,12,'Broke the eastern siege of '+t.name);repGain('east',-8,'Broke a siege of the Shogunate');eastNews(`The company broke the eastern siege of ${t.name}`,true)}return true}
- if(c.ew.k==='take'&&t.own!=='east'){const prev=t.own;t.own='east';t.ref=-99;v.taken.push({i,prev,day:G.day});if(prev&&prev!=='free')repGain(prev,-15,'Stormed '+t.name+' for the East');repGain('east',10,'Took '+t.name);eastNews(`The company stormed ${t.name} for ${eastName()}`,true);return true}
+   repGain(t.own,12,'Broke the eastern siege of '+t.name);repGain('east',-8,'Broke an eastern siege');eastNews(`The company broke the eastern siege of ${t.name}`,true)}return true}
+ if(c.ew.k==='take'&&t.own!=='east'){const prev=t.own;t.own='east';t.ref=-99;v.taken.push({i,prev,day:G.day});if(prev&&prev!=='free')repGain(prev,-15,'Stormed '+t.name+' for the East');repGain('east',10,'Took '+t.name);eastNews(`The company stormed ${t.name} for ${eastNameL()}`,true);return true}
  return false}
 function eastWarStatus(){const v=eastWar();if(!v)return'';if(v.stage==='over')return v.outcome==='east'?`The East won the war (day ${v.end})`:`The houses won the Eastern War (day ${v.end})`;
  const s=v.side==='houses'?'fighting for the houses':v.side==='east'?'in eastern pay':v.side==='out'?'staying out':'no side chosen';
@@ -259,15 +261,15 @@ function eastWarSheet(){const v=eastWar();if(!v||typeof sheet!=='function')retur
  if(v.stage==='over'){sheet(`<div class="ew-sheet"><div class="ew-head">${ban}<div><div class="pn-kick">The Eastern War</div><h2>${v.outcome==='east'?e.n+' keeps its gains':'The East is driven back'}</h2></div></div>
   <p>${v.outcome==='east'?`${eastHeld()} town${eastHeld()===1?'':'s'} of the west now fly${eastHeld()===1?'s':''} the red sun of ${e.short}. The houses lick their wounds.`:`The last eastern host is broken. The fleets sail home and the towns they took are returned to their lords.`}</p>
   <p class="dim">${v.side==='houses'?(v.outcome==='houses'?'The houses pay the company and remember who stood with them.':'The company fought on the losing side.'):v.side==='east'?(v.outcome==='east'?`${e.lord} pays the company in gold and honour.`:'The eastern coin is spent; the houses remember.'):'The company stayed out and kept its swords for other work.'}</p>
-  <div class="ew-row"><button class="btn" onclick="closeSheet()">Onward</button></div></div>`,'ew');return true}
- const ch=v.side,btn=(k,t,d)=>`<button class="btn ew-opt${ch===k?' on':''}"${ch?' disabled':''} onclick="eastWarChoose('${k}');eastWarSheet()"><b>${t}</b><span>${d}</span></button>`;
+  <div class="ew-row"><button class="pri" onclick="closeSheet()">Onward</button></div></div>`,'ew');return true}
+ const ch=v.side,btn=(k,t,d)=>`<button class="ew-opt${ch===k?' on':''}"${ch?' disabled':''} onclick="eastWarChoose('${k}');eastWarSheet()"><b>${t}</b><span>${d}</span></button>`;
  sheet(`<div class="ew-sheet"><div class="ew-head">${ban}<div><div class="pn-kick">The Eastern War</div><h2>${e.n} lands on the coast</h2></div></div>
- <p>The fleets of ${e.n} have landed on the eastern shore. ${e.lord} leads samurai, warrior monks and ashigaru inland in ${v.waves} waves, one about every ${EW.gap} days. Each host marches on the nearest town and lays siege to it: if the siege runs ${EW.len[0]}–${EW.len[1]} days the town may fall. Break a host in the field and the siege is lifted.</p>
+ <p>The fleets of ${eastNameL()} have landed on the eastern shore. ${e.lord} leads samurai, warrior monks and ashigaru inland in ${v.waves} waves, one about every ${EW.gap} days. Each host marches on the nearest town and lays siege to it: if the siege runs ${EW.len[0]}–${EW.len[1]} days the town may fall. Break a host in the field and the siege is lifted.</p>
  <p class="dim">The houses (${hn||'the lords of the west'}) must band together or fall one by one. The war ends when every wave has landed and no host is left, or after ${EW.cap} days. If the East holds two towns at the end, it keeps them.</p>
  <div class="ew-opts">${btn('houses','Fight for the houses',`Eastern standing −${-EW.rep.side} (hostile), the houses +8 and they make peace with each other. If the East is driven back: ${EW.pay.houses} crowns, +${EW.renown.win} renown and the houses' gratitude.`)}
  ${btn('east','Take eastern coin',`The Shogunate +${EW.rep.ally}, every house ${EW.rep.houseSide}. Contracts to storm western towns. If the East keeps its gains: ${EW.pay.east} crowns, +${EW.renown.win} renown.`)}
  ${btn('out','Stay out and profit','No standing changes. War contracts from both sides stay open to the company. +'+EW.renown.out+' renown when it is over.')}</div>
- ${ch?`<p class="ew-chosen">${ch==='houses'?'The company stands with the houses.':ch==='east'?'The company is in eastern pay.':'The company stays out of it.'}</p><div class="ew-row"><button class="btn" onclick="closeSheet()">Close</button></div>`:''}</div>`,'ew');return true}
+ ${ch?`<p class="ew-chosen">${ch==='houses'?'The company stands with the houses.':ch==='east'?'The company is in eastern pay.':'The company stays out of it.'}</p><div class="ew-row"><button class="pri" onclick="closeSheet()">To the war</button></div>`:''}</div>`,'ew');return true}
 function eastNoteSheet(n){if(n==='east'||n==='eastend')return eastWarSheet();return false}
 
 /* ---- markets: eastern stalls carry eastern gear (about two thirds of the stock), western stalls almost none ----

@@ -258,3 +258,22 @@
 #pn .tw-alone{border-color:#5a1f1c;background:#2a1614}
 #pn .tw-alone b{display:block;color:#ef8a78}
 #pn em.tw-alone-f{color:#ef8a78;font-style:normal;font-weight:600}
+
+/* ================= THE EASTERN WAR sheet (19-east.js eastWarSheet): the Shogunate's banner, the war in a paragraph, three sides ================= */
+#sheetBody.ew{max-width:760px}
+.ew-sheet h2{margin:0;font-size:1.6rem;line-height:1.1}
+.ew-head{display:flex;align-items:center;gap:12px;margin-bottom:8px;padding-bottom:8px;border-bottom:2px solid #35554f}
+.ew-head .pn-kick{color:#ef8a78}
+.ew-sheet p{margin:0 0 8px;line-height:1.35}
+.ew-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+#sheetBody .ew-opt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:10px;min-height:44px;background:#101d1c;color:#e9e0c9;border:2px solid #0b1514;
+ box-shadow:inset 0 0 0 2px #35554f,inset 0 3px 0 2px #4d5a5c;font:inherit;cursor:pointer}
+#sheetBody .ew-opt b{font-family:'Jersey 15',system-ui,sans-serif;font-size:1.15rem;color:#fff4c8;letter-spacing:.02em}
+#sheetBody .ew-opt span{font-family:'Alegreya Sans',system-ui,sans-serif;font-size:.9rem;line-height:1.3;color:#b9ad8f;text-transform:none;letter-spacing:normal}
+#sheetBody .ew-opt:hover:not([disabled]),#sheetBody .ew-opt:focus-visible{box-shadow:inset 0 0 0 2px #c4493f,inset 0 3px 0 2px #ef8a78;outline:none}
+#sheetBody .ew-opt.on{box-shadow:inset 0 0 0 2px #d1a94e,inset 0 3px 0 2px #f3d98b;background:#213a36}
+#sheetBody .ew-opt[disabled]:not(.on){opacity:.45;cursor:default}
+.ew-chosen{color:#f3d98b}
+.ew-row{display:flex;justify-content:flex-end;gap:8px}
+@media (max-width:700px),(max-height:440px){.ew-opts{grid-template-columns:1fr}.ew-opt{padding:6px 8px}.ew-sheet h2{font-size:1.3rem}.ew-head{margin-bottom:4px;padding-bottom:4px}.ew-sheet p{font-size:.92rem;margin-bottom:5px}}
+@media (prefers-reduced-motion:reduce){.ew-opt{transition:none}}

@@ -114,7 +114,20 @@ const MPS={
  'sit-famine':['..0.0..','.0d0d0.','.0dcd0.','..0c0..','00000.0','0kjjji0','.00000.'],
  'sit-plague':['.00000.','0GGGGG0','0GgGgG0','0GGgGG0','0GgGgG0','0GGGGG0','.0i0...'],
  'sit-boom':['.0000..','0dddc0.','0cccb00','0dddcA0','0cccbA0','0dddcB0','.00000.'],
- 'sit-siege':['0.....0','00...00','.0q.q0.','..0q0..','.0q.q0.','0o0.0o0','00...00']
+ 'sit-siege':['0.....0','00...00','.0q.q0.','..0q0..','.0q.q0.','0o0.0o0','00...00'],
+ /* crises (18-crises.js): sites, hosts and the situations of fallen towns */
+ 'sit-crsiege':['0.....0','00...00','.0l.l0.','..0l0..','.0l.l0.','0D0.0D0','00...00'],
+ 'sit-haunted':['.00000.','0mmmmm0','0m0m0m0','0mmmmm0','.0m0m0.','.0mmm0.','..000..'],
+ 'sit-occupied':['0......','0w000..','0wwww0.','0w0w0w0','0wwww0.','0i000..','0i0....'],
+ 'sit-sacked':['..0.0..','.0E0E0.','0EyEyE0','0E0E0E0','.01010.','0111110','.00000.'],
+ 'sit-burned':['0......','0x000..','0xXXx0.','0XnnX0.','0xXXx0.','0i000..','0i0....'],
+ 'cr-grave':['..000....','.0mlm0.0.','.0lml00m0','.0mlm00l0','000000000','030303030','.0000000.'],
+ 'cr-throne':['...000...','..0l0l0..','.00lll00.','.01DDD10.','0mm1D1mm0','0lmllmml0','0mlmmlml0','.0000000.'],
+ 'cr-hcamp':['....0....','...0w0...','..0ww00..','.0uuuu0..','0uuiuuu00','0uiiuiiu0','0iiaaiii0','.0000000.'],
+ 'cr-ecamp':['0.0.0.0.0','010101010','010jkj010','01jjkjj10','010kak010','010aaa010','000000000'],
+ 'cr-dead':['..000..','.0lll0.','0l0l0l0','0lllll0','.0mlm0.','0D0m0D0','.0.0.0.'],
+ 'cr-horde':['.0...0.','0w000w0','0wwwww0','0w0w0w0','.0wnw0.','.0iii0.','..000..'],
+ 'cr-barb':['0.....0','n0.0.0n','0nqqqn0','.0sss0.','.0HHH0.','0HkkkH0','.0000..']
 };
 function mpRivalRows(r){const A=typeof BANNERC==='object'&&BANNERC[r.c1]?BANNERC[r.c1].r:['f','g','h'],C=typeof BANNERC==='object'&&BANNERC[r.c2]?BANNERC[r.c2].r:['m','l','r'],m={a:A[0],b:A[1],c:A[2],x:C[0],y:C[1],z:C[2]};
  return['.d.......','0j0000000','0jzyyyyy0','0jycbbby0','0jybbbby0','0jybbbay0','0jyyyyyx0','0j0yx0yx0','0j0.0.0.0','0j0......','0j0......','.0.......'].map(s=>s.split('').map(k=>m[k]||k).join(''))}
@@ -241,6 +254,7 @@ function mpWpFromHit(h){if(h.kind==='town'){const t=G.towns[h.i];return{x:t.x,y:
  if(h.kind==='portal'){const p=G.portals.find(p=>p.id===h.id);return p?{x:p.x,y:p.y,dest:{type:'portal',id:p.id},kind:'portal',ref:p.id,label:'Rift'}:null}
  if(h.kind==='lair')return{x:h.x,y:h.y,dest:null,kind:'lair',ref:0,label:h.label||'Lair'};
  if(h.kind==='nest')return{x:h.x,y:h.y,dest:null,kind:'nest',ref:h.id,label:'Nest'};
+ if(h.kind==='crsite')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'ruin',ref:h.id,label:h.n};
  if(h.kind==='ruin')return{x:h.x,y:h.y,dest:typeof siteSheet==='function'?{type:'site',id:h.id}:null,kind:'ruin',ref:h.id,label:typeof h.n==='string'&&h.n?h.n:'Ruins'};
  return{x:h.x,y:h.y,dest:null,kind:'land',ref:0,label:MPTERR[tileAt(h.x,h.y)]||'Open ground'}}
 function mpSame(a,b){return!!a&&!!b&&a.kind===b.kind&&(a.kind==='land'?Math.hypot(a.x-b.x,a.y-b.y)<TS*.5:a.ref===b.ref)}
@@ -372,6 +386,10 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  q.save();q.beginPath();q.rect(I.x,I.y,I.w,I.h);q.clip();
  for(const p of mpKnownPortals())mpAt(q,fr&1?'portal2':'portal',fr&1?MPS.portal2:MPS.portal,X(p.x),Y(p.y),'c');
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)){const sx=X(n.x),sy=Y(n.y),ti=typeof waNestTier==='function'?waNestTier(n):1;mpAt(q,'nest',MPS.nest,sx,sy,'c');for(let i=0;i<ti;i++){mpFill(q,'0',sx-4*us+i*3*us,sy+4*us,3*us,3*us);mpFill(q,'g',sx-3*us+i*3*us,sy+5*us,us,us)}}
+ /* the crisis: its sites (known), the hosts in sight */
+ if(typeof crisisMarks==='function'){let CM=[];try{CM=crisisMarks()}catch(e){CM=[]}for(const m of CM){if(m.kind==='crheld'||m.kind==='rift')continue;const sx=X(m.x),sy=Y(m.y);
+  if(m.kind==='crhost'||m.kind==='crsiege'){if(typeof worldVisible==='function'&&!worldVisible(m.x,m.y))continue;const r=MPCRF[m.f]||'cr-dead';mpAt(q,r,MPS[r],sx,sy,'b');if(m.kind==='crsiege'&&(fr&1))mpFill(q,'g',sx-us,sy-9*us,2*us,2*us);continue}
+  const r=MPCRK[m.kind];if(r&&MPS[r])mpAt(q,r,MPS[r],sx,sy,'c')}}
  /* rival companies in sight: a pennant in their colours (field c1, border c2) */
  for(const o of G.parties)if(o&&o.goal==='merc'&&typeof worldVisible==='function'&&worldVisible(o.x,o.y)){const r=typeof lkRival==='function'?lkRival(o.f):null;if(r)mpAt(q,'rv'+r.c1+r.c2,mpRivalRows(r),X(o.x),Y(o.y),'b')}
  G.towns.forEach(t=>{const s=mpTownSize(t);mpAt(q,s===1?'hamlet':s===3?'city':'town',mpTownRows(t),X(t.x),Y(t.y),'c')});
@@ -424,6 +442,7 @@ function mpHit(sx,sy){const o=mpOrigin(),k=mpK(),d=MP.d,us=MP.us,R=Math.max(13*d
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)&&near(n.x,n.y)<R)return{kind:'nest',id:n.id,x:n.x,y:n.y};
  for(const p of mpKnownPortals())if(near(p.x,p.y)<R)return{kind:'portal',id:p.id};
  for(const s of mpKnownRuins())if(near(s.x,s.y)<R)return{kind:'ruin',id:s.id,x:s.x,y:s.y,n:s.n};
+ for(const s of mpCrisisSites())if(near(s.x,s.y)<R)return{kind:'crsite',id:s.id,x:s.x,y:s.y,n:typeof CRSITEN==='object'&&CRSITEN[s.kind]||'A dark place'};
  const wx=(sx-o.x)/k,wy=(sy-o.y)/k;if(wx<0||wy<0||wx>=WN*TS||wy>=WN*TS)return{kind:'off'};
  if(!mpSeenW(wx,wy))return{kind:'fog',x:wx,y:wy};if(!tileAt(wx,wy))return{kind:'sea',x:wx,y:wy};
  const tx=Math.floor(wx/TS),ty=Math.floor(wy/TS);return{kind:'land',x:(tx+.5)*TS,y:(ty+.5)*TS}}
@@ -458,6 +477,8 @@ function mpTerrSwatch(t,o){const key='t'+t+(o||'')+(typeof worldKeyColor==='func
   for(let y=4;y<8;y++){let s='';for(let x=o==='coast'?1:2;x<(o==='coast'?9:10);x++)s+=P.keys[y*P.w+x]||'.';rows.push(s)}
   return mpSwatch(key,mpOutline(['..........'].concat(rows.map(r=>'.'+r+'.'),['..........'])),2)}
  return`<i class="mp-sw" style="width:20px;height:12px;background-image:url(${_pxCache.get(id)})"></i>`}
+const MPCRK={grave:'cr-grave',throne:'cr-throne',hcamp:'cr-hcamp',ecamp:'cr-ecamp'},MPCRF={dead:'cr-dead',horde:'cr-horde',barb:'cr-barb'};
+function mpCrisisSites(){return Array.isArray(G.sites)?G.sites.filter(s=>s&&s.cr&&MPCRK[s.kind]&&(s.kind==='throne'||s.kind==='ecamp'||mpSeenW(s.x,s.y))):[]}
 function mpLegendHTML(){const it=(sw,n)=>`<span class="mp-li">${sw}<b>${n}</b></span>`,riv=!!(W&&W.river),road=!!(W&&W.road);
  return'<div class="mp-lh pxh">Legend</div><div class="mp-lg">'
   +it(mpTerrSwatch(1),'Grassland')+it(mpTerrSwatch(2),'Forest')+it(mpTerrSwatch(3),'Hills')+it(mpTerrSwatch(4),'Mountains')+it(mpTerrSwatch(5),'Marsh')+it(mpTerrSwatch(6),'Desert')+it(mpTerrSwatch(7),'Snow')+it(mpTerrSwatch(0),'Water')
@@ -467,8 +488,13 @@ function mpLegendHTML(){const it=(sw,n)=>`<span class="mp-li">${sw}<b>${n}</b></
   +it(mpSwatch('target',MPS.target),'Contract target')+it(mpSwatch('nest',MPS.nest),'Nest')
   +(Array.isArray(G.houses)&&typeof BANNERC==='object'?G.houses.map(h=>it(mpSwatch('own'+h.id+h.c1,mpOwnRows(h)),mpEsc(h.n||h.short))).join(''):'')
   +(typeof SITS==='object'?Object.keys(SITS).filter(k=>MPS['sit-'+k]).map(k=>it(mpSwatch('sit-'+k,MPS['sit-'+k]),mpEsc(SITS[k].n))).join(''):'')
+  +(G.crisis&&typeof CRISES==='object'&&CRISES[G.crisis.k]?mpCrisisLegend(it):'')
   +it(mpSwatch('portal',MPS.portal),'Rift')+it(mpSwatch('ruin',MPS.ruin),'Ruin')+it(mpSwatch('pin1',mpPinRows(1)),'Route stop')+'</div>'
-  +(riv&&road?'':'<div class="mp-ln">* none charted in this land yet</div>')}
+  +(riv&&road?'':'<div class="mp-ln">* none charted in this land yet</div>')+mpCrisisNote()}
+function mpCrisisLegend(it){const k=G.crisis.k,L=[];const add=(r,n)=>L.push(it(mpSwatch(r,MPS[r]),n));
+ if(k==='deadmarch'){add('cr-grave','Risen graveyard');add('cr-throne','The Bone Throne');add('cr-dead','Risen host')}else if(k==='horde'){add('cr-hcamp','Horde camp');add('cr-horde','Horde war band')}else if(k==='barbarian'){add('cr-ecamp','The Emperor\'s Camp');add('cr-barb','Barbarian raiders')}
+ return L.join('')}
+function mpCrisisNote(){if(!G.crisis||typeof CRISES!=='object'||!CRISES[G.crisis.k]||typeof crisisLine!=='function')return'';return`<div class="mp-ln"><b>${mpEsc(CRISES[G.crisis.k].n)}</b>: ${mpEsc(crisisLine())} <a href="#" onclick="if(typeof crisisSheet==='function')crisisSheet();return false">More</a></div>`}
 function mpTools(){const r=MP.root;if(!r)return;const b=(id,k,l)=>{const e=r.querySelector('#'+id);if(e){e.classList.toggle('on',!!MP[k]);e.setAttribute('aria-pressed',MP[k]?'true':'false')}};
  b('mpTL','labels');b('mpTR','roads');b('mpTK','legend');const L=r.querySelector('#mpLegend');if(L){L.classList.toggle('on',MP.legend);if(MP.legend)L.innerHTML=mpLegendHTML()}}
 function mpCard(){const s=MP.sel,c=G.contract,L=[];let title='Plan a march',tag='',body='';

@@ -25,7 +25,7 @@ const TVMAP={day:{},
  night:{'1':'0','2':'1','3':'2','4':'3','5':'7','6':'5','7':'3',a:'1',b:'a',c:'b',d:'n',e:'m',f:'G',g:'f',h:'g',i:'a',j:'i',k:'j',l:'n',m:'o',n:'4',o:'3',p:'o',q:'p',r:'q',
   s:'u',t:'u',u:'i',v:'w',w:'7',A:'B',B:'7',x:'X',X:'G',y:'Y',Y:'a',z:'Z',Z:'3',C:'D',D:'G',E:'K',F:'X',G:'0',H:'a',I:'b',J:'o',K:'f'}};
 const TVLIT={r:'l',q:'m',p:'n',l:'d',m:'k',n:'o',o:'4','7':'3',F:'p',x:'X'};   // inside a lantern pool at night: warm, one step down
-const TVRAMP={red:['h','g','f'],verd:['6','5','7'],slate:['q','p','o'],thatch:['d','c','b'],clay:['E','K','f'],blue:['x','X','G'],wood:['k','j','i'],plum:['C','D','G']};
+const TVRAMP={kawara:['p','o','G'],tile:['n','4','3'],red:['h','g','f'],verd:['6','5','7'],slate:['q','p','o'],thatch:['d','c','b'],clay:['E','K','f'],blue:['x','X','G'],wood:['k','j','i'],plum:['C','D','G']};
 const TVBAY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
 
 /* ---- painter: a W x H buffer of palette indices plus flags (bit0 emissive, bits1-2 layer, bits3-5 building id) ---- */
@@ -65,14 +65,14 @@ const TVS={
 function tvSpr(key,rows,map,flip){const id=key+'|'+(flip?1:0);let c=TV.sp.get(id);if(c===undefined){c=px(flip?pxFlip(rows):rows,map);TV.sp.set(id,c)}return c}
 
 /* ---- the scene ---- */
-function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'town'+ti),R=mulberry(hs),rr=(a,b)=>a+Math.floor(R()*(b-a+1)),ch=p=>R()<p;
+function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=tvHash(t.name||'town'+ti),R=mulberry(hs),rr=(a,b)=>a+Math.floor(R()*(b-a+1)),ch=p=>R()<p;
  const dark=tod==='night',dim=tod==='dusk'||dark,lamps=dim,GH=Math.round(clamp(H*.29,52,112)),yB=H-GH,yH=yB-12,snow=bio==='snow';
  const an={smoke:[],lamps:[],stars:[],glints:[],lights:[],sign:null,mill:null,flag:null,walkY:yB+12,parts:null,box:{},yB,GH,tod,bio};
  const lit=p=>tod==='night'?ch(p):tod==='dusk'?ch(p*.75):tod==='dawn'?ch(p*.3):false;
- const ramps=bio==='desert'?['clay','thatch','blue','plum']:bio==='snow'?['slate','blue','red','verd']:bio==='swamp'?['wood','verd','slate','plum']:bio==='forest'?['verd','wood','red','slate']:bio==='hills'?['slate','red','blue','verd']:['red','thatch','verd','slate'];
+ const ramps=east?['kawara','tile','kawara','tile']:bio==='desert'?['clay','thatch','blue','plum']:bio==='snow'?['slate','blue','red','verd']:bio==='swamp'?['wood','verd','slate','plum']:bio==='forest'?['verd','wood','red','slate']:bio==='hills'?['slate','red','blue','verd']:['red','thatch','verd','slate'];
  const pickR=()=>ramps[(hs>>>(pickR.n=(pickR.n||0)+3))%ramps.length];
  const rA=TVRAMP[ramps[hs%4]],rB=TVRAMP[ramps[(hs>>>4)%4===hs%4?(hs%4+1)%4:(hs>>>4)%4]],rC=TVRAMP[ramps[(hs>>>8)%4]];
- const wallM=bio==='desert'?'adobe':bio==='forest'?'logs':bio==='swamp'?'wood':bio==='hills'?'stone':'plaster';
+ const wallM=east?'plaster':bio==='desert'?'adobe':bio==='forest'?'logs':bio==='swamp'?'wood':bio==='hills'?'stone':'plaster';
  /* -- sky -- */
  P.ly=0;P.em=1;
  const SKY={day:{plains:['X','x','x','F','F'],forest:['X','x','x','F','F'],hills:['X','X','x','x','F'],swamp:['n','n','m','m','l'],desert:['x','x','F','F','e'],snow:['p','p','q','q','r']},
@@ -124,11 +124,12 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
  const palm=(x,by,h)=>{for(let j=0;j<h;j++){const ox=Math.round(Math.sin(j/h*1.4)*3);P.r(x+ox,by-j,2,1,j%3?'j':'i')}const tx=x+Math.round(Math.sin(1.4)*3),ty=by-h;
   for(const [dx,dy] of [[-1,-.25],[-1,.35],[1,-.25],[1,.35],[-.5,-.7],[.5,-.7]])for(let j=0;j<9;j++){const fx=Math.round(tx+dx*j),fy=Math.round(ty+dy*j+j*j*.06);P.p(fx,fy,dx<0?'A':'B');P.p(fx,fy+1,'7')}P.r(tx,ty,2,2,'b')};
  const cactus=(x,by,h)=>{P.r(x,by-h,3,h,'B');P.r(x,by-h,1,h,'A');P.r(x+2,by-h+1,1,h-1,'7');P.r(x-3,by-h+5,3,2,'B');P.r(x-3,by-h+2,2,4,'B');P.p(x-3,by-h+2,'A');P.r(x+3,by-h+8,3,2,'7');P.r(x+5,by-h+4,1,5,'B')};
- const tree=(x,by,sz)=>{if(bio==='snow')pine(x,by,sz+8,['5','7','3'],1);else if(bio==='forest')(ch(.65)?pine(x,by,sz+10,['5','7','3']):leafy(x,by,Math.round(sz*.42),['A','B','7']));else if(bio==='desert')(ch(.6)?palm(x,by,sz+4):cactus(x,by,Math.round(sz*.6)));
+ const sakura=(x,by,r)=>leafy(x,by,r,['r','h','g']);
+ const tree=(x,by,sz)=>{if(east&&bio!=='snow'&&bio!=='desert'){ch(.55)?sakura(x,by,Math.round(sz*.4)):pine(x,by,sz+6,['B','7','3']);return}if(bio==='snow')pine(x,by,sz+8,['5','7','3'],1);else if(bio==='forest')(ch(.65)?pine(x,by,sz+10,['5','7','3']):leafy(x,by,Math.round(sz*.42),['A','B','7']));else if(bio==='desert')(ch(.6)?palm(x,by,sz+4):cactus(x,by,Math.round(sz*.6)));
   else if(bio==='swamp')(ch(.6)?dead(x,by,sz):leafy(x,by,Math.round(sz*.36),['w','7','3']));else if(bio==='hills')(ch(.5)?pine(x,by,sz+6,['w','7','3']):leafy(x,by,Math.round(sz*.38),['v','w','7']));else leafy(x,by,Math.round(sz*.42),ch(.25)?['d','c','K']:['A','B','7'])};
  // distant tree line
  if(bio==='forest'||bio==='snow'||bio==='hills'){for(let x=-4;x<W+6;x+=rr(4,7))pine(x,yH+rr(1,3),rr(12,22),snow?['p','o','o']:['7','3','3'],snow&&ch(.7))}
- else if(bio==='plains'){for(let x=rr(0,20);x<W;x+=rr(18,46))leafy(x,yH+2,rr(4,6),['w','B','7'])}
+ else if(bio==='plains'){for(let x=rr(0,20);x<W;x+=rr(18,46))leafy(x,yH+2,rr(4,6),east&&ch(.5)?['h','g','f']:['w','B','7'])}
  else if(bio==='swamp'){for(let x=rr(0,12);x<W;x+=rr(14,30))dead(x,yH+3,rr(12,22))}
  else{for(let x=rr(0,30);x<W;x+=rr(30,70))palm(x,yH+3,rr(12,18))}
  /* -- ground -- */
@@ -157,10 +158,12 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
   return tvHash(x+','+y)%31===0?'m':'l'};
  const wall=(x,y,w,h,m)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++){let k=mat(m,x+i,y+j);if((m==='plaster'||m==='adobe')&&(i>=w-2||j<2))k=m==='adobe'?'c':'m';P.p(x+i,y+j,k)}
   if(m==='stone'||m==='wood'||m==='logs'||m==='dark'){P.d(x,y,w,2,m==='stone'?'o':'i',0);P.d(x+w-2,y,2,h,m==='stone'?'o':'i',0)}};
- const timber=(x,y,w,h,st)=>{P.r(x,y,w,1,'i');P.r(x,y+h-1,w,1,'i');P.r(x,y,2,h,'i');P.r(x+w-2,y,2,h,'i');P.r(x,y,1,h,'j');
+ const timber=(x,y,w,h,st)=>{if(east){P.r(x,y,w,1,'1');P.r(x,y+h-1,w,1,'1');P.r(x,y,2,h,'i');P.r(x+w-2,y,2,h,'i');for(let i=1;i<st;i++)P.r(x+Math.round(i*w/st),y,1,h,'i');P.r(x,y+(h>>1),w,1,'j');return}   // the East: posts and rails, no braces
+  P.r(x,y,w,1,'i');P.r(x,y+h-1,w,1,'i');P.r(x,y,2,h,'i');P.r(x+w-2,y,2,h,'i');P.r(x,y,1,h,'j');
   for(let i=1;i<st;i++){const bx=x+Math.round(i*w/st);P.r(bx,y,1,h,'i')}
   for(let j=1;j<Math.min(h-1,8);j++){P.p(x+1+j,y+h-1-j,'i');P.p(x+w-2-j,y+h-1-j,'i')}};
- const win=(x,y,w,h,o)=>{o=o||{};const on=o.lit===undefined?lit(.8):o.lit;P.r(x-1,y-1,w+2,h+2,o.fr||'i');
+ const win=(x,y,w,h,o)=>{o=o||{};const on=o.lit===undefined?lit(.8):o.lit;
+  if(east){P.r(x-1,y-1,w+2,h+2,'1');P.em=on?1:0;for(let j=0;j<h;j++)for(let i=0;i<w;i++)P.p(x+i,y+j,(i%3===2||j%3===2)?(on?'c':'j'):on?(j<h/2?'e':'d'):(dim?'m':'l'));P.em=0;P.r(x-2,y+h+1,w+4,1,'1');return on}   // shoji: paper panes in a wooden latticeP.r(x-1,y-1,w+2,h+2,o.fr||'i');
   if(on){P.em=1;P.r(x,y,w,h,'y');P.r(x,y,Math.ceil(w/2),Math.ceil(h/2),'e');P.r(x,y+h-2,w,2,'c');P.r(x+w-1,y,1,h,'c');P.em=0}
   else{P.r(x,y,w,h,dim?'G':'X');if(!dim){P.r(x,y+h-2,w,2,'G');P.r(x+w-1,y,1,h,'G');for(let j=0;j<Math.min(w,h)-1;j++)if(j<3)P.p(x+1+j,y+2-j>=y?y+2-j:y,'x')}else P.p(x+1,y+1,'o')}
   if(w>=7)P.r(x+Math.floor(w/2),y,1,h,on?'a':'i');if(h>=8)P.r(x,y+Math.floor(h/2)-1,w,1,on?'a':'i');
@@ -168,21 +171,24 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
   if(o.sh){P.r(x-4,y-1,3,h+2,o.sh[1]);P.r(x-4,y-1,1,h+2,o.sh[0]);P.r(x+w+1,y-1,3,h+2,o.sh[1]);P.r(x+w+3,y-1,1,h+2,o.sh[2]);for(let j=1;j<h;j+=3){P.r(x-4,y+j,3,1,o.sh[2]);P.r(x+w+1,y+j,3,1,o.sh[2])}}
   if(o.box){P.r(x-1,y+h,w+2,2,'j');for(let i=0;i<w+2;i++)if(i%2===0)P.p(x-1+i,y+h-1,i%4?'g':'h');else P.p(x-1+i,y+h-1,'B')}
   return on};
- const roofSide=(x,y,w,h,c,sl)=>{sl=sl===undefined?.5:sl;for(let j=0;j<h;j++){const ins=Math.floor((h-1-j)*sl),x0=x+ins,x1=x+w-ins;for(let i=x0;i<x1;i++){const rw=Math.floor(j/3);let k=c[1];
+ const eaves=(x0,x1,y,c)=>{if(!east)return;for(let k=1;k<=3;k++){P.p(x0-k,y-Math.max(0,k-1),c[0]);P.p(x1+k-1,y-Math.max(0,k-1),c[2])}P.p(x0-3,y-3,c[0]);P.p(x1+2,y-3,c[2])};   // the East: eaves that turn up at the ends
+ const roofSide=(x,y,w,h,c,sl)=>{eaves(x,x+w,y+h-1,c);sl=sl===undefined?.5:sl;for(let j=0;j<h;j++){const ins=Math.floor((h-1-j)*sl),x0=x+ins,x1=x+w-ins;for(let i=x0;i<x1;i++){const rw=Math.floor(j/3);let k=c[1];
     if(j%3===2)k=c[2];else if((i+(rw&1)*3)%6===0)k=c[2];else if(j%3===0&&(i+(rw&1)*3)%6===1)k=c[0];
     if(j===0)k=c[0];if(i===x0)k=c[0];if(i===x1-1)k=c[2];if(j===h-1)k='1';
     if(snow){const sd=3+Math.round(Math.sin(i*.7)*1.2+Math.sin(i*.23)*1.5);if(j<sd)k=j===sd-1?'q':'r';if(j===h-2&&(i%5<3))k='r'}
     P.p(i,y+j,k)}}
   if(snow)for(let i=x+2;i<x+w-2;i+=rr(4,9))P.r(i,y+h,1,rr(1,3),'r')};
- const roofGable=(x,y,w,h,c,m)=>{const cx=x+w/2;for(let j=0;j<h;j++){const half=Math.round((j+1)*w/(2*h)),x0=Math.round(cx-half),x1=Math.round(cx+half);
+ const roofGable0=(x,y,w,h,c,m)=>{eaves(x,x+w,y+h-1,c);const cx=x+w/2;for(let j=0;j<h;j++){const half=Math.round((j+1)*w/(2*h)),x0=Math.round(cx-half),x1=Math.round(cx+half);
    for(let i=x0;i<x1;i++){const e=Math.min(i-x0,x1-1-i),left=i-x0<x1-1-i;let k;if(e<1)k=left?c[0]:c[2];else if(e<3)k=left?c[1]:c[2];else if(e<4)k='1';else if(i>=x+2&&i<x+w-2)k=mat(m,i,y+j);else continue;
     if(snow&&e<2)k=e<1?'r':'q';P.p(i,y+j,k)}}};
+ const roofGable=(x,y,w,h,c,m)=>{roofGable0(x,y,w,h,c,m);if(east&&h>=8){const k=Math.round(h*.4);roofSide(x-3,y+h-k,w+6,k,c,1.4)}};   // irimoya: a gable over a hipped skirt
  const door=(x,y,w,h,o)=>{o=o||{};P.r(x-1,y,w+2,h,'i');P.r(x,y-1,w,1,'i');P.r(x,y,w,h,'j');for(let i=2;i<w;i+=3)P.r(x+i,y+1,1,h-1,'i');P.r(x,y,1,h,'k');P.r(x,y,w,1,'k');
   if(o.dbl)P.r(x+Math.floor(w/2),y,1,h,'0');P.p(x+w-3,y+Math.floor(h/2),'c');if(o.dbl)P.p(x+Math.floor(w/2)-2,y+Math.floor(h/2),'c');
   if(o.win){const on=lit(.9);P.em=on?1:0;P.r(x+2,y+3,w-4,4,on?'y':'G');if(on)P.r(x+2,y+3,2,2,'e');P.em=0;P.r(x+Math.floor(w/2),y+3,1,4,'i')}
   P.r(x-3,y+h,w+6,2,snow?'r':'q');P.r(x-3,y+h+1,w+6,1,'p')};
- const lantern=(x,y,r)=>{P.r(x+2,y-3,1,3,'0');P.s(TVS.lamp,x,y);if(lamps){P.em=1;P.r(x+1,y+2,3,2,'y');P.p(x+2,y+2,'e');P.em=0;an.lamps.push({x:x+1,y:y+2});an.lights.push({x:x+2,y:y+6,r:r||22})}else{P.r(x+1,y+2,3,2,'p');P.p(x+1,y+2,'q')}};
- const chimney=(x,y,w,h,smoke)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++)P.p(x+i,y+j,mat('stone',x+i,y+j));P.r(x-1,y,w+2,2,snow?'r':'q');P.r(x-1,y+2,w+2,1,'o');P.r(x+w-1,y+3,1,h-3,'o');if(smoke)an.smoke.push({x:x+Math.floor(w/2),y:y-2})};
+ const lantern=(x,y,r)=>{if(east){P.r(x+2,y-3,1,3,'0');P.r(x,y,5,1,'0');P.r(x-1,y+1,7,5,'g');P.r(x,y+6,5,1,'0');P.r(x-1,y+1,1,5,'f');P.r(x+5,y+1,1,5,'f');for(let j=2;j<6;j+=2)P.r(x-1,y+j,7,1,'f');P.p(x+2,y+3,'0');
+  if(lamps){P.em=1;P.r(x,y+1,5,5,'E');P.r(x+1,y+2,2,2,'y');P.em=0;an.lamps.push({x:x+1,y:y+2});an.lights.push({x:x+2,y:y+8,r:r||22})}return}P.r(x+2,y-3,1,3,'0');P.s(TVS.lamp,x,y);if(lamps){P.em=1;P.r(x+1,y+2,3,2,'y');P.p(x+2,y+2,'e');P.em=0;an.lamps.push({x:x+1,y:y+2});an.lights.push({x:x+2,y:y+6,r:r||22})}else{P.r(x+1,y+2,3,2,'p');P.p(x+1,y+2,'q')}};
+ const chimney=(x,y,w,h,smoke)=>{if(east){if(smoke)an.smoke.push({x:x+Math.floor(w/2),y:y+h});return}for(let j=0;j<h;j++)for(let i=0;i<w;i++)P.p(x+i,y+j,mat('stone',x+i,y+j));P.r(x-1,y,w+2,2,snow?'r':'q');P.r(x-1,y+2,w+2,1,'o');P.r(x+w-1,y+3,1,h-3,'o');if(smoke)an.smoke.push({x:x+Math.floor(w/2),y:y-2})};
  const shadow=(x,y,w)=>{P.d(x,y,w,1,GR.rs,0);P.d(x+2,y+1,w-4,1,GR.rs,1)};
  /* -- back row of houses and the landmark -- */
  const hz=dark?['n','o','4']:['m','n','o'],bR=[[hz[1],hz[2],'4'],['o','4','3'],[rA[1],rA[2],'4'],[rB[1],rB[2],'4']];
@@ -191,10 +197,16 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
  const WD={tavern:80,inn:84,market:80,board:38},tot=order.reduce((a,k)=>a+WD[k],0),gap=Math.max(-5,(W-tot)/(order.length+.6)),X={};{let cx=gap*.8;order.forEach(k=>{X[k]=Math.round(cx);cx+=WD[k]+gap})}
  const tcx=X.board+19,tlx=X.market+40;
  // the town's own landmark keeps clear of the temple
- const land=['mill','tower','beacon','gate','mill','tower','gate','beacon'][ti%8],lx=(()=>{const c=[.3,.4,.5,.6,.7].map(f=>Math.round(W*f)),far=a=>Math.min(Math.abs(a-tcx),Math.abs(a-tlx)),a=c[(hs>>>16)%5];return far(a)>=46?a:c.slice().sort((p,q)=>far(q)-far(p))[0]})();
+ const land=east?(t.size>=3?'castle':'pagoda'):['mill','tower','beacon','gate','mill','tower','gate','beacon'][ti%8],lx=(()=>{const c=[.3,.4,.5,.6,.7].map(f=>Math.round(W*f)),far=a=>Math.min(Math.abs(a-tcx),Math.abs(a-tlx)),a=c[(hs>>>16)%5];return far(a)>=46?a:c.slice().sort((p,q)=>far(q)-far(p))[0]})();
  const lmK=bio==='desert'?['d','c','k']:['q','p','o'];
  const LH=Math.round(clamp(yB*.62,70,104)),by0=yB-6,brick=(i,j,hw)=>i<-hw+2?lmK[0]:i>hw-3?lmK[2]:(j%6===5||((i+(j/6|0)*3+60)%7===0))?lmK[2]:lmK[1];
- if(land==='mill'){const h=LH-22;for(let j=0;j<h;j++){const hw=6+Math.round(j/9);for(let i=-hw;i<=hw;i++)P.p(lx+i,by0-h+j,brick(i,j,hw+1))}
+ if(land==='pagoda'){const RF=TVRAMP.tile;let y=by0;for(let k=0;k<5;k++){const hw=13-k*2,bh=k?8:12;for(let j=0;j<bh;j++)for(let i=-hw+3;i<=hw-3;i++)P.p(lx+i,y-j,i===-hw+3?'k':i===hw-3?'i':k?'g':'l');
+   for(let i=-hw+5;i<=hw-5;i+=3)P.r(lx+i,y-bh+2,1,bh-3,k?'f':'j');y-=bh;for(let j=0;j<4;j++){const ww=hw-2+Math.round(j*j*.7);for(let i=-ww;i<=ww;i++)P.p(lx+i,y-3+j,j===3?'1':i<-ww*.3?RF[0]:i>ww*.4?RF[2]:RF[1])}P.p(lx-hw-3,y-1,RF[0]);P.p(lx+hw+2,y-1,RF[2]);P.p(lx-hw-4,y-2,RF[0]);P.p(lx+hw+3,y-2,RF[2]);y-=4}
+  for(let j=0;j<14;j++)P.p(lx,y-j,j%3===1?'d':'c');P.p(lx-1,y-4,'c');P.p(lx+1,y-4,'c');P.p(lx-1,y-8,'c');P.p(lx+1,y-8,'c');P.p(lx,y-14,'e')}
+ else if(land==='castle'){const RF=TVRAMP.kawara;let y=by0;for(let j=0;j<16;j++){const hw=20-Math.round(j*.35);for(let i=-hw;i<=hw;i++)P.p(lx+i,y-j,mat('stone',lx+i,y-j))}y-=16;
+  for(let k=0;k<3;k++){const hw=15-k*4,bh=k===2?10:12;wall(lx-hw,y-bh+1,hw*2,bh,'plaster');for(let i=-hw+4;i<hw-3;i+=6)win(lx+i,y-bh+5,3,4,{lit:lit(.6),fr:'1'});y-=bh;for(let j=0;j<6;j++){const ww=hw+2+Math.round(j*j*.4);for(let i=-ww;i<=ww;i++)P.p(lx+i,y-5+j,j===5?'1':i<-ww*.3?RF[0]:i>ww*.4?RF[2]:RF[1])}eaves(lx-hw-4,lx+hw+5,y,RF);y-=6}
+  P.s(['c...c','dc.cd','.ccc.'],lx-2,y-2);if(lamps)an.lights.push({x:lx,y:y+20,r:20})}
+ else if(land==='mill'){const h=LH-22;for(let j=0;j<h;j++){const hw=6+Math.round(j/9);for(let i=-hw;i<=hw;i++)P.p(lx+i,by0-h+j,brick(i,j,hw+1))}
   for(let j=0;j<9;j++)for(let i=-j-2;i<=j+2;i++)P.p(lx+i,by0-h-9+j,snow&&j<3?'r':i<0?rC[1]:rC[2]);P.r(lx-1,by0-h+12,3,5,'G');P.r(lx-1,by0-h+30,3,5,'G');an.mill={x:lx,y:by0-h-3,r:Math.round(LH*.26)}}
  else if(land==='tower'||land==='beacon'){const h=land==='beacon'?LH-14:LH-10;for(let j=0;j<h;j++)for(let i=-8;i<8;i++)P.p(lx+i,by0-h+j,brick(i,j,8));
   for(let i=-10;i<10;i++){P.p(lx+i,by0-h,lmK[2]);P.p(lx+i,by0-h-1,lmK[1]);P.p(lx+i,by0-h-2,lmK[1]);if((i+10)%4<2){P.p(lx+i,by0-h-3,lmK[1]);P.p(lx+i,by0-h-4,snow?'r':lmK[0])}}
@@ -248,7 +260,16 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
  {const ex=tvExtras(t);if(ex.length){const avoid=[tcx,tlx,lx],cand=[];for(let f=.05;f<.97;f+=.045)cand.push(Math.round(W*f));
    const pick=[];for(const k of ex){let best=null,bd=-1;for(const c of cand){const d=Math.min(...avoid.map(a=>Math.abs(c-a)).concat(pick.map(q=>Math.abs(c-q.x)+4)));if(d>bd){bd=d;best=c}}if(best==null||bd<24)break;pick.push({k,x:best})}
    for(const g of pick)tvGuild(P,g.k,g.x,yB,LH,{lit,snow,dim,dark,mat,wall,win,roofGable,roofSide,chimney,rr,ch,an,wallM})}}
- temple(tcx);
+ /* -- the East: a shrine hall instead of the stone chapel: red pillars, a great curved roof, a hanging bell under a gate roof -- */
+ const templeE=cx=>{P.id=5;const by=yB-3,w=48,x=cx-24,wh=34,ty=by-wh,RF=TVRAMP.tile;
+  for(let j=0;j<5;j++)P.r(x-4+j,by+1-j,w+8-j*2,1,j?'p':'o');wall(x,ty,w,wh-4,'plaster');for(let i=0;i<w;i+=8){P.r(x+i,ty,3,wh-4,'g');P.r(x+i,ty,1,wh-4,'h');P.r(x+i+2,ty,1,wh-4,'f')}
+  for(let i=4;i<w-4;i+=8){P.r(x+i,ty+6,4,14,'1');if(lit(.9)){P.em=1;P.r(x+i,ty+7,4,12,'y');P.r(x+i,ty+7,2,3,'e');P.em=0}}P.r(x,ty,w,2,'i');
+  const rh=22;for(let j=0;j<rh;j++){const t2=(j+1)/rh,ww=Math.round((w/2+8)*(.25+.75*t2*t2));for(let i=-ww;i<=ww;i++)P.p(cx+i,ty-rh+j,j>=rh-2?'1':snow&&j<rh*.4?'r':i<-ww*.3?RF[0]:i>ww*.4?RF[2]:RF[1])}eaves(cx-(w>>1)-8,cx+(w>>1)+9,ty-1,RF);
+  P.r(cx-9,ty-rh-2,18,2,'1');P.p(cx-10,ty-rh-3,'c');P.p(cx+9,ty-rh-3,'c');
+  // the bell under its own little roof
+  const bx=cx,byy=ty-rh-14;for(let j=0;j<5;j++){const ww=4+j;for(let i=-ww;i<=ww;i++)P.p(bx+i,byy+j,j===4?'1':i<0?RF[0]:RF[2])}P.r(bx-5,byy+5,1,9,'g');P.r(bx+5,byy+5,1,9,'f');P.s(['.cc.','cddc','cdcb','cdcb','bccb'],bx-2,byy+6);
+  if(lamps)an.lights.push({x:cx,y:ty+4,r:18});an.bell={x:bx-2,y:byy+6};P.id=0;an.box.temple={x:x-8,y:byy,w:w+16,h:Math.max(24,yB-byy)}};
+ if(east)templeE(tcx);else temple(tcx);
  /* -- tailor: a narrow jettied house behind the market stalls, its upper floor above the awnings; bolts of dyed cloth drying on a
     pole and a sign with the shears. Plum tiles so it reads apart from the other roofs. -- */
  const tailor=cx=>{P.id=6;const w=40,x=cx-20,by=yB-3,m2=wallM==='stone'||wallM==='logs'?'plaster':wallM,gT=by-30,uT=by-62,rT=uT-23,rP=TVRAMP.plum;
@@ -309,7 +330,7 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
   lantern(x+12,yB-18,22);lantern(x+39,yB-18,22);
   shadow(x-1,yB,86);P.id=0;an.box.inn={x:x-5,y:yB-108,w:92,h:110}};
  /* -- market -- */
- const market=x=>{P.id=3;const by=yB+2,aw=[[['g','f','h'],['l','m','r']],[[rC[1],rC[2],rC[0]],['l','m','r']]];
+ const market=x=>{P.id=3;const by=yB+2,aw=east?[[['x','X','F'],['l','m','r']],[['g','f','h'],['l','m','r']]]:[[['g','f','h'],['l','m','r']],[[rC[1],rC[2],rC[0]],['l','m','r']]];
   // bunting
   P.r(x-1,by-58,1,58,'i');P.r(x+80,by-58,1,58,'i');P.p(x-1,by-59,'c');P.p(x+80,by-59,'c');
   for(let i=0;i<=80;i++){const sag=Math.round(Math.sin(i/80*3.14159)*5);P.p(x+i,by-57+sag,'a');if(i%7===3){const c=['g','y','5','x','l'][(i/7|0)%5];P.r(x+i-1,by-56+sag,3,1,c);P.r(x+i-1,by-55+sag,2,1,c);P.p(x+i,by-54+sag,c)}}
@@ -352,16 +373,21 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
  /* -- street props -- */
  const prop=(hs>>>24)%3,pgx=(()=>{let best=null;order.forEach((k,i)=>{if(i<3){const a=X[k]+WD[k],b=X[order[i+1]],g=b-a;if(!best||g>best.g)best={g,x:Math.round((a+b)/2)}}});return best})();
  if(pgx&&pgx.g>20){const x=pgx.x,by=yB+3;
-  if(prop===0){P.r(x-8,by-8,16,8,'p');for(let i=0;i<16;i++)for(let j=0;j<8;j++)P.p(x-8+i,by-8+j,mat('stone',x+i,by+j));P.r(x-9,by-9,18,2,'q');P.r(x-9,by-8,18,1,'o');P.r(x-7,by-22,1,13,'j');P.r(x+6,by-22,1,13,'i');roofSide(x-10,by-27,20,6,rC,.6);P.r(x,by-21,1,8,'a');P.r(x-1,by-13,3,3,'j')}
+  if(east){const hw=Math.min(13,Math.max(7,(pgx.g>>1)-2));for(let j=0;j<34;j++){P.r(x-hw,by-j,2,1,'g');P.p(x-hw,by-j,'h');P.r(x+hw-1,by-j,2,1,'f')}P.r(x-hw-2,by-26,hw*2+5,2,'g');P.r(x-hw-2,by-25,hw*2+5,1,'f');
+   P.r(x-hw-5,by-34,hw*2+11,2,'1');P.r(x-hw-4,by-32,hw*2+9,2,'g');P.p(x-hw-6,by-35,'1');P.p(x+hw+6,by-35,'1');P.p(x-hw-7,by-36,'1');P.p(x+hw+7,by-36,'1');P.r(x-1,by-31,3,5,'1');P.p(x,by-29,'c');P.r(x-hw-1,by,4,2,'p');P.r(x+hw-2,by,4,2,'p')}
+  else if(prop===0){P.r(x-8,by-8,16,8,'p');for(let i=0;i<16;i++)for(let j=0;j<8;j++)P.p(x-8+i,by-8+j,mat('stone',x+i,by+j));P.r(x-9,by-9,18,2,'q');P.r(x-9,by-8,18,1,'o');P.r(x-7,by-22,1,13,'j');P.r(x+6,by-22,1,13,'i');roofSide(x-10,by-27,20,6,rC,.6);P.r(x,by-21,1,8,'a');P.r(x-1,by-13,3,3,'j')}
   else if(prop===1){P.r(x-6,by-4,12,4,'p');P.r(x-6,by-4,12,1,'q');P.r(x-3,by-10,6,6,'p');P.r(x-3,by-10,1,6,'q');P.r(x+2,by-10,1,6,'o');P.r(x-2,by-18,4,8,'n');P.r(x-2,by-18,1,8,'m');P.r(x-3,by-21,6,4,'n');P.r(x-3,by-21,2,2,'m');P.r(x+1,by-17,4,1,'o');P.r(x+4,by-25,1,9,'q')}
   else{P.r(x-9,by-7,18,4,'j');P.r(x-9,by-7,18,1,'k');P.r(x-9,by-4,18,1,'i');P.r(x-8,by-11,12,4,'c');P.r(x-8,by-11,12,1,'d');P.d(x-8,by-9,12,2,'b',1);P.disc(x-5,by-2,3,'i');P.disc(x-5,by-2,1,'k');P.disc(x+5,by-2,3,'i');P.disc(x+5,by-2,1,'k');P.r(x+9,by-6,7,1,'j')}}
  // lamp post on the street and foreground framing
  const bi=order.indexOf('board'),lpx=bi<2?X.board+WD.board+5:X.board-6;
- {const x=clamp(lpx,10,W-10),by=yB+Math.round(rdH*.62);P.r(x,by-30,2,30,'0');P.r(x,by-30,1,30,'o');P.r(x-1,by-2,4,2,'0');P.r(x-2,by-31,6,1,'0');P.s(TVS.lamp,x-2,by-37);
+ if(east){const x=clamp(lpx,10,W-10),by=yB+Math.round(rdH*.62),S2=['q','p','o'];P.r(x-5,by-3,11,3,'p');P.r(x-5,by-3,11,1,'q');P.r(x-2,by-16,5,13,'p');P.r(x-2,by-16,1,13,'q');P.r(x+2,by-16,1,13,'o');P.r(x-5,by-18,11,2,'p');P.r(x-5,by-18,11,1,'q');
+  P.r(x-4,by-25,9,7,'1');P.r(x-4,by-25,1,7,'p');P.r(x+4,by-25,1,7,'o');const on=lamps;P.em=on?1:0;P.r(x-2,by-23,5,3,on?'y':'G');if(on)P.p(x-1,by-23,'e');P.em=0;if(on){an.lamps.push({x:x-2,y:by-23});an.lights.push({x,y:by-10,r:28})}
+  for(let j=0;j<4;j++){const w2=7-j;P.r(x-w2,by-26-j,w2*2+1,1,j?'p':'o')}P.p(x-8,by-27,'p');P.p(x+8,by-27,'o');P.r(x,by-31,1,2,'q');void S2}   // a stone toro instead of the iron lamp post
+ else{const x=clamp(lpx,10,W-10),by=yB+Math.round(rdH*.62);P.r(x,by-30,2,30,'0');P.r(x,by-30,1,30,'o');P.r(x-1,by-2,4,2,'0');P.r(x-2,by-31,6,1,'0');P.s(TVS.lamp,x-2,by-37);
   if(lamps){P.em=1;P.r(x-1,by-35,3,2,'y');P.p(x,by-35,'e');P.em=0;an.lamps.push({x:x-1,y:by-35});an.lights.push({x:x+1,y:by-14,r:30})}else{P.r(x-1,by-35,3,2,'p');P.p(x-1,by-35,'q')}
   if(snow)P.r(x-2,by-38,5,1,'r')}
  // fence along the front
- const fy=yF+Math.round((H-yF)*.28);for(let x=-3;x<W;x+=12){const broken=ch(.12);if(!broken){P.r(x+2,fy-1,12,1,'k');P.r(x+2,fy,12,1,'j');P.r(x+2,fy+4,12,2,'j');P.r(x+2,fy+4,12,1,'k')}
+ const fy=yF+Math.round((H-yF)*.28);if(east){for(let x=-2;x<W;x+=4){const h=10+((x*7)%3);P.r(x,fy-h+8,2,h,'v');P.p(x,fy-h+8,'A');P.p(x+1,fy-h+8,'w');P.p(x,fy+3,'B');P.p(x+1,fy+3,'7')}P.r(-2,fy+1,W+4,1,'i');P.r(-2,fy+5,W+4,1,'i')}else for(let x=-3;x<W;x+=12){const broken=ch(.12);if(!broken){P.r(x+2,fy-1,12,1,'k');P.r(x+2,fy,12,1,'j');P.r(x+2,fy+4,12,2,'j');P.r(x+2,fy+4,12,1,'k')}
   P.r(x,fy-4,3,12,'j');P.r(x,fy-4,1,12,'k');P.r(x+2,fy-4,1,12,'i');P.r(x,fy-5,3,1,snow?'r':'k');P.d(x+3,fy+8,3,1,GR.gs,0)}
  // framing foliage at the lower corners
  const fol=(cx2,cy2,r)=>{const c=bio==='desert'?['c','k','j']:snow?['r','q','p']:bio==='swamp'?['7','3','2']:['B','7','3'];
