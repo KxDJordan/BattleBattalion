@@ -88,7 +88,7 @@ section('old saves: the East is assigned deterministically');
 section('eastern gear');
 { const AB=X.AB,I=X.ITEMS;let n=0;
   for(const id of X.EASTITEMS){const it=I[id];ok(it&&['w','a','h'].includes(it.k)&&it.n&&it.price>0&&it.tier>=1&&it.tier<=5&&it.east===1&&it.look,'item shape '+id);n++;
-   if(it.k==='w'){ok(Array.isArray(it.d)&&it.d[0]<it.d[1]&&it.ap>=3&&it.wt&&Array.isArray(it.sk)&&it.sk.length&&it.sk.every(a=>AB[a]&&(!AB[a].needs||AB[a].needs===it.wt)),'weapon skills '+id+': '+it.sk);
+   if(it.k==='w'){ok(Array.isArray(it.d)&&it.d[0]<it.d[1]&&it.ap>=3&&it.wt&&Array.isArray(it.sk)&&it.sk.length&&it.sk.every(a=>AB[a]&&(!AB[a].needs||[].concat(AB[a].needs).includes(it.wt))),'weapon skills '+id+': '+it.sk);
     ok(X.isRangedW(it)===(it.wt==='bow'),'ranged '+id)}else ok(it.arm>0&&it.fat>=0,'armor '+id);
    ok(typeof X.itemDesc(id)==='string'&&X.itemDesc(id).length>5,'desc '+id);
    const ic=X.iconRows('it-'+id);ok(ic&&ic.length===16&&ic.every(r=>r.length===16),'an icon for '+id);
@@ -106,8 +106,8 @@ section('eastern gear');
 section('eastern soldiers');
 (async()=>{
 { const E=X.EN;for(const [id] of X.FACT.east.units){const d=E[id];ok(d&&d.n&&d.hp>0&&d.d&&d.xp>0&&d.east,'unit '+id);if(d.w)ok(X.ITEMS[d.w]&&X.ITEMS[d.w].k==='w','weapon of '+id);for(const a of d.abs||[])ok(X.AB[a]||(X.FOE_AB&&X.FOE_AB[a]),'ability '+a+' of '+id)}
-  const G=fresh(SEED);keepAlive(G);G.roster.forEach(m=>{m.lvl=6;m.hp=X.calc(m).hp});let wins=0;const seen=new Set();
-  for(let k=0;k<4;k++){X.seedRng(SEED+40+k);const res=await X.autoBattle({f:'east',mult:.8+k*.2,biome:'plains',src:{type:'sim'},turnCap:TURNCAP});ok(res&&!res.stuck,'an eastern battle ran to the end: '+JSON.stringify(res&&Object.keys(res))+' '+(res&&res.stuck));
+  const G=fresh(SEED);keepAlive(G);G.roster.forEach(m=>{m.lvl=6;m.hp=X.calc(m).hp});const R0=X.clone(G.roster);let wins=0;const seen=new Set();
+  for(let k=0;k<4;k++){X.seedRng(SEED+40+k);G.roster=X.clone(R0);const res=await X.autoBattle({f:'east',mult:.8+k*.2,biome:'plains',src:{type:'sim'},turnCap:TURNCAP});ok(res&&!res.stuck,'an eastern battle ran to the end: '+(res&&res.stuck)+' fielded '+X.fielded().length+' mode '+X.mode);
    for(const u of X.B.units)if(u.side===1&&u.eid)seen.add(u.eid);if(res.win)wins++;X.settleBattle(res.win);closeAll(X);keepAlive(G)}
   ok(seen.size>=3,'several kinds of eastern soldier took the field: '+[...seen]);
   for(const id of ['samurai','sohei','onna','shinobi','ashi','ashiy','taisho']){const u=X.mkEnemy(id,'east');const s=X.unitSpritePx?X.unitSpritePx(u,0,'idle',0):null;ok(s!==undefined,'sprite '+id)}
@@ -116,7 +116,7 @@ section('eastern soldiers');
 section('the Eastern War');
 const war=(side,seed)=>{const G=fresh(seed||SEED);keepAlive(G);ok(!G.east.war,'no war at the start');
   for(let d=0;d<8;d++)day(G);ok(!G.east.war,'no war in the first week');
-  G.renown=1200;G.roster.forEach(m=>{m.lvl=10});ok(X.eastStrength()>=X.EW.thr,'strong enough: '+X.eastStrength());
+  G.renown=1200;G.roster.forEach(m=>{m.lvl=12});ok(X.eastStrength()>=X.EW.thr,'strong enough: '+X.eastStrength());
   while(G.day<X.EW.minDay-1)day(G);ok(!G.east.war,'not before day '+X.EW.minDay);
   let n=0;while(!G.east.war&&n++<5)day(G);const v=G.east.war;ok(v&&v.stage==='war'&&v.hosts.length>=1,'the war starts at the threshold: '+JSON.stringify(v&&{day0:v.day0,hosts:v.hosts}));
   ok(G.parties.filter(p=>p.ew).every(p=>p.f==='east'&&X.isEast(v.land.x,v.land.y)),'hosts land on the eastern coast');
@@ -134,19 +134,19 @@ const war=(side,seed)=>{const G=fresh(seed||SEED);keepAlive(G);ok(!G.east.war,'n
   // the same seed and side give the same war
   const a=war('out',SEED+7),b=war('out',SEED+7);ok(JSON.stringify(a.v)===JSON.stringify(b.v),'the war is deterministic');
   // a won siege contract lifts the siege
-  { const G=fresh(SEED+3);keepAlive(G);G.renown=1200;G.roster.forEach(m=>{m.lvl=10});while(!G.east.war)day(G);const v=G.east.war;X.eastWarChoose('houses');let d=0;while(!v.sieges.length&&d++<20)day(G);
+  { const G=fresh(SEED+3);keepAlive(G);G.renown=1200;G.roster.forEach(m=>{m.lvl=12});while(!G.east.war)day(G);const v=G.east.war;X.eastWarChoose('houses');let d=0;while(!v.sieges.length&&d++<20)day(G);
     if(v.sieges.length){const s=v.sieges[0];let c=null;for(const t of G.towns)for(const q of t.contracts||[])if(q.ew&&q.ew.k==='siege'&&q.ew.i===s.i)c=q;ok(c,'a contract to break the siege');
      G.contract=c;c.stage=1;X.eastBattleEnd({type:'contract'},true);ok(!v.sieges.includes(s)&&!X.townSit(s.i,'siege'),'breaking it lifts the siege');G.contract=null}}
   // a natural strength curve: when would the war land? (renown and levels by day, roughly a normal run)
-  { const G=fresh(SEED+9);keepAlive(G);let at=null;for(let d=1;d<70&&!G.east.war;d++){G.renown=Math.round(d*d*.32+d*3);const lv=Math.min(11,1+Math.floor(d/4));G.roster.forEach(m=>m.lvl=lv);while(G.roster.length<8+Math.min(4,d/6)){const m=X.newMerc('sellsword');m.field=true;m.lvl=lv;G.roster.push(m)}day(G);if(G.east.war)at=G.day}
+  { const G=fresh(SEED+9);keepAlive(G);let at=null;for(let d=1;d<70&&!G.east.war;d++){G.renown=Math.round(d*d*.22+d*2);const lv=Math.min(11,1+Math.floor(d/5));G.roster.forEach(m=>m.lvl=lv);while(G.roster.length<Math.min(12,6+d/6)){const m=X.newMerc('sellsword');m.field=true;m.lvl=lv;G.roster.push(m)}day(G);if(G.east.war)at=G.day}
     ok(at&&at>=25&&at<=45,'a normal run meets the war mid-game: day '+at);console.log('a normal curve meets the Eastern War on day '+at)}
   console.log(JSON.stringify(res)) }
 
 section('save round trip');
-{ const G=fresh(SEED);keepAlive(G);G.renown=1200;G.roster.forEach(m=>{m.lvl=10});while(!G.east.war)day(G);X.eastWarChoose('out');for(let d=0;d<4;d++)day(G);
+{ const G=fresh(SEED);keepAlive(G);G.renown=1200;G.roster.forEach(m=>{m.lvl=12});while(!G.east.war)day(G);X.eastWarChoose('out');for(let d=0;d<4;d++)day(G);
   const before=JSON.stringify([G.east,G.rep.east,G.towns.map(t=>[t.own,t.east||0]),G.parties.filter(p=>p.ew).map(p=>[p.id,p.siege])]);
-  ok(X.save(),'save');const s=X.store.get(X.SAVEKEY);ok(s,'stored');X.G=null;ok(X.loadSave?X.loadSave():X.continueGame(),'load');closeAll(X);
-  const G2=X.G;ok(JSON.stringify([G2.east,G2.rep.east,G2.towns.map(t=>[t.own,t.east||0]),G2.parties.filter(p=>p.ew).map(p=>[p.id,p.siege])])===before,'the East and its war survive a save');
+  ok(X.save(),'save');const s=X.store.get(X.SAVEKEY);ok(s,'stored');X.G=null;X.continueGame();closeAll(X);ok(X.G,'load');
+  const G2=X.G;ok(JSON.stringify([G2.east,G2.rep.east,G2.towns.map(t=>[t.own,t.east||0]),G2.parties.filter(p=>p.ew).map(p=>[p.id,p.siege])])===before,'the East and its war survive a save\n'+before+'\n'+JSON.stringify([G2.east,G2.rep.east,G2.towns.map(t=>[t.own,t.east||0]),G2.parties.filter(p=>p.ew).map(p=>[p.id,p.siege])]));
   for(let d=0;d<3;d++)day(G2);ok(G2.east.war,'the war goes on after a load');
   console.log('save round trip: ok') }
 console.log('\nEAST: ALL OK');process.exit(0)

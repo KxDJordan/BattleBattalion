@@ -112,6 +112,7 @@ function foeTurn(u){const b=B;if(!u||!u.alive)return;
  if(u.st.fury>0&&--u.st.fury<=0){delete u.st.fury;u.st.spent=1;float(u,'Spent','#c8d0d8')}
  const st=u.st;if(st.poison>0){float(u,'Poison','#9bd96f');foeBleed(u,b.venom||6)}
  if(typeof monTurn==='function'&&u.alive)monTurn(u);
+ if(u.def&&u.def.anchored&&u.alive)u.rooted=true;   // the Bone Throne fights from where it stands
  if(FOE_TICK)for(const k in st)if(FOE_ST[k]&&FOE_ST[k].t&&st[k]>0){if(--st[k]<=0)delete st[k]}
 }
 function foeDeath(t){const b=B;if(!t)return;
@@ -119,7 +120,7 @@ function foeDeath(t){const b=B;if(!t)return;
  if(b.tele)b.tele=b.tele.filter(x=>x.u!==t);if(typeof monDeath==='function')monDeath(t);
  if(t.side!==1)return;const mates=b.units.filter(u=>u.alive&&u.side===1&&u.f===t.f);
  if(t.eid==='gobsham'&&!mates.some(u=>u.eid==='gobsham')){mates.forEach(u=>{delete u.st.chant;foeMor(u,-4)});if(mates.length)say('The shaman is dead. The goblins break and run.')}
- else if(t.eid==='necro'&&!mates.some(u=>u.eid==='necro')){const risen=mates.filter(u=>u.risen);if(risen.length)say('The necromancer is dead. What he raised falls apart.');risen.forEach(u=>{if(u.alive){float(u,'Unbound','#c9a8ff');foeBleed(u,u.hp+999)}})}
+ else if((t.eid==='necro'||t.eid==='necrolt'||t.eid==='bthrone')&&!mates.some(u=>u.eid==='necro'||u.eid==='necrolt'||u.eid==='bthrone')){const risen=mates.filter(u=>u.risen);if(risen.length)say('The necromancer is dead. What he raised falls apart.');risen.forEach(u=>{if(u.alive){float(u,'Unbound','#c9a8ff');foeBleed(u,u.hp+999)}})}
  else if(t.eid==='orcl')mates.forEach(u=>foeMor(u,-1));
  else if(t.eid==='blead'&&!mates.some(u=>u.eid==='blead')){mates.forEach(u=>foeMor(u,-4));if(mates.length)say('The chief is down. The brigands scatter.')}}
 function foeEvent(type,d){const b=B;if(!b||!b.units||!b.units.length)return;
@@ -215,3 +216,22 @@ async function foeCharge(u,k,a,stun){const b=B,t=unitAt(k%BW,(k/BW)|0);if(!t)ret
  await strike(u,t,st?Object.assign({},a,{status:{stun:1}}):a)}
 for(const k in FOE_AB)AB[k]=Object.assign({foe:1},FOE_AB[k]);
 // What the charge-up and the release of a telegraphed attack are called, for the scene: B.tele = [{u, n, keys}].
+
+/* ---------- crisis peoples (18-crises.js): the Dead March, the Great Horde, the Barbarian War ---------- */
+const CR_AB={
+ dgloom:{n:'Pall of dread',d:'Grave-cold at a foe within 5 tiles: magic damage, and it is Hexed for 2 turns (−15 skill and resolve).',ap:4,fat:0,cost:['mana',7],rng:5,tgt:'enemy',magic:[14,22],ign:.5,status:{hex:2},cd:2,fx:'hex'},
+ bsummon:{n:'Call the buried',d:'Two skeleton legionaries claw out of the ground beside the throne (three times a battle).',ap:4,fat:0,tgt:'self',cd:3,uses:3,fx:'raise',
+  ai(u,X){let n=0;for(const [x,y] of DIRS)if(foeFree(u.c+x,u.r+y))n++;const sk=B.units.filter(o=>o.alive&&o.side===u.side&&o.eid==='skel').length;return n&&sk<4?[{k:X.at,v:30}]:[]},
+  async run(u){let n=0;for(const [x,y] of DIRS){const c=u.c+x,r=u.r+y;if(n>=2||!foeFree(c,r))continue;const e=foeSpawn('skel',u.f,c,r,{def:Object.assign({},EN.skel,{xp:0}),risen:1});if(!e)continue;e.ap=0;float(e,'Risen','#c9a8ff');n++;await sleep(180)}}},
+ bnova:{n:'Grave chill',d:'Cold pours off the throne: every foe within 2 tiles takes heavy magic damage.',ap:5,fat:0,cost:['mana',10],tgt:'self',magic:[30,44],ign:.5,cd:2,fx:'nova',
+  ai(u,X){const n=X.foes.filter(f=>mdist(f,u)<=2).length;return n>=2?[{k:X.at,v:26*n}]:n===1?[{k:X.at,v:14}]:[]},
+  async run(u,k,a){const b=B;for(const t of foeFoes(u).filter(t=>mdist(t,u)<=2).sort((x,y)=>x.id-y.id)){if(B!==b||!u.alive)break;await strike(u,t,a,{auto:1})}}},
+ bsong:{n:'War song',d:'The skald sings of old victories: barbarians within 4 tiles gain +10 melee skill and +20 resolve for 2 turns, and 2 action points.',ap:4,fat:0,cost:['mana',6],rng:4,tgt:'self',cd:3,fx:'warcry',
+  ai(u,X){const n=foeAllies(u,4).filter(o=>o!==u&&!o.st.warcry&&X.near(o)<=5).length;return n>=2?[{k:X.at,v:9*n}]:[]},
+  async run(u){for(const o of foeAllies(u,4)){if(o!==u){o.bonusAP=(o.bonusAP||0)+2;float(o,'+2 AP','#ffd27a')}o.st.warcry=2;foeMor(o,1);FX.emit('buff',{t:o})}}},
+ ecleave:{n:'Imperial cleave',d:'A great sweep of the Emperor\'s axe through every adjacent foe: 95% damage.',ap:6,fat:0,tgt:'aoe',wpn:1,mult:.95,cd:1,fx:'sweep'},
+ ehorn:{n:'Command of the north',d:'Barbarians within 5 tiles find their nerve (the fleeing turn back) and gain 3 action points (twice a battle).',ap:3,fat:0,rng:5,tgt:'self',cd:3,uses:2,fx:'rally',
+  ai(u,X){const A=foeAllies(u,5).filter(o=>o!==u),n=A.length+A.filter(o=>o.mor<3).length*2;return A.length>=2?[{k:X.at,v:8*n}]:[]},
+  async run(u){for(const o of foeAllies(u,5)){if(o===u)continue;if(o.mor<3&&typeof setMorale==='function')setMorale(o,o.mor===0?2:3);o.bonusAP=(o.bonusAP||0)+3;float(o,'+3 AP','#ffd27a');FX.emit('buff',{t:o})}}}
+};
+for(const k in CR_AB)AB[k]=Object.assign({foe:1},CR_AB[k]);

@@ -227,10 +227,17 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  console.log('== strikes against rival companies ==');
  { const st=X.ctx.strike,R={u:0,t:0,ab:new Set()};X.ctx.strike=async function(u,t,a,o){if(u.m&&u.side===1){R.u++;R.ab.add(a.id||a.n)}if(t.m&&t.side===1)R.t++;return st(u,t,a,o)};
    for(let ti=0;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17),rv=company(X,TIERS[ti],SEED+ti*17+555);rv.forEach((m,k)=>{m.id=800000+k});
-    for(let i=0;i<3;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.rivals=[{id:'rF',n:'The Forecasters',pers:['honour','cutthroat','glory'][i],renown:50,crowns:100,roster:JSON.parse(JSON.stringify(rv)),stance:0,alive:true,deeds:[]}];
+    for(let i=0;i<4;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.rivals=[{id:'rF',n:'The Forecasters',pers:['honour','cutthroat','glory'][i],renown:50,crowns:100,roster:JSON.parse(JSON.stringify(rv)),stance:0,alive:true,deeds:[]}];
      X.seedRng(SEED+700+10*ti+i);await scripted(X,{f:'rF',rival:'rF',mult:1,biome:bios[(i+ti)%bios.length],src:{type:'sim'}});nb++}}
    X.ctx.strike=st;X.G.rivals=[];ok(R.u>200&&R.t>200,`too few rival strikes checked (${R.u} by rival mercs, ${R.t} on them)`);
-   console.log(`12 battles, ${S.n-n0} strikes checked: ${R.u} by rival mercs (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
+   console.log(`16 battles, ${S.n-n0} strikes checked: ${R.u} by rival mercs (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
+ console.log('== strikes with fabled warriors (o.fabled mixed into EN bands, a fabled boss with phases) ==');
+ { const st=X.ctx.strike,R={u:0,t:0,ab:new Set()},n1=S.n,ids=Object.keys(X.FABLED);X.ctx.strike=async function(u,t,a,o){if(u.fabled){R.u++;R.ab.add(a.id||a.n)}if(t.fabled)R.t++;return st(u,t,a,o)};
+   for(let ti=0;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17);
+    for(let i=0;i<8;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.fabled={};const f2=[ids[(ti*4+i)%ids.length],ids[(ti*4+i+7)%ids.length]];
+     X.seedRng(SEED+900+10*ti+i);await scripted(X,{f:facs[(i+ti)%facs.length],mult:.7,fabled:f2,boss:i%2?{fabled:f2[0],phases:[{at:.6,n:'Test phase',summon:[Object.keys(X.EN)[0]],enrage:{dmg:.1}}]}:null,biome:bios[(i+ti)%bios.length],src:{type:'sim'}});nb++}}
+   X.ctx.strike=st;X.G.fabled={};ok(R.u>150&&R.t>80,`too few fabled strikes checked (${R.u} by fabled warriors, ${R.t} on them)`);
+   console.log(`32 battles, ${S.n-n1} strikes checked: ${R.u} by fabled warriors (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
  const nBattle=S.n;
  console.log('== directed sweep ==');
  await sweep(X,company(X,TIERS[2],SEED+5),6000);

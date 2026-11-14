@@ -30,7 +30,7 @@
    by 'east'); when the siege runs out the town falls or the host breaks. Breaking it on the field (worldBattleEnd -> townSiegeEnd) frees the town. */
 
 /* ---- tuning ---- */
-const EW={minDay:20,thr:78,lateDay:42,lateThr:34,hardDay:60,waves:3,gap:7,len:[5,7],cap:36,mult:[1.05,1.25,1.45],hosts:[2,2,3],
+const EW={minDay:22,thr:120,lateDay:40,lateThr:60,hardDay:55,waves:3,gap:7,len:[5,7],cap:36,mult:[1.05,1.25,1.45],hosts:[2,2,3],
  pay:{houses:1500,east:2600},renown:{win:60,lose:20,out:15},rep:{side:-45,ally:25,houseSide:-30}};
 const EASTN={roots:['Akane','Kurogane','Hoshino','Shirakawa','Tsukiyama','Kagero','Asahi','Mizuchi'],
  lords:['Lord Akechi Tadamasa','Lady Hoshino Kiyo','Lord Kurogane Ietsugu','Lord Shirakawa Munenori','Lady Tsukiyama Sen','Lord Asahi Nagahide'],
@@ -85,10 +85,10 @@ Object.assign(ITEMS,{
 const EASTITEMS=['tanto','yoroidoshi','wakizashi','katana','katana2','katana3','nodachi','odachi','naginata','naginata2','suyari','jumonji','omiyari','hankyu','yumi','daikyu','bo','jingasa','hachigane','kabuto','menpo','kawari','kesa','tatami','do','domaru','oyoroi'];
 /* the two eastern weapon skills (executed by the common rules: once, mult, hit, bleed, tgt 'aoe', status) */
 Object.assign(AB,{
- iaido:{n:'Iaijutsu',ap:4,fat:14,tgt:'enemy',wpn:1,needs:'sword',once:1,mult:1.5,hit:20,bleed:2,fx:'slash',d:'The draw-cut: the blade leaves the scabbard and strikes in one motion. 150% damage, +20 to hit, and a wound that reaches flesh bleeds for 2 turns. Once per battle.'},
+ iaido:{n:'Iaijutsu',ap:4,fat:16,tgt:'enemy',wpn:1,needs:['sword','greatsword'],fresh:1,mult:1.4,hit:15,bleed:2,fx:'slash',d:'The draw-cut: the blade leaves the scabbard and strikes in one motion. Only as the first action of a turn: 140% damage, +15 to hit, and a wound that reaches flesh bleeds for 2 turns.'},
  nsweep:{n:'Naginata sweep',ap:6,fat:22,tgt:'aoe',wpn:1,needs:'polearm',two:1,mult:.8,hit:5,status:{daze:1},fx:'spin',d:'A wide, low arc of the naginata: strike every adjacent foe at 80% damage, +5 to hit, and leave each one hit dazed.'}
 });
-{const SK={katana:['slash','riposte','iaido'],katana2:['slash','riposte','iaido'],katana3:['slash','riposte','iaido'],wakizashi:['slash','riposte'],nodachi:['halfsword','gswing'],odachi:['halfsword','gswing'],
+{const SK={katana:['slash','riposte','iaido'],katana2:['slash','riposte','iaido'],katana3:['slash','riposte','iaido'],wakizashi:['slash','riposte'],nodachi:['halfsword','gswing','iaido'],odachi:['halfsword','gswing','iaido'],
   naginata:['hook','nsweep'],naginata2:['hook','nsweep'],suyari:['thrust','spearwall'],jumonji:['thrust','spearwall'],omiyari:['impale'],tanto:['puncture'],yoroidoshi:['puncture'],hankyu:['quick'],yumi:['quick'],daikyu:['quick']};
  for(const id of EASTITEMS){const i=ITEMS[id];i.east=1;i.look=i.look||id;if(i.k==='w')i.sk=SK[id]||(typeof WSK==='object'&&WSK[i.wt])||[]}}
 
@@ -160,7 +160,9 @@ function eastLanding(){const w=eastW();if(!w)return null;let best=-1,bv=-1e9;for
   const v=x+((x*7+y*13)%5)*.1;if(v>bv){bv=v;best=i}}
  if(best<0){const L=eastTowns();if(!L.length)return null;const t=G.towns[L[0]];return{x:t.x,y:t.y}}return{x:(best%WN+.5)*TS,y:(((best/WN)|0)+.5)*TS}}
 function eastTargets(x,y){const L=[];G.towns.forEach((t,i)=>{if(t.own==='east'||i===0&&false)return;if(townSit(i,'siege'))return;L.push([i,Math.hypot(t.x-x,t.y-y)])});L.sort((a,b)=>a[1]-b[1]||a[0]-b[0]);return L.map(a=>a[0])}
-function eastSpawnHost(x,y,to,mult){if(typeof wsSpawnRaid!=='function')return null;const p=wsSpawnRaid('east',x,y,to,mult);if(!p)return null;p.ew=1;p.host=1;return p}
+function eastSpawnHost(x,y,to,mult){if(typeof wsSpawnRaid!=='function')return null;const p=wsSpawnRaid('east',x,y,to,mult);if(!p)return null;p.ew=1;p.host=1;
+ if(typeof fabledFor==='function'){try{const v=eastWar(),id=fabledFor({k:'east',f:'east',salt:p.id,exclude:G.parties.filter(q=>q.ew&&q.fab).map(q=>q.fab)});if(id&&(v&&v.wave>=2||rnd()<.35))p.fab=id}catch(e){}}   // a fabled leader rides with some hosts (partyBattle: o.fabled=[p.fab])
+ return p}
 function eastStart(){const e=G.east,land=eastLanding();if(!land)return null;
  e.war={stage:'war',day0:G.day,side:null,wave:0,waves:EW.waves,next:G.day,land,hosts:[],sieges:[],taken:[],lost:[],ctr:[],outcome:null,end:null};
  eastNews(`The fleets of ${e.n} land on the eastern coast. The Eastern War has begun`,true);
@@ -186,9 +188,9 @@ function eastWarDay(){const v=eastWar();if(!v||v.stage!=='war')return;
  for(const s of v.sieges.slice()){const t=G.towns[s.i],p=eastHostOf(s.host);
   if(!p||p.siege!==s.i){v.sieges=v.sieges.filter(q=>q!==s);townSitDel(s.i,'siege');continue}            // the host was broken on the field
   if(G.day<s.end)continue;v.sieges=v.sieges.filter(q=>q!==s);townSitDel(s.i,'siege');
-  const united=!G.wars||!G.wars.length,ch=clamp(.42+(p.mult-1)*.6-(united?.12:0)-(v.side==='houses'?.12:0)+(v.side==='east'?.14:0)-t.size*.07-(G.houses&&G.houses.some(h=>h.seat===s.i)?.15:0),.12,.85);
+  const united=!G.wars||!G.wars.length,ch=clamp(.34+(p.mult-1)*.5-(united?.1:0)-(v.side==='houses'?.12:0)+(v.side==='east'?.14:0)-t.size*.07-(G.houses&&G.houses.some(h=>h.seat===s.i)?.15:0),.12,.85);
   if(rnd()<ch){const prev=t.own;t.own='east';t.pros=clamp(eastNum(t.pros,50)-10,0,100);t.ref=-99;v.taken.push({i:s.i,prev,day:G.day});eastNews(`${eastName()} took ${t.name}${prev&&prev!=='free'?' from '+factName(prev):''}`,true);
-   p.mult=Math.round(p.mult*.85*100)/100;p.siege=undefined;p.goal='raid';const T=eastTargets(p.x,p.y);const r=T.length&&typeof wsPathTo==='function'?wsPathTo(p.x,p.y,G.towns[T[0]].x,G.towns[T[0]].y):null;if(r){p.to=T[0];p.pts=r;p.pi=0}else{p.gone=1}}
+   p.gone=1;G.parties=G.parties.filter(q=>q!==p)}   // the host garrisons the town it took
   else{p.gone=1;G.parties=G.parties.filter(q=>q!==p);eastNews(`The siege of ${t.name} failed: the host of ${eastName()} breaks`,true)}}
  // the houses strike back at the towns the East holds
  for(const tk of v.taken){const t=G.towns[tk.i];if(!t||t.own!=='east'||townSit(tk.i,'siege'))continue;const h=G.houses&&G.houses.find(h=>h.id===tk.prev);if(!h||rnd()>=.1)continue;

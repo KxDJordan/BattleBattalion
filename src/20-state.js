@@ -97,7 +97,7 @@ const MIGRATE={
  /* v13: phase 8 (crises, the East, fabled warriors, run systems). The run's crisis kind: a crisis already under way stays the Sundering,
     else it comes from the seed (runCrisisKind, no game randomness); the East (eastInit marks the east-most towns and sets up the faction);
     no fabled warriors met yet (G.fabled {}); Normal difficulty, not ironman; a run record (G.run) with what can still be counted. */
- 12:g=>{if(typeof g.crisisKind!=='string')g.crisisKind=svObj(g.crisis)?'sunder':runCrisisKind(g.seed);
+ 12:g=>{if(typeof g.crisisKind!=='string')g.crisisKind=svObj(g.crisis)?'sunder':runCrisisPick(g.seed);
   if(!svObj(g.fabled))g.fabled={};if(typeof g.diff!=='string')g.diff='normal';g.ironman=false;if(!svObj(g.run))g.run=runNew(g);
   if(typeof eastInit==='function'&&Array.isArray(g.towns)&&g.towns.length>=2)eastInit(g);return g}
 };
@@ -177,7 +177,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.portals=Array.isArray(g.portals)?g.portals.filter(p=>svObj(p)&&svFin(p.x)&&svFin(p.y)&&svFin(p.id)&&BIO[p.realm]):[];
  if(g.contract&&!(repairContract(g.contract,g.towns.length)&&Number.isInteger(g.contract.town)&&g.contract.town>=0&&g.contract.town<g.towns.length))g.contract=null;
  if(g.contract)g.contract.done=!!g.contract.done;else g.contract=null;
- if(typeof g.crisisKind!=='string'||(typeof CRISES==='object'&&CRISES&&!CRISES[g.crisisKind]))g.crisisKind=svObj(g.crisis)&&!g.crisis.k?'sunder':runCrisisKind(g.seed);
+ if(typeof g.crisisKind!=='string'||(typeof CRISES==='object'&&CRISES&&!CRISES[g.crisisKind]))g.crisisKind=svObj(g.crisis)&&!g.crisis.k?'sunder':runCrisisPick(g.seed);
  if(typeof crisisRepair==='function')crisisRepair(g);else if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;
  let nid=svNum(g.nid,1);const seen=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=x.id+1};g.roster.forEach(seen);g.parties.forEach(seen);g.portals.forEach(seen);g.nests.forEach(seen);g.sites.forEach(seen);g.towns.forEach(t=>t.recruits.forEach(seen));if(Array.isArray(g.rivals))g.rivals.forEach(r=>r.roster.forEach(seen));g.nid=Math.floor(nid);
  g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.refund=Array.isArray(g.refund)?g.refund.filter(r=>svObj(r)&&typeof r.name==='string'&&svFin(r.n)&&r.n>0).map(r=>({name:r.name.slice(0,40),n:Math.floor(r.n)})).slice(0,MAXROSTER):[];if(!g.refund.length){delete g.refund;if(g.note==='refund')g.note=null}else if(!g.note)g.note='refund';g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;

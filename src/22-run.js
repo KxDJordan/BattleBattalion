@@ -30,8 +30,9 @@ function diffOf(g){g=g||G;return g&&DIFF[g.diff]?g.diff:'normal'}
 function diffK(key){const D=DIFF[diffOf()];const v=D&&D[key];return typeof v==='number'&&isFinite(v)?v:1}
 // the run's crisis kind for an old save or a fresh world: the crises agent's own pick when present, else a hash of the seed
 const RUN_CRISES=['sunder','deadmarch','horde','barbarian'];
-function runCrisisKind(seed){if(typeof crisisKindOf==='function'){try{const k=crisisKindOf(seed);if(typeof k==='string'&&k)return k}catch(e){}}
- const L=typeof CRISES==='object'&&CRISES?Object.keys(CRISES):RUN_CRISES;let h=((seed|0)^0x51ed27)>>>0;h=Math.imul(h^h>>>15,0x2c1b3c6d)>>>0;h=(h^h>>>12)>>>0;return L[h%L.length]||'sunder'}
+function runCrisisPick(seed){if(typeof crisisKindOf==='function'){try{const k=crisisKindOf(seed);if(typeof k==='string'&&k)return k}catch(e){}}
+ if(typeof CRISES!=='object'||!CRISES)return'sunder';const L=Object.keys(CRISES);   // no crisis framework: the Sundering, as ever
+ let h=((seed|0)^0x51ed27)>>>0;h=Math.imul(h^h>>>15,0x2c1b3c6d)>>>0;h=(h^h>>>12)>>>0;return L[h%L.length]||'sunder'}
 
 /* ---- the run record ---- */
 function runNew(g){g=g||G;const st=g&&g.amb&&g.amb.st||{};
@@ -87,10 +88,11 @@ function hallAll(){let L=null;try{L=JSON.parse(storeGet(HALLKEY)||'[]')}catch(e)
 // what the portrait needs (07-portraits.js ptMercSpec reads id, name, race, bg, eq, colors; mercRes reads trees / perks / gift)
 function hallLook(m){const e=m.eq||{};const o={id:m.id|0,name:String(m.name||'').slice(0,40),race:m.race,bg:m.bg,base:{},eq:{w:e.w||null,b:e.b||null,s:e.s||null,a:e.a||null,h:e.h||null}};
  if(m.colors)o.colors=m.colors;if(m.gift)o.gift=m.gift;if(Array.isArray(m.trees))o.trees=m.trees.slice(0,8);if(Array.isArray(m.perks))o.perks=m.perks.slice(0,40);if(m.fabled)o.fabled=m.fabled;return o}
-function hallAdd(m,how,o){if(!m||typeof m!=='object')return null;o=o||{};const R=G?runRec():null,run=R?R.id:'?',k=run+':'+(m.id|0);const L=hallAll();if(L.some(e=>e.k===k))return null;
+function hallAdd(m,how,o){if(!m||typeof m!=='object')return null;o=o||{};const R=G?runRec():null,run=R?R.id:'?',k=run+':'+(m.id|0);if(R)R.fallen++;const L=hallAll();if(L.some(e=>e.k===k))return null;   // the record counts every death; the hall keeps one entry a sword
+
  const e={k,run,name:String(m.name||'Nameless').slice(0,40),bg:m.bg,bgN:BG[m.bg]?BG[m.bg].n:'',race:m.race,lvl:Math.max(1,m.lvl|0),kills:Math.max(0,(m.kills|0)),
   how:String(how||'Fell in the field').slice(0,120),co:G?companyName():'',banner:G&&G.banner?G.banner:null,day:G?G.day:1,diff:G?diffOf():'normal',ironman:!!(G&&G.ironman),look:hallLook(m)};
- if(m.fabled)e.fabled=m.fabled;if(Array.isArray(m.traits))e.traits=m.traits.slice(0,2);if(R)R.fallen++;L.unshift(e);storeSet(HALLKEY,JSON.stringify(L.slice(0,HALLMAX)));return e}
+ if(m.fabled)e.fabled=m.fabled;if(Array.isArray(m.traits))e.traits=m.traits.slice(0,2);L.unshift(e);storeSet(HALLKEY,JSON.stringify(L.slice(0,HALLMAX)));return e}
 function hallClear(){return storeDel(HALLKEY)}
 
 /* ---- save slots ---- */

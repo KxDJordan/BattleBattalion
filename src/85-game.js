@@ -13,7 +13,7 @@ function createCampaign(opts){opts=opts||{};const wk=setWorldSize(opts.wsize),AK
  ['sellsword','squire','hunter','acolyte'].forEach(b=>{const m=newMerc(b);m.field=true;G.roster.push(m)});
  G.parts={};if(typeof companyNew==='function')companyNew(G);else{G.retinue=[];G.amb={cur:null,done:[],offered:[]}}   // renown tiers, ambitions, the retinue (14-company.js)
  if(typeof factionsInit==='function')factionsInit(G);   // houses, town owners, reputation (15-factions.js): before the origin, which touches reputation
- G.crisisKind=runCrisisKind(G.seed);if(typeof crisisInit==='function')crisisInit(G);   // the run's crisis (18-crises.js)
+ G.crisisKind=runCrisisPick(G.seed);if(typeof crisisInit==='function')crisisInit(G);   // the run's crisis (18-crises.js)
  if(typeof eastInit==='function')eastInit(G);if(typeof fabledInit==='function')fabledInit(G);   // the East (19-east.js) before the markets are stocked; fabled warriors (21-fabled.js)
  G.evt=typeof evtNew==='function'?evtNew():{seen:{},flags:{}};if(typeof originApply==='function')originApply(G,opts.origin);else G.origin='free';   // 17-events.js
  G.crisisDay=Math.max(6,Math.round((G.crisisDay||18)*diffK('crisisDay')));   // difficulty moves the crisis (the origin may already have)

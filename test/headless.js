@@ -302,7 +302,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    X.store.set(X.SAVEKEY,JSON.stringify(odd));X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.roster[0].eq.w===null&&!X.G.stash.includes('no_such_item')&&X.G.crowns===0&&X.G.contract===null&&X.G.dun===null,'a damaged but usable save was not repaired');scan(X.G,'G');
    X.store.set(X.SAVEKEY,JSON.stringify(Object.assign({},g0,{roster:[]})));ok(X.readSave().state==='none','a company with nobody left must count as no save');
    X.store.clear();X.seedRng(SEED+2);X.newGame(true);closeAll(X);X.G.day=X.G.crisisDay-1;X.G.hour=23;X.G.crowns=5000;X.openTown(0);ok(X.sheetOpen,'the town did not open');X.sheets.length=0;X.innRest();
-   ok(X.G.crisis&&X.G.note==='crisis','a crisis that starts inside a town must wait to be announced');closeAll(X);X.worldTick(.05);ok(X.G.note===null&&/The Sundering/.test(X.sheets.join()),'the deferred crisis announcement was not shown');closeAll(X);
+   ok(X.G.crisis&&X.G.note==='crisis','a crisis that starts inside a town must wait to be announced');closeAll(X);X.worldTick(.05);{const CN=X.CRISES&&X.G.crisisKind&&X.CRISES[X.G.crisisKind]?X.CRISES[X.G.crisisKind].n:'The Sundering';ok(X.G.note===null&&X.sheets.join().indexOf(CN)>=0,'the deferred crisis announcement was not shown ('+CN+')')};closeAll(X);
 
    // a save from the 44x44 world (version 2): the company marches to the new lands
    { X.store.clear();X.seedRng(SEED+4);X.newGame(true);closeAll(X);X.G.crowns=4321;X.G.food=77;X.G.renown=55;X.G.day=23;X.G.stash.push('arming');ok(X.save(),'save failed');const v2=JSON.parse(X.store.get(X.SAVEKEY)),names=v2.roster.map(m=>m.name).join();

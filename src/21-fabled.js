@@ -180,7 +180,8 @@ function fabledSync(g){g=g||G;if(!g||!g.fabled)return;const inRoster=new Set((g.
 /* ---- the merc ----
    Stats: a fixed base that grows with the level (no rolls), the race, the record's st. Perks: every point spent by autoLearn,
    the personal tree first. Gear: the named pieces (weapon, sidearm, shield, armor, helmet by kind) and eq for the rest. */
-function fabledStats(F,L){const g=L-1,b={hp:64+Math.round(2.6*g),fat:104+2*g,init:108+Math.round(1.5*g),ms:60+Math.round(1.8*g),rs:44+Math.round(1.6*g),md:6+Math.round(.9*g),rd:5+Math.round(.8*g),brv:50+Math.round(1.5*g)};
+function fabledStats(F,L){const g=L-1,b={hp:66+Math.round(3*g),fat:106+2*g,init:110+Math.round(1.5*g),ms:62+Math.round(2.1*g),rs:46+Math.round(2.1*g),md:7+Math.round(1.1*g),rd:6+Math.round(.9*g),brv:52+Math.round(1.5*g)};
+ const Bg=BG[F.bg];if(Bg&&Bg.st)for(const k in Bg.st)b[k]=(b[k]||0)+Bg.st[k];   // the background's edge, as a recruit of it has
  const R=RACE[F.race]||RACE.human;for(const k in R.st)b[k]=(b[k]||0)+R.st[k];for(const k in F.st||{})b[k]=(b[k]||0)+F.st[k];return b}
 function fabledMerc(id,o){const F=FABLED[id];if(!F)return null;o=o||{};const L=clamp(Math.floor(o.lvl||F.lvl),1,typeof MAXLV==='number'?MAXLV:15);
  const eq={w:null,b:null,s:null,a:null,h:null};
