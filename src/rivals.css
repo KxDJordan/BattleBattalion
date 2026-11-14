@@ -76,3 +76,28 @@
 #wbContract .wb-race{position:absolute;left:2px;top:2px;width:16px;height:16px;line-height:0;pointer-events:none}
 @media (prefers-reduced-motion:no-preference){#app:not(.rm) #wbContract.race .wb-race{animation:wb-race 1s steps(2,end) infinite}}
 @keyframes wb-race{50%{transform:translateY(-1px)}}
+/* ---- battle results: the rival company's block, a sword asking to join, the caravan's cargo (68-battle-flow.js) ---- */
+.br-rv{margin:8px 0 2px;padding:5px 8px 5px 5px;border:2px solid #0b1514;background:#1c1614;box-shadow:inset 4px 0 0 #c4493f,inset 0 2px 0 #2a1614;line-height:1.25}
+.br-rv>.bnr{flex:none;filter:drop-shadow(2px 2px 0 #0b1514)}
+.br-rv p{margin:0;font-size:.92rem;color:#e9e0c9}
+.br-rv p b{font-family:var(--pxfont);font-weight:600;font-size:1.08rem;color:#ffd9d0;margin-right:2px}
+.br-rvp{display:flex;align-items:center;gap:6px;margin:3px 0 0;font-size:.86rem}
+.br-rvp::before{content:"";flex:none;width:6px;height:6px;background:#d1a94e;box-shadow:0 0 0 2px #0b1514}
+.br-worn{margin:3px 0 0;padding:2px 8px;font-size:.84rem;background:#101d1c;box-shadow:inset 3px 0 0 #8d99a6}
+.br-join{margin:6px 0 2px;padding:5px 8px 6px 5px;border:2px solid #0b1514;background:#182a28;box-shadow:inset 4px 0 0 #d1a94e,inset 0 2px 0 #213a36;flex-wrap:wrap;line-height:1.25}
+.br-join>.ptr{flex:none;box-shadow:0 0 0 2px #0b1514;margin:2px}
+.br-join>p{flex:1 1 200px;margin:0;font-size:.92rem}
+.br-join>p b{font-family:var(--pxfont);font-weight:600;color:#f3d98b}
+.br-join>p.good b{color:#9bd96f}
+.br-join .row{flex:1 0 100%;justify-content:flex-end;margin:4px 0 0!important}
+#sheetBody .br-join .row button{min-height:40px}
+p.br-join{display:block;padding:3px 8px;box-shadow:inset 4px 0 0 #4d5a5c}
+.br-cargo{display:flex;align-items:flex-start;gap:7px;margin:6px 0 2px;padding:4px 8px 4px 5px;border:2px solid #0b1514;background:#182a28;box-shadow:inset 4px 0 0 #8a6a2a,inset 0 2px 0 #213a36;line-height:1.25;font-size:.92rem}
+.br-cargo .pxi,.br-cargo .pn-i{display:inline-block;flex:none;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated;margin-top:1px}
+.br-cargo span{color:#f3d98b}
+/* ---- deploy: a rival company's swords read as men in a company's colours, not monsters (67-deploy.js dpRivalHTML) ---- */
+#dp .dp-rv .dp-en{background:#1d1a24;box-shadow:inset 2px 2px 0 #3a2c48,inset -2px -2px 0 #0b1514}
+#dp .dp-rv .dp-en.bk{background:#171a1f;box-shadow:inset 2px 2px 0 #2a2a34}
+#dp .dp-rv .dp-en .ptr{box-shadow:0 0 0 2px #0b1514}
+#dp .dp-rv .dp-en b{color:#f3d98b}
+#dp .dp-rv .dp-en small{color:#c8d0d8}

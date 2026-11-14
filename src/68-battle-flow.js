@@ -132,8 +132,8 @@ function brRival(res){const rr=res.rival;if(!rr)return'';const r=typeof battleRi
  const worn=rr.loot.filter(x=>x.worn);if(res.win&&worn.length)h+=`<p class="dim br-worn">Worn: ${worn.map(x=>`${ITEMS[x.id].n} (${x.worn[0]}/${x.worn[1]})`).join(', ')}.</p>`;
  const j=rr.joiner;if(res.win&&j){const m=r?r.roster.find(x=>x.id===j.id):null,mm=m||(G.roster.find(x=>x.id===j.id)),por=mm&&typeof portraitHTML==='function'?portraitHTML(mm,32):'';
   if(j.taken)h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p class="good"><b>${j.name}</b> joins the company, at 1 hitpoint, wounds and all.</p></div>`;
-  else if(j.declined)h+=`<p class="dim br-join">${j.name} is left where he fell.</p>`;
-  else h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p><b>${j.name}</b>, a level ${j.lvl} ${String(j.bgN).toLowerCase()}, was struck down but lives, and asks to join you.${j.room?'':` <span class="bad">No room: the roster holds ${MAXROSTER}.</span>`}</p><div class="row">${j.room?`<button class="pri" onclick="brJoin(1)">Take him on</button>`:''}<button onclick="brJoin(0)">Leave him</button></div></div>`}
+  else if(j.declined)h+=`<p class="dim br-join">${j.name} is left where they fell.</p>`;
+  else h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p><b>${j.name}</b>, a level ${j.lvl} ${String(j.bgN).toLowerCase()}, was struck down but lives, and asks to join you.${j.room?'':` <span class="bad">No room: the roster holds ${MAXROSTER}.</span>`}</p><div class="row">${j.room?`<button class="pri" onclick="brJoin(1)">Take ${j.name} on</button>`:''}<button onclick="brJoin(0)">Leave them</button></div></div>`}
  return h}
 // The joiner's answer from the results sheet (UI: no randomness). Redraws the sheet.
 function brJoin(yes){const res=B&&B.result;if(!res||!res.rival||!res.rival.joiner)return;const j=res.rival.joiner;if(yes){if(!rivalJoin(res)&&typeof toast==='function')toast(j.room?'He cannot join now':'The roster is full')}else j.declined=true;
@@ -144,7 +144,7 @@ function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'|
  h+=brObjLine(res);
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
  h+=brRival(res);
- if(res.win&&res.cargo)h+=`<p class="br-cargo">${brIcon(['cargo','stash'])}<span>The caravan's cargo is yours${res.cargo.text?': '+res.cargo.text:''}.</span></p>`;
+ if(res.win&&res.cargo){const grid=typeof lkCargoLinesHTML==='function'&&res.cargo.lines?lkCargoLinesHTML(res.cargo.lines):'';h+=`<p class="br-cargo">${brIcon(['cargo','stash'])}<span>The caravan's cargo is yours${!grid&&res.cargo.text?': '+res.cargo.text:''}.</span></p>`+grid}
  if(res.win&&res.parts&&res.parts.length)h+=`<div class="br-parts"><span class="br-ph">${brIcon(['parts','stash'])}Monster parts${typeof followerHas==='function'&&followerHas('herbalist')?' <small>(herbalist)</small>':''}</span>${res.parts.map(x=>{const P=typeof PARTS!=='undefined'&&PARTS[x.key]||{};return`<span class="br-pt">${typeof pxIcon==='function'?pxIcon(P.icon||'part-'+x.key,16):''}<b>${P.n||x.key}</b><i>x${x.n}</i></span>`}).join('')}</div>`;
  if(res.win&&res.xpK>1)h+=`<p class="dim br-drill">${brIcon('xp')}The drillmaster drives them on: +${Math.round((res.xpK-1)*100)}% experience.</p>`;
  if(res.win&&res.famed&&res.famed.length)h+=res.famed.map(id=>{const L=typeof famedLines==='function'?famedLines(id):[];return`<p class="br-fm"><b class="fmd-n">${ITEMS[id].n}</b>: a famed ${ITEMS[ITEMS[id].base].n.toLowerCase()}. ${L.map(x=>x.t).join(', ')}.</p>`}).join('');

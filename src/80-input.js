@@ -154,3 +154,7 @@ function rvAttackAsk(){const p=RVS.p,r=p&&lkRival(p.f);if(!r)return;let P=null;i
  <ul class="rv-ul">${L.map(x=>`<li>${x}</li>`).join('')}</ul>
  <div class="row"><button onclick="rivalSheet(RVS.p)">${lkIc('back',16)}Back to the parley</button></div>`,'rv')}
 function rvAttackGo(){const p=RVS.p;if(!p)return;closeSheet();if(typeof attackParty==='function')attackParty(p.id)}
+/* the results screen's cargo (cargoTake(c).lines: [{k,id?,n,t,icon}]) as the same icon grid as the band sheet */
+function lkCargoLinesHTML(L){if(!Array.isArray(L)||!L.length)return'';return`<div class="cg-list mini">${L.map(x=>{const it=x.id&&typeof ITEMS==='object'&&ITEMS[x.id],ic=it&&typeof pnItemIcon==='function'?pnItemIcon(x.id,32):lkIc(x.icon||'cargo');
+ const nm=it?it.n:x.k==='part'&&typeof PARTS==='object'&&PARTS[x.id]?PARTS[x.id].n:x.k==='crowns'?'Crowns':x.k==='food'?'Rations':x.k==='tools'?'Tools':x.k==='salves'?'Salves':String(x.t||'');
+ return`<div class="cg-row k-${x.k==='trade'?'trade':'item'}">${ic}<span><b>${htmlEsc(nm)}</b>${x.k==='trade'&&x.v?`<small>Trade good · ${Math.round(x.v)} crowns</small>`:''}</span><i>×${x.n|0||1}</i></div>`}).join('')}</div>`}
