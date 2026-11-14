@@ -42,6 +42,8 @@ function stockTown(t){t.ref=G.day;t.recruits=[];const D=typeof renownDef==='func
  for(let i=0;i<nR;i++){const m=newMerc(typeof recruitBG==='function'?recruitBG(t):wpickBG());if(D&&D.vet>0&&rnd()<D.vet)makeVeteran(m,ri(D.lv[0],D.lv[1]));t.recruits.push(m)}
  const maxT=marketTier(t.size,G.day),ids=marketPool(maxT);t.stock=[];const nS=Math.max(3,9+twCountStep(typeof townStockK==='function'?townStockK(G.towns.indexOf(t)):1,2));for(let i=0;i<nS;i++)t.stock.push(stockPick(ids,maxT));
  {const hs=ids.filter(k=>ITEMS[k].k==='h');if(hs.length&&t.stock.length&&!t.stock.some(id=>ITEMS[id].k==='h')){const lo=hs.filter(k=>(ITEMS[k].tier||1)<=Math.min(maxT,3));t.stock[t.stock.length-1]=pick(lo.length?lo:hs)}}   // every market has a helmet on the stalls
+ // extra stalls (19-east.js: eastern gear in eastern markets): stockExtra(t, maxTier, stock) -> item ids added to the stalls (may draw rnd)
+ if(typeof stockExtra==='function'){let X=null;try{X=stockExtra(t,maxT,t.stock)}catch(e){X=null}if(Array.isArray(X))for(const id of X)if(ITEMS[id]&&!ITEMS[id].famed)t.stock.push(id)}
  const keep=typeof rvKeepTaken==='function'?rvKeepTaken(t):[];   // notices a rival company holds stay up, marked as taken
  t.contracts=[];const nC=Math.max(0,townBoardN(t)-keep.length);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}t.contracts=keep.concat(t.contracts)}
 /* how many notices a board posts: 3, +1 in a city, +1 when the owner is friendly or allied, -1 when cold; none when the town is hostile.

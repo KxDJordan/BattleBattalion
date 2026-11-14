@@ -519,7 +519,7 @@ function ptColSig(m){const c=typeof mercLook==='function'?mercLook(m):m&&m.color
 function ptLivery(P,m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;if(!c||typeof c!=='object')return;const cl=ptDye(c.cloth),ac=ptDye(c.accent),mt=ptFin(c.metal);if(!cl&&!ac&&!mt)return;
  P.liv={cl,ac,mt};if(cl){P.ragC=cl;P.robeC=cl;P.clothC=cl;if(P.hat==='hood')P.hatC=cl}if(ac){P.shC=ac;if(P.hat==='band'||P.hat==='feather')P.hatC=ac}}
 function ptPick(R,a){return a[R(a.length)]}
-function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
+function ptMercSpec(m){const FB=m.fabled&&typeof FABLED==='object'?FABLED[m.fabled]:null;if(FB)m={id:0,name:'fabled:'+m.fabled,race:m.race,bg:m.bg,eq:m.eq,gift:m.gift,perks:m.perks,mast:m.mast,colors:m.colors};const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
  const P={seed,race,fem,face:{},marks:{}};
  // race
  if(race==='elf'){P.head=PT_HEAD.elf;P.ears='elf';P.skin=PT_SKIN[ptPick(R,['pale','pale','fair','tan'])];P.build='slim'}
@@ -580,7 +580,15 @@ function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed
  ptLookBody(P,m,R);if(hid)P.veil=null;ptLivery(P,m);if(P.av&&P.av.ptC){P.clothC=P.av.ptC;P.robeC=P.av.ptC}if(P.shield&&typeof usShieldPtRows==='function'){const c=ptCl(P.shC)||PT_CLOTH.red;try{P.shRows=usShieldPtRows(P.shield,usRamp(c.join(''),1))}catch(e){P.shRows=null}}
  if(race==='dwarf'){P.wy=3}
  P.gem=typeof mercRes==='function'?mercRes(m):null;
+ if(FB)ptFabled(P,FB,!!hid);
  return P}
+/* A fabled warrior (21-fabled.js FABLED[id].pt): a fixed look over the hashed one (hair, beard, skin, marks, a hat when no helmet is worn,
+   the backdrop colours), the sex of the record, and a gilded frame that marks every fabled bust. */
+function ptFabled(P,F,helm){const L=F.pt||{};P.fem=!!F.fem;if(P.race==='human')P.head=F.fem?PT_HEAD.humanf:PT_HEAD.human;P.face.lash=!!F.fem;if(F.fem){P.beard=null;if(P.marks)P.marks.stubble=0}
+ if(L.skin&&PT_SKIN[L.skin])P.skin=PT_SKIN[L.skin];if(L.hair)P.hair=L.hair;if(L.hairC&&PT_HAIRC[L.hairC]){P.hairC=PT_HAIRC[L.hairC];P.face.browC=P.hairC[1]}
+ if(L.beard!==undefined&&!F.fem)P.beard=L.beard;if(L.beardC&&PT_HAIRC[L.beardC])P.beardC=PT_HAIRC[L.beardC];if(L.marks)P.marks=Object.assign({},P.marks,L.marks);if(L.beads)P.beads=L.beads;
+ if(!helm&&L.hat){P.hat=L.hat;P.hatC=L.hatC||null}if(!helm&&L.veil)P.veil=L.veil;if(L.bg)P.bg=L.bg;
+ const top0=P.top;P.top=(C,E)=>{if(top0)top0(C,E);for(let i=0;i<32;i++){const k=i%4<2?'c':'b';ptS(C,i,0,k);ptS(C,i,31,k);ptS(C,0,i,k);ptS(C,31,i,k)}for(const [x,y] of [[0,0],[31,0],[0,31],[31,31]])ptS(C,x,y,'d')}}
 
 /* ---- enemies ---- */
 const PT_BEAST={
@@ -718,7 +726,7 @@ function ptVoidHelm(L,E){for(let y=E.y0-1;y<=E.y1;y++){const x0=y<E.y0?E.X0(E.y0
 /* ---- public API ---- */
 let PT_HELMS=null;function ptHelmsExist(){if(PT_HELMS===null){PT_HELMS=false;for(const k in ITEMS)if(ITEMS[k].k==='h'){PT_HELMS=true;break}}return PT_HELMS}
 function ptKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?'e:'+x:null;
- const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)}
+ const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+(m.fabled?'F'+m.fabled:m.id)+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)}
  if(x.def){for(const k in EN)if(EN[k]===x.def)return'e:'+k;if(x.eid&&EN[x.eid])return'e:'+x.eid}return null}
 function portraitRows(x){let key=null;try{key=ptKey(x)}catch(e){}if(!key)key='e:?';let r=PTC.rows.get(key);if(r)return r;
  try{if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;r=ptBust(ptMercSpec(m))}else r=ptEnemyRows(key.slice(2),x&&x.f)}catch(e){r=null}

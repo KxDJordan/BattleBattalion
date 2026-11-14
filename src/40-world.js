@@ -55,7 +55,10 @@ function tileSpeedOf(t,river,road){if(t===0||t===4)return 0;return road?ROADSPD:
 /* ---- the generator ---- */
 let WGCACHE=null;
 function genWorld(seed){seed=(Number(seed)||0)|0;if(!WGCACHE||WGCACHE.seed!==seed||WGCACHE.n!==WN)WGCACHE=genWorldBase(seed);const b=WGCACHE;
- return{seed,tiles:b.tiles,ok:b.ok,river:b.river,road:b.road,spd:b.spd,size:b.size,towns:b.towns,sites:b.sites,seen:new Uint8Array(WN*WN),fogRev:0,fogKey:-1,img:null}}
+ const w={seed,tiles:b.tiles,ok:b.ok,river:b.river,road:b.road,spd:b.spd,size:b.size,towns:b.towns,sites:b.sites,seen:new Uint8Array(WN*WN),fogRev:0,fogKey:-1,img:null};
+ // the East (19-east.js): eastGen(w) marks the eastern region once per generated base world (w.east, towns t.east); later copies share it
+ if(typeof eastGen==='function'){if(!b.eg){b.eg=1;try{eastGen(w)}catch(e){if(typeof console!=='undefined')console.warn('eastGen failed',e)}b.east=w.east;b.ex={};for(const k in w)if(!(k in b)&&k!=='seen'&&k!=='fogRev'&&k!=='fogKey'&&k!=='img'&&k!=='east')b.ex[k]=w[k]}else{if(b.east!==undefined)w.east=b.east;if(b.ex)for(const k in b.ex)w[k]=b.ex[k]}}
+ return w}
 /* Scales with the world size (WN): ranges, rivers, ruins and the number of towns grow with the land; the small world (64) is exactly as before. */
 function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WORLDSZ[WSZK]&&WORLDSZ[WSZK].n===WN?WORLDSZ[WSZK].towns:Math.round(12*AK/Math.pow(AK,.2))),r=mulberry(seed),nz=sc=>{const f=noiseFn(r,sc,WN+2);return(x,y)=>f(clamp(x,0,WN+1),clamp(y,0,WN+1))};
  const a1=nz(24),a2=nz(12),a3=nz(6),a4=nz(3),wx=nz(15),wy=nz(15),rg=nz(13),rg2=nz(5),mo1=nz(14),mo2=nz(6),te=nz(18),jit=nz(2.2),rj=nz(3.5);
@@ -419,7 +422,10 @@ function wsRaiders(news){if(rnd()>=.1)return;const ti=ri(0,G.towns.length-1),t=G
 
 /* worldDay(): one day of the world, once per G.day (newDay calls it). Returns headline lines for the day's toast. */
 function worldDay(){const news=[];worldEnsure();if(G.wsim.day>=G.day)return news;G.wsim.day=G.day;
+ if(typeof eastInit==='function'&&G.east==null){try{eastInit(G)}catch(e){}}   // an old save meets the East lazily (19-east.js)
  wsTowns(news);wsHouses(news);wsNests(news);wsTrade();wsRaiders(news);rvDay(news);
+ if(typeof crisisDay==='function'){try{crisisDay(news)}catch(e){if(typeof console!=='undefined')console.warn('crisisDay failed',e)}}   // the run's crisis (18-crises.js)
+ if(typeof eastDay==='function'){try{eastDay(news)}catch(e){if(typeof console!=='undefined')console.warn('eastDay failed',e)}}        // the Eastern War (19-east.js)
  const live=WSIM.live*TS;for(const p of G.parties){if(p.gone)continue;if(svFin(p.life)&&--p.life<=0){p.gone=1;continue}if(Math.hypot(p.x-G.p.x,p.y-G.p.y)>live)wsStep(p)}
  // reputation fades slowly toward neutral (a point a week)
  if(G.day%7===0)for(const f in G.rep){const v=G.rep[f];if(v>0)G.rep[f]=v-1;else if(v<0)G.rep[f]=v+1}

@@ -110,8 +110,13 @@ const CTYPES={
    const name=orc?pick(['Gorza','Ukrul','Mag Thrask','Shagra']):pick(CTR_BANDIT.first)+' '+pick(CTR_BANDIT.name),title=pick(CTR_BANDIT.title).replace('{place}',t.name),c=ctrNew('bounty',t,ti,diff,`Bounty: ${name}, ${title}`);
    c.f=f;c.x=pos.x;c.y=pos.y;c.boss={id,name,title};c.pay=ctrPayBase(diff,1.2);c.stages=[{k:'go',x:pos.x,y:pos.y,kind:'camp',label:name+'’s camp',fight:{f,k:.85,boss:c.boss}},ctrHome(ti,'Claim the bounty')];c.due=ctrDue(t,pos.x,pos.y,7);return c}}
 };
-for(const k of CTR_KINDS){const T=CTYPES[k];if(typeof icHas==='function'&&icHas('ct-'+k))T.icon='ct-'+k;   // the look agent's contract icons (06-icons.js)
- T.mark=T.mark||(c=>ctrMarks(c));T.turnIn=T.turnIn||((c,ti)=>!!ctrTurnInAt(ti));}
+for(const k of CTR_KINDS)ctrTypeDefaults(k);
+function ctrTypeDefaults(k){const T=CTYPES[k];if(typeof icHas==='function'&&icHas('ct-'+k))T.icon='ct-'+k;   // the look agent's contract icons (06-icons.js)
+ T.mark=T.mark||(c=>ctrMarks(c));T.turnIn=T.turnIn||((c,ti)=>!!ctrTurnInAt(ti));if(typeof T.n!=='string')T.n=k;if(typeof T.d!=='string')T.d='';if(!T.icon)T.icon='contracts'}
+/* ctrRegister(k, T): a contract type from another file (crisis work, the Eastern War, the tutorial), with the shape of CTYPES above:
+   {n, d, icon, w(t,ti) -> board weight (0 keeps it off the boards), gen(t,ti) -> contract | null, mark?, turnIn?, onBattle?, onTurnIn?(c,ti)}.
+   It joins the boards (CTR_KINDS) unless T.board === false; contracts of the type survive a save through ctrRepair like any other. */
+function ctrRegister(k,T){if(typeof k!=='string'||!k||!T||typeof T!=='object')return false;CTYPES[k]=T;if(T.board!==false&&!CTR_KINDS.includes(k))CTR_KINDS.push(k);ctrTypeDefaults(k);return true}
 function ctrNests(t){return Array.isArray(G.nests)?G.nests.filter(n=>n&&FACT[n.f]&&svFin(n.x)&&svFin(n.y)&&ctrDist(n,t)<=24):[]}
 // a town of the same owner under siege (situation 'siege'), else the issuing town itself
 function ctrSiegeTown(ti){const t=G.towns[ti];let best=-1,bd=1e9;G.towns.forEach((o,i)=>{if(!ctrHasSit(o,'siege'))return;if(i!==ti&&(o.own||'free')!==(t.own||'free'))return;const d=ctrDist(o,t);if(d<bd){bd=d;best=i}});return best>=0?best:ti}
@@ -134,7 +139,7 @@ function genContract2(t,ti,opt){if(!t)return null;if(ti==null||ti<0)ti=G.towns.i
  for(let g=0;g<4&&!c;g++){const W=CTR_KINDS.map(k=>{const n=av?av.filter(x=>x===k).length:0;return ctrTypeW(t,ti,k)*(!n?1:k==='hunt'&&n===1?.25:0)});let tot=0;W.forEach(w=>tot+=w);let r=rnd()*tot,k='hunt';for(let i=0;i<W.length;i++){r-=W[i];if(r<=0&&W[i]>0){k=CTR_KINDS[i];break}}
   try{c=CTYPES[k].gen(t,ti)}catch(e){c=null}}
  if(!c)c=CTYPES.hunt.gen(t,ti);if(!c)return null;
- c.pay=Math.max(10,Math.round(c.pay*ctrRepPayK(c.emp)/10)*10);c.pay0=c.pay;
+ c.pay=Math.max(10,Math.round(c.pay*ctrRepPayK(c.emp)*(typeof diffK==='function'?diffK('pay'):1)/10)*10);c.pay0=c.pay;   // standing and the run's difficulty (22-run.js)
  if(rnd()<.3){const L=Object.keys(CTWIST).filter(k=>CTWIST[k].types.includes(c.type));if(L.length){const k=pick(L);c.twist={k,when:CTWIST[k].when,fired:false}}}
  ctrSync(c);return c}
 function ctrSync(c){if(!c)return c;c.done=ctrDone(c);return c}
@@ -190,9 +195,10 @@ function ctrAbandon(){const c=G.contract;if(!c)return false;ctrFail(c,'Contract 
 function ctrTurnIn(ti){const q=ctrTurnInAt(ti);if(!q)return null;const c=q.c;
  if(c.twist&&!c.twist.fired&&c.twist.when==='turnin'){const tw=CTWIST[c.twist.k];c.twist.fired=true;const r=tw.apply(c)||{};if(r.pay!=null)q.pay=r.pay;if(r.text)ctrNote(c,r.text);c.twistText=r.text||''}
  const bonus=c.bonus||0;G.crowns+=q.pay+bonus;G.renown+=q.renown;ctrRepGain(c.emp,q.rep,'Contract fulfilled');if(c.outbid)ctrRepGain(c.outbid,-3,'Refused their offer');
- G.contract=null;G.ctrLast={id:c.id,title:c.title,ok:true,day:G.day};if(typeof ambEvent==='function')ambEvent('contract',c);
+ G.contract=null;G.ctrLast={id:c.id,title:c.title,ok:true,day:G.day};if(typeof ambEvent==='function')ambEvent('contract',c);if(typeof runOnContract==='function')runOnContract(c);if(CTYPES[c.type]&&typeof CTYPES[c.type].onTurnIn==='function')try{CTYPES[c.type].onTurnIn(c,ti)}catch(e){}
  const adv=c.adv?` (${c.adv} was paid up front)`:'';return{ok:true,c,pay:q.pay+bonus,renown:q.renown,text:`${c.twistText?c.twistText+' ':''}Contract fulfilled. You are paid ${q.pay+bonus} crowns${adv} and gain ${q.renown} renown.`}}
-function ctrAccept(c){if(!c||G.contract||c.rtook)return false;   // a notice a rival company took is no longer openconst t=ctrTown(c.town);if(t&&Array.isArray(t.contracts)){const i=t.contracts.indexOf(c);if(i>=0)t.contracts.splice(i,1)}
+function ctrAccept(c){if(!c||G.contract||c.rtook)return false;   // a notice a rival company took is no longer open
+ const t=ctrTown(c.town);if(t&&Array.isArray(t.contracts)){const i=t.contracts.indexOf(c);if(i>=0)t.contracts.splice(i,1)}
  if(c.neg&&c.neg.gone)return false;c.taken=G.day;c.tickDay=G.day;G.contract=c;if(c.adv>0)G.crowns+=c.adv;ctrSync(c);return true}
 // acting: once a day
 function ctrDaily(){const c=G&&G.contract;if(!c)return null;

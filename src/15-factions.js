@@ -61,7 +61,10 @@ function factionsInit(g,opt){g=g||G;if(!g||!Array.isArray(g.towns)||!g.towns.len
  if(!Array.isArray(g.nests)){g.nests=[];if(opt.nests!==false)fxSeedNests(g,w,r)}
  if(!svObj(g.wsim))g.wsim={day:svNum(g.day,1)};
  if(!Array.isArray(g.rivals)&&typeof rivalsInit==='function')rivalsInit(g);   // the rival companies (40-world.js): from the seed, no game randomness drawn
- houseFactReg(g);return g}
+ houseFactReg(g);
+ if(typeof eastInit==='function'){try{eastInit(g)}catch(e){if(typeof console!=='undefined')console.warn('eastInit failed',e)}}   // the East (19-east.js): the faction east, eastern towns (idempotent)
+ if(typeof crisisInit==='function'){try{crisisInit(g)}catch(e){}}   // the run's crisis kind (18-crises.js), from the seed
+ return g}
 // the first nests of a new world: 2 (small) to 4 (vast), far from the towns, of the early monster factions
 function fxSeedNests(g,w,r){const n=Math.max(2,Math.round(2*Math.sqrt(WN*WN/4096))),fs=['gob','bandit','beast'],T=g.towns;let nid=Math.floor(svNum(g.nid,1));
  for(let k=0;k<n;k++){let pos=null;for(let a=0;a<600&&!pos;a++){const x=Math.floor(3+r()*(WN-6)),y=Math.floor(3+r()*(WN-6)),i=y*WN+x;if(!w.ok[i])continue;const px=(x+.5)*TS,py=(y+.5)*TS;

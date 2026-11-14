@@ -52,6 +52,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    if(Array.isArray(L)){const herb=typeof followerHas==='function'&&followerHas('herbalist'),by={};
     for(const x of L){if(!x||typeof x.key!=='string'||!(x.n>0))continue;if(typeof PARTS!=='undefined'&&!PARTS[x.key])continue;by[x.key]=(by[x.key]||0)+Math.floor(x.n)}
     if(!G.parts||typeof G.parts!=='object')G.parts={};for(const k in by){let n=by[k];if(herb&&rnd()<.5)n++;G.parts[k]=(G.parts[k]||0)+n;res.parts.push({key:k,n})}}}}
+ if(typeof fabledResolve==='function')fabledResolve(b,res,win);   // fabled warriors: permanent death, named gear, duels (21-fabled.js)
  if(typeof ambEvent==='function')ambEvent('battle',res);
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
  b.result=res;return res}
@@ -89,7 +90,7 @@ function rivalJoin(res){res=res||(typeof B!=='undefined'&&B&&B.result)||null;con
  if(!(typeof canRecruit!=='function'||canRecruit())){j.solo=true;return null}
  if(G.roster.length>=MAXROSTER){j.room=false;return null}const r=battleRival(rr.id),i=r?r.roster.findIndex(m=>m.id===j.id):-1;if(i<0)return null;
  const m=r.roster.splice(i,1)[0];if(G.roster.some(x=>x.id===m.id)||!Number.isInteger(m.id))m.id=G.nid++;delete m.rv;delete m.dead;m.slot=null;m.hp=Math.max(1,m.hp);
- m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);j.taken=true;j.id=m.id;if(!r.roster.length){rr.wiped=true;if(!(typeof B!=='undefined'&&B)&&typeof rvWipe==='function')rvWipe(r,'when its last sword joined '+(G.name||'the company'))}return m}   // before settleBattle the world wipes it itself
+ m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);if(m.fabled&&typeof fabledSet==='function')fabledSet(m.fabled,'joined');j.taken=true;j.id=m.id;if(!r.roster.length){rr.wiped=true;if(!(typeof B!=='undefined'&&B)&&typeof rvWipe==='function')rvWipe(r,'when its last sword joined '+(G.name||'the company'))}return m}   // before settleBattle the world wipes it itself
 // The cargo of the caravan a won battle was against, for the results sheet: {good, text} (cargoText, 40-world.js), or null.
 // It is the world's to hand over (cargoTake, from worldBattleEnd in settleBattle); this only reads it.
 function caravanCargo(s){if(!s||s.type!=='party'||!G||!Array.isArray(G.parties))return null;const p=G.parties.find(q=>q.id===s.id);if(!p||p.goal!=='caravan'||!p.cargo)return null;

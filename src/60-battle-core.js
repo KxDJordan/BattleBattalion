@@ -186,13 +186,13 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=!S?12+m.lvl*5:sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee));return budget*(o&&o.mult||1)*(1+G.day*.008)*(typeof BUDGETK==='number'?BUDGETK:1)}
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
-function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
+function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
 function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',rv=o.rival?battleRival(o.rival):null,budget=rv?0:battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);
  if(o.obj&&o.obj.k==='siege'&&typeof objFortify==='function'&&!tiles.fortified){objFortify(tiles);tiles.fortified=1}   // the siege works (no rnd)
  if(rv)return{bk,tiles,foes:[],rival:rivalPreview(rv),rv:rv.id,budget};   // a rival company: its own swords, no budget
- return{bk,tiles,foes:previewEnemies(o),budget}}
+ return{bk,tiles,foes:previewEnemies(o),fabled:typeof fabledPreview==='function'?fabledPreview(o):[],budget}}
 /* startBattle(o): o = {f, mult, src:{type,...}, biome?, fixed?, rival?} plus optional engine flags:
    rival: a rival company id (CONTRACT.md): the enemy side is its roster (rivalField, mkRivalUnit) instead of EN defs; o.f is set to the
    rival id when it names no faction. B.rival holds the id. An unknown rival (or one with nobody left) falls back to brigands.
@@ -209,9 +209,11 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  // B.auto is a live switch: turning it on while the company is waiting for orders hands the turn to the AI at once.
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
  B=b;const used=new Set(),pu=place(f.map(m=>{const u=mkPlayerUnit(m),s=m.slot;if(dep[m.id])u.slot=dep[m.id];else if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:s.col,r:s.row?DEPLOY.p.back:DEPLOY.p.front};return u}),DEPLOY.p.front,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used),
-  eu=place(o.rival?rf.map(m=>mkRivalUnit(m,rv)):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)}),DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
+  el=o.rival?rf.map(m=>mkRivalUnit(m,rv)):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)});
+ if(o.fabled&&typeof fabledSpawn==='function')fabledSpawn(el,o);   // fabled warriors mixed into the enemy side (o.fabled: ids)
+ const eu=place(el,DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
  b.rival=o.rival||null;if(o.ambush)for(const u of eu)u.unready=1;   // an ambush (o.ambush, from a parley): the company acts first in round 1, the foe starts unready
- b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o,used);else b.obj=null;b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
+ b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&o.boss.fabled?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
  mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${battleFoeN(o)} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} ${b.rival?'swords':'foes'}.`);nextTurn();return b}
 /* spawnUnit(u): adds a unit mid-battle (reserves, summons, the raised dead). u needs side and its stats (mkEnemy(id,f) and
    mkPlayerUnit(m) make complete ones); u.c/u.r is where it should appear: the nearest free walkable tile is used when that
@@ -426,7 +428,9 @@ function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cm
    higher ground -> round(x max(.2, 1 - damage reduction)). */
 function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
  if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
- if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
+ if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.vsBoss&&isBigFoe(t))x+=f.vsBoss;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
+// vsBoss (fabled trees): against a boss, a fabled warrior, a huge (size 2) foe or an EN boss
+const isBigFoe=t=>!!(t&&(t.boss||t.fabled||(t.sz||1)>1||(t.def&&t.def.boss)));
 /* Nimble (light armor): 30% minus 1.5% per point of armor and helmet weight (t.aw), times (0.5 + 0.5 x the share of stamina left),
    in whole percent. 0 without the perk. */
 function nimbleDr(t){const f=t&&t.flags;if(!f||!f.nimble)return 0;const fr=t.fatMax>0&&t.fatMax<999?1-clamp((t.fat||0)/t.fatMax,0,1):1;return Math.round(Math.max(0,30-1.5*(t.aw||0))*(.5+.5*fr))/100}
@@ -472,7 +476,7 @@ function applyInjury(u,id){const st=INJ[id].st;for(const k in st){const v=st[k];
 // Rolls an injury for the merc behind unit t (head or body, permanent or not). Returns its id, or null.
 function inflictInjury(t,head,perm,slow){if(!t.m)return null;const id=rollInjury(t.m,head,perm,slow);if(!id)return null;if(t.alive)applyInjury(t,id);float(t,INJ[id].n,'#ff7a6b');say(`${t.name}: ${INJ[id].n.toLowerCase()}.`);FX.emit('injury',{t,id});return id}
 function killUnit(t,src,head){t.hp=0;t.alive=false;if(src)countSlain(src,t);   // the killing blow counts toward the killer's quarry tally (m.slain)
- if(t.m){t.down=rnd()<DOWNCH;if(t.down)inflictInjury(t,head,rnd()<PERMCH,true)}   // struck down and alive: always at the price of an injury (a rival's merc too)
+ if(t.m){t.down=B.opts.yield?true:rnd()<DOWNCH;if(t.down)inflictInjury(t,head,!B.opts.yield&&rnd()<PERMCH,true)}   // a duel to yielding (o.yield): nobody dies   // struck down and alive: always at the price of an injury (a rival's merc too)
  say(`${t.name} ${t.m&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
  for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
  if(t.side===1&&B.rival)checkRout(1)}
@@ -493,6 +497,7 @@ function hurt(t,dmg,ign,src,o){o=o||{};const head=!!o.head,pool=head?'helm':'arm
   if(tf.hpSoak&&hpd>0)hpd=Math.max(1,hpd-tf.hpSoak);if(tf.brace)t.brc=1}
  t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false;if(undy){if(tf.undying&&!t.undy)t.undy=1;else{t.lck=1;lk=true}t.hp=1}float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,lk?'Lucky':'Undying','#ffd27a');FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
  if(t.hp<=0){killUnit(t,src||null,head);return hpd}
+ if(t.boss&&B.boss)bossHit(t);   // boss phases (21-fabled.js)
  if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH)inflictInjury(t,head,false);if(!tf.noStun)moraleCheck(t,30,-1)}   // (moraleCheck skips the Beast-wise against beasts)
  return hpd}
 // Unbowed: the most armor one blow can strip from t's body armor (or helmet).
@@ -634,7 +639,7 @@ function checkEnd(){const b=B;if(!b||b.over)return true;const p=b.units.some(u=>
 async function nextTurn(){const b=B;if(!b||checkEnd())return;
  if(b.opts.turnCap&&b.turns>=b.opts.turnCap){b.over=true;b.busy=true;b.stuck=true;battleSync();if(b.onEnd)b.onEnd({stuck:true,win:false,rounds:b.round,turns:b.turns});return}
  b.turns++;let u=null;
- while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);const amb=b.round===1&&b.opts.ambush;b.order=al.sort((x,y)=>(amb?x.side-y.side:0)||y.roll-x.roll||x.id-y.id);if(b.obj&&checkEnd())return}
+ while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);const amb=b.round===1&&b.opts.ambush;b.order=al.sort((x,y)=>(amb?x.side-y.side:0)||y.roll-x.roll||x.id-y.id);if(b.boss)bossRound(b);if(b.obj&&checkEnd())return}
   const x=b.order.shift();if(x.alive&&!x.vip)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
  u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;if(u.unready){u.unready=0;u.ap=Math.max(0,u.ap-AMBUSHAP);float(u,'Caught unready','#ffd27a')}u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic

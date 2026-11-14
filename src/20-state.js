@@ -17,7 +17,11 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=12;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=13;
+/* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
+   slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
+const SLOTS=3;let SLOT=0;
+function slotKey(i){i=Number.isInteger(i)&&i>=0&&i<SLOTS?i:SLOT;return i?SAVEKEY+'_s'+i:SAVEKEY}
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -89,7 +93,13 @@ const MIGRATE={
     tally m.slain {quarry key: kills} (61-talents.js); kills count from now on. Nothing else changes. */
  11:g=>{const fix=m=>{if(svObj(m))m.slain={}};if(Array.isArray(g.roster))g.roster.forEach(fix);
   if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});
-  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(fix)});return g}
+  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(fix)});return g},
+ /* v13: phase 8 (crises, the East, fabled warriors, run systems). The run's crisis kind: a crisis already under way stays the Sundering,
+    else it comes from the seed (runCrisisKind, no game randomness); the East (eastInit marks the east-most towns and sets up the faction);
+    no fabled warriors met yet (G.fabled {}); Normal difficulty, not ironman; a run record (G.run) with what can still be counted. */
+ 12:g=>{if(typeof g.crisisKind!=='string')g.crisisKind=svObj(g.crisis)?'sunder':runCrisisKind(g.seed);
+  if(!svObj(g.fabled))g.fabled={};if(typeof g.diff!=='string')g.diff='normal';g.ironman=false;if(!svObj(g.run))g.run=runNew(g);
+  if(typeof eastInit==='function'&&Array.isArray(g.towns)&&g.towns.length>=2)eastInit(g);return g}
 };
 // The traits an old merc gets in the v9 migration (and a merc record that has none): rolled from its background by a stream seeded by its id.
 function migrateTraits(m){return rollTraits(m.bg,mulberry(((svNum(m.id,0)|0)^0x7a175)>>>0))}
@@ -112,7 +122,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  for(const k of ['hp','fat','init','ms','rs','md','rd'])if(!svFin(m.base[k]))return false;
  if(!Array.isArray(m.trees)&&!Array.isArray(m.perks))migrateMerc(m);                      // an unmigrated record (written by older code)
  { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
-   const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift);
+   const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift||(m.fabled&&MAST[k].kind==='fabled'));
    if(!m.trees.some(k=>MAST[k].kind==='style')){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57);m.trees=rollTrees(m.bg,r).concat(m.trees)}
    // perks only of the trees the merc has (mercTrees: its style trees and gift, its background's weapon and armor trees); a perk of a
    // weapon or armor tree it may not learn is refunded (refundTrees), anything else unreadable is dropped
@@ -133,9 +143,11 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  if(!Array.isArray(m.traits))m.traits=migrateTraits(m);else{const seen={};m.traits=m.traits.filter(k=>typeof k==='string'&&TRAITS[k]&&!seen[k]&&(seen[k]=1));
   m.traits=m.traits.filter((k,i)=>!m.traits.slice(0,i).some(o=>TRAITS[o].opp===k||TRAITS[k].opp===o)).slice(0,2)}   // known, no repeats, no opposed pair, at most 2
  {const S={};if(svObj(m.slain))for(const k in m.slain){const n=m.slain[k];if(typeof QUARRY==='object'&&QUARRY[k]&&svFin(n)&&n>0)S[k]=Math.min(9999,Math.floor(n))}m.slain=S}   // the quarry tally: known keys, whole kills
+ if(svFin(m.kills)&&m.kills>0)m.kills=Math.min(99999,Math.floor(m.kills));else delete m.kills;if(typeof m.fabled!=='string'||!m.fabled)delete m.fabled;
  m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
 function repairContract(c,nTowns){if(!svObj(c))return false;if(c.type!=='deliver'&&c.type!=='hunt')return typeof CTYPES!=='undefined'&&!!CTYPES[c.type]&&typeof ctrRepair==='function'&&!!ctrRepair(c,nTowns);
- if(typeof ctrRepair==='function'&&ctrRepair(c,nTowns)===false)return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skullsif(!svFin(c.pay)||typeof c.title!=='string')return false;
+ if(typeof ctrRepair==='function'&&ctrRepair(c,nTowns)===false)return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skulls
+ if(!svFin(c.pay)||typeof c.title!=='string')return false;
  if(c.type==='deliver')return Number.isInteger(c.to)&&c.to>=0&&c.to<nTowns;
  if(c.type==='hunt')return !!FACT[c.f]&&svFin(c.x)&&svFin(c.y);return false}
 // Fills defaults in place. Returns '' when the save is usable, 'empty' for a company with nobody left, else what is wrong.
@@ -165,7 +177,8 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.portals=Array.isArray(g.portals)?g.portals.filter(p=>svObj(p)&&svFin(p.x)&&svFin(p.y)&&svFin(p.id)&&BIO[p.realm]):[];
  if(g.contract&&!(repairContract(g.contract,g.towns.length)&&Number.isInteger(g.contract.town)&&g.contract.town>=0&&g.contract.town<g.towns.length))g.contract=null;
  if(g.contract)g.contract.done=!!g.contract.done;else g.contract=null;
- if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;
+ if(typeof g.crisisKind!=='string'||(typeof CRISES==='object'&&CRISES&&!CRISES[g.crisisKind]))g.crisisKind=svObj(g.crisis)&&!g.crisis.k?'sunder':runCrisisKind(g.seed);
+ if(typeof crisisRepair==='function')crisisRepair(g);else if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;
  let nid=svNum(g.nid,1);const seen=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=x.id+1};g.roster.forEach(seen);g.parties.forEach(seen);g.portals.forEach(seen);g.nests.forEach(seen);g.sites.forEach(seen);g.towns.forEach(t=>t.recruits.forEach(seen));if(Array.isArray(g.rivals))g.rivals.forEach(r=>r.roster.forEach(seen));g.nid=Math.floor(nid);
  g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.refund=Array.isArray(g.refund)?g.refund.filter(r=>svObj(r)&&typeof r.name==='string'&&svFin(r.n)&&r.n>0).map(r=>({name:r.name.slice(0,40),n:Math.floor(r.n)})).slice(0,MAXROSTER):[];if(!g.refund.length){delete g.refund;if(g.note==='refund')g.note=null}else if(!g.note)g.note='refund';g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
  // phase 6 company fields (the camp and progression agents validate their own contents through craftRepair / companyRepair)
@@ -176,22 +189,26 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(typeof craftRepair==='function')craftRepair(g);if(typeof companyRepair==='function')companyRepair(g);
  if(typeof evtRepair==='function')evtRepair(g);else if(!svObj(g.evt)||!svObj(g.evt.seen)||!svObj(g.evt.flags))g.evt={seen:svObj(g.evt)&&svObj(g.evt.seen)?g.evt.seen:{},flags:svObj(g.evt)&&svObj(g.evt.flags)?g.evt.flags:{}};
  if(typeof g.origin!=='string'||(typeof ORIGINS==='object'&&ORIGINS&&!ORIGINS[g.origin]&&g.origin!=='free'))g.origin='free';
+ // phase 8: the East, fabled warriors, the run (difficulty, ironman, stats), each validated by its owner's helper when present
+ if(typeof eastRepair==='function')eastRepair(g);g.fabled=svObj(g.fabled)?g.fabled:{};if(typeof fabledRepair==='function')fabledRepair(g);
+ if(typeof runRepair==='function')runRepair(g);else{g.diff=['story','normal','hard','brutal'].includes(g.diff)?g.diff:'normal';g.ironman=!!g.ironman}
  if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.
 function cleanName(s){s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,NAMEMAX):'';return s||BANNERDEF.name}
 const NAMEMAX=24;
-function readSave(){const raw=storeGet(SAVEKEY);if(raw==null||raw==='')return{state:'none'};let g;
+function readSave(slot){return readSaveRaw(storeGet(slotKey(slot)))}
+function readSaveRaw(raw){if(raw==null||raw==='')return{state:'none'};let g;
  try{g=JSON.parse(raw)}catch(e){return{state:'corrupt',why:'unreadable data'}}
  if(!svObj(g))return{state:'corrupt',why:'unreadable data'};const v=saveVersion(g);if(v>SAVEVER)return{state:'newer',v};
  const wk=WSZK;try{setWorldSize(svObj(g)&&WORLDSZ[g.wsize]?g.wsize:'small');g=migrateSave(g);const why=repairSave(g);if(why==='empty')return{state:'none'};if(why)return{state:'corrupt',why}}catch(e){return{state:'corrupt',why:String(e&&e.message||e)}}finally{setWorldSize(wk)}
  return{state:'ok',g,v}}
 function loadSave(){const r=readSave();return r.state==='ok'?r.g:null}          // a loadable campaign, or null
-function saveStatus(){const r=readSave(),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns;s.name=r.g.name;s.banner=r.g.banner;s.wsize=r.g.wsize;s.renown=r.g.renown}return s}
+function saveStatus(slot){const r=readSave(slot),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns;s.name=r.g.name;s.banner=r.g.banner;s.wsize=r.g.wsize;s.renown=r.g.renown;s.diff=r.g.diff;s.ironman=!!r.g.ironman;s.origin=r.g.origin;s.crisisKind=r.g.crisisKind}return s}
 // save(): the running company's famed items are registered again first, whatever readSave() put into ITEMS meanwhile.
-function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length)return false;G.v=SAVEVER;if(svObj(G.famed)&&typeof registerFamed==='function')registerFamed(G.famed);G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(SAVEKEY,s)}
-function clearSave(){return storeDel(SAVEKEY)}
+function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length)return false;G.v=SAVEVER;if(svObj(G.famed)&&typeof registerFamed==='function')registerFamed(G.famed);G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(slotKey(SLOT),s)}
+function clearSave(slot){return storeDel(slotKey(slot))}
 // Keeps a copy of a save this version cannot read before a new company replaces it.
-function backupUnreadableSave(){const st=readSave().state;if(st!=='newer'&&st!=='corrupt')return false;const raw=storeGet(SAVEKEY);return raw!=null&&storeSet(SAVEKEY+'_bak',raw)}
+function backupUnreadableSave(){const st=readSave().state;if(st!=='newer'&&st!=='corrupt')return false;const raw=storeGet(slotKey(SLOT));return raw!=null&&storeSet(slotKey(SLOT)+'_bak',raw)}
 
 /* ---- phase 7 world fields (validated in place; anything unreadable is rebuilt from the seed by factionsInit) ---- */
 function worldRepair(g){const nT=g.towns.length,okF=f=>f==='free'||(Array.isArray(g.houses)&&g.houses.some(h=>h.id===f));
