@@ -11,12 +11,12 @@
 .rn-start{display:flex;flex-wrap:wrap;align-items:center;margin:8px 0 10px}.rn-start small{flex:1 1 100%;margin-top:3px;font-size:.82rem;color:var(--dim);line-height:1.25}
 
 /* ---- new company: difficulty, ironman, tutorial ---- */
-#sheetBody .ncs-diff{flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px}
+#sheetBody .ncs-size.ncs-diff{flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px}
 #sheetBody .ncs-diff .pxi,#sheetBody .ncs-diff .pn-i{width:16px;height:16px;flex:none}
 .ncs-dl{display:flex;flex-wrap:wrap;gap:2px 12px;margin:5px 0 0;padding:0;list-style:none;font-size:.78rem;color:var(--dim)}
 .ncs-dl li{position:relative;padding-left:9px}.ncs-dl li::before{content:'';position:absolute;left:0;top:.5em;width:4px;height:4px;background:var(--brass)}
 .ncs-tg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-#sheetBody .ncs-tog{display:flex;align-items:flex-start;justify-content:flex-start;gap:8px;min-height:60px;padding:6px 8px;text-align:left}
+#sheetBody button.ncs-tog{display:flex;align-items:flex-start;justify-content:flex-start;gap:8px;min-height:60px;padding:6px 8px;text-align:left}
 .ncs-tog>.pxi,.ncs-tog>.pn-i{width:32px;height:32px;flex:none}
 .ncs-tog span{flex:1;min-width:0}.ncs-tog b{display:block;font-size:1rem;line-height:1.05}
 .ncs-tog small{display:block;margin-top:2px;font-family:'Alegreya Sans',system-ui,sans-serif;font-size:.74rem;font-weight:500;line-height:1.22;color:var(--dim)}

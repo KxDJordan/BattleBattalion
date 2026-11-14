@@ -681,3 +681,63 @@ function drawGoalPx(q,x,y,o){const gl=o.goal,k=clamp(Math.round(+o.str||1),1,3),
    new game does not wait for them (the same tables, only made earlier; nothing is drawn). */
 if(typeof window!=='undefined'&&typeof document!=='undefined'&&typeof HTMLCanvasElement!=='undefined'){const waWarm=()=>{if(WA.ok||(typeof mode!=='undefined'&&mode!=='title'))return;try{if(waInit())waPool()}catch(e){}};
  setTimeout(()=>{if(typeof requestIdleCallback==='function')requestIdleCallback(waWarm,{timeout:3000});else waWarm()},2500)}   // well after load, while the title waits for a tap
+
+/* ================= CRISES on the world map (crises agent): crisis sites, crisis hosts, fallen towns =================
+   Sites (G.sites kinds, 18-crises.js): grave (a risen graveyard), throne (the Bone Throne), hcamp (the camp of the Great Horde), ecamp (the
+   Emperor's Camp). Hosts: WAFIG.dead / horde / barb (bands and raids). Towns: the crisis situations crsiege / haunted / occupied / sacked /
+   burned are bits of the town dressing mask (waTownSitMask), so a fallen town is a new dressing sprite and part of the draw signature. */
+Object.assign(WASITE,{grave:{w:36,h:28},throne:{w:44,h:42},hcamp:{w:54,h:40},ecamp:{w:62,h:48}});
+Object.assign(WAFIG,{
+ dead:{b:['..lll..','.lllll.','.lZlZl.','..lml..','.GmlmG.','l.GmG.l','..lll..'],la:['..l.l..','..l.l..','.ll.ll.'],lb:['..l.l..','.l...l.','ll...ll'],flag:['D','G','1','Z'],wpn:'sword',gap:8},
+ horde:{b:['...www...','..wwwww..','..w0w0w..','..lwwwl..','.iiwwwii.','wiijjjiiw','w.iiiii.w','v.aaaaa.v'],la:['..ii.ii..','..ii.ii..','..aa.aa..'],lb:['..ii.ii..','.ii...ii.','.aa...aa.'],flag:['4','w','1','l'],wpn:'axe',gap:10},
+ barb:{b:['.n...n.','.nqqqn.','..sts..','.HHHHH.','iHkkkHi','s.jjj.s','..aia..'],la:['.jj.jj.','.jj.jj.','.aa.aa.'],lb:['.jj.jj.','jj...jj','aa...aa'],flag:['x','X','G','n'],wpn:'axe',gap:8}});
+// a risen graveyard: a broken fence, leaning stones, open graves and a dead tree; a sick green glow at night
+function waGrave(P,night,f){const B=P.h-3;waGround(P,18,B-1,17,5,'3','4');
+ for(let x=2;x<=33;x+=3){if(x===17||x===20)continue;const hh=4+(x%5===0?0:1)-((x*7)%4===0?2:0);if(hh<2)continue;P.r(x,B-hh+1,1,hh,'i');P.p(x,B-hh,'j')}P.r(2,B-3,32,1,'i');P.p(18,B-3,'.');
+ for(const g of [[6,B-6],[13,B-9],[24,B-8],[29,B-5],[10,B-3]]){P.s(g[0],g[1]-4,['.mm.','mllm','mlpm','mlpm']);}
+ for(const g of [[17,B-6],[21,B-10],[8,B-10]]){P.s(g[0],g[1],['jaaaj','a000a','.aaa.'])}
+ P.r(27,B-22,1,14,'i');P.s(24,B-24,['j...j..','.j.j..j','..jj.j.','...jj..']);P.s(26,B-15,['j.','.j']);
+ P.outline();const fl=P.flat;P.flat=true;const gl=night?'Z':'7';for(let i=0;i<5;i++){const ph=(f+i*3)&7,x=6+((waHash(i,2,91)*24)|0),y=B-4-((waHash(i,3,91)*10)|0)-(ph>>1);if(ph<5)P.p(x,y,ph<2?gl:'6')}P.flat=fl}
+// the Bone Throne: a hill of skulls and long bones, a black throne of ribs on top, a crowned skeleton with green eyes
+function waThrone(P,night,f){const B=P.h-3,cx=22;waGround(P,cx,B-1,20,5,'4','1');
+ P.ell(cx,B+2,18,15,(x,y,a,b)=>{if(y>B)return null;const h=waHash(x,y,93);return h<.12?'0':h<.4?'m':h<.7?'l':'n'});
+ for(let i=0;i<14;i++){const x=cx-15+((waHash(i,1,94)*30)|0),y=B-2-((waHash(i,2,94)*10)|0);if(P.g(x,y)){P.p(x,y,'0');P.p(x+2,y,'0')}}
+ P.r(cx-6,B-26,12,14,'1');P.r(cx-6,B-26,1,14,'G');P.r(cx+5,B-26,1,14,'0');for(let y=B-24;y<=B-15;y+=3)P.r(cx-5,y,10,1,'m');
+ for(const s of [[-7,-28],[6,-28],[-3,-30],[2,-30]])P.s(cx+s[0],B+s[1],['ll','00']);P.r(cx-7,B-13,14,2,'m');P.r(cx-7,B-12,14,1,'n');
+ P.s(cx-3,B-22,['.ddd.','dldld','.lll.','.l0l.','..l..','.GDG.','GDDDG','GDlDG','.GDG.']);
+ P.r(cx+5,B-26,1,15,'0');P.p(cx+5,B-27,'6');P.outline();const fl=P.flat;P.flat=true;const e=night||(f&4)?'Z':'6';P.p(cx-2,B-19,e);P.p(cx,B-19,e);
+ for(let i=0;i<4;i++){const ph=(f+i*2)&7;P.p(cx-9+i*6,B-14-ph,ph<4?'6':'7')}P.flat=fl}
+// the horde camp: hide tents, wolf pens, a ditch of stakes, skull totems, the warchief's green banner, cookfires
+function waHcamp(P,night,f){const B=P.h-3,cx=27;waGround(P,cx,B-1,26,6,'i','j');
+ for(let x=1;x<=52;x+=2){if(x>22&&x<32)continue;const hh=4+((x*5)%3);P.r(x,B-hh+1,1,hh,x%4===1?'j':'k');P.p(x,B-hh,'l')}
+ waTent(P,10,B-2,6,10,['t','u','i']);waTent(P,43,B-3,6,10,['t','u','i']);waTent(P,27,B-6,9,16,['u','i','a']);waTent(P,18,B,4,7,['t','u','i']);waTent(P,36,B+1,4,7,['t','u','i']);
+ for(const tx of [4,49]){P.r(tx,B-16,1,10,'i');P.s(tx-1,B-19,['lll','0l0','.l.'])}
+ P.r(cx,B-38,1,20,'i');waFlag(P,cx,B-38,8,6,['4','w','1'],f>>1,1,'l');P.s(cx+3,B-36,['l.l','.0.']);
+ P.outline();waFire(P,22,B+1,f);waFire(P,33,B,f+2)}
+// the Emperor's Camp: a ring of black stakes on snow, a longhouse with a carved gable and horns, blue banners, smoke
+function waEcamp(P,night,f){const B=P.h-3,cx=31;waGround(P,cx,B-1,30,7,'r','n');
+ const hx=cx-12,hw=24;P.r(hx,B-14,hw,9,'j');P.r(hx,B-14,hw,1,'k');P.r(hx+hw-1,B-14,1,9,'i');for(let x=hx+2;x<hx+hw-1;x+=4)P.r(x,B-13,1,8,'i');
+ for(let j=0;j<9;j++){const ww=hw+4-j*3;if(ww<2)break;for(let i=0;i<ww;i++)P.p(hx-2+Math.floor(j*1.5)+i,B-15-j,j===0?'a':i<ww*.45?'k':'j')}
+ P.s(cx-2,B-28,['n...n','.n.n.','..n..']);P.r(cx-1,B-9,3,4,'0');P.p(cx,B-9,night?'y':'a');
+ for(let x=1;x<=60;x+=2){if(x>26&&x<36)continue;const hh=8+((x*7)%3);P.r(x,B-hh+1,1,hh,x%4===1?'1':'G');P.p(x,B-hh,'p');P.p(x,B-hh-1,'q')}
+ for(const s of [[25,B+1],[36,B+1]]){P.r(s[0],s[1]-14,2,15,'1');P.p(s[0],s[1]-15,'n');P.p(s[0]+1,s[1]-15,'n')}
+ for(const bx of [8,53]){P.r(bx,B-26,1,18,'i');waFlag(P,bx,B-26,6,5,['x','X','G'],f>>1,bx<30?1:-1,'n')}
+ P.outline();waSmoke(P,cx+6,B-24,f,'q');waSmoke(P,cx-8,B-22,f+1,'q');if(night){const fl=P.flat;P.flat=true;P.p(cx-6,B-11,'y');P.p(cx+6,B-11,'y');P.flat=fl}}
+{const d0=drawSitePx;drawSitePx=function(q,x,y,o){o=o||{};const k=o.kind;if(k!=='grave'&&k!=='throne'&&k!=='hcamp'&&k!=='ecamp')return d0(q,x,y,o);if(!waInit())return;
+  const D=waSiteDim(o),f=waRM()?0:o.frame|0,night=o.night?1:0,key=k+'|'+night+'|'+(f&7),paint=k==='grave'?P=>waGrave(P,night,f&7):k==='throne'?P=>waThrone(P,night,f&7):k==='hcamp'?P=>waHcamp(P,night,f&7):P=>waEcamp(P,night,f&7);
+  const s=waSprite(key,D.w,D.h,D.w>>1,D.h-2,paint);waShadow(q,x,y,D.w-4,7);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}}
+// fallen and besieged towns: the crisis situations join the dressing mask (bits 6..10)
+WASITK.push('crsiege','haunted','occupied','sacked','burned');
+{const t0=waTownDeco;waTownDeco=function(P,size,own,mask,pr,night,f){const bit=k=>!!(mask&(1<<WASITK.indexOf(k)));const cr=bit('crsiege')||bit('haunted')||bit('occupied')||bit('sacked')||bit('burned');
+  if(!cr)return t0(P,size,own,mask,pr,night,f);
+  const O=4,B=P.h-3,sz=clamp(size|0||1,1,3),TW=WASITE['town'+sz].w,TH=WASITE['town'+sz].h,X=x=>O+x,fl0=P.flat;
+  if(bit('crsiege')){waTent(P,X(-1),B+1,3,7,['l','m','n']);waTent(P,X(TW),B+1,3,7,['l','m','n']);P.r(X(-3),B-12,1,12,'i');waFlag(P,X(-3),B-12,4,3,['1','G','D'],f>>1,1,'l')}
+  if(bit('haunted')){P.flat=true;for(let i=0;i<14;i++){const x=X(3+((waHash(i,sz,63)*(TW-6))|0)),y=B-3-((waHash(i,sz,64)*(TH*.6))|0);P.p(x,y,'1');P.p(x+1,y,'4')}P.flat=fl0;
+   P.s(X(-3),B-5,['.mm.','mllm','mlpm','mlpm']);P.s(X(TW-1),B-4,['.mm.','mllm','mlpm']);P.r(X(TW-6),B-20,1,20,'i');waFlag(P,X(TW-6),B-20,5,4,['D','G','1'],f>>1,-1,'Z')}
+  if(bit('occupied')){P.r(X(-2),B-22,1,22,'i');P.s(X(-3),B-25,['lll','0l0','.l.']);waFlag(P,X(-2),B-21,6,5,['4','w','1'],f>>1,1,'l');P.r(X(TW),B-16,1,16,'i');waFlag(P,X(TW),B-16,5,4,['4','w','1'],f>>1,-1,'l')}
+  if(bit('burned')){P.r(X(TW-2),B-18,1,18,'i');waFlag(P,X(TW-2),B-18,6,5,['x','X','G'],f>>1,-1,'n')}
+  if(bit('sacked')||bit('burned'))WARAIDF[sz].forEach((p,i)=>{if(bit('burned')||i<2)waBigFire(P,X(p[0]),B+p[1],f+i)});
+  P.outline();P.flat=true;
+  if(bit('haunted'))for(let i=0;i<7;i++){const ph=(f*2+i*3)&7,x=X(2+((waHash(i,5,72)*(TW-4))|0)),y=B-5-((waHash(i,6,72)*(TH*.6))|0)-(ph>>1);if(ph<6){P.p(x,y,night?'Z':'6');if(ph<3)P.p(x,y-1,'7')}}
+  if(bit('sacked')||bit('burned'))for(let i=0;i<12;i++){const x=X(3+((waHash(i,sz,83)*(TW-6))|0)),y=B-2-((waHash(i,sz,84)*(TH*.55))|0);P.p(x,y,'0');P.p(x+1,y,'1')}
+  P.flat=fl0}}

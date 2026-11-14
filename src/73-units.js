@@ -434,7 +434,8 @@ function usArmDet(S,A,v,x0,x1,ty,th,fc){const V=S.av;if(!V)return;const a=S.armo
  if(V.mantle){usPart();const r=a==='robe'?(S.accR||usCloth('purple')):USR.fur;for(let x=x0-1;x<=x1+1;x++){usP(x,ty,r,((x*7)%5===0)?1:0);usP(x,ty+1,r,-1);if(x>x0&&x<x1&&((x+ty)&1))usP(x,ty+2,r,-1)}if(a==='robe'&&v===0){usF(fc,ty+1,'c');usF(fc-1,ty+1,'d')}}
  if(V.mailtop&&v===0){for(let x=x0+1;x<=x1-1;x++)usF(x,y1,'4')}
  if(V.sig&&v===0){const g=S.res?USR[S.res].t[1]:'x',G2=S.res?USR[S.res].t[2]||'r':'F';const ys=V.sig===2?[ty+2,ty+4,ty+6]:[ty+3,ty+5];for(const y of ys){usF(x0+1,y,g);usF(x1-1,y,g)}usF(x0+1,ty+1,G2);if(V.sig===2){usF(x1-1,ty+1,G2);usF(fc+1,ty+2,'d')}}
- if(V.odo){const ok=V.odo;for(let y=ty+1;y<y1;y+=2)for(let x=x0;x<=x1;x++)if(((x+y)&1)===0)usF(x,y,ok);if(V.gild){for(let x=x0;x<=x1;x++)usF(x,ty,x<fc?'d':'c');usF(fc,ty+2,'e')}
+ if(V.odo){const ok=V.odo;for(let y=ty+2;y<y1;y+=3)for(let x=x0;x<=x1;x++)if(((x-x0)%3)!==2)usF(x,y,ok);   // odoshi: bands of coloured lacing across the lames
+ if(V.gild){for(let x=x0;x<=x1;x++)usF(x,ty,x<fc?'d':'c');usF(fc,ty+2,'e')}
   if(V.sode&&v===0){usPart();const sw=V.sode>1?3:2;for(let j=0;j<=V.sode+2;j++)for(let i=0;i<sw;i++)usP(x1+1+i-(sw-2),ty+j,(j&1)?USR[ok==='g'?'red':ok==='y'?'gold':'mana']||USR.red:(S.av.A&&USR[S.av.A.paul])||USR.blk,j===V.sode+2?-1:0)}}
  if(V.kesa&&v===0){for(let y=ty;y<=y1;y++){const x=x0+Math.round((y-ty)*(x1-x0)/(y1-ty||1));usF(x,y,'g');if(x+1<=x1)usF(x+1,y,'f')}}
  if(V.tex==='flute'&&v===0){usF(x0+1,ty+1,'r');usF(fc,ty+th-3,'r')}if(V.cr)usArmCraft(S,A,v,x0,x1,ty,th,fc)}
@@ -668,9 +669,9 @@ function usHat(S,v,x0,y0,er){const t=S.hat;if(!t)return;if(US_EHAT[t]){usHatEast
    S.odoR: the lacing colour of the lames (default red); S.lacqR the lacquer (default black) */
 const US_EHAT={jingasa:1,hachigane:1,kabuto:1,menpo:1,kawari:1};
 function usHatEast(S,v,x0,y0,er){const t=S.hat,b=S.b,hw=b.hw,hh=b.hh,R=USR,L=S.lacqR||R.blk,O=S.odoR||R.red,G=R.gold,front=v?-99:hw-1,a=hw>>1;
- if(t==='jingasa'){usPart();usP(x0+a-1,y0-3,L,1);usP(x0+a,y0-3,L,1);for(let x=1;x<hw-1;x++)usP(x0+x,y0-2,L,x<a?1:0);for(let x=-1;x<=hw;x++)usP(x0+x,y0-1,L,x<a-1?0:x>a+1?-1:0);
-  usPart();for(let x=-2;x<=hw+1;x++)usP(x0+x,y0,L,-1);if(v===0){usF(x0+a,y0-2,S.monK||'g');usF(x0+a+1,y0-2,S.monK||'g')}else usF(x0+a,y0-2,S.monK||'g');
-  usPart(1);if(v===0){usP(x0+hw-3,y0+er+2,R.white,-1)}return}
+ if(t==='jingasa'){usPart();for(let x=a-2;x<=a+1;x++)usP(x0+x,y0-2,L,x<a?1:0);for(let x=0;x<hw;x++)usP(x0+x,y0-1,L,x<a-1?1:x>a?-1:0);   // a wide, low cone of lacquered card
+  usPart();for(let x=-3;x<=hw+2;x++)usP(x0+x,y0,L,x<0||x>=hw?-1:0);usF(x0-3,y0,'0');usF(x0+hw+2,y0,'0');usF(x0+a-1+(v?0:1),y0-1,S.monK||'c');
+  usPart(1);if(v===0){usP(x0+hw-2,y0+er+2,R.white,-1)}return}
  if(t==='hachigane'){const c=S.hatR||R.white;usPart(1);for(let x=0;x<hw;x++)usP(x0+x,y0+1,c,x===front?-1:0);
   if(v===0){usPart();usP(x0+hw-4,y0+1,R.steel,1);usP(x0+hw-3,y0+1,R.steel);usP(x0+hw-2,y0+1,R.steel,-1);usPart(1);usP(x0-1,y0+2,c,-1);usP(x0-2,y0+3,c,-1);usP(x0-1,y0+3,c,-1)}
   else{usPart(1);usP(x0+a,y0+2,c,-1);usP(x0+a-1,y0+3,c,-1);usP(x0+a+1,y0+3,c,-1)}return}

@@ -121,7 +121,7 @@ function eastInit(g){g=g||(typeof G!=='undefined'?G:null);if(!g||!Array.isArray(
   g.east={v:1,n:'The '+root+' Shogunate',short:root,lord,c1:'l',c2:'g',emblem:'sun',war:null}}
  // the towns of the region (matched by position: W.towns and G.towns are the same list for every save of this seed)
  const ids=[];for(const ti of R.towns){if(ti>0&&ti<T.length&&Math.abs(T[ti].x-w.towns[ti].x)<1&&Math.abs(T[ti].y-w.towns[ti].y)<1)ids.push(ti)}
- for(const ti of ids){const t=T[ti];if(t.east)continue;t.east=1;if(fresh||t.own!=='east'){t.eastPrev0=typeof t.own==='string'?t.own:'free';t.own='east'}}
+ for(const ti of ids){const t=T[ti];t.east=1;if(t.own!=='east'){if(typeof t.eastPrev0!=='string')t.eastPrev0=typeof t.own==='string'?t.own:'free';t.own='east'}}   // the region's towns are always the Shogunate's
  // a house whose seat fell inside the region moves it to its largest other town (or the nearest free one)
  if(Array.isArray(g.houses))for(const h of g.houses){if(!T[h.seat]||!T[h.seat].east)continue;let best=-1;
   T.forEach((t,i)=>{if(t.east||g.houses.some(o=>o.seat===i))return;if(t.own===h.id&&(best<0||t.size>T[best].size))best=i});

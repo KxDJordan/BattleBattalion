@@ -6,7 +6,7 @@
      diffK(key)            -> the running company's factor for key (1 when there is no company or no such key)
                               budget: enemy strength (battle budget) · pay: contract pay · injury: odds of an injury when struck down ·
                               death: odds that a struck-down sword dies · crisisDay: the day the crisis starts (G.crisisDay is already
-                              scaled at new game: readers of G.crisisDay need not apply it again) · wage / price / heal: see DIFF
+                              scaled at new game: readers of G.crisisDay need not apply it again)
      G.diff, G.ironman     (set at new game; ironman: one book, written on its own, no reload; death or retirement ends it)
      G.run                 the run record: {id, day0, battles, won, lost, fled, kills, fallen, contracts, peak, crisis, end}
      runSummary(kind)      -> the summary record of the running company (kind 'retire' | 'wipe' | 'victory' | 'live')
@@ -19,13 +19,13 @@
 const DIFFK=['story','normal','hard','brutal'];
 const DIFF={
  story:{n:'Story',icon:'heart',d:'For the tale more than the struggle. Smaller warbands, better pay, and the fallen usually get back up.',
-  budget:.78,pay:1.25,injury:.6,death:.45,crisisDay:1.35,wage:.85,line:['Enemies 22% weaker','Pay +25%','Deaths far rarer','The crisis comes late']},
+  budget:.78,pay:1.25,injury:.6,death:.45,crisisDay:1.35,line:['Enemies 22% weaker','Pay +25%','Deaths far rarer','The crisis comes late']},
  normal:{n:'Normal',icon:'swords',d:'The march as it was meant to be: hard choices, fair odds and a crisis that will not wait for you.',
-  budget:1,pay:1,injury:1,death:1,crisisDay:1,wage:1,line:['Fair odds','The usual pay','Steel kills','The crisis on time']},
+  budget:1,pay:1,injury:1,death:1,crisisDay:1,line:['Fair odds','The usual pay','Steel kills','The crisis on time']},
  hard:{n:'Hard',icon:'skull',d:'Bands are larger and employers tighter. A struck-down sword is more likely to stay down.',
-  budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,wage:1.1,line:['Enemies 15% stronger','Pay -10%','More deaths','The crisis comes early']},
+  budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,line:['Enemies 15% stronger','Pay -10%','More deaths','The crisis comes early']},
  brutal:{n:'Brutal',icon:'flame',d:'For veterans of the march. Every fight is a gamble with the company\'s life, and the world turns against you fast.',
-  budget:1.32,pay:.8,injury:1.4,death:1.65,crisisDay:.72,wage:1.2,line:['Enemies 32% stronger','Pay -20%','Death is common','The crisis comes very early']}};
+  budget:1.32,pay:.8,injury:1.4,death:1.65,crisisDay:.72,line:['Enemies 32% stronger','Pay -20%','Death is common','The crisis comes very early']}};
 function diffOf(g){g=g||G;return g&&DIFF[g.diff]?g.diff:'normal'}
 function diffK(key){const D=DIFF[diffOf()];const v=D&&D[key];return typeof v==='number'&&isFinite(v)?v:1}
 // the run's crisis kind for an old save or a fresh world: the crises agent's own pick when present, else a hash of the seed
