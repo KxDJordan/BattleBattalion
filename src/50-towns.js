@@ -237,7 +237,7 @@ function acceptContract(i){const t=G.towns[G.town];if(G.contract)return false;co
  toast(c.adv?`Contract accepted: ${c.adv} crowns up front`:'Contract accepted');renderTown();save();return true}
 /* the notice board: a line and a detail page for any contract type, read through the ctr* hooks (16-contracts.js) */
 const TW_DIFFN=['Light','Serious','Grave','Deadly','Dire'];
-function twCtrSub(c){const T=typeof CTYPES==='object'&&CTYPES[c.type],f=c.f&&FACT[c.f]?', '+FACT[c.f].n.toLowerCase():'',tk=typeof ctrRivalTook==='function'?ctrRivalTook(c):'';return(T?T.n:c.type==='deliver'?'Delivery':'Hunt')+(c.type==='deliver'?'':f)+(c.due!=null?` · by day ${c.due}`:'')+(tk?` · <span class="tw-t warn">${htmlEsc(tk)}</span>`:'')}
+function twCtrSub(c){const T=typeof CTYPES==='object'&&CTYPES[c.type],f=c.f&&FACT[c.f]?', '+FACT[c.f].n.toLowerCase():'',tk=typeof ctrRivalTook==='function'?ctrRivalTook(c):'';return(T?T.n:c.type==='deliver'?'Delivery':'Hunt')+(c.type==='deliver'?'':f)+(c.due!=null?` · by day ${c.due}`:'')+(tk?` · <span class="tw-t warn">${c.rtook!=null&&typeof rivalMiniHTML==='function'?rivalMiniHTML(c.rival,16):''}${htmlEsc(tk)}</span>`:'')}
 function twCtrWhere(c,t){const L=[];for(const s of c.stages||[]){if(s.k==='go'){const d=leagues(s,t);L.push(`${s.label}: about ${d} league${d===1?'':'s'} ${compass(s.x-t.x,s.y-t.y)} of ${t.name}${s.fight?'':' (no fight expected)'}.`)}
   else{const o=G.towns[s.ti];if(o)L.push(o===t?`${s.label} here in ${t.name}.`:`${s.label} in ${o.name}, ${leagues(o,t)} leagues ${compass(o.x-t.x,o.y-t.y)}.`)}}
  if(!L.length){const o=c.type==='hunt'?c:G.towns[c.to];if(o)L.push(`About ${leagues(o,t)} leagues ${compass(o.x-t.x,o.y-t.y)} of ${t.name}.`)}return L}
