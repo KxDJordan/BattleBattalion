@@ -81,7 +81,10 @@ function openBattleMap(tiles){const N=BW*BH,start=key(COLS[0],BH-1);
   for(let i=0;i<bq.length&&hit<0;i++){const c=bq[i]%BW,r=(bq[i]/BW)|0;for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=key(nc,nr);if(vis[nk])continue;vis[nk]=1;prev[nk]=bq[i];if(tiles[nk].t!=='block'){hit=nk;break}bq.push(nk)}}
   if(hit<0)return;for(let k=prev[hit];k>=0&&!seen[k];k=prev[k])tiles[k].t='ground'}}
 function buildEnemies(f,budget,fixed,mult){if(typeof FACT[f].build==='function'&&!(fixed&&fixed.length))return FACT[f].build(budget,mult==null?1:mult).slice(0,MAXFOES);const list=(fixed||[]).slice(),U=FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
- while(list.length<MAXFOES&&budget>=minC&&g++<200){const u=pick(U.filter(u=>u[1]<=budget));list.push(u[0]);budget-=u[1]}while(list.length<2)list.push(U[0][0]);return list}
+ while(list.length<MAXFOES&&budget>=minC&&g++<200){const u=pick(U.filter(u=>u[1]<=budget));list.push(u[0]);budget-=u[1]}
+ const floor=SOLOFLOOR&&typeof isSolo==='function'&&isSolo()&&!(fixed&&fixed.length)&&list.length===1&&budget<minC*SOLOFLOOR?1:2;   // one sword: a band too poor for a second foe brings one
+ while(list.length<floor)list.push(U[0][0]);return list}
+const SOLOFLOOR=.5;   // (solo runs only) the share of the cheapest foe's cost left over below which a one-foe band stays one foe
 /* ---- Units ----
    A battle unit (both sides): side, name, lvl, hp/hpMax, arm/armMax (body armor), helm/helmMax (head armor), ap/apMax, fat/fatMax,
    init, ms, rs, md, rd, brv (resolve), mor (morale 0..4), fearless, wpn, abs, res, flags, dmgB, buffs, st (status turns), alive,

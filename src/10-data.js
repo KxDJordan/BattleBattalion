@@ -650,7 +650,7 @@ const QUARRY={
  'hunter.ogre':   {n:'Ogres',        one:'ogre',        tag:'Ogre-slayer',    en:['ogre','aogre'],                   per:5,cap:6}};
 const QUARRYOF={};for(const k in QUARRY){QUARRY[k].key=k;for(const e of QUARRY[k].en)QUARRYOF[e]=k}   // EN id -> quarry (perk) key
 function quarryText(k){const Q=QUARRY[k],hit=Q.per%2===0?`+${Q.per/2} to hit for every one`:Q.per===1?'+1 to hit for every two':`+${Q.per} to hit for every two (an odd one adds ${Math.floor(Q.per/2)})`;
- return`Against ${Q.n.toLowerCase()}: +${QUARRYB}% damage once learned, plus +${Q.per}% damage for every one you have slain and ${hit} (kills count from your first, up to ${Q.cap}: at most +${QUARRYB+Q.per*Q.cap}% damage, +${Math.floor(Q.per*Q.cap/2)} to hit)`}
+ return`Against ${Q.n.toLowerCase()}: +${QUARRYB}% damage once learned, plus +${Q.per}% damage for every one you have slain and ${hit} (kills made before learning it count too; up to ${Q.cap} kills: at most +${QUARRYB+Q.per*Q.cap}% damage, +${Math.floor(Q.per*Q.cap/2)} to hit)`}
 MAST.hunter={n:'Monster hunter',kind:'hunter',aff:['melee','ranged'],d:'Know your quarry: every kill of a kind makes the next one easier (never wyverns)',
  tiers:Object.keys(QUARRY).map(k=>[perkDef(QUARRY[k].tag,quarryText(k),{id:k,quarry:k})])};
 // Perk ids, the flat list p (read by older UI code) and the tier count n.
