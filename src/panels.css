@@ -590,3 +590,43 @@
  #pn .pn-tab .pxi.s32,#pn .pn-tab>.pn-i{width:24px!important;height:24px!important}
  #pn .pn-tab>span{font-size:.62rem;line-height:1.05}
 }
+
+/* ---- rename a sword (55-company.js coRenameAsk): a quill after the name, an inline pixel text field ---- */
+#pn .ch-idm .pn-h.ch-nm{display:flex;align-items:center;gap:4px;overflow:visible;white-space:nowrap}
+#pn .ch-nm>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#pn button.co-renb{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin:-4px 0;background:#101d1c;box-shadow:inset 0 0 0 2px #35554f;opacity:.85;text-shadow:none}
+#pn .co-nm button.co-renb{width:26px;height:26px;margin:-5px 0 -5px -2px;align-self:center;background:transparent;box-shadow:none;opacity:.55}
+#pn button.co-renb:hover,#pn button.co-renb:focus-visible{opacity:1;box-shadow:inset 0 0 0 2px var(--brass)}
+#pn button.co-renb:focus-visible{outline:2px solid #fff4c8;outline-offset:1px}
+#pn button.co-renb:active{transform:translateY(1px)}
+@media (pointer:coarse){#pn button.co-renb{width:36px;height:36px;margin:-8px -2px}#pn .co-nm button.co-renb{width:34px;height:34px;margin:-9px -4px -9px -4px;opacity:.7}}
+#pn .co-ren{display:flex;align-items:center;gap:4px;flex:1 1 auto;min-width:0;max-width:340px}
+#pn .co-ren input{flex:1 1 auto;min-width:0;width:100%;height:36px;margin:0;padding:2px 8px 0;border:0;border-radius:0;outline:0;background:#0b1514;color:#fff4c8;
+ box-shadow:inset 0 0 0 2px var(--brass),inset 2px 2px 0 2px #3a2c12;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:20px;font-weight:600;letter-spacing:.02em;text-shadow:none;caret-color:var(--brass-l);-webkit-user-select:text;user-select:text;touch-action:manipulation}
+#pn .co-nm .co-ren input{height:32px;font-size:17px}
+#pn .co-ren input:focus{box-shadow:inset 0 0 0 2px var(--brass-l),inset 2px 2px 0 2px #3a2c12,0 0 0 2px #0b1514}
+#pn .co-ren .co-renok{flex:none;width:36px;height:36px;min-height:36px;padding:0}
+#pn .co-nm .co-ren .co-renok{width:32px;height:32px;min-height:32px}
+#pn .co-ren .pn-btn.co-renok{min-width:36px}#pn .co-nm .co-ren .pn-btn.co-renok{min-width:32px}
+
+/* ---- armor-class trees in the talent grid (55-company.js coArmorTrees), the armor class chip, the tree strip ---- */
+#pn .tg-wh.tg-ah b{color:#c8d0d8}
+#pn .tg-wh em,#pn .tg-th em.tg-ac{flex:none;display:inline-flex;align-items:center;gap:3px;height:18px;padding:0 5px 0 2px;border:1px solid #35554f;background:#101d1c;color:var(--dim);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-style:normal;font-size:.78em;font-weight:600;letter-spacing:.03em;line-height:1}
+#pn .tg-th em.tg-ac{padding:0 5px;text-transform:uppercase;font-size:.7em;height:16px}
+#pn .tg-th em.tg-ac.on{padding-left:1px;border-color:#2c6a5d;background:#1f3a33;color:#9fe0cd}
+#pn .tg-wh em.tg-acw{border-color:#8a6a2a;background:#3a2c12;color:#f3d98b}
+#pn .tg-wh em.tg-acw:not(.light):not(.medium):not(.heavy){border-color:#35554f;background:#101d1c;color:var(--dim)}
+#pn .tg-tree.k-armor .tg-row{box-shadow:-4px 0 0 #35554f;margin-left:4px}
+#pn .tg-tree.k-armor.worn .tg-row{box-shadow:-4px 0 0 var(--verd)}
+#pn .tg-tree.k-armor.worn .tg-th b{color:#9fe0cd}
+#pn .tg-tree.k-armor.worn .tg-c{box-shadow:inset 0 0 0 2px #1f3a33}
+#pn .tg-tree.k-armor.off .tg-th>.pxi,#pn .tg-tree.k-armor.off .tg-th>.pn-i{opacity:.6}
+#pn .tg-tree.k-armor.off .tg-n:not(.got):not(.sel){filter:saturate(.55) brightness(.85)}
+#pn .tg-tag.w.a{background:#1f3a33;color:#c8d0d8}
+#pn .co-w.co-a.worn{box-shadow:0 2px 0 var(--verd)}
+#pn .pn-chip.ac-chip{color:#c8d0d8;box-shadow:inset 0 -2px 0 #4d5a5c}
+#pn .pn-chip.ac-chip.light{color:#d6c39a;box-shadow:inset 0 -2px 0 #7a5a38}
+#pn .pn-chip.ac-chip.heavy{color:#e9eef2;box-shadow:inset 0 -2px 0 #8d99a6}
+#pn .pn-chip.ac-chip.none{color:var(--dim);box-shadow:none;font-weight:500}
+#pn .pn-chip.ac-chip .pxi{margin:-2px -2px -2px -4px}
+#pn .tw-ats{margin-top:4px}

@@ -452,7 +452,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    A.park();
    { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
        hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
-     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(it.sk.join()===(((X.WSKID&&X.WSKID[id])||(own[id]&&own[id].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
+     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');const bid=it.famed&&it.base?it.base:id;ok(it.sk.join()===(((X.WSKID&&X.WSKID[bid])||(own[bid]&&own[bid].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
         ok(!!it.reload===it.sk.includes('reload')&&(!it.reload||(X.isRangedW(it)&&it.reload.ap>=2&&it.reload.fat>=0)),'weapon '+id+': reload weapons are ranged and carry the reload skill')}
       if(it.k==='s')ok(it.hp>0&&it.sk.join()===(it.spike?'shieldwall,spikebash':'shieldwall,bash')&&/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look),'shield '+id+' lacks hitpoints, skills or a look')}
      ok(X.ITEMS.pike.sk.join()==='impale'&&X.ITEMS.greataxe.sk.join()==='split,round','two-hander skills');for(const id in X.AB)ok(X.AB[id].n&&X.AB[id].d,'ability '+id+' lacks a name or description');
@@ -748,10 +748,87 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const f0=X.forecast(W,e0,at);W.st.weak=1;const f1=X.forecast(W,e0,at);ok(f1.dmgMax<f0.dmgMax,'weakened deals less damage');W.st.weak=0;
      W.flags=Object.assign({},W.flags,{undying:1});W.undy=0;W.hp=3;const fk=X.forecast(e0,W,X.abilityInfo(e0,'attack'));ok(fk.undying&&!fk.kill&&!fk.sure,'the forecast knows Undying');
      X.hurt(W,500,1,e0,{loc:1});ok(W.alive&&W.hp===1&&W.undy===1,'Undying leaves 1 hitpoint');X.hurt(W,500,1,e0,{loc:1});ok(!W.alive,'only once');
-     W.alive=true;W.hp=W.hpMax=200;put(A,3,4);A.flags=Object.assign({},A.flags,{cmd:5});X.auraScan();ok(X.hitChance(W,e0,at)===Math.min(95,h0+5),'Battle orders: +5 to hit for an adjacent ally');delete A.flags.cmd;X.auraScan();
+     W.alive=true;W.hp=W.hpMax=200;put(A,3,4);const h1=X.hitChance(W,e0,at);A.flags=Object.assign({},A.flags,{cmd:5});X.auraScan();ok(X.hitChance(W,e0,at)===Math.min(95,h1+5),'Battle orders: +5 to hit for an adjacent ally');delete A.flags.cmd;X.auraScan();
      Pl.mor=2;put(Pl,5,5);put(A,6,5);A.mor=1;A.fearless=false;Pl.fearless=false;const ra=Object.assign({id:'rally'},X.AB.rally);Pl.ap=9;Pl.fat=0;b.cur=Pl;await X.useAbility(Pl,ra,KU(Pl));await rest(b);
      ok(Pl.mor===3&&A.mor===2&&Pl.buffs.some(x=>x.key==='rallied')&&A.buffs.some(x=>x.key==='rallied'),'Rally lifts morale around the rallier') }
+   let ARMM=null;
+   // -- fatigue: tired attackers miss more, tired targets are easier to hit; foes that never tire are unaffected --
+   { b.units.forEach((u,i)=>{put(u,i,11);u.st={};u.buffs=[];u.mor=3;u.fearless=true;u.alive=true});put(Pl,5,5);put(e0,6,5);
+     ok(X.tiredPen({fat:30,fatMax:100})===0&&X.tiredPen({fat:50,fatMax:100})===0&&X.tiredPen({fat:60,fatMax:100})===2&&X.tiredPen({fat:75,fatMax:100})===5&&X.tiredPen({fat:90,fatMax:100})===8&&X.tiredPen({fat:100,fatMax:100})===10&&X.tiredPen({fat:5000,fatMax:9999})===0,'the fatigue curve: 0 to half, then -1 a 5%, -10 at full exhaustion');const TM=X.TIRED.max;
+     Pl.flags={};e0.flags={};Pl.ms=60;Pl.md=10;e0.ms=60;e0.md=10;e0.fatMax=9999;const at=X.abilityInfo(Pl,'attack'),ea=X.abilityInfo(e0,'attack');Pl.fat=0;e0.fat=0;
+     const h0=X.hitChance(Pl,e0,at),g0=X.hitChance(e0,Pl,ea);ok(h0>25&&h0<75&&g0>25&&g0<75,'fatigue fixture: '+h0+' '+g0);
+     const hs=[];for(const r of [0,.5,.6,.75,.9,1]){Pl.fat=Math.round(Pl.fatMax*r);hs.push(X.hitChance(Pl,e0,at));ok(hs[hs.length-1]===h0-X.tiredPen(Pl),'a tired attacker loses tiredPen to hit')}
+     ok(hs.every((h,i)=>!i||h<=hs[i-1])&&hs[0]-hs[5]===TM&&hs[1]===h0,'hit chance must fall as the attacker tires: '+hs.join(' '));
+     Pl.fat=Pl.fatMax;ok(X.hitChance(e0,Pl,ea)===g0+TM,'an exhausted target is TIRED.max easier to hit');const fc=X.forecast(e0,Pl,ea);ok(fc.tiredDef===TM&&fc.tiredAtt===0&&fc.hit===g0+TM,'forecast: tiredDef');
+     const fa=X.forecast(Pl,e0,at);ok(fa.tiredAtt===TM&&fa.tiredDef===0&&fa.hit===h0-TM,'forecast: tiredAtt');
+     const sp={id:'bolt',n:'Bolt',magic:[10,20],ign:.5,rng:5,tgt:'enemy'};Pl.fat=0;const s0=X.hitChance(Pl,e0,sp);Pl.fat=Pl.fatMax;ok(X.hitChance(Pl,e0,sp)===s0-TM,'spells pay for fatigue too');Pl.fat=0;
+     e0.fat=5000;ok(X.hitChance(Pl,e0,at)===h0&&X.hitChance(e0,Pl,ea)===g0&&X.tiredPen(e0)===0,'a foe without fatigue (fatMax 9999) is never tired');
+     e0.fatMax=60;e0.fat=60;ok(X.tiredPen(e0)===TM&&X.hitChance(Pl,e0,at)===h0+TM&&X.hitChance(e0,Pl,ea)===g0-TM,'a foe with real fatigue (orcs) tires like a merc');
+     ok(X.unitStatuses(e0).some(s=>s.key==='tired'&&s.turns===TM)&&!X.unitStatuses(Pl).some(s=>s.key==='tired'),'Tired shows in the statuses');e0.fatMax=9999;e0.fat=0 }
+   // -- armor trees: classes, tiers, perks only in their class --
+   { const AT=['lightarmor','medarmor','heavyarmor'];ok(AT.every(k=>M[k]&&kind(k)==='armor'&&M[k].tiers.length===3&&M[k].tiers.every(t=>t.length===2))&&M.lightarmor.aw==='light'&&M.medarmor.aw==='medium'&&M.heavyarmor.aw==='heavy','three armor trees of 3 tiers x 2 perks');
+     ok(X.tierLevel('armor',1)===2&&X.tierLevel('armor',2)===5&&X.tierLevel('armor',3)===8,'armor tiers open at levels 2, 5 and 8');
+     const ac=id=>{const m={eq:{a:id}};return X.armorClass(m)};
+     ok(ac(null)==='light'&&ac('rags')==='light'&&ac('padded')==='light'&&ac('robe')==='light'&&ac('archrobe')==='light'&&ac('mailrobe')==='light'&&ac('hide')==='medium'&&ac('mail')==='medium'&&ac('brigandine')==='medium'&&ac('lamellar')==='heavy'&&ac('plate')==='heavy','armorClass by armor points (robes are light)');
+     X.ITEMS['f:armtest']=Object.assign({},X.ITEMS.padded,{famed:1,base:'padded',arm:90});ok(ac('f:armtest')==='light','a famed piece keeps its base class');delete X.ITEMS['f:armtest'];
+     const m=X.newMerc('knight');m.race='human';m.perks=[];m.lvl=1;m.pp=1;m.eq.a='plate';const mt=X.mercTrees(m);ok(mt.slice(-3).map(x=>x.key+':'+x.kind).join()==='lightarmor:armor,medarmor:armor,heavyarmor:armor','mercTrees ends with the three armor trees');
+     ok(!X.canLearn(m,'heavyarmor.1a'),'armor tier 1 waits for level 2');m.lvl=2;ok(X.canLearn(m,'heavyarmor.1a')&&X.canLearn(m,'lightarmor.1a')&&!X.canLearn(m,'heavyarmor.2a'),'armor tier 1 opens at level 2, for every class');
+     m.lvl=5;ok(X.canLearn(m,'medarmor.2b')&&!X.canLearn(m,'medarmor.3a'),'armor tier 2 at level 5');m.lvl=8;ok(X.canLearn(m,'lightarmor.3b'),'armor tier 3 at level 8');
+     const po=X.perkOptions(m).filter(o=>o.kind==='armor');ok(po.length===18&&po.every(o=>o.need===[2,5,8][o.tier-1]),'perkOptions lists the armor perks with their levels');
+     const all=[];for(const k of AT)M[k].tiers.forEach(t=>t.forEach(p=>all.push(p.id)));m.pp=18;for(const id of all)ok(X.learnPerk(m,id),'learn '+id);ok(m.pp===0&&!m.perks.some(id=>!all.includes(id)),'all 18 armor perks learned with points');
+     const bare=X.clone(m);bare.perks=[];delete bare.armp;
+     for(const [a,cl] of [['jack','light'],['mail','medium'],['plate','heavy']]){m.eq.a=a;bare.eq.a=a;const s=X.calc(m),s0=X.calc(bare),T=AT[['light','medium','heavy'].indexOf(cl)];
+       ok(s.acl===cl&&s.perks.every(id=>X.perkById(id).key===T)&&s.perks.length===6&&s.off.length===12&&s.off.every(id=>X.perkById(id).key!==T),cl+' armor: only its own tree works');
+       for(const k of ['nimble','fleet','sidestep','freshDef','dance','brace','armRegen','roll','layerDef','padIgn','unbowed','steelWall','hpSoak'])ok(!!s.flags[k]===(X.perkById(all.find(id=>{const p=X.perkById(id).perk;return(p.mod&&p.mod[k]!=null)})).key===T),cl+': '+k+' must follow the armor class');
+       for(const k of ['slip','footing','kbImm','ironLung','noStun'])ok(!!s.flags[k]===(X.perkById(all.find(id=>X.perkById(id).perk.flag===k)).key===T),cl+': '+k+' must follow the armor class');
+       ok(s.fat===s0.fat+(cl==='heavy'?Math.floor(s.aw/2):0)&&s.aw===X.ITEMS[a].fat+(m.eq.h?X.ITEMS[m.eq.h].fat||0:0),'Iron lung halves the armor weight on fatigue, in heavy armor only')}
+     // autoLearn takes armor perks from the tree of the armor worn only
+     for(const [a,T] of [['jack','lightarmor'],['mail','medarmor'],['plate','heavyarmor']])for(const bg of ['knight','hunter','hedge']){const q=X.newMerc(bg);q.eq.a=a;X.gainXP(q,X.XPT[15]);X.autoLearn(q);
+       const ar=q.perks.filter(id=>X.perkById(id).kind==='armor');ok(ar.length>=2&&ar.every(id=>X.perkById(id).key===T),'autoLearn picks the armor tree of the armor worn: '+bg+' in '+a+': '+ar.join())}
+     ARMM=X.clone(m);
+     // in the field: one class at a time, the flags calc gives (other classes get none of them)
+     const fl=a=>{m.eq.a=a;const s=X.calc(m);return{flags:s.flags,aw:s.aw}};
+     b.units.forEach((u,i)=>{put(u,i,11);u.st={};u.buffs=[];u.flags={};u.mor=3;u.fearless=true;u.alive=true;u.fat=0;u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0});X.auraScan();
+     put(Pl,5,5);put(e0,6,5);Pl.fat=0;Pl.hp=Pl.hpMax=200;Pl.arm=Pl.armMax=200;Pl.helm=Pl.helmMax=100;const ea=X.abilityInfo(e0,'attack'),g0=X.hitChance(e0,Pl,ea),d0=X.forecast(e0,Pl,ea);
+     // light
+     { const L=fl('jack');Pl.flags=L.flags;Pl.aw=L.aw;const nb=Math.round(Math.max(0,30-1.5*L.aw))/100;ok(X.nimbleDr(Pl)===nb&&X.armorDr(Pl)===nb&&X.forecast(e0,Pl,ea).armDr===nb,'Nimble: 30% - 1.5% a point of weight, fresh: '+X.nimbleDr(Pl)+' vs '+nb);
+       Pl.fat=Pl.fatMax;ok(X.nimbleDr(Pl)===Math.round(Math.max(0,30-1.5*L.aw)*.5)/100,'Nimble: half when exhausted');Pl.fat=0;ok(X.forecast(e0,Pl,ea).dmgMax<d0.dmgMax,'Nimble takes damage off the forecast');
+       ok(X.hitChance(e0,Pl,ea)===g0-8,'Fresh legs: +8 defense while fatigue is below half');Pl.fat=Math.ceil(Pl.fatMax*.5);ok(X.hitChance(e0,Pl,ea)===g0+X.tiredPen(Pl),'Fresh legs ends at half fatigue');Pl.fat=0;
+       Pl.dnc=2;ok(X.hitChance(e0,Pl,ea)===g0-8-10&&X.forecast(e0,Pl,ea).armDef===18,'Dancer: +5 a miss');Pl.dnc=0;
+       let miss=0;for(let i=0;i<40&&!miss;i++){e0.ms=-200;await X.strike(e0,Pl,ea);miss=Pl.dnc}e0.ms=60;ok(miss===1,'a miss sets Dancer going');Pl.dnc=3;ok(X.hitChance(e0,Pl,ea)===g0-8-15,'Dancer stops at +15');Pl.dnc=0;
+       put(e2,5,1);e2.fat=0;const sh=X.abilityInfo(e2,'attack'),q0=X.hitChance(e2,Pl,sh);Pl.mvd=1;ok(X.hitChance(e2,Pl,sh)===q0-10&&X.hitChance(e0,Pl,ea)===g0-8,'Fleet: +10 against shots after moving, nothing in melee');Pl.mvd=0;put(e2,15,11);
+       Pl.ss=0;const hp0=Pl.hp;X.hurt(Pl,80,1,e0,{loc:1,pierce:1});ok(hp0-Pl.hp===40&&Pl.ss===1,'Sidestep: a blow over 25% of max hitpoints is halved: '+(hp0-Pl.hp));const hp1=Pl.hp;X.hurt(Pl,80,1,e0,{loc:1,pierce:1});ok(hp1-Pl.hp===80,'Sidestep: once between turns');
+       Pl.ss=0;const hp2=Pl.hp;X.hurt(Pl,40,1,e0,{loc:1,pierce:1});ok(hp2-Pl.hp===40&&!Pl.ss,'Sidestep ignores lighter blows');Pl.hp=200;
+       // Slippery: the first step of a turn draws no free attack
+       const seen=[];X.FX.on=(type,d)=>{if((type==='hit'||type==='miss')&&d.u===e0)seen.push(type)};Pl.ap=9;e0.aoo=0;Pl.slipT=0;await X.walkPath(Pl,[5*BW+4]);ok(Pl.c===4&&!seen.length&&!e0.aoo,'Slippery: no free attack on the first step');
+       put(Pl,5,5);Pl.ap=9;e0.aoo=0;await X.walkPath(Pl,[5*BW+4]);ok(seen.length===1,'Slippery: only the first tile of a turn');X.FX.on=(type,d)=>ev.push({type,d});Pl.hp=200;put(Pl,5,5) }
+     // medium
+     { const Md=fl('mail');Pl.flags=Md.flags;Pl.aw=Md.aw;Pl.fat=0;Pl.arm=200;ok(X.armorDr(Pl)===.2&&X.forecast(e0,Pl,ea).armDr===.2,'Brace: 20% off the first blow');X.hurt(Pl,10,0,e0,{loc:1});ok(Pl.brc===1&&X.armorDr(Pl)===0,'Brace is spent by a hit');Pl.brc=0;
+       Pl.arm=200;ok(X.hitChance(e0,Pl,ea)===g0-6,'Layered defense: +6 while the armor is above half');Pl.arm=100;ok(X.hitChance(e0,Pl,ea)===g0,'Layered defense: not at half');Pl.arm=200;
+       { const t2=X.clone({}),h0=Pl.hp;Pl.arm=200;X.hurt(Pl,100,.6,e0,{loc:1});const a1=Pl.arm,l1=h0-Pl.hp;Pl.hp=h0;Pl.arm=200;const f0=Pl.flags;Pl.flags=Object.assign({},f0,{padIgn:0});X.hurt(Pl,100,.6,e0,{loc:1});const l2=h0-Pl.hp;Pl.flags=f0;Pl.hp=h0;Pl.arm=200;
+         ok(l1<l2&&l1===Math.max(0,Math.round(100*.6*(2/3)-(200-100)*.1))&&a1===100,'Padded under-layer: a third less of the piercing share: '+l1+' vs '+l2) }
+       let kb=0,st=0;for(let i=0;i<200;i++){put(Pl,5,5);await X.knockback(e0,Pl,1,0);if(Pl.c!==5)kb++;Pl.st={};X.addStatus(Pl,'stun',1);if(Pl.st.stun)st++}put(Pl,5,5);Pl.st={};
+       ok(kb>70&&kb<130&&st>70&&st<130,'Rolling with it: half the knockbacks and stuns land: '+kb+' / '+st);
+       const kbA={id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,status:{stun:1},rng:1,tgt:'enemy'},fk=X.forecast(e0,Pl,kbA);ok(fk.kb&&fk.kb.ch===.5&&fk.statuses.some(s=>s.k==='stun'&&s.ch===.5),'forecast: Rolling with it halves knockback and stun chances');
+       Pl.ap=9;Pl.fat=0;put(e0,15,0);await X.walkPath(Pl,[5*BW+4,5*BW+3,5*BW+2]);ok(Pl.c===2&&Pl.fat===3&&X.moveFat(Pl)===1,'Steady footing: 1 fatigue a tile');put(Pl,5,5);put(e0,6,5);
+       Pl.arm=150;const res0=Pl.res;Pl.res={mana:{cur:0,max:30,regen:4}};b.order=[Pl];b.busy=true;await X.nextTurn();ok(Pl.arm===156&&b.cur===Pl,'Mail mender: +6 armor at turn start');ok(Pl.res.mana.cur===4,'gift pools still regenerate at turn start');Pl.res=res0;b.busy=true;Pl.arm=200 }
+     // heavy
+     { const H=fl('plate');Pl.flags=H.flags;Pl.aw=H.aw;Pl.fat=0;ok(X.kbImmune(Pl),'Immovable');put(Pl,5,5);await X.knockback(e0,Pl,2,0);ok(Pl.c===5&&Pl.r===5,'Immovable: no knockback');
+       ok(X.forecast(e0,Pl,{id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,rng:1,tgt:'enemy'}).kb.ch===0,'forecast: Immovable');
+       Pl.arm=200;X.hurt(Pl,150,.2,e0,{loc:1});ok(Pl.arm===140,'Unbowed: one blow strips at most 30% of the maximum: '+Pl.arm);Pl.arm=200;Pl.helm=100;X.hurt(Pl,80,.2,e0,{loc:1,head:true});ok(Pl.helm===70,'Unbowed covers the helmet');Pl.helm=100;
+       const hp0=Pl.hp;X.hurt(Pl,20,1,e0,{loc:1,pierce:1});ok(hp0-Pl.hp===15,'Juggernaut: 5 fewer hitpoints a blow');const hp1=Pl.hp;X.hurt(Pl,3,1,e0,{loc:1,pierce:1});ok(hp1-Pl.hp===1,'Juggernaut: at least 1');const hp2=Pl.hp;X.hurt(Pl,20,1,null,{pierce:1});ok(hp2-Pl.hp===20,'Juggernaut: only weapon and spell hits');Pl.hp=200;
+       Pl.st={};X.addStatus(Pl,'stun',1);ok(!Pl.st.stun,'Unshakable: no stun');ok(!X.forecast(e0,Pl,{id:'st',n:'st',wpn:1,mult:1,status:{stun:1},rng:1,tgt:'enemy'}).statuses.some(s=>s.k==='stun'),'forecast: Unshakable drops the stun');
+       Pl.fearless=false;Pl.brv=-200;Pl.mor=3;for(let i=0;i<10;i++){Pl.hp=200;X.hurt(Pl,80,1,e0,{loc:1,pierce:1})}ok(Pl.mor===3,'Unshakable: heavy blows do not test morale');Pl.fearless=true;Pl.hp=200;
+       put(W,5,6);W.flags=Object.assign({},W.flags,{steelWall:.1});Pl.flags={};X.auraScan();ok(X.armorDr(Pl)===.1&&X.forecast(e0,Pl,ea).armDr===.1,'Bulwark of steel: 10% off for an ally beside it');put(W,0,11);X.auraScan();ok(X.armorDr(Pl)===0,'Bulwark of steel: only beside it');W.flags.steelWall=0;X.auraScan() }
+     // a class the merc does not wear gives nothing: light armor's flags on, then a medium kit
+     { const Md=fl('mail');Pl.flags=Md.flags;Pl.aw=Md.aw;Pl.fat=0;Pl.brc=1;ok(X.nimbleDr(Pl)===0&&X.armorDr(Pl)===0&&!X.kbImmune(Pl),'no Nimble or Immovable in medium armor');Pl.flags={} } }
+   console.log('fatigue (curve, attacker and target, spells, foes that never tire, orcs, forecast parts), armor trees (classes, tiers 2/5/8, 18 perks each in its class only, autoLearn, field effects): ok');
    X.FX.on=null;X.B=null;X.mode='world';
+   { const m=ARMM;     // armor perks: save round trip: armor perks are plain perk ids
+     const sm=X.clone(m);sm.eq.a='plate';sm.id=777001;X.G.roster.push(sm);ok(X.save(),'save failed');const keep=sm.perks.slice().sort().join();
+     const r=X.readSave();ok(r.state==='ok'&&r.g.v===X.SAVEVER,'save unreadable');const back=r.g.roster.find(q=>q.id===777001);X.calc(back);ok(back&&back.perks.slice().sort().join()===keep,'armor perks must survive a save round trip: '+(back&&back.perks.join()));
+     X.G.roster.pop();{const cl=X.clone(sm);cl.perks=['vanguard.1'];X.calc(cl);ok(cl.perks.join()==='vanguard.1','a copy given other perks must not get the armor perks back')}
+     X.G=null;X.mode='title';X.continueGame();const lm=X.G&&X.G.roster.find(q=>q.id===777001);ok(lm&&lm.perks.slice().sort().join()===keep&&X.calc(lm).perks.length===6,'armor perks must load and work after continueGame');console.log('armor perks: save round trip and continueGame: ok');X.G.roster=X.G.roster.filter(q=>q.id!==777001) }
    // -- an old (version 4) save: masteries become trees and perks --
    { X.store.clear();X.seedRng(SEED+7300);X.newGame(true);closeAll(X);ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=4;
      const olds=[{vanguard:2,bulwark:0,aura:1},{marksman:4,skirmisher:1,qi:2},{bulwark:3,vanguard:1,chi:5},{skirmisher:0,mana:3,bulwark:1}];

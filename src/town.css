@@ -124,3 +124,31 @@
 #pn .tw-wt{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px 0 3px;border:2px solid var(--pn-ink);background:#182a28;color:#9fe0cd;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:.9em}
 #pn .tw-wt .pxi{vertical-align:0}
 #pn .tw-wts>small{color:var(--dim)}
+
+/* ================= market tabs: Purchase / Inventory (50-towns.js marketView) ================= */
+#pn .mk-tabs{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;height:48px;padding:4px 4px 2px;background:#101d1c;border-bottom:2px solid #0b1514}
+#pn .mk-tabs~.pn-sec{top:48px}
+#pn button.mk-tab{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:40px;padding:0 6px 2px;border-style:solid;border-width:4px 4px 6px;border-color:#213a36;background-color:#213a36;background-clip:padding-box;border-image:var(--pxb) 12 12 18 12 fill/1 stretch;image-rendering:pixelated;
+ color:var(--dim);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:1.02em;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+#pn button.mk-tab>span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+#pn button.mk-tab>i:not(.pxi){flex:none;min-width:20px;height:18px;padding:0 4px;background:#0b1514;color:var(--vellum);font-style:normal;font-size:.9em;line-height:17px;text-align:center;box-shadow:inset 0 0 0 1px #35554f}
+#pn button.mk-tab .pxi{opacity:.7}
+#pn button.mk-tab:active{border-width:6px 4px 4px;border-image-slice:18 12 12 12 fill;border-image-source:var(--pxb-down)}
+#pn button.mk-tab.on{background-color:#d1a94e;border-color:#d1a94e;color:#1b1608;border-image-source:var(--pxb-on)}
+#pn button.mk-tab.on .pxi{opacity:1}
+#pn button.mk-tab.on>i:not(.pxi){background:#1b1608;color:#f3d98b;box-shadow:none}
+#pn button.mk-tab:focus-visible{outline:2px solid #fff4c8;outline-offset:-2px}
+#pn .mk-sum{display:flex;flex-wrap:wrap;gap:2px 12px;padding:6px 10px;border-bottom:2px solid var(--pn-rule);color:var(--dim);font-size:.84em}
+#pn .mk-sum span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+#pn .mk-sum b{color:var(--vellum);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:1.12em;font-weight:600}
+#pn .mk-tag{display:inline-flex;align-items:center;height:16px;padding:0 4px;margin-right:5px;border:1px solid;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:11px;line-height:1;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;vertical-align:1px}
+#pn .mk-tag.spare{background:#1f3a33;border-color:#2c6a5d;color:#9fe0cd}
+#pn .mk-tag.eq{background:#3a2c12;border-color:#8a6a2a;color:#f3d98b}
+#pn .pn-row.mk-worn .pn-lead{color:var(--brass)}
+#pn .mk-who{display:inline-flex;line-height:0}
+#pn .mk-who .tw-por{box-shadow:0 0 0 2px #35554f}
+#pn .mk-state{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0 0 8px;padding:4px 8px;font-size:.86em;color:var(--dim);background:#101d1c;box-shadow:inset 3px 0 0 var(--verd)}
+#pn .mk-state b{font-family:'Jersey 15','Alegreya Sans',sans-serif;font-weight:600;font-size:1.08em;letter-spacing:.03em;text-transform:uppercase;color:#9fe0cd}
+#pn .mk-state.eq{box-shadow:inset 3px 0 0 var(--brass)}#pn .mk-state.eq b{color:#f3d98b}
+@media (min-width:1100px) and (min-height:600px){#pn .mk-tabs{height:56px}#pn .mk-tabs~.pn-sec{top:56px}#pn button.mk-tab{min-height:48px;font-size:1.1em}}
+@media (max-width:900px){#pn button.mk-tab .pxi{display:none}#pn button.mk-tab{gap:4px;padding:0 3px 2px}}

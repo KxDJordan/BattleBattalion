@@ -65,7 +65,7 @@ function makeContext(){const els=new Map(),store=new Map();
  X.FX.on=null;X.SPEEDF=0;return X}
 
 /* ---------- the check, wrapped around the real strike() ---------- */
-const S={crush:0,reach:0,tal:0,swap:0,wmod:0,weak:0,undy:0,undySaved:0,marked:0,slung:0,n:0,hits:0,expHits:0,varHits:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
+const S={tired:0,tiredT:0,armP:0,sidestep:0,brace:0,crush:0,reach:0,tal:0,swap:0,wmod:0,weak:0,undy:0,undySaved:0,marked:0,slung:0,n:0,hits:0,expHits:0,varHits:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
  head:0,body:0,headAtMax:0,cover:0,ffRisk:0,stray:0,riposte:0,free:0,pierce:0,split:0,splitBroke:0,bleed:0,shake:0,inj:0,morAtt:0,morDef:0,byAb:{},byWt:{}};
 const snap=(X,u,t)=>JSON.stringify([u,t,X.B.tiles]);
 let DIRECTED=false;const nested=[];                 // strikes started from inside another strike (strays, ripostes): {u,t,o}
@@ -81,6 +81,11 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
   ok(typeof f.kill==='boolean'&&Array.isArray(f.statuses)&&Array.isArray(f.ff)&&f.mor&&typeof f.blocked==='boolean','forecast shape: '+tag);
   const sure=!!(o&&o.auto)||(!!a.sure&&!(a.split&&!t.shield));
   ok(f.hit===(sure?100:X.hitChance(u,t,a)),`forecast hit ${f.hit} is not hitChance ${X.hitChance(u,t,a)}: `+tag);
+  // fatigue and armor-tree parts of the hit chance and the damage
+  const fsure=!!(o&&o.auto)||!!a.sure;ok(f.tiredAtt===(fsure?0:X.tiredPen(u))&&f.tiredDef===(fsure?0:X.tiredPen(t))&&f.armDef===(fsure?0:X.armorDef(u,t,a)),'forecast fatigue / armor defense parts differ from the rules: '+tag);
+  ok(f.armDr===(a.split||a.noDmg?0:X.armorDr(t))&&f.soak===((t.flags&&t.flags.hpSoak)||0),'forecast armor damage-reduction parts differ: '+tag);
+  if(u.fatMax>=999||t.fatMax>=999)ok((u.fatMax<999||f.tiredAtt===0)&&(t.fatMax<999||f.tiredDef===0),'a unit that does not tire paid for fatigue: '+tag);
+  if(f.tiredAtt>0)S.tired++;if(f.tiredDef>0)S.tiredT++;if(f.armDef||f.armDr||f.soak||f.sidestep)S.armP++;if(f.sidestep)S.sidestep++;if(t.flags&&t.flags.brace&&!t.brc)S.brace++;
   ok(f.dmgMin<=f.dmgMax&&f.hpMin<=f.hpMax&&f.armMin<=f.armMax&&f.hpMin>=0&&f.armMin>=0,'forecast range is inverted: '+tag);
   ok(f.headCh>=0&&f.headCh<=100&&(f.headCh>0)===!!f.head&&(f.headCh<100)===!!f.body,'forecast head/body split is inconsistent: '+tag);
   { const L=X.losInfo(u,t,a);ok(f.cover===L.cover&&f.blocked===L.blocked,'forecast cover or line of fire differs from losInfo: '+tag);
@@ -121,7 +126,7 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
   if(f.undying&&ev&&hp>=hp0){S.undySaved++;ok(ev.hpAt===1&&!f.kill,'Undying did not hold: '+tag)}
   if(f.kill)S.lethal++;ok(f.kill===(!f.undying&&f.hpMax>=hp0)&&f.sure===(!f.undying&&f.hpMin>=hp0),'kill flags disagree with the range: '+tag);
   if(!died&&ev&&t.alive){const heavy=hp>=heavyAt;                      // (a knockback that then kills is not this hit's doing)
-   if(heavy&&!t.fearless){S.shake++;ok(f.shake,'a heavy hit shook the target but the forecast did not warn: '+tag)}
+   if(heavy&&!t.fearless&&!(t.flags&&t.flags.noStun)){S.shake++;ok(f.shake,'a heavy hit shook the target but the forecast did not warn: '+tag)}
    if(injured){S.inj++;ok(f.injure&&heavy&&t.m&&t.m.inj.length===inj0+1,'an injury the forecast did not warn of: '+tag)}}
   if(!died){for(const s of f.statuses){if(s.ch>=1)ok((t.st[s.k]||0)>=s.n||!t.alive,`status ${s.k} was forecast as certain but not applied: `+tag)}
    if(t.alive)for(const k of new Set(given.slice(gmark).filter(x=>x.t===t).map(x=>x.key)))if((t.st[k]||0)>(st0[k]||0)){S.statuses++;if(k==='bleed')S.bleed++;ok(f.statuses.some(s=>s.k===k&&s.n>=t.st[k]&&s.ch>0),`status ${k} was applied but not forecast: `+tag)}
@@ -153,7 +158,9 @@ async function scripted(X,opts){let done=null;const b=X.startBattle(Object.assig
 /* ---------- directed sweep: every weapon x ability x armor and helmet state x height x buff x morale x cover, struck for real ---------- */
 // talent flags and mods the sweep puts on attackers (TALU) and targets (TALT); every one changes a number the forecast must match
 const TALU=[['vsHurt',.15],['vsFull',.2],['dmgMelee',.1],['dmgRanged',.15],['twoDmg',.1],['lowHpDmg',.2],['duelHit',6],['duelDmg',.15],['flankDmg',.15],['flank',10],['spellB',.1],['ignB',.15],['headB',10],['bleedOn',2],['splitB',.5],['coverIgn',1],['longShot',1]],
- TALT=[['adjDef',6],['loneDef',10],['drB',.1],['drRanged',.15],['drMelee',.1],['lastStand',.15],['undying',1]],mates0=new Set();
+ TALT=[['adjDef',6],['loneDef',10],['drB',.1],['drRanged',.15],['drMelee',.1],['lastStand',.15],['undying',1],
+  // armor trees (light, medium, heavy)
+  ['nimble',1],['fleet',10],['sidestep',.25],['freshDef',8],['dance',5],['brace',.2],['roll',.5],['layerDef',6],['padIgn',1/3],['kbImm',1],['unbowed',.3],['hpSoak',5],['noStun',1]],mates0=new Set();
 async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X.seedRng(SEED+900);
  const b=X.startBattle({f:'orc',mult:1,biome:'hills',src:{type:'sim'},quiet:true,turnCap:1e9});ok(b,'sweep battle did not start');b.busy=true;DIRECTED=true;
  const R=(a,c)=>X.ri(a,c),P=a=>a[X.ri(0,a.length-1)],BW=X.BW,BH=X.BH,key=(c,r)=>r*BW+c;
@@ -181,8 +188,11 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
    else if(i%60===13){u.wpn=X.ITEMS[P(['lightxbow','crossbow','arbalest','pistol','duelpistol','musket'])];a=X.abilityInfo(u,'attack')}}       // crossbows and firearms
   if(a.aoe&&R(0,2)===0)o={splash:.7};else if(a.chain&&R(0,1)===0)o={splash:.6,auto:1};else if(a===X.FREEAB)o={free:'zoc'};
   t.flags=t.side===0?Object.assign({},t.flags):{};if(R(0,2)===0)t.flags.forged=1;else delete t.flags.forged;
-  if(R(0,1)===0)for(const [k,v] of TALT)if(R(0,3)===0)t.flags[k]=v;t.undy=R(0,1);if(t.flags.undying&&!t.undy)S.undy++;if(R(0,5)===0){t.st.marked=1;S.marked++}
-  for(const x of b.units)if(x!==u&&x!==t){x.flags=R(0,3)===0?{cmd:5}:R(0,3)===0?{guard:8}:{}}
+  if(R(0,1)===0)for(const [k,v] of TALT)if(R(0,3)===0)t.flags[k]=v;
+  // fatigue on both sides (units that tire), and the turn state the armor perks read
+  for(const x of [u,t]){x.fat=x.fatMax<999&&R(0,1)===0?R(0,x.fatMax):0}if(R(0,5)===0){u.fatMax=R(40,110);u.fat=R(0,u.fatMax)}
+  t.aw=R(0,40);t.mvd=R(0,1);t.dnc=R(0,4);t.ss=R(0,2)===0?1:0;t.brc=R(0,2)===0?1:0;t.undy=R(0,1);if(t.flags.undying&&!t.undy)S.undy++;if(R(0,5)===0){t.st.marked=1;S.marked++}
+  for(const x of b.units)if(x!==u&&x!==t){x.flags=R(0,3)===0?{cmd:5}:R(0,3)===0?{guard:8}:R(0,2)===0?{steelWall:.1}:{}}
   const bt=R(0,5);if(bt===0)t.buffs.push({dr:.5,indom:1,dur:2});else if(bt===1)t.buffs.push({md:15,rd:15,dr:.25,dur:2});else if(bt===2){t.buffs.push({dr:.5,indom:1,dur:2});t.buffs.push({md:15,rd:15,dr:.25,dur:2})}
   t.armMax=P([0,15,60,150,300]);const am=R(0,4);t.arm=am===0?0:am===1?Math.min(t.armMax,R(1,12)):am===2?Math.round(t.armMax*R(10,90)/100):t.armMax;
   t.helmMax=P([0,20,70,140,240]);const hm=R(0,4);t.helm=hm===0?0:hm===1?Math.min(t.helmMax,R(1,12)):hm===2?Math.round(t.helmMax*R(10,90)/100):t.helmMax;
@@ -220,6 +230,8 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  { const hf=S.head/(S.head+S.body);ok(hf>.2&&hf<.34,'head hits are not about a quarter of all hits: '+hf.toFixed(3)) }
  const abs=['attack'].concat(Object.keys(X.AB).filter(id=>X.AB[id].tgt==='enemy'||X.AB[id].tgt==='aoe'));for(const id of abs)ok(S.byAb[id]>0,'ability never struck: '+id);
  ok(X.FREEAB&&X.MORFX&&X.STATUS&&X.HEAVYHIT>0,'rules constants are missing');
+ console.log(`fatigue and armor trees: ${S.tired} tired attackers, ${S.tiredT} tired targets, ${S.armP} strikes on armor-tree perks (${S.sidestep} with Sidestep ready, ${S.brace} braced)`);
+ ok(S.tired>200&&S.tiredT>200&&S.armP>400&&S.sidestep>50&&S.brace>50,'fatigue or the armor trees were not covered: '+JSON.stringify({tired:S.tired,tiredT:S.tiredT,armP:S.armP,sidestep:S.sidestep,brace:S.brace}));
  for(const wt of ['sword','axe','mace','dagger','spear','bow','staff','fist','hammer','polearm','greatsword','crossbow','flintlock'])ok(S.byWt[wt]>0,'weapon type never struck: '+wt);
  console.log(`arms update: ${S.crush} crushing blows, ${S.reach} reach blows over the tile between; by family `+['hammer','polearm','greatsword','crossbow','flintlock'].map(w=>w+' '+S.byWt[w]).join(', '));
  ok(S.crush>150&&S.reach>60&&['hammer','polearm','greatsword','crossbow','flintlock'].every(w=>S.byWt[w]>60),'an arms-update case was not covered');

@@ -195,7 +195,16 @@ function tlTry(f,d){try{const v=f();return v===undefined?d:v}catch(e){return d}}
 function tlKind(T){return!T?'style':T.kind||(T.wt?'weapon':T.res?'gift':'style')}
 /* a tree's tiers as [[perk,...],...]; old trees (p:[...]) read as one perk a tier */
 function tlTiers(T){if(!T)return[];if(Array.isArray(T.tiers))return T.tiers.map(t=>Array.isArray(t)?t:[t]);return Array.isArray(T.p)?T.p.map(p=>[p]):[]}
-function tlTierLv(kind,t){if(typeof tierLevel==='function'){const v=tlTry(()=>tierLevel(kind,t),null);if(cpNum(v))return v}return kind==='weapon'?3*t:t}
+function tlTierLv(kind,t){if(typeof tierLevel==='function'){const v=tlTry(()=>tierLevel(kind,t),null);if(cpNum(v))return v}return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}
+/* ---- armor-class trees (MAST kind 'armor': lightarmor medarmor heavyarmor, tiers at 2 / 5 / 8, active only while wearing that class).
+   Classes are normalised to 'light' | 'medium' | 'heavy' (null = unarmored). The rules' armorClass(m) decides; the fallback reads body armor points. ---- */
+const TL_ARMN={light:'Light',medium:'Medium',heavy:'Heavy'},TL_ARMK=['light','medium','heavy'];
+function tlArmNorm(c){if(c==null||c===false)return null;if(typeof c==='object')c=c.key||c.k||c.cls||c.n||'';c=String(c).toLowerCase();
+ return/heavy|plate/.test(c)?'heavy':/med|mid/.test(c)?'medium':/light|lt/.test(c)?'light':null}
+function tlArmTrees(){const L=[];for(const k in MAST)if(tlKind(MAST[k])==='armor')L.push(k);return L.sort((a,b)=>TL_ARMK.indexOf(tlTreeArm(a))-TL_ARMK.indexOf(tlTreeArm(b)))}
+function tlTreeArm(key){const T=MAST[key]||{};return tlArmNorm(T.ac||T.cls||T.armor||T.aw||T.wt)||tlArmNorm(key)}
+function tlArmClass(m){if(!m)return null;if(typeof armorClass==='function'){const c=tlTry(()=>armorClass(m),undefined);if(c!==undefined)return tlArmNorm(c)}
+ const a=ITEMS[m.eq&&m.eq.a];return!a?null:a.arm<=60?'light':a.arm<=150?'medium':'heavy'}
 function tlPid(k,p,t,j){return p&&p.id!=null?String(p.id):k+'#'+t+'.'+j}
 function tlLegacy(m){return!Array.isArray(m.perks)&&!!m.mast&&typeof m.mast==='object'}
 /* the merc's gift tree key (its variant), or null */
@@ -212,7 +221,7 @@ function tlWeaponKeys(m){if(typeof weaponTrees==='function'){const L=tlTry(()=>w
  return tlWtAllowed(m).map(tlWtKey).filter(Boolean)}
 function tlStyleKeys(m){const g=tlGift(m);if(Array.isArray(m.trees))return m.trees.filter(k=>MAST[k]&&k!==g&&tlKind(MAST[k])!=='gift'&&tlKind(MAST[k])!=='weapon');return m.mast?Object.keys(m.mast).filter(k=>MAST[k]&&!MAST[k].res):[]}
 /* [{key,tree,kind}]: style trees, then the gift, then the weapon trees */
-function tlTrees(m){if(typeof mercTrees==='function'){const L=tlTry(()=>mercTrees(m),null);if(Array.isArray(L)&&L.length)return L.map(x=>typeof x==='string'?{key:x,tree:MAST[x],kind:tlKind(MAST[x])}:{key:x.key,tree:x.tree||MAST[x.key],kind:x.kind||tlKind(x.tree||MAST[x.key])}).filter(x=>x.tree)}
+function tlTrees(m){if(typeof mercTrees==='function'){const L=tlTry(()=>mercTrees(m),null);if(Array.isArray(L)&&L.length)return L.map(x=>typeof x==='string'?{key:x,tree:MAST[x],kind:tlKind(MAST[x])}:{key:x.key,tree:x.tree||MAST[x.key],kind:x.kind||tlKind(x.tree||MAST[x.key])}).filter(x=>x.tree).map(x=>x.tree&&tlKind(x.tree)==='armor'?Object.assign(x,{kind:'armor'}):x)}
  const out=tlStyleKeys(m).map(k=>({key:k,tree:MAST[k],kind:'style'})),g=tlGift(m);if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
  tlWeaponKeys(m).forEach(k=>out.push({key:k,tree:MAST[k],kind:'weapon'}));return out}
 /* every perk of every tree the merc has: [{id,perk,key,tree,tier,kind,owned,unlocked,need}] */

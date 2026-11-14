@@ -254,7 +254,11 @@ const STATUS={
  indom:{n:'Indomitable',d:'Takes half damage and cannot be knocked back.',icon:'indom',good:1},
  reinforce:{n:'Reinforced',d:'+15 melee and ranged defense, takes 25% less damage.',icon:'reinforce',good:1},
  empower:{n:'Empowered',d:'+12 melee and ranged skill, +20% damage.',icon:'empower',good:1},
- buff:{n:'Bolstered',d:'Under a helpful effect.',icon:'buff',good:1}
+ buff:{n:'Bolstered',d:'Under a helpful effect.',icon:'buff',good:1},
+ // fatigue and the armor trees (shown by unitStatuses; turns = the size of the effect, not a duration)
+ tired:{n:'Tired',d:'Fatigue past half its maximum: −1 to hit and −1 defense for every 5% more, up to −10 each at full exhaustion (the number shown).',icon:'st-winded',good:0},
+ dance:{n:'Dancing',d:'Dancer: +5 melee and ranged defense for every attack that missed it since its last turn (up to +15).',icon:'buff',good:1},
+ fleet:{n:'Fleet',d:'Moved on its turn: +10 ranged defense against shots until its next turn.',icon:'buff',good:1}
 };
 /* ---- Talent abilities ----
    Fields read by the rules beyond the ones above: hits (strike the target up to n times while it stands), through (after the
@@ -440,7 +444,9 @@ const INJ={
      drB drRanged drMelee lastStand   adjDef loneDef guard cmd flank coverIgn longShot rngB headB ignB bleedOn
      regenHP medAura killHeal killRes brvAura healB freeSwap noLock undying   shieldDef shieldHp (calc only)
      arms update: vsArm (damage while the target's body armor holds), reachHit (to hit a foe 2 tiles away with a reach weapon),
-     deflect (less damage from shots and spells while a shield is raised), shieldDr (less damage while a shield is raised), shGuard (Cover from a tower shield) */
+     deflect (less damage from shots and spells while a shield is raised), shieldDr (less damage while a shield is raised), shGuard (Cover from a tower shield)
+     armor trees (kind 'armor', aw light/medium/heavy, tiers at levels 2/5/8; idle unless armorClass(m) matches aw):
+     nimble fleet sidestep slip freshDef dance | brace armRegen roll footing layerDef padIgn | kbImm ironLung unbowed steelWall hpSoak noStun */
 const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
  WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'];   // weapon tree keys in display order ('shield': the shield tree)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
@@ -601,7 +607,30 @@ const MAST={
  shield:{n:'Shield work',kind:'weapon',wt:'shield',aff:['shield','melee'],d:'Boss, rim and wall (only while a shield is raised)',tiers:[
   [perkDef('Shield discipline','A raised shield gives +4 more melee and ranged defense',{mod:{shieldDef:4}}),perkDef('Hardened boss','Your shield has 30% more hitpoints',{mod:{shieldHp:.3}})],
   [perkDef('Shield charge','Ability: rush up to 3 tiles and slam into a foe: knockback 1, daze',{ab:'scharge'}),perkDef('Deflect','Take 10% less damage from shots and spells while your shield is raised',{mod:{deflect:.1}})],
-  [perkDef('Testudo','Ability: you and every ally next to you get +8 melee and +20 ranged defense and no knockback until your next turn',{ab:'fortress'}),perkDef('Iron wall','Take 10% less damage from everything while your shield is raised',{mod:{shieldDr:.1}})]]}
+  [perkDef('Testudo','Ability: you and every ally next to you get +8 melee and +20 ranged defense and no knockback until your next turn',{ab:'fortress'}),perkDef('Iron wall','Take 10% less damage from everything while your shield is raised',{mod:{shieldDr:.1}})]]},
+ /* ---- armor trees: every merc has all three; each works only while the body armor worn is of its weight class (armorClass(m):
+         light = up to 60 armor or any robe, also no armor; medium = 61 to 150; heavy = over 150). Tiers open at levels 2, 5, 8. ---- */
+ lightarmor:{n:'Light armor',kind:'armor',aw:'light',aff:['light'],d:'Cloth, leather and robes: not being there (only while your body armor is light: up to 60 armor, or a robe)',tiers:[
+  [perkDef('Nimble','Take less damage the lighter you go: 30% minus 1.5% per point of body armor and helmet weight (their fatigue), at full strength while fresh and half of it when exhausted (scales with the stamina you have left)',{mod:{nimble:1}}),
+   perkDef('Fleet','After you move on your turn: +10 ranged defense against shots until your next turn',{mod:{fleet:10}})],
+  [perkDef('Sidestep','Once between your turns, a blow that would take more than 25% of your maximum hitpoints only grazes you: you lose half those hitpoints',{mod:{sidestep:.25}}),
+   perkDef('Slippery','The first tile you leave each turn draws no free attacks',{flag:'slip'})],
+  [perkDef('Fresh legs','+8 melee and ranged defense while your fatigue is below half',{mod:{freshDef:8}}),
+   perkDef('Dancer','Every attack that misses you gives +5 melee and ranged defense until your next turn (up to +15)',{mod:{dance:5}})]]},
+ medarmor:{n:'Medium armor',kind:'armor',aw:'medium',aff:['melee','ranged'],d:'Mail, leather and brigandine: give a little, keep the rest (only while your body armor is medium: 61 to 150 armor)',tiers:[
+  [perkDef('Brace','The first blow that hits you between your turns deals 20% less damage',{mod:{brace:.2}}),
+   perkDef('Mail mender','Regain 6 body armor at the start of each of your turns (up to its maximum)',{mod:{armRegen:6}})],
+  [perkDef('Rolling with it','Knockbacks, hooks and stuns against you work only half the time',{mod:{roll:.5}}),
+   perkDef('Steady footing','Moving costs 1 fatigue a tile instead of 2',{flag:'footing'})],
+  [perkDef('Layered defense','+6 melee and ranged defense while your body armor is above half',{mod:{layerDef:6}}),
+   perkDef('Padded under-layer','The share of a blow that pierces your body armor is a third smaller (head hits excluded)',{mod:{padIgn:1/3}})]]},
+ heavyarmor:{n:'Heavy armor',kind:'armor',aw:'heavy',aff:['melee','shield'],d:'Plate and scale: a wall that walks (only while your body armor is heavy: over 150 armor)',tiers:[
+  [perkDef('Immovable','You cannot be knocked back or dragged',{flag:'kbImm'}),
+   perkDef('Iron lung','Your body armor and helmet cost half as much fatigue (rounded down)',{flag:'ironLung'})],
+  [perkDef('Unbowed','A single blow never strips more than 30% of the armor it strikes (body armor or helmet, of its maximum)',{mod:{unbowed:.3}}),
+   perkDef('Bulwark of steel','Allies next to you take 10% less damage',{mod:{steelWall:.1}})],
+  [perkDef('Juggernaut','Every blow that reaches your hitpoints takes 5 fewer (at least 1)',{mod:{hpSoak:5}}),
+   perkDef('Unshakable','You cannot be stunned, and heavy blows do not test your morale',{flag:'noStun'})]]}
 };
 // Perk ids, the flat list p (read by older UI code) and the tier count n.
 for(const k in MAST){const T=MAST[k];T.p=[];T.tiers.forEach((tier,ti)=>tier.forEach((p,j)=>{if(!p.id)p.id=k+'.'+(ti+1)+(tier.length>1?'ab'[j]:'');T.p.push(p)}))}

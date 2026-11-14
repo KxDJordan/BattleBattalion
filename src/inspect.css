@@ -63,3 +63,6 @@
 #inspect .ins-pk{margin-bottom:2px}#inspect .ins-pk>div{display:flex;align-items:baseline;min-width:0;white-space:nowrap}#inspect .ins-pk b{flex:none}#inspect .ins-pk span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 #inspect .ins-trees{font-size:.62rem}#inspect .ins-trees .pxi{width:16px;height:16px}
 #inspect .ins-r{overflow-y:auto;scrollbar-width:none}
+/* fatigue penalty and idle (armor class or weapon not matching) perks */
+#inspect .ins-line.tired b em{font-style:normal;font-weight:700}
+#inspect .ins-pk.idle{opacity:.6}#inspect .ins-pk.idle i{flex:none;margin:0 4px;font-style:normal;color:#ef8a78;font-size:.9em}

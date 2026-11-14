@@ -70,13 +70,15 @@ function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&M
  let trees=[];try{if(typeof mercTrees==='function')trees=mercTrees(m)||[]}catch(e){}if(!trees.length&&Array.isArray(m.trees))trees=m.trees.map(k=>({key:k,tree:T[k]}));
  const gk=m.gift||(typeof giftVariant==='function'?(()=>{try{const g=giftVariant(m);return typeof g==='string'?g:g&&g.key}catch(e){return null}})():null);
  if(gk&&T[gk]){const G_=T[gk],res=G_.res,sty=G_.style;h+=`<div class="ins-ab">${insIc('m-'+gk)}<div><b>${G_.n}</b><i style="color:${RESC[res]||'inherit'}">${RESN[res]||''}${sty?' · '+sty:''}</i><span>${G_.d||''}</span></div></div>`}
- if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}">${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
+ let off=[],acl=null;try{const c=calc(m);off=c.off||[];acl=c.acl||null}catch(e){}
+ if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk&&!(((x.tree||T[x.key])||{}).kind==='armor'&&((x.tree||T[x.key])||{}).aw!==acl)).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}">${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
  const P=Array.isArray(m.perks)?m.perks:[];
  for(const id of P){let r=null;try{r=typeof perkById==='function'?perkById(id):null}catch(e){}const p=r&&r.perk;if(!p)continue;const icn=p.ab&&AB[p.ab]?'ab-'+p.ab:'perk-'+id;
-  h+=`<div class="ins-ab ins-pk" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b><span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
+  const idle=off.includes(id),why=idle?(r.tree&&r.tree.kind==='armor'?'idle: needs '+(r.tree.aw||'other')+' armor':'idle: another weapon in hand'):'';
+  h+=`<div class="ins-ab ins-pk${idle?' idle':''}" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b>${idle?`<i>${why}</i>`:''}<span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
  return h}
 function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor=typeof shMor==='function'?shMor(u):-1,brv=typeof shBrv==='function'?shBrv(u):null;
- let h=`<div class="ins-h"><b class="ins-n">${u.name}</b><span class="ins-tag ${pl?'ally':'foe'}">${pl?'Level '+u.lvl:FACT[u.f]?FACT[u.f].n:'Foe'}</span></div>`;
+ let h=`<div class="ins-h"><b class="ins-n">${typeof htmlEsc==='function'?htmlEsc(u.name):u.name}</b><span class="ins-tag ${pl?'ally':'foe'}">${pl?'Level '+u.lvl:FACT[u.f]?FACT[u.f].n:'Foe'}</span></div>`;
  h+=`<div class="ins-sub">${pl&&m?RACE[m.race].n+' '+BG[m.bg].n.toLowerCase():(d.boss?(d.endgame?'Apex beast':'Tyrant'):INS_ROLE[u.role||d.role]||(d.big?'Huge':d.quad?'Beast':u.spell?'Caster':u.wpn.rng>1?'Ranged':'Melee'))+(d.size>1||u.sz>1?' · huge, 2×2':d.big&&!d.boss?' · huge':'')}${u===cur?' · acting now':''}</div>`;
  h+=insBar('hp',u.hp,u.hpMax,'HP');if(u.helmMax>0)h+=insBar('arm hd',u.helm,u.helmMax,'Head armor');if(u.armMax>0)h+=insBar('arm',u.arm,u.armMax,'Body armor');
  if(u.shpMax>0)h+=u.shield||u.slung?insBar('arm sh',u.shp,u.shpMax,u.slung?'Shield (slung)':'Shield'):`<div class="ins-bar arm sh"><span class="ins-bad">Shield split</span></div>`;
@@ -86,10 +88,11 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  else if(u.fearless)h+=`<div class="ins-mor">${insIc('resolve')}<b>Fearless</b><span>never tests morale</span></div>`;
  h+='<div class="ins-grid">'+insStat(eff(u,'ms'),'Melee')+insStat(eff(u,'rs'),'Ranged')+insStat(u.init,'Initiative')+insStat(eff(u,'md'),'Melee def')+insStat(eff(u,'rd'),'Ranged def')+insStat(u===cur?u.ap+'/'+u.apMax:u.apMax,'AP')+'</div>';
  const w=u.wpn;h+=`<div class="ins-line"><span>${pl?w.n:u.spell?u.spell.n:'Attack'}</span><b>${u.spell?u.spell.d[0]+'–'+u.spell.d[1]:w.d[0]+'–'+w.d[1]} dmg${(u.spell?u.spell.rng:w.rng)>1?' · range '+(u.spell?u.spell.rng:w.rng):''}</b></div>`;
- if(u.fatMax<999)h+=`<div class="ins-line"><span>Fatigue</span><b>${u.fat}/${u.fatMax}</b></div>`;
+ if(u.fatMax<999){const tp=typeof shTired==='function'?shTired(u):0;h+=`<div class="ins-line${tp?' tired':''}"><span>Fatigue</span><b>${u.fat}/${u.fatMax}${tp?` <em class="ins-bad">tired −${tp}</em>`:''}</b></div>`}
  // second column: statuses, injuries, abilities and traits
  let r='';const L=typeof shStatuses==='function'?shStatuses(u):[];
- for(const x of L){const S=shStatus(x.key)||{n:x.key,d:'',good:0};r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
+ for(const x of L){const S=shStatus(x.key)||{n:x.key,d:'',good:0};const val=x.key==='tired'?'−'+x.turns+' to hit and defense':x.key==='dance'?'+'+x.turns+' defense':x.key==='fleet'?'until its next turn':null;
+  r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${val!=null?val:x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
  for(const b of u.buffs||[])if(!b.key&&!b.foe&&!b.indom)r+=`<div class="ins-ab ins-s gd">${insIc('buff')}<div><b>Bolstered</b><span>${buffText(b)}</span></div></div>`;
  if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd">${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
  const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;

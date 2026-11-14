@@ -15,7 +15,10 @@
    decision ahead (aiSwapPlan: the swap is tried on a copy of the unit's state, then the best plan with the AP left is scored), and units
    with two weapons also weigh which one they hold at the end of the turn (aiHandV). Fighters like standing beside foe archers. Abilities
    are scored from their fields (hits, through, aoe, chain, status, heal, cleanse, party, rally, rest, buff, giveAP, move), so new ones
-   are used without code here. */
+   are used without code here.
+   Fatigue: hit chances (hitChance) carry both sides' tiredPen, a tired foe is a slightly better target (aiPrio), an action's fatigue is
+   taxed by the penalty it would add (aiTire), rest abilities are worth more the more tired the unit is; Slippery (light armor) makes the
+   first step of a turn free of free attacks, so it is not priced. */
 const AI_CAP=7,AI_LATE=9;
 let AI_CLOCK=null;                       // set to a ()=>ms clock by the balance harness to measure decision cost
 const AI_STAT={n:0,ms:0,max:0};
@@ -233,13 +236,16 @@ function aiKbV(u,a,t,sc,sr,X){if(kbImmune(t))return 0;const s=u.sz||1,mc=sc+(s-1
  for(let i=0;i<a.kb;i++){const nc=c+dc,nr=r+dr;if(!inb(nc,nr)){v+=4;break}const tl=B.tiles[key(nc,nr)],h=B.tiles[key(c,r)].h;if(tl.t==='block'||tl.h>h+1){v+=4;break}
   const x=unitAt(nc,nr);if(x&&x!==u){if(x!==t)v+=cr?(x.side!==u.side?cr*1.6+4:-cr):4;break}if(h>tl.h)v+=6*(h-tl.h)*1.2+3;if(tl.t==='haz')v+=12;c=nc;r=nr}
  return v}
+/* Fatigue (tiredPen in the rules): what spending f more fatigue now costs u in hit points of defense and to-hit until it recovers,
+   priced lightly (the hit chances aiChance reads already hold the current penalty on both sides). 0 for units that do not tire. */
+const aiTire=(u,f)=>typeof tiredPen==='function'&&f>0&&u.fatMax<999?tiredPen({fat:u.fat+f,fatMax:u.fatMax})-tiredPen(u):0;
 function aiPrio(X,t){const u=X.u,P=X.P,plan=X.plan;let p=1;const fo=B.aiFoc&&B.aiFoc[u.side];
  if(u.def&&u.def.pack){let n=0;for(const o of X.allies)if(o.def&&o.def.pack&&mdist(o,t)===1)n++;p+=.35*Math.min(2,n);if(t.st.harried)p+=.3;       // the pack goes for whoever a wolf already has by the leg,
   else if(!n){let s=0;for(const o of X.foes)if(o!==t&&mdist(o,t)===1)s++;if(s<2)p+=.3}}                                                         // and for prey that stands alone
  if(fo===t)p+=.15;if(t.back||t.role==='caster'||t.role==='sniper')p*=P.back;
  if(plan){const h=plan.hunt&&plan.hunt[t.eid];if(h)p*=h;if(plan.volley&&P.shy&&(t.role==='sniper'||t.role==='caster'))p*=1.5;
   if(plan.outlast&&t.def&&t.def.tire)p*=t.st.winded||t.st.spent?1.3:1}
- if(t.st.ward)p*=.6;if(t.mor===0)p*=.5;
+ if(t.st.ward)p*=.6;if(t.mor===0)p*=.5;if(typeof tiredPen==='function'&&t.fatMax<999)p*=1+tiredPen(t)*.012;   // a tired foe is easier to hit and slower to hit back
  return p}
 // Chance (0..1) that a used from tile s hits t; 0 when the shot is blocked from there.
 let AI_RISK=0;   // set by aiChance: what a miss from there costs (a stray shot into an ally, a riposte)
@@ -270,7 +276,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
  if(!tiles.some(t=>t.k===cur))tiles.push({k:cur,cost:0,pos:aiPos(X,cur)});
  tiles.sort((a,b)=>b.pos-a.pos||a.k-b.k);
  const pos0=aiPos(X,cur);let aoo=0;
- for(const e of X.adj)if(!e.aoo&&canFree(e)){const p=hitChance(e,u,FREEAB)/100;aoo=AI_DBG.oldaoo?(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6:((e.wpn.d[0]+e.wpn.d[1])/2*.6*1.3*X.frail+6)*(.4+p);break}   // leaving a foe's reach: its free attack, and a hit halts the walk
+ if(!(u.flags&&u.flags.slip&&!u.slipT))for(const e of X.adj)if(!e.aoo&&canFree(e)){const p=hitChance(e,u,FREEAB)/100;aoo=AI_DBG.oldaoo?(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6:((e.wpn.d[0]+e.wpn.d[1])/2*.6*1.3*X.frail+6)*(.4+p);break}   // leaving a foe's reach: its free attack, and a hit halts the walk
  let best={v:pos0,s:cur,a:null,k:cur};
  const take=(v,s,a,k)=>{if(v>best.v+1e-6){best={v,s,a,k}}};
  const canWalk=walks<3&&!u.rooted;
@@ -278,7 +284,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
  const tcost=k=>k===cur?0:(D.get(k)||{cost:99}).cost;
  // what the AP left after an action is still good for: one more basic attack on something in reach
  const rw=!!(u.wpn.reload&&aiRngW(u.wpn)),follow=(apLeft,ev)=>!rw&&apLeft>=atk.ap&&u.fat+atk.fat*2<=u.fatMax?ev*.7:0;   // a reload weapon fires once, then must reload
- for(const a of X.abs){const tax=(a.cost?a.cost[1]*.25:0)+(a.fat&&u.fatMax<999&&u.fat+a.fat>u.fatMax*.8?6:0);
+ for(const a of X.abs){const tax=(a.cost?a.cost[1]*.25:0)+(a.fat&&u.fatMax<999&&u.fat+a.fat>u.fatMax*.8?6:0)+aiTire(u,a.fat)*.5;
   if(a.ai){for(const c of a.ai(u,X)){const s=c.s==null?cur:c.s,co=tcost(s);if(co+a.ap>u.ap||(s!==cur&&!canWalk))continue;const end=a.tgt==='move'?c.k:s;
     take(c.v+aiPos(X,end)-(s!==cur?aoo:0)-tax,s,a,c.k)}continue}
   if(a.swapW)continue;                                                   // the swap is weighed by aiSwapPlan (one look ahead)
@@ -309,7 +315,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
      if(a.buff&&!(a.buff.key&&o.buffs.some(x=>x.key===a.buff.key))){let adj=0;for(const f of foes)if(mdist(f,o)<=1)adj++;v+=aiBuffVal(o,a.buff,a.dur,adj*((o.hpMax>0?18:0)),adj?(o.wpn.d[0]+o.wpn.d[1])/2:0,null,0)*.8}
      if(a.heal)v+=aiHealVal(o,a.heal);if(a.rally&&o.mor>0&&o.mor<3)v+=10}}
    if(a.heal)v+=aiHealVal(u,a.heal);if(a.rally&&u.mor>0&&u.mor<3)v+=10;
-   if(a.rest&&u.fatMax<9000&&u.fat>u.fatMax*.45)v+=Math.min(a.rest,u.fat)*.25;
+   if(a.rest&&u.fatMax<9000&&u.fat>u.fatMax*.45)v+=Math.min(a.rest,u.fat)*.25+(typeof tiredPen==='function'?tiredPen(u)*.6:0);
    if(X.brace&&a.buff&&(a.buff.md||a.buff.dr)&&v>0&&v<26)v=26;
    if(v>0)take(v+pos0-tax,cur,a,cur)}
   else if(a.tgt==='ally'){for(const o of X.allies.concat(a.noSelf?[]:[u])){if(mdist(o,u)>a.rng)continue;let v=0;

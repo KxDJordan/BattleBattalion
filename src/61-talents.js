@@ -4,13 +4,26 @@
      m.gift   the gift tree key (a MAST entry of kind 'gift') or null; chosen from the gift and BG[bg].style (giftKey)
      m.perks  [perk ids] learned, in order;  m.pp unspent perk points (one a level, level 1 included)
    Weapon trees are not stored: weaponTrees(m) = BG[bg].wt minus RACE[race].noWt.
+   Armor trees are not stored either: every merc has lightarmor, medarmor and heavyarmor (armorTrees(m)); their tier t opens at level 3t-1.
    Tier t of a style or gift tree opens at level t, of a weapon tree at level 3t; any open perk can be bought with a point.
    The first perk learned in the gift tree awakens the gift (calc() then grants its pool).
    m.mast is a derived, read-only mirror {treeKey: perks owned} kept for older UI code; nothing in the rules reads it.
    Uses no randomness except rollTrees() at recruitment (seeded). */
 const PERKIX={};for(const k in MAST)MAST[k].tiers.forEach((tier,ti)=>tier.forEach(p=>{PERKIX[p.id]={perk:p,tree:MAST[k],key:k,tier:ti+1,kind:MAST[k].kind}}));
-// The level at which tier t (1-based) of a tree of this kind opens.
-function tierLevel(kind,t){return kind==='weapon'?3*t:t}
+// The level at which tier t (1-based) of a tree of this kind opens: style and gift t, weapon 3t (3 6 9), armor 3t-1 (2 5 8).
+function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}
+/* Armor trees: every merc has all three (ARMORT, display order light medium heavy); a perk of one works only while the body armor worn
+   is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off). armorTrees(m) -> their keys. */
+const ARMORT=['lightarmor','medarmor','heavyarmor'].filter(k=>MAST[k]&&MAST[k].kind==='armor');
+function armorTrees(m){return ARMORT.slice()}
+/* Saves: the loader (repairMerc in 20-state.js) keeps only perks of m.trees and weaponTrees(m), so the armor perks are mirrored in
+   m.armp = {ids: armor perk ids, base: the other perks, joined}. When m.perks is exactly what the loader leaves (base, and none of ids)
+   the ids are put back. calc, mercTrees and syncMast call this; it never removes a perk, and a copy given other perks is left alone. */
+const isArmorPerk=id=>!!(PERKIX[id]&&PERKIX[id].kind==='armor');
+function armorPerksHeal(m){if(!m||!Array.isArray(m.perks))return;const A=m.armp;
+ if(A&&Array.isArray(A.ids)&&A.ids.length&&!m.perks.some(isArmorPerk)&&m.perks.join()===A.base)for(const id of A.ids)if(typeof id==='string'&&isArmorPerk(id)&&!m.perks.includes(id))m.perks.push(id);
+ if(!m.perks.some(isArmorPerk))return;const ids=m.perks.filter(isArmorPerk),base=m.perks.filter(id=>!isArmorPerk(id)).join();
+ if(!A||A.base!==base||!Array.isArray(A.ids)||A.ids.join()!==ids.join())m.armp={ids,base}}
 // {perk, tree, key, tier, kind} for a perk id, or null.
 function perkById(id){return PERKIX[id]||null}
 function mercStyle(m){return m&&BG[m.bg]&&BG[m.bg].style||'melee'}
@@ -22,11 +35,12 @@ function giftVariant(m,res){if(!m)return null;if(!res&&m.gift&&MAST[m.gift]&&MAS
 function giftAwake(m){const g=m&&m.gift;return!!(g&&Array.isArray(m.perks)&&m.perks.some(id=>PERKIX[id]&&PERKIX[id].key===g))}
 // Weapon tree keys the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order.
 function weaponTrees(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w)&&MAST[w])}
-// Every tree the merc has, in display order: style trees, the gift, weapon trees. [{key, tree, kind}]
-function mercTrees(m){const out=[],tr=Array.isArray(m.trees)?m.trees:[];
+// Every tree the merc has, in display order: style trees, the gift, weapon trees, armor trees. [{key, tree, kind}]
+function mercTrees(m){armorPerksHeal(m);const out=[],tr=Array.isArray(m.trees)?m.trees:[];
  for(const k of tr)if(MAST[k]&&MAST[k].kind==='style')out.push({key:k,tree:MAST[k],kind:'style'});
  const g=m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift'?m.gift:null;if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
- for(const k of weaponTrees(m))out.push({key:k,tree:MAST[k],kind:'weapon'});return out}
+ for(const k of weaponTrees(m))out.push({key:k,tree:MAST[k],kind:'weapon'});
+ for(const k of armorTrees(m))out.push({key:k,tree:MAST[k],kind:'armor'});return out}
 // Every perk of every tree the merc has: [{id, perk, key, tree, tier, kind, owned, unlocked, need (level)}]
 function perkOptions(m){const own=new Set(Array.isArray(m.perks)?m.perks:[]),out=[];
  for(const {key,tree,kind} of mercTrees(m))tree.tiers.forEach((tier,ti)=>{const need=tierLevel(kind,ti+1);for(const p of tier)out.push({id:p.id,perk:p,key,tree,tier:ti+1,kind,owned:own.has(p.id),unlocked:(m.lvl||1)>=need,need})});
@@ -35,7 +49,7 @@ function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(
 // Spends a point on perk id. Awakens the gift on its first perk; hitpoints gained are healed at once. Returns true when learned.
 function learnPerk(m,id){if(!canLearn(m,id))return false;const hp0=calc(m).hp;m.perks.push(id);m.pp--;const hp1=calc(m).hp;if(hp1>hp0)m.hp=Math.min(hp1,(m.hp||0)+hp1-hp0);else m.hp=Math.min(m.hp,hp1);syncMast(m);return true}
 // Older UI code reads m.mast; keep it a mirror of m.perks.
-function syncMast(m){if(!m)return;const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
+function syncMast(m){if(!m)return;armorPerksHeal(m);const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
 // 4 style trees drawn from the background pool. r: a random source (default the seeded game stream).
 function rollTrees(bg,r){const pool=(BG[bg]&&BG[bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice();
  if(r){for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=pool[i];pool[i]=pool[j];pool[j]=t}}else shuffle(pool);return pool.slice(0,4)}
@@ -49,6 +63,8 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
   sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
  let s=o.tier*10;if(o.kind==='gift')s+=giftAwake(m)?18:60;
  if(o.kind==='weapon')s+=T.wt==='shield'?(up?14:swUp?4:-25):T.wt===wt?14:T.wt===swt?4:-25;
+ if(o.kind==='armor'){if(T.aw!==armorClass(m))return s-200;s+=20;const md=p.mod||{};   // only the tree of the armor worn; within it, what suits the merc
+  if(md.fleet&&!rngd)s-=6;if(p.flag==='slip'&&rngd)s+=4;if(md.steelWall&&rngd)s-=8;if(p.flag==='ironLung')s+=4;if(md.armRegen)s+=3}
  if((T.aff||[]).some(a=>tags.has(a)))s+=12;
  const a=p.ab&&AB[p.ab];if(a){s+=3;if(a.needs&&a.needs!==wt)s-=a.needs===swt?12:45;if(a.two&&!two)s-=45;if(a.shield&&!up)s-=swUp?12:45;if(a.noBow&&rngd)s-=20;if(a.tgt==='ally'||a.party)s+=tags.has('support')?6:0}
  const md=p.mod||{};if((md.shieldDef||md.shieldHp||md.guard||md.deflect||md.shieldDr)&&!sh)s-=35;if((md.duelHit||md.duelDmg)&&(sh||two||rngd))s-=30;if(md.twoDmg&&!(two&&!rngd))s-=30;

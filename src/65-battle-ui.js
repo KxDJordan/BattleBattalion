@@ -123,7 +123,7 @@ function planOK(){const p=B&&B.plan;if(!p)return null;const u=B.cur;
  if(!u||p.u!==u||B.busy||B.over||B.auto||u.side!==0||!u.alive||!B.reach||p.reach!==B.reach||!B.reach.has(p.k)){B.plan=null;return null}return p}
 function planClear(){if(B&&B.plan){B.plan=null;return true}return false}
 function planSet(k,touch){const u=B.cur,q=B.reach&&B.reach.get(k);if(!u||!q)return null;const path=pathTo(B.reach,k);if(!path.length)return null;
- B.plan={k,path,cost:q.cost,u,reach:B.reach,touch:!!touch,left:Math.max(0,u.ap-q.cost),fat:2*path.length,hz:path.some(x=>B.tiles[x].t==='haz')};return B.plan}
+ B.plan={k,path,cost:q.cost,u,reach:B.reach,touch:!!touch,left:Math.max(0,u.ap-q.cost),fat:(typeof moveFat==='function'?moveFat(u):2)*path.length,hz:path.some(x=>B.tiles[x].t==='haz')};return B.plan}
 function planGo(){const p=planOK();if(!p)return false;const u=B.cur;B.plan=null;B.sel=null;B.targets=null;fcClear();B.busy=true;B.reach=null;updateBUI();
  walkPath(u,p.path).then(()=>{B.busy=false;afterAction()});return true}
 // Runs fn with u standing on the planned tile with what the walk would leave it (AP, fatigue); always restores.
@@ -193,6 +193,13 @@ const STSVG={burn:'a-flame',chill:'a-snow',root:'a-pin',stun:'a-burst',buff:'a-u
 /* one status badge: icon, a count (turns, or `extra` such as a chance), colour by what it does to the bearer */
 function stIcon(k,n,extra){const S=shStatus(k),col=STC[k]||(S&&S.good?'#9bd96f':'#ef8a78'),nm=S?S.n:k;
  return'<span class="sd'+(S&&S.good?' gd':'')+'" style="--sc:'+col+'" title="'+esc(nm+(n>0?' ('+n+(n===1?' turn':' turns')+')':'')+(S&&S.d?': '+S.d:''))+'">'+pic('st-'+k,16,STSVG[k]||'a-burst')+(n>1||extra?'<b>'+(extra||n)+'</b>':'')+'</span>'}
+/* statuses whose number is a value, not turns (the rules list them with turns = the value): Tired (its penalty), Dancing (its defense) */
+const SH_VALST={tired:1,dance:1,fleet:1};
+function stVal(k,v){const S=shStatus(k),col=STC[k]||(S&&S.good?'#9bd96f':'#ef8a78'),nm=S?S.n:k,txt=k==='tired'?'−'+v+' to hit and −'+v+' defense':k==='dance'?'+'+v+' melee and ranged defense':k==='fleet'?'+10 ranged defense against shots':'';
+ return'<span class="sd'+(S&&S.good?' gd':'')+'" style="--sc:'+col+'" title="'+esc(nm+(txt?': '+txt:'')+(S&&S.d&&k!=='tired'?'. '+S.d:''))+'">'+pic('st-'+k,16,STSVG[k]||'a-burst')+(v>0&&k!=='fleet'?'<b>'+(k==='tired'?'−':'+')+v+'</b>':'')+'</span>'}
+/* fatigue penalty (the rules' tiredPen: −N to hit and −N defense), 0 when the rules have none or the unit does not tire */
+function shTired(u){try{return typeof tiredPen==='function'&&u?Math.max(0,tiredPen(u)|0):0}catch(e){return 0}}
+function tiredMark(u){const p=shTired(u);if(!p)return'';return'<span class="utired" title="'+esc('Tired: −'+p+' to hit and −'+p+' defense (fatigue '+u.fat+' of '+u.fatMax+')')+'" aria-label="Tired, minus '+p+' to hit and defense">'+pic('st-tired',16,'drop')+'<small>Tired</small><b>−'+p+'</b></span>'}
 let ABDESC=null;
 const SH_ATKD={bow:'Loose an arrow at a foe in range',crossbow:'Loose a bolt at a foe in range; then it must be reloaded',flintlock:'Fire at a foe in range; then it must be reloaded',polearm:'Strike a foe up to 2 tiles away, over the front rank',greatsword:'Strike a foe up to 2 tiles away, over the front rank',hammer:'Crush a foe in reach: hard on armor'};
 function abDesc(id,u){if(id==='attack'){const w=u.wpn||{};return SH_ATKD[w.wt]||(shRangedW(w)?'Shoot at a foe in range':w.rng>1?'Strike a foe up to '+w.rng+' tiles away':'Strike a foe in reach')}
@@ -208,8 +215,8 @@ function orderHTML(u){const tok=(x,cls)=>{const hp=Math.max(0,Math.round(100*x.h
  const rest=B.order.filter(x=>x&&x.alive);
  return'<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>'+tok(u,'cur')+rest.map(x=>tok(x,'')).join('')}
 function statI(icon,svg,val,cls,title,col){return'<span class="si '+cls+'" title="'+title+'"'+(col?' style="color:'+col+'"':'')+'>'+pic(icon,16,svg)+'<b>'+val+'</b></span>'}
-function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>x.key!=='unloaded'||shLoaded(u)===null);   // the weapon on the chip carries the unloaded badge
- for(let i=0;i<L.length&&i<6;i++)h+=stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
+function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>(x.key!=='unloaded'||shLoaded(u)===null)&&x.key!=='tired');   // the weapon carries the unloaded badge; Tired has its own marker by the stamina
+ for(let i=0;i<L.length&&i<6;i++)h+=SH_VALST[L[i].key]?stVal(L[i].key,L[i].turns|0):stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
 /* unit chip: name, level, morale (flag icon in the state's colour) with resolve, statuses; hitpoints, head and body armor, shield, stamina, gifts; action pips */
 function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u),P=B.plan&&B.plan.u===u?B.plan:null,keep=P?u.ap-P.cost:u.ap;let pips='';for(let i=0;i<n;i++)pips+='<i class="'+(i<u.ap?'on':'')+(i>=keep&&i<u.ap?' pl':'')+(i>=u.apMax?' x':'')+'"></i>';
  let h='<span class="uport s'+u.side+'">'+port(u,32)+'</span><div class="ubody"><div class="uname"><b>'+esc(u.name)+'</b>'+(mine?'<small class="ulv" title="Level '+u.lvl+'">'+u.lvl+'</small>':'')+chipArms(u)+chipStatuses(u)+'</div><div class="ustats">'+statI('hp','heart',u.hp,'hp','Hitpoints '+u.hp+' of '+u.hpMax);
@@ -219,7 +226,7 @@ function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),b
  h+='</div><div class="urow"><div class="pips'+(P?' plan':'')+'" title="Action points '+u.ap+(P?': the planned move spends '+P.cost+', '+P.left+' left':'')+'">'+pips+'</div>';
  if(m>=0)h+='<span class="umor m'+m+'" style="--sc:'+SH_MORC[m]+'" title="'+shMorN(m)+(brv!=null?': resolve '+brv:'')+'">'+pic('morale-'+m,16,'flag')+(brv!=null?'<b>'+brv+'</b>':'')+'</span>';
  else if(u.fearless)h+='<span class="umor" style="--sc:#c8d0d8" title="Fearless: never tests morale">'+pic('resolve',16,'flag')+'</span>';
- if(u.fatMax<=999)h+=statI('fatigue','drop',u.fatMax-u.fat,'fat','Stamina left: fatigue '+u.fat+' of '+u.fatMax);
+ if(u.fatMax<=999)h+=statI('fatigue','drop',u.fatMax-u.fat,'fat'+(shTired(u)?' tired':''),'Stamina left: fatigue '+u.fat+' of '+u.fatMax)+tiredMark(u);
  for(const k in u.res)h+=statI(k,'gem',u.res[k].cur,'res',RESN[k]+' '+u.res[k].cur+' of '+u.res[k].max,RESC[k]);
  return h+'</div></div>'}
 /* the weapon in hand (and, small, the backup) on the chip's name row; a lock when a bow in hand is pinned by an adjacent foe */
@@ -311,6 +318,10 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  let f=null;try{f=forecast(u,t,a)}catch(e){}f=f||{};const blocked=!!f.blocked;let st='',mods='',rows='';FC.blocked=blocked;
  if(f.cover>0)mods+='<span class="fcm bad" title="'+f.cover+(f.cover===1?' unit':' units')+' in the line of fire: −'+f.cover*(typeof COVERPEN==='number'?COVERPEN:15)+' to hit (already counted)">'+pic('cover',16,'shield')+'<b>'+(f.cover>1?'×'+f.cover:'')+'</b></span>';
  if(f.mor&&(f.mor.att||f.mor.def)){const v=(f.mor.att||0)-(f.mor.def||0);if(v)mods+='<span class="fcm '+(v>0?'good':'bad')+'" title="Morale: '+(f.mor.att?'yours '+(f.mor.att>0?'+':'')+f.mor.att:'')+(f.mor.att&&f.mor.def?', ':'')+(f.mor.def?'theirs '+(f.mor.def>0?'−':'+')+Math.abs(f.mor.def):'')+' (already counted)">'+pic('morale-'+(v>0?4:1),16,'flag')+'<b>'+(v>0?'+':'−')+Math.abs(v)+'</b></span>'}
+ {const ta=+f.tiredAtt||0,td=+f.tiredDef||0,ad=+f.armDef||0;   // fatigue and armor-tree defense (the rules' forecast parts; already inside the hit chance)
+  if(ta>0)mods+='<span class="fcm bad fct" title="'+esc(u.name)+' is tired: −'+ta+' to hit (already counted)">'+pic('st-tired',16,'drop')+'<span class="fcfa">'+port(u,16)+'</span><b>−'+ta+'</b></span>';
+  if(td>0)mods+='<span class="fcm good fct" title="'+esc(t.name)+' is tired: −'+td+' defense, so +'+td+' to hit (already counted)">'+pic('st-tired',16,'drop')+'<span class="fcfa">'+port(t,16)+'</span><b>+'+td+'</b></span>';
+  if(ad>0)mods+='<span class="fcm bad" title="'+esc(t.name)+'’s armor perks: +'+ad+' defense, so −'+ad+' to hit (already counted)">'+pic('armor',16,'shield')+'<b>−'+ad+'</b></span>'}
  if(f.riposte)mods+='<span class="fcm bad" title="A miss draws a riposte">'+pic('riposte',16,'sword')+'<b>!</b></span>';
  if(f.shield){const S=f.shield;rows+='<span class="fcl'+(S.sure?' sure':S.brk?' kill':'')+'" title="Damage to the shield ('+S.hp+' left)">'+pic('shield',16,'shield')+'<span class="fcd arm"><i class="pip"></i><b>'+fcRange(S.min,S.max)+'</b><small>/'+S.hp+'</small></span>'+(S.brk?'<span class="fck'+(S.sure?' sure':'')+'">'+pic('st-splitshield',16,'shield')+'<b>'+(S.sure?'Splits':'May split')+'</b></span>':'')+'</span>'}
  else if(a.noDmg)rows+='<span class="fcl"><span class="fcd" title="No damage">'+esc(a.n)+'</span></span>';

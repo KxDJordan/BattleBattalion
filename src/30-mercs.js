@@ -23,15 +23,25 @@ function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)
     wpn (a copy of the weapon in hand with weapon-tree changes, reload included; id = item id or null for fists),
     shield:{id,look,hp,md,rd,raised,guard,wallB,spike}|null (md/rd are what it adds when raised; slung with a two-handed weapon in hand;
            guard/wallB/spike from the item: Cover for allies beside it, the Shield wall bonus, the Spiked bash roll),
-    hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand), inj:[ids]} */
-function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null;
+    hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand; armor perks idle:
+    another weight class worn), acl (armorClass: light medium heavy), aw (armor + helmet weight = their fatigue), inj:[ids]} */
+/* Armor weight classes for the armor trees: light = no body armor, a robe, or at most ACLASS.light armor points; medium = at most
+   ACLASS.medium; heavy = more. A famed piece keeps the class of the item it was made from. armorClass(m) takes a merc, or a battle unit
+   (its merc's armor; an enemy by its armor maximum). */
+const ACLASS={light:60,medium:150};
+function armorClassOf(id){const it=ITEMS[id];if(!it||it.k!=='a')return'light';const bid=it.famed&&it.base&&ITEMS[it.base]?it.base:id,b=ITEMS[bid];
+ if(b.robe||/robe/.test(bid))return'light';const a=b.arm||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}
+function armorClass(m){if(!m)return'light';if(m.m&&m.side!=null)m=m.m;else if(m.side!=null&&!m.eq){const a=m.armMax||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}return armorClassOf(m.eq&&m.eq.a)}
+function calc(m,o){if(typeof armorPerksHeal==='function')armorPerksHeal(m);const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a);
  const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,ap:9,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[],
-  hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[]};
+  hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[],acl,aw:0};
  const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();if(wpn.reload)wpn.reload=Object.assign({},wpn.reload);
  const sh=ITEMS[eq.s]&&ITEMS[eq.s].k==='s'?ITEMS[eq.s]:null,raised=!!sh&&!wpn.two;let shHpOff=0;
  for(const id of (Array.isArray(m.perks)?m.perks:legacyPerks(m.mast))){const P=perkById(id);if(!P)continue;const p=P.perk,T=P.tree;
   // weapon trees work only with their family in hand; the shield tree only while a shield is raised (its shield hitpoints count whenever one is carried)
-  if(T.kind==='weapon'&&(T.wt==='shield'?!raised:T.wt!==wpn.wt)){s.off.push(id);if(T.wt==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}s.perks.push(id);
+  if(T.kind==='weapon'&&(T.wt==='shield'?!raised:T.wt!==wpn.wt)){s.off.push(id);if(T.wt==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}
+  if(T.kind==='armor'&&T.aw!==acl){s.off.push(id);continue}   // armor trees: only in body armor of their weight class
+  s.perks.push(id);
   if(p.st)for(const q in p.st)s[q]=(s[q]||0)+p.st[q];if(p.ab&&AB[p.ab]&&!s.abs.includes(p.ab))s.abs.push(p.ab);
   if(p.flag)s.flags[p.flag]=1;if(p.mod)for(const q in p.mod)s.flags[q]=(s.flags[q]||0)+p.mod[q];
   if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
@@ -43,6 +53,7 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
    guard:sh.guard||0,wallB:sh.wallB||0,spike:sh.spike?sh.spike.slice():null};
   if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd;if(sh.guard){s.flags.guard=(s.flags.guard||0)+sh.guard;s.flags.shGuard=sh.guard}}}
  if(a){s.arm=a.arm;s.fat-=a.fat;s.md+=a.md||0;s.rd+=a.rd||0}if(h){s.helm=h.arm;s.fat-=h.fat;s.md+=h.md||0;s.rd+=h.rd||0}   // armor and helmets may carry defence (famed rolls)
+ s.aw=(a?a.fat||0:0)+(h?h.fat||0:0);if(s.flags.ironLung)s.fat+=Math.floor(s.aw/2);   // aw: what armor and helmet weigh (Nimble); Iron lung gives half of it back
  for(const id of (wpn.sk||[]).concat(raised&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
  if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}

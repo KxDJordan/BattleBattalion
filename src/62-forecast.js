@@ -37,14 +37,23 @@
    Monsters update: fire weakness (def.fireWeak) is inside dmgAfter(), so the dmg, hp and arm figures already hold it (fire = fireAb(a)); distances,
    cover and line of fire measure footprints (mdist, losInfo), so a size-2 target forecasts like any other.
      fire       the hit counts as fire against a fire-weak target (its share of extra damage), else 0
+   Fatigue and armor trees (the hit chance and the damage figures already hold them; these are the parts, for the HUD):
+     tiredAtt   to hit the attacker loses to its own fatigue (tiredPen)     tiredDef   defense the target loses to its fatigue (adds to hit)
+     armDef     defense from the target's armor-tree perks (Fleet, Fresh legs, Dancer, Layered defense; already taken off hit)
+     armDr      share of damage its armor-tree perks take off (Nimble, Brace, an ally's Bulwark of steel; inside dmg*)
+     sidestep   the target's Sidestep is ready: a blow over 25% of its max hitpoints is halved (inside hp*)
+     soak       hitpoints its Juggernaut takes off each blow that reaches them (inside hp*)
+     kb.ch, pull.ch and a stun's ch are halved by Rolling with it; Unshakable drops the stun and the shake; Immovable makes kb.ch 0.
    o is strike()'s option bag: {splash:.7} for blast/arc secondaries, {auto:1} for arcs and strays that always hit,
    {free:...} for free attacks. */
 // The damage one roll does before armor: the same dmgAfter() strike() calls (talent bonuses, executioner, splash, height, reduction).
 function fcDamage(u,t,a,roll,o){if(a.noDmg)return 0;return dmgAfter(u,t,a,a.magic?roll*spellMult(u):roll*(a.mult||1),o)}
 // hurt() without the hurting: what `dmg` takes from hitpoints and from the armor of the struck location.
-function fcSoak(t,dmg,ign,head,pierce,crush){if(!(dmg>0))return{hp:0,arm:0};const a0=(head?t.helm:t.arm)||0;let hp,arm=0;
- if(pierce)hp=dmg;else if(a0>0){arm=Math.min(a0,crush>0?Math.round(dmg*(1+crush)):dmg);hp=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*ign-(a0-arm)*.1),0)}else hp=dmg;
- if(head)hp=Math.round(hp*HEADMULT);return{hp,arm}}
+// The armor-tree terms of hurt() are here too (Padded under-layer, Unbowed, Sidestep, Juggernaut): a forecast is always of a weapon or spell hit.
+function fcSoak(t,dmg,ign,head,pierce,crush){if(!(dmg>0))return{hp:0,arm:0};const a0=(head?t.helm:t.arm)||0,tf=t.flags||{};let hp,arm=0;
+ if(pierce)hp=dmg;else if(a0>0){arm=Math.min(a0,crush>0?Math.round(dmg*(1+crush)):dmg);if(tf.unbowed)arm=Math.min(arm,armCap(t,head));
+  hp=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*(!head&&tf.padIgn?ign*(1-tf.padIgn):ign)-(a0-arm)*.1),0)}else hp=dmg;
+ if(head)hp=Math.round(hp*HEADMULT);if(tf.sidestep&&!t.ss&&hp>t.hpMax*tf.sidestep)hp=Math.round(hp/2);if(tf.hpSoak&&hp>0)hp=Math.max(1,hp-tf.hpSoak);return{hp,arm}}
 // What the rules turn a status into on this target (monStatus in 66-monsters.js): a rooted flier is also Grounded for its root turns + 2;
 // a size-2 flier is too big to pin, so the root itself is dropped and only Grounded stays.
 function statusConv(t,st){const R=st.root;if(!R||!t.fly)return;const n=Math.max(t.st.root||0,R.n)+2;if(!(t.st.grounded>=n))st.grounded={k:'grounded',n,ch:R.ch};if((t.sz||1)>1)delete st.root}
@@ -52,7 +61,8 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],
   headCh:0,head:null,body:null,cover:los.cover,blocked:los.blocked,ff:[],mor:{att:mu.hit,def:mt.def},shake:false,injure:false,shield:null,riposte:false,
   locked:isRangedAtk(u,a)&&rangedLocked(u),undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
-  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless,fire:t.fw&&fireAb(a)?t.fw:0};
+  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless,fire:t.fw&&fireAb(a)?t.fw:0,
+  tiredAtt:sure?0:tiredPen(u),tiredDef:sure?0:tiredPen(t),armDef:sure?0:armorDef(u,t,a),armDr:a.split||a.noDmg?0:armorDr(t),sidestep:false,soak:(t.flags&&t.flags.hpSoak)||0};
  if(a.split){const m=splitMult(u,a),lo=Math.round(u.wpn.d[0]*m),hi=Math.round(u.wpn.d[1]*m);if(t.shield)f.shield={min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp};f.body={hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false};return f}
  let lo=0,hi=0;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];f.ign=ignOf(u,a)}else{const wd=rollOf(u,a);lo=wd[0];hi=wd[1];f.ign=ignOf(u,a)}
  const hc=headChance(u,t,a),mk=()=>({hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false}),H=mk(),Bd=mk();let first=true,n=0,posB=0,posH=0;
@@ -66,14 +76,16 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const parts=[];if(useH)parts.push(H);if(useB)parts.push(Bd);
  f.hpMin=Math.min(...parts.map(p=>p.hpMin));f.hpMax=Math.max(...parts.map(p=>p.hpMax));f.armMin=Math.min(...parts.map(p=>p.armMin));f.armMax=Math.max(...parts.map(p=>p.armMax));
  f.kill=!f.undying&&f.hpMax>=t.hp;f.sure=!f.undying&&f.hpMin>=t.hp;
- f.shake=!t.fearless&&f.hpMax>=heavyHit(t)&&!f.sure;f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
+ f.shake=!t.fearless&&!(t.flags&&t.flags.noStun)&&f.hpMax>=heavyHit(t)&&!f.sure;
+ {const tf=t.flags||{};f.sidestep=!!(tf.sidestep&&!t.ss&&!a.noDmg)}f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
  const st={};for(const k in a.status||{})st[k]={k,n:a.status[k],ch:1};
  { const sc=stunOf(u,a);if(sc&&!(st.stun))st.stun={k:'stun',n:1,ch:Math.min(1,sc)} }
  if(u.onhit){const n=u.onhit.root;if(!st.root)st.root={k:'root',n,ch:u.onhit.ch};else if(n>st.root.n)st.root={k:'root',n,ch:u.onhit.ch}}
  const bl=bleedOf(u,a);if(bl&&n){const pb=posB/n,ph=posH/n,ch=(!useH||ph===1)&&(!useB||pb===1)?1:(useH?f.headCh/100*ph:0)+(useB?(1-f.headCh/100)*pb:0);if(ch>0)st.bleed={k:'bleed',n:Math.max(bl,st.bleed?st.bleed.n:0),ch}}
  statusConv(t,st);
+ if(st.stun){const tf=t.flags||{};if(tf.noStun)delete st.stun;else if(tf.roll>0)st.stun.ch*=1-tf.roll}   // Unshakable, Rolling with it
  for(const k in st)if(st[k].n>0)f.statuses.push(st[k]);
- const kn=a.kb||u.kbN||0,imm=kbImmune(t);if(kn)f.kb={n:kn,ch:imm?0:a.kb?1:u.kbCh||0,crash:a.crash||u.crashD||0};if(a.pull)f.pull={n:a.pull,ch:imm||mdist(u,t)<=1?0:1};
+ const kn=a.kb||u.kbN||0,imm=kbImmune(t),rl=1-((t.flags&&t.flags.roll)||0);if(kn)f.kb={n:kn,ch:imm?0:(a.kb?1:u.kbCh||0)*rl,crash:a.crash||u.crashD||0};if(a.pull)f.pull={n:a.pull,ch:imm||mdist(u,t)<=1?0:rl};
  if(kind===2&&!o.free&&!sure&&los.ff.length){const ch=(100-f.hit)*FFCH/los.ff.length;f.ff=los.ff.map(x=>({t:x,ch}))}
  f.riposte=!sure&&!o.free&&!a.magic&&mdist(u,t)===1&&buffSum(t,'rip')>0&&canFree(t);
  return f}

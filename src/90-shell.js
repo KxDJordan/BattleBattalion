@@ -128,7 +128,45 @@ function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
  if(typeof drawMinimap!=='function'&&W&&W.img){const m=$('mini');if(!m)return;const x=m.getContext('2d'),k=m.width/WS;x.imageSmoothingEnabled=true;x.drawImage(W.img,0,0,m.width,m.height);
   x.fillStyle='#101d1c';for(const t of G.towns||[])x.fillRect(t.x*k-4,t.y*k-4,8,8);x.fillStyle='#e9e0c9';for(const t of G.towns||[])x.fillRect(t.x*k-2.5,t.y*k-2.5,5,5);
   x.fillStyle='#d1a94e';x.strokeStyle='#101d1c';x.lineWidth=2;x.beginPath();x.arc(G.p.x*k,G.p.y*k,6,0,7);x.fill();x.stroke()}}
-function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world')worldChrome()}
+/* ---- daily upkeep: tapping the crowns or the food on the world HUD opens a small breakdown (costPop).
+   It follows newDay() in 40-world.js exactly: at midnight every sword on the roster (reserves too) draws BG[bg].wage crowns,
+   then eats one ration. Unpaid (crowns would go below 0): the purse is emptied and, with more than one sword, there is a 35%
+   chance one random sword deserts. Out of food: rations go to 0 and every sword loses 10 hitpoints (never below 1).
+   Nothing else is charged by the day. Reads state only; no randomness. ---- */
+const CP={el:null,kind:null,key:'',from:null,swallow:0};
+function upkeep(){const R=G&&G.roster||[],men=R.map(m=>({m,bg:BG[m.bg]||{},wage:(BG[m.bg]&&BG[m.bg].wage)|0,food:1})),wage=men.reduce((s,x)=>s+x.wage,0),food=men.length;
+ const hrs=Math.max(0,Math.ceil(24-(G?G.hour:0)));
+ return{men,wage,food,hrs,payDays:wage>0?Math.floor(G.crowns/wage):Infinity,foodDays:food>0?Math.floor(G.food/food):Infinity}}
+function cpDays(n){return n===Infinity?'no end':n+' day'+(n===1?'':'s')}
+function cpBody(){const U=upkeep(),k=CP.kind,ic=(n,s)=>pic(n,s||16),short=G.crowns<U.wage,starve=G.food<U.food;
+ const warn=cpWarn(U,short,starve),tile=(kk,icon,amt,unit,days,lab,warn)=>`<div class="cp-t${k===kk?' on':''}${warn?' warn':''}">${ic(icon)}<span><b>−${amt}</b><small>${unit} a day</small></span><span class="cp-d"><b>${cpDays(days)}</b><small>${lab}</small></span></div>`;
+ let rows='';const L=U.men.slice();if(k==='crowns')L.sort((a,b)=>b.wage-a.wage);
+ for(const x of L)rows+=`<div class="cp-r" role="row"><span class="cp-n" role="cell"><b>${htmlEsc(x.m.name)}</b><small>${htmlEsc(x.bg.n||'')}${x.m.field?'':' · reserve'}</small></span><span class="cp-v c" role="cell">${x.wage}</span><span class="cp-v f" role="cell">${x.food}</span></div>`;
+ return`<div class="cp-hd"><span class="cp-ti"><b>Daily upkeep</b><small>Paid at midnight, in ${U.hrs} hour${U.hrs===1?'':'s'} · Day ${G.day}</small></span><button type="button" class="cp-x" aria-label="Close" onclick="costPopClose(true)">${ic('close')}</button></div>
+<div class="cp-main"><div class="cp-side"><div class="cp-sum">${tile('crowns','coin',U.wage,'crowns',U.payDays,'of wages in the purse',short)}${tile('food','food',U.food,U.food===1?'ration':'rations',U.foodDays,'of food in the wagons',starve)}</div>${warn}</div>
+<div class="cp-tb" role="table" aria-label="Daily cost of each sword"><div class="cp-r cp-h" role="row"><span class="cp-n" role="columnheader">Sword</span><span class="cp-v c" role="columnheader">${ic('coin')}</span><span class="cp-v f" role="columnheader">${ic('food')}</span></div>
+<div class="cp-rows">${rows||'<div class="cp-r"><span class="cp-n"><small>Nobody on the roster</small></span></div>'}</div>
+<div class="cp-r cp-tot" role="row"><span class="cp-n" role="cell"><b>Total</b><small>${U.men.length} sword${U.men.length===1?'':'s'}</small></span><span class="cp-v c" role="cell">${U.wage}</span><span class="cp-v f" role="cell">${U.food}</span></div></div></div>`}
+function cpWarn(U,short,starve){const ic=n=>pic(n,16);return`${short?`<p class="cp-w">${ic('coin')}<span>Tonight's wages are short by ${U.wage-G.crowns}. Unpaid, the purse is emptied${U.men.length>1?' and there is a 35% chance a sword deserts':''}.</span></p>`:''}
+${starve?`<p class="cp-w">${ic('food')}<span>${G.food?'Only '+G.food+' of '+U.food+' rations left for tonight':'No food left'}: a starving company loses 10 hitpoints a sword each day.</span></p>`:''}
+<p class="cp-note"><span class="cp-nl">Reserves draw wages and eat too. </span>Nothing else is charged by the day<span class="cp-nl">: inns, tools, the temple and the tailor cost only when used</span>.</p>`}
+function costPopKey(){return G?[CP.kind,G.crowns,G.food,G.day,Math.ceil(24-G.hour),G.roster.map(m=>m.id+m.name+m.bg+(m.field?1:0)).join(',')].join('|'):''}
+function costPop(kind,btn){if(!G||mode!=='world')return;if(CP.el&&CP.kind===kind&&!CP.el.hidden){costPopClose(true);return}
+ let e=CP.el;if(!e){e=document.createElement('div');e.id='costPop';e.className='pxf cp';e.setAttribute('role','dialog');e.setAttribute('aria-label','Daily upkeep');e.tabIndex=-1;$('app').appendChild(e);CP.el=e;
+  e.addEventListener('keydown',ev=>{if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();costPopClose(true)}});
+  document.addEventListener('pointerdown',ev=>{if(!CP.el||CP.el.hidden)return;const t=ev.target;if(CP.el.contains(t)||(t.closest&&t.closest('.hud-tap')))return;costPopClose(false);if(t&&t.id==='cv'){ev.stopPropagation();ev.preventDefault();CP.swallow=Date.now()}},true);
+  const sw=ev=>{if(CP.swallow&&Date.now()-CP.swallow<700){ev.stopPropagation();ev.preventDefault();if(ev.type==='click')CP.swallow=0}};document.addEventListener('pointerup',sw,true);document.addEventListener('click',sw,true);
+  window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&CP.el&&!CP.el.hidden){costPopClose(true);ev.stopImmediatePropagation()}},true)}
+ CP.kind=kind;CP.from=btn||null;e.hidden=false;costPopRender(true);
+ document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded',String(b===btn)));
+ try{const x=e.querySelector('.cp-x');if(x)x.focus({preventScroll:true})}catch(er){}}
+function costPopRender(force){const e=CP.el;if(!e||e.hidden)return;const k=costPopKey();if(!force&&k===CP.key)return;CP.key=k;const st=e.querySelector('.cp-rows'),top=st?st.scrollTop:0;
+ e.innerHTML=cpBody();const st2=e.querySelector('.cp-rows');if(st2)st2.scrollTop=top;costPopPlace()}
+function costPopPlace(){const e=CP.el,b=CP.from;if(!e||e.hidden)return;const hud=$('hud'),hr=hud?hud.getBoundingClientRect():{bottom:40},vw=innerWidth,br=b&&b.getBoundingClientRect?b.getBoundingClientRect():{left:12};
+ const rail=$('wbar'),rx=rail&&!rail.classList.contains('hidden')&&rail.getBoundingClientRect().width?rail.getBoundingClientRect().left:vw,w=e.offsetWidth,left=clamp(Math.round(br.left-8),6,Math.max(6,rx-w-6));e.style.left=left+'px';e.style.top=Math.round(hr.bottom+4)+'px';e.style.maxHeight=Math.max(160,innerHeight-hr.bottom-12)+'px'}
+function costPopClose(refocus){const e=CP.el;if(!e||e.hidden)return;e.hidden=true;document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded','false'));if(refocus&&CP.from&&CP.from.focus)try{CP.from.focus({preventScroll:true})}catch(er){}CP.from=null}
+function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world')worldChrome()
+ if(CP.el&&!CP.el.hidden){if(mode!=='world'||sheetOpen)costPopClose(false);else costPopRender(false)}}
 
 /* ---- menu (in the field) ---- */
 function mbtn(icon,label,sub,on,cls,svg){return`<button class="mi ${cls||''}" onclick="${on}">${pic(icon,32,svg)}<span><b>${label}</b><small>${sub}</small></span></button>`}

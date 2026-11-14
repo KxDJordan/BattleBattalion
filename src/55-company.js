@@ -34,13 +34,14 @@ function coRole(m,s){const w=s.wpn||FIST,a=ITEMS[m.eq.a],g=tlGift(m),r=g?MAST[g]
 /* the merc's trees at a glance: style trees (perks learned), the gift in its colour, then the weapon families it may train */
 function coTreeStrip(m,O){O=O||tlOpts(m);let h='',sep=false;
  for(const x of tlTrees(m)){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key);
+  if(x.kind==='armor'){const ac=tlTreeArm(x.key),on=ac&&ac===tlArmClass(m);if(!n&&!on)continue;if(!sep){sep=true;h+='<i class="co-sep" aria-hidden="true"></i>'}h+=`<span class="co-w co-a${n?' on':''}${on?' worn':''}${m.lvl<tlTierLv('armor',1)?' lk':''}" title="${x.tree.n}: armor tree${on?', worn now':', works only in '+(ac?TL_ARMN[ac].toLowerCase():'its')+' armor'}">${coIc(tlTreeIcon(x.key))}${n?`<b>${n}</b>`:''}</span>`;continue}
   if(x.kind==='weapon'){if(!sep){sep=true;h+='<i class="co-sep" aria-hidden="true"></i>'}h+=`<span class="co-w${n?' on':''}${m.lvl<tlTierLv('weapon',1)?' lk':''}" title="${x.tree.n}: weapon tree, opens at level ${tlTierLv('weapon',1)}">${coIc(tlTreeIcon(x.key))}${n?`<b>${n}</b>`:''}</span>`;continue}
   h+=`<span class="co-m${r?' g-'+r:''}${n?'':' z'}" title="${x.kind==='gift'?tlGiftLabel(x.key)+' (gift)':x.tree.n}">${coIc(tlTreeIcon(x.key))}${n||''}</span>`}
  return h}
 function coCard(m,i){const s=calc(m),hp=Math.min(m.hp,s.hp),w=ITEMS[m.eq.w],bk=ITEMS[m.eq.b],a=ITEMS[m.eq.a],hl=ITEMS[m.eq.h],cd=cpCond(m),inj=cpInj(m),g=tlGift(m);
- return`<div class="co-card${m.field?' fld':''}${m.pend||m.pp?' rdy':''}${inj.length?' inj':''}" role="button" tabindex="0" data-merc="${i}" aria-label="${m.name}, level ${m.lvl} ${BG[m.bg].n}${g?', '+tlGiftLabel(g):''}${m.field?'':', in reserve'}${inj.length?', '+inj.length+' injur'+(inj.length===1?'y':'ies'):''}" onclick="coPick(${i})">
+ return`<div class="co-card${m.field?' fld':''}${m.pend||m.pp?' rdy':''}${inj.length?' inj':''}" role="button" tabindex="0" data-merc="${i}" aria-label="${htmlEsc(m.name)}, level ${m.lvl} ${BG[m.bg].n}${g?', '+tlGiftLabel(g):''}${m.field?'':', in reserve'}${inj.length?', '+inj.length+' injur'+(inj.length===1?'y':'ies'):''}" onclick="coPick(${i})">
 <span class="co-pt">${portraitHTML(m,64)}<b class="co-lv">${m.lvl}</b></span>
-<span class="co-ci"><span class="co-nm"><span>${m.name}</span>${inj.length?`<em class="inj" title="${inj.map(j=>j.n+': '+j.d).join('; ')}">${cpInjIcon(inj[0].id)}${inj.length}</em>`:''}${m.field?'':'<em class="res">RESERVE</em>'}${m.pend?'<em class="up">LEVEL UP</em>':m.pp?'<em class="perk">PERK</em>':''}</span>
+<span class="co-ci"><span class="co-nm">${coRenaming(m,'card')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'card')}`}${inj.length?`<em class="inj" title="${inj.map(j=>j.n+': '+j.d).join('; ')}">${cpInjIcon(inj[0].id)}${inj.length}</em>`:''}${m.field?'':'<em class="res">RESERVE</em>'}${m.pend?'<em class="up">LEVEL UP</em>':m.pp?'<em class="perk">PERK</em>':''}</span>
 <span class="co-role"><b>${coRole(m,s)}</b> · ${BG[m.bg].n}${g?` · <span class="co-gv g-${tlGiftRes(g)}">${MAST[g].n}</span>`:''}</span>
 <span class="co-hp">${pnBar(100*hp/s.hp,'hp')}<b class="${hp<s.hp?'hurt':''}">${hp}/${s.hp}</b></span>
 <span class="co-ics"><u title="${s.wpn.n}${w?' ('+(w.two?'two':'one')+'-handed)':''}">${w?pnFamedWrap(m.eq.w,coIc(itemIconName(m.eq.w))):coIc('fist')}${s.wpn.d[0]}–${s.wpn.d[1]}</u>${bk?`<u class="bk" title="Backup: ${bk.n}">${pnFamedWrap(m.eq.b,coIc(itemIconName(m.eq.b)))}</u>`:''}<u title="${a?a.n+(cd.a<cd.aM?', damaged':''):'No armor'}" class="${cd.a<cd.aM?'worn':''}">${a?pnFamedWrap(m.eq.a,coIc(itemIconName(m.eq.a))):coIc('armor-light','','dimi')}${a?cd.a:s.arm}</u>${hl?`<u title="${hl.n}${cd.h<cd.hM?', damaged':''}" class="${cd.h<cd.hM?'worn':''}">${pnFamedWrap(m.eq.h,coIc('helmet'))}${cd.h}</u>`:''}${m.eq.s?`<u class="${tlSlung(m)?'slung':''}" title="${ITEMS[m.eq.s].n}${tlSlung(m)?', slung':''}">${pnFamedWrap(m.eq.s,coIc('shield'))}</u>`:''}</span>
@@ -51,6 +52,25 @@ function coRoster(){const R=G.roster.map((m,i)=>[m,i]),f=R.filter(x=>x[0].field)
  if(r.length){h+=`<div class="co-gh res"><span>${coIc('reserve')}Reserves</span><i>${typeof callReserve==='function'?'One may join a battle each round while fewer than '+MAXFIELD+' stand':'They sit out the battle'}</i></div>`;r.forEach(([m,i])=>{h+=coCard(m,i)})}
  return h+'</div>'}
 
+/* ---- renaming a sword: an inline text field on the character screen and on the roster card (coRenameAsk). The name is cleaned
+   like the company name (no markup characters, spaces collapsed, at most NAMEMAX), saved at once, and copied to a battle unit
+   of that merc if one exists, so the chip, the turn tokens and the log use it from then on. ---- */
+let coRen=null;   // {id: merc id, at: 'ch' | 'card'}
+function mercNameClean(s,old){const mx=typeof NAMEMAX==='number'?NAMEMAX:24;s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/[\u0000-\u001f\u007f]/g,'').replace(/\s+/g,' ').trim().slice(0,mx).trim():'';return s||old||'Nameless'}
+function renameMerc(i,name){const m=G.roster[i];if(!m)return null;const n=mercNameClean(name,m.name);if(n===m.name)return n;m.name=n;
+ try{if(typeof B!=='undefined'&&B&&Array.isArray(B.units))for(const u of B.units)if(u&&u.m===m)u.name=n}catch(e){}
+ try{if(typeof SHV==='object')SHV.rev++}catch(e){}if(typeof save==='function')save();return n}
+function coRenameAsk(i,at){const m=G.roster[i];if(!m)return;coRen={id:m.id,at:at||'ch'};coRender();
+ setTimeout(()=>{const e=$('coRenIn');if(e){try{e.focus({preventScroll:true});e.select()}catch(er){}}},0)}
+function coRenField(m,i){return`<span class="co-ren" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()"><input id="coRenIn" type="text" maxlength="${typeof NAMEMAX==='number'?NAMEMAX:24}" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" value="${htmlEsc(m.name)}" aria-label="New name for ${htmlEsc(m.name)}" onkeydown="coRenameKey(event,${i})" onblur="coRenameBlur(${i})"><button type="button" class="pn-btn sm ico co-renok" aria-label="Save the name" onpointerdown="event.preventDefault()" onclick="event.stopPropagation();coRenameDone(${i},1)">${coIc('check')}</button></span>`}
+function coRenBtn(m,i,at){return`<button type="button" class="co-renb" aria-label="Rename ${htmlEsc(m.name)}" title="Rename" onclick="event.stopPropagation();coRenameAsk(${i},'${at}')">${coIc('quill')}</button>`}
+function coRenaming(m,at){return!!(coRen&&coRen.id===m.id&&coRen.at===at)}
+function coRenameKey(e,i){if(e.key==='Enter'){e.preventDefault();e.stopPropagation();coRenameDone(i,1)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();coRenameDone(i,0)}else e.stopPropagation()}
+function coRenameDone(i,commit){const e=$('coRenIn'),v=e?e.value:null;coRen=null;if(commit&&v!=null)renameMerc(i,v);coRender()}
+/* focus left the field (a tap elsewhere): keep the name and put the plain name back in place without redrawing, so that tap still lands */
+function coRenameBlur(i){if(!coRen)return;const e=$('coRenIn');if(!e)return;const m=G.roster[i];coRen=null;const n=renameMerc(i,e.value)||(m&&m.name)||'';
+ const w=e.closest?e.closest('.co-ren'):null;if(w){const s=document.createElement('span');s.textContent=n;w.replaceWith(s)}
+ if(coScreen==='merc'){const t=$('pnTitle');if(t)t.textContent=n}}
 /* ---- formation ---- */
 const FM={pick:null,drag:null,bound:false,skip:0};
 function fmCols(){return typeof BW==='number'?BW:12}
@@ -81,12 +101,12 @@ function fmTap(i,ptrClick){if(ptrClick)return;   // pointer taps arrive through 
  else if(q.field){const s=q.slot||fmSlotOf(q);fmPlace(i,s.row,s.col)}else{FM.pick=i;coRender()}}
 function fmSlotOf(m){const o=formation().find(o=>o.m===m);return o?{row:o.row,col:o.col}:{row:0,col:0}}
 function fmCell(row,col){if(FM.pick==null)return;fmPlace(FM.pick,row,col)}
-function fmTok(m,i,size){return`<span class="fm-tok${FM.pick===i?' sel':''}" role="button" tabindex="0" data-fm="${i}" aria-label="${m.name}${FM.pick===i?', picked':''}" onclick="event.stopPropagation();fmTap(${i},event.detail)">${portraitHTML(m,size||32)}</span>`}
+function fmTok(m,i,size){return`<span class="fm-tok${FM.pick===i?' sel':''}" role="button" tabindex="0" data-fm="${i}" aria-label="${htmlEsc(m.name)}${FM.pick===i?', picked':''}" onclick="event.stopPropagation();fmTap(${i},event.detail)">${portraitHTML(m,size||32)}</span>`}
 function coFormation(){if(fmAnySet())fmCommit();const F=formation(),n=fmCols(),big=typeof innerWidth==='number'&&innerWidth>=1100&&innerHeight>=600,sz=big?64:32;
  const row=r=>{let h=`<div class="fmd-row${r?' back':''}">`;for(let c=0;c<n;c++){const o=F.find(o=>o.row===r&&o.col===c);
-   h+=`<div class="fm-cell${FM.pick!=null?' can':''}" data-cell="${r}:${c}" role="button" tabindex="0" aria-label="${r?'Back':'Front'} row, tile ${c+1}${o?', '+o.m.name:''}" onclick="fmCell(${r},${c})">${o?fmTok(o.m,G.roster.indexOf(o.m),sz):''}</div>`}return h+'</div>'};
+   h+=`<div class="fm-cell${FM.pick!=null?' can':''}" data-cell="${r}:${c}" role="button" tabindex="0" aria-label="${r?'Back':'Front'} row, tile ${c+1}${o?', '+htmlEsc(o.m.name):''}" onclick="fmCell(${r},${c})">${o?fmTok(o.m,G.roster.indexOf(o.m),sz):''}</div>`}return h+'</div>'};
  const res=G.roster.map((m,i)=>[m,i]).filter(([m])=>!m.field),p=FM.pick!=null?G.roster[FM.pick]:null;
- let info;if(p){const s=calc(p);info=`${portraitHTML(p,32)}<p><b>${p.name}</b> <span class="dim">Level ${p.lvl} ${BG[p.bg].n.toLowerCase()}, ${coRole(p,s).toLowerCase()}</span><small>${p.field?'Tap a tile to move, or another sword to trade places.':'Tap a tile to field this sword there.'}</small></p>
+ let info;if(p){const s=calc(p);info=`${portraitHTML(p,32)}<p><b>${htmlEsc(p.name)}</b> <span class="dim">Level ${p.lvl} ${BG[p.bg].n.toLowerCase()}, ${coRole(p,s).toLowerCase()}</span><small>${p.field?'Tap a tile to move, or another sword to trade places.':'Tap a tile to field this sword there.'}</small></p>
   ${p.field?`<button type="button" class="pn-btn sm" onclick="fmBench(${FM.pick})">To reserve</button>`:`<button type="button" class="pn-btn sm pri" onclick="fmField(${FM.pick})">Field</button>`}<button type="button" class="pn-btn sm" onclick="mercSheet(${FM.pick})">Open</button>`}
  else info=`<p><b>Set the lines</b><small>Drag a sword to a tile, or tap one and then tap where it should stand. Swords you never place line up on their own.</small></p><button type="button" class="pn-btn sm" ${fmAnySet()?'':'disabled'} onclick="fmReset()">Reset</button>`;
  return`<div class="fm"><div class="fm-foe">${coIc('skull')}The enemy comes from here</div>
@@ -121,6 +141,8 @@ function coStat(m,s,k){const t=m.tal[k]||0,cd=cpCond(m);let v=k==='brv'?coBrv(m,
  return`<div class="cst${hurt&&k!=='hp'?' worn':''}" data-stat="${k}">${coStatIc(k)}<span>${coStatName(k)}${pnStars(t)}</span><b>${hurt?cur+'<small>/'+v+'</small>':v}</b>${pnBar(100*cur/(STATMAX[k]||100),k==='hp'?'hp':hurt?'worn':'st')}</div>`}
 function coStatKeys(m,s){const ks=['hp','arm'];if(m.eq.h||cpHasHelms())ks.push('helm');ks.push('fat','init','ms','rs','md','rd');if(coBrv(m,s)!==null)ks.push('brv');return ks}
 /* condition line under the doll: piece, points left of its full value, a meter */
+function coArmChip(m){const c=tlArmClass(m),n=tlArmTrees().filter(k=>tlTreeArm(k)===c)[0];
+ return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':''):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
 function coCondRow(k,id,cur,mx){const it=ITEMS[id];if(!it)return`<div class="pd-c none">${coIc(k==='h'?'helmet':'armor-light')}<b>${k==='h'?'No helmet':'No armor'}</b><small>${k==='h'?'head hits land in full':'unarmored'}</small></div>`;
  return`<div class="pd-c${cur<mx?' worn':''}" data-cond="${k}">${k==='h'?coIc('helmet'):pnItemIcon(id,16)}<b>${pnItemName(id)}</b><small>${cur<mx?cur+'/'+mx:mx}</small>${pnBar(mx?100*cur/mx:0,cur<mx?'worn':'ar')}</div>`}
 function coInjList(m){const L=cpInj(m);if(!L.length)return'';
@@ -138,15 +160,15 @@ function coGiftChips(m,s){const g=tlGift(m),r=g?MAST[g].res:null;let h='';
  if(r){const R=s.res[r],lab=tlGiftLabel(g);h+=R&&R.max>0?`<span class="pn-chip g-${r}" title="${lab}">${coIc(r)}${RESN[r]} ${R.max} <small>+${R.regen}</small></span>`:`<span class="pn-chip g-${r} dorm" title="${lab}: sleeps until a perk of the tree is learned">${coIc(r)}${RESN[r]} sleeps</span>`}
  else h+=`<span class="pn-chip dorm">No gift</span>`;return h}
 function coLeft(m,i,s,ask){const cd=cpCond(m),g=tlGift(m),st=tlStyle(m);
- let h=`<div class="ch"><div class="ch-id">${portraitHTML(m,64)}<div class="ch-idm"><div class="pn-kick">${RACE[m.race].n} ${BG[m.bg].n.toLowerCase()}${TL_STYN[st]?' · '+TL_STYN[st].toLowerCase():''}</div><div class="pn-h">${m.name}</div>
+ let h=`<div class="ch"><div class="ch-id">${portraitHTML(m,64)}<div class="ch-idm"><div class="pn-kick">${RACE[m.race].n} ${BG[m.bg].n.toLowerCase()}${TL_STYN[st]?' · '+TL_STYN[st].toLowerCase():''}</div><div class="pn-h ch-nm">${coRenaming(m,'ch')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'ch')}`}</div>
 <div class="ch-xp"><b>Lv ${m.lvl}</b>${pnBar(m.lvl<MAXLV?100*(m.xp-XPT[m.lvl])/(XPT[m.lvl+1]-XPT[m.lvl]):100,'xp')}<small>${m.lvl<MAXLV?m.xp+'/'+XPT[m.lvl+1]:'max'}</small></div>
-<div class="ch-res">${coGiftChips(m,s)}</div>${g?`<div class="ch-gv g-${tlGiftRes(g)}">${tlGiftLabel(g)}</div>`:''}</div></div>
+<div class="ch-res">${coGiftChips(m,s)}${coArmChip(m)}</div>${g?`<div class="ch-gv g-${tlGiftRes(g)}">${tlGiftLabel(g)}</div>`:''}</div></div>
 ${coInjList(m)}<div class="pd" aria-label="Equipment">${coSlotBtn(m,i,'w')}<div class="pd-fig" style="background-image:url(${coDoll()})">${coSlotBtn(m,i,'h','helm')}${coSlotBtn(m,i,'a','arm')}</div>${coSlotBtn(m,i,'s')}
 <div class="pd-bkr">${coSlotBtn(m,i,'b')}<button type="button" class="pn-btn sm ico pd-swap" data-swap="1" aria-label="Swap main and backup weapons" title="Swap main and backup" ${m.eq.w||m.eq.b?'':'disabled'} onclick="coSwap(${i})">${coIc('swap')}</button></div>
 ${tlSlung(m)?`<div class="pd-an slung">${coIc('shield')}<span><b>Shield slung</b> <small>while a two-handed weapon is in hand: no defense from it until the backup is drawn</small></span></div>`:''}
 <div class="pd-cs">${coCondRow('h',m.eq.h,cd.h,cd.hM)}${coCondRow('a',m.eq.a,cd.a,cd.aM)}</div></div>
 <div class="cst2">${coStatKeys(m,s).map(k=>coStat(m,s,k)).join('')}</div>`;
- h+=ask?`<div class="ch-ask">Send ${m.name} away for good? Their gear returns to the stash.<div><button type="button" class="pn-btn" onclick="coRender()">Keep</button><button type="button" class="pn-btn warn solid" onclick="dismiss(${i})">Dismiss</button></div></div>`
+ h+=ask?`<div class="ch-ask">Send ${htmlEsc(m.name)} away for good? Their gear returns to the stash.<div><button type="button" class="pn-btn" onclick="coRender()">Keep</button><button type="button" class="pn-btn warn solid" onclick="dismiss(${i})">Dismiss</button></div></div>`
   :`<div class="ch-act"><button type="button" class="pn-btn sm${m.field?' on':''}" aria-pressed="${!!m.field}" onclick="toggleField(${i})">${coIc('swords')}<span>${m.field?'Fielded':'In reserve'}</span></button><button type="button" class="pn-btn sm warn" onclick="coDismissAsk(${i})">Dismiss</button></div>`;
  return h+'</div>'}
 
@@ -159,53 +181,63 @@ function coAutoAsk(on){coAuto=on?coSel:null;coRender()}
 function tgState(m,o){return o.owned?'got':!o.unlocked?'lock':m.pp>0&&tlCan(m,o.id)?'can':'open'}
 function tgNode(m,o){const st=tgState(m,o),sel=coPerk&&coPerk.pid===o.id,p=o.perk;
  return`<button type="button" class="tg-n ${st}${sel?' sel':''}${p.ab?' ab':''}" data-perk="${o.id}" aria-pressed="${sel}" aria-label="${p.n}, tier ${o.tier}, ${st==='got'?'learned':st==='can'?'can be learned now':st==='open'?'open, needs a point':'opens at level '+o.need}" onclick="coPerkPick('${o.id}')">${coIc(tlPerkIcon(o),32)}${st==='got'?`<em>${coIc('check')}</em>`:st==='lock'?`<em>${coIc('lock')}</em>`:''}</button>`}
-function tgTreeHead(m,x,O){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key),T=x.tree;
- return`<div class="tg-th">${coIc(tlTreeIcon(x.key))}<b>${x.kind==='gift'?tlGiftLabel(x.key):T.n}</b><span>${T.d||''}</span>${n?`<small>${n} learned</small>`:''}</div>`}
+function tgTreeHead(m,x,O){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key),T=x.tree,ac=x.kind==='armor'?tlTreeArm(x.key):null,on=ac&&ac===tlArmClass(m);
+ return`<div class="tg-th">${coIc(tlTreeIcon(x.key))}<b>${x.kind==='gift'?tlGiftLabel(x.key):T.n}</b>${ac?`<em class="tg-ac${on?' on':''}" title="${on?'Worn now: these perks work':'Works only in '+TL_ARMN[ac].toLowerCase()+' armor'}">${on?coIc('check')+'Worn':TL_ARMN[ac]}</em>`:''}<span>${T.d||''}</span>${n?`<small>${n} learned</small>`:''}</div>`}
+/* the armor-class trees: like the weapon trees, columns by the level each tier opens (2 / 5 / 8); the class worn now is lit */
+function coArmorTrees(m,T,O,cols){const ak=T.filter(x=>x.kind==='armor');if(!ak.length)return'';const lv=m.lvl,aLv=tlTierLv('armor',1),cur=tlArmClass(m),
+  at=Math.max(1,...ak.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/at));
+ let h=`<div class="tg-sec"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span>${lv<aLv?'Open at level '+aLv+'. ':''}Each works only while wearing armor of its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
+ h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:at},(_,j)=>{const need=tlTierLv('armor',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
+ for(const x of ak){const on=tlTreeArm(x.key)===cur;h+=`<div class="tg-tree k-armor${on?' worn':' off'}" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
+  for(let t=1;t<=at;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('armor',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
+  h+='</div></div>'}
+ return h+'</div>'}
 function tgAbFacts(p){const a=p.ab&&AB[p.ab];if(!a)return'';const f=['Ability'];if(a.ap!=null)f.push(a.ap+' AP');else if(a.wpn)f.push('weapon AP');if(a.fat)f.push(a.fat+' fatigue');if(a.cost)f.push(a.cost[1]+' '+(RESN[a.cost[0]]||a.cost[0]));if(a.rng>1)f.push('range '+a.rng);return f.join(' · ')}
 function coTalents(m,i){const O=tlOpts(m),T=tlTrees(m),lv=m.lvl,pts=m.pp|0;
  if(!coPerk||coPerk.id!==m.id||!O.some(o=>o.id===coPerk.pid)){const d=O.find(o=>tgState(m,o)==='can')||O.find(o=>!o.owned&&o.unlocked)||O.find(o=>!o.owned)||O[0];coPerk={id:m.id,pid:d?d.id:null}}
- const nCan=O.filter(o=>tgState(m,o)==='can').length,maxT=Math.max(1,...T.filter(x=>x.kind!=='weapon').map(x=>tlTiers(x.tree).length)),cols=Math.max(6,maxT),
+ const nCan=O.filter(o=>tgState(m,o)==='can').length,maxT=Math.max(1,...T.filter(x=>x.kind!=='weapon'&&x.kind!=='armor').map(x=>tlTiers(x.tree).length)),cols=Math.max(6,maxT),
   nextT=[];for(let t=1;t<=cols;t++)if(tlTierLv('style',t)>lv){nextT.push(t);break}
  const wk=T.filter(x=>x.kind==='weapon'),wLv=tlTierLv('weapon',1);
  let h=`<div class="tg${pts?' has':''}" style="--tgc:${cols}"><div class="tg-ban">${coIc(pts?'star':'level',16)}<span><b>${pts?pts+' point'+(pts===1?'':'s')+' to spend':'No points to spend'}</b><small>${pts?(nCan?'Learn any open perk, in any order':'Nothing open left to learn yet'):nextT.length?'Level '+(lv+1)+' brings a point and opens tier '+nextT[0]:lv<MAXLV?'Level '+(lv+1)+' brings a point':'Every point is spent'}</small></span>`
   +`<button type="button" class="pn-btn sm tg-auto" ${pts&&nCan?'':'disabled'} onclick="coAutoAsk(1)">${coIc('auto')}<span>Auto</span></button></div>`;
- h+=`<div class="tg-hd" aria-hidden="true"><span class="tg-hl">Tier</span>${Array.from({length:cols},(_,j)=>{const t=j+1,need=tlTierLv('style',t);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}"><b>${TG_ROM[j]||t}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
- for(const x of T.filter(x=>x.kind!=='weapon')){const r=tlGiftRes(x.key),tiers=tlTiers(x.tree);
+ h+=`<div class="tg-sec"><div class="tg-hd" aria-hidden="true"><span class="tg-hl">Tier</span>${Array.from({length:cols},(_,j)=>{const t=j+1,need=tlTierLv('style',t);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}"><b>${TG_ROM[j]||t}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
+ for(const x of T.filter(x=>x.kind!=='weapon'&&x.kind!=='armor')){const r=tlGiftRes(x.key),tiers=tlTiers(x.tree);
   h+=`<div class="tg-tree k-${x.kind}${r?' g-'+r:''}" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
   for(let t=1;t<=cols;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c${tlTierLv(x.kind,t)>lv?' lk':''}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
   h+='</div></div>'}
+ h+='</div>';   // each section is its own sticky-header scope
  if(wk.length){const wt=Math.max(1,...wk.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/wt));
-  h+=`<div class="tg-wh${lv<wLv?' lk':''}">${coIc(lv<wLv?'lock':'swords')}<b>Weapon trees</b><span>${lv<wLv?'Open at level '+wLv:'Work only while a weapon of the family is in hand'}</span></div>`;
+  h+=`<div class="tg-sec"><div class="tg-wh${lv<wLv?' lk':''}">${coIc(lv<wLv?'lock':'swords')}<b>Weapon trees</b><span>${lv<wLv?'Open at level '+wLv:'Work only while a weapon of the family is in hand'}</span></div>`;
   h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:wt},(_,j)=>{const need=tlTierLv('weapon',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
   for(const x of wk){h+=`<div class="tg-tree k-weapon" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
    for(let t=1;t<=wt;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('weapon',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
-   h+='</div></div>'}}
+   h+='</div></div>'}h+='</div>'}
  else h+=`<div class="tg-wh lk">${coIc('swords')}<b>Weapon trees</b><span>None for a ${BG[m.bg].n.toLowerCase()}${RACE[m.race]&&RACE[m.race].noWt?' of this blood':''}</span></div>`;
- h+='</div>';
+ h+=coArmorTrees(m,T,O,cols)+'</div>';
  let foot;
- if(coAuto===m.id)foot=`<span class="mt-foot">${coIc('auto',32)}<div><b>Auto build</b><small>Spend ${pts} point${pts===1?'':'s'} on a build that suits ${m.name} as ${(/^[AEIOU]/.test(coRole(m,calc(m)))?'an ':'a ')+coRole(m,calc(m)).toLowerCase()}. Learned perks stay learned.</small></div></span><button type="button" class="pn-btn" onclick="coAutoAsk(0)">Cancel</button><button type="button" class="pn-btn pri" onclick="coAutoLearn(${i})">Spend</button>`;
+ if(coAuto===m.id)foot=`<span class="mt-foot">${coIc('auto',32)}<div><b>Auto build</b><small>Spend ${pts} point${pts===1?'':'s'} on a build that suits ${htmlEsc(m.name)} as ${(/^[AEIOU]/.test(coRole(m,calc(m)))?'an ':'a ')+coRole(m,calc(m)).toLowerCase()}. Learned perks stay learned.</small></div></span><button type="button" class="pn-btn" onclick="coAutoAsk(0)">Cancel</button><button type="button" class="pn-btn pri" onclick="coAutoLearn(${i})">Spend</button>`;
  else{const o=O.find(o=>o.id===coPerk.pid);
   if(!o)foot=`<span class="mt-foot"><div><b>No trees</b><small>This sword has nothing to learn.</small></div></span>`;
   else{const p=o.perk,st=tgState(m,o),tag=st==='got'?'Learned':st==='can'?'Ready to learn':st==='open'?'Needs a perk point':'Opens at level '+o.need,
     gift=o.kind==='gift'&&!O.some(q=>q.key===o.key&&q.owned)?`<small class="tg-wake">Awakens ${RESN[tlGiftRes(o.key)]||'the gift'}: the first perk of this tree grants its base pool.</small>`:'',
-    wpn=o.kind==='weapon'?`<small class="tg-wake">Works while a ${(TL_WTN[o.tree.wt]||o.tree.n).toLowerCase()} is in hand.</small>`:'';
-   foot=`<span class="mt-foot">${coIc(tlPerkIcon(o),32)}<div><b>${p.n}<em class="${st}">${tag}</em></b><small class="tg-at">Tier ${o.tier} · ${o.kind==='gift'?tlGiftLabel(o.key):o.tree.n}${o.kind==='weapon'?' · Lv '+o.need:''}${p.ab?' · '+tgAbFacts(p):''}</small><small>${p.d||''}</small>${gift}${wpn}</div></span>
+    wpn=o.kind==='weapon'?`<small class="tg-wake">Works while a ${(TL_WTN[o.tree.wt]||o.tree.n).toLowerCase()} is in hand.</small>`:o.kind==='armor'?(()=>{const ac=tlTreeArm(o.key),cur=tlArmClass(m);return`<small class="tg-wake">Works only while wearing ${ac?TL_ARMN[ac].toLowerCase():'that class of'} armor${ac&&cur===ac?': worn now':'. Now wearing '+(cur?TL_ARMN[cur].toLowerCase()+' armor':'none')}.</small>`})():'';
+   foot=`<span class="mt-foot">${coIc(tlPerkIcon(o),32)}<div><b>${p.n}<em class="${st}">${tag}</em></b><small class="tg-at">Tier ${o.tier} · ${o.kind==='gift'?tlGiftLabel(o.key):o.tree.n}${o.kind==='weapon'||o.kind==='armor'?' · Lv '+o.need:''}${p.ab?' · '+tgAbFacts(p):''}</small><small>${p.d||''}</small>${gift}${wpn}</div></span>
 <button type="button" class="pn-btn pri" ${st==='can'?'':'disabled'} onclick="learn(${i},'${o.id}')">Learn</button>`}}
  return{detail:h,foot,key:'m'+m.id}}
 function coTrees(m,i){return coTalents(m,i)}
 function coLevel(m,i){if(!m.rolls){m.rolls={};lvSel=[]}
  for(const k in ROLL)if(typeof m.rolls[k]!=='number'){const t=m.tal[k]||0;m.rolls[k]=ri(ROLL[k][0]+Math.floor(t/2),ROLL[k][1]+Math.ceil(t/2))}   // also fills an attribute added since the roll was made
  if(lvFor!==m.id){lvSel=[];lvFor=m.id}
- let h=`<div class="pn-kick">${coIc('level')}Level up${m.pend>1?', '+m.pend+' waiting':''}</div><div class="pn-h">${m.name} reaches level ${m.lvl-m.pend+1}</div>${coLvOpens(m.lvl-m.pend+1)}<p class="pn-p dim">Choose three attributes to raise. Stars mark natural talent.</p><div class="pn-picks">`;
+ let h=`<div class="pn-kick">${coIc('level')}Level up${m.pend>1?', '+m.pend+' waiting':''}</div><div class="pn-h">${htmlEsc(m.name)} reaches level ${m.lvl-m.pend+1}</div>${coLvOpens(m.lvl-m.pend+1)}<p class="pn-p dim">Choose three attributes to raise. Stars mark natural talent.</p><div class="pn-picks">`;
  for(const k in ROLL)h+=`<div class="pn-pick${lvSel.includes(k)?' on':''}${lvSel.length>=3&&!lvSel.includes(k)?' dimmed':''}" role="button" tabindex="0" data-pick="${k}" aria-pressed="${lvSel.includes(k)}" onclick="lvPick(${i},'${k}')"><b>${coStatIc(k)}+${m.rolls[k]}</b>${pnStars(m.tal[k]||0)}<span>${coStatName(k)}</span><small>now ${typeof m.base[k]==='number'?m.base[k]:0}</small></div>`;
  h+='</div>';
  return{detail:h,key:'l'+m.id,foot:`<span class="pn-fl"><span class="pn-count">${[0,1,2].map(j=>`<i class="${j<lvSel.length?'on':''}"></i>`).join('')}</span><small>${lvSel.length} of 3 chosen</small></span><button type="button" class="pn-btn pri" ${lvSel.length===3?'':'disabled'} onclick="lvConfirm(${i})">Raise attributes</button>`}}
 /* what reaching level L opens: a new tier of every style and gift tree, a weapon tier at 3 / 6 / 9 */
-function coLvTiers(L){const out=[];for(let t=1;t<=9;t++){if(tlTierLv('style',t)===L)out.push({kind:'style',t});if(tlTierLv('weapon',t)===L&&t<=3)out.push({kind:'weapon',t})}return out}
+function coLvTiers(L){const out=[],arm=tlArmTrees().length>0;for(let t=1;t<=9;t++){if(tlTierLv('style',t)===L)out.push({kind:'style',t});if(tlTierLv('weapon',t)===L&&t<=3)out.push({kind:'weapon',t});if(arm&&tlTierLv('armor',t)===L&&t<=3)out.push({kind:'armor',t})}return out}
 function coLvOpens(L){const T=coLvTiers(L);if(!T.length)return'';
- return`<div class="pn-p tg-lvup">${T.map(x=>x.kind==='weapon'?`<span class="tg-tag w">${coIc('swords')}${x.t===1?'Weapon trees open':'Weapon tier '+TG_ROM[x.t-1]+' opens'}</span>`:`<span class="tg-tag">${coIc('level')}New tier unlocked: tier ${TG_ROM[x.t-1]}</span>`).join('')}</div>`}
+ return`<div class="pn-p tg-lvup">${T.map(x=>x.kind==='armor'?`<span class="tg-tag w a">${coIc('armor')}${x.t===1?'Armor trees open':'Armor tier '+TG_ROM[x.t-1]+' opens'}</span>`:x.kind==='weapon'?`<span class="tg-tag w">${coIc('swords')}${x.t===1?'Weapon trees open':'Weapon tier '+TG_ROM[x.t-1]+' opens'}</span>`:`<span class="tg-tag">${coIc('level')}New tier unlocked: tier ${TG_ROM[x.t-1]}</span>`).join('')}</div>`}
 function coSlotView(m,i,k){const cur=m.eq[k],want=k==='b'?'w':k,list=G.stash.map((id,j)=>[id,j]).filter(([id])=>ITEMS[id]&&ITEMS[id].k===want),N={w:'Weapons',b:'Weapons',s:'Shields',a:'Armor',h:'Helmets'};
- let h=`<div class="pn-kick">${m.name}, ${k==='b'?'backup weapon':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
+ let h=`<div class="pn-kick">${htmlEsc(m.name)}, ${k==='b'?'backup weapon':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
  <div class="pn-gear cur${cur?'':' none'}">${cur?pnItemIcon(cur,32):coIc(coSlotIcon(k),32)}<span class="pn-rmain"><span class="pn-rt">${cur?pnItemName(cur)+pnFamedTag(cur):'Nothing equipped'}${cur?coGripTag(cur):''}</span><span class="pn-rs">${cur?coItemDesc(cur)+coWornNote(m,k):k==='w'?'Fighting with bare fists':k==='b'?'No sidearm to swap to':k==='h'?'Bare-headed: a blow to the head lands in full':'Empty '+SLOTN[k].toLowerCase()+' slot'}</span></span><span class="pn-slot">${k==='b'?'At the hip':'In use'}</span></div>`;
  if(k==='b')h+=`<p class="pn-p dim">The backup rides at the hip. In battle, <b>Swap weapons</b> (2 AP) puts it in hand. A bow cannot shoot with a foe standing next to you: an archer wants a dagger or a sword here.</p>`;
  if(k==='s'&&tlTwo(m.eq.w)&&tlTwo(m.eq.b))h+=`<p class="pn-p warn">${tlEquipRule(m,'s',list.length?list[0][0]:'buckler').why||'Both hands are full: a shield needs a one-handed weapon in one of the two weapon slots'}.</p>`;

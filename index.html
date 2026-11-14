@@ -248,6 +248,59 @@ button.ghost:not(.pxb){background:#0b1514;color:var(--vellum);box-shadow:inset 0
 #hud .stat.co+.stat{border-left:2px solid #213a36;padding-left:12px}
 @media (max-width:760px){#hud .stat.co b{display:none}#hud .stat.co{padding-right:8px}}
 
+/* ================= HUD: tappable crowns and food, daily upkeep popover (#costPop, 90-shell.js costPop) ================= */
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#hud button.hud-tap:not(.pxb){position:relative;min-height:0;height:30px;margin:0;padding:0 8px 0 12px;background:none;border:0;box-shadow:none;border-left:2px solid #213a36;color:inherit;font:inherit;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#hud button.hud-tap>span:not(.sr){border-bottom:2px dotted var(--brass-d);padding-bottom:1px;line-height:1}
+#hud button.hud-tap .hud-car{display:block;flex:none;width:6px;height:4px;margin-left:-1px;background:linear-gradient(var(--brass-d),var(--brass-d)) 0 0/6px 2px no-repeat,linear-gradient(var(--brass-d),var(--brass-d)) 2px 2px/2px 2px no-repeat}
+#hud button.hud-tap:hover>span:not(.sr),#hud button.hud-tap[aria-expanded="true"]>span:not(.sr){border-bottom-color:var(--brass-l);color:#fff4c8}
+#hud button.hud-tap:hover .hud-car,#hud button.hud-tap[aria-expanded="true"] .hud-car{background:linear-gradient(var(--brass-l),var(--brass-l)) 0 0/6px 2px no-repeat,linear-gradient(var(--brass-l),var(--brass-l)) 2px 2px/2px 2px no-repeat}
+#hud button.hud-tap[aria-expanded="true"]{background:#213a36;box-shadow:inset 0 -2px 0 var(--brass)}
+#hud button.hud-tap:active:not(:disabled){transform:translateY(1px);box-shadow:none}
+#hud button.hud-tap:focus-visible{outline:2px solid #fff4c8;outline-offset:-2px}
+#hud .stat.co+.hud-tap{padding-left:12px}
+#app.tall #hud button.hud-tap{padding:0 6px 0 8px;gap:4px}
+#costPop{position:absolute;z-index:6;display:flex;flex-direction:column;width:min(340px,calc(100vw - 12px - var(--sal) - var(--sar)));padding:6px 8px 8px;font-size:.92rem;line-height:1.2;box-shadow:4px 4px 0 #0b1514a6;overflow:hidden}
+#costPop[hidden]{display:none}
+#costPop .cp-hd{display:flex;align-items:flex-start;gap:6px;margin-bottom:5px}
+#costPop .cp-ti{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+#costPop .cp-ti b{font-family:var(--pxfont);font-size:1.25rem;font-weight:600;color:var(--brass-l);line-height:1}
+#costPop .cp-ti small{color:var(--dim);font-size:.8rem}
+#costPop button.cp-x:not(.pxb){flex:none;width:32px;height:32px;min-height:32px;padding:0;display:flex;align-items:center;justify-content:center;margin:-2px -2px 0 0}
+#costPop .cp-main{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+#costPop .cp-side{display:flex;flex-direction:column;flex:none}
+#costPop .cp-sum{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}
+#costPop .cp-t{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:5px;row-gap:3px;align-items:center;padding:5px 6px;background:#101d1c;box-shadow:inset 0 0 0 2px #213a36}
+#costPop .cp-t.on{background:#213a36;box-shadow:inset 0 0 0 2px var(--brass)}
+#costPop .cp-t>span{display:flex;flex-direction:column;min-width:0}
+#costPop .cp-t b{font-family:var(--pxfont);font-weight:600;font-size:1.15rem;line-height:1;color:var(--vellum);font-variant-numeric:tabular-nums}
+#costPop .cp-t small{font-size:.74rem;color:var(--dim);line-height:1.1}
+#costPop .cp-t .cp-d{grid-column:1 / -1;padding-top:3px;border-top:2px solid #182a28}
+#costPop .cp-t .cp-d b{font-size:1rem;color:#9fe0cd}
+#costPop .cp-t.warn .cp-d b{color:#ef8a78}
+#costPop .cp-tb{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;background:#101d1c;box-shadow:inset 0 0 0 2px #213a36;padding:2px}
+#costPop .cp-rows{overflow-y:auto;min-height:40px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent;touch-action:pan-y}
+#costPop .cp-r{display:grid;grid-template-columns:1fr 44px 36px;align-items:center;gap:4px;padding:3px 6px;border-bottom:2px solid #182a28}
+#costPop .cp-h{padding:2px 6px;color:var(--dim);font-size:.78rem;border-bottom:2px solid #213a36}
+#costPop .cp-h .cp-v{display:flex;justify-content:flex-end}
+#costPop .cp-n{display:flex;flex-direction:column;min-width:0}
+#costPop .cp-n b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#costPop .cp-n small{color:var(--dim);font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#costPop .cp-v{text-align:right;font-family:var(--pxfont);font-weight:600;font-size:1.05rem;font-variant-numeric:tabular-nums}
+#costPop .cp-v.c{color:var(--brass-l)}#costPop .cp-v.f{color:var(--vellum)}
+#costPop .cp-tot{border-bottom:0;border-top:2px solid #35554f;background:#182a28}
+#costPop .cp-w{display:flex;gap:6px;align-items:flex-start;margin:6px 0 0;padding:4px 6px;background:#2a1614;box-shadow:inset 3px 0 0 var(--madder);color:#ef8a78;font-size:.82rem}
+#costPop .cp-w .pxi{margin-top:1px}
+#costPop .cp-note{margin:5px 0 0;color:var(--dim);font-size:.76rem;line-height:1.25}
+@media (max-height:500px) and (min-width:600px){
+ #costPop{width:min(540px,calc(100vw - var(--wrw) - var(--sal) - var(--sar) - 16px))}
+ #costPop .cp-main{display:grid;grid-template-columns:minmax(170px,40%) minmax(0,1fr);gap:6px}
+ #costPop .cp-sum{grid-template-columns:1fr;margin:0}
+ #costPop .cp-side{gap:0;overflow-y:auto;min-height:0}
+ #costPop .cp-side .cp-w{margin-top:5px}
+}
+@media (max-height:400px){#costPop{font-size:.86rem;padding:4px 6px 6px}#costPop .cp-r{padding:2px 6px}#costPop .cp-t{padding:4px 6px}#costPop .cp-nl{display:none}}
+
 /* ================= BATTLE HUD: small floating pixel windows over a full-bleed map =================
    Layout lives here. The chrome comes from the shared .pxf / .pxb classes; when a build has no rules for them,
    #app carries .nopxf / .nopxb (set by initBattleHud) and the flat pixel fallback at the end of this file applies.
@@ -487,6 +540,12 @@ button.ghost:not(.pxb){background:#0b1514;color:var(--vellum);box-shadow:inset 0
 #bcmd .vw .tg.sm{width:32px}
 @media (prefers-reduced-motion:reduce){.pips.plan i.on.pl,#abar .ab.rl{animation:none}}
 #app.rm .pips.plan i.on.pl,#app.rm #abar .ab.rl{animation:none}
+/* ---- fatigue: the Tired marker beside the stamina on the unit chip, tired modifiers in the forecast (65-battle-ui.js tiredMark) ---- */
+.si.fat.tired b{color:#ef8a78}
+.utired{flex:none;display:inline-flex;align-items:center;gap:2px;height:16px;margin-left:-4px;padding:0 3px 0 1px;background:#2a1614;box-shadow:inset 0 0 0 1px #5a1f1c;font-family:'Jersey 15',serif;font-weight:700;line-height:1;color:#ef8a78}
+.utired small{font-size:.66rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#d9a08f}
+.utired b{font-size:.8rem;font-variant-numeric:tabular-nums}
+.fcm.fct{gap:2px}.fcm.fct .fcfa{margin-right:1px}
 
 /* ================= DEPLOYMENT SCREEN (#dp) and BATTLE RESULTS (.br inside the dialog) =================
    Same pixel chrome as the panels: hard edges, 2px steps, flat fills, PAL colours only. */
@@ -704,6 +763,9 @@ button.ghost:not(.pxb){background:#0b1514;color:var(--vellum);box-shadow:inset 0
 #inspect .ins-pk{margin-bottom:2px}#inspect .ins-pk>div{display:flex;align-items:baseline;min-width:0;white-space:nowrap}#inspect .ins-pk b{flex:none}#inspect .ins-pk span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 #inspect .ins-trees{font-size:.62rem}#inspect .ins-trees .pxi{width:16px;height:16px}
 #inspect .ins-r{overflow-y:auto;scrollbar-width:none}
+/* fatigue penalty and idle (armor class or weapon not matching) perks */
+#inspect .ins-line.tired b em{font-style:normal;font-weight:700}
+#inspect .ins-pk.idle{opacity:.6}#inspect .ins-pk.idle i{flex:none;margin:0 4px;font-style:normal;color:#ef8a78;font-size:.9em}
 
 /* ================= MAP SCREEN (45-mapscreen.js) ================= */
 #mp{position:absolute;inset:0;z-index:21;display:none;background:#0b1514;color:var(--vellum);font-family:'Alegreya Sans',system-ui,sans-serif;
@@ -1365,6 +1427,46 @@ button.ghost:not(.pxb){background:#0b1514;color:var(--vellum);box-shadow:inset 0
  #pn .pn-tab>span{font-size:.62rem;line-height:1.05}
 }
 
+/* ---- rename a sword (55-company.js coRenameAsk): a quill after the name, an inline pixel text field ---- */
+#pn .ch-idm .pn-h.ch-nm{display:flex;align-items:center;gap:4px;overflow:visible;white-space:nowrap}
+#pn .ch-nm>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#pn button.co-renb{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin:-4px 0;background:#101d1c;box-shadow:inset 0 0 0 2px #35554f;opacity:.85;text-shadow:none}
+#pn .co-nm button.co-renb{width:26px;height:26px;margin:-5px 0 -5px -2px;align-self:center;background:transparent;box-shadow:none;opacity:.55}
+#pn button.co-renb:hover,#pn button.co-renb:focus-visible{opacity:1;box-shadow:inset 0 0 0 2px var(--brass)}
+#pn button.co-renb:focus-visible{outline:2px solid #fff4c8;outline-offset:1px}
+#pn button.co-renb:active{transform:translateY(1px)}
+@media (pointer:coarse){#pn button.co-renb{width:36px;height:36px;margin:-8px -2px}#pn .co-nm button.co-renb{width:34px;height:34px;margin:-9px -4px -9px -4px;opacity:.7}}
+#pn .co-ren{display:flex;align-items:center;gap:4px;flex:1 1 auto;min-width:0;max-width:340px}
+#pn .co-ren input{flex:1 1 auto;min-width:0;width:100%;height:36px;margin:0;padding:2px 8px 0;border:0;border-radius:0;outline:0;background:#0b1514;color:#fff4c8;
+ box-shadow:inset 0 0 0 2px var(--brass),inset 2px 2px 0 2px #3a2c12;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:20px;font-weight:600;letter-spacing:.02em;text-shadow:none;caret-color:var(--brass-l);-webkit-user-select:text;user-select:text;touch-action:manipulation}
+#pn .co-nm .co-ren input{height:32px;font-size:17px}
+#pn .co-ren input:focus{box-shadow:inset 0 0 0 2px var(--brass-l),inset 2px 2px 0 2px #3a2c12,0 0 0 2px #0b1514}
+#pn .co-ren .co-renok{flex:none;width:36px;height:36px;min-height:36px;padding:0}
+#pn .co-nm .co-ren .co-renok{width:32px;height:32px;min-height:32px}
+#pn .co-ren .pn-btn.co-renok{min-width:36px}#pn .co-nm .co-ren .pn-btn.co-renok{min-width:32px}
+
+/* ---- armor-class trees in the talent grid (55-company.js coArmorTrees), the armor class chip, the tree strip ---- */
+#pn .tg-wh.tg-ah b{color:#c8d0d8}
+#pn .tg-wh em,#pn .tg-th em.tg-ac{flex:none;display:inline-flex;align-items:center;gap:3px;height:18px;padding:0 5px 0 2px;border:1px solid #35554f;background:#101d1c;color:var(--dim);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-style:normal;font-size:.78em;font-weight:600;letter-spacing:.03em;line-height:1}
+#pn .tg-th em.tg-ac{padding:0 5px;text-transform:uppercase;font-size:.7em;height:16px}
+#pn .tg-th em.tg-ac.on{padding-left:1px;border-color:#2c6a5d;background:#1f3a33;color:#9fe0cd}
+#pn .tg-wh em.tg-acw{border-color:#8a6a2a;background:#3a2c12;color:#f3d98b}
+#pn .tg-wh em.tg-acw:not(.light):not(.medium):not(.heavy){border-color:#35554f;background:#101d1c;color:var(--dim)}
+#pn .tg-tree.k-armor .tg-row{box-shadow:-4px 0 0 #35554f;margin-left:4px}
+#pn .tg-tree.k-armor.worn .tg-row{box-shadow:-4px 0 0 var(--verd)}
+#pn .tg-tree.k-armor.worn .tg-th b{color:#9fe0cd}
+#pn .tg-tree.k-armor.worn .tg-c{box-shadow:inset 0 0 0 2px #1f3a33}
+#pn .tg-tree.k-armor.off .tg-th>.pxi,#pn .tg-tree.k-armor.off .tg-th>.pn-i{opacity:.6}
+#pn .tg-tree.k-armor.off .tg-n:not(.got):not(.sel){filter:saturate(.55) brightness(.85)}
+#pn .tg-tag.w.a{background:#1f3a33;color:#c8d0d8}
+#pn .co-w.co-a.worn{box-shadow:0 2px 0 var(--verd)}
+#pn .pn-chip.ac-chip{color:#c8d0d8;box-shadow:inset 0 -2px 0 #4d5a5c}
+#pn .pn-chip.ac-chip.light{color:#d6c39a;box-shadow:inset 0 -2px 0 #7a5a38}
+#pn .pn-chip.ac-chip.heavy{color:#e9eef2;box-shadow:inset 0 -2px 0 #8d99a6}
+#pn .pn-chip.ac-chip.none{color:var(--dim);box-shadow:none;font-weight:500}
+#pn .pn-chip.ac-chip .pxi{margin:-2px -2px -2px -4px}
+#pn .tw-ats{margin-top:4px}
+
 /* ================= SETTINGS DIALOG, TRANSITIONS, PRESS FEEDBACK, TITLE ART ================= */
 /* ---- settings rows ---- */
 .setl{display:flex;flex-direction:column;gap:6px;margin:10px 0 8px}
@@ -1605,6 +1707,34 @@ kbd{display:inline-block;min-width:1.4em;padding:0 4px;font:600 .85rem var(--pxf
 #pn .tw-wt .pxi{vertical-align:0}
 #pn .tw-wts>small{color:var(--dim)}
 
+/* ================= market tabs: Purchase / Inventory (50-towns.js marketView) ================= */
+#pn .mk-tabs{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;height:48px;padding:4px 4px 2px;background:#101d1c;border-bottom:2px solid #0b1514}
+#pn .mk-tabs~.pn-sec{top:48px}
+#pn button.mk-tab{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:40px;padding:0 6px 2px;border-style:solid;border-width:4px 4px 6px;border-color:#213a36;background-color:#213a36;background-clip:padding-box;border-image:var(--pxb) 12 12 18 12 fill/1 stretch;image-rendering:pixelated;
+ color:var(--dim);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:1.02em;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+#pn button.mk-tab>span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+#pn button.mk-tab>i:not(.pxi){flex:none;min-width:20px;height:18px;padding:0 4px;background:#0b1514;color:var(--vellum);font-style:normal;font-size:.9em;line-height:17px;text-align:center;box-shadow:inset 0 0 0 1px #35554f}
+#pn button.mk-tab .pxi{opacity:.7}
+#pn button.mk-tab:active{border-width:6px 4px 4px;border-image-slice:18 12 12 12 fill;border-image-source:var(--pxb-down)}
+#pn button.mk-tab.on{background-color:#d1a94e;border-color:#d1a94e;color:#1b1608;border-image-source:var(--pxb-on)}
+#pn button.mk-tab.on .pxi{opacity:1}
+#pn button.mk-tab.on>i:not(.pxi){background:#1b1608;color:#f3d98b;box-shadow:none}
+#pn button.mk-tab:focus-visible{outline:2px solid #fff4c8;outline-offset:-2px}
+#pn .mk-sum{display:flex;flex-wrap:wrap;gap:2px 12px;padding:6px 10px;border-bottom:2px solid var(--pn-rule);color:var(--dim);font-size:.84em}
+#pn .mk-sum span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+#pn .mk-sum b{color:var(--vellum);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:1.12em;font-weight:600}
+#pn .mk-tag{display:inline-flex;align-items:center;height:16px;padding:0 4px;margin-right:5px;border:1px solid;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:11px;line-height:1;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;vertical-align:1px}
+#pn .mk-tag.spare{background:#1f3a33;border-color:#2c6a5d;color:#9fe0cd}
+#pn .mk-tag.eq{background:#3a2c12;border-color:#8a6a2a;color:#f3d98b}
+#pn .pn-row.mk-worn .pn-lead{color:var(--brass)}
+#pn .mk-who{display:inline-flex;line-height:0}
+#pn .mk-who .tw-por{box-shadow:0 0 0 2px #35554f}
+#pn .mk-state{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0 0 8px;padding:4px 8px;font-size:.86em;color:var(--dim);background:#101d1c;box-shadow:inset 3px 0 0 var(--verd)}
+#pn .mk-state b{font-family:'Jersey 15','Alegreya Sans',sans-serif;font-weight:600;font-size:1.08em;letter-spacing:.03em;text-transform:uppercase;color:#9fe0cd}
+#pn .mk-state.eq{box-shadow:inset 3px 0 0 var(--brass)}#pn .mk-state.eq b{color:#f3d98b}
+@media (min-width:1100px) and (min-height:600px){#pn .mk-tabs{height:56px}#pn .mk-tabs~.pn-sec{top:56px}#pn button.mk-tab{min-height:48px;font-size:1.1em}}
+@media (max-width:900px){#pn button.mk-tab .pxi{display:none}#pn button.mk-tab{gap:4px;padding:0 3px 2px}}
+
 </style>
 </head>
 <body>
@@ -1664,8 +1794,8 @@ kbd{display:inline-block;min-width:1.4em;padding:0 4px;font:600 .85rem var(--pxf
 <!-- WORLD -->
 <div id="hud" class="hidden" role="status">
  <span class="stat co" id="hCo"></span>
- <span class="stat"><i class="pxi pxi-coin" aria-hidden="true"></i><span id="hCoin" class="coin"></span></span>
- <span class="stat"><i class="pxi pxi-food" aria-hidden="true"></i><span id="hFood"></span></span>
+ <button type="button" class="stat hud-tap" id="hCoinB" aria-haspopup="dialog" aria-expanded="false" title="Daily wages and how long the purse lasts" onclick="costPop('crowns',this)"><i class="pxi pxi-coin" aria-hidden="true"></i><span id="hCoin" class="coin"></span><i class="hud-car" aria-hidden="true"></i><span class="sr">: daily wages</span></button>
+ <button type="button" class="stat hud-tap" id="hFoodB" aria-haspopup="dialog" aria-expanded="false" title="Daily rations and how long the food lasts" onclick="costPop('food',this)"><i class="pxi pxi-food" aria-hidden="true"></i><span id="hFood"></span><i class="hud-car" aria-hidden="true"></i><span class="sr">: daily rations</span></button>
  <span class="stat"><i class="pxi pxi-swords" aria-hidden="true"></i><span id="hMen"></span></span>
  <span class="stat wx" id="hWx" role="img" aria-label="Weather"></span>
  <span class="stat day"><i class="pxi pxi-day" aria-hidden="true"></i><span id="hDay"></span></span>
@@ -6633,9 +6763,148 @@ rqqqcqqqqpoo....
 ....aa...aa.....
 `;
 /*ICONS6-END*/
+/* ---- QoL update (ui): the stash chest, the Tired / Fleet / Dancing statuses, a quill for renaming, and the three armor-class medallion motifs ---- */
+const _IC_SRC7=`
+@stash
+................
+................
+................
+...jkkkkkkkkkj..
+..jkckkkkkkckkj.
+..kkckkkkkkckkj.
+..bccccddccccbb.
+..jkckdaadkckkj.
+..jkckkddkkckkj.
+..jkckkkkkkckkj.
+..ijcjjjjjjcjji.
+..iibiiiiiibiii.
+................
+................
+................
+................
+@st-tired
+................
+.......qq.......
+.......rq.......
+......rqqp......
+......rqqp......
+.....rqqqpp.....
+.....rqqqpp.....
+....rrqqqpo.....
+....rqqqqpo.....
+....qqqqpo.hh...
+....qqqpo..gg...
+.....qppo..gg...
+......po.hhggff.
+..........hgf...
+...........f....
+................
+@quill
+................
+.............ll.
+............lmll
+...........lmlm.
+..........lmlm..
+.........lmlm...
+........lmlm....
+.......lmlm.....
+......lmlm......
+.....lmlm.......
+.....mlm........
+....omm.........
+...oo...........
+..oo.....ccccc..
+..o.............
+................
+@_mo-lightarmor
+................
+................
+................
+................
+.....kj..jk.....
+....kkkjjkkkj...
+....kkkkkkkkj...
+.....kkkdkkj....
+.....kkkkkkj....
+.....jjjdjjj....
+.....kkkkkkj....
+......kkkkj.....
+................
+................
+................
+................
+@_mo-medarmor
+................
+................
+................
+................
+.....qp..pq.....
+....qpqpqpqpo...
+....pqpqpqpqo...
+.....qpqpqpo....
+.....pqpqpqo....
+.....jjjcjjj....
+.....qpqpqpo....
+......pqpqo.....
+................
+................
+................
+................
+@_mo-heavyarmor
+................
+................
+................
+....qrq..qpo....
+...qrqqpqqppo...
+...qqqqrqqppo...
+....qrqqqqpo....
+....qqqqqppo....
+....qrqqqppo....
+....cccdcccb....
+....qqqqqppo....
+.....qqppoo.....
+................
+................
+................
+................
+@st-fleet
+................
+................
+.......kkkj.....
+.rl....kkkj.....
+.rll...kkkj.....
+..rlll.kkkj.....
+...rllmkkkj.....
+....rlmkkkj.....
+.....lmkkkkj....
+.......kkkkkjj..
+.......kkkkkkkj.
+.......jjjjjjjj.
+.......iiiiiiii.
+................
+................
+................
+@st-dance
+................
+...........kk...
+..........kkkj..
+..........kkkj..
+...........kj...
+...........jj...
+.......m........
+.....kk...m.....
+....kkkj........
+....kkkj........
+.....kj.........
+.....jj.....l...
+..l.......ll....
+...ll...lll.....
+.....lll........
+................
+`;
 /* ---- build ---- */
 const IC_GEN={},IC_MO={};let IC_RING=null;                                   // un-outlined category glyphs in placeholder tones L/M/N (light/mid/dark)
-(function(){const raw=_icParse(_IC_SRC+_IC_SRC2+_IC_SRC3+_IC_SRC4+_IC_SRC5+_IC_SRC6);
+(function(){const raw=_icParse(_IC_SRC+_IC_SRC2+_IC_SRC3+_IC_SRC4+_IC_SRC5+_IC_SRC6+_IC_SRC7);
  /* masteries: a medallion ring in the resource colour (brass for mundane crafts) around a small motif */
  const RING={mana:{d:'F',c:'x',b:'X'},aura:{d:'e',c:'y',b:'Y'},qi:{d:'6',c:'z',b:'Z'},chi:{d:'e',c:'A',b:'B'}};
  for(const k of ['vanguard','bulwark','marksman','skirmisher','mana','aura','qi','chi']){raw['m-'+k]=pxLayer(RING[k]?_icMap(raw._ring,RING[k]):raw._ring,raw['_m-'+k]);delete raw['_m-'+k]}
@@ -6741,8 +7010,10 @@ const IC_COMP={'ab-swap':['swap'],'ab-cleave':['ab-roundswing',{r:'e',q:'d',p:'c
  'ab-staffquake':['staff',null,'ring','br'],'ab-triage':['ab-mend',{A:'l',B:'m',e:'r'},'drop','br'],'ab-holdfast':['rallied',null,'shield','br'],'ab-parry':['riposte',{r:'e',q:'d',p:'c'}],
  'ab-rage':['enraged',null,'up','br'],
  'weak':['melee',{r:'n',q:'o',p:'4'},'dn','br'],'undying':['skull',{l:'d',m:'c',n:'b',r:'e'},'up','br'],'marked':['ab-mark'],'evasive':['ab-vanish'],'steady':['ab-breath']};
-const IC_PKFLAG={exec:'skull',berserk:'enraged',forged:'armor',path:'ab-footwork',eagle:'ranged',freeSwap:'swap',noLock:'ranged-lock',undying:'undying'};
-const IC_PKMOD={dmgMelee:'swords',twoDmg:'axe',duelDmg:'sword',duelHit:'melee',lowHpDmg:'enraged',flankDmg:'ab-backstab',vsHurt:'skull',vsFull:'star',dmgRanged:'ranged',
+const IC_PKFLAG={exec:'skull',berserk:'enraged',forged:'armor',path:'ab-footwork',eagle:'ranged',freeSwap:'swap',noLock:'ranged-lock',undying:'undying',
+ slip:'ab-gslip',footing:'ab-footwork',kbImm:'indom',ironLung:'fatigue',noStun:'resolve'};   // armor trees (QoL update)
+const IC_PKMOD={nimble:'ab-swift',fleet:'st-fleet',sidestep:'ab-adash',freshDef:'fresh',dance:'st-dance',brace:'shielded',armRegen:'tools',roll:'ab-shove',layerDef:'mdef',padIgn:'armor-light',unbowed:'armor-heavy',steelWall:'shieldwall',hpSoak:'ab-reinforce',
+ dmgMelee:'swords',twoDmg:'axe',duelDmg:'sword',duelHit:'melee',lowHpDmg:'enraged',flankDmg:'ab-backstab',vsHurt:'skull',vsFull:'star',dmgRanged:'ranged',
  drB:'armor',drRanged:'rdef',drMelee:'mdef',lastStand:'indom',adjDef:'shieldwall',loneDef:'mdef',shieldDef:'shield',shieldHp:'shield',guard:'shielded',cmd:'banner',brvAura:'rallied',
  regenHP:'hp',medAura:'ab-mend',killHeal:'hp',healB:'ab-mend',killRes:'mana',coverIgn:'cover',longShot:'ranged',rngB:'ranged',headB:'helmet',ignB:'ab-puncture',bleedOn:'bleed',
  splitB:'ab-splitshield',flank:'ab-backstab',vsArm:'ab-batter',reachHit:'w-halberd',deflect:'shield-round',shieldDr:'shield-tower'};
@@ -6751,13 +7022,15 @@ const IC_PKW={d:null,hit:'melee',ign:'ab-puncture',ap:'ap',stun:'stun',spell:'ma
 function icStamp(rows,g,corner){if(!g)return rows;const h=g.length,w=g[0].length,x0=corner==='tl'||corner==='bl'?1:14-w,y0=corner==='tl'||corner==='tr'?1:14-h,b=[];
  for(let y=0;y<16;y++){let r='';for(let x=0;x<16;x++){const gy=y-y0,gx=x-x0;r+=gy>=0&&gy<h&&gx>=0&&gx<w?g[gy][gx]:'.'}b.push(r)}return pxLayer(rows,_icOutline(b))}
 function icCompose(base,map,ov,corner){const bn=icResolve0(base);if(bn==='none'||!ICONS[bn])return null;let rows=ICONS[bn];if(map)rows=_icMap(rows,map);return ov?icStamp(rows,IC_OV[ov],corner||'br'):rows}
-const IC_TREEK={mana:{d:'F',c:'x',b:'X'},aura:{d:'e',c:'y',b:'Y'},qi:{d:'6',c:'z',b:'Z'},chi:{d:'e',c:'A',b:'B'},steel:{d:'r',c:'q',b:'p'},brass:{d:'d',c:'c',b:'b'}};
+const IC_TREEK={mana:{d:'F',c:'x',b:'X'},aura:{d:'e',c:'y',b:'Y'},qi:{d:'6',c:'z',b:'Z'},chi:{d:'e',c:'A',b:'B'},steel:{d:'r',c:'q',b:'p'},brass:{d:'d',c:'c',b:'b'},verd:{d:'6',c:'5',b:'7'}};
+const IC_ARMT=['lightarmor','medarmor','heavyarmor'];                       // armor-class trees: a verdigris ring (drawn before the rules' MAST entries exist)
 const IC_RESLMN={mana:{L:'F',M:'x',N:'X'},aura:{L:'e',M:'y',N:'Y'},qi:{L:'6',M:'z',N:'Z'},chi:{L:'e',M:'A',N:'B'}};
-function icTreeTone(T){return!T?'brass':T.kind==='weapon'?'steel':T.kind==='gift'&&T.res?T.res:'brass'}
-function icMast(key){const T=typeof MAST==='object'&&MAST&&MAST[key];if(!T||!IC_RING)return null;const tone=icTreeTone(T);let mo=null;
+function icTreeTone(T){return!T?'brass':T.kind==='armor'?'verd':T.kind==='weapon'?'steel':T.kind==='gift'&&T.res?T.res:'brass'}
+function icMast(key){const T=typeof MAST==='object'&&MAST&&MAST[key]||(IC_ARMT.includes(key)?{kind:'armor'}:null);if(!T||!IC_RING)return null;const tone=icTreeTone(T);let mo=null;
  if(T.kind==='weapon')mo=IC_MO['w-'+(T.wt||key)]||IC_MO['w-sword'];
  else if(T.kind==='gift'){const m=IC_RESLMN[T.res]||IC_RESLMN.aura,st=T.style||'melee';const tpl=st==='ranged'?'garrow':T.res==='chi'&&st==='melee'?'gfist':st==='melee'?'gblade':null;
   if(tpl&&IC_MO[tpl])mo=_icMap(IC_MO[tpl],m);else mo=_icMap(IC_MO.garrow,m)}
+ else if(T.kind==='armor')mo=IC_MO[key]||IC_MO[/heavy/.test(key)?'heavyarmor':/med/.test(key)?'medarmor':'lightarmor'];
  else{mo=IC_MO[key];if(!mo){const s=(key+' '+(T.n||'')+' '+(T.aff||[]).join(' ')).toLowerCase();mo=IC_MO[/shield/.test(s)?'shieldbearer':/bow|ranged|shot/.test(s)?'sharpshooter':/two/.test(s)?'brute':/support|heal|medic/.test(s)?'medic':'duelist']}}
  const ring=_icMap(IC_RING,IC_TREEK[tone]||IC_TREEK.brass);return _icOutline(pxLayer(ring,mo))}
 function icPerkMain(p,T){if(!p)return'star';if(p.flag&&IC_PKFLAG[p.flag])return IC_PKFLAG[p.flag];
@@ -7746,7 +8019,11 @@ const STATUS={
  indom:{n:'Indomitable',d:'Takes half damage and cannot be knocked back.',icon:'indom',good:1},
  reinforce:{n:'Reinforced',d:'+15 melee and ranged defense, takes 25% less damage.',icon:'reinforce',good:1},
  empower:{n:'Empowered',d:'+12 melee and ranged skill, +20% damage.',icon:'empower',good:1},
- buff:{n:'Bolstered',d:'Under a helpful effect.',icon:'buff',good:1}
+ buff:{n:'Bolstered',d:'Under a helpful effect.',icon:'buff',good:1},
+ // fatigue and the armor trees (shown by unitStatuses; turns = the size of the effect, not a duration)
+ tired:{n:'Tired',d:'Fatigue past half its maximum: −1 to hit and −1 defense for every 5% more, up to −10 each at full exhaustion (the number shown).',icon:'st-winded',good:0},
+ dance:{n:'Dancing',d:'Dancer: +5 melee and ranged defense for every attack that missed it since its last turn (up to +15).',icon:'buff',good:1},
+ fleet:{n:'Fleet',d:'Moved on its turn: +10 ranged defense against shots until its next turn.',icon:'buff',good:1}
 };
 /* ---- Talent abilities ----
    Fields read by the rules beyond the ones above: hits (strike the target up to n times while it stands), through (after the
@@ -7932,7 +8209,9 @@ const INJ={
      drB drRanged drMelee lastStand   adjDef loneDef guard cmd flank coverIgn longShot rngB headB ignB bleedOn
      regenHP medAura killHeal killRes brvAura healB freeSwap noLock undying   shieldDef shieldHp (calc only)
      arms update: vsArm (damage while the target's body armor holds), reachHit (to hit a foe 2 tiles away with a reach weapon),
-     deflect (less damage from shots and spells while a shield is raised), shieldDr (less damage while a shield is raised), shGuard (Cover from a tower shield) */
+     deflect (less damage from shots and spells while a shield is raised), shieldDr (less damage while a shield is raised), shGuard (Cover from a tower shield)
+     armor trees (kind 'armor', aw light/medium/heavy, tiers at levels 2/5/8; idle unless armorClass(m) matches aw):
+     nimble fleet sidestep slip freshDef dance | brace armRegen roll footing layerDef padIgn | kbImm ironLung unbowed steelWall hpSoak noStun */
 const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
  WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'];   // weapon tree keys in display order ('shield': the shield tree)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
@@ -8093,7 +8372,30 @@ const MAST={
  shield:{n:'Shield work',kind:'weapon',wt:'shield',aff:['shield','melee'],d:'Boss, rim and wall (only while a shield is raised)',tiers:[
   [perkDef('Shield discipline','A raised shield gives +4 more melee and ranged defense',{mod:{shieldDef:4}}),perkDef('Hardened boss','Your shield has 30% more hitpoints',{mod:{shieldHp:.3}})],
   [perkDef('Shield charge','Ability: rush up to 3 tiles and slam into a foe: knockback 1, daze',{ab:'scharge'}),perkDef('Deflect','Take 10% less damage from shots and spells while your shield is raised',{mod:{deflect:.1}})],
-  [perkDef('Testudo','Ability: you and every ally next to you get +8 melee and +20 ranged defense and no knockback until your next turn',{ab:'fortress'}),perkDef('Iron wall','Take 10% less damage from everything while your shield is raised',{mod:{shieldDr:.1}})]]}
+  [perkDef('Testudo','Ability: you and every ally next to you get +8 melee and +20 ranged defense and no knockback until your next turn',{ab:'fortress'}),perkDef('Iron wall','Take 10% less damage from everything while your shield is raised',{mod:{shieldDr:.1}})]]},
+ /* ---- armor trees: every merc has all three; each works only while the body armor worn is of its weight class (armorClass(m):
+         light = up to 60 armor or any robe, also no armor; medium = 61 to 150; heavy = over 150). Tiers open at levels 2, 5, 8. ---- */
+ lightarmor:{n:'Light armor',kind:'armor',aw:'light',aff:['light'],d:'Cloth, leather and robes: not being there (only while your body armor is light: up to 60 armor, or a robe)',tiers:[
+  [perkDef('Nimble','Take less damage the lighter you go: 30% minus 1.5% per point of body armor and helmet weight (their fatigue), at full strength while fresh and half of it when exhausted (scales with the stamina you have left)',{mod:{nimble:1}}),
+   perkDef('Fleet','After you move on your turn: +10 ranged defense against shots until your next turn',{mod:{fleet:10}})],
+  [perkDef('Sidestep','Once between your turns, a blow that would take more than 25% of your maximum hitpoints only grazes you: you lose half those hitpoints',{mod:{sidestep:.25}}),
+   perkDef('Slippery','The first tile you leave each turn draws no free attacks',{flag:'slip'})],
+  [perkDef('Fresh legs','+8 melee and ranged defense while your fatigue is below half',{mod:{freshDef:8}}),
+   perkDef('Dancer','Every attack that misses you gives +5 melee and ranged defense until your next turn (up to +15)',{mod:{dance:5}})]]},
+ medarmor:{n:'Medium armor',kind:'armor',aw:'medium',aff:['melee','ranged'],d:'Mail, leather and brigandine: give a little, keep the rest (only while your body armor is medium: 61 to 150 armor)',tiers:[
+  [perkDef('Brace','The first blow that hits you between your turns deals 20% less damage',{mod:{brace:.2}}),
+   perkDef('Mail mender','Regain 6 body armor at the start of each of your turns (up to its maximum)',{mod:{armRegen:6}})],
+  [perkDef('Rolling with it','Knockbacks, hooks and stuns against you work only half the time',{mod:{roll:.5}}),
+   perkDef('Steady footing','Moving costs 1 fatigue a tile instead of 2',{flag:'footing'})],
+  [perkDef('Layered defense','+6 melee and ranged defense while your body armor is above half',{mod:{layerDef:6}}),
+   perkDef('Padded under-layer','The share of a blow that pierces your body armor is a third smaller (head hits excluded)',{mod:{padIgn:1/3}})]]},
+ heavyarmor:{n:'Heavy armor',kind:'armor',aw:'heavy',aff:['melee','shield'],d:'Plate and scale: a wall that walks (only while your body armor is heavy: over 150 armor)',tiers:[
+  [perkDef('Immovable','You cannot be knocked back or dragged',{flag:'kbImm'}),
+   perkDef('Iron lung','Your body armor and helmet cost half as much fatigue (rounded down)',{flag:'ironLung'})],
+  [perkDef('Unbowed','A single blow never strips more than 30% of the armor it strikes (body armor or helmet, of its maximum)',{mod:{unbowed:.3}}),
+   perkDef('Bulwark of steel','Allies next to you take 10% less damage',{mod:{steelWall:.1}})],
+  [perkDef('Juggernaut','Every blow that reaches your hitpoints takes 5 fewer (at least 1)',{mod:{hpSoak:5}}),
+   perkDef('Unshakable','You cannot be stunned, and heavy blows do not test your morale',{flag:'noStun'})]]}
 };
 // Perk ids, the flat list p (read by older UI code) and the tier count n.
 for(const k in MAST){const T=MAST[k];T.p=[];T.tiers.forEach((tier,ti)=>tier.forEach((p,j)=>{if(!p.id)p.id=k+'.'+(ti+1)+(tier.length>1?'ab'[j]:'');T.p.push(p)}))}
@@ -8425,7 +8727,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
    const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift);
    if(!m.trees.some(k=>MAST[k].kind==='style')){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57);m.trees=rollTrees(m.bg,r).concat(m.trees)}
-   const have=new Set(m.trees.concat(weaponTrees(m))),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>typeof id==='string'&&perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
+   const have=new Set(m.trees.concat(weaponTrees(m),typeof ARMORT!=='undefined'?ARMORT:[])),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>typeof id==='string'&&perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
  if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
  fixHands(m);
  if(!svObj(m.tal))m.tal={};for(const k in m.tal)if(!svFin(m.tal[k]))delete m.tal[k];
@@ -8512,15 +8814,25 @@ function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)
     wpn (a copy of the weapon in hand with weapon-tree changes, reload included; id = item id or null for fists),
     shield:{id,look,hp,md,rd,raised,guard,wallB,spike}|null (md/rd are what it adds when raised; slung with a two-handed weapon in hand;
            guard/wallB/spike from the item: Cover for allies beside it, the Shield wall bonus, the Spiked bash roll),
-    hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand), inj:[ids]} */
-function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null;
+    hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand; armor perks idle:
+    another weight class worn), acl (armorClass: light medium heavy), aw (armor + helmet weight = their fatigue), inj:[ids]} */
+/* Armor weight classes for the armor trees: light = no body armor, a robe, or at most ACLASS.light armor points; medium = at most
+   ACLASS.medium; heavy = more. A famed piece keeps the class of the item it was made from. armorClass(m) takes a merc, or a battle unit
+   (its merc's armor; an enemy by its armor maximum). */
+const ACLASS={light:60,medium:150};
+function armorClassOf(id){const it=ITEMS[id];if(!it||it.k!=='a')return'light';const bid=it.famed&&it.base&&ITEMS[it.base]?it.base:id,b=ITEMS[bid];
+ if(b.robe||/robe/.test(bid))return'light';const a=b.arm||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}
+function armorClass(m){if(!m)return'light';if(m.m&&m.side!=null)m=m.m;else if(m.side!=null&&!m.eq){const a=m.armMax||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}return armorClassOf(m.eq&&m.eq.a)}
+function calc(m,o){if(typeof armorPerksHeal==='function')armorPerksHeal(m);const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a);
  const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,ap:9,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[],
-  hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[]};
+  hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[],acl,aw:0};
  const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();if(wpn.reload)wpn.reload=Object.assign({},wpn.reload);
  const sh=ITEMS[eq.s]&&ITEMS[eq.s].k==='s'?ITEMS[eq.s]:null,raised=!!sh&&!wpn.two;let shHpOff=0;
  for(const id of (Array.isArray(m.perks)?m.perks:legacyPerks(m.mast))){const P=perkById(id);if(!P)continue;const p=P.perk,T=P.tree;
   // weapon trees work only with their family in hand; the shield tree only while a shield is raised (its shield hitpoints count whenever one is carried)
-  if(T.kind==='weapon'&&(T.wt==='shield'?!raised:T.wt!==wpn.wt)){s.off.push(id);if(T.wt==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}s.perks.push(id);
+  if(T.kind==='weapon'&&(T.wt==='shield'?!raised:T.wt!==wpn.wt)){s.off.push(id);if(T.wt==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}
+  if(T.kind==='armor'&&T.aw!==acl){s.off.push(id);continue}   // armor trees: only in body armor of their weight class
+  s.perks.push(id);
   if(p.st)for(const q in p.st)s[q]=(s[q]||0)+p.st[q];if(p.ab&&AB[p.ab]&&!s.abs.includes(p.ab))s.abs.push(p.ab);
   if(p.flag)s.flags[p.flag]=1;if(p.mod)for(const q in p.mod)s.flags[q]=(s.flags[q]||0)+p.mod[q];
   if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
@@ -8532,6 +8844,7 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
    guard:sh.guard||0,wallB:sh.wallB||0,spike:sh.spike?sh.spike.slice():null};
   if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd;if(sh.guard){s.flags.guard=(s.flags.guard||0)+sh.guard;s.flags.shGuard=sh.guard}}}
  if(a){s.arm=a.arm;s.fat-=a.fat;s.md+=a.md||0;s.rd+=a.rd||0}if(h){s.helm=h.arm;s.fat-=h.fat;s.md+=h.md||0;s.rd+=h.rd||0}   // armor and helmets may carry defence (famed rolls)
+ s.aw=(a?a.fat||0:0)+(h?h.fat||0:0);if(s.flags.ironLung)s.fat+=Math.floor(s.aw/2);   // aw: what armor and helmet weigh (Nimble); Iron lung gives half of it back
  for(const id of (wpn.sk||[]).concat(raised&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
  if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}
@@ -10081,7 +10394,7 @@ function openTown(i){G.town=i;const t=G.towns[i];if(G.day-t.ref>=3)stockTown(t);
  if(c&&((c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i))){G.crowns+=c.pay;G.renown+=8*c.diff;note=`<p class="good">Contract fulfilled. You are paid ${c.pay} crowns.</p>`;G.contract=null}
  townTab='contracts';townSel={contracts:0,tavern:0,market:'food',temple:0,tailor:0};if(typeof TLR!=='undefined')TLR.draft=null;panelForget('town:');
  townAt=typeof tvCan==='function'&&tvCan()?'scene':'panel';renderTown(note);save()}
-function mastChips(m){return tlTrees(m).filter(x=>x.kind!=='weapon').map(x=>{const r=tlGiftRes(x.key);return`<span class="chip" style="${r?'border-color:'+RESC[r]+';color:'+RESC[r]:''}">${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</span>`}).join('')}
+function mastChips(m){return tlTrees(m).filter(x=>x.kind!=='weapon'&&x.kind!=='armor').map(x=>{const r=tlGiftRes(x.key);return`<span class="chip" style="${r?'border-color:'+RESC[r]+';color:'+RESC[r]:''}">${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</span>`}).join('')}
 /* ---- town panel (two-pane, see 52-panels.js) ---- */
 /* townAt: 'scene' = the illustrated town square (51-townview.js) is in front, 'panel' = one of its four places is open.
    Without a real canvas (headless tests) the scene is skipped and the town is the panel alone, as before. */
@@ -10127,10 +10440,11 @@ function twHead(icon,kick,title){return`<div class="tw-head">${icon?`<span class
 function giftRow(m){const r=tlRes(m),g=tlGift(m),st=g&&MAST[g].style;return`<div class="pn-gifts">${RESK.map(k=>`<span class="pn-gift g-${k}${k===r?' on':''}">${typeof pxIcon==='function'?pxIcon(k,16):'<i></i>'}${RESN[k]}</span>`).join('')}</div><p class="pn-p dim">${r?`Carries the gift of ${RESN[r]}${st&&TL_STYN[st]?', shaped to a '+TL_STYN[st].toLowerCase()+' hand':''}: <b class="tw-gv g-${r}">${tlGiftLabel(g)}</b>. The first perk learned in it awakens the gift.`:'No gift stirs here. This one fights with steel alone.'}</p>`}
 /* the recruit's trees, one line each: style trees with their theme, the gift variant, then the weapon families from level 3 */
 function twTreeList(m){const T=tlTrees(m),wl=tlTierLv('weapon',1),abN=x=>[].concat(...tlTiers(x.tree)).filter(p=>p&&p.ab&&AB[p.ab]).map(p=>AB[p.ab].n||p.n);
- let h=T.filter(x=>x.kind!=='weapon').map(x=>{const r=tlGiftRes(x.key),ab=abN(x);return`<div class="pn-mast tw-mast${r?' g-'+r:''}" data-tree="${x.key}">${twIcon(tlTreeIcon(x.key),32)}<b>${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</b><span>${x.tree.d||''}</span>${ab.length?`<small>${ab.slice(0,3).join(', ')}${ab.length>3?'…':''}</small>`:''}</div>`}).join('');
+ let h=T.filter(x=>x.kind!=='weapon'&&x.kind!=='armor').map(x=>{const r=tlGiftRes(x.key),ab=abN(x);return`<div class="pn-mast tw-mast${r?' g-'+r:''}" data-tree="${x.key}">${twIcon(tlTreeIcon(x.key),32)}<b>${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</b><span>${x.tree.d||''}</span>${ab.length?`<small>${ab.slice(0,3).join(', ')}${ab.length>3?'…':''}</small>`:''}</div>`}).join('');
  const W=T.filter(x=>x.kind==='weapon');
  h+=W.length?`<div class="tw-wts">${W.map(x=>`<span class="tw-wt" title="${x.tree.n}${x.tree.d?': '+x.tree.d:''}">${twIcon(tlTreeIcon(x.key),16)}${TL_WTN[x.tree.wt]||x.tree.n}</span>`).join('')}<small>weapon trees, from level ${wl}</small></div>`
   :`<p class="pn-p dim">No weapon trees${(tlWtAllowed(m).length?'':' for this background')}.</p>`;
+ const A=T.filter(x=>x.kind==='armor');if(A.length)h+=`<div class="tw-wts tw-ats">${A.map(x=>{const ac=tlTreeArm(x.key);return`<span class="tw-wt" title="${x.tree.n}${x.tree.d?': '+x.tree.d:''}">${twIcon(tlTreeIcon(x.key),16)}${ac?TL_ARMN[ac]:x.tree.n}</span>`}).join('')}<small>armor trees, from level ${tlTierLv('armor',1)}, each only in its class</small></div>`;
  const no=(RACE[m.race]&&RACE[m.race].noWt)||[],lost=no.filter(w=>(BG[m.bg].wt||[]).includes(w));if(lost.length)h+=`<p class="pn-p dim">A ${RACE[m.race].n.toLowerCase()} never learns the ${lost.map(w=>(TL_WTN[w]||w).toLowerCase()).join(' or ')} tree.</p>`;
  return h}
 function gearRows(m){return[['w','Weapon']].concat(m.eq&&m.eq.b?[['b','Backup']]:[],[['s','Shield'],['a','Armor'],['h','Helmet']]).map(([k,n])=>{const id=m.eq[k];return`<div class="pn-gear${id?'':' none'}">${id?twItemIcon(id,32):twIcon(k==='w'?'fist':k==='s'?'shield':k==='h'?'helmet':'armor-light',32,k==='w'?'sword':k==='s'?'shield':'armor')}<span class="pn-rmain"><span class="pn-rt">${id?pnItemName(id):k==='w'?'Unarmed':'No '+n.toLowerCase()}</span>${id?`<span class="pn-rs tw-line">${twItemStats(id)}</span>`:''}</span><span class="pn-slot">${n}</span></div>`}).join('')}
@@ -10138,7 +10452,7 @@ function statGrid(m,s){const c=(ic,v,n)=>`<div><b>${v}</b>${twIcon(ic,16)}<span>
  return`<div class="pn-stats tw-stats${typeof s.brv==='number'?' five':''}">${c('hp',m.hp<s.hp?m.hp+'<small>/'+s.hp+'</small>':s.hp,'HP')}${c('armor',s.arm,'Armor')}${c('fatigue',s.fat,'Fatigue')}${c('init',s.init,'Init')}${c('melee',s.ms,'Melee')}${c('ranged',s.rs,'Ranged')}${c('mdef',s.md,'M def')}${c('rdef',s.rd,'R def')}${typeof s.helm==='number'?c('helmet',s.helm,'Helmet'):''}${typeof s.brv==='number'?c('resolve',s.brv,'Resolve'):''}</div>`}
 function marketCompare(id){const k=ITEMS[id].k;return G.roster.map(m=>{const cur=m.eq[k],w=ITEMS[m.eq.w];let x='';
   if(k==='s'&&!tlEquipRule(m,'s',id).ok)x='<span class="pn-d same">Hands full</span>';else{x=pnDeltaChips(id,cur);if(k==='w'&&id!==cur&&tlDropsShield(m,'w',id))x+='<span class="pn-d same">drops shield</span>';if(k==='s'&&tlSlung(m))x+='<span class="pn-d same">slung</span>'}
-  return`<div class="pn-cmp${m.field?'':' res'}">${twPortrait(m,32)}<span class="pn-cn"><b>${m.name}</b><small>${cur?pnItemName(cur):k==='w'?'Unarmed':'None'}</small></span><span class="pn-cd">${x}</span></div>`}).join('')}
+  return`<div class="pn-cmp${m.field?'':' res'}">${twPortrait(m,32)}<span class="pn-cn"><b>${htmlEsc(m.name)}</b><small>${cur?pnItemName(cur):k==='w'?'Unarmed':'None'}</small></span><span class="pn-cd">${x}</span></div>`}).join('')}
 function itemDetail(id){const it=ITEMS[id];return`${twHead(twItemIcon(id,48),itemKind(id)+(it.tier?' · tier '+it.tier:''),pnItemName(id,1))}${pnFamedBlock(id)}${pnFacts(pnFamedFacts(id))}${pnHead('Against what the company carries')}<div class="pn-cmps">${marketCompare(id)}</div>`}
 function twRecruitLine(m){const b=BG[m.bg];return`${m.eq.w?twItemIcon(m.eq.w,16):twIcon('fist',16)}${m.eq.b?twItemIcon(m.eq.b,16):''}${m.eq.s?twItemIcon(m.eq.s,16):''}${m.eq.a?twItemIcon(m.eq.a,16):''}<span class="tw-t0">${RACE[m.race].n} ${b.n.toLowerCase()}</span>`}
 /* the recruit's build at a glance: style trees, the gift in its colour with its variant, the weapon families */
@@ -10158,22 +10472,58 @@ function townView(t){let list='',detail='',foot='',key=townTab;
  else if(townTab==='tavern'){const n=t.recruits.length,i=clamp(+townSel.tavern||0,0,n-1),full=G.roster.length>=MAXROSTER;townSel.tavern=i;key+=':'+i;
   list+=pnSec('Looking for work',`Roster ${G.roster.length} of ${MAXROSTER}`);
   if(!n){list+=pnEmpty('Nobody is looking for work today.');detail=`<div class="pn-blank">${twIcon('tavern',48,'tavern')}<p>Nobody is looking for work today. New faces drift in every three days.</p></div>`}
-  t.recruits.forEach((m,j)=>{const b=BG[m.bg];list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row',lead:twPortrait(m,32),title:m.name,sub:`<span class="tw-line">${twRecruitLine(m)}</span><span class="tw-line co-trees tw-trees">${twRecruitTrees(m)}</span>`,right:pnCoin(b.cost,G.crowns<b.cost?'short':'')})});
+  t.recruits.forEach((m,j)=>{const b=BG[m.bg];list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row',lead:twPortrait(m,32),title:htmlEsc(m.name),sub:`<span class="tw-line">${twRecruitLine(m)}</span><span class="tw-line co-trees tw-trees">${twRecruitTrees(m)}</span>`,right:pnCoin(b.cost,G.crowns<b.cost?'short':'')})});
   if(n){const m=t.recruits[i],b=BG[m.bg],s=calc(m);
-   detail=`${twHead(twPortrait(m,64),`${RACE[m.race].n} ${b.n.toLowerCase()}, level ${m.lvl}`,m.name)}${statGrid(m,s)}
+   detail=`${twHead(twPortrait(m,64),`${RACE[m.race].n} ${b.n.toLowerCase()}, level ${m.lvl}`,htmlEsc(m.name))}${statGrid(m,s)}
    ${pnHead('The four gifts')}${giftRow(m)}
    ${pnHead('Trees')}${twTreeList(m)}
    ${pnHead('Starting gear')}<div class="pn-gears">${gearRows(m)}</div>`;
    foot=`<span class="pn-fl">${pnCoin(b.cost,'big'+(G.crowns<b.cost?' short':''))}<small>${full?'<em>The roster is full</em>':G.crowns<b.cost?'<em>Not enough crowns</em>':'+ '+b.wage+' a day'}</small></span><button type="button" class="pn-btn pri${full||G.crowns<b.cost?' off':''}" onclick="hire(${i})">Hire</button>`}}
- else if(townTab==='market'){let sel=String(townSel.market||'food'),kind=sel[0],i=+sel.slice(1);
-  if(kind==='b'){i=Math.min(i,t.stock.length-1);if(!(i>=0))kind='f'}else if(kind==='s'){i=Math.min(i,G.stash.length-1);if(!(i>=0))kind='f'}else if(kind!=='t')kind='f';
-  sel=townSel.market=kind==='f'?'food':kind==='t'?'tools':kind+i;key+=':'+sel;const need=cpDamageAll(),needT=Math.ceil(need/cpToolPts()),tp=toolPrice();
+ else if(townTab==='market'){const v=marketView(t);list=v.list;detail=v.detail;foot=v.foot;key+=':'+v.key}
+ else if(townTab==='tailor'&&typeof tailorView==='function'){const v=tailorView(t);list=v.list;detail=v.detail;foot=v.foot;key=v.key}
+ else if(townTab==='temple'){const L=[];G.roster.forEach((m,mi)=>cpInj(m).forEach(j=>L.push({m,mi,j,cost:cpInjCost(m,j.id)})));const n=L.length,i=clamp(+townSel.temple||0,0,n-1);townSel.temple=i;key+=':'+i+':'+n;
+  list+=pnSec('The injured',n?n+' wound'+(n===1?'':'s'):'None');
+  if(!n){list+=pnEmpty('Nobody in the company carries a wound.');
+   detail=`${twHead(twIcon('temple',48,'inn'),'Temple','The healers’ hall')}<p class="pn-p">The priests set bones, draw fevers and stitch what the field surgeon only bound. A wound they treat is gone the same hour.</p><p class="pn-p dim">Injuries come from heavy blows and from being struck down. Left alone, most heal in days and weaken the sword who carries them until then. Some never heal, and those no temple can mend.</p>`}
+  L.forEach((x,k)=>{list+=pnRow({on:`townPick(${k})`,sel:k===i,cls:'tw-row tw-inj'+(x.j.perm?' perm':''),lead:twPortrait(x.m,32),title:`${htmlEsc(x.m.name)}: ${x.j.n}`,sub:`<span class="tw-line">${cpInjIcon(x.j.id)}<span class="tw-t0">${x.j.d}</span></span>`,right:x.cost==null?'<span class="tw-t perm">For good</span>':pnCoin(x.cost,G.crowns<x.cost?'short':'')+`<small class="tw-days">${x.j.days} day${x.j.days===1?'':'s'}</small>`})});
+  if(n){const x=L[i],j=x.j,m=x.m;
+   detail=`${twHead(cpInjIcon(j.id,48),htmlEsc(m.name)+', '+(m.field?'fielded':'in reserve'),j.n)}${j.lore?`<p class="pn-p">${j.lore}</p>`:''}
+   ${pnFacts([['Effect',`<span class="tw-bad">${j.d}</span>`],['Heals by itself',j.perm?'Never':'In '+j.days+' day'+(j.days===1?'':'s')],['Treatment',x.cost==null?'Beyond the healers':twIcon('coin',16)+x.cost+' crowns']])}
+   ${x.cost==null?'<p class="pn-p warn">This one is for good. The priests can ease it, not undo it.</p>':`<p class="pn-p dim">Treated now, ${htmlEsc(m.name)} fights at full strength again today.</p>`}`;
+   foot=x.cost==null?`<span class="pn-fl"><small>Cannot be treated</small></span><button type="button" class="pn-btn pri" disabled>Treat</button>`
+    :`<span class="pn-fl">${pnCoin(x.cost,'big'+(G.crowns<x.cost?' short':''))}<small>${G.crowns<x.cost?'<em>Not enough crowns</em>':'to treat '+j.n.toLowerCase()}</small></span><button type="button" class="pn-btn pri${G.crowns<x.cost?' off':''}" id="twTreat" onclick="templeTreat(${x.mi},'${j.id}')">Treat</button>`}}
+ else{const cost=G.roster.length*10;let hurt=0;const need=cpDamageAll(),needT=Math.ceil(need/cpToolPts()),have=cpTools(),inj=cpInjured().length;list+=pnSec('The company',G.roster.length);
+  G.roster.forEach(m=>{const mx=calc(m).hp,h=Math.min(m.hp,mx),d=cpDamage(m),c=cpCond(m);if(h<mx)hurt++;list+=`<div class="pn-row static tw-row"><span class="pn-lead">${twPortrait(m,32)}</span><span class="pn-rmain"><span class="pn-rt">${htmlEsc(m.name)}</span><span class="tw-bar${h<mx?' hurt':''}"><i style="width:${Math.round(100*h/mx)}%"></i></span></span><span class="pn-rr"><span class="pn-hp tw-hp${h<mx?' hurt':''}">${twIcon('hp',16)}${h}<small>/${mx}</small></span>${d?`<span class="pn-hp tw-hp worn" title="Armor and helmet points left">${twIcon('armor',16)}${c.a+c.h}<small>/${c.aM+c.hM}</small></span>`:''}</span></div>`});
+  detail=`${twHead(twIcon('inn',48,'inn'),'Inn','A bed for the night')}<p class="pn-p">A night under a roof heals every wound of the flesh, and the company’s tools go to work on its armor.</p>
+  ${pnFacts([['Wounded',twIcon('hp',16)+(hurt?hurt+' of '+G.roster.length:'None')],['Armor to mend',need?twIcon('tools',16)+`${need} points, ${needT} tool${needT===1?'':'s'} <small>(${have} carried)</small>`:twIcon('armor',16)+'None'],['Beds',twIcon('coin',16)+G.roster.length+' at 10 crowns'],['Time',twIcon('day',16)+'8 hours']])}
+  ${need&&have<needT?`<p class="pn-p warn">Not enough tools to mend everything. The market sells them.</p>`:''}${inj?`<p class="pn-p dim">${inj===1?'One sword carries':inj+' swords carry'} an injury that sleep will not cure. The temple treats those.</p>`:''}
+  ${pnHead('Common-room talk')}<p class="pn-p dim">${G.crisis?(G.crisis.ended?'Travelers say new rifts still open now and then.':`Rifts closed: ${G.crisis.closed} of ${G.crisis.total}.`):`The innkeeper’s seer mutters about a sundering sky, perhaps ${Math.max(1,G.crisisDay-G.day)} days off.`}</p>`;
+  foot=`<span class="pn-fl">${pnCoin(cost,'big'+(G.crowns<cost?' short':''))}<small>${G.crowns<cost?'<em>Not enough crowns</em>':'for the whole company'}</small></span><button type="button" class="pn-btn pri${G.crowns<cost?' off':''}" onclick="innRest()">Rest the night</button>`}
+ return{list,detail,foot,key}}
+/* ---- market: two tabs. Purchase = the town's stock plus provisions and tools; Inventory = everything the company carries:
+   spare pieces in the stash (sold from here) and what each sword wears (read-only here; taken off in the company screen).
+   townSel.market keeps the selection: 'food' | 'tools' | 'b<stock i>' (Purchase), 's<stash i>' | 'e<roster i>.<slot>' | 'inv' (Inventory). ---- */
+const MK_SLOTS=[['w','Weapon'],['b','Backup'],['s','Shield'],['a','Armor'],['h','Helmet']];
+function mkWorn(){const L=[];G.roster.forEach((m,mi)=>{for(const [k,n] of MK_SLOTS){const id=m.eq&&m.eq[k];if(id&&ITEMS[id])L.push({m,mi,k,n,id})}});return L}
+function mkTabOf(sel){sel=String(sel==null?townSel.market||'food':sel);return sel[0]==='s'||sel[0]==='e'||sel==='inv'?'inv':'buy'}
+function mkTab(k){if(k===mkTabOf())return;if(k==='inv'){const W=mkWorn();townSel.market=G.stash.length?'s0':W.length?'e'+W[0].mi+'.'+W[0].k:'inv'}else townSel.market='food';renderTown(townNote)}
+function mkTabs(cur,nBuy,nInv){const b=(k,n,ic,c)=>`<button type="button" role="tab" class="mk-tab${cur===k?' on':''}" id="mkTab-${k}" aria-selected="${cur===k}" onclick="mkTab('${k}')">${twIcon(ic,16)}<span>${n}</span><i>${c}</i></button>`;
+ return`<div class="mk-tabs" role="tablist" aria-label="Market">${b('buy','Purchase','coin',nBuy)}${b('inv','Inventory','armor',nInv)}</div>`}
+function mkGear(mi,k){if(typeof slotSheet==='function'&&G.roster[mi])slotSheet(mi,k)}
+function marketView(t){let list='',detail='',foot='';const W=mkWorn();let sel=String(townSel.market||'food'),kind=sel[0],i=+sel.slice(1),wi=-1;
+ if(sel==='inv')kind='n';
+ else if(kind==='b'){i=Math.min(i,t.stock.length-1);if(!(i>=0))kind='f'}
+ else if(kind==='s'){i=Math.min(i,G.stash.length-1);if(!(i>=0))kind=W.length?'e':'n';if(kind==='e')wi=0}
+ else if(kind==='e'){const p=sel.slice(1).split('.');wi=W.findIndex(x=>x.mi===+p[0]&&x.k===p[1]);if(wi<0)wi=W.length?Math.min(W.length-1,Math.max(0,W.findIndex(x=>x.mi>=+p[0]))):-1;if(wi<0)kind=G.stash.length?'s':'n';if(kind==='s')i=0}
+ else if(kind!=='t')kind='f';
+ sel=townSel.market=kind==='f'?'food':kind==='t'?'tools':kind==='n'?'inv':kind==='e'?'e'+W[wi].mi+'.'+W[wi].k:kind+i;
+ const tab=mkTabOf(sel);list+=mkTabs(tab,t.stock.length,G.stash.length+W.length);
+ if(tab==='buy'){const need=cpDamageAll(),needT=Math.ceil(need/cpToolPts()),tp=toolPrice();
+  list+=pnSec('Provisions and tools',2);
   list+=pnRow({on:`townPick('food')`,sel:kind==='f',cls:'tw-row',lead:twIcon('food',32,'food'),title:'Provisions',sub:'10 days for one man',right:pnCoin(30,G.crowns<30?'short':'')});
   list+=pnRow({on:`townPick('tools')`,sel:kind==='t',cls:'tw-row',lead:twIcon('tools',32,'armor'),title:'Tools',sub:`Each mends ${cpToolPts()} armor`+(needT>cpTools()?` <span class="tw-t warn">need ${needT}</span>`:''),right:pnCoin(tp,G.crowns<tp?'short':'')});
   list+=pnSec('For sale',t.stock.length);if(!t.stock.length)list+=pnEmpty('The stalls are bare. Fresh goods arrive every three days.');
   t.stock.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('b${j}')`,sel:kind==='b'&&j===i,cls:'tw-row',lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${it.tier?`<span class="pn-tier t${it.tier}" title="Tier ${it.tier}">${TIERN[it.tier]}</span>`:''}${twItemStats(id)}</span>`,right:pnCoin(it.price,G.crowns<it.price?'short':'')})});
-  list+=pnSec('Your stash',G.stash.length);if(!G.stash.length)list+=pnEmpty('Empty. Loot from battles lands here.');
-  G.stash.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('s${j}')`,sel:kind==='s'&&j===i,cls:'own tw-row'+(it.famed?' fmd-row':''),lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${twItemStats(id)}</span>`,right:pnCoin(sellPrice(id),'sell')})});
   if(kind==='f'){const men=G.roster.length;detail=`${twHead(twIcon('food',48,'food'),'Provisions','Salt pork and hard bread')}<p class="pn-p">10 days for one man. Every sword eats one ration a day, and a starving company bleeds.</p>${pnFacts([['In the wagons',twIcon('food',16)+G.food+' rations'],['Mouths to feed',twIcon('swords',16)+men],['Lasts the company',twIcon('day',16)+Math.floor(G.food/Math.max(1,men))+' days']])}`;
    foot=`<span class="pn-fl">${pnCoin(30,'big'+(G.crowns<30?' short':''))}<small>${G.crowns<30?'<em>Not enough crowns</em>':'for 10 rations'}</small></span><button type="button" class="pn-btn pri${G.crowns<30?' off':''}" onclick="buyFood()">Buy for 30</button>`}
   else if(kind==='t'){const have=cpTools(),more=Math.max(0,needT-have),mp=toolPrice(more);
@@ -10181,36 +10531,26 @@ function townView(t){let list='',detail='',foot='',key=townTab;
    ${pnFacts([['In the wagons',twIcon('tools',16)+have+' tool'+(have===1?'':'s')],['Armor to mend',twIcon('armor',16)+(need?need+' points':'None')],['Tools that takes',need?twIcon('tools',16)+needT+(more?` <small>(${more} short)</small>`:''):'None'],['Price',twIcon('coin',16)+toolPrice(1)+' crown'+(toolPrice(1)===1?'':'s')+' a tool']])}
    ${need?`<p class="pn-p ${more?'warn':'dim'}">${more?`You are ${more} tool${more===1?'':'s'} short of mending everything.`:'You carry enough to mend everything at the next camp.'}</p>`:'<p class="pn-p dim">Nothing needs mending right now. A spare lot costs little and weighs less.</p>'}`;
    foot=`<span class="pn-fl">${pnCoin(tp,'big'+(G.crowns<tp?' short':''))}<small>${G.crowns<tp?'<em>Not enough crowns</em>':'for '+TOOLLOT+' tools'}</small></span>${more&&more!==TOOLLOT?`<button type="button" class="pn-btn${G.crowns<mp?' off':''}" id="twToolsNeed" onclick="buyTools(${more})">Buy ${more} for ${mp}</button>`:''}<button type="button" class="pn-btn pri${G.crowns<tp?' off':''}" id="twTools" onclick="buyTools()">Buy ${TOOLLOT} for ${tp}</button>`}
-  else if(kind==='b'){const id=t.stock[i],it=ITEMS[id],own=G.stash.filter(x=>x===id).length;detail=itemDetail(id);
-   foot=`<span class="pn-fl">${pnCoin(it.price,'big'+(G.crowns<it.price?' short':''))}<small>${G.crowns<it.price?'<em>Not enough crowns</em>':own?own+' in the stash':'to the stash'}</small></span><button type="button" class="pn-btn pri${G.crowns<it.price?' off':''}" onclick="buyItem(${i})">Buy for ${it.price}</button>`}
-  else{const id=G.stash[i],it=ITEMS[id];detail=itemDetail(id);
-   foot=`<span class="pn-fl">${pnCoin(sellPrice(id),'big')}<small>${it.famed?'a famed piece: the dealers pay well':'worth '+it.price+' new'}</small></span><button type="button" class="pn-btn${it.famed?' warn':''}" onclick="sellItem(${i})">Sell for ${sellPrice(id)}</button>`}}
- else if(townTab==='tailor'&&typeof tailorView==='function'){const v=tailorView(t);list=v.list;detail=v.detail;foot=v.foot;key=v.key}
- else if(townTab==='temple'){const L=[];G.roster.forEach((m,mi)=>cpInj(m).forEach(j=>L.push({m,mi,j,cost:cpInjCost(m,j.id)})));const n=L.length,i=clamp(+townSel.temple||0,0,n-1);townSel.temple=i;key+=':'+i+':'+n;
-  list+=pnSec('The injured',n?n+' wound'+(n===1?'':'s'):'None');
-  if(!n){list+=pnEmpty('Nobody in the company carries a wound.');
-   detail=`${twHead(twIcon('temple',48,'inn'),'Temple','The healers’ hall')}<p class="pn-p">The priests set bones, draw fevers and stitch what the field surgeon only bound. A wound they treat is gone the same hour.</p><p class="pn-p dim">Injuries come from heavy blows and from being struck down. Left alone, most heal in days and weaken the sword who carries them until then. Some never heal, and those no temple can mend.</p>`}
-  L.forEach((x,k)=>{list+=pnRow({on:`townPick(${k})`,sel:k===i,cls:'tw-row tw-inj'+(x.j.perm?' perm':''),lead:twPortrait(x.m,32),title:`${x.m.name}: ${x.j.n}`,sub:`<span class="tw-line">${cpInjIcon(x.j.id)}<span class="tw-t0">${x.j.d}</span></span>`,right:x.cost==null?'<span class="tw-t perm">For good</span>':pnCoin(x.cost,G.crowns<x.cost?'short':'')+`<small class="tw-days">${x.j.days} day${x.j.days===1?'':'s'}</small>`})});
-  if(n){const x=L[i],j=x.j,m=x.m;
-   detail=`${twHead(cpInjIcon(j.id,48),m.name+', '+(m.field?'fielded':'in reserve'),j.n)}${j.lore?`<p class="pn-p">${j.lore}</p>`:''}
-   ${pnFacts([['Effect',`<span class="tw-bad">${j.d}</span>`],['Heals by itself',j.perm?'Never':'In '+j.days+' day'+(j.days===1?'':'s')],['Treatment',x.cost==null?'Beyond the healers':twIcon('coin',16)+x.cost+' crowns']])}
-   ${x.cost==null?'<p class="pn-p warn">This one is for good. The priests can ease it, not undo it.</p>':`<p class="pn-p dim">Treated now, ${m.name} fights at full strength again today.</p>`}`;
-   foot=x.cost==null?`<span class="pn-fl"><small>Cannot be treated</small></span><button type="button" class="pn-btn pri" disabled>Treat</button>`
-    :`<span class="pn-fl">${pnCoin(x.cost,'big'+(G.crowns<x.cost?' short':''))}<small>${G.crowns<x.cost?'<em>Not enough crowns</em>':'to treat '+j.n.toLowerCase()}</small></span><button type="button" class="pn-btn pri${G.crowns<x.cost?' off':''}" id="twTreat" onclick="templeTreat(${x.mi},'${j.id}')">Treat</button>`}}
- else{const cost=G.roster.length*10;let hurt=0;const need=cpDamageAll(),needT=Math.ceil(need/cpToolPts()),have=cpTools(),inj=cpInjured().length;list+=pnSec('The company',G.roster.length);
-  G.roster.forEach(m=>{const mx=calc(m).hp,h=Math.min(m.hp,mx),d=cpDamage(m),c=cpCond(m);if(h<mx)hurt++;list+=`<div class="pn-row static tw-row"><span class="pn-lead">${twPortrait(m,32)}</span><span class="pn-rmain"><span class="pn-rt">${m.name}</span><span class="tw-bar${h<mx?' hurt':''}"><i style="width:${Math.round(100*h/mx)}%"></i></span></span><span class="pn-rr"><span class="pn-hp tw-hp${h<mx?' hurt':''}">${twIcon('hp',16)}${h}<small>/${mx}</small></span>${d?`<span class="pn-hp tw-hp worn" title="Armor and helmet points left">${twIcon('armor',16)}${c.a+c.h}<small>/${c.aM+c.hM}</small></span>`:''}</span></div>`});
-  detail=`${twHead(twIcon('inn',48,'inn'),'Inn','A bed for the night')}<p class="pn-p">A night under a roof heals every wound of the flesh, and the company’s tools go to work on its armor.</p>
-  ${pnFacts([['Wounded',twIcon('hp',16)+(hurt?hurt+' of '+G.roster.length:'None')],['Armor to mend',need?twIcon('tools',16)+`${need} points, ${needT} tool${needT===1?'':'s'} <small>(${have} carried)</small>`:twIcon('armor',16)+'None'],['Beds',twIcon('coin',16)+G.roster.length+' at 10 crowns'],['Time',twIcon('day',16)+'8 hours']])}
-  ${need&&have<needT?`<p class="pn-p warn">Not enough tools to mend everything. The market sells them.</p>`:''}${inj?`<p class="pn-p dim">${inj===1?'One sword carries':inj+' swords carry'} an injury that sleep will not cure. The temple treats those.</p>`:''}
-  ${pnHead('Common-room talk')}<p class="pn-p dim">${G.crisis?(G.crisis.ended?'Travelers say new rifts still open now and then.':`Rifts closed: ${G.crisis.closed} of ${G.crisis.total}.`):`The innkeeper’s seer mutters about a sundering sky, perhaps ${Math.max(1,G.crisisDay-G.day)} days off.`}</p>`;
-  foot=`<span class="pn-fl">${pnCoin(cost,'big'+(G.crowns<cost?' short':''))}<small>${G.crowns<cost?'<em>Not enough crowns</em>':'for the whole company'}</small></span><button type="button" class="pn-btn pri${G.crowns<cost?' off':''}" onclick="innRest()">Rest the night</button>`}
- return{list,detail,foot,key}}
+  else{const id=t.stock[i],it=ITEMS[id],own=G.stash.filter(x=>x===id).length;detail=itemDetail(id);
+   foot=`<span class="pn-fl">${pnCoin(it.price,'big'+(G.crowns<it.price?' short':''))}<small>${G.crowns<it.price?'<em>Not enough crowns</em>':own?own+' in the stash':'to the stash'}</small></span><button type="button" class="pn-btn pri${G.crowns<it.price?' off':''}" onclick="buyItem(${i})">Buy for ${it.price}</button>`}}
+ else{let worth=0;G.stash.forEach(id=>worth+=sellPrice(id));
+  list+=`<div class="mk-sum"><span title="Every piece the company carries">${twIcon('armor',16)}<b>${G.stash.length+W.length}</b> carried</span><span title="Spare pieces in the stash">${twIcon('stash',16,'armor')}<b>${G.stash.length}</b> spare</span><span title="Worn or held by a sword">${twIcon('swords',16)}<b>${W.length}</b> equipped</span></div>`;
+  list+=pnSec('Spare in the stash',G.stash.length?`${G.stash.length} · sells for ${worth}`:0);if(!G.stash.length)list+=pnEmpty('Nothing spare. Loot from battles lands here.');
+  G.stash.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('s${j}')`,sel:kind==='s'&&j===i,cls:'own tw-row mk-spare'+(it.famed?' fmd-row':''),lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line"><span class="mk-tag spare">Spare</span>${twItemStats(id)}</span>`,right:pnCoin(sellPrice(id),'sell')})});
+  list+=pnSec('Equipped',W.length);if(!W.length)list+=pnEmpty('Nobody wears anything. Equip gear in the company screen.');
+  W.forEach((x,j)=>{const it=ITEMS[x.id];list+=pnRow({on:`townPick('e${x.mi}.${x.k}')`,sel:kind==='e'&&j===wi,cls:'tw-row mk-worn'+(it.famed?' fmd-row':''),lead:twItemIcon(x.id,32),title:pnItemName(x.id),sub:`<span class="tw-line"><span class="mk-tag eq">${x.n}</span><span class="tw-t0">${htmlEsc(x.m.name)}</span></span>`,right:`<span class="mk-who">${twPortrait(x.m,16)}</span>`})});
+  if(kind==='n'){detail=`<div class="pn-blank">${twIcon('armor',48,'armor')}<p>The company carries nothing at all. Buy gear on the Purchase tab or take it from the fallen.</p></div>`}
+  else if(kind==='s'){const id=G.stash[i],it=ITEMS[id];detail=`<div class="mk-state spare">${twIcon('stash',16,'armor')}<b>Spare</b><span>in the stash, not worn by anyone</span></div>`+itemDetail(id);
+   foot=`<span class="pn-fl">${pnCoin(sellPrice(id),'big')}<small>${it.famed?'a famed piece: the dealers pay well':'worth '+it.price+' new'}</small></span><button type="button" class="pn-btn${it.famed?' warn':''}" onclick="sellItem(${i})">Sell for ${sellPrice(id)}</button>`}
+  else{const x=W[wi],it=ITEMS[x.id],nm=htmlEsc(x.m.name);detail=`<div class="mk-state eq">${twIcon('swords',16)}<b>Equipped</b><span>${nm}, ${x.n.toLowerCase()} slot</span></div>`+itemDetail(x.id)+`<p class="pn-p dim">Worn gear is not for sale. Take it off in the company screen and it goes to the stash, where it can be sold for ${sellPrice(x.id)}.</p>`;
+   foot=`<span class="pn-fl">${pnCoin(sellPrice(x.id),'big')}<small>once taken off</small></span><button type="button" class="pn-btn" onclick="mkGear(${x.mi},'${x.k}')">${pnIcon('company')}<span>${nm}’s gear</span></button>`}}
+ return{list,detail,foot,key:sel}}
 function renderTown(note){G.townOpen=true;townNote=note||'';
  if(townAt==='scene'){if(typeof tvShow==='function'&&tvShow(note))return;townAt='panel'}
  const t=G.towns[G.town],v=townView(t),ready=G.roster.filter(m=>m.pend||m.pp).length,sq=typeof tvCan==='function'&&tvCan();
  showPanel({id:'town',title:t.name,sub:`Day ${G.day}`,meta:pnPurse()+`<button type="button" class="pn-btn ico pn-cobtn" aria-label="Company${ready?', '+ready+' ready to advance':''}" title="Company" onclick="companySheet()">${pnIcon('company','',32)}${ready?`<i>${ready}</i>`:''}</button>`,note:townNote,closeLabel:sq?'Town square':'Leave town',closeIcon:sq?'back':'x',onClose:sq?townBack:leaveTown,
   tabs:TOWNTABS.map(([k,n])=>({k,n,badge:k==='temple'?cpInjured().length||'':''})),tab:townTab,onTab:townGo,
-  list:v.list,listKey:'town:'+townTab,detail:v.detail,detailKey:'town:'+v.key,foot:v.foot})}
+  list:v.list,listKey:'town:'+townTab+(townTab==='market'?':'+mkTabOf():''),detail:v.detail,detailKey:'town:'+v.key,foot:v.foot})}
 function acceptContract(i){const t=G.towns[G.town];if(G.contract)return;G.contract=Object.assign({town:G.town,done:false},t.contracts.splice(i,1)[0]);toast('Contract accepted');renderTown();save()}
 function hire(i){const t=G.towns[G.town],m=t.recruits[i],c=BG[m.bg].cost;if(G.roster.length>=MAXROSTER){toast('The roster is full');return}if(G.crowns<c){toast('Not enough crowns');return}
  G.crowns-=c;t.recruits.splice(i,1);m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);toast(m.name+' joins the company');renderTown();save()}
@@ -10220,7 +10560,7 @@ function buyItem(i){const t=G.towns[G.town],id=t.stock[i];if(G.crowns<ITEMS[id].
 function buyTools(n){n=Math.max(1,Math.round(+n||TOOLLOT));const c=toolPrice(n);if(G.crowns<c){toast('Not enough crowns');return false}G.crowns-=c;G.tools=cpTools()+n;renderTown();return true}
 /* temple: treat injury id of roster[i] for crowns */
 function templeTreat(i,id){const m=G.roster[i];if(!m)return false;const j=cpInj(m).find(x=>x.id===id);if(!j)return false;const r=cpTreat(m,id);if(!r.ok){toast(r.why);return false}
- toast(`${m.name}: ${j.n.toLowerCase()} treated`);renderTown(`<p class="good">The healers see to ${m.name}. ${j.n} is mended for ${r.cost} crowns.</p>`);save();return true}
+ toast(`${m.name}: ${j.n.toLowerCase()} treated`);renderTown(`<p class="good">The healers see to ${htmlEsc(m.name)}. ${j.n} is mended for ${r.cost} crowns.</p>`);save();return true}
 function sellItem(i){const id=G.stash.splice(i,1)[0];if(!id)return;G.crowns+=sellPrice(id);renderTown()}
 function innRest(){const cost=G.roster.length*10;if(G.crowns<cost){toast('Not enough crowns');return}G.crowns-=cost;G.roster.forEach(m=>m.hp=calc(m).hp);const d0=G.day;advanceTime(8);G.roster.forEach(m=>m.hp=calc(m).hp);const rep=cpRepair(),rt=cpRepairText(rep);let note=rt?`<p class="${rep.pts?'good':'bad'}">${rt}.</p>`:'';
  if(G.day!==d0){let msg='';try{const e=$('toast');msg=e&&typeof e.textContent==='string'?e.textContent:''}catch(e){}   // newDay() only toasts its report; the next toast would replace it
@@ -10911,7 +11251,16 @@ function tlTry(f,d){try{const v=f();return v===undefined?d:v}catch(e){return d}}
 function tlKind(T){return!T?'style':T.kind||(T.wt?'weapon':T.res?'gift':'style')}
 /* a tree's tiers as [[perk,...],...]; old trees (p:[...]) read as one perk a tier */
 function tlTiers(T){if(!T)return[];if(Array.isArray(T.tiers))return T.tiers.map(t=>Array.isArray(t)?t:[t]);return Array.isArray(T.p)?T.p.map(p=>[p]):[]}
-function tlTierLv(kind,t){if(typeof tierLevel==='function'){const v=tlTry(()=>tierLevel(kind,t),null);if(cpNum(v))return v}return kind==='weapon'?3*t:t}
+function tlTierLv(kind,t){if(typeof tierLevel==='function'){const v=tlTry(()=>tierLevel(kind,t),null);if(cpNum(v))return v}return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}
+/* ---- armor-class trees (MAST kind 'armor': lightarmor medarmor heavyarmor, tiers at 2 / 5 / 8, active only while wearing that class).
+   Classes are normalised to 'light' | 'medium' | 'heavy' (null = unarmored). The rules' armorClass(m) decides; the fallback reads body armor points. ---- */
+const TL_ARMN={light:'Light',medium:'Medium',heavy:'Heavy'},TL_ARMK=['light','medium','heavy'];
+function tlArmNorm(c){if(c==null||c===false)return null;if(typeof c==='object')c=c.key||c.k||c.cls||c.n||'';c=String(c).toLowerCase();
+ return/heavy|plate/.test(c)?'heavy':/med|mid/.test(c)?'medium':/light|lt/.test(c)?'light':null}
+function tlArmTrees(){const L=[];for(const k in MAST)if(tlKind(MAST[k])==='armor')L.push(k);return L.sort((a,b)=>TL_ARMK.indexOf(tlTreeArm(a))-TL_ARMK.indexOf(tlTreeArm(b)))}
+function tlTreeArm(key){const T=MAST[key]||{};return tlArmNorm(T.ac||T.cls||T.armor||T.aw||T.wt)||tlArmNorm(key)}
+function tlArmClass(m){if(!m)return null;if(typeof armorClass==='function'){const c=tlTry(()=>armorClass(m),undefined);if(c!==undefined)return tlArmNorm(c)}
+ const a=ITEMS[m.eq&&m.eq.a];return!a?null:a.arm<=60?'light':a.arm<=150?'medium':'heavy'}
 function tlPid(k,p,t,j){return p&&p.id!=null?String(p.id):k+'#'+t+'.'+j}
 function tlLegacy(m){return!Array.isArray(m.perks)&&!!m.mast&&typeof m.mast==='object'}
 /* the merc's gift tree key (its variant), or null */
@@ -10928,7 +11277,7 @@ function tlWeaponKeys(m){if(typeof weaponTrees==='function'){const L=tlTry(()=>w
  return tlWtAllowed(m).map(tlWtKey).filter(Boolean)}
 function tlStyleKeys(m){const g=tlGift(m);if(Array.isArray(m.trees))return m.trees.filter(k=>MAST[k]&&k!==g&&tlKind(MAST[k])!=='gift'&&tlKind(MAST[k])!=='weapon');return m.mast?Object.keys(m.mast).filter(k=>MAST[k]&&!MAST[k].res):[]}
 /* [{key,tree,kind}]: style trees, then the gift, then the weapon trees */
-function tlTrees(m){if(typeof mercTrees==='function'){const L=tlTry(()=>mercTrees(m),null);if(Array.isArray(L)&&L.length)return L.map(x=>typeof x==='string'?{key:x,tree:MAST[x],kind:tlKind(MAST[x])}:{key:x.key,tree:x.tree||MAST[x.key],kind:x.kind||tlKind(x.tree||MAST[x.key])}).filter(x=>x.tree)}
+function tlTrees(m){if(typeof mercTrees==='function'){const L=tlTry(()=>mercTrees(m),null);if(Array.isArray(L)&&L.length)return L.map(x=>typeof x==='string'?{key:x,tree:MAST[x],kind:tlKind(MAST[x])}:{key:x.key,tree:x.tree||MAST[x.key],kind:x.kind||tlKind(x.tree||MAST[x.key])}).filter(x=>x.tree).map(x=>x.tree&&tlKind(x.tree)==='armor'?Object.assign(x,{kind:'armor'}):x)}
  const out=tlStyleKeys(m).map(k=>({key:k,tree:MAST[k],kind:'style'})),g=tlGift(m);if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
  tlWeaponKeys(m).forEach(k=>out.push({key:k,tree:MAST[k],kind:'weapon'}));return out}
 /* every perk of every tree the merc has: [{id,perk,key,tree,tier,kind,owned,unlocked,need}] */
@@ -11008,13 +11357,14 @@ function coRole(m,s){const w=s.wpn||FIST,a=ITEMS[m.eq.a],g=tlGift(m),r=g?MAST[g]
 /* the merc's trees at a glance: style trees (perks learned), the gift in its colour, then the weapon families it may train */
 function coTreeStrip(m,O){O=O||tlOpts(m);let h='',sep=false;
  for(const x of tlTrees(m)){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key);
+  if(x.kind==='armor'){const ac=tlTreeArm(x.key),on=ac&&ac===tlArmClass(m);if(!n&&!on)continue;if(!sep){sep=true;h+='<i class="co-sep" aria-hidden="true"></i>'}h+=`<span class="co-w co-a${n?' on':''}${on?' worn':''}${m.lvl<tlTierLv('armor',1)?' lk':''}" title="${x.tree.n}: armor tree${on?', worn now':', works only in '+(ac?TL_ARMN[ac].toLowerCase():'its')+' armor'}">${coIc(tlTreeIcon(x.key))}${n?`<b>${n}</b>`:''}</span>`;continue}
   if(x.kind==='weapon'){if(!sep){sep=true;h+='<i class="co-sep" aria-hidden="true"></i>'}h+=`<span class="co-w${n?' on':''}${m.lvl<tlTierLv('weapon',1)?' lk':''}" title="${x.tree.n}: weapon tree, opens at level ${tlTierLv('weapon',1)}">${coIc(tlTreeIcon(x.key))}${n?`<b>${n}</b>`:''}</span>`;continue}
   h+=`<span class="co-m${r?' g-'+r:''}${n?'':' z'}" title="${x.kind==='gift'?tlGiftLabel(x.key)+' (gift)':x.tree.n}">${coIc(tlTreeIcon(x.key))}${n||''}</span>`}
  return h}
 function coCard(m,i){const s=calc(m),hp=Math.min(m.hp,s.hp),w=ITEMS[m.eq.w],bk=ITEMS[m.eq.b],a=ITEMS[m.eq.a],hl=ITEMS[m.eq.h],cd=cpCond(m),inj=cpInj(m),g=tlGift(m);
- return`<div class="co-card${m.field?' fld':''}${m.pend||m.pp?' rdy':''}${inj.length?' inj':''}" role="button" tabindex="0" data-merc="${i}" aria-label="${m.name}, level ${m.lvl} ${BG[m.bg].n}${g?', '+tlGiftLabel(g):''}${m.field?'':', in reserve'}${inj.length?', '+inj.length+' injur'+(inj.length===1?'y':'ies'):''}" onclick="coPick(${i})">
+ return`<div class="co-card${m.field?' fld':''}${m.pend||m.pp?' rdy':''}${inj.length?' inj':''}" role="button" tabindex="0" data-merc="${i}" aria-label="${htmlEsc(m.name)}, level ${m.lvl} ${BG[m.bg].n}${g?', '+tlGiftLabel(g):''}${m.field?'':', in reserve'}${inj.length?', '+inj.length+' injur'+(inj.length===1?'y':'ies'):''}" onclick="coPick(${i})">
 <span class="co-pt">${portraitHTML(m,64)}<b class="co-lv">${m.lvl}</b></span>
-<span class="co-ci"><span class="co-nm"><span>${m.name}</span>${inj.length?`<em class="inj" title="${inj.map(j=>j.n+': '+j.d).join('; ')}">${cpInjIcon(inj[0].id)}${inj.length}</em>`:''}${m.field?'':'<em class="res">RESERVE</em>'}${m.pend?'<em class="up">LEVEL UP</em>':m.pp?'<em class="perk">PERK</em>':''}</span>
+<span class="co-ci"><span class="co-nm">${coRenaming(m,'card')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'card')}`}${inj.length?`<em class="inj" title="${inj.map(j=>j.n+': '+j.d).join('; ')}">${cpInjIcon(inj[0].id)}${inj.length}</em>`:''}${m.field?'':'<em class="res">RESERVE</em>'}${m.pend?'<em class="up">LEVEL UP</em>':m.pp?'<em class="perk">PERK</em>':''}</span>
 <span class="co-role"><b>${coRole(m,s)}</b> · ${BG[m.bg].n}${g?` · <span class="co-gv g-${tlGiftRes(g)}">${MAST[g].n}</span>`:''}</span>
 <span class="co-hp">${pnBar(100*hp/s.hp,'hp')}<b class="${hp<s.hp?'hurt':''}">${hp}/${s.hp}</b></span>
 <span class="co-ics"><u title="${s.wpn.n}${w?' ('+(w.two?'two':'one')+'-handed)':''}">${w?pnFamedWrap(m.eq.w,coIc(itemIconName(m.eq.w))):coIc('fist')}${s.wpn.d[0]}–${s.wpn.d[1]}</u>${bk?`<u class="bk" title="Backup: ${bk.n}">${pnFamedWrap(m.eq.b,coIc(itemIconName(m.eq.b)))}</u>`:''}<u title="${a?a.n+(cd.a<cd.aM?', damaged':''):'No armor'}" class="${cd.a<cd.aM?'worn':''}">${a?pnFamedWrap(m.eq.a,coIc(itemIconName(m.eq.a))):coIc('armor-light','','dimi')}${a?cd.a:s.arm}</u>${hl?`<u title="${hl.n}${cd.h<cd.hM?', damaged':''}" class="${cd.h<cd.hM?'worn':''}">${pnFamedWrap(m.eq.h,coIc('helmet'))}${cd.h}</u>`:''}${m.eq.s?`<u class="${tlSlung(m)?'slung':''}" title="${ITEMS[m.eq.s].n}${tlSlung(m)?', slung':''}">${pnFamedWrap(m.eq.s,coIc('shield'))}</u>`:''}</span>
@@ -11025,6 +11375,25 @@ function coRoster(){const R=G.roster.map((m,i)=>[m,i]),f=R.filter(x=>x[0].field)
  if(r.length){h+=`<div class="co-gh res"><span>${coIc('reserve')}Reserves</span><i>${typeof callReserve==='function'?'One may join a battle each round while fewer than '+MAXFIELD+' stand':'They sit out the battle'}</i></div>`;r.forEach(([m,i])=>{h+=coCard(m,i)})}
  return h+'</div>'}
 
+/* ---- renaming a sword: an inline text field on the character screen and on the roster card (coRenameAsk). The name is cleaned
+   like the company name (no markup characters, spaces collapsed, at most NAMEMAX), saved at once, and copied to a battle unit
+   of that merc if one exists, so the chip, the turn tokens and the log use it from then on. ---- */
+let coRen=null;   // {id: merc id, at: 'ch' | 'card'}
+function mercNameClean(s,old){const mx=typeof NAMEMAX==='number'?NAMEMAX:24;s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/[\u0000-\u001f\u007f]/g,'').replace(/\s+/g,' ').trim().slice(0,mx).trim():'';return s||old||'Nameless'}
+function renameMerc(i,name){const m=G.roster[i];if(!m)return null;const n=mercNameClean(name,m.name);if(n===m.name)return n;m.name=n;
+ try{if(typeof B!=='undefined'&&B&&Array.isArray(B.units))for(const u of B.units)if(u&&u.m===m)u.name=n}catch(e){}
+ try{if(typeof SHV==='object')SHV.rev++}catch(e){}if(typeof save==='function')save();return n}
+function coRenameAsk(i,at){const m=G.roster[i];if(!m)return;coRen={id:m.id,at:at||'ch'};coRender();
+ setTimeout(()=>{const e=$('coRenIn');if(e){try{e.focus({preventScroll:true});e.select()}catch(er){}}},0)}
+function coRenField(m,i){return`<span class="co-ren" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()"><input id="coRenIn" type="text" maxlength="${typeof NAMEMAX==='number'?NAMEMAX:24}" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" value="${htmlEsc(m.name)}" aria-label="New name for ${htmlEsc(m.name)}" onkeydown="coRenameKey(event,${i})" onblur="coRenameBlur(${i})"><button type="button" class="pn-btn sm ico co-renok" aria-label="Save the name" onpointerdown="event.preventDefault()" onclick="event.stopPropagation();coRenameDone(${i},1)">${coIc('check')}</button></span>`}
+function coRenBtn(m,i,at){return`<button type="button" class="co-renb" aria-label="Rename ${htmlEsc(m.name)}" title="Rename" onclick="event.stopPropagation();coRenameAsk(${i},'${at}')">${coIc('quill')}</button>`}
+function coRenaming(m,at){return!!(coRen&&coRen.id===m.id&&coRen.at===at)}
+function coRenameKey(e,i){if(e.key==='Enter'){e.preventDefault();e.stopPropagation();coRenameDone(i,1)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();coRenameDone(i,0)}else e.stopPropagation()}
+function coRenameDone(i,commit){const e=$('coRenIn'),v=e?e.value:null;coRen=null;if(commit&&v!=null)renameMerc(i,v);coRender()}
+/* focus left the field (a tap elsewhere): keep the name and put the plain name back in place without redrawing, so that tap still lands */
+function coRenameBlur(i){if(!coRen)return;const e=$('coRenIn');if(!e)return;const m=G.roster[i];coRen=null;const n=renameMerc(i,e.value)||(m&&m.name)||'';
+ const w=e.closest?e.closest('.co-ren'):null;if(w){const s=document.createElement('span');s.textContent=n;w.replaceWith(s)}
+ if(coScreen==='merc'){const t=$('pnTitle');if(t)t.textContent=n}}
 /* ---- formation ---- */
 const FM={pick:null,drag:null,bound:false,skip:0};
 function fmCols(){return typeof BW==='number'?BW:12}
@@ -11055,12 +11424,12 @@ function fmTap(i,ptrClick){if(ptrClick)return;   // pointer taps arrive through 
  else if(q.field){const s=q.slot||fmSlotOf(q);fmPlace(i,s.row,s.col)}else{FM.pick=i;coRender()}}
 function fmSlotOf(m){const o=formation().find(o=>o.m===m);return o?{row:o.row,col:o.col}:{row:0,col:0}}
 function fmCell(row,col){if(FM.pick==null)return;fmPlace(FM.pick,row,col)}
-function fmTok(m,i,size){return`<span class="fm-tok${FM.pick===i?' sel':''}" role="button" tabindex="0" data-fm="${i}" aria-label="${m.name}${FM.pick===i?', picked':''}" onclick="event.stopPropagation();fmTap(${i},event.detail)">${portraitHTML(m,size||32)}</span>`}
+function fmTok(m,i,size){return`<span class="fm-tok${FM.pick===i?' sel':''}" role="button" tabindex="0" data-fm="${i}" aria-label="${htmlEsc(m.name)}${FM.pick===i?', picked':''}" onclick="event.stopPropagation();fmTap(${i},event.detail)">${portraitHTML(m,size||32)}</span>`}
 function coFormation(){if(fmAnySet())fmCommit();const F=formation(),n=fmCols(),big=typeof innerWidth==='number'&&innerWidth>=1100&&innerHeight>=600,sz=big?64:32;
  const row=r=>{let h=`<div class="fmd-row${r?' back':''}">`;for(let c=0;c<n;c++){const o=F.find(o=>o.row===r&&o.col===c);
-   h+=`<div class="fm-cell${FM.pick!=null?' can':''}" data-cell="${r}:${c}" role="button" tabindex="0" aria-label="${r?'Back':'Front'} row, tile ${c+1}${o?', '+o.m.name:''}" onclick="fmCell(${r},${c})">${o?fmTok(o.m,G.roster.indexOf(o.m),sz):''}</div>`}return h+'</div>'};
+   h+=`<div class="fm-cell${FM.pick!=null?' can':''}" data-cell="${r}:${c}" role="button" tabindex="0" aria-label="${r?'Back':'Front'} row, tile ${c+1}${o?', '+htmlEsc(o.m.name):''}" onclick="fmCell(${r},${c})">${o?fmTok(o.m,G.roster.indexOf(o.m),sz):''}</div>`}return h+'</div>'};
  const res=G.roster.map((m,i)=>[m,i]).filter(([m])=>!m.field),p=FM.pick!=null?G.roster[FM.pick]:null;
- let info;if(p){const s=calc(p);info=`${portraitHTML(p,32)}<p><b>${p.name}</b> <span class="dim">Level ${p.lvl} ${BG[p.bg].n.toLowerCase()}, ${coRole(p,s).toLowerCase()}</span><small>${p.field?'Tap a tile to move, or another sword to trade places.':'Tap a tile to field this sword there.'}</small></p>
+ let info;if(p){const s=calc(p);info=`${portraitHTML(p,32)}<p><b>${htmlEsc(p.name)}</b> <span class="dim">Level ${p.lvl} ${BG[p.bg].n.toLowerCase()}, ${coRole(p,s).toLowerCase()}</span><small>${p.field?'Tap a tile to move, or another sword to trade places.':'Tap a tile to field this sword there.'}</small></p>
   ${p.field?`<button type="button" class="pn-btn sm" onclick="fmBench(${FM.pick})">To reserve</button>`:`<button type="button" class="pn-btn sm pri" onclick="fmField(${FM.pick})">Field</button>`}<button type="button" class="pn-btn sm" onclick="mercSheet(${FM.pick})">Open</button>`}
  else info=`<p><b>Set the lines</b><small>Drag a sword to a tile, or tap one and then tap where it should stand. Swords you never place line up on their own.</small></p><button type="button" class="pn-btn sm" ${fmAnySet()?'':'disabled'} onclick="fmReset()">Reset</button>`;
  return`<div class="fm"><div class="fm-foe">${coIc('skull')}The enemy comes from here</div>
@@ -11095,6 +11464,8 @@ function coStat(m,s,k){const t=m.tal[k]||0,cd=cpCond(m);let v=k==='brv'?coBrv(m,
  return`<div class="cst${hurt&&k!=='hp'?' worn':''}" data-stat="${k}">${coStatIc(k)}<span>${coStatName(k)}${pnStars(t)}</span><b>${hurt?cur+'<small>/'+v+'</small>':v}</b>${pnBar(100*cur/(STATMAX[k]||100),k==='hp'?'hp':hurt?'worn':'st')}</div>`}
 function coStatKeys(m,s){const ks=['hp','arm'];if(m.eq.h||cpHasHelms())ks.push('helm');ks.push('fat','init','ms','rs','md','rd');if(coBrv(m,s)!==null)ks.push('brv');return ks}
 /* condition line under the doll: piece, points left of its full value, a meter */
+function coArmChip(m){const c=tlArmClass(m),n=tlArmTrees().filter(k=>tlTreeArm(k)===c)[0];
+ return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':''):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
 function coCondRow(k,id,cur,mx){const it=ITEMS[id];if(!it)return`<div class="pd-c none">${coIc(k==='h'?'helmet':'armor-light')}<b>${k==='h'?'No helmet':'No armor'}</b><small>${k==='h'?'head hits land in full':'unarmored'}</small></div>`;
  return`<div class="pd-c${cur<mx?' worn':''}" data-cond="${k}">${k==='h'?coIc('helmet'):pnItemIcon(id,16)}<b>${pnItemName(id)}</b><small>${cur<mx?cur+'/'+mx:mx}</small>${pnBar(mx?100*cur/mx:0,cur<mx?'worn':'ar')}</div>`}
 function coInjList(m){const L=cpInj(m);if(!L.length)return'';
@@ -11112,15 +11483,15 @@ function coGiftChips(m,s){const g=tlGift(m),r=g?MAST[g].res:null;let h='';
  if(r){const R=s.res[r],lab=tlGiftLabel(g);h+=R&&R.max>0?`<span class="pn-chip g-${r}" title="${lab}">${coIc(r)}${RESN[r]} ${R.max} <small>+${R.regen}</small></span>`:`<span class="pn-chip g-${r} dorm" title="${lab}: sleeps until a perk of the tree is learned">${coIc(r)}${RESN[r]} sleeps</span>`}
  else h+=`<span class="pn-chip dorm">No gift</span>`;return h}
 function coLeft(m,i,s,ask){const cd=cpCond(m),g=tlGift(m),st=tlStyle(m);
- let h=`<div class="ch"><div class="ch-id">${portraitHTML(m,64)}<div class="ch-idm"><div class="pn-kick">${RACE[m.race].n} ${BG[m.bg].n.toLowerCase()}${TL_STYN[st]?' · '+TL_STYN[st].toLowerCase():''}</div><div class="pn-h">${m.name}</div>
+ let h=`<div class="ch"><div class="ch-id">${portraitHTML(m,64)}<div class="ch-idm"><div class="pn-kick">${RACE[m.race].n} ${BG[m.bg].n.toLowerCase()}${TL_STYN[st]?' · '+TL_STYN[st].toLowerCase():''}</div><div class="pn-h ch-nm">${coRenaming(m,'ch')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'ch')}`}</div>
 <div class="ch-xp"><b>Lv ${m.lvl}</b>${pnBar(m.lvl<MAXLV?100*(m.xp-XPT[m.lvl])/(XPT[m.lvl+1]-XPT[m.lvl]):100,'xp')}<small>${m.lvl<MAXLV?m.xp+'/'+XPT[m.lvl+1]:'max'}</small></div>
-<div class="ch-res">${coGiftChips(m,s)}</div>${g?`<div class="ch-gv g-${tlGiftRes(g)}">${tlGiftLabel(g)}</div>`:''}</div></div>
+<div class="ch-res">${coGiftChips(m,s)}${coArmChip(m)}</div>${g?`<div class="ch-gv g-${tlGiftRes(g)}">${tlGiftLabel(g)}</div>`:''}</div></div>
 ${coInjList(m)}<div class="pd" aria-label="Equipment">${coSlotBtn(m,i,'w')}<div class="pd-fig" style="background-image:url(${coDoll()})">${coSlotBtn(m,i,'h','helm')}${coSlotBtn(m,i,'a','arm')}</div>${coSlotBtn(m,i,'s')}
 <div class="pd-bkr">${coSlotBtn(m,i,'b')}<button type="button" class="pn-btn sm ico pd-swap" data-swap="1" aria-label="Swap main and backup weapons" title="Swap main and backup" ${m.eq.w||m.eq.b?'':'disabled'} onclick="coSwap(${i})">${coIc('swap')}</button></div>
 ${tlSlung(m)?`<div class="pd-an slung">${coIc('shield')}<span><b>Shield slung</b> <small>while a two-handed weapon is in hand: no defense from it until the backup is drawn</small></span></div>`:''}
 <div class="pd-cs">${coCondRow('h',m.eq.h,cd.h,cd.hM)}${coCondRow('a',m.eq.a,cd.a,cd.aM)}</div></div>
 <div class="cst2">${coStatKeys(m,s).map(k=>coStat(m,s,k)).join('')}</div>`;
- h+=ask?`<div class="ch-ask">Send ${m.name} away for good? Their gear returns to the stash.<div><button type="button" class="pn-btn" onclick="coRender()">Keep</button><button type="button" class="pn-btn warn solid" onclick="dismiss(${i})">Dismiss</button></div></div>`
+ h+=ask?`<div class="ch-ask">Send ${htmlEsc(m.name)} away for good? Their gear returns to the stash.<div><button type="button" class="pn-btn" onclick="coRender()">Keep</button><button type="button" class="pn-btn warn solid" onclick="dismiss(${i})">Dismiss</button></div></div>`
   :`<div class="ch-act"><button type="button" class="pn-btn sm${m.field?' on':''}" aria-pressed="${!!m.field}" onclick="toggleField(${i})">${coIc('swords')}<span>${m.field?'Fielded':'In reserve'}</span></button><button type="button" class="pn-btn sm warn" onclick="coDismissAsk(${i})">Dismiss</button></div>`;
  return h+'</div>'}
 
@@ -11133,53 +11504,63 @@ function coAutoAsk(on){coAuto=on?coSel:null;coRender()}
 function tgState(m,o){return o.owned?'got':!o.unlocked?'lock':m.pp>0&&tlCan(m,o.id)?'can':'open'}
 function tgNode(m,o){const st=tgState(m,o),sel=coPerk&&coPerk.pid===o.id,p=o.perk;
  return`<button type="button" class="tg-n ${st}${sel?' sel':''}${p.ab?' ab':''}" data-perk="${o.id}" aria-pressed="${sel}" aria-label="${p.n}, tier ${o.tier}, ${st==='got'?'learned':st==='can'?'can be learned now':st==='open'?'open, needs a point':'opens at level '+o.need}" onclick="coPerkPick('${o.id}')">${coIc(tlPerkIcon(o),32)}${st==='got'?`<em>${coIc('check')}</em>`:st==='lock'?`<em>${coIc('lock')}</em>`:''}</button>`}
-function tgTreeHead(m,x,O){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key),T=x.tree;
- return`<div class="tg-th">${coIc(tlTreeIcon(x.key))}<b>${x.kind==='gift'?tlGiftLabel(x.key):T.n}</b><span>${T.d||''}</span>${n?`<small>${n} learned</small>`:''}</div>`}
+function tgTreeHead(m,x,O){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key),T=x.tree,ac=x.kind==='armor'?tlTreeArm(x.key):null,on=ac&&ac===tlArmClass(m);
+ return`<div class="tg-th">${coIc(tlTreeIcon(x.key))}<b>${x.kind==='gift'?tlGiftLabel(x.key):T.n}</b>${ac?`<em class="tg-ac${on?' on':''}" title="${on?'Worn now: these perks work':'Works only in '+TL_ARMN[ac].toLowerCase()+' armor'}">${on?coIc('check')+'Worn':TL_ARMN[ac]}</em>`:''}<span>${T.d||''}</span>${n?`<small>${n} learned</small>`:''}</div>`}
+/* the armor-class trees: like the weapon trees, columns by the level each tier opens (2 / 5 / 8); the class worn now is lit */
+function coArmorTrees(m,T,O,cols){const ak=T.filter(x=>x.kind==='armor');if(!ak.length)return'';const lv=m.lvl,aLv=tlTierLv('armor',1),cur=tlArmClass(m),
+  at=Math.max(1,...ak.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/at));
+ let h=`<div class="tg-sec"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span>${lv<aLv?'Open at level '+aLv+'. ':''}Each works only while wearing armor of its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
+ h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:at},(_,j)=>{const need=tlTierLv('armor',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
+ for(const x of ak){const on=tlTreeArm(x.key)===cur;h+=`<div class="tg-tree k-armor${on?' worn':' off'}" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
+  for(let t=1;t<=at;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('armor',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
+  h+='</div></div>'}
+ return h+'</div>'}
 function tgAbFacts(p){const a=p.ab&&AB[p.ab];if(!a)return'';const f=['Ability'];if(a.ap!=null)f.push(a.ap+' AP');else if(a.wpn)f.push('weapon AP');if(a.fat)f.push(a.fat+' fatigue');if(a.cost)f.push(a.cost[1]+' '+(RESN[a.cost[0]]||a.cost[0]));if(a.rng>1)f.push('range '+a.rng);return f.join(' · ')}
 function coTalents(m,i){const O=tlOpts(m),T=tlTrees(m),lv=m.lvl,pts=m.pp|0;
  if(!coPerk||coPerk.id!==m.id||!O.some(o=>o.id===coPerk.pid)){const d=O.find(o=>tgState(m,o)==='can')||O.find(o=>!o.owned&&o.unlocked)||O.find(o=>!o.owned)||O[0];coPerk={id:m.id,pid:d?d.id:null}}
- const nCan=O.filter(o=>tgState(m,o)==='can').length,maxT=Math.max(1,...T.filter(x=>x.kind!=='weapon').map(x=>tlTiers(x.tree).length)),cols=Math.max(6,maxT),
+ const nCan=O.filter(o=>tgState(m,o)==='can').length,maxT=Math.max(1,...T.filter(x=>x.kind!=='weapon'&&x.kind!=='armor').map(x=>tlTiers(x.tree).length)),cols=Math.max(6,maxT),
   nextT=[];for(let t=1;t<=cols;t++)if(tlTierLv('style',t)>lv){nextT.push(t);break}
  const wk=T.filter(x=>x.kind==='weapon'),wLv=tlTierLv('weapon',1);
  let h=`<div class="tg${pts?' has':''}" style="--tgc:${cols}"><div class="tg-ban">${coIc(pts?'star':'level',16)}<span><b>${pts?pts+' point'+(pts===1?'':'s')+' to spend':'No points to spend'}</b><small>${pts?(nCan?'Learn any open perk, in any order':'Nothing open left to learn yet'):nextT.length?'Level '+(lv+1)+' brings a point and opens tier '+nextT[0]:lv<MAXLV?'Level '+(lv+1)+' brings a point':'Every point is spent'}</small></span>`
   +`<button type="button" class="pn-btn sm tg-auto" ${pts&&nCan?'':'disabled'} onclick="coAutoAsk(1)">${coIc('auto')}<span>Auto</span></button></div>`;
- h+=`<div class="tg-hd" aria-hidden="true"><span class="tg-hl">Tier</span>${Array.from({length:cols},(_,j)=>{const t=j+1,need=tlTierLv('style',t);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}"><b>${TG_ROM[j]||t}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
- for(const x of T.filter(x=>x.kind!=='weapon')){const r=tlGiftRes(x.key),tiers=tlTiers(x.tree);
+ h+=`<div class="tg-sec"><div class="tg-hd" aria-hidden="true"><span class="tg-hl">Tier</span>${Array.from({length:cols},(_,j)=>{const t=j+1,need=tlTierLv('style',t);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}"><b>${TG_ROM[j]||t}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
+ for(const x of T.filter(x=>x.kind!=='weapon'&&x.kind!=='armor')){const r=tlGiftRes(x.key),tiers=tlTiers(x.tree);
   h+=`<div class="tg-tree k-${x.kind}${r?' g-'+r:''}" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
   for(let t=1;t<=cols;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c${tlTierLv(x.kind,t)>lv?' lk':''}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
   h+='</div></div>'}
+ h+='</div>';   // each section is its own sticky-header scope
  if(wk.length){const wt=Math.max(1,...wk.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/wt));
-  h+=`<div class="tg-wh${lv<wLv?' lk':''}">${coIc(lv<wLv?'lock':'swords')}<b>Weapon trees</b><span>${lv<wLv?'Open at level '+wLv:'Work only while a weapon of the family is in hand'}</span></div>`;
+  h+=`<div class="tg-sec"><div class="tg-wh${lv<wLv?' lk':''}">${coIc(lv<wLv?'lock':'swords')}<b>Weapon trees</b><span>${lv<wLv?'Open at level '+wLv:'Work only while a weapon of the family is in hand'}</span></div>`;
   h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:wt},(_,j)=>{const need=tlTierLv('weapon',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
   for(const x of wk){h+=`<div class="tg-tree k-weapon" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
    for(let t=1;t<=wt;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('weapon',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
-   h+='</div></div>'}}
+   h+='</div></div>'}h+='</div>'}
  else h+=`<div class="tg-wh lk">${coIc('swords')}<b>Weapon trees</b><span>None for a ${BG[m.bg].n.toLowerCase()}${RACE[m.race]&&RACE[m.race].noWt?' of this blood':''}</span></div>`;
- h+='</div>';
+ h+=coArmorTrees(m,T,O,cols)+'</div>';
  let foot;
- if(coAuto===m.id)foot=`<span class="mt-foot">${coIc('auto',32)}<div><b>Auto build</b><small>Spend ${pts} point${pts===1?'':'s'} on a build that suits ${m.name} as ${(/^[AEIOU]/.test(coRole(m,calc(m)))?'an ':'a ')+coRole(m,calc(m)).toLowerCase()}. Learned perks stay learned.</small></div></span><button type="button" class="pn-btn" onclick="coAutoAsk(0)">Cancel</button><button type="button" class="pn-btn pri" onclick="coAutoLearn(${i})">Spend</button>`;
+ if(coAuto===m.id)foot=`<span class="mt-foot">${coIc('auto',32)}<div><b>Auto build</b><small>Spend ${pts} point${pts===1?'':'s'} on a build that suits ${htmlEsc(m.name)} as ${(/^[AEIOU]/.test(coRole(m,calc(m)))?'an ':'a ')+coRole(m,calc(m)).toLowerCase()}. Learned perks stay learned.</small></div></span><button type="button" class="pn-btn" onclick="coAutoAsk(0)">Cancel</button><button type="button" class="pn-btn pri" onclick="coAutoLearn(${i})">Spend</button>`;
  else{const o=O.find(o=>o.id===coPerk.pid);
   if(!o)foot=`<span class="mt-foot"><div><b>No trees</b><small>This sword has nothing to learn.</small></div></span>`;
   else{const p=o.perk,st=tgState(m,o),tag=st==='got'?'Learned':st==='can'?'Ready to learn':st==='open'?'Needs a perk point':'Opens at level '+o.need,
     gift=o.kind==='gift'&&!O.some(q=>q.key===o.key&&q.owned)?`<small class="tg-wake">Awakens ${RESN[tlGiftRes(o.key)]||'the gift'}: the first perk of this tree grants its base pool.</small>`:'',
-    wpn=o.kind==='weapon'?`<small class="tg-wake">Works while a ${(TL_WTN[o.tree.wt]||o.tree.n).toLowerCase()} is in hand.</small>`:'';
-   foot=`<span class="mt-foot">${coIc(tlPerkIcon(o),32)}<div><b>${p.n}<em class="${st}">${tag}</em></b><small class="tg-at">Tier ${o.tier} · ${o.kind==='gift'?tlGiftLabel(o.key):o.tree.n}${o.kind==='weapon'?' · Lv '+o.need:''}${p.ab?' · '+tgAbFacts(p):''}</small><small>${p.d||''}</small>${gift}${wpn}</div></span>
+    wpn=o.kind==='weapon'?`<small class="tg-wake">Works while a ${(TL_WTN[o.tree.wt]||o.tree.n).toLowerCase()} is in hand.</small>`:o.kind==='armor'?(()=>{const ac=tlTreeArm(o.key),cur=tlArmClass(m);return`<small class="tg-wake">Works only while wearing ${ac?TL_ARMN[ac].toLowerCase():'that class of'} armor${ac&&cur===ac?': worn now':'. Now wearing '+(cur?TL_ARMN[cur].toLowerCase()+' armor':'none')}.</small>`})():'';
+   foot=`<span class="mt-foot">${coIc(tlPerkIcon(o),32)}<div><b>${p.n}<em class="${st}">${tag}</em></b><small class="tg-at">Tier ${o.tier} · ${o.kind==='gift'?tlGiftLabel(o.key):o.tree.n}${o.kind==='weapon'||o.kind==='armor'?' · Lv '+o.need:''}${p.ab?' · '+tgAbFacts(p):''}</small><small>${p.d||''}</small>${gift}${wpn}</div></span>
 <button type="button" class="pn-btn pri" ${st==='can'?'':'disabled'} onclick="learn(${i},'${o.id}')">Learn</button>`}}
  return{detail:h,foot,key:'m'+m.id}}
 function coTrees(m,i){return coTalents(m,i)}
 function coLevel(m,i){if(!m.rolls){m.rolls={};lvSel=[]}
  for(const k in ROLL)if(typeof m.rolls[k]!=='number'){const t=m.tal[k]||0;m.rolls[k]=ri(ROLL[k][0]+Math.floor(t/2),ROLL[k][1]+Math.ceil(t/2))}   // also fills an attribute added since the roll was made
  if(lvFor!==m.id){lvSel=[];lvFor=m.id}
- let h=`<div class="pn-kick">${coIc('level')}Level up${m.pend>1?', '+m.pend+' waiting':''}</div><div class="pn-h">${m.name} reaches level ${m.lvl-m.pend+1}</div>${coLvOpens(m.lvl-m.pend+1)}<p class="pn-p dim">Choose three attributes to raise. Stars mark natural talent.</p><div class="pn-picks">`;
+ let h=`<div class="pn-kick">${coIc('level')}Level up${m.pend>1?', '+m.pend+' waiting':''}</div><div class="pn-h">${htmlEsc(m.name)} reaches level ${m.lvl-m.pend+1}</div>${coLvOpens(m.lvl-m.pend+1)}<p class="pn-p dim">Choose three attributes to raise. Stars mark natural talent.</p><div class="pn-picks">`;
  for(const k in ROLL)h+=`<div class="pn-pick${lvSel.includes(k)?' on':''}${lvSel.length>=3&&!lvSel.includes(k)?' dimmed':''}" role="button" tabindex="0" data-pick="${k}" aria-pressed="${lvSel.includes(k)}" onclick="lvPick(${i},'${k}')"><b>${coStatIc(k)}+${m.rolls[k]}</b>${pnStars(m.tal[k]||0)}<span>${coStatName(k)}</span><small>now ${typeof m.base[k]==='number'?m.base[k]:0}</small></div>`;
  h+='</div>';
  return{detail:h,key:'l'+m.id,foot:`<span class="pn-fl"><span class="pn-count">${[0,1,2].map(j=>`<i class="${j<lvSel.length?'on':''}"></i>`).join('')}</span><small>${lvSel.length} of 3 chosen</small></span><button type="button" class="pn-btn pri" ${lvSel.length===3?'':'disabled'} onclick="lvConfirm(${i})">Raise attributes</button>`}}
 /* what reaching level L opens: a new tier of every style and gift tree, a weapon tier at 3 / 6 / 9 */
-function coLvTiers(L){const out=[];for(let t=1;t<=9;t++){if(tlTierLv('style',t)===L)out.push({kind:'style',t});if(tlTierLv('weapon',t)===L&&t<=3)out.push({kind:'weapon',t})}return out}
+function coLvTiers(L){const out=[],arm=tlArmTrees().length>0;for(let t=1;t<=9;t++){if(tlTierLv('style',t)===L)out.push({kind:'style',t});if(tlTierLv('weapon',t)===L&&t<=3)out.push({kind:'weapon',t});if(arm&&tlTierLv('armor',t)===L&&t<=3)out.push({kind:'armor',t})}return out}
 function coLvOpens(L){const T=coLvTiers(L);if(!T.length)return'';
- return`<div class="pn-p tg-lvup">${T.map(x=>x.kind==='weapon'?`<span class="tg-tag w">${coIc('swords')}${x.t===1?'Weapon trees open':'Weapon tier '+TG_ROM[x.t-1]+' opens'}</span>`:`<span class="tg-tag">${coIc('level')}New tier unlocked: tier ${TG_ROM[x.t-1]}</span>`).join('')}</div>`}
+ return`<div class="pn-p tg-lvup">${T.map(x=>x.kind==='armor'?`<span class="tg-tag w a">${coIc('armor')}${x.t===1?'Armor trees open':'Armor tier '+TG_ROM[x.t-1]+' opens'}</span>`:x.kind==='weapon'?`<span class="tg-tag w">${coIc('swords')}${x.t===1?'Weapon trees open':'Weapon tier '+TG_ROM[x.t-1]+' opens'}</span>`:`<span class="tg-tag">${coIc('level')}New tier unlocked: tier ${TG_ROM[x.t-1]}</span>`).join('')}</div>`}
 function coSlotView(m,i,k){const cur=m.eq[k],want=k==='b'?'w':k,list=G.stash.map((id,j)=>[id,j]).filter(([id])=>ITEMS[id]&&ITEMS[id].k===want),N={w:'Weapons',b:'Weapons',s:'Shields',a:'Armor',h:'Helmets'};
- let h=`<div class="pn-kick">${m.name}, ${k==='b'?'backup weapon':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
+ let h=`<div class="pn-kick">${htmlEsc(m.name)}, ${k==='b'?'backup weapon':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
  <div class="pn-gear cur${cur?'':' none'}">${cur?pnItemIcon(cur,32):coIc(coSlotIcon(k),32)}<span class="pn-rmain"><span class="pn-rt">${cur?pnItemName(cur)+pnFamedTag(cur):'Nothing equipped'}${cur?coGripTag(cur):''}</span><span class="pn-rs">${cur?coItemDesc(cur)+coWornNote(m,k):k==='w'?'Fighting with bare fists':k==='b'?'No sidearm to swap to':k==='h'?'Bare-headed: a blow to the head lands in full':'Empty '+SLOTN[k].toLowerCase()+' slot'}</span></span><span class="pn-slot">${k==='b'?'At the hip':'In use'}</span></div>`;
  if(k==='b')h+=`<p class="pn-p dim">The backup rides at the hip. In battle, <b>Swap weapons</b> (2 AP) puts it in hand. A bow cannot shoot with a foe standing next to you: an archer wants a dagger or a sword here.</p>`;
  if(k==='s'&&tlTwo(m.eq.w)&&tlTwo(m.eq.b))h+=`<p class="pn-p warn">${tlEquipRule(m,'s',list.length?list[0][0]:'buckler').why||'Both hands are full: a shield needs a one-handed weapon in one of the two weapon slots'}.</p>`;
@@ -11349,7 +11730,7 @@ function mkPlayerUnit(m){const s=calc(m),res={},c=armorCond(m),sh=s.shield;for(c
  const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m));
  return initLoad(initUnit({side:0,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init,ms:s.ms,rs:s.rs,md:s.md,rd:s.rd,brv:s.brv,
   wpn:s.wpn,abs:s.abs.slice(),res,flags:s.flags,dmgB:s.dmg,buffs:[],st:{},alive:true,shield:!!sh&&sh.raised,slung:!!sh&&!sh.raised,shp:sh?sh.hp:0,shpMax:sh?sh.hp:0,shb:sh?{md:sh.md,rd:sh.rd}:null,
-  hand:'w',wid:s.wid,alt:s.alt,cld:s,back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null}))}
+  hand:'w',wid:s.wid,alt:s.alt,cld:s,back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null,aw:s.aw||0,acl:s.acl||'light'}))}
 /* Enemy fields read from EN[id] beyond the old ones (all optional): helm (head armor; default 60% of arm), brv (resolve; default from xp),
    fearless (never tests morale; default: mindless undead and bosses), shield (hitpoints, or {hp,md,rd}: md/rd are what breaking it removes), noHead. */
 // An enemy's weapon: its own d, from EN[id].w (an item: family, range, reach, reload, crush, to-hit) or a plain blade / bow (rng).
@@ -11415,10 +11796,13 @@ function spawnUnit(u){const b=B;if(!b||!u)return null;initUnit(u);const sz=u.sz|
 // The statuses and timed buffs a unit carries now: [{key, n (name), turns}], keys from STATUS.
 function unitStatuses(u){const out=[],add=(key,turns)=>{if(!out.some(x=>x.key===key))out.push({key,n:STATUS[key]?STATUS[key].n:key,turns:turns||0})};
  for(const k in u.st)if(u.st[k]>0)add(k,u.st[k]);if(u.rooted&&!(u.st.root>0)&&!(u.st.webbed>0))add('root',0);if(u.dazed&&!(u.st.daze>0))add('daze',0);
- for(const x of u.buffs)add(x.key&&STATUS[x.key]?x.key:x.indom?'indom':'buff',x.dur);if(u.shpMax>0&&!u.shield&&!u.slung)add('splitshield',0);if(u.slung)add('slung',0);if(u.weakened&&!(u.st.weak>0))add('weak',0);if(u.wpn&&u.wpn.reload&&u.loaded===false)add('unloaded',0);return out}
+ for(const x of u.buffs)add(x.key&&STATUS[x.key]?x.key:x.indom?'indom':'buff',x.dur);if(u.shpMax>0&&!u.shield&&!u.slung)add('splitshield',0);if(u.slung)add('slung',0);if(u.weakened&&!(u.st.weak>0))add('weak',0);if(u.wpn&&u.wpn.reload&&u.loaded===false)add('unloaded',0);
+ {const tp=tiredPen(u),f=u.flags||{};if(tp>0)add('tired',tp);if(f.dance&&u.dnc>0)add('dance',Math.min(15,f.dance*u.dnc));if(f.fleet&&u.mvd)add('fleet',0)}return out}
 const statusList=unitStatuses;                                           // alias: the same list under a name no other file defines
 // Gives t status key for n turns (never shortens one it already has) and tells the scene.
-function addStatus(t,key,n){if(!t.alive||!(n>0))return;const had=t.st[key]||0;t.st[key]=Math.max(had,n);if(t.st[key]>had)FX.emit('status',{t,key,n:t.st[key]})}
+function addStatus(t,key,n){if(!t.alive||!(n>0))return;
+ if(key==='stun'&&t.flags){if(t.flags.noStun){float(t,'Unshakable','#c8d0d8');return}if(t.flags.roll&&rnd()<t.flags.roll){float(t,'Rolled with it','#c8d0d8');return}}   // armor trees: Unshakable, Rolling with it
+const had=t.st[key]||0;t.st[key]=Math.max(had,n);if(t.st[key]>had)FX.emit('status',{t,key,n:t.st[key]})}
 function addBuff(t,buff,dur){const x=Object.assign({dur:dur||2},buff);if(x.key)t.buffs=t.buffs.filter(y=>y.key!==x.key);t.buffs.push(x);if(x.key)FX.emit('status',{t,key:x.key,n:x.dur});return x}
 function dropBuff(t,k){const n=t.buffs.length;t.buffs=t.buffs.filter(x=>x.key!==k);return t.buffs.length<n}
 /* ---- Morale ----
@@ -11574,17 +11958,30 @@ const STBONUS={marked:15},WEAKDMG=.25;
 function hasAdj(x,side,not){for(const o of B.units)if(o.alive&&o!==x&&o!==not&&o.side===side&&mdist(o,x)===1)return true;return false}
 function bestAdj(x,k){let v=0;for(const o of B.units)if(o.alive&&o!==x&&o.side===x.side&&o.flags&&o.flags[k]>v&&mdist(o,x)===1)v=o.flags[k];return v}
 const isDuel=(u,a)=>!a.magic&&!u.wpn.two&&!isRangedW(u.wpn)&&!u.shield;
+/* Fatigue. tiredPen(u): 0 up to TIRED.from (half) of its maximum fatigue, then 1 point for every 5% more, to TIRED.max at full
+   exhaustion (rounded): 50% 0, 60% 2, 75% 5, 90% 8, 100% 10. A tired attacker loses that much to hit (melee, shots and spells alike)
+   and a tired target that much defense (it is that much easier to hit). Units that do not tire (fatMax 999 and up: most foes) never
+   pay it; foes with real fatigue (orcs, ogres...) do. */
+const TIRED={from:.5,max:10};
+function tiredPen(u){if(!u||!(u.fatMax>0)||u.fatMax>=999)return 0;const r=(u.fat||0)/u.fatMax;if(r<=TIRED.from)return 0;return Math.round(TIRED.max*Math.min(1,(r-TIRED.from)/(1-TIRED.from)))}
+/* Defense t gets from its armor-tree perks against u's ability a (already inside hitChance; forecast().armDef shows it):
+   Fleet (moved on its turn, against shots), Fresh legs (fatigue below half), Dancer (misses since its last turn), Layered defense
+   (body armor above half). */
+function armorDef(u,t,a){const f=t.flags||{};let v=0;if(!(f.fleet||f.freshDef||f.dance||f.layerDef))return 0;
+ if(f.fleet&&t.mvd&&!a.magic&&shotKind(u,t,a)===2)v+=f.fleet;if(f.freshDef&&(t.fat||0)<t.fatMax*.5)v+=f.freshDef;if(f.dance&&t.dnc>0)v+=Math.min(15,f.dance*t.dnc);
+ if(f.layerDef&&t.armMax>0&&t.arm>t.armMax/2)v+=f.layerDef;return v}
 function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
  if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(isRangedAtk(u,a)?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd')}
  let ch=sk-df+(a.hit||0);const hd=T(u).h-T(t).h;ch+=hd>0?10:hd<0?-10:0;if(d>2&&!a.melee&&!fu.longShot)ch-=(d-2)*2;if(t.st.stun)ch+=15;if(t.st.webbed)ch+=10;if(t.st.marked>0)ch+=STBONUS.marked;
  if(ft.adjDef||ft.loneDef){if(hasAdj(t,t.side))ch-=ft.adjDef||0;else ch-=ft.loneDef||0}
  if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
  if(B.auraOn){ch+=bestAdj(u,'cmd');if(!melee)ch-=bestAdj(t,'guard')}
- ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;return clamp(Math.round(ch),5,95)}
+ ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;
+ ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a);return clamp(Math.round(ch),5,95)}
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
 function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0),0,100)}
 // B.auraOn: some unit gives a Battle orders / Cover bonus to its neighbours (kept fresh at every turn, spawn and swap).
-function auraScan(){if(B)B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cmd||x.flags.guard));return!!(B&&B.auraOn)}
+function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cmd||x.flags.guard));B.wallOn=B.units.some(x=>x.alive&&x.flags&&x.flags.steelWall>0)}return!!(B&&B.auraOn)}
 /* ---- Damage pieces shared by strike() and forecast(), so the forecast cannot drift ----
    dmgAfter(u,t,a,dmg,o): the rolled damage (weapon roll x mult, or the spell roll with its bonuses) after every multiplier:
    x(1 + damage buffs + dmgB + the talent bonuses that apply) -> x(1 + executioner/vsHurt) below half health -> x splash -> x1.1 from
@@ -11592,7 +11989,12 @@ function auraScan(){if(B)B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cmd
 function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
  if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
  if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
-function drOf(u,t,a){let dr=buffSum(t,'dr');const f=t.flags||{};if(f.forged&&t.arm>0)dr+=.15;if(f.drB)dr+=f.drB;if(f.lastStand&&t.hp<t.hpMax/2)dr+=f.lastStand;
+/* Nimble (light armor): 30% minus 1.5% per point of armor and helmet weight (t.aw), times (0.5 + 0.5 x the share of stamina left),
+   in whole percent. 0 without the perk. */
+function nimbleDr(t){const f=t&&t.flags;if(!f||!f.nimble)return 0;const fr=t.fatMax>0&&t.fatMax<999?1-clamp((t.fat||0)/t.fatMax,0,1):1;return Math.round(Math.max(0,30-1.5*(t.aw||0))*(.5+.5*fr))/100}
+// The share of damage the armor trees take off a blow on t (inside drOf): Nimble, Brace (first hit between its turns), an ally's Bulwark of steel.
+function armorDr(t){const f=t.flags||{};let dr=0;if(f.nimble)dr+=nimbleDr(t);if(f.brace&&!t.brc)dr+=f.brace;if(B&&B.wallOn)dr+=bestAdj(t,'steelWall');return dr}
+function drOf(u,t,a){let dr=buffSum(t,'dr')+armorDr(t);const f=t.flags||{};if(f.forged&&t.arm>0)dr+=.15;if(f.drB)dr+=f.drB;if(f.lastStand&&t.hp<t.hpMax/2)dr+=f.lastStand;
  if(f.drRanged||f.drMelee){if(shotKind(u,t,a)===2)dr+=f.drRanged||0;else dr+=f.drMelee||0}
  if(t.shield){if(f.shieldDr)dr+=f.shieldDr;if(f.deflect&&shotKind(u,t,a)===2)dr+=f.deflect}return dr}
 function dmgAfter(u,t,a,dmg,o){const f=u.flags||{};dmg*=1+buffSum(u,'dmg')+(u.dmgB||0)+dmgBonus(u,t,a);
@@ -11602,7 +12004,9 @@ function dmgAfter(u,t,a,dmg,o){const f=u.flags||{};dmg*=1+buffSum(u,'dmg')+(u.dm
 const fireAb=a=>!!(a&&(a.fire||(a.status&&a.status.burn>0)));
 const burnDmg=u=>Math.round(8*(1+(u.fw||0)));
 // Cannot be knocked back or dragged: size-2 units, def.kbImm, Indomitable and the like.
-const kbImmune=t=>(t.sz||1)>1||!!(t.def&&t.def.kbImm)||buffSum(t,'indom')>0;
+const kbImmune=t=>(t.sz||1)>1||!!(t.def&&t.def.kbImm)||buffSum(t,'indom')>0||!!(t.flags&&t.flags.kbImm);
+// Steady footing (medium armor) halves what a step costs in fatigue.
+const moveFat=u=>u&&u.flags&&u.flags.footing?1:2;
 const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0?u.lvl*.03:0));
 const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)+(u.flags&&u.flags.ignB||0);
 // The damage roll of a weapon ability (a Spiked bash rolls the shield's spike), and the armor crushing of the blow (hammers).
@@ -11636,13 +12040,22 @@ function killUnit(t,src,head){t.hp=0;t.alive=false;if(t.side===0&&t.m){t.down=rn
    o.crush (hammers): the armor loses round(dmg x (1 + crush)) instead of dmg (capped by what it has); what it soaks stays dmg.
    src is the attacker (null for terrain, burn and bleeding); o.loc marks a weapon or spell hit (it reports its location and can injure).
    Returns the hitpoints taken. */
-function hurt(t,dmg,ign,src,o){o=o||{};const head=!!o.head,pool=head?'helm':'arm',a0=t[pool]||0;let hpd;
- if(o.pierce)hpd=dmg;else if(a0>0){const ad=Math.min(a0,o.crush>0?Math.round(dmg*(1+o.crush)):dmg);t[pool]=a0-ad;hpd=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*ign-t[pool]*.1),0)}else hpd=dmg;
+/* Armor trees in hurt() (fcSoak mirrors them): Padded under-layer (padIgn: the piercing share against body armor is smaller), Unbowed
+   (one blow strips at most unbowed x the location's maximum), and for weapon and spell hits (o.loc) Sidestep (once between its turns a
+   blow over sidestep x max hitpoints is halved, after the head multiplier), Juggernaut (hpSoak fewer hitpoints, at least 1); a hit
+   spends Brace. Unshakable (noStun): heavy blows do not test morale. */
+function hurt(t,dmg,ign,src,o){o=o||{};const head=!!o.head,pool=head?'helm':'arm',a0=t[pool]||0,tf=t.flags||{};let hpd;
+ if(o.pierce)hpd=dmg;else if(a0>0){let ad=Math.min(a0,o.crush>0?Math.round(dmg*(1+o.crush)):dmg);if(tf.unbowed)ad=Math.min(ad,armCap(t,head));t[pool]=a0-ad;
+  hpd=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*(!head&&tf.padIgn?ign*(1-tf.padIgn):ign)-t[pool]*.1),0)}else hpd=dmg;
  if(head)hpd=Math.round(hpd*HEADMULT);
+ if(o.loc){if(tf.sidestep&&!t.ss&&hpd>t.hpMax*tf.sidestep){hpd=Math.round(hpd/2);t.ss=1;float(t,'Sidestep','#8fd8ff')}
+  if(tf.hpSoak&&hpd>0)hpd=Math.max(1,hpd-tf.hpSoak);if(tf.brace)t.brc=1}
  t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);if(undy){t.undy=1;t.hp=1}float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,'Undying','#ffd27a');FX.emit('status',{t,key:'undying',n:0})}
  if(t.hp<=0){killUnit(t,src||null,head);return hpd}
- if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH)inflictInjury(t,head,false);moraleCheck(t,30,-1)}
+ if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH)inflictInjury(t,head,false);if(!tf.noStun)moraleCheck(t,30,-1)}
  return hpd}
+// Unbowed: the most armor one blow can strip from t's body armor (or helmet).
+const armCap=(t,head)=>Math.max(1,Math.round(((head?t.helmMax:t.armMax)||0)*t.flags.unbowed));
 // Shield damage. A shield at 0 is destroyed: its defense and its skills are gone (and a merc's shield does not come home).
 function breakShield(t){if(!t.shield)return false;t.shp=0;t.shield=false;if(t.shb){t.md-=t.shb.md;t.rd-=t.shb.rd}dropBuff(t,'shieldwall');
  if(t.flags&&t.flags.shGuard){t.flags=Object.assign({},t.flags);t.flags.guard=(t.flags.guard||0)-t.flags.shGuard;t.flags.shGuard=0;auraScan()}   // a split tower shield covers nobody
@@ -11652,11 +12065,13 @@ function damageShield(t,n,src){if(!t.shield)return 0;const s0=t.shp,d=Math.min(s
 // What a kill gives the killer through its talents: hitpoints (killHeal), its gift resource (killRes).
 function onKill(u){const f=u.flags||{};if(f.killHeal&&u.hp<u.hpMax){const h0=u.hp;u.hp=Math.min(u.hpMax,u.hp+f.killHeal);float(u,'+'+(u.hp-h0),'#9bd96f');FX.emit('heal',{t:u,n:u.hp-h0})}
  if(f.killRes){const k=Object.keys(u.res)[0],R=k&&u.res[k];if(R&&R.cur<R.max){R.cur=Math.min(R.max,R.cur+f.killRes);float(u,'+'+f.killRes+' '+(RESN[k]||k),RESC[k]||'#fff')}}}
+// Rolling with it (medium armor): a knockback or hook on t fails with chance flags.roll (one seeded draw, only for a bearer of the perk).
+function rollsWith(t){if(!(t.flags&&t.flags.roll>0)||rnd()>=t.flags.roll)return false;float(t,'Rolled with it','#c8d0d8');return true}
 /* knockback(u,t,n,crash): t is driven up to n tiles straight away from u (from the middle of u's footprint, along the longer axis).
    Something in the way stops it: t takes 8 (a slam), or `crash` when it is thrown into another unit, which takes `crash` too (ogres).
    Size-2 units, def.kbImm and Indomitable never move (kbImmune). */
 function kbDir(u,t){const m=unitCenter(u);let dc=t.c-m.c,dr=t.r-m.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc)||1;dr=0}else{dr=Math.sign(dr);dc=0}return[dc,dr]}
-async function knockback(u,t,n,crash){if(kbImmune(t))return;const [dc,dr]=kbDir(u,t);
+async function knockback(u,t,n,crash){if(kbImmune(t))return;if(rollsWith(t))return;const [dc,dr]=kbDir(u,t);
  for(let i=0;i<n&&t.alive;i++){const nc=t.c+dc,nr=t.r+dr,cur=T(t),x=inb(nc,nr)?unitAt(nc,nr):null;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||x||B.tiles[key(nc,nr)].h>cur.h+1){
    if(x&&crash>0){float(t,'Crash','#ffd27a');hurt(t,crash,1);if(x.alive){float(x,'Crash','#ffd27a');hurt(x,crash,1)}FX.emit('kb',{t,crash:x})}else{float(t,'Slam','#ffd27a');hurt(t,8,1)}break}
   const drop=cur.h-B.tiles[key(nc,nr)].h;t.c=nc;t.r=nr;FX.emit('kb',{t});await sleep(120);if(drop>=1)hurt(t,6*drop,1);if(t.alive&&T(t).t==='haz')hurt(t,12,1)}}
@@ -11674,7 +12089,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
  if(a.split){fly(t);if(!t.shield)return false;damageShield(t,Math.round(ri(u.wpn.d[0],u.wpn.d[1])*splitMult(u,a)),u);await sleep(240);return true}
  if(!o.auto&&!a.sure&&rnd()*100>=hitChance(u,t,a)){let v=null;
   if(!o.free&&shotKind(u,t,a)===2){const ff=losInfo(u,t,a).ff;if(ff.length&&rnd()<FFCH)v=ff[Math.floor(rnd()*ff.length)]}
-  fly(v||t);float(t,'Miss','#c8d0d8');FX.emit('miss',v?{u,t,stray:v}:{u,t});await sleep(230);
+  fly(v||t);float(t,'Miss','#c8d0d8');FX.emit('miss',v?{u,t,stray:v}:{u,t});if(t.flags&&t.flags.dance)t.dnc=Math.min(3,(t.dnc||0)+1);await sleep(230);
   if(v){if(v.alive&&u.alive){say(`${u.name}'s shot strays into ${v.name}.`);FX.emit('ff',{u,t:v,from:t});await strike(u,v,a,{auto:1,stray:1,free:'stray',noShot:1,splash:(o.splash||1)*FFDMG})}}
   else if(!o.free&&!a.magic&&d===1&&t.alive&&u.alive&&buffSum(t,'rip'))await freeAttack(t,u,'riposte');
   return false}
@@ -11690,7 +12105,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
  else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(!t.gone&&u.alive)onKill(u)}
  await sleep(240);return true}
 // A hook: t is dragged up to n tiles toward u, along the longer axis, while the next tile is free, walkable and at most 1 step up.
-async function pullUnit(u,t,n){for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){const m=unitCenter(u);let dc=m.c-t.c,dr=m.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
+async function pullUnit(u,t,n){if(mdist(u,t)>1&&rollsWith(t))return;for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){const m=unitCenter(u);let dc=m.c-t.c,dr=m.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
   const nc=t.c+dc,nr=t.r+dr;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr)||B.tiles[key(nc,nr)].h>T(t).h+1)break;
   t.c=nc;t.r=nr;float(t,'Hooked','#ffd27a');FX.emit('kb',{t,pull:1});await sleep(120);if(t.alive&&T(t).t==='haz')hurt(t,12,1)}}
 /* ---- Movement ---- */
@@ -11725,14 +12140,14 @@ function pathTo(D,k){const p=[];for(let x=k;D.get(x)&&D.get(x).prev>=0;x=D.get(x
 // (A flier over a prop is not halted there: it flies on to where it can land. A size-2 unit needs its whole footprint clear.)
 async function walkPath(u,path){const b=B;if(!u.fly)return walkPath0(u,path);const land=[u.c,u.r];await walkPath0(u,path,land);
  if(B===b&&u.alive&&airAt(u)){u.c=land[0];u.r=land[1];FX.emit('move',{u});await sleep(105)}}            // a flier never ends over a prop or a unit
-async function walkPath0(u,path,land){const b=B,sz=u.sz||1;for(const k of path){if(B!==b||!u.alive)return;const fk=key(u.c,u.r),c=stepCost(u,fk,k);if(u.ap<c||u.fat+2>u.fatMax)break;if(!canFly(u)&&(sz>1?footUnit(k%BW,(k/BW)|0,sz,u):unitAt(k%BW,(k/BW)|0)))break;
-  const foe=zocFoe(u);
+async function walkPath0(u,path,land){const b=B,sz=u.sz||1,mf=moveFat(u);for(const k of path){if(B!==b||!u.alive)return;const fk=key(u.c,u.r),c=stepCost(u,fk,k);if(u.ap<c||u.fat+mf>u.fatMax)break;if(!canFly(u)&&(sz>1?footUnit(k%BW,(k/BW)|0,sz,u):unitAt(k%BW,(k/BW)|0)))break;
+  const slip=!!(u.flags&&u.flags.slip)&&!u.slipT;u.slipT=1;const foe=slip?null:zocFoe(u);   // Slippery: the first tile left each turn draws no free attack
   if(foe){foe.aoo=1;const hit=await freeAttack(foe,u,'zoc');if(B!==b||!u.alive)return;if(hit&&!airAt(u)){float(u,'Halted','#ffd27a');break}}
   let stop=false;const nc=k%BW,nr=(k/BW)|0;
   for(const s of b.units.filter(s=>s.alive&&s.side!==u.side&&buffSum(s,'sw')&&mdist(s,u)>1&&fdist(nc,nr,sz,s)===1)){if(!canFree(s))continue;
    const hit=await freeAttack(s,u,'spearwall');if(B!==b||!u.alive)return;if(hit&&!airAt(u)){float(u,'Halted','#ffd27a');stop=true;break}dropBuff(s,'spearwall')}
   if(stop){u.ap=Math.max(0,u.ap-c);break}
-  u.ap-=c;u.fat+=2;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(land&&!airAt(u)){land[0]=nc;land[1]=nr}if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
+  u.ap-=c;u.fat+=mf;u.mvd=1;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(land&&!airAt(u)){land[0]=nc;land[1]=nr}if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
 /* ---- Ability effects on allies (heal, buff, rally, cleanse, AP) ---- */
 const healRoll=(u,a)=>{const h=ri(a.heal[0],a.heal[1]);return Math.round(h*(1+(u.flags&&u.flags.healB||0)))};
 function healUnit(t,h){const h0=t.hp;t.hp=Math.min(t.hpMax,t.hp+h);float(t,'+'+h,'#9bd96f');FX.emit('heal',{t,n:t.hp-h0})}
@@ -11756,7 +12171,7 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
   if(a.party)for(const t of partyOf(u,a))allyEffect(u,t,a);
   else{if(a.heal)healUnit(u,healRoll(u,a));if(a.buff){addBuff(u,a.buff,a.dur);float(u,a.n,'#9bd96f');FX.emit('buff',{t:u})}}}
  else if(a.tgt==='aoe'){for(const t of b.units.filter(t=>t.alive&&t.side!==u.side&&mdist(u,t)===1)){if(B!==b||!u.alive)break;await strike(u,t,a)}}
- else if(a.tgt==='move'){u.c=c;u.r=r;FX.emit('move',{u});await sleep(200);if(B===b&&T(u).t==='haz')hurt(u,12,1);if(B===b&&u.alive&&a.buff){addBuff(u,a.buff,a.dur);FX.emit('buff',{t:u})}}
+ else if(a.tgt==='move'){u.c=c;u.r=r;u.mvd=1;FX.emit('move',{u});await sleep(200);if(B===b&&T(u).t==='haz')hurt(u,12,1);if(B===b&&u.alive&&a.buff){addBuff(u,a.buff,a.dur);FX.emit('buff',{t:u})}}
  else if(a.tgt==='ally'){const t=unitAt(c,r);if(t)allyEffect(u,t,a)}
  else if(a.tgt==='enemy'){const t=unitAt(c,r);if(t){
    if(a.dash&&mdist(u,t)>1){const best=dashSpot(u,t);if(best){u.c=best[0];u.r=best[1];FX.emit('move',{u});await sleep(200)}}
@@ -11779,7 +12194,9 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
  while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);b.order=al.sort((x,y)=>y.roll-x.roll||x.id-y.id)}
   const x=b.order.shift();if(x.alive)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
- u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;u.fat=Math.max(0,u.fat-15);u.swapFree=!!(u.flags&&u.flags.freeSwap);auraScan();for(const k in u.res)u.res[k].cur=Math.min(u.res[k].max,u.res[k].cur+u.res[k].regen);
+ u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;u.fat=Math.max(0,u.fat-15);u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;auraScan();
+ if(u.flags&&u.flags.armRegen>0&&u.armMax>0&&u.arm<u.armMax){const a0=u.arm;u.arm=Math.min(u.armMax,u.arm+u.flags.armRegen);float(u,'Armor +'+(u.arm-a0),'#c8d0d8')}   // Mail mender
+ for(const k in u.res)u.res[k].cur=Math.min(u.res[k].max,u.res[k].cur+u.res[k].regen);
  u.buffs=u.buffs.filter(x=>--x.dur>0);if(u.st.chill){u.ap=Math.max(0,u.ap-3);u.st.chill--;float(u,'Chilled','#8fd8ff')}u.rooted=false;if(u.st.root){u.rooted=true;u.st.root--}if(u.st.webbed){u.rooted=true;u.st.webbed--}
  u.dazed=false;if(u.st.daze){u.dazed=true;u.st.daze--}u.weakened=false;if(u.st.weak){u.weakened=true;u.st.weak--}if(u.st.marked)u.st.marked--;
  b.cam.tx=u.sx;b.cam.ty=u.sy-10;FX.emit('turn',{u});FX.ui();
@@ -11814,13 +12231,26 @@ async function aiTurn(u){if(typeof aiTurn2==='function')return aiTurn2(u);const 
      m.gift   the gift tree key (a MAST entry of kind 'gift') or null; chosen from the gift and BG[bg].style (giftKey)
      m.perks  [perk ids] learned, in order;  m.pp unspent perk points (one a level, level 1 included)
    Weapon trees are not stored: weaponTrees(m) = BG[bg].wt minus RACE[race].noWt.
+   Armor trees are not stored either: every merc has lightarmor, medarmor and heavyarmor (armorTrees(m)); their tier t opens at level 3t-1.
    Tier t of a style or gift tree opens at level t, of a weapon tree at level 3t; any open perk can be bought with a point.
    The first perk learned in the gift tree awakens the gift (calc() then grants its pool).
    m.mast is a derived, read-only mirror {treeKey: perks owned} kept for older UI code; nothing in the rules reads it.
    Uses no randomness except rollTrees() at recruitment (seeded). */
 const PERKIX={};for(const k in MAST)MAST[k].tiers.forEach((tier,ti)=>tier.forEach(p=>{PERKIX[p.id]={perk:p,tree:MAST[k],key:k,tier:ti+1,kind:MAST[k].kind}}));
-// The level at which tier t (1-based) of a tree of this kind opens.
-function tierLevel(kind,t){return kind==='weapon'?3*t:t}
+// The level at which tier t (1-based) of a tree of this kind opens: style and gift t, weapon 3t (3 6 9), armor 3t-1 (2 5 8).
+function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}
+/* Armor trees: every merc has all three (ARMORT, display order light medium heavy); a perk of one works only while the body armor worn
+   is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off). armorTrees(m) -> their keys. */
+const ARMORT=['lightarmor','medarmor','heavyarmor'].filter(k=>MAST[k]&&MAST[k].kind==='armor');
+function armorTrees(m){return ARMORT.slice()}
+/* Saves: the loader (repairMerc in 20-state.js) keeps only perks of m.trees and weaponTrees(m), so the armor perks are mirrored in
+   m.armp = {ids: armor perk ids, base: the other perks, joined}. When m.perks is exactly what the loader leaves (base, and none of ids)
+   the ids are put back. calc, mercTrees and syncMast call this; it never removes a perk, and a copy given other perks is left alone. */
+const isArmorPerk=id=>!!(PERKIX[id]&&PERKIX[id].kind==='armor');
+function armorPerksHeal(m){if(!m||!Array.isArray(m.perks))return;const A=m.armp;
+ if(A&&Array.isArray(A.ids)&&A.ids.length&&!m.perks.some(isArmorPerk)&&m.perks.join()===A.base)for(const id of A.ids)if(typeof id==='string'&&isArmorPerk(id)&&!m.perks.includes(id))m.perks.push(id);
+ if(!m.perks.some(isArmorPerk))return;const ids=m.perks.filter(isArmorPerk),base=m.perks.filter(id=>!isArmorPerk(id)).join();
+ if(!A||A.base!==base||!Array.isArray(A.ids)||A.ids.join()!==ids.join())m.armp={ids,base}}
 // {perk, tree, key, tier, kind} for a perk id, or null.
 function perkById(id){return PERKIX[id]||null}
 function mercStyle(m){return m&&BG[m.bg]&&BG[m.bg].style||'melee'}
@@ -11832,11 +12262,12 @@ function giftVariant(m,res){if(!m)return null;if(!res&&m.gift&&MAST[m.gift]&&MAS
 function giftAwake(m){const g=m&&m.gift;return!!(g&&Array.isArray(m.perks)&&m.perks.some(id=>PERKIX[id]&&PERKIX[id].key===g))}
 // Weapon tree keys the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order.
 function weaponTrees(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w)&&MAST[w])}
-// Every tree the merc has, in display order: style trees, the gift, weapon trees. [{key, tree, kind}]
-function mercTrees(m){const out=[],tr=Array.isArray(m.trees)?m.trees:[];
+// Every tree the merc has, in display order: style trees, the gift, weapon trees, armor trees. [{key, tree, kind}]
+function mercTrees(m){armorPerksHeal(m);const out=[],tr=Array.isArray(m.trees)?m.trees:[];
  for(const k of tr)if(MAST[k]&&MAST[k].kind==='style')out.push({key:k,tree:MAST[k],kind:'style'});
  const g=m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift'?m.gift:null;if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
- for(const k of weaponTrees(m))out.push({key:k,tree:MAST[k],kind:'weapon'});return out}
+ for(const k of weaponTrees(m))out.push({key:k,tree:MAST[k],kind:'weapon'});
+ for(const k of armorTrees(m))out.push({key:k,tree:MAST[k],kind:'armor'});return out}
 // Every perk of every tree the merc has: [{id, perk, key, tree, tier, kind, owned, unlocked, need (level)}]
 function perkOptions(m){const own=new Set(Array.isArray(m.perks)?m.perks:[]),out=[];
  for(const {key,tree,kind} of mercTrees(m))tree.tiers.forEach((tier,ti)=>{const need=tierLevel(kind,ti+1);for(const p of tier)out.push({id:p.id,perk:p,key,tree,tier:ti+1,kind,owned:own.has(p.id),unlocked:(m.lvl||1)>=need,need})});
@@ -11845,7 +12276,7 @@ function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(
 // Spends a point on perk id. Awakens the gift on its first perk; hitpoints gained are healed at once. Returns true when learned.
 function learnPerk(m,id){if(!canLearn(m,id))return false;const hp0=calc(m).hp;m.perks.push(id);m.pp--;const hp1=calc(m).hp;if(hp1>hp0)m.hp=Math.min(hp1,(m.hp||0)+hp1-hp0);else m.hp=Math.min(m.hp,hp1);syncMast(m);return true}
 // Older UI code reads m.mast; keep it a mirror of m.perks.
-function syncMast(m){if(!m)return;const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
+function syncMast(m){if(!m)return;armorPerksHeal(m);const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
 // 4 style trees drawn from the background pool. r: a random source (default the seeded game stream).
 function rollTrees(bg,r){const pool=(BG[bg]&&BG[bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice();
  if(r){for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=pool[i];pool[i]=pool[j];pool[j]=t}}else shuffle(pool);return pool.slice(0,4)}
@@ -11859,6 +12290,8 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
   sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
  let s=o.tier*10;if(o.kind==='gift')s+=giftAwake(m)?18:60;
  if(o.kind==='weapon')s+=T.wt==='shield'?(up?14:swUp?4:-25):T.wt===wt?14:T.wt===swt?4:-25;
+ if(o.kind==='armor'){if(T.aw!==armorClass(m))return s-200;s+=20;const md=p.mod||{};   // only the tree of the armor worn; within it, what suits the merc
+  if(md.fleet&&!rngd)s-=6;if(p.flag==='slip'&&rngd)s+=4;if(md.steelWall&&rngd)s-=8;if(p.flag==='ironLung')s+=4;if(md.armRegen)s+=3}
  if((T.aff||[]).some(a=>tags.has(a)))s+=12;
  const a=p.ab&&AB[p.ab];if(a){s+=3;if(a.needs&&a.needs!==wt)s-=a.needs===swt?12:45;if(a.two&&!two)s-=45;if(a.shield&&!up)s-=swUp?12:45;if(a.noBow&&rngd)s-=20;if(a.tgt==='ally'||a.party)s+=tags.has('support')?6:0}
  const md=p.mod||{};if((md.shieldDef||md.shieldHp||md.guard||md.deflect||md.shieldDr)&&!sh)s-=35;if((md.duelHit||md.duelDmg)&&(sh||two||rngd))s-=30;if(md.twoDmg&&!(two&&!rngd))s-=30;
@@ -11926,14 +12359,23 @@ function legacyPerks(mast){const out=[];if(!mast||typeof mast!=='object')return 
    Monsters update: fire weakness (def.fireWeak) is inside dmgAfter(), so the dmg, hp and arm figures already hold it (fire = fireAb(a)); distances,
    cover and line of fire measure footprints (mdist, losInfo), so a size-2 target forecasts like any other.
      fire       the hit counts as fire against a fire-weak target (its share of extra damage), else 0
+   Fatigue and armor trees (the hit chance and the damage figures already hold them; these are the parts, for the HUD):
+     tiredAtt   to hit the attacker loses to its own fatigue (tiredPen)     tiredDef   defense the target loses to its fatigue (adds to hit)
+     armDef     defense from the target's armor-tree perks (Fleet, Fresh legs, Dancer, Layered defense; already taken off hit)
+     armDr      share of damage its armor-tree perks take off (Nimble, Brace, an ally's Bulwark of steel; inside dmg*)
+     sidestep   the target's Sidestep is ready: a blow over 25% of its max hitpoints is halved (inside hp*)
+     soak       hitpoints its Juggernaut takes off each blow that reaches them (inside hp*)
+     kb.ch, pull.ch and a stun's ch are halved by Rolling with it; Unshakable drops the stun and the shake; Immovable makes kb.ch 0.
    o is strike()'s option bag: {splash:.7} for blast/arc secondaries, {auto:1} for arcs and strays that always hit,
    {free:...} for free attacks. */
 // The damage one roll does before armor: the same dmgAfter() strike() calls (talent bonuses, executioner, splash, height, reduction).
 function fcDamage(u,t,a,roll,o){if(a.noDmg)return 0;return dmgAfter(u,t,a,a.magic?roll*spellMult(u):roll*(a.mult||1),o)}
 // hurt() without the hurting: what `dmg` takes from hitpoints and from the armor of the struck location.
-function fcSoak(t,dmg,ign,head,pierce,crush){if(!(dmg>0))return{hp:0,arm:0};const a0=(head?t.helm:t.arm)||0;let hp,arm=0;
- if(pierce)hp=dmg;else if(a0>0){arm=Math.min(a0,crush>0?Math.round(dmg*(1+crush)):dmg);hp=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*ign-(a0-arm)*.1),0)}else hp=dmg;
- if(head)hp=Math.round(hp*HEADMULT);return{hp,arm}}
+// The armor-tree terms of hurt() are here too (Padded under-layer, Unbowed, Sidestep, Juggernaut): a forecast is always of a weapon or spell hit.
+function fcSoak(t,dmg,ign,head,pierce,crush){if(!(dmg>0))return{hp:0,arm:0};const a0=(head?t.helm:t.arm)||0,tf=t.flags||{};let hp,arm=0;
+ if(pierce)hp=dmg;else if(a0>0){arm=Math.min(a0,crush>0?Math.round(dmg*(1+crush)):dmg);if(tf.unbowed)arm=Math.min(arm,armCap(t,head));
+  hp=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*(!head&&tf.padIgn?ign*(1-tf.padIgn):ign)-(a0-arm)*.1),0)}else hp=dmg;
+ if(head)hp=Math.round(hp*HEADMULT);if(tf.sidestep&&!t.ss&&hp>t.hpMax*tf.sidestep)hp=Math.round(hp/2);if(tf.hpSoak&&hp>0)hp=Math.max(1,hp-tf.hpSoak);return{hp,arm}}
 // What the rules turn a status into on this target (monStatus in 66-monsters.js): a rooted flier is also Grounded for its root turns + 2;
 // a size-2 flier is too big to pin, so the root itself is dropped and only Grounded stays.
 function statusConv(t,st){const R=st.root;if(!R||!t.fly)return;const n=Math.max(t.st.root||0,R.n)+2;if(!(t.st.grounded>=n))st.grounded={k:'grounded',n,ch:R.ch};if((t.sz||1)>1)delete st.root}
@@ -11941,7 +12383,8 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],
   headCh:0,head:null,body:null,cover:los.cover,blocked:los.blocked,ff:[],mor:{att:mu.hit,def:mt.def},shake:false,injure:false,shield:null,riposte:false,
   locked:isRangedAtk(u,a)&&rangedLocked(u),undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
-  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless,fire:t.fw&&fireAb(a)?t.fw:0};
+  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless,fire:t.fw&&fireAb(a)?t.fw:0,
+  tiredAtt:sure?0:tiredPen(u),tiredDef:sure?0:tiredPen(t),armDef:sure?0:armorDef(u,t,a),armDr:a.split||a.noDmg?0:armorDr(t),sidestep:false,soak:(t.flags&&t.flags.hpSoak)||0};
  if(a.split){const m=splitMult(u,a),lo=Math.round(u.wpn.d[0]*m),hi=Math.round(u.wpn.d[1]*m);if(t.shield)f.shield={min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp};f.body={hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false};return f}
  let lo=0,hi=0;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];f.ign=ignOf(u,a)}else{const wd=rollOf(u,a);lo=wd[0];hi=wd[1];f.ign=ignOf(u,a)}
  const hc=headChance(u,t,a),mk=()=>({hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false}),H=mk(),Bd=mk();let first=true,n=0,posB=0,posH=0;
@@ -11955,14 +12398,16 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const parts=[];if(useH)parts.push(H);if(useB)parts.push(Bd);
  f.hpMin=Math.min(...parts.map(p=>p.hpMin));f.hpMax=Math.max(...parts.map(p=>p.hpMax));f.armMin=Math.min(...parts.map(p=>p.armMin));f.armMax=Math.max(...parts.map(p=>p.armMax));
  f.kill=!f.undying&&f.hpMax>=t.hp;f.sure=!f.undying&&f.hpMin>=t.hp;
- f.shake=!t.fearless&&f.hpMax>=heavyHit(t)&&!f.sure;f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
+ f.shake=!t.fearless&&!(t.flags&&t.flags.noStun)&&f.hpMax>=heavyHit(t)&&!f.sure;
+ {const tf=t.flags||{};f.sidestep=!!(tf.sidestep&&!t.ss&&!a.noDmg)}f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
  const st={};for(const k in a.status||{})st[k]={k,n:a.status[k],ch:1};
  { const sc=stunOf(u,a);if(sc&&!(st.stun))st.stun={k:'stun',n:1,ch:Math.min(1,sc)} }
  if(u.onhit){const n=u.onhit.root;if(!st.root)st.root={k:'root',n,ch:u.onhit.ch};else if(n>st.root.n)st.root={k:'root',n,ch:u.onhit.ch}}
  const bl=bleedOf(u,a);if(bl&&n){const pb=posB/n,ph=posH/n,ch=(!useH||ph===1)&&(!useB||pb===1)?1:(useH?f.headCh/100*ph:0)+(useB?(1-f.headCh/100)*pb:0);if(ch>0)st.bleed={k:'bleed',n:Math.max(bl,st.bleed?st.bleed.n:0),ch}}
  statusConv(t,st);
+ if(st.stun){const tf=t.flags||{};if(tf.noStun)delete st.stun;else if(tf.roll>0)st.stun.ch*=1-tf.roll}   // Unshakable, Rolling with it
  for(const k in st)if(st[k].n>0)f.statuses.push(st[k]);
- const kn=a.kb||u.kbN||0,imm=kbImmune(t);if(kn)f.kb={n:kn,ch:imm?0:a.kb?1:u.kbCh||0,crash:a.crash||u.crashD||0};if(a.pull)f.pull={n:a.pull,ch:imm||mdist(u,t)<=1?0:1};
+ const kn=a.kb||u.kbN||0,imm=kbImmune(t),rl=1-((t.flags&&t.flags.roll)||0);if(kn)f.kb={n:kn,ch:imm?0:(a.kb?1:u.kbCh||0)*rl,crash:a.crash||u.crashD||0};if(a.pull)f.pull={n:a.pull,ch:imm||mdist(u,t)<=1?0:rl};
  if(kind===2&&!o.free&&!sure&&los.ff.length){const ch=(100-f.hit)*FFCH/los.ff.length;f.ff=los.ff.map(x=>({t:x,ch}))}
  f.riposte=!sure&&!o.free&&!a.magic&&mdist(u,t)===1&&buffSum(t,'rip')>0&&canFree(t);
  return f}
@@ -11985,7 +12430,10 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
    decision ahead (aiSwapPlan: the swap is tried on a copy of the unit's state, then the best plan with the AP left is scored), and units
    with two weapons also weigh which one they hold at the end of the turn (aiHandV). Fighters like standing beside foe archers. Abilities
    are scored from their fields (hits, through, aoe, chain, status, heal, cleanse, party, rally, rest, buff, giveAP, move), so new ones
-   are used without code here. */
+   are used without code here.
+   Fatigue: hit chances (hitChance) carry both sides' tiredPen, a tired foe is a slightly better target (aiPrio), an action's fatigue is
+   taxed by the penalty it would add (aiTire), rest abilities are worth more the more tired the unit is; Slippery (light armor) makes the
+   first step of a turn free of free attacks, so it is not priced. */
 const AI_CAP=7,AI_LATE=9;
 let AI_CLOCK=null;                       // set to a ()=>ms clock by the balance harness to measure decision cost
 const AI_STAT={n:0,ms:0,max:0};
@@ -12203,13 +12651,16 @@ function aiKbV(u,a,t,sc,sr,X){if(kbImmune(t))return 0;const s=u.sz||1,mc=sc+(s-1
  for(let i=0;i<a.kb;i++){const nc=c+dc,nr=r+dr;if(!inb(nc,nr)){v+=4;break}const tl=B.tiles[key(nc,nr)],h=B.tiles[key(c,r)].h;if(tl.t==='block'||tl.h>h+1){v+=4;break}
   const x=unitAt(nc,nr);if(x&&x!==u){if(x!==t)v+=cr?(x.side!==u.side?cr*1.6+4:-cr):4;break}if(h>tl.h)v+=6*(h-tl.h)*1.2+3;if(tl.t==='haz')v+=12;c=nc;r=nr}
  return v}
+/* Fatigue (tiredPen in the rules): what spending f more fatigue now costs u in hit points of defense and to-hit until it recovers,
+   priced lightly (the hit chances aiChance reads already hold the current penalty on both sides). 0 for units that do not tire. */
+const aiTire=(u,f)=>typeof tiredPen==='function'&&f>0&&u.fatMax<999?tiredPen({fat:u.fat+f,fatMax:u.fatMax})-tiredPen(u):0;
 function aiPrio(X,t){const u=X.u,P=X.P,plan=X.plan;let p=1;const fo=B.aiFoc&&B.aiFoc[u.side];
  if(u.def&&u.def.pack){let n=0;for(const o of X.allies)if(o.def&&o.def.pack&&mdist(o,t)===1)n++;p+=.35*Math.min(2,n);if(t.st.harried)p+=.3;       // the pack goes for whoever a wolf already has by the leg,
   else if(!n){let s=0;for(const o of X.foes)if(o!==t&&mdist(o,t)===1)s++;if(s<2)p+=.3}}                                                         // and for prey that stands alone
  if(fo===t)p+=.15;if(t.back||t.role==='caster'||t.role==='sniper')p*=P.back;
  if(plan){const h=plan.hunt&&plan.hunt[t.eid];if(h)p*=h;if(plan.volley&&P.shy&&(t.role==='sniper'||t.role==='caster'))p*=1.5;
   if(plan.outlast&&t.def&&t.def.tire)p*=t.st.winded||t.st.spent?1.3:1}
- if(t.st.ward)p*=.6;if(t.mor===0)p*=.5;
+ if(t.st.ward)p*=.6;if(t.mor===0)p*=.5;if(typeof tiredPen==='function'&&t.fatMax<999)p*=1+tiredPen(t)*.012;   // a tired foe is easier to hit and slower to hit back
  return p}
 // Chance (0..1) that a used from tile s hits t; 0 when the shot is blocked from there.
 let AI_RISK=0;   // set by aiChance: what a miss from there costs (a stray shot into an ally, a riposte)
@@ -12240,7 +12691,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
  if(!tiles.some(t=>t.k===cur))tiles.push({k:cur,cost:0,pos:aiPos(X,cur)});
  tiles.sort((a,b)=>b.pos-a.pos||a.k-b.k);
  const pos0=aiPos(X,cur);let aoo=0;
- for(const e of X.adj)if(!e.aoo&&canFree(e)){const p=hitChance(e,u,FREEAB)/100;aoo=AI_DBG.oldaoo?(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6:((e.wpn.d[0]+e.wpn.d[1])/2*.6*1.3*X.frail+6)*(.4+p);break}   // leaving a foe's reach: its free attack, and a hit halts the walk
+ if(!(u.flags&&u.flags.slip&&!u.slipT))for(const e of X.adj)if(!e.aoo&&canFree(e)){const p=hitChance(e,u,FREEAB)/100;aoo=AI_DBG.oldaoo?(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6:((e.wpn.d[0]+e.wpn.d[1])/2*.6*1.3*X.frail+6)*(.4+p);break}   // leaving a foe's reach: its free attack, and a hit halts the walk
  let best={v:pos0,s:cur,a:null,k:cur};
  const take=(v,s,a,k)=>{if(v>best.v+1e-6){best={v,s,a,k}}};
  const canWalk=walks<3&&!u.rooted;
@@ -12248,7 +12699,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
  const tcost=k=>k===cur?0:(D.get(k)||{cost:99}).cost;
  // what the AP left after an action is still good for: one more basic attack on something in reach
  const rw=!!(u.wpn.reload&&aiRngW(u.wpn)),follow=(apLeft,ev)=>!rw&&apLeft>=atk.ap&&u.fat+atk.fat*2<=u.fatMax?ev*.7:0;   // a reload weapon fires once, then must reload
- for(const a of X.abs){const tax=(a.cost?a.cost[1]*.25:0)+(a.fat&&u.fatMax<999&&u.fat+a.fat>u.fatMax*.8?6:0);
+ for(const a of X.abs){const tax=(a.cost?a.cost[1]*.25:0)+(a.fat&&u.fatMax<999&&u.fat+a.fat>u.fatMax*.8?6:0)+aiTire(u,a.fat)*.5;
   if(a.ai){for(const c of a.ai(u,X)){const s=c.s==null?cur:c.s,co=tcost(s);if(co+a.ap>u.ap||(s!==cur&&!canWalk))continue;const end=a.tgt==='move'?c.k:s;
     take(c.v+aiPos(X,end)-(s!==cur?aoo:0)-tax,s,a,c.k)}continue}
   if(a.swapW)continue;                                                   // the swap is weighed by aiSwapPlan (one look ahead)
@@ -12279,7 +12730,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
      if(a.buff&&!(a.buff.key&&o.buffs.some(x=>x.key===a.buff.key))){let adj=0;for(const f of foes)if(mdist(f,o)<=1)adj++;v+=aiBuffVal(o,a.buff,a.dur,adj*((o.hpMax>0?18:0)),adj?(o.wpn.d[0]+o.wpn.d[1])/2:0,null,0)*.8}
      if(a.heal)v+=aiHealVal(o,a.heal);if(a.rally&&o.mor>0&&o.mor<3)v+=10}}
    if(a.heal)v+=aiHealVal(u,a.heal);if(a.rally&&u.mor>0&&u.mor<3)v+=10;
-   if(a.rest&&u.fatMax<9000&&u.fat>u.fatMax*.45)v+=Math.min(a.rest,u.fat)*.25;
+   if(a.rest&&u.fatMax<9000&&u.fat>u.fatMax*.45)v+=Math.min(a.rest,u.fat)*.25+(typeof tiredPen==='function'?tiredPen(u)*.6:0);
    if(X.brace&&a.buff&&(a.buff.md||a.buff.dr)&&v>0&&v<26)v=26;
    if(v>0)take(v+pos0-tax,cur,a,cur)}
   else if(a.tgt==='ally'){for(const o of X.allies.concat(a.noSelf?[]:[u])){if(mdist(o,u)>a.rng)continue;let v=0;
@@ -12661,7 +13112,7 @@ function planOK(){const p=B&&B.plan;if(!p)return null;const u=B.cur;
  if(!u||p.u!==u||B.busy||B.over||B.auto||u.side!==0||!u.alive||!B.reach||p.reach!==B.reach||!B.reach.has(p.k)){B.plan=null;return null}return p}
 function planClear(){if(B&&B.plan){B.plan=null;return true}return false}
 function planSet(k,touch){const u=B.cur,q=B.reach&&B.reach.get(k);if(!u||!q)return null;const path=pathTo(B.reach,k);if(!path.length)return null;
- B.plan={k,path,cost:q.cost,u,reach:B.reach,touch:!!touch,left:Math.max(0,u.ap-q.cost),fat:2*path.length,hz:path.some(x=>B.tiles[x].t==='haz')};return B.plan}
+ B.plan={k,path,cost:q.cost,u,reach:B.reach,touch:!!touch,left:Math.max(0,u.ap-q.cost),fat:(typeof moveFat==='function'?moveFat(u):2)*path.length,hz:path.some(x=>B.tiles[x].t==='haz')};return B.plan}
 function planGo(){const p=planOK();if(!p)return false;const u=B.cur;B.plan=null;B.sel=null;B.targets=null;fcClear();B.busy=true;B.reach=null;updateBUI();
  walkPath(u,p.path).then(()=>{B.busy=false;afterAction()});return true}
 // Runs fn with u standing on the planned tile with what the walk would leave it (AP, fatigue); always restores.
@@ -12731,6 +13182,13 @@ const STSVG={burn:'a-flame',chill:'a-snow',root:'a-pin',stun:'a-burst',buff:'a-u
 /* one status badge: icon, a count (turns, or `extra` such as a chance), colour by what it does to the bearer */
 function stIcon(k,n,extra){const S=shStatus(k),col=STC[k]||(S&&S.good?'#9bd96f':'#ef8a78'),nm=S?S.n:k;
  return'<span class="sd'+(S&&S.good?' gd':'')+'" style="--sc:'+col+'" title="'+esc(nm+(n>0?' ('+n+(n===1?' turn':' turns')+')':'')+(S&&S.d?': '+S.d:''))+'">'+pic('st-'+k,16,STSVG[k]||'a-burst')+(n>1||extra?'<b>'+(extra||n)+'</b>':'')+'</span>'}
+/* statuses whose number is a value, not turns (the rules list them with turns = the value): Tired (its penalty), Dancing (its defense) */
+const SH_VALST={tired:1,dance:1,fleet:1};
+function stVal(k,v){const S=shStatus(k),col=STC[k]||(S&&S.good?'#9bd96f':'#ef8a78'),nm=S?S.n:k,txt=k==='tired'?'−'+v+' to hit and −'+v+' defense':k==='dance'?'+'+v+' melee and ranged defense':k==='fleet'?'+10 ranged defense against shots':'';
+ return'<span class="sd'+(S&&S.good?' gd':'')+'" style="--sc:'+col+'" title="'+esc(nm+(txt?': '+txt:'')+(S&&S.d&&k!=='tired'?'. '+S.d:''))+'">'+pic('st-'+k,16,STSVG[k]||'a-burst')+(v>0&&k!=='fleet'?'<b>'+(k==='tired'?'−':'+')+v+'</b>':'')+'</span>'}
+/* fatigue penalty (the rules' tiredPen: −N to hit and −N defense), 0 when the rules have none or the unit does not tire */
+function shTired(u){try{return typeof tiredPen==='function'&&u?Math.max(0,tiredPen(u)|0):0}catch(e){return 0}}
+function tiredMark(u){const p=shTired(u);if(!p)return'';return'<span class="utired" title="'+esc('Tired: −'+p+' to hit and −'+p+' defense (fatigue '+u.fat+' of '+u.fatMax+')')+'" aria-label="Tired, minus '+p+' to hit and defense">'+pic('st-tired',16,'drop')+'<small>Tired</small><b>−'+p+'</b></span>'}
 let ABDESC=null;
 const SH_ATKD={bow:'Loose an arrow at a foe in range',crossbow:'Loose a bolt at a foe in range; then it must be reloaded',flintlock:'Fire at a foe in range; then it must be reloaded',polearm:'Strike a foe up to 2 tiles away, over the front rank',greatsword:'Strike a foe up to 2 tiles away, over the front rank',hammer:'Crush a foe in reach: hard on armor'};
 function abDesc(id,u){if(id==='attack'){const w=u.wpn||{};return SH_ATKD[w.wt]||(shRangedW(w)?'Shoot at a foe in range':w.rng>1?'Strike a foe up to '+w.rng+' tiles away':'Strike a foe in reach')}
@@ -12746,8 +13204,8 @@ function orderHTML(u){const tok=(x,cls)=>{const hp=Math.max(0,Math.round(100*x.h
  const rest=B.order.filter(x=>x&&x.alive);
  return'<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>'+tok(u,'cur')+rest.map(x=>tok(x,'')).join('')}
 function statI(icon,svg,val,cls,title,col){return'<span class="si '+cls+'" title="'+title+'"'+(col?' style="color:'+col+'"':'')+'>'+pic(icon,16,svg)+'<b>'+val+'</b></span>'}
-function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>x.key!=='unloaded'||shLoaded(u)===null);   // the weapon on the chip carries the unloaded badge
- for(let i=0;i<L.length&&i<6;i++)h+=stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
+function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>(x.key!=='unloaded'||shLoaded(u)===null)&&x.key!=='tired');   // the weapon carries the unloaded badge; Tired has its own marker by the stamina
+ for(let i=0;i<L.length&&i<6;i++)h+=SH_VALST[L[i].key]?stVal(L[i].key,L[i].turns|0):stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
 /* unit chip: name, level, morale (flag icon in the state's colour) with resolve, statuses; hitpoints, head and body armor, shield, stamina, gifts; action pips */
 function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u),P=B.plan&&B.plan.u===u?B.plan:null,keep=P?u.ap-P.cost:u.ap;let pips='';for(let i=0;i<n;i++)pips+='<i class="'+(i<u.ap?'on':'')+(i>=keep&&i<u.ap?' pl':'')+(i>=u.apMax?' x':'')+'"></i>';
  let h='<span class="uport s'+u.side+'">'+port(u,32)+'</span><div class="ubody"><div class="uname"><b>'+esc(u.name)+'</b>'+(mine?'<small class="ulv" title="Level '+u.lvl+'">'+u.lvl+'</small>':'')+chipArms(u)+chipStatuses(u)+'</div><div class="ustats">'+statI('hp','heart',u.hp,'hp','Hitpoints '+u.hp+' of '+u.hpMax);
@@ -12757,7 +13215,7 @@ function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),b
  h+='</div><div class="urow"><div class="pips'+(P?' plan':'')+'" title="Action points '+u.ap+(P?': the planned move spends '+P.cost+', '+P.left+' left':'')+'">'+pips+'</div>';
  if(m>=0)h+='<span class="umor m'+m+'" style="--sc:'+SH_MORC[m]+'" title="'+shMorN(m)+(brv!=null?': resolve '+brv:'')+'">'+pic('morale-'+m,16,'flag')+(brv!=null?'<b>'+brv+'</b>':'')+'</span>';
  else if(u.fearless)h+='<span class="umor" style="--sc:#c8d0d8" title="Fearless: never tests morale">'+pic('resolve',16,'flag')+'</span>';
- if(u.fatMax<=999)h+=statI('fatigue','drop',u.fatMax-u.fat,'fat','Stamina left: fatigue '+u.fat+' of '+u.fatMax);
+ if(u.fatMax<=999)h+=statI('fatigue','drop',u.fatMax-u.fat,'fat'+(shTired(u)?' tired':''),'Stamina left: fatigue '+u.fat+' of '+u.fatMax)+tiredMark(u);
  for(const k in u.res)h+=statI(k,'gem',u.res[k].cur,'res',RESN[k]+' '+u.res[k].cur+' of '+u.res[k].max,RESC[k]);
  return h+'</div></div>'}
 /* the weapon in hand (and, small, the backup) on the chip's name row; a lock when a bow in hand is pinned by an adjacent foe */
@@ -12849,6 +13307,10 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  let f=null;try{f=forecast(u,t,a)}catch(e){}f=f||{};const blocked=!!f.blocked;let st='',mods='',rows='';FC.blocked=blocked;
  if(f.cover>0)mods+='<span class="fcm bad" title="'+f.cover+(f.cover===1?' unit':' units')+' in the line of fire: −'+f.cover*(typeof COVERPEN==='number'?COVERPEN:15)+' to hit (already counted)">'+pic('cover',16,'shield')+'<b>'+(f.cover>1?'×'+f.cover:'')+'</b></span>';
  if(f.mor&&(f.mor.att||f.mor.def)){const v=(f.mor.att||0)-(f.mor.def||0);if(v)mods+='<span class="fcm '+(v>0?'good':'bad')+'" title="Morale: '+(f.mor.att?'yours '+(f.mor.att>0?'+':'')+f.mor.att:'')+(f.mor.att&&f.mor.def?', ':'')+(f.mor.def?'theirs '+(f.mor.def>0?'−':'+')+Math.abs(f.mor.def):'')+' (already counted)">'+pic('morale-'+(v>0?4:1),16,'flag')+'<b>'+(v>0?'+':'−')+Math.abs(v)+'</b></span>'}
+ {const ta=+f.tiredAtt||0,td=+f.tiredDef||0,ad=+f.armDef||0;   // fatigue and armor-tree defense (the rules' forecast parts; already inside the hit chance)
+  if(ta>0)mods+='<span class="fcm bad fct" title="'+esc(u.name)+' is tired: −'+ta+' to hit (already counted)">'+pic('st-tired',16,'drop')+'<span class="fcfa">'+port(u,16)+'</span><b>−'+ta+'</b></span>';
+  if(td>0)mods+='<span class="fcm good fct" title="'+esc(t.name)+' is tired: −'+td+' defense, so +'+td+' to hit (already counted)">'+pic('st-tired',16,'drop')+'<span class="fcfa">'+port(t,16)+'</span><b>+'+td+'</b></span>';
+  if(ad>0)mods+='<span class="fcm bad" title="'+esc(t.name)+'’s armor perks: +'+ad+' defense, so −'+ad+' to hit (already counted)">'+pic('armor',16,'shield')+'<b>−'+ad+'</b></span>'}
  if(f.riposte)mods+='<span class="fcm bad" title="A miss draws a riposte">'+pic('riposte',16,'sword')+'<b>!</b></span>';
  if(f.shield){const S=f.shield;rows+='<span class="fcl'+(S.sure?' sure':S.brk?' kill':'')+'" title="Damage to the shield ('+S.hp+' left)">'+pic('shield',16,'shield')+'<span class="fcd arm"><i class="pip"></i><b>'+fcRange(S.min,S.max)+'</b><small>/'+S.hp+'</small></span>'+(S.brk?'<span class="fck'+(S.sure?' sure':'')+'">'+pic('st-splitshield',16,'shield')+'<b>'+(S.sure?'Splits':'May split')+'</b></span>':'')+'</span>'}
  else if(a.noDmg)rows+='<span class="fcl"><span class="fcd" title="No damage">'+esc(a.n)+'</span></span>';
@@ -17724,13 +18186,15 @@ function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&M
  let trees=[];try{if(typeof mercTrees==='function')trees=mercTrees(m)||[]}catch(e){}if(!trees.length&&Array.isArray(m.trees))trees=m.trees.map(k=>({key:k,tree:T[k]}));
  const gk=m.gift||(typeof giftVariant==='function'?(()=>{try{const g=giftVariant(m);return typeof g==='string'?g:g&&g.key}catch(e){return null}})():null);
  if(gk&&T[gk]){const G_=T[gk],res=G_.res,sty=G_.style;h+=`<div class="ins-ab">${insIc('m-'+gk)}<div><b>${G_.n}</b><i style="color:${RESC[res]||'inherit'}">${RESN[res]||''}${sty?' · '+sty:''}</i><span>${G_.d||''}</span></div></div>`}
- if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}">${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
+ let off=[],acl=null;try{const c=calc(m);off=c.off||[];acl=c.acl||null}catch(e){}
+ if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk&&!(((x.tree||T[x.key])||{}).kind==='armor'&&((x.tree||T[x.key])||{}).aw!==acl)).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}">${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
  const P=Array.isArray(m.perks)?m.perks:[];
  for(const id of P){let r=null;try{r=typeof perkById==='function'?perkById(id):null}catch(e){}const p=r&&r.perk;if(!p)continue;const icn=p.ab&&AB[p.ab]?'ab-'+p.ab:'perk-'+id;
-  h+=`<div class="ins-ab ins-pk" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b><span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
+  const idle=off.includes(id),why=idle?(r.tree&&r.tree.kind==='armor'?'idle: needs '+(r.tree.aw||'other')+' armor':'idle: another weapon in hand'):'';
+  h+=`<div class="ins-ab ins-pk${idle?' idle':''}" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b>${idle?`<i>${why}</i>`:''}<span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
  return h}
 function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor=typeof shMor==='function'?shMor(u):-1,brv=typeof shBrv==='function'?shBrv(u):null;
- let h=`<div class="ins-h"><b class="ins-n">${u.name}</b><span class="ins-tag ${pl?'ally':'foe'}">${pl?'Level '+u.lvl:FACT[u.f]?FACT[u.f].n:'Foe'}</span></div>`;
+ let h=`<div class="ins-h"><b class="ins-n">${typeof htmlEsc==='function'?htmlEsc(u.name):u.name}</b><span class="ins-tag ${pl?'ally':'foe'}">${pl?'Level '+u.lvl:FACT[u.f]?FACT[u.f].n:'Foe'}</span></div>`;
  h+=`<div class="ins-sub">${pl&&m?RACE[m.race].n+' '+BG[m.bg].n.toLowerCase():(d.boss?(d.endgame?'Apex beast':'Tyrant'):INS_ROLE[u.role||d.role]||(d.big?'Huge':d.quad?'Beast':u.spell?'Caster':u.wpn.rng>1?'Ranged':'Melee'))+(d.size>1||u.sz>1?' · huge, 2×2':d.big&&!d.boss?' · huge':'')}${u===cur?' · acting now':''}</div>`;
  h+=insBar('hp',u.hp,u.hpMax,'HP');if(u.helmMax>0)h+=insBar('arm hd',u.helm,u.helmMax,'Head armor');if(u.armMax>0)h+=insBar('arm',u.arm,u.armMax,'Body armor');
  if(u.shpMax>0)h+=u.shield||u.slung?insBar('arm sh',u.shp,u.shpMax,u.slung?'Shield (slung)':'Shield'):`<div class="ins-bar arm sh"><span class="ins-bad">Shield split</span></div>`;
@@ -17740,10 +18204,11 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  else if(u.fearless)h+=`<div class="ins-mor">${insIc('resolve')}<b>Fearless</b><span>never tests morale</span></div>`;
  h+='<div class="ins-grid">'+insStat(eff(u,'ms'),'Melee')+insStat(eff(u,'rs'),'Ranged')+insStat(u.init,'Initiative')+insStat(eff(u,'md'),'Melee def')+insStat(eff(u,'rd'),'Ranged def')+insStat(u===cur?u.ap+'/'+u.apMax:u.apMax,'AP')+'</div>';
  const w=u.wpn;h+=`<div class="ins-line"><span>${pl?w.n:u.spell?u.spell.n:'Attack'}</span><b>${u.spell?u.spell.d[0]+'–'+u.spell.d[1]:w.d[0]+'–'+w.d[1]} dmg${(u.spell?u.spell.rng:w.rng)>1?' · range '+(u.spell?u.spell.rng:w.rng):''}</b></div>`;
- if(u.fatMax<999)h+=`<div class="ins-line"><span>Fatigue</span><b>${u.fat}/${u.fatMax}</b></div>`;
+ if(u.fatMax<999){const tp=typeof shTired==='function'?shTired(u):0;h+=`<div class="ins-line${tp?' tired':''}"><span>Fatigue</span><b>${u.fat}/${u.fatMax}${tp?` <em class="ins-bad">tired −${tp}</em>`:''}</b></div>`}
  // second column: statuses, injuries, abilities and traits
  let r='';const L=typeof shStatuses==='function'?shStatuses(u):[];
- for(const x of L){const S=shStatus(x.key)||{n:x.key,d:'',good:0};r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
+ for(const x of L){const S=shStatus(x.key)||{n:x.key,d:'',good:0};const val=x.key==='tired'?'−'+x.turns+' to hit and defense':x.key==='dance'?'+'+x.turns+' defense':x.key==='fleet'?'until its next turn':null;
+  r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${val!=null?val:x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
  for(const b of u.buffs||[])if(!b.key&&!b.foe&&!b.indom)r+=`<div class="ins-ab ins-s gd">${insIc('buff')}<div><b>Bolstered</b><span>${buffText(b)}</span></div></div>`;
  if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd">${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
  const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;
@@ -17971,7 +18436,45 @@ function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
  if(typeof drawMinimap!=='function'&&W&&W.img){const m=$('mini');if(!m)return;const x=m.getContext('2d'),k=m.width/WS;x.imageSmoothingEnabled=true;x.drawImage(W.img,0,0,m.width,m.height);
   x.fillStyle='#101d1c';for(const t of G.towns||[])x.fillRect(t.x*k-4,t.y*k-4,8,8);x.fillStyle='#e9e0c9';for(const t of G.towns||[])x.fillRect(t.x*k-2.5,t.y*k-2.5,5,5);
   x.fillStyle='#d1a94e';x.strokeStyle='#101d1c';x.lineWidth=2;x.beginPath();x.arc(G.p.x*k,G.p.y*k,6,0,7);x.fill();x.stroke()}}
-function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world')worldChrome()}
+/* ---- daily upkeep: tapping the crowns or the food on the world HUD opens a small breakdown (costPop).
+   It follows newDay() in 40-world.js exactly: at midnight every sword on the roster (reserves too) draws BG[bg].wage crowns,
+   then eats one ration. Unpaid (crowns would go below 0): the purse is emptied and, with more than one sword, there is a 35%
+   chance one random sword deserts. Out of food: rations go to 0 and every sword loses 10 hitpoints (never below 1).
+   Nothing else is charged by the day. Reads state only; no randomness. ---- */
+const CP={el:null,kind:null,key:'',from:null,swallow:0};
+function upkeep(){const R=G&&G.roster||[],men=R.map(m=>({m,bg:BG[m.bg]||{},wage:(BG[m.bg]&&BG[m.bg].wage)|0,food:1})),wage=men.reduce((s,x)=>s+x.wage,0),food=men.length;
+ const hrs=Math.max(0,Math.ceil(24-(G?G.hour:0)));
+ return{men,wage,food,hrs,payDays:wage>0?Math.floor(G.crowns/wage):Infinity,foodDays:food>0?Math.floor(G.food/food):Infinity}}
+function cpDays(n){return n===Infinity?'no end':n+' day'+(n===1?'':'s')}
+function cpBody(){const U=upkeep(),k=CP.kind,ic=(n,s)=>pic(n,s||16),short=G.crowns<U.wage,starve=G.food<U.food;
+ const warn=cpWarn(U,short,starve),tile=(kk,icon,amt,unit,days,lab,warn)=>`<div class="cp-t${k===kk?' on':''}${warn?' warn':''}">${ic(icon)}<span><b>−${amt}</b><small>${unit} a day</small></span><span class="cp-d"><b>${cpDays(days)}</b><small>${lab}</small></span></div>`;
+ let rows='';const L=U.men.slice();if(k==='crowns')L.sort((a,b)=>b.wage-a.wage);
+ for(const x of L)rows+=`<div class="cp-r" role="row"><span class="cp-n" role="cell"><b>${htmlEsc(x.m.name)}</b><small>${htmlEsc(x.bg.n||'')}${x.m.field?'':' · reserve'}</small></span><span class="cp-v c" role="cell">${x.wage}</span><span class="cp-v f" role="cell">${x.food}</span></div>`;
+ return`<div class="cp-hd"><span class="cp-ti"><b>Daily upkeep</b><small>Paid at midnight, in ${U.hrs} hour${U.hrs===1?'':'s'} · Day ${G.day}</small></span><button type="button" class="cp-x" aria-label="Close" onclick="costPopClose(true)">${ic('close')}</button></div>
+<div class="cp-main"><div class="cp-side"><div class="cp-sum">${tile('crowns','coin',U.wage,'crowns',U.payDays,'of wages in the purse',short)}${tile('food','food',U.food,U.food===1?'ration':'rations',U.foodDays,'of food in the wagons',starve)}</div>${warn}</div>
+<div class="cp-tb" role="table" aria-label="Daily cost of each sword"><div class="cp-r cp-h" role="row"><span class="cp-n" role="columnheader">Sword</span><span class="cp-v c" role="columnheader">${ic('coin')}</span><span class="cp-v f" role="columnheader">${ic('food')}</span></div>
+<div class="cp-rows">${rows||'<div class="cp-r"><span class="cp-n"><small>Nobody on the roster</small></span></div>'}</div>
+<div class="cp-r cp-tot" role="row"><span class="cp-n" role="cell"><b>Total</b><small>${U.men.length} sword${U.men.length===1?'':'s'}</small></span><span class="cp-v c" role="cell">${U.wage}</span><span class="cp-v f" role="cell">${U.food}</span></div></div></div>`}
+function cpWarn(U,short,starve){const ic=n=>pic(n,16);return`${short?`<p class="cp-w">${ic('coin')}<span>Tonight's wages are short by ${U.wage-G.crowns}. Unpaid, the purse is emptied${U.men.length>1?' and there is a 35% chance a sword deserts':''}.</span></p>`:''}
+${starve?`<p class="cp-w">${ic('food')}<span>${G.food?'Only '+G.food+' of '+U.food+' rations left for tonight':'No food left'}: a starving company loses 10 hitpoints a sword each day.</span></p>`:''}
+<p class="cp-note"><span class="cp-nl">Reserves draw wages and eat too. </span>Nothing else is charged by the day<span class="cp-nl">: inns, tools, the temple and the tailor cost only when used</span>.</p>`}
+function costPopKey(){return G?[CP.kind,G.crowns,G.food,G.day,Math.ceil(24-G.hour),G.roster.map(m=>m.id+m.name+m.bg+(m.field?1:0)).join(',')].join('|'):''}
+function costPop(kind,btn){if(!G||mode!=='world')return;if(CP.el&&CP.kind===kind&&!CP.el.hidden){costPopClose(true);return}
+ let e=CP.el;if(!e){e=document.createElement('div');e.id='costPop';e.className='pxf cp';e.setAttribute('role','dialog');e.setAttribute('aria-label','Daily upkeep');e.tabIndex=-1;$('app').appendChild(e);CP.el=e;
+  e.addEventListener('keydown',ev=>{if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();costPopClose(true)}});
+  document.addEventListener('pointerdown',ev=>{if(!CP.el||CP.el.hidden)return;const t=ev.target;if(CP.el.contains(t)||(t.closest&&t.closest('.hud-tap')))return;costPopClose(false);if(t&&t.id==='cv'){ev.stopPropagation();ev.preventDefault();CP.swallow=Date.now()}},true);
+  const sw=ev=>{if(CP.swallow&&Date.now()-CP.swallow<700){ev.stopPropagation();ev.preventDefault();if(ev.type==='click')CP.swallow=0}};document.addEventListener('pointerup',sw,true);document.addEventListener('click',sw,true);
+  window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&CP.el&&!CP.el.hidden){costPopClose(true);ev.stopImmediatePropagation()}},true)}
+ CP.kind=kind;CP.from=btn||null;e.hidden=false;costPopRender(true);
+ document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded',String(b===btn)));
+ try{const x=e.querySelector('.cp-x');if(x)x.focus({preventScroll:true})}catch(er){}}
+function costPopRender(force){const e=CP.el;if(!e||e.hidden)return;const k=costPopKey();if(!force&&k===CP.key)return;CP.key=k;const st=e.querySelector('.cp-rows'),top=st?st.scrollTop:0;
+ e.innerHTML=cpBody();const st2=e.querySelector('.cp-rows');if(st2)st2.scrollTop=top;costPopPlace()}
+function costPopPlace(){const e=CP.el,b=CP.from;if(!e||e.hidden)return;const hud=$('hud'),hr=hud?hud.getBoundingClientRect():{bottom:40},vw=innerWidth,br=b&&b.getBoundingClientRect?b.getBoundingClientRect():{left:12};
+ const rail=$('wbar'),rx=rail&&!rail.classList.contains('hidden')&&rail.getBoundingClientRect().width?rail.getBoundingClientRect().left:vw,w=e.offsetWidth,left=clamp(Math.round(br.left-8),6,Math.max(6,rx-w-6));e.style.left=left+'px';e.style.top=Math.round(hr.bottom+4)+'px';e.style.maxHeight=Math.max(160,innerHeight-hr.bottom-12)+'px'}
+function costPopClose(refocus){const e=CP.el;if(!e||e.hidden)return;e.hidden=true;document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded','false'));if(refocus&&CP.from&&CP.from.focus)try{CP.from.focus({preventScroll:true})}catch(er){}CP.from=null}
+function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world')worldChrome()
+ if(CP.el&&!CP.el.hidden){if(mode!=='world'||sheetOpen)costPopClose(false);else costPopRender(false)}}
 
 /* ---- menu (in the field) ---- */
 function mbtn(icon,label,sub,on,cls,svg){return`<button class="mi ${cls||''}" onclick="${on}">${pic(icon,32,svg)}<span><b>${label}</b><small>${sub}</small></span></button>`}

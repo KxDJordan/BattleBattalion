@@ -74,7 +74,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
    const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift);
    if(!m.trees.some(k=>MAST[k].kind==='style')){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57);m.trees=rollTrees(m.bg,r).concat(m.trees)}
-   const have=new Set(m.trees.concat(weaponTrees(m))),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>typeof id==='string'&&perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
+   const have=new Set(m.trees.concat(weaponTrees(m),typeof ARMORT!=='undefined'?ARMORT:[])),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>typeof id==='string'&&perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
  if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
  fixHands(m);
  if(!svObj(m.tal))m.tal={};for(const k in m.tal)if(!svFin(m.tal[k]))delete m.tal[k];
