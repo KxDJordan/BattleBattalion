@@ -15,6 +15,8 @@
 // Rivals update: a rival mercenary company of the same profile (another of the profile's companies, its own formation and gear, played
 // by the rival AI: aiRun with AI_RIVAL's plan) at every profile (--no-rival skips it; --only rival runs only it). The sensible pilot
 // must win 55..75% overall against an equal rival (they are as good as you), and the naive pilot less than the sensible.
+// Solo update: the Solo (Beast Slayer) origin's one sword at levels 3, 6 and 9 (SOLO) against beasts, serpents and ogres, its quarry perks readied
+// for the faction (QPLAN); a table of its own, reported, not judged (--no-solo skips it; --only solo runs only it; --ns N battles a cell).
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
@@ -49,6 +51,13 @@ const PROFILES=[
  {id:'L12x12',lvl:12,day:50,tier:2,team:[S('knight','tank','aura'),S('squire','tower','aura'),S('sellsword','axe'),S('sellsword','hammer'),S('militia','spear'),S('militia','pole'),S('wildling','two','qi'),S('spellblade','gun','qi'),
    S('monk','heal','chi'),S('hunter','bow'),S('hunter','xbow'),S('hedge','mage','mana')]}
 ];
+/* Solo (Beast Slayer) profiles: the Solo origin's one sword at level 3, 6 and 9, in the gear a slayer would have bought by then, perks by
+   autoLearn except the points a sensible hunter keeps for the quarry it is fighting (QPLAN: the Monster hunter perks for that faction, the
+   open ones learned in battle(), each with the tally such a slayer would have: SOLOKILLS[quarry] x level). Reported, not judged. */
+const SOLO=[{id:'S3',lvl:3,day:3,solo:1,gear:{w:'boarspear',b:'huntxbow',a:'leather',h:'cap'}},{id:'S6',lvl:6,day:16,solo:1,gear:{w:'warspear',b:'lightxbow',a:'mail',h:'kettle'}},
+ {id:'S9',lvl:9,day:32,solo:1,gear:{w:'wingspear',b:'crossbow',a:'mail',h:'nasal'}}],SOLOF=['beast','serpent','ogre'],
+ QPLAN={beast:['hunter.wolf','hunter.bear','hunter.spider'],serpent:['hunter.serpent'],ogre:['hunter.ogre']},SOLOKEEP=2,
+ SOLOKILLS={'hunter.wolf':3,'hunter.spider':2,'hunter.bear':1,'hunter.serpent':1.5,'hunter.ogre':.5};
 /* ---------- DOM stubs (as in test/headless.js) ---------- */
 function hole(props){const store=Object.assign(Object.create(null),props||{});
  return new Proxy(function(){},{get(t,k){if(k in store)return store[k];if(k==='then'||k==='toJSON')return undefined;if(k===Symbol.toPrimitive)return h=>h==='number'?0:'';
@@ -95,13 +104,20 @@ function mkMerc(X,spec,P){const R=ROLES[spec.role],m=X.newMerc(spec.bg);m.field=
  X.gainXP(m,X.XPT[P.lvl]);let g=0;
  while(m.pend>0&&g++<40){for(const k of R.st){const t=m.tal[k]||0;m.base[k]+=X.ri(X.ROLL[k][0]+Math.floor(t/2),X.ROLL[k][1]+Math.ceil(t/2))}m.pend--}
  learnAll(X,m);delete m.cond;m.hp=X.calc(m).hp;return m}
-function buildCompany(X,P,seed){X.seedRng(seed);X.newGame(true);closeAll(X);const G=X.G;
+function buildSolo(X,P,seed){X.seedRng(seed);X.newGame(true,{origin:'slayer'});closeAll(X);const G=X.G,m=G.roster[0];m.field=true;
+ Object.assign(m.eq,P.gear);if(typeof X.fixHands==='function')X.fixHands(m);if(P.lvl>m.lvl)X.gainXP(m,X.XPT[P.lvl]-m.xp);let g=0;
+ while(m.pend>0&&g++<40){for(const k of ['hp','ms','md']){const t=m.tal[k]||0;m.base[k]+=X.ri(X.ROLL[k][0]+Math.floor(t/2),X.ROLL[k][1]+Math.ceil(t/2))}m.pend--}
+ const keep=Math.min(SOLOKEEP,m.pp);m.pp-=keep;learnAll(X,m);m.pp+=keep;delete m.cond;m.hp=X.calc(m).hp;G.stash.length=0;return X.clone(G.roster)}
+// the quarry a sensible slayer readies for the faction it fights (the kept points), then the rest by autoLearn
+function soloPrep(X,m,f,P){m.slain={};for(const k in SOLOKILLS)m.slain[k]=Math.floor(SOLOKILLS[k]*P.lvl);for(const k of QPLAN[f]||[])if(m.pp>0&&X.canLearn(m,k))X.learnPerk(m,k);learnAll(X,m);m.hp=X.calc(m).hp}
+function buildCompany(X,P,seed){if(P.solo)return buildSolo(X,P,seed);X.seedRng(seed);X.newGame(true);closeAll(X);const G=X.G;
  if(P.team){G.roster.length=0;for(const s of P.team)G.roster.push(mkMerc(X,s,P))}
  else G.roster.forEach(m=>{m.field=true;learnAll(X,m);m.hp=X.calc(m).hp});
  G.stash.length=0;closeAll(X);return X.clone(G.roster)}
 /* ---------- one battle ---------- */
 const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
-async function battle(X,W,job,i){const P=PROFILES.find(p=>p.id===job.prof),G=X.G;G.roster=X.clone(W.comp[P.id][i%KCOMP]);G.stash=[];G.day=P.day;X.B=null;X.mode='world';
+async function battle(X,W,job,i){const P=PROFILES.concat(SOLO).find(p=>p.id===job.prof),G=X.G;G.roster=X.clone(W.comp[P.id][i%KCOMP]);G.stash=[];G.day=P.day;X.B=null;X.mode='world';
+ if(P.solo){G.origin='slayer';soloPrep(X,G.roster[0],job.f,P)}else G.origin='free';
  X.seedRng((hash(job.f+'|'+P.id)^Math.imul(i+1,2654435761)^SEED)>>>0);
  const o={f:job.f,mult:1,biome:BIOMES[i%BIOMES.length],pilot:job.pilot,src:{type:'test'},turnCap:TURNCAP};if(job.plan)o.plan=job.plan;
  if(job.f==='rival'){const R=X.clone(W.comp[P.id][(i+3)%KCOMP]);R.forEach((m,k)=>{m.id=900000+k;m.field=true});   // an equal rival: another company of the same profile
@@ -117,13 +133,13 @@ if(has('--lib')){module.exports={makeContext,buildCompany,battle,PROFILES,SEED,h
 /* ---------- worker ---------- */
 if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const pump=async()=>{if(busy)return;busy=true;while(q.length){const job=q.shift();
-   try{if(!X){X=makeContext();const {performance}=require('perf_hooks');X.AI_CLOCK=()=>performance.now();W={comp:{}};for(const P of PROFILES){W.comp[P.id]=[];for(let k=0;k<KCOMP;k++)W.comp[P.id].push(buildCompany(X,P,SEED+hash(P.id)%9973+k*101))}}
+   try{if(!X){X=makeContext();const {performance}=require('perf_hooks');X.AI_CLOCK=()=>performance.now();W={comp:{}};for(const P of PROFILES.concat(SOLO)){W.comp[P.id]=[];for(let k=0;k<KCOMP;k++)W.comp[P.id].push(buildCompany(X,P,SEED+hash(P.id)%9973+k*101))}}
     const r=await runJob(X,W,job);process.send({id:job.id,r})}
    catch(e){process.send({id:job.id,err:String(e&&e.stack||e)})}}busy=false};
  process.on('message',m=>{if(m==='quit')process.exit(0);q.push(m);pump()});return}
 /* ---------- main ---------- */
 (async()=>{const QUICK=has('--quick'),N=+arg('--n',QUICK?40:200),NA=+arg('--na',Math.max(20,Math.round(N/2))),J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length)));
- const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'):FACS.concat(MONF),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
+ const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'&&f!=='solo'):FACS.concat(MONF),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
  const X0=makeContext(),PLAN=JSON.parse(JSON.stringify(X0.AI_PLAN)),FACT=X0.FACT;
  /* The tactics the sensible pilot is run without, one at a time: name -> what to strip from a plan. */
  const TACTICS={
@@ -153,11 +169,13 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const NW=+arg('--nw',Math.max(40,Math.round(N/2))),WABL={'dodge the dive':'dodge','pin its wings':'ground','spread out':'spread','no plan at all':'*'};
  for(const pr of WYV)for(const pilot of ['naive','sensible'])add('wyv','wyvern',pr,pilot,NW,null,null,null,['wyvern']);
  if(!has('--no-abl')&&WYV.includes('L12x12'))for(const t in WABL){const p=JSON.parse(JSON.stringify(PLAN.wyvern||{}));if(WABL[t]==='*')for(const k in p)delete p[k];else delete p[WABL[t]];add('wyvabl','wyvern','L12x12','sensible',NW,p,t,null,['wyvern'])}
+ const SOLON=+arg('--ns',Math.max(40,Math.round(N/2))),SOLOON=!has('--no-solo')&&(!only||only.split(',').includes('solo'));
+ if(SOLOON)for(const f of SOLOF)for(const P of SOLO)for(const pilot of ['naive','sensible'])add('solo',f,P.id,pilot,SOLON);
  if(has('--boss'))for(const pr of ['L8x9','L12x12'])for(const pilot of ['naive','sensible'])add('boss','void',pr,pilot,NA,null,null,['tyrant']);
  // identical jobs (same battles) are run once
  const sig=j=>[j.f,j.prof,j.pilot,j.n,JSON.stringify(j.plan&&JSON.stringify(j.plan)!==JSON.stringify(PLAN[j.f])?j.plan:null),JSON.stringify(j.fixed),JSON.stringify(j.foes)].join('|'),uniq=new Map();
  for(const j of jobs){const s=sig(j);if(!uniq.has(s))uniq.set(s,{job:j,res:null})}
- const todo=[...uniq.values()].sort((a,b)=>b.job.n*PROFILES.findIndex(p=>p.id===b.job.prof)-a.job.n*PROFILES.findIndex(p=>p.id===a.job.prof));
+ const PIX=id=>{const i=PROFILES.findIndex(p=>p.id===id);return i>=0?i:1},todo=[...uniq.values()].sort((a,b)=>b.job.n*PIX(b.job.prof)-a.job.n*PIX(a.job.prof));
  console.log(`balance: ${todo.length} cells, ${todo.reduce((s,t)=>s+t.job.n,0)} battles, ${J} workers, seed ${SEED}, BUDGETK ${X0.BUDGETK}`);
  await new Promise((done,fail)=>{let next=0,left=todo.length,dead=false;if(!left)return done();
   const sets=[];for(let i=0;i<ARGV.length;i++)if(ARGV[i]==='--set'||ARGV[i]==='--src'||ARGV[i]==='--srcdir')sets.push(ARGV[i],ARGV[i+1]);
@@ -207,6 +225,11 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
   if(jobs.some(j=>j.kind==='wyvabl')){const base=pct(R(jobs.find(j=>j.kind==='wyv'&&j.prof==='L12x12'&&j.pilot==='sensible')));console.log('sensible L12x12 with a tactic removed:');
    for(const j of jobs.filter(j=>j.kind==='wyvabl')){const w=pct(R(j));console.log('  '+pad(j.tag,18)+lp(f1(w)+'%',7)+'  ('+(w-base>=0?'+':'')+f1(w-base)+')')}}
   if(wst)bad.push(wst+' wyvern battles hit the turn cap')}
+ if(jobs.some(j=>j.kind==='solo')){console.log(`\n== Solo: Beast Slayer (one sword, an even fight for one at mult 1; quarry perks ${JSON.stringify(QPLAN)}, ${SOLON} battles each) ==`);
+  console.log(pad('faction',16)+pad('profile',8)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('rounds',8)+lp('dead(s)',9)+lp('down(s)',9));
+  for(const f of SOLOF)for(const P of SOLO){const a=R(jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='sensible'));stuck+=a.stuck+b.stuck;
+   console.log(pad(FACT[f].n,16)+pad(P.id,8)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1((a.rounds+b.rounds)/(a.n+b.n)),8)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9))}
+  console.log('(reported, not judged: the overall criteria above are the company profiles only)')}
  if(jobs.some(j=>j.kind==='boss')){console.log('\n== rift tyrant (dungeon boss fight, fixed tyrant + even budget) ==');for(const pr of ['L8x9','L12x12']){const a=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='sensible'));
    console.log(pad(pr,10)+`naive ${f1(pct(a))}%  sensible ${f1(pct(b))}%  rounds ${f1((a.rounds+b.rounds)/(a.n+b.n))}`)}}
  console.log(`\nAI decision cost: ${(ai.ms/Math.max(1,ai.n)).toFixed(3)} ms per unit turn (mean over ${ai.n} turns), worst single decision ${ai.max.toFixed(1)} ms.   Wall time ${((Date.now()-T0)/1000).toFixed(0)} s.`);

@@ -378,7 +378,9 @@ const PT_BGLOOK={
  nomad:{hat:'wrap',hatC:'straw',veil:'straw',garb:'sash',accent:'crimson',cloth:'straw'},
  beggar:{garb:'patches',cloth:'brown',hair:['shaggy','long','wisps'],marks:{stubble:1}},
  minstrel:{hat:'feathercap',hatC:'red',garb:'motley',accent:'ochre',cloth:'red',prop:'lute'},
- cultist:{hat:'hood',hatC:'purple',cloth:'purple',garb:'eye'}};
+ cultist:{hat:'hood',hatC:'purple',cloth:'purple',garb:'eye'},
+ // the Beast slayer (Solo origin): a dark hood (drawn over a light helmet too), trophies of the hunt on a strap, old claw scars; ours wins over BG.look
+ slayer:{own:1,hat:'hood',hatC:'night',cloth:['night','brown'],accent:'red',garb:'trophies',beard:['short','stache',''],marks:{scar:1,stubble:1},hoodOver:1}};
 const PT_BGRX=[[/grave/,'gravedigger'],[/butcher/,'butcher'],[/smith/,'blacksmith'],[/miner|mine/,'miner'],[/fish/,'fisherman'],[/shepherd|herd/,'shepherd'],[/wood|lumber/,'woodcutter'],[/poach/,'poacher'],
  [/bowyer|fletch/,'bowyer'],[/mason|stone/,'mason'],[/caravan|guard/,'caravan'],[/desert/,'deserter'],[/bandit|brigand|outlaw|raider/,'bandit'],[/pit/,'pitfighter'],[/gladia|arena/,'gladiator'],
  [/retire|veteran|old.?soldier/,'retired'],[/watch|guard/,'watchman'],[/noble|scion|lord|heir/,'noble'],[/hedge.?knight|knight.?errant/,'hedgeknight'],[/witch|inquis/,'witchhunter'],[/pilgrim/,'pilgrim'],
@@ -388,12 +390,12 @@ const PT_LKC=new Map();
 function ptBgBase(bg){if(PT_BGLOOK[bg])return PT_BGLOOK[bg];const B=typeof BG==='object'&&BG&&BG[bg],s=(String(bg)+' '+(B&&B.n||'')).toLowerCase();if(/hedge/.test(bg)&&/knight/.test(s))return PT_BGLOOK.hedgeknight;
  for(const [re,k] of PT_BGRX)if(re.test(s))return PT_BGLOOK[k];return null}
 function ptBgLook(bg){let L=PT_LKC.get(bg);if(L)return L;const B=typeof BG==='object'&&BG&&BG[bg],own=ptBgBase(bg)||{},rl=B&&B.look&&typeof B.look==='object'?B.look:{};
- L=Object.assign({},own);for(const k in rl){const v=rl[k];if(v==null||v==='')continue;
+ L=Object.assign({},own);if(!own.own)for(const k in rl){const v=rl[k];if(v==null||v==='')continue;
   if(k==='trim'&&typeof v==='string'&&PT_GARB[v]){if(!rl.garb)L.garb=v;continue}
   if(k==='hat'&&typeof v==='string'&&!PT_HATOK.test(v))continue;
   L[k]=v}
  PT_LKC.set(bg,L);return L}
-const PT_GARB={apron:1,butcher:1,smith:1,fine:1,rope:1,welts:1,sash:1,stripes:1,patches:1,fleece:1,pelt:1,bandolier:1,tabard:1,vials:1,eye:1,tatters:1,manica:1,straps:1,braces:1,plaid:1,motley:1};
+const PT_GARB={trophies:1,apron:1,butcher:1,smith:1,fine:1,rope:1,welts:1,sash:1,stripes:1,patches:1,fleece:1,pelt:1,bandolier:1,tabard:1,vials:1,eye:1,tatters:1,manica:1,straps:1,braces:1,plaid:1,motley:1};
 const PT_HATOK=/^(hood|straw|band|feather|circlet|skullcap|mask|coif|wide|capotain|feathercap|cowl|wrap|bandana|furcap|miner|scholar|horns|crown)$/;
 const PT_LIGHT={rags:1,padded:1,leather:1,fur:1,none:1,robe:1,bare:1,brig:1};
 function ptLv(v,R){return Array.isArray(v)?v[R(v.length)]:v}
@@ -429,6 +431,9 @@ function ptGarb(L,P,inT,top){const g=P.garb,sk=P.skin,a=P.armor,ac=P.garbC||PT_C
   case'welts':{for(const [xa,ya,xb,yb] of [[6,24,12,30],[18,23,25,29],[10,26,15,31],[21,27,26,31]])for(let i=0;i<=6;i++){const x=Math.round(xa+(xb-xa)*i/6),y=Math.round(ya+(yb-ya)*i/6);if(inT(x,y))ptS(L,x,y,i&1?'f':'g')}
    for(let x=0;x<32;x++)if(inT(x,29))ptS(L,x,29,(x&1)?'k':'j');break}
   case'sash':diag(5,23,22,31,3,ac);break;
+  case'trophies':{diag(23,23,9,31,2,['0','a','i']);ptS(L,19,25,'c');ptS(L,20,25,'b');   // a dark baldric (brass buckle) and a necklace of fangs and claws
+   const cord=[[11,24],[12,25],[13,26],[14,27],[15,27],[16,27],[17,27],[18,26],[19,25],[20,24]];for(const [x,y] of cord)ptS(L,x,y,'1');
+   for(const [x,y,k] of [[12,26,'l'],[12,27,'m'],[14,28,'l'],[14,29,'l'],[14,30,'m'],[16,28,'g'],[16,29,'f'],[17,28,'l'],[17,29,'l'],[17,30,'m'],[19,26,'l'],[19,27,'m']])ptS(L,x,y,k);break}
   case'bandolier':{diag(22,22,8,31,2,['a','i','j']);ptR(L,14,26,15,27,'c');ptS(L,14,26,'d');ptS(L,15,27,'b');ptR(L,18,24,19,25,'j');ptR(L,10,29,11,30,'j');break}
   case'stripes':{const s=P.garbC||['G','X','x'];for(let y=24;y<32;y+=2)for(let x=0;x<32;x++)if(inT(x,y)&&ptG(L,x,y)!==sk[0]&&ptG(L,x,y)!==sk[1]&&ptG(L,x,y)!==sk[2])ptS(L,x,y,x<9?s[2]:x>22?s[0]:s[1]);break}
   case'patches':{ptR(L,5,25,8,28,'j');ptH(L,5,8,25,'k');ptS(L,8,28,'i');ptR(L,21,27,24,30,'w');ptS(L,21,27,'v');ptR(L,13,29,15,31,'n');for(const [x,y] of[[5,27],[7,25],[22,30],[24,28],[14,29]])ptS(L,x,y,'0');break}
@@ -565,6 +570,7 @@ function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed
  if(hid){P.hat=typeof usHelmHat==='function'?usHelmHat(hid):'cap';P.hatC=null;P.famH=!!ITEMS[hid].famed;
   if(P.hat==='hood'&&!P.hatC)P.hatC='brown';if(P.hair==='mohawk'||P.hair==='bun'||P.hair==='curly'||P.hair==='mane'||P.hair==='shaggy'||P.hair==='swept')P.hair=fem?'long':'short';if(P.hat!=='cap'&&P.hat!=='kettle'&&P.hat!=='armcap'&&P.hair==='tail')P.hair='short'}
  else if(ptHelmsExist()&&(P.hat==='kettle'||P.hat==='cap'||P.hat==='nasal'))P.hat=null;
+ {const Lk=ptBgLook(bg);if(hid&&Lk&&Lk.hoodOver&&(ITEMS[hid].arm||0)<=60&&!ITEMS[hid].famed){P.hat='hood';P.hatC=ptLv(Lk.hatC,R)||'night'}}
  // gear
  const a=ITEMS[eq.a]&&ITEMS[eq.a].k==='a'?eq.a:null,av=a&&typeof usArmorV==='function'?usArmorV(a):null;P.armor=av?av.k:a||'none';P.av=av;if(av&&av.body&&PT_CLOTH[av.body])P.clothC=PT_CLOTH[av.body];if(P.armor==='plate'||P.armor==='scale'||P.armor==='lamellar')P.build=race==='elf'?'normal':'broad';
  P.ragC=ptPick(R,['tan','brown','tan','green']);P.robeC=bg==='monk'||bg==='acolyte'?'red':ptPick(R,['blue','blue','purple']);

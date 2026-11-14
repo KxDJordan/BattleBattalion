@@ -633,6 +633,26 @@ const MAST={
   [perkDef('Juggernaut','Every blow that reaches your hitpoints takes 5 fewer (at least 1)',{mod:{hpSoak:5}}),
    perkDef('Unshakable','You cannot be stunned, and heavy blows do not test your morale',{flag:'noStun'})]]}
 };
+/* ---- Monster hunter (kind 'hunter'): 9 tiers of one perk, tier t opens at level t (tierLevel). Each perk is a quarry (QUARRY, keyed by
+   the perk id): against a unit whose EN id is in QUARRY[k].en, a merc who has learned it deals +QUARRYB% damage plus per% for every one of
+   that quarry it has slain (m.slain[k], counted always, also before the perk is learned), up to cap kills, and gets floor(kills x per / 2)
+   to hit. Wyverns are never a quarry. Only backgrounds with BG[bg].ht may learn it (hunterTrees). Rules: quarryVs / quarryInfo (61-talents.js). ---- */
+const QUARRYB=5;
+const QUARRY={
+ 'hunter.gob':    {n:'Goblins',      one:'goblin',      tag:'Goblin-slayer',  en:['gob','gobarch','gobsham'],        per:1,cap:30},
+ 'hunter.spider': {n:'Webspinners',  one:'webspinner',  tag:'Spider-slayer',  en:['spider'],                         per:1,cap:30},
+ 'hunter.wolf':   {n:'Direwolves',   one:'direwolf',    tag:'Wolf-slayer',    en:['wolf'],                           per:1,cap:30},
+ 'hunter.dead':   {n:'Restless dead',one:'restless dead',tag:'Grave-warden',  en:['skel','zomb','skelhal','necro'],  per:2,cap:15},
+ 'hunter.serpent':{n:'Serpents',     one:'serpent',     tag:'Serpent-slayer', en:['adder','viper','gserp'],          per:2,cap:15},
+ 'hunter.bear':   {n:'Owlbears',     one:'owlbear',     tag:'Owlbear-slayer', en:['bear'],                           per:3,cap:10},
+ 'hunter.rift':   {n:'Riftspawn',    one:'riftspawn',   tag:'Rift-warden',    en:['imp','vknight','vmage','tyrant'], per:3,cap:10},
+ 'hunter.ent':    {n:'Ents',         one:'ent',         tag:'Ent-feller',     en:['thorn','ent','elder'],            per:5,cap:6},
+ 'hunter.ogre':   {n:'Ogres',        one:'ogre',        tag:'Ogre-slayer',    en:['ogre','aogre'],                   per:5,cap:6}};
+const QUARRYOF={};for(const k in QUARRY){QUARRY[k].key=k;for(const e of QUARRY[k].en)QUARRYOF[e]=k}   // EN id -> quarry (perk) key
+function quarryText(k){const Q=QUARRY[k],hit=Q.per%2===0?`+${Q.per/2} to hit for every one`:Q.per===1?'+1 to hit for every two':`+${Q.per} to hit for every two (an odd one adds ${Math.floor(Q.per/2)})`;
+ return`Against ${Q.n.toLowerCase()}: +${QUARRYB}% damage once learned, plus +${Q.per}% damage for every one you have slain and ${hit} (kills made before learning it count too; up to ${Q.cap} kills: at most +${QUARRYB+Q.per*Q.cap}% damage, +${Math.floor(Q.per*Q.cap/2)} to hit)`}
+MAST.hunter={n:'Monster hunter',kind:'hunter',aff:['melee','ranged'],d:'Know your quarry: every kill of a kind makes the next one easier (never wyverns)',
+ tiers:Object.keys(QUARRY).map(k=>[perkDef(QUARRY[k].tag,quarryText(k),{id:k,quarry:k})])};
 // Perk ids, the flat list p (read by older UI code) and the tier count n.
 for(const k in MAST){const T=MAST[k];T.p=[];T.tiers.forEach((tier,ti)=>tier.forEach((p,j)=>{if(!p.id)p.id=k+'.'+(ti+1)+(tier.length>1?'ab'[j]:'');T.p.push(p)}))}
 const MUNDANE=Object.keys(MAST).filter(k=>MAST[k].kind==='style');
@@ -744,6 +764,12 @@ Object.assign(BG,{
   style:'caster',pool:['survivor','medic','tactician','skirmisher','scout','berserker','brawler'],wt:['staff','dagger','mace'],at:['lightarmor'],
   tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}}
 });
+/* The Beast Slayer: the one sword of the Solo origin (ORIGINS.slayer). w 0 and noHire: never in a tavern, a rival roster or an event. */
+BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,ht:1,st:{hp:14,ms:12,rs:8,md:8,rd:4,fat:12,brv:16,init:6},r:[['qi',.2],['aura',.12]],
+ gear:['boarspear','leather','cap'],side:'huntxbow',
+ style:'melee',pool:['survivor','vanguard','skirmisher','scout','berserker','duelist','brute'],wt:['spear','axe','sword','crossbow','dagger'],at:['medarmor','lightarmor'],
+ tr:{beastwise:4,tough:2,brave:2,athletic:2,craven:0,fragile:.3,superstitious:.3},look:{hat:'hood',cloth:'black',accent:'charcoal',trim:'steel',garb:'bandolier',beard:'short'}};
+for(const k of ['hunter','poacher','witchhunter','wildling'])if(BG[k])BG[k].ht=1;   // the backgrounds that may learn the Monster hunter tree
 for(const k in BG)if(!BG[k].m)BG[k].m=BG[k].pool.slice(0,2);
 for(const k in BG){const b=BG[k];if(b.town)b.size=b.town;if(b.bio)b.biomes=b.bio}   // the names 50-towns' recruitBG also reads (size: minimum town size, biomes)                              // the old two-mastery list (read by nothing new; kept for shape)
 /* Trait weights and looks of the first twelve backgrounds (the portraits already draw these hats). */

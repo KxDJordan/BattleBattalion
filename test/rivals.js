@@ -198,7 +198,7 @@ section('saves');
   const old=X.clone(G);old.v=10;delete old.rivals;delete old.rvn;old.parties=old.parties.filter(p=>p.goal!=='merc');for(const p of old.parties)if(p.cargo)p.cargo={good:p.cargo.good,crowns:p.cargo.crowns};
   if(old.towns[0].contracts[0])old.towns[0].contracts[0].rival='h1';
   const raw=JSON.stringify(old);X.store.set(X.SAVEKEY,raw);const m1=X.readSave();X.store.set(X.SAVEKEY,raw);const m2=X.readSave();ok(m1.state==='ok'&&m1.v===10,'v10 save reads: '+m1.state+' '+(m1.why||''));
-  const g=m1.g;ok(g.v===11&&Array.isArray(g.rivals)&&g.rivals.length===2&&g.rivals.every(r=>r.alive&&r.roster.length>=5),'migrated rivals');ok(JSON.stringify(g.rivals)===JSON.stringify(m2.g.rivals),'migrating twice gives the same rivals');
+  const g=m1.g;ok(g.v===X.SAVEVER&&Array.isArray(g.rivals)&&g.rivals.length===2&&g.rivals.every(r=>r.alive&&r.roster.length>=5),'migrated rivals');ok(JSON.stringify(g.rivals)===JSON.stringify(m2.g.rivals),'migrating twice gives the same rivals');
   ok(g.parties.filter(p=>p.goal==='caravan').every(p=>Array.isArray(p.cargo.items)&&Array.isArray(p.cargo.trade))&&g.parties.filter(p=>p.cargo).every(p=>p.cargo.crowns===old.parties.find(q=>q.id===p.id).cargo.crowns),'old caravans carry a full cargo, purse kept');
   if(old.towns[0].contracts[0])ok(g.towns[0].contracts[0].outbid==='h1'&&!g.towns[0].contracts[0].rival,'outbid house moved to c.outbid');
   const ids=new Set(g.roster.map(m=>m.id));ok(g.rivals.every(r=>r.roster.every(m=>!ids.has(m.id))),'rival merc ids do not clash');

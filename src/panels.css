@@ -671,3 +671,38 @@
 #pn .co-nm .tr-chips{margin-left:4px}
 @media (max-width:760px){#pn .co-stand{grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px 4px 0}#pn .co-st{min-height:44px;padding:2px 4px;gap:4px}#pn .co-st .pn-i.px{width:16px!important;height:16px!important}#pn .co-retl{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){#pn .co-stand{grid-template-columns:1fr}}
+/* ---- Monster hunter: a madder group (ring, rule, kill badges), one column per quarry; the Quarry ledger on the character sheet ---- */
+#pn .co-m.k-hunt{box-shadow:inset 0 -2px 0 var(--madder);color:#ef8a78}
+#pn .tg-wh.tg-hh{border-color:#5a1f1c;background:#2a1614}
+#pn .tg-wh.tg-hh b{color:#ef8a78}
+#pn .tg-wh.tg-hh.lk b{color:var(--dim)}
+#pn .tg-wh em.tg-hk{border-color:#5a1f1c;background:#1a0f0e;color:#ef8a78}
+#pn .tg-hunt .tg-hc.new{background:#5a1f1c;box-shadow:inset 0 -2px 0 var(--madder)}
+#pn .tg-hunt .tg-hc{min-width:0}
+#pn .tg-tree.k-hunter{margin-top:2px}
+#pn .tg-tree.k-hunter .tg-row{box-shadow:-4px 0 0 var(--madder);margin-left:4px}
+#pn .tg-hunt .tg-c{padding:3px 1px}
+#pn .tg-hunt .tg-n{width:100%;max-width:var(--tgn);height:auto;aspect-ratio:1/1}
+#pn .tg-hunt .tg-n .pxi,#pn .tg-hunt .tg-n .pn-i{width:min(32px,calc(100% - 6px));height:auto;aspect-ratio:1/1}
+#pn .tg-n.q.got{background:#3a1a17;box-shadow:inset 0 0 0 2px var(--madder)}
+#pn .tg-n.q.got.qmax{box-shadow:inset 0 0 0 2px #ef8a78,0 0 0 1px #f3d98b}
+#pn .tg-n>i.tg-q{position:absolute;left:-3px;top:-5px;min-width:13px;height:12px;padding:0 2px;background:#5a1f1c;box-shadow:0 0 0 1px #0b1514;color:#ffd9d0;font:600 11px/12px 'Jersey 15',sans-serif;font-style:normal;text-align:center;pointer-events:none}
+#pn .tg-n.qmax>i.tg-q{background:#8a6a2a;color:#fff4c8}
+#pn .tg-qline{display:flex!important;align-items:flex-start;gap:4px;color:#ffd9d0!important}
+#pn .tg-qline .pxi,#pn .tg-qline .pn-i{flex:none}
+#pn .tg-qline b{color:#ef8a78}
+#pn .tg-tag.hunt{background:#3a1a17;color:#ef8a78}
+#pn .ch-q{margin-top:8px}
+#pn .ch-ql{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:3px;margin-top:4px}
+#pn .ch-qr{display:flex;align-items:center;gap:5px;min-width:0;padding:2px 5px 2px 2px;border:1px solid var(--pn-ink);background:#0b1514;color:var(--dim)}
+#pn .ch-qr.on{background:#1f1210;box-shadow:inset 3px 0 0 var(--madder)}
+#pn .ch-qr .pxi,#pn .ch-qr .pn-i{flex:none}
+#pn .ch-qn{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;line-height:1.05}
+#pn .ch-qn b{color:var(--vellum);font-weight:600;font-size:.86em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pn .ch-qn small{font-size:.72em;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pn .ch-qr.on .ch-qn small{color:#ef8a78}
+#pn .ch-qb{flex:none;display:block;width:28px;height:4px;background:#182a28;box-shadow:0 0 0 1px #0b1514}
+#pn .ch-qb>i{display:block;height:100%;background:var(--madder)}
+#pn .ch-qr.max .ch-qb>i{background:var(--brass)}
+#pn .ch-qr>em{flex:none;min-width:18px;text-align:right;font:600 1em/1 'Jersey 15',sans-serif;font-style:normal;color:var(--brass)}
+#pn .ch-qnone{margin:3px 0 0;font-size:.8em}

@@ -340,3 +340,28 @@ function traitChips(m,o){o=o||{};const L=trList(m);if(!L.length)return o.full?'<
  if(o.compact)return`<span class="tr-chips compact" aria-label="Traits: ${trEsc(L.map(t=>t.n).join(', '))}">${L.map(t=>`<span class="tr-c ${t.good?'good':'bad'}" title="${trEsc(t.n+(t.d?': '+t.d:''))}">${ic(t)}</span>`).join('')}</span>`;
  if(o.full)return`<div class="tr-list">${L.map(t=>`<div class="tr-row ${t.good?'good':'bad'}">${ic(t)}<div><b>${trEsc(t.n)}</b><span>${trEsc(t.d||t.fx||'')}</span></div></div>`).join('')}</div>`;
  return`<span class="tr-chips">${L.map(t=>`<span class="tr-c ${t.good?'good':'bad'}" title="${trEsc(t.n+(t.d?': '+t.d:''))}">${ic(t)}<b>${trEsc(t.n)}</b></span>`).join('')}</span>`}
+
+/* ================= MONSTER HUNTER, KILLS AND THE SOLO RUN (readers) =================
+   QUARRY[k] = {n, one, tag, en:[EN ids], per, cap} (k = the hunter perk id), m.slain = {k: kills}; the rules' quarryInfo(m,k) /
+   quarryVs(u,t) decide, the fallbacks follow the contract (+QUARRYB% once learned, +per% damage and floor(kills x per / 2) to hit per kill, up to cap).
+   canRecruit() closes every way to add a sword on a solo run; tlSoloWhy() is the reason the screens show. */
+function tlQuarries(){return typeof QUARRY==='object'&&QUARRY?Object.keys(QUARRY):[]}
+function tlQuarryOf(o){if(!o)return null;const p=o.perk||o,Q=typeof QUARRY==='object'&&QUARRY;if(!Q)return null;for(const k of [p.quarry,p.q,o.id,p.id])if(k&&Q[k])return k;return null}
+function tlQuarryIcon(k){return typeof icQuarry==='function'?icQuarry(k):'skull'}
+function tlSlain(m,k){const s=m&&m.slain&&typeof m.slain==='object'?m.slain:null;return s&&cpNum(s[k])?Math.max(0,Math.floor(s[k])):0}
+function tlQuarryInfo(m,k){const Q=typeof QUARRY==='object'&&QUARRY&&QUARRY[k];if(!Q)return null;const own=Array.isArray(m&&m.perks)&&m.perks.map(String).includes(k),slain=tlSlain(m,k),cap=cpNum(Q.cap)?Q.cap:30,per=cpNum(Q.per)?Q.per:1,base=typeof QUARRYB==='number'?QUARRYB:5;
+ let r=null;if(typeof quarryInfo==='function')r=tlTry(()=>quarryInfo(m,k),null);r=r&&typeof r==='object'?r:{};
+ const kills=cpNum(r.kills)?r.kills:cpNum(r.n)?r.n:cpNum(r.stack)?r.stack:Math.min(slain,cap),learned=r.learned!=null?!!r.learned:r.on!=null?!!r.on:r.own!=null?!!r.own:own;
+ const dmg=cpNum(r.dmg)?r.dmg:cpNum(r.dmgPct)?r.dmgPct:learned?base+per*kills:0,hit=cpNum(r.hit)?r.hit:learned?Math.floor(kills*per/2):0;
+ return{key:k,n:Q.n,one:Q.one||Q.n,tag:Q.tag||Q.n,slain:cpNum(r.slain)?r.slain:slain,kills,cap,per,base,learned,dmg,hit,max:kills>=cap,
+  dmgMax:base+per*cap,hitMax:Math.floor(per*cap/2),dmgIf:base+per*kills,hitIf:Math.floor(kills*per/2)}}
+/* "12 slain: +17% damage, +6 to hit" (what it would give, when not yet learned) */
+function tlQuarryLine(I,short){if(!I)return'';const d=I.learned?I.dmg:I.dmgIf,h=I.learned?I.hit:I.hitIf,cap=I.max?' (at the cap)':'';
+ return`${I.slain} slain${short?'':cap}: +${d}% damage${h?', +'+h+' to hit':''}${I.learned||short?'':' once learned'}`}
+function tlSlainList(m){const s=m&&m.slain&&typeof m.slain==='object'?m.slain:{},out=[];
+ for(const k of tlQuarries()){const n=tlSlain(m,k);if(n>0)out.push(Object.assign(tlQuarryInfo(m,k),{icon:tlQuarryIcon(k)}))}
+ for(const k in s)if(!(typeof QUARRY==='object'&&QUARRY&&QUARRY[k])&&cpNum(s[k])&&s[k]>0)out.push({key:k,n:k,slain:s[k],learned:false,icon:tlQuarryIcon(k)});
+ return out}
+function tlCanRecruit(){if(typeof canRecruit==='function')return tlTry(()=>canRecruit(),true)!==false;return true}
+function tlSolo(){if(typeof isSolo==='function')return!!tlTry(()=>isSolo(),false);const O=typeof ORIGINS==='object'&&ORIGINS&&typeof G==='object'&&G&&ORIGINS[G.origin];return!!(O&&O.solo)||!tlCanRecruit()}
+function tlSoloWhy(){if(typeof recruitWhy==='function'){const w=tlTry(()=>recruitWhy(),'');if(w)return String(w)}return'You ride alone'}

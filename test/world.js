@@ -152,7 +152,7 @@ section('save round trip');
 { const G=fresh(SEED);for(let d=0;d<12;d++)day(G);G.towns[1].sit.push({k:'siege',days:3,by:'h0'});X.repGain('h1',-25,'x');
   X.mode='world';ok(X.save(),'save');const r=X.readSave();ok(r.state==='ok','read back: '+r.state+' '+(r.why||''));const g=r.g;
   const pick=o=>JSON.stringify({h:o.houses,rep:o.rep,log:o.repLog,hrel:o.hrel,wars:o.wars,nests:o.nests,news:o.news,wsim:o.wsim,t:o.towns.map(t=>[t.own,t.bld,t.spec,t.sit,t.pros]),p:o.parties.map(p=>[p.id,p.goal,p.f,p.from,p.to,p.home,p.siege,p.hunt,p.cargo,p.pts&&p.pts.length,p.pi])});
-  {const a=pick(g),b=pick(G);if(a!==b){let i=0;while(a[i]===b[i])i++;fail('world fields differ after load near: '+a.slice(Math.max(0,i-120),i+80)+' VS '+b.slice(Math.max(0,i-120),i+80))}}ok(g.v===X.SAVEVER&&X.SAVEVER===11,'save version 11');
+  {const a=pick(g),b=pick(G);if(a!==b){let i=0;while(a[i]===b[i])i++;fail('world fields differ after load near: '+a.slice(Math.max(0,i-120),i+80)+' VS '+b.slice(Math.max(0,i-120),i+80))}}ok(g.v===X.SAVEVER&&X.SAVEVER===12,'save version 12');
   // a damaged world record is repaired, never fatal
   const bad=X.clone(G);bad.houses[0].pers='nonsense';bad.towns[0].sit=[{k:'nope',days:2},{k:'raided',days:'x'}];bad.towns[1].own='h9';bad.nests.push({id:'x'});bad.parties.push({id:9999,x:100,y:100,tx:100,ty:100,f:'h0',mult:1,goal:'caravan'});bad.rep.h0='x';
   ok(X.repairSave(bad)==='','damaged world fields repaired');ok(bad.houses[0].pers==='proud'&&bad.towns[0].sit.length===0&&typeof bad.towns[1].own==='string'&&bad.nests.every(n=>typeof n.id==='number')&&bad.rep.h0===0,'repairs');

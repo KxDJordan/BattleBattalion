@@ -262,3 +262,6 @@
 #order .objc.won{border-color:#58b39c}#order .objc.won .ocv{color:#9fe0cd}
 @media (prefers-reduced-motion:no-preference){#app:not(.rm) #order .objc.k-escort:not(.lost) .ohp.low b{animation:objlow 1s steps(2) infinite}}
 @keyframes objlow{50%{opacity:.4}}
+/* a Monster hunter's quarry bonus in the forecast: the quarry's head, damage in green, to-hit small */
+.fcm.fcq{gap:2px;padding:0 3px 0 1px;background:#2a1614;box-shadow:inset 0 -2px 0 #c4493f}
+.fcm.fcq b{color:#ffd9d0}.fcm.fcq b small{font-size:.9em;color:#ef8a78}

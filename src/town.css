@@ -251,3 +251,10 @@
 #tv .tv-own .tw-pw{font-size:12px;margin-right:6px}
 #tv .tv-name{max-width:min(470px,calc(100vw - 240px))}
 @media (max-height:400px){#tv .tv-own .tw-prices{display:none}}
+/* solo run: recruits greyed, the reason on top and in the foot */
+#pn .tw-solo .tw-row{filter:grayscale(.85) brightness(.75)}
+#pn .tw-solo .tw-row .pn-coin{text-decoration:line-through;opacity:.6}
+#pn .tw-solo-d{filter:grayscale(.6);opacity:.85}
+#pn .tw-alone{border-color:#5a1f1c;background:#2a1614}
+#pn .tw-alone b{display:block;color:#ef8a78}
+#pn em.tw-alone-f{color:#ef8a78;font-style:normal;font-weight:600}

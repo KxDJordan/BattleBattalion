@@ -30,7 +30,7 @@ function rollTraits(bg,r){r=r||rnd;const x=r(),n=x<.3?0:x<.78?1:2,out=[];
 function traitsValid(L){if(!Array.isArray(L)||L.length>2)return false;for(let i=0;i<L.length;i++){const T=TRAITS[L[i]];if(!T||L.indexOf(L[i])!==i)return false;if(T.opp&&L.includes(T.opp))return false}return true}
 // The daily wage of a merc: the background's wage, with Greedy / Loyal (TRAITS[k].wage fractions), rounded, at least 1.
 function mercWage(m){const b=m&&BG[m.bg];if(!b)return 0;let f=1;for(const T of traitsOf(m))if(T.wage)f+=T.wage;return Math.max(1,Math.round(b.wage*f))}
-/* A merc: {id,name,bg,race,lvl,xp,pp,pend,base:{hp,fat,init,ms,rs,md,rd,brv},tal,trees,gift,perks,traits:[keys],eq:{w,b,s,a,h},hp,field,inj:[{id,days}],cond?:{a,h}}
+/* A merc: {id,name,bg,race,lvl,xp,pp,pend,base:{hp,fat,init,ms,rs,md,rd,brv},tal,trees,gift,perks,traits:[keys],eq:{w,b,s,a,h},hp,field,inj:[{id,days}],cond?:{a,h},slain:{quarryKey:kills}}
    traits: 0-2 TRAITS keys rolled at creation (rollTraits); their st and mods are in calc(m), their battle flags in 60-battle-core.js.
    base.brv is resolve (morale checks); eq.h a helmet, eq.b a sidearm (any weapon; swapped in battle); cond the armor points left on body (a)
    and head (h), absent = whole; inj the injuries carried (days left, -1 = permanent). trees / gift / perks: see 61-talents.js. */
@@ -44,7 +44,7 @@ function newMerc(bg){const b=BG[bg],race=rnd()<.55?'human':pick(['elf','dwarf','
  if(b.side){const id=pick(b.side.split('|'));if(ITEMS[id]&&ITEMS[id].k==='w')eq.b=id}
  if(eq.s&&ITEMS[eq.w]&&ITEMS[eq.w].two)eq.s=null;   // a recruit who carries a two-hander brings no shield
  const traits=rollTraits(bg);
- const m={id:G.nid++,name:pick(NAMES),bg,race,lvl:1,xp:0,pp:1,pend:0,base,tal,trees:gift?trees.concat([gift]):trees,gift,perks:[],eq,hp:base.hp,field:false,inj:[],traits};
+ const m={id:G.nid++,name:pick(NAMES),bg,race,lvl:1,xp:0,pp:1,pend:0,base,tal,trees:gift?trees.concat([gift]):trees,gift,perks:[],eq,hp:base.hp,field:false,inj:[],traits,slain:{}};
  fixHands(m);syncMast(m);m.hp=calc(m).hp;return m}
 // The merc's gift resource (mana aura qi chi) or null.
 function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)return MAST[m.gift].res;if(!Array.isArray(m.perks)&&m.mast&&typeof m.mast==='object')return RESK.find(k=>k in m.mast)||null;return null}

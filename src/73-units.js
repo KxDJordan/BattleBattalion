@@ -750,6 +750,7 @@ function usGarb(ctx){const S=ctx.S,v=ctx.v,x0=ctx.x0,x1=ctx.x1,ty=ctx.ty,b=S.b,t
    if(g==='welts'){usF(x0+1,ty+2,'g');usF(x0+2,ty+3,'f');usF(x1-2,ty+1,'g');usF(x1-1,ty+2,'f');usF(fc-1,ty+4,'g')}break}
   case'sash':diag(v?x1:x0,ty,v?x0:x1,y1,ac);break;
   case'bandolier':diag(v?x0:x1,ty,v?x1:x0,y1,R.dleather);if(v===0){usF(fc-1,ty+3,'c')}break;
+  case'trophies':diag(v?x0:x1,ty,v?x1:x0,y1,R.dleather);if(v===0){usF(fc+1,ty+2,'l');usF(fc-1,ty+4,'l');usF(fc-1,ty+5,'m');usF(fc-3,ty+6,'g')}else{usF(fc,ty+3,'l')}break;
   case'straps':diag(x0,ty,x1,y1,R.dleather);diag(x1,ty,x0,y1,R.dleather);usF(fc,ty+(th>>1),'q');break;
   case'braces':usPart(1);for(let y=ty;y<=y1;y++){usP(x0+1,y,R.dleather,0);usP(x1-1,y,R.dleather,-1)}break;
   case'tabard':{usPart();const t0=v?fc:fc-1;for(let y=ty+1;y<=y1+1;y++)for(let x=t0;x<=t0+1;x++)usP(x,y,ac,x===t0+1?-1:0);if(v===0)usF(t0,ty+3,'l');break}

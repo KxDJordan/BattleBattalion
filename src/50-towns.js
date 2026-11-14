@@ -147,16 +147,16 @@ function townView(t){let list='',detail='',foot='',key=townTab;
   t.contracts.forEach((c,j)=>{list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'wrap tw-row',lead:twEmblem(c,32),title:c.title,sub:twCtrSub(c),right:pnCoin(c.pay)+twSkulls(c.diff,Math.max(3,c.diff))})});
   if(n){const c=t.contracts[i],v=twCtrDetail(c,t);detail=v.detail;foot=v.foot}}
  else if(townTab==='tavern'&&townSel.tav==='ret'&&typeof FOLLOWERS!=='undefined'){const v=retinueView(t);list=v.list;detail=v.detail;foot=v.foot;key+=':'+v.key}
- else if(townTab==='tavern'){const n=t.recruits.length,i=clamp(+townSel.tavern||0,0,n-1),full=G.roster.length>=MAXROSTER;townSel.tavern=i;key+=':'+i;
-  if(typeof FOLLOWERS!=='undefined')list+=tavTabs('rec');list+=pnSec('Looking for work',`Roster ${G.roster.length} of ${MAXROSTER}`);
+ else if(townTab==='tavern'){const n=t.recruits.length,i=clamp(+townSel.tavern||0,0,n-1),full=G.roster.length>=MAXROSTER,solo=!(typeof canRecruit!=='function'||canRecruit());townSel.tavern=i;key+=':'+i;
+  if(typeof FOLLOWERS!=='undefined')list+=tavTabs('rec');list+=pnSec('Looking for work',solo?recruitWhy():`Roster ${G.roster.length} of ${MAXROSTER}`);
   if(!n){list+=pnEmpty('Nobody is looking for work today.');detail=`<div class="pn-blank">${twIcon('tavern',48,'tavern')}<p>Nobody is looking for work today. New faces drift in every three days.</p></div>`}
-  t.recruits.forEach((m,j)=>{const c=hireCost(m),tc=typeof traitChips==='function'?traitChips(m,{compact:1}):'';list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row',lead:twPortrait(m,32),title:htmlEsc(m.name)+(m.lvl>1?` <span class="tw-t vet">Lv ${m.lvl}</span>`:''),sub:`<span class="tw-line">${twRecruitLine(m)}</span><span class="tw-line co-trees tw-trees">${twRecruitTrees(m)}${tc}</span>`,right:pnCoin(c,G.crowns<c?'short':'')})});
+  t.recruits.forEach((m,j)=>{const c=hireCost(m),tc=typeof traitChips==='function'?traitChips(m,{compact:1}):'';list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row'+(solo?' off solo':''),lead:twPortrait(m,32),title:htmlEsc(m.name)+(m.lvl>1?` <span class="tw-t vet">Lv ${m.lvl}</span>`:''),sub:`<span class="tw-line">${twRecruitLine(m)}</span><span class="tw-line co-trees tw-trees">${twRecruitTrees(m)}${tc}</span>`,right:pnCoin(c,G.crowns<c?'short':'')})});
   if(n){const m=t.recruits[i],b=BG[m.bg],s=calc(m),c=hireCost(m),tf=typeof traitChips==='function'?traitChips(m,{full:1}):'';
    detail=`${twHead(twPortrait(m,64),`${RACE[m.race].n} ${b.n.toLowerCase()}, level ${m.lvl}${m.lvl>1?', a veteran':''}`,htmlEsc(m.name))}${statGrid(m,s)}${tf?pnHead('Traits')+tf:''}${m.lvl>1&&m.perks&&m.perks.length?`<p class="pn-p dim">Has fought before: ${m.perks.length} perk${m.perks.length===1?'':'s'} learned${m.pp?', '+m.pp+' point'+(m.pp===1?'':'s')+' to spend':''}.</p>`:''}
    ${pnHead('The four gifts')}${giftRow(m)}
    ${pnHead('Trees')}${twTreeList(m)}
    ${pnHead('Starting gear')}<div class="pn-gears">${gearRows(m)}</div>`;
-   foot=`<span class="pn-fl">${pnCoin(c,'big'+(G.crowns<c?' short':''))}<small>${full?'<em>The roster is full</em>':G.crowns<c?'<em>Not enough crowns</em>':'+ '+Math.round(typeof wageOf==='function'?wageOf(m):b.wage)+' a day'}</small></span><button type="button" class="pn-btn pri${full||G.crowns<c?' off':''}" onclick="hire(${i})">Hire</button>`}}
+   foot=`<span class="pn-fl">${pnCoin(c,'big'+(G.crowns<c?' short':''))}<small>${solo?`<em>${recruitWhy()}</em>`:full?'<em>The roster is full</em>':G.crowns<c?'<em>Not enough crowns</em>':'+ '+Math.round(typeof wageOf==='function'?wageOf(m):b.wage)+' a day'}</small></span><button type="button" class="pn-btn pri${solo||full||G.crowns<c?' off':''}"${solo?' disabled':''} onclick="hire(${i})">Hire</button>`}}
  else if(townTab==='market'){const v=marketView(t);list=v.list;detail=v.detail;foot=v.foot;key+=':'+v.key}
  else if(townTab==='tailor'&&typeof tailorView==='function'){const v=tailorView(t);list=v.list;detail=v.detail;foot=v.foot;key=v.key}
  else if(townTab==='temple'){const L=[];G.roster.forEach((m,mi)=>cpInj(m).forEach(j=>L.push({m,mi,j,cost:cpInjCost(m,j.id)})));const n=L.length,i=clamp(+townSel.temple||0,0,n-1);townSel.temple=i;key+=':'+i+':'+n;
@@ -259,7 +259,7 @@ function twHaggle(i,how){const t=G.towns[G.town],c=t&&t.contracts[i];if(!c||type
  const ask=how==='counter'&&N.counter?N.counter:how==='adv'?{pay:c.pay,adv:Math.round(c.pay*.3/10)*10}:{pay:Math.round(b*1.15/10)*10,adv:c.adv||0};
  const r=ctrNegotiate(c,ask);if(c.neg){c.neg.msg=r.msg;c.neg.ok=r.ok}renderTown(r.gone?`<p class="bad">${r.msg}</p>`:'');return r}
 function hireCost(m,ti){const c=typeof recruitCost==='function'?recruitCost(m):BG[m.bg].cost,k=twK('hire',ti);return k===1?c:Math.max(5,Math.round(c*k/5)*5)}
-function hire(i){if(twHostile()){toast('Nobody here will sign with the company');return}const t=G.towns[G.town],m=t.recruits[i];if(!m)return;const c=hireCost(m);if(G.roster.length>=MAXROSTER){toast('The roster is full');return}if(G.crowns<c){toast('Not enough crowns');return}
+function hire(i){if(!(typeof canRecruit!=='function'||canRecruit())){toast(recruitWhy()+': nobody joins the company');return false}if(twHostile()){toast('Nobody here will sign with the company');return}const t=G.towns[G.town],m=t.recruits[i];if(!m)return;const c=hireCost(m);if(G.roster.length>=MAXROSTER){toast('The roster is full');return}if(G.crowns<c){toast('Not enough crowns');return}
  G.crowns-=c;t.recruits.splice(i,1);m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);toast(m.name+' joins the company');renderTown();save()}
 function buyFood(){if(twShut())return false;const p=mkFoodPrice();if(G.crowns<p){toast('Not enough crowns');return false}G.crowns-=p;G.food+=10;renderTown();return true}
 function buyItem(i){if(twShut())return false;const t=G.towns[G.town],id=t.stock[i];if(!id)return false;const p=mkBuyPrice(id);if(G.crowns<p){toast('Not enough crowns');return false}G.crowns-=p;G.stash.push(id);t.stock.splice(i,1);renderTown();return true}

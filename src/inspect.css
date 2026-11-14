@@ -69,3 +69,7 @@
 #inspect .ins-tr .tr-ic{flex:none;margin-top:1px}
 #inspect .ins-ret b{color:#f3d98b}
 #inspect .ins-scout{display:flex;gap:5px;align-items:flex-start;color:#9fe0cd}
+/* a quarry perk on the card: its stack in madder (gold once full) */
+#inspect .ins-pk.ins-q i{flex:none;margin:0 4px;color:#ef8a78}
+#inspect .ins-pk.ins-q span{color:#ffd9d0}
+#inspect .ins-pk.ins-q.max span{color:#f3d98b}

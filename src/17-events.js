@@ -83,7 +83,7 @@ function evRep(f,n,why){if(!f||!n||FACT[f])return;if(f!=='free'&&!evHouse(f)&&!(
  if(typeof repGain==='function'){try{repGain(f,n,why||'an event')}catch(e){}}else{if(!G.rep||typeof G.rep!=='object')G.rep={};G.rep[f]=clamp((G.rep[f]||0)+n,-100,100)}
  evLog(`${n>0?'+':'−'}${Math.abs(n)} standing with ${evFacName(f)}`,n>0?'good':'bad')}
 // a recruit joins (room permitting): background bg at level lvl; returns the merc or null
-function evRecruit(bg,lvl,o){if(!BG[bg])return null;if(G.roster.length>=MAXROSTER){evLog(`No room in the roster (${MAXROSTER}): the ${BG[bg].n.toLowerCase()} goes on alone`,'');return null}
+function evRecruit(bg,lvl,o){if(!BG[bg])return null;if(!canRecruit()){evLog(`${SOLOWHY}: the ${BG[bg].n.toLowerCase()} goes their own way`,'');return null}if(G.roster.length>=MAXROSTER){evLog(`No room in the roster (${MAXROSTER}): the ${BG[bg].n.toLowerCase()} goes on alone`,'');return null}
  const m=newMerc(bg);lvl=clamp(lvl|0||1,1,MAXLV);if(lvl>1)gainXP(m,XPT[lvl]-m.xp);if(o&&o.name)m.name=o.name;if(o&&o.trait)evTraitQuiet(m,o.trait);m.hp=evMaxHp(m);m.field=G.roster.filter(x=>x.field).length<(typeof MAXFIELD==='number'?MAXFIELD:12);
  G.roster.push(m);evLog(`${m.name} the ${BG[bg].n.toLowerCase()} joins (level ${m.lvl})`,'good');return m}
 function evTraitQuiet(m,k){const n=EVLOG.length;evTrait(m,k);EVLOG.length=n}
@@ -127,7 +127,7 @@ function evDef(id){const D=id&&typeof id==='object'?id:EVENTS[id];if(!D)return n
 // the scene for a contract twist art key 'twist-<k>'
 const EVTWISTART={ambush:'road',bribe:'tavern',surrender:'field',outbid:'square',betray:'gibbet',betrayal:'gibbet',cursed:'crypt',curse:'crypt'};
 function evStr(v,c){try{return typeof v==='function'?String(v(c)||''):String(v==null?'':v)}catch(e){return''}}
-function evReqOk(o,c){if(!o.req)return true;try{return!!o.req(c)}catch(e){return false}}
+function evReqOk(o,c){if(o.recruit&&!canRecruit())return false;if(!o.req)return true;try{return!!o.req(c)}catch(e){return false}}
 /* evtResolve(id|def, ctx, i): applies option i. {ok, text, fx, fight}. ok false (nothing changes) when the option's requirement fails. */
 function evtResolve(id,ctx,i){const D=evDef(id);if(!D)return{ok:false,text:'',fx:[]};const c=ctx||evCtx(D.kind[0]||'travel',{});if(!c.m||!G.roster.includes(c.m))c.m=G.roster[0];
  const o=D.opts[i];if(!o||!evReqOk(o,c))return{ok:false,text:'',fx:[]};EVLOG.length=0;EVS.fight=null;let t='';
@@ -146,8 +146,8 @@ function evRender(){const S=EVS.cur;if(!S||typeof sheet!=='function')return;cons
  let h=`<div class="ev${R?' ev-done':''}"><div class="ev-art${D.who2&&c.m2?' ev-two':''}${sc<3?' ev-sm':''}" style="--evw:${EVW*sc}px;--evh:${EVH*sc}px"><img class="ev-scene" src="${evArtURL(D.art,c)}" width="${EVW*sc}" height="${EVH*sc}" alt="">`+
   `${c.m&&D.who!==null?`<div class="ev-who">${evPortrait(c,sc)}<span>${htmlEsc(c.m.name)}<small>${htmlEsc(BG[c.m.bg]?BG[c.m.bg].n:'')}</small></span></div>`:''}${D.who2&&c.m2?`<div class="ev-who ev-who2"><span>${htmlEsc(c.m2.name)}<small>${htmlEsc(BG[c.m2.bg]?BG[c.m2.bg].n:'')}</small></span>${evPortrait({m:c.m2},sc)}</div>`:''}<div class="ev-kind">${htmlEsc(kindN)}</div></div><div class="ev-main"><h2>${htmlEsc(evStr(D.n,c))}</h2>`;
  if(!R){h+=`<div class="ev-txt">${evStr(D.text,c)}</div><div class="ev-opts">`;
-  D.opts.forEach((o,i)=>{const ok=evReqOk(o,c),b=evStr(o.badge,c)||(ok?'':evStr(o.why,c)||'the means');
-   h+=`<button class="ev-opt${ok?'':' ev-lock'}"${ok?'':' disabled'} onclick="evtPick(${i})"><span class="ev-ot">${htmlEsc(evStr(o.t,c))}${b?`<span class="ev-bdg${ok?'':' no'}">${ok?'':'Needs '}${htmlEsc(b)}</span>`:''}</span><small class="ev-od">${evStr(o.d,c)}</small></button>`});
+  D.opts.forEach((o,i)=>{const ok=evReqOk(o,c),solo=!ok&&o.recruit&&!canRecruit(),b=solo?recruitWhy():evStr(o.badge,c)||(ok?'':evStr(o.why,c)||'the means');
+   h+=`<button class="ev-opt${ok?'':' ev-lock'}"${ok?'':' disabled'} onclick="evtPick(${i})"><span class="ev-ot">${htmlEsc(evStr(o.t,c))}${b?`<span class="ev-bdg${ok?'':' no'}">${ok||solo?'':'Needs '}${htmlEsc(b)}</span>`:''}</span><small class="ev-od">${evStr(o.d,c)}${o.joins&&!canRecruit()?` <em class="ev-solo">(${SOLOWHY}: nobody joins.)</em>`:''}</small></button>`});
   h+=`</div>`}
  else{h+=`<div class="ev-chose">${htmlEsc(R.t||'')}</div><div class="ev-txt">${R.text||''}</div>${R.fx.length?`<ul class="ev-fx">${R.fx.map(x=>`<li class="${x.c}">${htmlEsc(x.t)}</li>`).join('')}</ul>`:'<p class="dim ev-none">Nothing else changes.</p>'}
   <div class="ev-opts"><button class="pri ev-go" onclick="evtClose()">${EVS.fight?'To battle':'Continue'}</button></div>`}
@@ -166,14 +166,25 @@ const ORIGINS={
  deserters:{n:'Deserters',icon:'retreat',d:'You walked off a lord\'s field the night before the battle, with your spears and his pay chest. His house has not forgotten.',
   rule:'Wages 20% lower: men who ran know their price. One house starts Hostile (−60) and sends patrols after you; the other houses are wary (−10).',roster:['deserter','deserter','militia','brigand'],crowns:900,k:{wage:.8}},
  noble:{n:'A fallen noble\'s guard',icon:'helmet',d:'The last heir of a broken house and the few who kept their oath. Good steel, an old name, and very little coin.',
-  rule:'The heir (a level 3 knight) must survive: if he falls, the oath is broken and the run is lost (or the company fights on with half its renown). Better armor and weapons, 450 crowns, 30 renown, and his family\'s friends (+20 with one house).',roster:['knight','squire','squire','militia'],crowns:450,k:{}},
+  rule:'The heir (a level 3 knight) must survive: if the heir falls, the oath is broken and the run is lost (or the company fights on with half its renown). Better armor and weapons, 450 crowns, 30 renown, and his family\'s friends (+20 with one house).',roster:['knight','squire','squire','militia'],crowns:450,k:{}},
  academy:{n:'Academy expedition',icon:'mana',d:'A college sent you to map the old leylines. Every one of you carries the gift, and none of you has been in a real fight.',
   rule:'Every sword starts with its gift awakened, but each is Fragile (−6 hitpoints). Colleges serve you at half price.',roster:['hedge','spellblade','spellblade','acolyte'],crowns:1000,k:{college:.5}},
  beast:{n:'Beast hunters',icon:'part-pelt',d:'Trappers and monster-hunters who follow the bounties. You know which gland is worth the knife and which tracks are fresh.',
   rule:'Monster parts drop 1.5 times as often. One hunter starts Beast-wise. You start with pelts, meat and two salves more.',roster:['hunter','poacher','wildling','woodcutter'],crowns:1000,k:{parts:1.5,intel:1}},
  pilgrims:{n:'Pilgrims of the Rift',icon:'ab-riftstep',d:'You saw the sky crack in a dream, and walked. The rifts will open sooner for you, and you mean to be there.',
-  rule:'The Sundering comes on day 12, not 18. Closing a rift pays 50% more. The free towns shelter pilgrims (+20 with them); the houses distrust zealots (−5).',roster:['flagellant','cultist','acolyte','monk'],crowns:900,k:{rift:1.5}}
+  rule:'The Sundering comes on day 12, not 18. Closing a rift pays 50% more. The free towns shelter pilgrims (+20 with them); the houses distrust zealots (−5).',roster:['flagellant','cultist','acolyte','monk'],crowns:900,k:{rift:1.5}},
+ slayer:{n:'Solo: Beast Slayer',icon:'or-slayer',solo:1,d:'One hunter, one spear, a crossbow on the back and a ledger of every beast that ever fell to them. No banner-men, no partners: the bounties are all yours.',
+  rule:'You ride alone: nobody can join the company, not by hire, parley or event (followers still can). The slayer starts at level 3, Beast-wise, with the Monster hunter tree: every kill of a kind makes the next easier. Contracts pay as for two swords. If the slayer dies, the run ends.',
+  roster:['slayer'],crowns:1000,k:{}}
 };
+/* ---- who may join: a Solo origin (ORIGINS[k].solo) closes the roster for good ----
+   canRecruit(g?) -> false for a solo run; recruitWhy(g?) -> the reason ('You ride alone') or ''. Every path that adds a merc to G.roster
+   checks it: tavern hire (50-towns.js), a rival's parley hire (40-world.js), a beaten rival who asks to join (68-battle-flow.js), event
+   recruits (evRecruit; options with recruit:1 are shown disabled with the reason). Followers (the retinue) are not members: still allowed. */
+const SOLOWHY='You ride alone';
+function isSolo(g){g=g||G;const O=g&&typeof g.origin==='string'?ORIGINS[g.origin]:null;return!!(O&&O.solo)}
+function canRecruit(g){return!isSolo(g)}
+function recruitWhy(g){return isSolo(g)?SOLOWHY:''}
 function originK(key){const O=G&&ORIGINS[G.origin];const v=O&&O.k?O.k[key]:undefined;return typeof v==='number'&&isFinite(v)?v:1}
 // the house a deserter company fled: the first house that does not own the starting town (else the first)
 function evStartHouse(g,own){const H=Array.isArray(g.houses)?g.houses:[];if(!H.length)return null;const t0=g.towns&&g.towns[0]&&g.towns[0].own;return(own?H.find(h=>h.id===t0):H.find(h=>h.id!==t0))||H[0]}
@@ -195,6 +206,11 @@ ORIGINS.beast.setup=g=>{if(!g.parts||typeof g.parts!=='object')g.parts={};g.part
  const h=g.roster[0];if(h)evTraitQuiet(h,'beastwise');g.stash.push('huntbow')};
 ORIGINS.pilgrims.setup=g=>{g.crisisDay=12;if(Array.isArray(g.houses))for(const h of g.houses)evSetRep(h.id,-5);evSetRep('free',20);
  if(!g.parts||typeof g.parts!=='object')g.parts={};g.parts.voidshard=(g.parts.voidshard||0)+2;g.stash.push('pilgrim')};
+// the lone Beast Slayer: level 3 (two levels' perk points and stat rolls to spend), the full kit, Beast-wise; two salves and a bundle of meat more
+ORIGINS.slayer.setup=g=>{const L=g.roster[0];if(!L)return;gainXP(L,XPT[3]-L.xp);evGear(L,['boarspear','leather','cap']);if(ITEMS.huntxbow)L.eq.b='huntxbow';if(typeof fixHands==='function')fixHands(L);
+ evTraitQuiet(L,'beastwise');if(!Array.isArray(L.traits)||!L.traits.includes('beastwise')){L.traits=(L.traits||[]).filter(k=>TRAITS[k]&&TRAITS[k].good).slice(0,1);L.traits.push('beastwise')}
+ if(!L.slain||typeof L.slain!=='object')L.slain={};L.field=true;L.hp=evMaxHp(L);
+ g.salve=(typeof g.salve==='number'?g.salve:2)+2;if(!g.parts||typeof g.parts!=='object')g.parts={};g.parts.meat=(g.parts.meat||0)+2};
 /* originWatch(): a noble guard whose heir has fallen (gone from the roster) sees the oath-broken card once. */
 function originWatch(){if(!G||G.origin!=='noble'||!G.evt||!G.evt.flags)return;const F=G.evt.flags;if(!F.lord||F.oath)return;if(!Array.isArray(G.roster)||G.roster.some(m=>m.id===F.lord))return;
  if((typeof sheetOpen!=='undefined'&&sheetOpen)||(typeof mode!=='undefined'&&mode!=='world'))return;F.oath=1;   // shown at the next quiet moment in the world
@@ -244,11 +260,11 @@ tollbar:{n:'A toll on the road',kind:['travel'],art:'road',cd:7,when:c=>c.day>=3
 refugees:{n:'Refugees',kind:['travel'],art:'road',cd:9,when:c=>c.t&&Array.isArray(c.t.sit)&&c.t.sit.some(s=>s&&(s.k==='raided'||s.k==='famine'||s.k==='siege'))?3:1,
  text:c=>evP(`A column of carts and families comes the other way, pots tied to the axles. They fled the country around ${evTownNm(c)}. Children stare at your banner.`),
  opts:[{t:'Share your food',req:c=>G.food>=10,d:c=>`−10 food, +4 renown, +6 standing with ${evFacName(c.f)}.`,go:c=>{evFood(-10);evRenown(4);evRep(c.f,6,'fed refugees');return'<p>Bread is broken. Somebody sings.</p>'}},
-  {t:'Take on a volunteer',d:'−4 food. A farmhand joins (level 1), room permitting.',go:c=>{evFood(-4);evRecruit('farmhand',1);return'<p>A broad-shouldered lad climbs down from a cart and asks for a spear.</p>'}},
+  {t:'Take on a volunteer',recruit:1,d:'−4 food. A farmhand joins (level 1), room permitting.',go:c=>{evFood(-4);evRecruit('farmhand',1);return'<p>A broad-shouldered lad climbs down from a cart and asks for a spear.</p>'}},
   {t:'Keep marching',d:c=>`25%: ${evPlain(c.m)} becomes Greedy (no shame in it, they say).`,go:c=>{if(evRoll(.25))evTrait(c.m,'greedy');return'<p>The column passes in silence.</p>'}}]},
 knightfall:{n:'A knight in the ditch',kind:['travel'],art:'road',cd:14,when:c=>c.day>=4?.9:0,
  text:c=>evP(`A knight lies in the ditch, his horse dead beside him and an arrow through his thigh. He is still breathing. His sword is very fine.`),
- opts:[{t:'Tend his wound',d:'50%: he lives and swears to the company (a level 3 hedge knight joins, room permitting). 50%: he dies thanking you and leaves you his sword (arming sword).',
+ opts:[{t:'Tend his wound',joins:1,d:'50%: he lives and swears to the company (a level 3 hedge knight joins, room permitting). 50%: he dies thanking you and leaves you his sword (arming sword).',
    go:c=>{if(evRoll(.5)){if(evRecruit('hedgeknight',3))return'<p>"I owe you a life," he says, "and I always pay."</p>';evItem('arming');return'<p>He lives, but there is no place for him. He leaves you his sword in thanks.</p>'}evItem('arming');return'<p>He dies before the fire is lit, his hand on the hilt he gives you.</p>'}},
   {t:'Take his gear',d:c=>`+1 mail hauberk, +1 arming sword. −8 standing with ${evFacName(c.f)}. 40%: ${evPlain(c.m)} becomes Bloodthirsty.`,go:c=>{evItem('mail');evItem('arming');evRep(c.f,-8,'robbed a dying knight');if(evRoll(.4))evTrait(c.m,'bloodthirsty');return'<p>It is quick, and nobody talks about it afterwards.</p>'}},
   {t:'Ride on',d:'Nothing changes.',go:c=>'<p>Crows already circle.</p>'}]},
@@ -291,7 +307,7 @@ gibbet:{n:'The crossroads gibbet',kind:['travel'],art:'gibbet',cd:12,when:c=>.8,
   {t:'Leave him',d:'Nothing changes.',go:c=>'<p>The chain creaks behind you for a long while.</p>'}]},
 deserters:{n:'Men in the hedgerow',kind:['travel'],art:'road',cd:14,when:c=>evHouseF(c)?1:0,
  text:c=>evP(`Four men in the colours of ${evFacName(c.f)} hide in a hedgerow, their badges torn off. Deserters. They see your banner and step out, hands open.`),
- opts:[{t:'Take them on',d:c=>`Two deserters join (level 1, room permitting). −10 standing with ${evFacName(c.f)}.`,go:c=>{evRecruit('deserter',1);evRecruit('deserter',1);evRep(c.f,-10,'sheltered deserters');return'<p>"We fight. We just won\'t die for him."</p>'}},
+ opts:[{t:'Take them on',recruit:1,d:c=>`Two deserters join (level 1, room permitting). −10 standing with ${evFacName(c.f)}.`,go:c=>{evRecruit('deserter',1);evRecruit('deserter',1);evRep(c.f,-10,'sheltered deserters');return'<p>"We fight. We just won\'t die for him."</p>'}},
   {t:'Hand them over',d:c=>`+15 standing with ${evFacName(c.f)}, +40 crowns of bounty.`,go:c=>{evRep(c.f,15,'handed over deserters');evCrowns(40);return'<p>The patrol pays in coin and nods.</p>'}},
   {t:'Let them go',d:'Nothing changes.',go:c=>'<p>They melt back into the hedge.</p>'}]},
 royalhunt:{n:'A noble hunt',kind:['travel'],art:'glade',cd:12,when:c=>evHouseF(c)&&['forest','plains','hills'].includes(c.biome)?1:0,
@@ -318,13 +334,13 @@ crypt:{n:'An open crypt',kind:['travel'],art:'crypt',cd:12,when:c=>c.day>=3?.9:0
   {t:'Leave it',d:'Nothing changes.',go:c=>'<p>The wind follows you a little way.</p>'}]},
 farmfire:{n:'A farm on fire',kind:['travel'],art:'farm',cd:10,when:c=>c.day>=2?1:0,
  text:c=>evP(`A farmstead burns beside the road. Raiders left an hour ago; their tracks are plain in the wet field. The farmer beats at the thatch with a sack.`),
- opts:[{t:'Fight the fire',d:c=>`−3 tools, +6 standing with ${evFacName(c.f)}, +3 renown. 40%: the farmer's son joins (farmhand, level 1).`,go:c=>{evTools(-3);evRep(c.f,6,'saved a farm');evRenown(3);if(evRoll(.4))evRecruit('farmhand',1);return'<p>The barn is lost, the house is saved.</p>'}},
+ opts:[{t:'Fight the fire',joins:1,d:c=>`−3 tools, +6 standing with ${evFacName(c.f)}, +3 renown. 40%: the farmer's son joins (farmhand, level 1).`,go:c=>{evTools(-3);evRep(c.f,6,'saved a farm');evRenown(3);if(evRoll(.4))evRecruit('farmhand',1);return'<p>The barn is lost, the house is saved.</p>'}},
   {t:'Hunt the raiders',d:'A fight with brigands. Win: their loot (+80 crowns).',go:c=>{evCrowns(80);evFight('bandit',.8,'the raiders');return'<p>The tracks lead to a copse, and laughter.</p>'}},
   {t:'Pass by',d:'Nothing changes.',go:c=>'<p>The smoke follows you for an hour.</p>'}]},
 oldsoldier:{n:'An old soldier',kind:['travel','town'],art:'road',cd:12,when:c=>.9,
  text:c=>evP(`An old soldier with one ear sits on a milestone, sharpening a sword he no longer needs. "I taught swordplay to a prince once," he says. "For a price I'll teach yours."`),
  opts:[{t:'Pay for a lesson',req:c=>G.crowns>=80,d:c=>`−80 crowns. ${evPlain(c.m)} +180 XP.`,go:c=>{evCrowns(-80);evXP(c.m,180);return`<p>A long afternoon, and ${evNm(c.m)} moves differently after it.</p>`}},
-  {t:'Ask him to join',d:'60%: he signs on (a level 4 veteran, room permitting). 40%: he laughs at you.',go:c=>{if(evRoll(.6)&&evRecruit('veteran',4))return'<p>"One more war, then."</p>';return'<p>"I\'m too old to die for crowns."</p>'}},
+  {t:'Ask him to join',recruit:1,d:'60%: he signs on (a level 4 veteran, room permitting). 40%: he laughs at you.',go:c=>{if(evRoll(.6)&&evRecruit('veteran',4))return'<p>"One more war, then."</p>';return'<p>"I\'m too old to die for crowns."</p>'}},
   {t:'Share a pipe',d:c=>`${evPlain(c.m)} becomes Brave (40%).`,go:c=>{if(evRoll(.4))evTrait(c.m,'brave');return'<p>Old stories of old battles.</p>'}}]},
 wagonwheel:{n:'A broken axle',kind:['travel'],art:'road',cd:6,when:c=>.8,
  text:c=>evP(`A crack like a crossbow, and the supply cart sits down in the road on one wheel. The axle is split through.`),
@@ -423,7 +439,7 @@ mending:{n:'Mending day',kind:['camp'],art:'camp',cd:6,when:c=>(G.tools|0)<10?1.
 /* ---------- town ---------- */
 pitchamp:{n:'The pit champion',kind:['town'],art:'tavern',cd:15,when:c=>c.t&&(c.t.size||1)>=2?1:.3,
  text:c=>evP(`In the back room of the tavern in ${evTownNm(c)}, a pit fighter has won nine bouts running. Now he wants real work.`),
- opts:[{t:'Hire him',req:c=>G.crowns>=220&&G.roster.length<MAXROSTER,why:'220 crowns and room',d:'−220 crowns. A level 3 pit fighter joins.',go:c=>{evCrowns(-220);evRecruit('pitfighter',3);return'<p>He cracks his knuckles and grins.</p>'}},
+ opts:[{t:'Hire him',recruit:1,req:c=>G.crowns>=220&&G.roster.length<MAXROSTER,why:'220 crowns and room',d:'−220 crowns. A level 3 pit fighter joins.',go:c=>{evCrowns(-220);evRecruit('pitfighter',3);return'<p>He cracks his knuckles and grins.</p>'}},
   {t:'Put up a fighter',d:c=>`${evPlain(c.m)} fights him. 45%: wins +120 crowns and becomes Cocky. 55%: loses: −20 hitpoints and an injury.`,go:c=>{if(evRoll(.45)){evCrowns(120);evTrait(c.m,'cocky');return'<p>The crowd goes wild.</p>'}evHurt(c.m,20);evInj(c.m);return'<p>Carried out on a door.</p>'}},
   {t:'Watch and drink',d:'−10 crowns.',go:c=>{evCrowns(-10);return'<p>A good night.</p>'}}]},
 festival:{n:'A festival',kind:['town'],art:'square',cd:10,when:c=>c.t&&Array.isArray(c.t.sit)&&c.t.sit.some(s=>s&&s.k==='festival')?4:.5,
@@ -439,7 +455,7 @@ tavernbrawl:{n:'Trouble at the tavern',kind:['town'],art:'tavern',cd:9,who:m=>ev
 witchtrial:{n:'A witch trial',kind:['town'],art:'square',cd:14,when:c=>c.t?1:0,
  text:c=>evP(`A crowd in the square of ${evTownNm(c)} has a young woman tied to a stake. "Witch!" they shout. She is very calm.`),
  opts:[{t:'Judge her yourself',badge:'Witch hunter',req:c=>!!evFind(m=>evBg(m,'witchhunter')),d:c=>`She is a hedge healer, not a witch: she goes free. +10 standing with ${evFacName(c.f)}, +5 renown.`,go:c=>{evRep(c.f,10,'a fair judgement');evRenown(5);return'<p>The witch hunter\'s word settles it.</p>'}},
-  {t:'Cut her loose',d:c=>`−12 standing with ${evFacName(c.f)}. She joins as a hedge mage (level 2, room permitting).`,go:c=>{evRep(c.f,-12,'freed a witch');evRecruit('hedge',2);return'<p>She walks out of town with you, chin high.</p>'}},
+  {t:'Cut her loose',joins:1,d:c=>`−12 standing with ${evFacName(c.f)}. She joins as a hedge mage (level 2, room permitting).`,go:c=>{evRep(c.f,-12,'freed a witch');evRecruit('hedge',2);return'<p>She walks out of town with you, chin high.</p>'}},
   {t:'Stay out of it',d:c=>`${evPlain(c.m)}: 30% becomes Craven.`,go:c=>{if(evRoll(.3))evTrait(c.m,'craven');return'<p>The smoke is seen for miles.</p>'}}]},
 investor:{n:'A merchant\'s venture',kind:['town'],art:'square',cd:14,when:c=>c.t&&!evFlag('invest')&&G.crowns>=300?1:0,
  text:c=>evP(`A merchant of ${evTownNm(c)} is fitting out a caravan for the coast. He wants a partner: 200 crowns now, and a share when it returns.`),
@@ -472,7 +488,7 @@ oldlord:{n:'Old colours',kind:['travel'],art:'road',cd:12,when:c=>G.origin==='de
 heirletter:{n:'A letter for the heir',kind:['camp','town'],art:'tavern',cd:15,who:m=>evLord(m),when:c=>G.origin==='noble'?2:0,
  text:c=>evP(`An old retainer of ${evNm(c.m)}'s family has found the company. He brings what he could save: a little silver, and the names of men who still remember the old banner.`),
  opts:[{t:'Take the silver',d:'+150 crowns.',go:c=>{evCrowns(150);return'<p>Spoons, a candlestick, a ring. Enough.</p>'}},
-  {t:'Call the old loyalists',d:'+6 hours. A level 2 squire joins (room permitting).',go:c=>{evHours(6);evRecruit('squire',2,{trait:'loyal'});return'<p>One comes. One is enough.</p>'}},
+  {t:'Call the old loyalists',recruit:1,d:'+6 hours. A level 2 squire joins (room permitting).',go:c=>{evHours(6);evRecruit('squire',2,{trait:'loyal'});return'<p>One comes. One is enough.</p>'}},
   {t:'Send him home',d:c=>`${evPlain(c.m)} +60 XP.`,go:c=>{evXP(c.m,60);return'<p>"Tell them I am coming back."</p>'}}]},
 leyline:{n:'A leyline node',kind:['travel','camp'],art:'shrine',cd:12,when:c=>G.origin==='academy'?1.6:G.roster.filter(m=>evAwake(m)).length>=2?.4:0,
  text:c=>evP(`The instruments sing: a leyline node lies under this hill, the kind the college sent you to chart. The air tastes of tin.`),
@@ -496,7 +512,7 @@ spoils:{n:'Spoils of the field',kind:['after'],art:'field',cd:3,when:c=>1.4,
   {t:'March on',d:'Nothing changes.',go:c=>''}]},
 mercy:{n:'A plea for mercy',kind:['after'],art:'field',cd:6,when:c=>['bandit','orc','gob'].includes(c.foe)?1.5:0,
  text:c=>evP(`One of the foes lives, pinned under a dead comrade. ${c.foe==='bandit'?'"I can fight," he says. "I can fight for you."':'It raises empty hands.'}`),
- opts:[{t:'Spare and enlist',d:c=>c.foe==='bandit'?'He joins as a brigand (level 2, room permitting). +2 renown.':'It flees. +2 renown.',go:c=>{evRenown(2);if(c.foe==='bandit')evRecruit('brigand',2);return'<p>A cut rope and a second chance.</p>'}},
+ opts:[{t:'Spare and enlist',joins:1,d:c=>c.foe==='bandit'?'He joins as a brigand (level 2, room permitting). +2 renown.':'It flees. +2 renown.',go:c=>{evRenown(2);if(c.foe==='bandit')evRecruit('brigand',2);return'<p>A cut rope and a second chance.</p>'}},
   {t:'Finish it',d:c=>`${evPlain(c.m)}: 50% becomes Bloodthirsty.`,go:c=>{if(evRoll(.5))evTrait(c.m,'bloodthirsty');return'<p>Quick, at least.</p>'}},
   {t:'Question them',d:c=>`+2 hours. 60%: they tell of their stash: +70 crowns.`,go:c=>{evHours(2);if(evRoll(.6)){evCrowns(70);return'<p>Under the third oak, in a pot.</p>'}return'<p>Lies, all of it.</p>'}}]},
 trophy:{n:'A trophy',kind:['after'],art:'field',cd:6,who:m=>evTr(m,'bloodthirsty')||evTr(m,'cocky')||evBg(m,'wildling','pitfighter','brigand'),when:c=>1.2,

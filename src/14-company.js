@@ -1,7 +1,7 @@
 /* ================= COMPANY PROGRESSION: renown tiers, ambitions, the retinue (progression agent) =================
    Data (CONTRACT.md "Renown, ambitions, retinue"):
      RENOWN[i]       {n, min, diff, ft, dw, pay, lv:[lo,hi], vet, slots, rare, d}   tier i+1; renownTier(r) -> 1..6
-     AMBITIONS[id]   {n, d, kind, icon, test(g)->[progress, goal], reward:{renown, crowns, item?, tools?, food?}, req?(g)}
+     AMBITIONS[id]   {n, d, kind, icon, test(g)->[progress, goal], reward:{renown, crowns, item?, tools?, food?}, req?(g), team? (needs several swords: never offered to a solo run)}
      FOLLOWERS[id]   {n, d, cost, renown (tier needed), effect, icon:'fol-<id>', wired}
    Company state:    G.retinue [ids]   G.amb {cur, done:[ids], offered:[ids], st:{counters}, base:{counters when cur was taken},
                                               days:{id: day fulfilled}, cel:[{k:'amb',id}|{k:'tier',t}] notes still to show, rt: tier last told}
@@ -101,8 +101,8 @@ function ambSince(g,k){const a=g&&g.amb;if(!a||!a.st)return 0;return Math.max(0,
 function ambOwned(g){const L=[];if(!g)return L;(g.stash||[]).forEach(id=>L.push(id));(g.roster||[]).forEach(m=>{if(m&&m.eq)for(const k in m.eq)if(m.eq[k])L.push(m.eq[k])});return L}
 function ambFielded(g){return(g&&g.roster||[]).filter(m=>m&&m.field).slice(0,typeof MAXFIELD==='number'?MAXFIELD:12)}
 const AMBITIONS={
- muster:  {n:'Muster a war band',kind:'company',icon:'swords',d:'Field eight swords at once.',test:g=>[ambFielded(g).length,8],reward:{renown:15,crowns:250}},
- line12:  {n:'A full battle line',kind:'company',icon:'company',d:'Field twelve swords at once.',req:g=>(g.roster||[]).length>=7,test:g=>[ambFielded(g).length,12],reward:{renown:30,crowns:500}},
+ muster:  {n:'Muster a war band',team:1,kind:'company',icon:'swords',d:'Field eight swords at once.',test:g=>[ambFielded(g).length,8],reward:{renown:15,crowns:250}},
+ line12:  {n:'A full battle line',team:1,kind:'company',icon:'company',d:'Field twelve swords at once.',req:g=>(g.roster||[]).length>=7,test:g=>[ambFielded(g).length,12],reward:{renown:30,crowns:500}},
  wins10:  {n:'Ten victories',kind:'war',icon:'sword',d:'Win ten battles.',test:g=>[ambSince(g,'wins'),10],reward:{renown:25,crowns:400}},
  streak5: {n:'Unbroken',kind:'war',icon:'shield',d:'Win five battles in a row without a sword killed.',test:g=>[g.amb&&g.amb.cur==='streak5'?Math.min(5,ambSt(g).streak||0):0,5],reward:{renown:30,item:'gear'}},
  slay50:  {n:'Fifty foes',kind:'war',icon:'skull',d:'Slay fifty foes.',test:g=>[ambSince(g,'kills'),50],reward:{renown:20,crowns:300}},
@@ -124,8 +124,8 @@ const AMBITIONS={
  tier3:   {n:'Respected',kind:'company',icon:'renown',d:'Raise the company’s renown to Respected.',req:g=>renownTier(g.renown)<3,test:g=>[Math.min(RENOWN[2].min,Math.floor(g.renown||0)),RENOWN[2].min],reward:{renown:0,crowns:600}},
  tier5:   {n:'Famed',kind:'company',icon:'renown',d:'Raise the company’s renown to Famed.',req:g=>renownTier(g.renown)>=3&&renownTier(g.renown)<5,test:g=>[Math.min(RENOWN[4].min,Math.floor(g.renown||0)),RENOWN[4].min],reward:{renown:0,crowns:2000,item:'gear'}},
  vet10:   {n:'A veteran',kind:'war',icon:'level',d:'Raise a sword to level 10.',test:g=>[Math.min(10,Math.max(0,...(g.roster||[]).map(m=>m&&m.lvl||0))),10],reward:{renown:30,crowns:800}},
- gifted3: {n:'The gifted',kind:'company',icon:'aura',d:'Field three swords who carry a gift.',test:g=>[Math.min(3,ambFielded(g).filter(m=>typeof mercRes==='function'?!!mercRes(m):!!m.gift).length),3],reward:{renown:20,crowns:400}},
- iron:    {n:'An iron line',kind:'war',icon:'armor',d:'Field six swords in tier III armor or better, each with a helmet.',
+ gifted3: {n:'The gifted',team:1,kind:'company',icon:'aura',d:'Field three swords who carry a gift.',test:g=>[Math.min(3,ambFielded(g).filter(m=>typeof mercRes==='function'?!!mercRes(m):!!m.gift).length),3],reward:{renown:20,crowns:400}},
+ iron:    {n:'An iron line',team:1,kind:'war',icon:'armor',d:'Field six swords in tier III armor or better, each with a helmet.',
            test:g=>[Math.min(6,ambFielded(g).filter(m=>{const a=ITEMS[m.eq&&m.eq.a],h=ITEMS[m.eq&&m.eq.h],B=a&&a.famed&&ITEMS[a.base]?ITEMS[a.base]:a;return!!(B&&(B.tier||1)>=3&&h)}).length),6],reward:{renown:25,crowns:500}}};
 function ambNew(){return{cur:null,done:[],offered:[],st:{},base:{},days:{},cel:[],rt:1}}
 const AMB_CTR=['wins','kills','contracts','bigc','rifts','wyv','streak'];
@@ -135,7 +135,8 @@ function ambProgress(id,g){g=cmpG(g);const A=AMBITIONS[id];if(!A||!g)return{p:0,
  const goal=Math.max(1,+r[1]||1),p=clamp(+r[0]||0,0,goal);return{p,goal,done:p>=goal,pct:Math.round(100*p/goal)}}
 function ambHash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 // tops the offer up to three: ambitions not fulfilled, allowed now and not already met; a mix of kinds first. Deterministic (no rnd).
-function ambOffer(g){g=cmpG(g);const a=g.amb;if(!a)return[];const ok=id=>{const A=AMBITIONS[id];if(!A||a.done.includes(id)||id===a.cur)return false;try{if(A.req&&!A.req(g))return false}catch(e){return false}return!ambProgress(id,g).done};
+function ambOffer(g){g=cmpG(g);const a=g.amb;if(!a)return[];const ok=id=>{const A=AMBITIONS[id];if(!A||a.done.includes(id)||id===a.cur)return false;if(A.team&&typeof canRecruit==='function'&&!canRecruit(g))return false;   // a solo run never raises a war band
+  try{if(A.req&&!A.req(g))return false}catch(e){return false}return!ambProgress(id,g).done};
  a.offered=a.offered.filter(ok).slice(0,3);const salt=(g.seed|0)+'|'+a.done.length+'|'+(g.day|0),pool=Object.keys(AMBITIONS).filter(id=>ok(id)&&!a.offered.includes(id)).sort((x,y)=>ambHash(salt+x)-ambHash(salt+y)||(x<y?-1:1));
  while(a.offered.length<3&&pool.length){const kinds=a.offered.map(id=>AMBITIONS[id].kind);let j=pool.findIndex(id=>!kinds.includes(AMBITIONS[id].kind));if(j<0)j=0;a.offered.push(pool.splice(j,1)[0])}
  return a.offered}
