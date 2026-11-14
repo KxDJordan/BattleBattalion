@@ -154,7 +154,7 @@ section('every way in is closed with a reason');
   // a beaten rival's sword who asks to join
   const jm=r.roster[0],fake={rival:{id:r.id,n:r.n,dead:[],down:[jm.name],fled:[],ok:[],loot:[],joiner:{id:jm.id,name:jm.name,lvl:jm.lvl,bg:jm.bg,bgN:'x',room:true,solo:true,taken:false,declined:false}}};
   ok(X.rivalJoin(fake)===null&&G.roster.length===1&&r.roster.includes(jm),'a rival joiner refused');
-  const html=X.brRival(Object.assign({win:true},fake));ok(/You ride alone/.test(html)&&!/brJoin\(1\)/.test(html),'the results sheet says why and offers no button');
+  const html=X.brRival(Object.assign({win:true},fake));ok(/asks to join, but you ride alone/.test(html)&&!/brJoin\(/.test(html),'the results sheet says why and offers no button');
   // events: options that are a recruitment are closed with the reason; the rest say nobody joins
   let hard=0,soft=0;for(const id in X.EVENTS){const D=X.EVENTS[id];if(!Array.isArray(D.opts))continue;D.opts.forEach((o,i)=>{
     const src=String(o.go||'');if(!/evRecruit\(/.test(src))return;ok(o.recruit||o.joins,id+'/'+i+': a recruiting option is marked');
