@@ -74,7 +74,7 @@ function crisisKindOf(seed){const r=mulberry(((seed|0)^0x3c6ef372)>>>0);r();retu
 function runCrisisKind(seed){return crisisKindOf(seed)}
 function crisisInit(g){g=g||G;if(!g)return g;if(typeof g.crisisKind!=='string'||!CRISES[g.crisisKind])g.crisisKind=svObj(g.crisis)&&!g.crisis.k?'sunder':crisisKindOf(g.seed);return g}
 function crDiff(k){let v=1;if(typeof diffK==='function'){try{v=+diffK(k)}catch(e){v=1}}return v>0&&isFinite(v)?v:1}
-function crisisStartDay(){const d=svFin(G&&G.crisisDay)?G.crisisDay:CRK.start;return Math.max(4,Math.round(d*crDiff('crisisDay')))}
+function crisisStartDay(){const d=svFin(G&&G.crisisDay)?G.crisisDay:CRK.start;return Math.max(4,Math.round(d))}   // G.crisisDay is already scaled by the difficulty at new game (22-run.js)
 function crisisKey(){return G&&G.crisis?G.crisis.k||'sunder':G&&G.crisisKind||null}
 function crisisOn(k){const c=G&&G.crisis;return !!(c&&!c.ended&&(!k||(c.k||'sunder')===k))}
 // the crisis factions in play now (riftspawn during the Sundering...): spawn pools and contracts read this
@@ -112,12 +112,15 @@ function crisisEnd(won){const c=G.crisis;if(!c)return;const C=CRISES[c.k];const 
   if(Array.isArray(G.crScar))G.crScar=G.crScar.filter(s=>s.k!==c.k);
   worldNews(late?`${G.name||'The company'} broke ${C.n} at last`:`${G.name||'The company'} ended ${C.n}`);if(typeof ambEvent==='function'){try{ambEvent('crisis',{k:c.k})}catch(e){}}}
  else{if(!Array.isArray(G.crScar))G.crScar=[];G.crScar.push({k:c.k,day:G.day,t:C.scar});worldNews(C.scar)}
+ if(typeof runCrisisEnd==='function'){try{runCrisisEnd(!!won)}catch(e){}}   // the run record (22-run.js)
  G.note=G.note&&G.note!=='crisisEnd'?G.note:'crisisEnd'}
 // the end of every host that is not besieging anything: parties of the crisis faction leave the map when the crisis is won
 function crDisband(f){for(const p of G.parties)if(p.f===f&&p.cr)p.gone=1}
 
 /* ---- towns ---- */
 function crTownHeld(i){const t=G&&G.towns&&G.towns[i];return t&&typeof t.held==='string'&&FACT[t.held]?t.held:null}
+// worldRepair (20-state.js) asks whether a town owner key is valid beyond the houses: the crisis factions (a held town keeps t.own, but older code may store them)
+function ownerOk(f,g){return typeof f==='string'&&!!FACT[f]&&!!FACT[f].crisis}
 function townOwner(i){const t=G&&G.towns&&G.towns[i];if(!t)return null;return crTownHeld(i)||t.own||'free'}
 const CRSIT={dead:'haunted',horde:'occupied',barb:'burned'};
 function crFall(i,f,news){const t=G.towns[i];if(!t||crTownHeld(i)||i===0&&G.crisis&&G.crisis.k!=='deadmarch'&&false)return false;t.held=f;t.fallen={by:f,day:G.day,prev:t.own||'free'};
@@ -450,4 +453,5 @@ const CRCT={
 };
 function crLibTarget(ti){const t=G.towns[ti];if(!t||crTownHeld(ti))return null;let b=null,bd=24;G.towns.forEach((o,i)=>{if(!crTownHeld(i))return;const d=Math.hypot(o.x-t.x,o.y-t.y)/TS;if(d<bd){bd=d;b=i}});return b}
 function crHuntTarget(t){let b=null,bd=26;for(const p of G.parties){if(!p.cr||p.gone||p.cr==='hhost'||p.siegeT!=null)continue;if(!(p.cr==='lt'||p.cr==='raid'||(p.cr==='band'&&p.mult>=1.05)))continue;const d=Math.hypot(p.x-t.x,p.y-t.y)/TS;if(d<bd){bd=d;b=p}}return b}
-if(typeof CTYPES==='object'&&CTYPES){Object.assign(CTYPES,CRCT);if(typeof CTR_KINDS!=='undefined'&&Array.isArray(CTR_KINDS))for(const k in CRCT)if(!CTR_KINDS.includes(k))CTR_KINDS.push(k)}
+if(typeof ctrRegister==='function'){for(const k in CRCT)ctrRegister(k,CRCT[k])}
+else if(typeof CTYPES==='object'&&CTYPES){Object.assign(CTYPES,CRCT);if(typeof CTR_KINDS!=='undefined'&&Array.isArray(CTR_KINDS))for(const k in CRCT)if(!CTR_KINDS.includes(k))CTR_KINDS.push(k)}

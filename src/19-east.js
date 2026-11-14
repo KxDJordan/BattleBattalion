@@ -206,7 +206,7 @@ function eastEnd(){const v=eastWar();if(!v||v.stage!=='war')return;const held=ea
  v.stage='over';v.end=G.day;v.outcome=won?'east':'houses';for(const id of v.hosts){const p=eastHostOf(id);if(p)p.gone=1}G.parties=G.parties.filter(p=>!p.ew);v.hosts=[];
  for(const s of v.sieges)townSitDel(s.i,'siege');v.sieges=[];
  if(!won){for(const tk of v.taken){const t=G.towns[tk.i];if(t&&t.own==='east'){t.own=tk.prev||'free';t.ref=-99}}eastNews(`The Eastern War is over: ${eastNameL()} sails home, and the houses keep their land`,true)}
- else eastNews(`The Eastern War is over: ${eastName()} keeps ${held} town${held===1?'':'s'} of the west`,true);
+ else eastNews(`The Eastern War is over: ${eastNameL()} keeps ${held} town${held===1?'':'s'} of the west`,true);
  const side=v.side||'out',H=Array.isArray(G.houses)?G.houses:[],why='The Eastern War';
  if(side==='houses'){if(!won){G.renown=eastNum(G.renown,0)+EW.renown.win;G.crowns=eastNum(G.crowns,0)+EW.pay.houses;for(const h of H)repGain(h.id,EW.rep.ally,why);eastTitle('Bane of the East')}else G.renown=eastNum(G.renown,0)+EW.renown.lose;
   repGain('east',Math.max(0,-30-repOf('east')),'The war is over')}
@@ -219,7 +219,7 @@ function eastWarChoose(side){const v=eastWar();if(!v||v.stage!=='war'||v.side)re
  if(side==='houses'){repGain('east',EW.rep.side,'Took up arms against '+eastNameL());for(const h of H)repGain(h.id,8,'Stood with the houses against the East');
   // the houses band together behind the company
   if(Array.isArray(G.wars)&&G.wars.length){for(const w of G.wars)eastNews(`${factName(w.a)} and ${factName(w.b)} make peace to face the East`);G.wars=[]}}
- else if(side==='east'){repGain('east',EW.rep.ally,'Took '+eastName()+'’s coin');for(const h of H)repGain(h.id,EW.rep.houseSide,'Sold its swords to the invader')}
+ else if(side==='east'){repGain('east',EW.rep.ally,'Took '+eastNameL()+'’s coin');for(const h of H)repGain(h.id,EW.rep.houseSide,'Sold its swords to the invader')}
  eastNews(side==='houses'?'The company stands with the houses':side==='east'?`The company takes the coin of ${eastNameL()}`:'The company stays out of the Eastern War');
  eastPostWork(true);if(typeof save==='function')try{save()}catch(e){}return true}
 // contracts of the war: a free hand in every town to break an eastern siege (houses / out), or to take a town for the East (east / out)

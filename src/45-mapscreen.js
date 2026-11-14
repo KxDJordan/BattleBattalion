@@ -127,6 +127,8 @@ const MPS={
  'cr-ecamp':['0.0.0.0.0','010101010','010jkj010','01jjkjj10','010kak010','010aaa010','000000000'],
  'cr-dead':['..000..','.0lll0.','0l0l0l0','0lllll0','.0mlm0.','0D0m0D0','.0.0.0.'],
  'cr-horde':['.0...0.','0w000w0','0wwwww0','0w0w0w0','.0wnw0.','.0iii0.','..000..'],
+ 'east-land':['....0....','...0f0...','..0fgf0..','.0fggf00.','0hhhhhhh0','.0iiiii0.','..00000..'],
+ 'east-siege':['0.......0','.0f...f0.','..0f.f0..','...0h0...','..0f.f0..','.0i...i0.','0.......0'],
  'cr-barb':['0.....0','n0.0.0n','0nqqqn0','.0sss0.','.0HHH0.','0HkkkH0','.0000..']
 };
 function mpRivalRows(r){const A=typeof BANNERC==='object'&&BANNERC[r.c1]?BANNERC[r.c1].r:['f','g','h'],C=typeof BANNERC==='object'&&BANNERC[r.c2]?BANNERC[r.c2].r:['m','l','r'],m={a:A[0],b:A[1],c:A[2],x:C[0],y:C[1],z:C[2]};
@@ -390,6 +392,8 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  if(typeof crisisMarks==='function'){let CM=[];try{CM=crisisMarks()}catch(e){CM=[]}for(const m of CM){if(m.kind==='crheld'||m.kind==='rift')continue;const sx=X(m.x),sy=Y(m.y);
   if(m.kind==='crhost'||m.kind==='crsiege'){if(typeof worldVisible==='function'&&!worldVisible(m.x,m.y))continue;const r=MPCRF[m.f]||'cr-dead';mpAt(q,r,MPS[r],sx,sy,'b');if(m.kind==='crsiege'&&(fr&1))mpFill(q,'g',sx-us,sy-9*us,2*us,2*us);continue}
   const r=MPCRK[m.kind];if(r&&MPS[r])mpAt(q,r,MPS[r],sx,sy,'c')}}
+ /* the Eastern War (19-east.js eastMarks): the landing and the sieges */
+ if(typeof eastMarks==='function'){let EM=[];try{EM=eastMarks()}catch(e){EM=[]}for(const m of EM){if(!m||!mpSeenW(m.x,m.y))continue;const r=m.kind==='east-land'?'east-land':'east-siege';mpAt(q,r,MPS[r],X(m.x),Y(m.y),'c')}}
  /* rival companies in sight: a pennant in their colours (field c1, border c2) */
  for(const o of G.parties)if(o&&o.goal==='merc'&&typeof worldVisible==='function'&&worldVisible(o.x,o.y)){const r=typeof lkRival==='function'?lkRival(o.f):null;if(r)mpAt(q,'rv'+r.c1+r.c2,mpRivalRows(r),X(o.x),Y(o.y),'b')}
  G.towns.forEach(t=>{const s=mpTownSize(t);mpAt(q,s===1?'hamlet':s===3?'city':'town',mpTownRows(t),X(t.x),Y(t.y),'c')});
@@ -489,6 +493,7 @@ function mpLegendHTML(){const it=(sw,n)=>`<span class="mp-li">${sw}<b>${n}</b></
   +(Array.isArray(G.houses)&&typeof BANNERC==='object'?G.houses.map(h=>it(mpSwatch('own'+h.id+h.c1,mpOwnRows(h)),mpEsc(h.n||h.short))).join(''):'')
   +(typeof SITS==='object'?Object.keys(SITS).filter(k=>MPS['sit-'+k]).map(k=>it(mpSwatch('sit-'+k,MPS['sit-'+k]),mpEsc(SITS[k].n))).join(''):'')
   +(G.crisis&&typeof CRISES==='object'&&CRISES[G.crisis.k]?mpCrisisLegend(it):'')
+  +(typeof eastMarks==='function'&&G.east&&G.east.war?it(mpSwatch('east-land',MPS['east-land']),'Eastern landing')+it(mpSwatch('east-siege',MPS['east-siege']),'Eastern siege'):'')
   +it(mpSwatch('portal',MPS.portal),'Rift')+it(mpSwatch('ruin',MPS.ruin),'Ruin')+it(mpSwatch('pin1',mpPinRows(1)),'Route stop')+'</div>'
   +(riv&&road?'':'<div class="mp-ln">* none charted in this land yet</div>')+mpCrisisNote()}
 function mpCrisisLegend(it){const k=G.crisis.k,L=[];const add=(r,n)=>L.push(it(mpSwatch(r,MPS[r]),n));
