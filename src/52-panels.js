@@ -109,6 +109,7 @@ function showPanel(o){const r=panelRoot(),fresh=!PN.id,L=$('pnList'),D=$('pnDeta
  const N=$('pnNote');N.innerHTML=o.note||'';N.classList.toggle('on',!!o.note);
  $('pnRail').innerHTML=(o.tabs||[]).map(t=>`<button type="button" role="tab" class="pn-tab${t.k===o.tab?' on':''}" aria-selected="${t.k===o.tab}" onclick="${act(()=>o.onTab(t.k))}">${pnIcon(t.icon||t.k,'',32)}<span>${t.n}</span>${t.badge?`<i>${t.badge}</i>`:''}</button>`).join('')
   +((o.railEnd||[]).length?'<span class="pn-railgap"></span>'+o.railEnd.map(t=>`<button type="button" class="pn-tab alt" onclick="${act(t.fn)}">${pnIcon(t.icon,'',32)}<span>${t.n}</span>${t.badge?`<i>${t.badge}</i>`:''}</button>`).join(''):'');
+ $('pnRail').style.setProperty('--pn-n',String(Math.max(1,(o.tabs||[]).length+(o.railEnd||[]).length)));   // tab height comes from the viewport, not the grid track (Safari sized it wrong on first open)
  L.innerHTML=o.list||'';D.innerHTML=o.detail||'';const F=$('pnFoot');F.innerHTML=o.foot||'';F.classList.toggle('on',!!o.foot);
  r.classList.add('pn-on');if(fresh){r.classList.remove('pn-in');void r.offsetWidth;r.classList.add('pn-in')}
  L.scrollTop=PN.scroll[o.listKey]||0;PN.lkey=o.listKey;

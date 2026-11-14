@@ -570,3 +570,23 @@
 #pn .pn-h .fmd-of{font-size:.5em;margin-top:0}
 #pn .pn-h .fmd-n{display:block}
 #pn .tw-t.fmd-tag,#pn .fmd-tag{border-color:#d1a94e;background:#3a2c12;color:#fff4c8}
+/* Landscape rail: every tab takes a share of the viewport height (not of the rail's grid track, which iOS Safari had
+   not resolved yet the first time a panel opened, squashing the tabs until the panel was reopened). The rail scrolls
+   if a short phone cannot fit them all. */
+@media (min-aspect-ratio:1/1){
+ #pn .pn-rail{overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+ #pn .pn-rail::-webkit-scrollbar{display:none}
+ #pn .pn-tab,#pn .pn-tab.alt{flex:0 0 auto;max-height:none;overflow:hidden;
+  height:clamp(44px,calc((100vh - 76px)/var(--pn-n,6) - 4px),66px);height:clamp(44px,calc((100dvh - 76px)/var(--pn-n,6) - 4px),66px)}
+ #pn .pn-railgap{flex:1 0 0}
+}
+@media (min-aspect-ratio:1/1) and (min-width:1100px) and (min-height:600px){
+ #pn .pn-tab,#pn .pn-tab.alt{height:clamp(44px,calc((100vh - 120px)/var(--pn-n,6) - 6px),86px);height:clamp(44px,calc((100dvh - 120px)/var(--pn-n,6) - 6px),86px)}
+}
+/* short landscape phones: smaller tab icon and tight label so icon and name fit a 44-50px tab */
+@media (min-aspect-ratio:1/1) and (max-height:430px){
+ #pn .pn-tab{gap:0;border-width:3px 3px 4px;line-height:1;min-height:40px}
+ #pn .pn-tab,#pn .pn-tab.alt{height:clamp(40px,calc((100vh - 76px)/var(--pn-n,6) - 4px),66px);height:clamp(40px,calc((100dvh - 76px)/var(--pn-n,6) - 4px),66px)}
+ #pn .pn-tab .pxi.s32,#pn .pn-tab>.pn-i{width:24px!important;height:24px!important}
+ #pn .pn-tab>span{font-size:.62rem;line-height:1.05}
+}
