@@ -117,6 +117,7 @@ const score=(X,id,k)=>{const it=X.ITEMS[id];return k==='w'?(it.d[0]+it.d[1])/2:k
 function gearUp(X,flags){const G=X.G;for(let i=0;i<G.roster.length;i++){const m=G.roster[i];for(const k of ['w','a','s','h']){const cur=m.eq[k],wt=k==='w'&&cur?X.ITEMS[cur].wt:null;
    if(k==='s'&&m.eq.w&&X.ITEMS[m.eq.w].two)continue;let best=-1,bs=cur?score(X,cur,k):-1;
    G.stash.forEach((id,j)=>{const it=X.ITEMS[id];if(it.k!==k)return;if(k==='w'){if((wt==='bow')!==(it.wt==='bow')||(wt==='staff')!==(it.wt==='staff'))return;if(it.two&&m.eq.s&&wt!=='bow'&&wt!=='staff')return}
+    if(k==='a'&&typeof X.armorTrees==='function'){const AC=['light','medium','heavy'],top=Math.max(...X.armorTrees(m).map(t=>AC.indexOf(X.MAST[t].aw)));if(AC.indexOf(X.armorClassOf(id))>top)return}   // no armor heavier than the heaviest class its background trains
     const s=score(X,id,k);if(s>bs){bs=s;best=j}});
    if(best>=0){const id=G.stash[best];X.equip(i,k,best);ok(m.eq[k]===id,'equip did not take');if(flags)flags.equip=true}}}}
 const BGS=['sellsword','squire','hunter','acolyte','hedge','knight','militia','monk','wildling','spellblade','thief','farmhand'];
@@ -654,8 +655,15 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      if(p.ab)ok(X.AB[p.ab]&&X.AB[p.ab].n&&X.AB[p.ab].d,'perk '+p.id+' grants an unknown ability '+p.ab);ok(p.st||p.ab||p.flag||p.mod||p.res||p.wmod,'perk '+p.id+' does nothing')}));
    const nAb=new Set([...ids].map(id=>X.perkById(id).perk.ab).filter(Boolean)).size;
    { const pools=[];for(const bg in X.BG){const b=X.BG[bg];ok(X.TALSTYLE.includes(b.style),bg+' has no style');ok(b.pool.length>=6&&b.pool.length<=9&&b.pool.every(k=>M[k]&&kind(k)==='style')&&new Set(b.pool).size===b.pool.length,bg+': pool of 6-9 style trees');
-       ok(b.wt.length>=3&&b.wt.length<=10&&b.wt.every(w=>M[w]&&kind(w)==='weapon')&&new Set(b.wt).size===b.wt.length,bg+': 3-10 weapon trees');pools.push(b.pool.slice().sort().join())}
-     ok(['knight','squire'].every(bg=>['greatsword','polearm','hammer','shield'].every(w=>X.BG[bg].wt.includes(w)))&&X.BG.hunter.wt.includes('crossbow')&&!X.BG.monk.wt.includes('flintlock'),'background weapon trees for the new families');
+       ok(b.wt.length>=3&&b.wt.length<=5&&b.wt.every(w=>M[w]&&kind(w)==='weapon')&&new Set(b.wt).size===b.wt.length,bg+': 3-5 weapon trees');pools.push(b.pool.slice().sort().join());
+       ok(Array.isArray(b.at)&&b.at.length>=1&&b.at.length<=2&&b.at.every(k=>M[k]&&kind(k)==='armor')&&new Set(b.at).size===b.at.length,bg+': 1-2 armor trees');
+       // the starting weapons (and shield) are inside the background's trees; known exceptions: a sellsword's sidearm knife, a wildling's odd shield
+       const EXC={sellsword:['dagger'],wildling:['shield']},gw=new Set();b.gear.forEach(gs=>gs.split('|').forEach(id=>{const it=X.ITEMS[id];if(it&&it.k==='w')gw.add(it.wt);if(it&&it.k==='s')gw.add('shield')}));
+       (b.side||'').split('|').forEach(id=>{const it=X.ITEMS[id];if(it&&it.k==='w')gw.add(it.wt)});
+       for(const w of gw)ok(b.wt.includes(w)||(EXC[bg]||[]).includes(w),bg+' starts with a '+w+' outside its weapon trees');for(const w of EXC[bg]||[])ok(gw.has(w)&&!b.wt.includes(w),bg+': stale exception '+w)}
+     ok(['knight','squire','militia','sellsword','acolyte'].every(bg=>X.BG[bg].wt.includes('shield'))&&['knight','squire'].every(bg=>X.BG[bg].wt.includes('greatsword')&&X.BG[bg].at.includes('heavyarmor'))&&X.BG.hunter.wt.includes('bow')&&X.BG.hunter.wt.includes('crossbow')&&!X.BG.monk.wt.includes('flintlock'),'background weapon trees: shields for the line, bows for hunters');
+     ok(X.BG.hunter.at.join()==='lightarmor'&&X.BG.thief.at.join()==='lightarmor'&&X.BG.hedge.at.join()==='lightarmor'&&X.BG.sellsword.at.slice().sort().join()==='heavyarmor,medarmor'&&X.BG.acolyte.at.join()==='medarmor','background armor trees');
+     for(const k of ['lightarmor','medarmor','heavyarmor'])ok(Object.keys(X.BG).some(bg=>X.BG[bg].at.includes(k)),'no background can learn the '+k+' tree');
      for(const k of wts)ok(Object.keys(X.BG).some(bg=>X.BG[bg].wt.includes(k)),'no background can learn the '+k+' tree');
      for(const r in X.RACE)ok(Array.isArray(X.RACE[r].noWt)&&X.RACE[r].noWt.every(w=>M[w]&&kind(w)==='weapon'),'race '+r+': noWt');
      ok(new Set(pools).size===pools.length,'two backgrounds share the same pool');ok(X.RACE.halforc.noWt.includes('bow'),'a half-orc never gets the bow tree');
@@ -771,20 +779,27 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const ac=id=>{const m={eq:{a:id}};return X.armorClass(m)};
      ok(ac(null)==='light'&&ac('rags')==='light'&&ac('padded')==='light'&&ac('robe')==='light'&&ac('archrobe')==='light'&&ac('mailrobe')==='light'&&ac('hide')==='medium'&&ac('mail')==='medium'&&ac('brigandine')==='medium'&&ac('lamellar')==='heavy'&&ac('plate')==='heavy','armorClass by armor points (robes are light)');
      X.ITEMS['f:armtest']=Object.assign({},X.ITEMS.padded,{famed:1,base:'padded',arm:90});ok(ac('f:armtest')==='light','a famed piece keeps its base class');delete X.ITEMS['f:armtest'];
-     const m=X.newMerc('knight');m.race='human';m.perks=[];m.lvl=1;m.pp=1;m.eq.a='plate';const mt=X.mercTrees(m);ok(mt.slice(-3).map(x=>x.key+':'+x.kind).join()==='lightarmor:armor,medarmor:armor,heavyarmor:armor','mercTrees ends with the three armor trees');
-     ok(!X.canLearn(m,'heavyarmor.1a'),'armor tier 1 waits for level 2');m.lvl=2;ok(X.canLearn(m,'heavyarmor.1a')&&X.canLearn(m,'lightarmor.1a')&&!X.canLearn(m,'heavyarmor.2a'),'armor tier 1 opens at level 2, for every class');
+     const m=X.newMerc('knight');m.race='human';m.perks=[];m.lvl=1;m.pp=1;m.eq.a='plate';const mt=X.mercTrees(m);ok(mt.slice(-2).map(x=>x.key+':'+x.kind).join()==='medarmor:armor,heavyarmor:armor'&&!mt.some(x=>x.key==='lightarmor'),'a knight\'s mercTrees ends with its two armor trees, medium and heavy');
+     ok(!X.canLearn(m,'heavyarmor.1a'),'armor tier 1 waits for level 2');m.lvl=2;ok(X.canLearn(m,'heavyarmor.1a')&&X.canLearn(m,'medarmor.1a')&&!X.canLearn(m,'heavyarmor.2a'),'armor tier 1 opens at level 2, for each allowed class');
+     ok(!X.canLearn(m,'lightarmor.1a')&&!X.learnPerk(m,'lightarmor.1a')&&m.pp===1&&!X.perkOptions(m).some(o=>o.key==='lightarmor'),'a knight must not learn the light armor tree');
+     for(const bg in X.BG){const q=X.newMerc(bg);q.lvl=15;q.pp=5;const at=X.BG[bg].at,wt=X.weaponTrees(q);ok(X.armorTrees(q).join()===X.ARMORT.filter(k=>at.includes(k)).join(),'armorTrees follows BG.at: '+bg);
+       for(const k of X.ARMORT)ok(X.canLearn(q,k+'.1a')===at.includes(k)&&X.perkOptions(q).some(o=>o.key===k)===at.includes(k),'canLearn / perkOptions must follow the armor trees: '+bg+' '+k);
+       for(const w of X.WTS)ok(X.canLearn(q,w+'.1a')===wt.includes(w),'canLearn must follow the weapon trees: '+bg+' '+w);
+       for(const k of X.ARMORT.filter(k=>!at.includes(k)))ok(!X.learnPerk(q,k+'.3b')&&q.pp===5,'a disallowed armor perk was learned: '+bg+' '+k)}
+     const at0=X.BG.knight.at;X.BG.knight.at=AT.slice();   // the class mechanics below need all three trees on one merc: widened for the fixture only
      m.lvl=5;ok(X.canLearn(m,'medarmor.2b')&&!X.canLearn(m,'medarmor.3a'),'armor tier 2 at level 5');m.lvl=8;ok(X.canLearn(m,'lightarmor.3b'),'armor tier 3 at level 8');
      const po=X.perkOptions(m).filter(o=>o.kind==='armor');ok(po.length===18&&po.every(o=>o.need===[2,5,8][o.tier-1]),'perkOptions lists the armor perks with their levels');
-     const all=[];for(const k of AT)M[k].tiers.forEach(t=>t.forEach(p=>all.push(p.id)));m.pp=18;for(const id of all)ok(X.learnPerk(m,id),'learn '+id);ok(m.pp===0&&!m.perks.some(id=>!all.includes(id)),'all 18 armor perks learned with points');
-     const bare=X.clone(m);bare.perks=[];delete bare.armp;
+     const all=[];for(const k of AT)M[k].tiers.forEach(t=>t.forEach(p=>all.push(p.id)));m.pp=18;for(const id of all)ok(X.learnPerk(m,id),'learn '+id);ok(m.pp===0&&!m.perks.some(id=>!all.includes(id)),'all 18 armor perks learned with points');X.BG.knight.at=at0;
+     const bare=X.clone(m);bare.perks=[];
      for(const [a,cl] of [['jack','light'],['mail','medium'],['plate','heavy']]){m.eq.a=a;bare.eq.a=a;const s=X.calc(m),s0=X.calc(bare),T=AT[['light','medium','heavy'].indexOf(cl)];
        ok(s.acl===cl&&s.perks.every(id=>X.perkById(id).key===T)&&s.perks.length===6&&s.off.length===12&&s.off.every(id=>X.perkById(id).key!==T),cl+' armor: only its own tree works');
        for(const k of ['nimble','fleet','sidestep','freshDef','dance','brace','armRegen','roll','layerDef','padIgn','unbowed','steelWall','hpSoak'])ok(!!s.flags[k]===(X.perkById(all.find(id=>{const p=X.perkById(id).perk;return(p.mod&&p.mod[k]!=null)})).key===T),cl+': '+k+' must follow the armor class');
        for(const k of ['slip','footing','kbImm','ironLung','noStun'])ok(!!s.flags[k]===(X.perkById(all.find(id=>X.perkById(id).perk.flag===k)).key===T),cl+': '+k+' must follow the armor class');
        ok(s.fat===s0.fat+(cl==='heavy'?Math.floor(s.aw/2):0)&&s.aw===X.ITEMS[a].fat+(m.eq.h?X.ITEMS[m.eq.h].fat||0:0),'Iron lung halves the armor weight on fatigue, in heavy armor only')}
      // autoLearn takes armor perks from the tree of the armor worn only
-     for(const [a,T] of [['jack','lightarmor'],['mail','medarmor'],['plate','heavyarmor']])for(const bg of ['knight','hunter','hedge']){const q=X.newMerc(bg);q.eq.a=a;X.gainXP(q,X.XPT[15]);X.autoLearn(q);
-       const ar=q.perks.filter(id=>X.perkById(id).kind==='armor');ok(ar.length>=2&&ar.every(id=>X.perkById(id).key===T),'autoLearn picks the armor tree of the armor worn: '+bg+' in '+a+': '+ar.join())}
+     for(const [a,T] of [['jack','lightarmor'],['mail','medarmor'],['plate','heavyarmor']])for(const bg of ['knight','hunter','hedge','sellsword','acolyte']){const q=X.newMerc(bg);q.eq.a=a;X.gainXP(q,X.XPT[15]);X.autoLearn(q);
+       const ar=q.perks.filter(id=>X.perkById(id).kind==='armor'),own=X.BG[bg].at.includes(T);
+       ok(ar.every(id=>X.BG[bg].at.includes(X.perkById(id).key))&&(own?ar.length>=2&&ar.every(id=>X.perkById(id).key===T):!ar.length),'autoLearn picks the armor tree of the armor worn, if the background has it: '+bg+' in '+a+': '+ar.join())}
      ARMM=X.clone(m);
      // in the field: one class at a time, the flags calc gives (other classes get none of them)
      const fl=a=>{m.eq.a=a;const s=X.calc(m);return{flags:s.flags,aw:s.aw}};
@@ -825,10 +840,30 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    console.log('fatigue (curve, attacker and target, spells, foes that never tire, orcs, forecast parts), armor trees (classes, tiers 2/5/8, 18 perks each in its class only, autoLearn, field effects): ok');
    X.FX.on=null;X.B=null;X.mode='world';
    { const m=ARMM;     // armor perks: save round trip: armor perks are plain perk ids
-     const sm=X.clone(m);sm.eq.a='plate';sm.id=777001;X.G.roster.push(sm);ok(X.save(),'save failed');const keep=sm.perks.slice().sort().join();
-     const r=X.readSave();ok(r.state==='ok'&&r.g.v===X.SAVEVER,'save unreadable');const back=r.g.roster.find(q=>q.id===777001);X.calc(back);ok(back&&back.perks.slice().sort().join()===keep,'armor perks must survive a save round trip: '+(back&&back.perks.join()));
-     X.G.roster.pop();{const cl=X.clone(sm);cl.perks=['vanguard.1'];X.calc(cl);ok(cl.perks.join()==='vanguard.1','a copy given other perks must not get the armor perks back')}
+     const sm=X.clone(m);sm.eq.a='plate';sm.id=777001;sm.perks=sm.perks.filter(id=>X.perkById(id).key!=='lightarmor');sm.pp=0;X.G.roster.push(sm);   // the knight's own trees: medium and heavy
+     const lt=X.clone(sm);lt.id=777002;lt.perks.push('lightarmor.1a','lightarmor.2b');X.G.roster.push(lt);ok(X.save(),'save failed');const keep=sm.perks.slice().sort().join();
+     const r=X.readSave();ok(r.state==='ok'&&r.g.v===X.SAVEVER,'save unreadable');const back=r.g.roster.find(q=>q.id===777001);X.calc(back);ok(back&&back.perks.length===12&&back.perks.slice().sort().join()===keep&&back.pp===0,'armor perks must survive a save round trip: '+(back&&back.perks.join()));
+     const lb=r.g.roster.find(q=>q.id===777002);ok(lb&&lb.perks.slice().sort().join()===keep&&lb.pp===2,'the loader must refund perks of an armor tree the background lacks: '+(lb&&lb.perks.join()+' pp '+lb.pp));
+     X.G.roster=X.G.roster.filter(q=>q.id!==777002);X.G.roster.pop();{const cl=X.clone(sm);cl.perks=['vanguard.1'];X.calc(cl);X.mercTrees(cl);X.syncMast(cl);ok(cl.perks.join()==='vanguard.1','calc / mercTrees / syncMast must never change the perks')}
      X.G=null;X.mode='title';X.continueGame();const lm=X.G&&X.G.roster.find(q=>q.id===777001);ok(lm&&lm.perks.slice().sort().join()===keep&&X.calc(lm).perks.length===6,'armor perks must load and work after continueGame');console.log('armor perks: save round trip and continueGame: ok');X.G.roster=X.G.roster.filter(q=>q.id!==777001) }
+   // -- a version 7 save: perks of weapon and armor trees the background no longer allows are refunded, and the player is told once --
+   { X.store.clear();X.seedRng(SEED+7250);X.newGame(true);closeAll(X);const R0=X.G.roster;ok(R0.length>=3,'fixture roster');
+     Object.assign(R0[0],{bg:'sellsword',race:'human',lvl:9,pp:1,perks:['sword.1a','medarmor.1a','lightarmor.1a','bow.1a','flintlock.2b','heavyarmor.2a'],armp:{ids:['lightarmor.1a'],base:'x'}});
+     Object.assign(R0[1],{bg:'hunter',race:'human',lvl:9,pp:0,perks:['bow.1a','lightarmor.1a','heavyarmor.1b','shield.1a']});R0[2].perks=[];R0[2].pp=1;
+     const tw=X.G.towns.find(t=>t.recruits&&t.recruits.length),rc=tw&&tw.recruits[0];if(rc)Object.assign(rc,{bg:'monk',lvl:6,pp:0,perks:['heavyarmor.1a','fist.1a']});
+     ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=7;g.note='newlands';X.store.set(X.SAVEKEY,JSON.stringify(g));
+     const r=X.readSave();ok(r.state==='ok'&&r.v===7&&r.g.v===X.SAVEVER&&X.SAVEVER===8,'a version 7 save was not migrated to 8');const A=r.g.roster[0],H=r.g.roster[1];
+     ok(A.perks.join()==='sword.1a,medarmor.1a,heavyarmor.2a'&&A.pp===4&&A.armp===undefined,'v8: a sellsword keeps its own trees\' perks and gets 3 points back: '+A.perks.join()+' pp '+A.pp);
+     ok(H.perks.join()==='bow.1a,lightarmor.1a'&&H.pp===2,'v8: a hunter loses its heavy armor and shield perks for 2 points: '+H.perks.join()+' pp '+H.pp);
+     ok(r.g.roster[2].pp===1&&!r.g.roster[2].perks.length,'v8: a merc with nothing to refund is untouched');
+     if(rc){const rr=r.g.towns[X.G.towns.indexOf(tw)].recruits[0];ok(rr.perks.join()==='fist.1a'&&rr.pp===1,'v8: recruits waiting in towns are refunded too')}
+     ok(r.g.note==='newlands'&&Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===[A.name+':3',H.name+':2'].join(),'v8: G.refund lists the company\'s swords who got points back: '+JSON.stringify(r.g.refund));
+     // in game: the note waits behind any other note, shows once, and is gone after a save
+     X.G=null;X.mode='title';X.continueGame();closeAll(X);ok(X.G&&X.G.roster[0].pp===4&&X.G.note==='newlands','continueGame after the v8 migration');const n0=X.sheets.length;
+     X.worldTick(.016);ok(X.sheets.length===n0+1&&/New lands/.test(X.sheets[n0])&&X.G.note==='refund','the earlier note comes first, the refund note queued behind it');closeAll(X);
+     X.worldTick(.016);const rs=X.sheets[n0+1]||'';ok(X.sheets.length===n0+2&&/Perk points returned/.test(rs)&&rs.includes(X.G.roster[0].name)&&rs.includes(X.G.roster[1].name)&&/3 points/.test(rs)&&!X.G.refund&&!X.G.note,'the refund note names who got points back, once');closeAll(X);
+     X.worldTick(.016);ok(X.sheets.length===n0+2,'the refund note shows only once');ok(X.save(),'save failed');X.G=null;X.mode='title';X.continueGame();closeAll(X);X.worldTick(.016);
+     ok(X.sheets.length===n0+2&&!X.G.refund&&X.G.roster[0].pp===4,'no refund note after a reload');console.log('v7 -> v8 migration: weapon and armor perks refunded ('+(A.name)+' 3, '+H.name+' 2), note shown once: ok') }
    // -- an old (version 4) save: masteries become trees and perks --
    { X.store.clear();X.seedRng(SEED+7300);X.newGame(true);closeAll(X);ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=4;
      const olds=[{vanguard:2,bulwark:0,aura:1},{marksman:4,skirmisher:1,qi:2},{bulwark:3,vanguard:1,chi:5},{skirmisher:0,mana:3,bulwark:1}];

@@ -1466,6 +1466,10 @@ button.ghost:not(.pxb){background:#0b1514;color:var(--vellum);box-shadow:inset 0
 #pn .pn-chip.ac-chip.none{color:var(--dim);box-shadow:none;font-weight:500}
 #pn .pn-chip.ac-chip .pxi{margin:-2px -2px -2px -4px}
 #pn .tw-ats{margin-top:4px}
+/* the v8 refund note (refundSheet in 55-company.js): who got perk points back */
+.rf-list{list-style:none;margin:6px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px}
+.rf-list li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);padding:1px 0}
+.rf-list b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ================= SETTINGS DIALOG, TRANSITIONS, PRESS FEEDBACK, TITLE ART ================= */
 /* ---- settings rows ---- */
@@ -8419,19 +8423,21 @@ const BG={
 };
 const RACE={human:{n:'Human',st:{}},elf:{n:'Elf',st:{rs:5,init:8,hp:-5}},dwarf:{n:'Dwarf',st:{hp:8,fat:8,init:-10,brv:5}},halforc:{n:'Half-orc',st:{hp:6,ms:3,rd:-3,brv:3}}};
 /* Talents per background: style (melee ranged caster support: picks the gift variant), pool (the style trees a recruit draws 4 of),
-   wt (the weapon families whose trees it may learn), side (a sidearm pick for m.eq.b, '-' = none). */
-Object.assign(BG.farmhand,{style:'melee',pool:['vanguard','bulwark','brute','survivor','brawler','shieldbearer','medic'],wt:['mace','axe','hammer','spear','polearm','dagger','fist']});
-Object.assign(BG.militia,{style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','skirmisher','marksman'],wt:['spear','polearm','sword','mace','bow','crossbow','shield'],side:'knife|-'});
-Object.assign(BG.hunter,{style:'ranged',pool:['marksman','sharpshooter','scout','skirmisher','survivor','medic','brawler'],wt:['bow','crossbow','dagger','spear','axe'],side:'knife'});
-Object.assign(BG.thief,{style:'melee',pool:['skirmisher','duelist','scout','survivor','brawler','sharpshooter','marksman'],wt:['dagger','sword','fist','bow','crossbow','flintlock']});
-Object.assign(BG.sellsword,{style:'melee',pool:['vanguard','duelist','brute','bulwark','skirmisher','tactician','berserker','survivor','shieldbearer'],wt:['sword','axe','mace','hammer','spear','polearm','greatsword','crossbow','flintlock','shield'],side:'knife|-|-'});
-Object.assign(BG.squire,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','tactician','brute'],wt:['sword','spear','mace','hammer','polearm','greatsword','shield']});
-Object.assign(BG.hedge,{style:'caster',pool:['skirmisher','bulwark','medic','scout','survivor','tactician'],wt:['staff','dagger','fist'],side:'knife|-'});
-Object.assign(BG.acolyte,{style:'support',pool:['medic','bulwark','shieldbearer','tactician','survivor','vanguard','brawler'],wt:['mace','hammer','staff','spear','fist','shield']});
-Object.assign(BG.monk,{style:'melee',pool:['skirmisher','brawler','duelist','survivor','medic','scout','bulwark'],wt:['fist','staff','spear']});
-Object.assign(BG.spellblade,{style:'melee',pool:['duelist','vanguard','skirmisher','tactician','scout','brute'],wt:['sword','greatsword','staff','dagger','spear','flintlock']});
-Object.assign(BG.wildling,{style:'melee',pool:['berserker','brute','survivor','vanguard','skirmisher','scout','marksman','brawler'],wt:['axe','spear','bow','fist','mace','hammer']});
-Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor'],wt:['sword','mace','axe','hammer','spear','polearm','greatsword','shield']});
+   wt (the weapon families whose trees it may learn: at most 5, covering its starting weapons; exceptions: a sellsword's sidearm knife and a
+   wildling's odd shield fall outside), at (the armor trees it may learn: 1 or 2 of lightarmor medarmor heavyarmor),
+   side (a sidearm pick for m.eq.b, '-' = none). */
+Object.assign(BG.farmhand,{style:'melee',pool:['vanguard','bulwark','brute','survivor','brawler','shieldbearer','medic'],wt:['mace','axe','hammer','polearm','dagger'],at:['lightarmor','medarmor']});
+Object.assign(BG.militia,{style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','skirmisher','marksman'],wt:['spear','polearm','crossbow','dagger','shield'],at:['lightarmor','medarmor'],side:'knife|-'});
+Object.assign(BG.hunter,{style:'ranged',pool:['marksman','sharpshooter','scout','skirmisher','survivor','medic','brawler'],wt:['bow','crossbow','dagger','spear','axe'],at:['lightarmor'],side:'knife'});
+Object.assign(BG.thief,{style:'melee',pool:['skirmisher','duelist','scout','survivor','brawler','sharpshooter','marksman'],wt:['dagger','sword','fist','crossbow','flintlock'],at:['lightarmor']});
+Object.assign(BG.sellsword,{style:'melee',pool:['vanguard','duelist','brute','bulwark','skirmisher','tactician','berserker','survivor','shieldbearer'],wt:['sword','axe','hammer','spear','shield'],at:['medarmor','heavyarmor'],side:'knife|-|-'});
+Object.assign(BG.squire,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','tactician','brute'],wt:['sword','greatsword','spear','polearm','shield'],at:['medarmor','heavyarmor']});
+Object.assign(BG.hedge,{style:'caster',pool:['skirmisher','bulwark','medic','scout','survivor','tactician'],wt:['staff','dagger','fist'],at:['lightarmor'],side:'knife|-'});
+Object.assign(BG.acolyte,{style:'support',pool:['medic','bulwark','shieldbearer','tactician','survivor','vanguard','brawler'],wt:['mace','hammer','staff','fist','shield'],at:['medarmor']});
+Object.assign(BG.monk,{style:'melee',pool:['skirmisher','brawler','duelist','survivor','medic','scout','bulwark'],wt:['fist','staff','spear'],at:['lightarmor']});
+Object.assign(BG.spellblade,{style:'melee',pool:['duelist','vanguard','skirmisher','tactician','scout','brute'],wt:['sword','greatsword','staff','dagger','flintlock'],at:['lightarmor','medarmor']});
+Object.assign(BG.wildling,{style:'melee',pool:['berserker','brute','survivor','vanguard','skirmisher','scout','marksman','brawler'],wt:['axe','mace','hammer','spear','bow'],at:['lightarmor','medarmor']});
+Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor'],wt:['sword','mace','hammer','greatsword','shield'],at:['medarmor','heavyarmor']});
 BG.hunter.r=[['qi',.2],['aura',.12],['chi',.08],['mana',.05]];      // a hunter's gift, if any, comes as its archery variant
 RACE.human.noWt=[];RACE.elf.noWt=['flintlock','hammer'];RACE.dwarf.noWt=['bow','polearm'];RACE.halforc.noWt=['bow','crossbow','flintlock'];   // weapon trees a race never learns
 // Every ability carries a one-line description: mastery abilities take theirs from the perk that grants them.
@@ -8670,7 +8676,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=7;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=8;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -8704,7 +8710,15 @@ const MIGRATE={
  5:g=>{g.wsize='small';if(typeof g.name!=='string'||!g.name.trim())g.name=BANNERDEF.name;g.banner=bannerFix(null,g.name);return g},
  /* v7: famed items. G.famed {id: {base, n, mods, price, pw, from?, day?}} holds every famed item the company has found
     (see 12-famed.js); older companies have found none. */
- 6:g=>{g.famed={};return g}
+ 6:g=>{g.famed={};return g},
+ /* v8: trees by background. Each background now allows at most 5 weapon trees (BG[bg].wt) and 1 or 2 armor trees (BG[bg].at; before,
+    every merc had all three). A merc who learned perks in a tree its background no longer allows gets those perks taken back and the
+    points returned to spend again (refundTrees in 61-talents.js); recruits waiting in towns too. G.refund [{name, n}] lists the
+    company's swords who got points back and G.note 'refund' tells the player once (refundSheet in 55-company.js). */
+ 7:g=>{const out=[],fix=(m,own)=>{if(!svObj(m)||!BG[m.bg]||!Array.isArray(m.perks))return;delete m.armp;
+   m.perks=m.perks.filter(id=>typeof id==='string');const n=refundTrees(m);if(n&&own)out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})};
+  if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
+  if(out.length){g.refund=out;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
 };
 // One merc of a version 4 save to talents (v5). Draws no game randomness: the top-up trees come from a stream seeded by the merc's id.
 function migrateMerc(m){if(Array.isArray(m.trees)&&Array.isArray(m.perks)){if(svObj(m.eq)&&m.eq.b===undefined)m.eq.b=null;return m}   // already in the new shape
@@ -8727,7 +8741,10 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
    const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift);
    if(!m.trees.some(k=>MAST[k].kind==='style')){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57);m.trees=rollTrees(m.bg,r).concat(m.trees)}
-   const have=new Set(m.trees.concat(weaponTrees(m),typeof ARMORT!=='undefined'?ARMORT:[])),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>typeof id==='string'&&perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
+   // perks only of the trees the merc has (mercTrees: its style trees and gift, its background's weapon and armor trees); a perk of a
+   // weapon or armor tree it may not learn is refunded (refundTrees), anything else unreadable is dropped
+   delete m.armp;if(Array.isArray(m.perks)){m.perks=m.perks.filter(id=>typeof id==='string');refundTrees(m)}
+   const have=new Set(mercTrees(m).map(x=>x.key)),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
  if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
  fixHands(m);
  if(!svObj(m.tal))m.tal={};for(const k in m.tal)if(!svFin(m.tal[k]))delete m.tal[k];
@@ -8770,7 +8787,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(g.contract)g.contract.done=!!g.contract.done;else g.contract=null;
  if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;
  let nid=svNum(g.nid,1);const seen=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=x.id+1};g.roster.forEach(seen);g.parties.forEach(seen);g.portals.forEach(seen);g.sites.forEach(seen);g.towns.forEach(t=>t.recruits.forEach(seen));g.nid=Math.floor(nid);
- g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
+ g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.refund=Array.isArray(g.refund)?g.refund.filter(r=>svObj(r)&&typeof r.name==='string'&&svFin(r.n)&&r.n>0).map(r=>({name:r.name.slice(0,40),n:Math.floor(r.n)})).slice(0,MAXROSTER):[];if(!g.refund.length){delete g.refund;if(g.note==='refund')g.note=null}else if(!g.note)g.note='refund';g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
  if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.
 function cleanName(s){s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,NAMEMAX):'';return s||BANNERDEF.name}
@@ -8823,7 +8840,7 @@ const ACLASS={light:60,medium:150};
 function armorClassOf(id){const it=ITEMS[id];if(!it||it.k!=='a')return'light';const bid=it.famed&&it.base&&ITEMS[it.base]?it.base:id,b=ITEMS[bid];
  if(b.robe||/robe/.test(bid))return'light';const a=b.arm||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}
 function armorClass(m){if(!m)return'light';if(m.m&&m.side!=null)m=m.m;else if(m.side!=null&&!m.eq){const a=m.armMax||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}return armorClassOf(m.eq&&m.eq.a)}
-function calc(m,o){if(typeof armorPerksHeal==='function')armorPerksHeal(m);const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a);
+function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a);
  const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,ap:9,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[],
   hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[],acl,aw:0};
  const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();if(wpn.reload)wpn.reload=Object.assign({},wpn.reload);
@@ -9172,7 +9189,8 @@ function worldBands(){return Math.round(8*Math.sqrt(worldK()))}                 
 function addPortal(){const pos=randOk(WS/2,WS/2,2,26*WN/64);G.portals.push({id:G.nid++,x:pos.x,y:pos.y,realm:pick(REALMS)})}
 function startCrisis(){G.crisis={closed:0,total:3,ended:false};for(let i=0;i<3;i++)addPortal();for(let i=0;i<3;i++)spawnParty('void');
  if(sheetOpen)G.note='crisis';else crisisSheet()}   // a day can turn inside a town (inn): announce once the town is left
-function showNote(){const n=G.note;G.note=null;if(n==='crisis')crisisSheet();else if(n==='newlands')newLandsSheet()}
+function showNote(){const n=G.note;G.note=null;if(n==='crisis')crisisSheet();else if(n==='newlands')newLandsSheet();else if(n==='refund'&&typeof refundSheet==='function')refundSheet();
+ if(!G.note&&n!=='refund'&&Array.isArray(G.refund)&&G.refund.length)G.note='refund'}   // the perk refund note waits behind any other note
 function crisisSheet(){sheet(`<h2>The Sundering</h2><p>The sky splits. Three rifts have torn open across the land and riftspawn pour through them.</p><p class="dim">Each rift leads to another world: three battles with no rest between them, and a tyrant at the end. Close all three to end the crisis.</p><button class="pri" onclick="closeSheet()">To arms</button>`)}
 function newLandsSheet(){const t=G.towns[0],n=G.portals.length;
  sheet(`<h2>New lands</h2><p>The old country is behind you. The company marched for weeks and has come down into a wider land: ${t.name} stands before you, with ${G.towns.length-1} more towns beyond it, roads between them and rivers to cross.</p>
@@ -9599,7 +9617,7 @@ function waLair(P,fk,night,f){const B=P.h-3,R=WARAMP;
   for(let y=B-36;y<=B;y++){const t=(y-(B-36))/36,hw=Math.round(3+t*11+(waHash(y,1,51)-.5)*2),xo=Math.round(Math.sin(y*.4)*1.2);for(let x=-hw;x<=hw;x++){const k=x<-hw*.4?'q':x>hw*.4?'o':'p';P.p(20+x+xo,y,waHash(x,y,52)<.12?'o':k)}}
   for(let i=0;i<6;i++)P.p(14+i*2,B-26+(i&1)*7,'n');
   P.r(15,B-37,11,2,'j');P.r(14,B-36,13,1,'k');P.p(18,B-38,'l');P.p(20,B-38,'l');P.p(19,B-39,'m');   // the nest, eggs in it
-  const up=(f>>1)&1;P.s(19,B-46-up,up?['f......','Kf.....','KKf....','KKKggg0','.ggggg.','g..g.g.']:['.......','.......','fffKgg0','KKKgggg','.KKgg..','g..g.g.']);
+  const up=(f>>1)&1;P.s(19,B-46-up,up?['g......','Dg.....','DDg..q.','DDgXXg0','.gXXXX.','X..q.q.']:['.......','.....q.','gggXXg0','DDXXXXX','.DDgX..','X..q.q.']);
   P.s(5,B-1,['l.l','lll']);P.s(30,B,['ll.l','.lll']);P.outline()}
  else{waGround(P,18,B-1,17,5,'D','G');const a=f&3;
   waBlob(P,[[18,B-8,9,8],[9,B-4,6,5],[27,B-4,6,5]],(x,y,l)=>{if(y>B)return null;const h=waHash(x,y,21);l+=(h-.5)*.4;return l>.85?'C':l>.2?'D':'G'});
@@ -9674,8 +9692,8 @@ const WAMON={
  thorn:{b:['.vAv.','vvgvv','.vjv.','..j..','.jkj.'],la:['.j.j.'],lb:['..jj.']},
  ogre:{b:['....ttt....','...tt0t0...','...ttttt...','..utttttu..','.uttttttu..','.ut.ttt.tu.','.u..jjj..u.','....jij....'],la:['....t.t....','...uu.uu...'],lb:['...t...t...','..uu...uu..']},
  aogre:{b:['..l.....l..','...lpppl...','...prrpp...','..oppppqo..','.oppqqqppo.','.op.ppp.po.','.o..jjj..o.','....jij....'],la:['....o.o....','...GG.GG...'],lb:['...o...o...','..GG...GG..']}};
-const WAWYV=[['..f.............f..','..fK...........Kf..','...fK.........Kf...','...fKK.......KKf...','....fKK.....KKf....','....fKKg...gKKf....','.....fKggggggKf.hh.','..gg..ggggggggggge0','.g..gggggg.........','g....l..l..........'],
- ['...................','...................','...................','................hh.','......ggggggggggge0','..gg.gggggggggg....','.g..fKKgggggKKf....','g..fKKK.l.l.KKKf...','..fKK.........KKf..','..f.............f..']];
+const WAWYV=[['..g.............g..','..gD...........fg..','...gD.........fg...','...gDD.......ffg...','....gDD.....ffg....','....gDDg...gffg.q..','.....gDgggggfg.gXg.','..gg.XXXXXXXXXXXXg0','.g..gXxxxxxX.......','g....q..q..........'],   // the wyvern after the owner's reference: indigo body,
+ ['...................','...................','...................','................q..','......gggggggg.gXg.','..gg.XXXXXXXXXXXXg0','.g..fgXxxxxXgf.....','g..Dgff.q.q.ffgf...','..DgD.........fgf..','..g.............g..']];   // crimson ridge and spars, plum membrane, ice horns and claws
 function waMonFig(P,F,x,by,step,up,flip){const n=F.b[0].length,h=F.b.length+F.la.length,y=by-h+1-up,x0=x-(n>>1);P.s(x0,y,F.b,flip);if(F.la.length)P.s(x0,y+F.b.length,step?F.lb:F.la,flip);return{x0,y,w:n}}
 function waClub(P,B,iron){const x=B.x0+B.w,y=B.y+3;for(let j=0;j<6;j++)P.p(x-(j>>2),y+j,'j');P.p(x,y-1,iron?'p':'k');P.p(x+1,y-1,iron?'p':'k');P.p(x,y-2,iron?'q':'k');P.p(x+1,y-2,iron?'p':'j');P.p(x+1,y,iron?'o':'j')}
 function waMonBand(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,up=i=>moving&&((f+i)&3)===1?1:0;
@@ -9686,7 +9704,7 @@ function waMonBand(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&
  else if(fk==='ogre'){const L=k>=3?[['aogre',cx+2,B],['ogre',cx-9,B+1],['gob',cx+13,B+2]]:k===2?[['ogre',cx-5,B],['ogre',cx+7,B+2]]:[['ogre',cx,B]];
   L.forEach((e,i)=>{if(e[0]==='gob'){const b=waFigure(P,WAFIG.gob,e[1],e[2],st(i),up(i));waWeapon(P,'spear',b);return}const b=waMonFig(P,WAMON[e[0]],e[1],e[2],st(i),up(i));waClub(P,b,e[0]==='aogre')})}
  else if(fk==='wyvern'){const fl=f&1,hv=(f>>1)&1,W=WAWYV[fl];const fl2=P.flat;P.flat=true;P.ell(cx,B,9,2,()=>'0');P.flat=fl2;   // its shadow on the ground, then the wyvern on the wing above it
-  P.s(cx-10,B-18-hv,W,false);if(k>=2){const h2=WAWYV[1-fl].map(r=>r.slice(10));P.s(cx-14,B-8+hv,['.gg.','gKKg','.ggg']);if(k>=3)P.s(cx+9,B-6-hv,['.gg.','gKKg','.ggg'])}}
+  P.s(cx-10,B-18-hv,W,false);if(k>=2){const h2=WAWYV[1-fl].map(r=>r.slice(10));P.s(cx-14,B-8+hv,['g..g','gXXg','.XXg']);if(k>=3)P.s(cx+9,B-6-hv,['g..g','gXXg','.XXg'])}}
  P.outline()}
 function waBandSprite(fk,k,f,dir,moving,co){const key='band'+fk+'|'+(co?co.k+'.'+co.fs+(co.bn?'.'+co.bn.sig:''):k)+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(moving?1:0),w=co?48:40,h=co?38:30;
  return waSprite(key,w,h,w>>1,h-3,P=>{if(WAMONF[fk])waMonBand(P,fk,k,f&3,moving);else waBandPaint(P,fk,k,f&3,moving,co);if(dir<0)P.mirror()})}
@@ -10444,7 +10462,7 @@ function twTreeList(m){const T=tlTrees(m),wl=tlTierLv('weapon',1),abN=x=>[].conc
  const W=T.filter(x=>x.kind==='weapon');
  h+=W.length?`<div class="tw-wts">${W.map(x=>`<span class="tw-wt" title="${x.tree.n}${x.tree.d?': '+x.tree.d:''}">${twIcon(tlTreeIcon(x.key),16)}${TL_WTN[x.tree.wt]||x.tree.n}</span>`).join('')}<small>weapon trees, from level ${wl}</small></div>`
   :`<p class="pn-p dim">No weapon trees${(tlWtAllowed(m).length?'':' for this background')}.</p>`;
- const A=T.filter(x=>x.kind==='armor');if(A.length)h+=`<div class="tw-wts tw-ats">${A.map(x=>{const ac=tlTreeArm(x.key);return`<span class="tw-wt" title="${x.tree.n}${x.tree.d?': '+x.tree.d:''}">${twIcon(tlTreeIcon(x.key),16)}${ac?TL_ARMN[ac]:x.tree.n}</span>`}).join('')}<small>armor trees, from level ${tlTierLv('armor',1)}, each only in its class</small></div>`;
+ const A=T.filter(x=>x.kind==='armor');if(A.length)h+=`<div class="tw-wts tw-ats">${A.map(x=>{const ac=tlTreeArm(x.key);return`<span class="tw-wt" title="${x.tree.n}${x.tree.d?': '+x.tree.d:''}">${twIcon(tlTreeIcon(x.key),16)}${ac?TL_ARMN[ac]:x.tree.n}</span>`}).join('')}<small>${A.length===1?'the only armor tree':'armor trees'} for ${tlBgA(m)}, from level ${tlTierLv('armor',1)}${A.length>1?', each only in its class':''}</small></div>`;
  const no=(RACE[m.race]&&RACE[m.race].noWt)||[],lost=no.filter(w=>(BG[m.bg].wt||[]).includes(w));if(lost.length)h+=`<p class="pn-p dim">A ${RACE[m.race].n.toLowerCase()} never learns the ${lost.map(w=>(TL_WTN[w]||w).toLowerCase()).join(' or ')} tree.</p>`;
  return h}
 function gearRows(m){return[['w','Weapon']].concat(m.eq&&m.eq.b?[['b','Backup']]:[],[['s','Shield'],['a','Armor'],['h','Helmet']]).map(([k,n])=>{const id=m.eq[k];return`<div class="pn-gear${id?'':' none'}">${id?twItemIcon(id,32):twIcon(k==='w'?'fist':k==='s'?'shield':k==='h'?'helmet':'armor-light',32,k==='w'?'sword':k==='s'?'shield':'armor')}<span class="pn-rmain"><span class="pn-rt">${id?pnItemName(id):k==='w'?'Unarmed':'No '+n.toLowerCase()}</span>${id?`<span class="pn-rs tw-line">${twItemStats(id)}</span>`:''}</span><span class="pn-slot">${n}</span></div>`}).join('')}
@@ -11261,6 +11279,12 @@ function tlArmTrees(){const L=[];for(const k in MAST)if(tlKind(MAST[k])==='armor
 function tlTreeArm(key){const T=MAST[key]||{};return tlArmNorm(T.ac||T.cls||T.armor||T.aw||T.wt)||tlArmNorm(key)}
 function tlArmClass(m){if(!m)return null;if(typeof armorClass==='function'){const c=tlTry(()=>armorClass(m),undefined);if(c!==undefined)return tlArmNorm(c)}
  const a=ITEMS[m.eq&&m.eq.a];return!a?null:a.arm<=60?'light':a.arm<=150?'medium':'heavy'}
+/* the armor trees this merc's background allows (BG[bg].at via mercTrees), and a short line naming them */
+function tlArmKeys(m){return tlTrees(m).filter(x=>x.kind==='armor').map(x=>x.key)}
+function tlBgA(m){const n=BG[m.bg]?BG[m.bg].n.toLowerCase():'sword';return(/^[aeiou]/.test(n)?'an ':'a ')+n}
+function tlArmNote(m,short){const L=tlArmKeys(m).map(k=>(TL_ARMN[tlTreeArm(k)]||MAST[k].n).toLowerCase()),b=tlBgA(m),J=L.join(' and ');
+ if(short)return L.length?J[0].toUpperCase()+J.slice(1)+' only':'None';if(!L.length)return'No armor tree for '+b;
+ return(b[0].toUpperCase()+b.slice(1))+' learns '+(L.length===1?'only the '+J+' armor tree':'only the '+J+' armor trees')}
 function tlPid(k,p,t,j){return p&&p.id!=null?String(p.id):k+'#'+t+'.'+j}
 function tlLegacy(m){return!Array.isArray(m.perks)&&!!m.mast&&typeof m.mast==='object'}
 /* the merc's gift tree key (its variant), or null */
@@ -11464,8 +11488,8 @@ function coStat(m,s,k){const t=m.tal[k]||0,cd=cpCond(m);let v=k==='brv'?coBrv(m,
  return`<div class="cst${hurt&&k!=='hp'?' worn':''}" data-stat="${k}">${coStatIc(k)}<span>${coStatName(k)}${pnStars(t)}</span><b>${hurt?cur+'<small>/'+v+'</small>':v}</b>${pnBar(100*cur/(STATMAX[k]||100),k==='hp'?'hp':hurt?'worn':'st')}</div>`}
 function coStatKeys(m,s){const ks=['hp','arm'];if(m.eq.h||cpHasHelms())ks.push('helm');ks.push('fat','init','ms','rs','md','rd');if(coBrv(m,s)!==null)ks.push('brv');return ks}
 /* condition line under the doll: piece, points left of its full value, a meter */
-function coArmChip(m){const c=tlArmClass(m),n=tlArmTrees().filter(k=>tlTreeArm(k)===c)[0];
- return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':''):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
+function coArmChip(m){const c=tlArmClass(m),n=tlArmKeys(m).filter(k=>tlTreeArm(k)===c)[0];
+ return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':': '+tlBgA(m)+' learns no '+TL_ARMN[c].toLowerCase()+' armor tree'):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
 function coCondRow(k,id,cur,mx){const it=ITEMS[id];if(!it)return`<div class="pd-c none">${coIc(k==='h'?'helmet':'armor-light')}<b>${k==='h'?'No helmet':'No armor'}</b><small>${k==='h'?'head hits land in full':'unarmored'}</small></div>`;
  return`<div class="pd-c${cur<mx?' worn':''}" data-cond="${k}">${k==='h'?coIc('helmet'):pnItemIcon(id,16)}<b>${pnItemName(id)}</b><small>${cur<mx?cur+'/'+mx:mx}</small>${pnBar(mx?100*cur/mx:0,cur<mx?'worn':'ar')}</div>`}
 function coInjList(m){const L=cpInj(m);if(!L.length)return'';
@@ -11507,9 +11531,9 @@ function tgNode(m,o){const st=tgState(m,o),sel=coPerk&&coPerk.pid===o.id,p=o.per
 function tgTreeHead(m,x,O){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key),T=x.tree,ac=x.kind==='armor'?tlTreeArm(x.key):null,on=ac&&ac===tlArmClass(m);
  return`<div class="tg-th">${coIc(tlTreeIcon(x.key))}<b>${x.kind==='gift'?tlGiftLabel(x.key):T.n}</b>${ac?`<em class="tg-ac${on?' on':''}" title="${on?'Worn now: these perks work':'Works only in '+TL_ARMN[ac].toLowerCase()+' armor'}">${on?coIc('check')+'Worn':TL_ARMN[ac]}</em>`:''}<span>${T.d||''}</span>${n?`<small>${n} learned</small>`:''}</div>`}
 /* the armor-class trees: like the weapon trees, columns by the level each tier opens (2 / 5 / 8); the class worn now is lit */
-function coArmorTrees(m,T,O,cols){const ak=T.filter(x=>x.kind==='armor');if(!ak.length)return'';const lv=m.lvl,aLv=tlTierLv('armor',1),cur=tlArmClass(m),
+function coArmorTrees(m,T,O,cols){const ak=T.filter(x=>x.kind==='armor');if(!ak.length)return`<div class="tg-wh tg-ah lk">${coIc('armor')}<b>Armor trees</b><span>${tlArmNote(m)}</span></div>`;const lv=m.lvl,aLv=tlTierLv('armor',1),cur=tlArmClass(m),
   at=Math.max(1,...ak.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/at));
- let h=`<div class="tg-sec"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span>${lv<aLv?'Open at level '+aLv+'. ':''}Each works only while wearing armor of its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
+ let h=`<div class="tg-sec"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span title="${tlArmNote(m)}; ${ak.length>1?'each works':'it works'} only in armor of its class">${lv<aLv?'Open at level '+aLv+'. ':''}${tlArmNote(m,1)}: ${ak.length>1?'each works':'works'} only in its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
  h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:at},(_,j)=>{const need=tlTierLv('armor',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
  for(const x of ak){const on=tlTreeArm(x.key)===cur;h+=`<div class="tg-tree k-armor${on?' worn':' off'}" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
   for(let t=1;t<=at;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('armor',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
@@ -11618,6 +11642,13 @@ let lvSel=[];
 function levelSheet(i){coSel=G.roster[i].id;coLast=i;coScreen='merc';coRender()}
 function lvPick(i,k){const j=lvSel.indexOf(k);if(j>=0)lvSel.splice(j,1);else if(lvSel.length<3)lvSel.push(k);levelSheet(i)}
 function lvConfirm(i){const m=G.roster[i];if(lvSel.length!==3)return;lvSel.forEach(k=>{m.base[k]+=m.rolls[k];if(k==='hp')m.hp+=m.rolls[k]});m.rolls=null;m.pend--;lvSel=[];save();mercSheet(i)}
+/* The v8 save migration (20-state.js) refunds perks of weapon and armor trees a background no longer allows; G.refund [{name, n}]
+   lists who got points back and G.note 'refund' asks for this sheet once, on the map. showNote (40-world.js) knows only its own
+   notes, so it is wrapped here: 'refund' opens refundSheet; after any other note, a pending refund is queued as the next one. */
+function refundSheet(){const L=Array.isArray(G.refund)?G.refund:[];delete G.refund;if(!L.length)return;const tot=L.reduce((a,r)=>a+r.n,0);
+ sheet(`<h2>Perk points returned</h2><p>Each background now trains at most five weapon families and one or two weights of armor. Perks learned in a tree a sword can no longer learn were taken back, and the points returned to spend again:</p>
+ <ul class="rf-list">${L.map(r=>`<li><b>${htmlEsc(r.name)}</b> ${r.n} point${r.n===1?'':'s'}</li>`).join('')}</ul>
+ <p class="dim">${tot} point${tot===1?'':'s'} in all. Spend them in the company screen, on a merc's Talents.</p><button class="pri" onclick="closeSheet()">Understood</button>`)}
 
 /* ---- 60-battle-core.js ---- */
 /* ================= BATTLE CORE ================= */
@@ -12231,7 +12262,7 @@ async function aiTurn(u){if(typeof aiTurn2==='function')return aiTurn2(u);const 
      m.gift   the gift tree key (a MAST entry of kind 'gift') or null; chosen from the gift and BG[bg].style (giftKey)
      m.perks  [perk ids] learned, in order;  m.pp unspent perk points (one a level, level 1 included)
    Weapon trees are not stored: weaponTrees(m) = BG[bg].wt minus RACE[race].noWt.
-   Armor trees are not stored either: every merc has lightarmor, medarmor and heavyarmor (armorTrees(m)); their tier t opens at level 3t-1.
+   Armor trees are not stored either: armorTrees(m) = BG[bg].at (1 or 2 of lightarmor medarmor heavyarmor); their tier t opens at level 3t-1.
    Tier t of a style or gift tree opens at level t, of a weapon tree at level 3t; any open perk can be bought with a point.
    The first perk learned in the gift tree awakens the gift (calc() then grants its pool).
    m.mast is a derived, read-only mirror {treeKey: perks owned} kept for older UI code; nothing in the rules reads it.
@@ -12239,18 +12270,17 @@ async function aiTurn(u){if(typeof aiTurn2==='function')return aiTurn2(u);const 
 const PERKIX={};for(const k in MAST)MAST[k].tiers.forEach((tier,ti)=>tier.forEach(p=>{PERKIX[p.id]={perk:p,tree:MAST[k],key:k,tier:ti+1,kind:MAST[k].kind}}));
 // The level at which tier t (1-based) of a tree of this kind opens: style and gift t, weapon 3t (3 6 9), armor 3t-1 (2 5 8).
 function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}
-/* Armor trees: every merc has all three (ARMORT, display order light medium heavy); a perk of one works only while the body armor worn
-   is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off). armorTrees(m) -> their keys. */
+/* Armor trees: a merc may learn only its background's (BG[bg].at: 1 or 2 of ARMORT, display order light medium heavy); a perk of one
+   works only while the body armor worn is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off).
+   armorTrees(m) -> the keys it may learn, in ARMORT order. */
 const ARMORT=['lightarmor','medarmor','heavyarmor'].filter(k=>MAST[k]&&MAST[k].kind==='armor');
-function armorTrees(m){return ARMORT.slice()}
-/* Saves: the loader (repairMerc in 20-state.js) keeps only perks of m.trees and weaponTrees(m), so the armor perks are mirrored in
-   m.armp = {ids: armor perk ids, base: the other perks, joined}. When m.perks is exactly what the loader leaves (base, and none of ids)
-   the ids are put back. calc, mercTrees and syncMast call this; it never removes a perk, and a copy given other perks is left alone. */
+function armorTrees(m){const b=m&&BG[m.bg],ok=b&&Array.isArray(b.at)?b.at:[];return ARMORT.filter(k=>ok.includes(k))}
 const isArmorPerk=id=>!!(PERKIX[id]&&PERKIX[id].kind==='armor');
-function armorPerksHeal(m){if(!m||!Array.isArray(m.perks))return;const A=m.armp;
- if(A&&Array.isArray(A.ids)&&A.ids.length&&!m.perks.some(isArmorPerk)&&m.perks.join()===A.base)for(const id of A.ids)if(typeof id==='string'&&isArmorPerk(id)&&!m.perks.includes(id))m.perks.push(id);
- if(!m.perks.some(isArmorPerk))return;const ids=m.perks.filter(isArmorPerk),base=m.perks.filter(id=>!isArmorPerk(id)).join();
- if(!A||A.base!==base||!Array.isArray(A.ids)||A.ids.join()!==ids.join())m.armp={ids,base}}
+/* refundTrees(m): takes back every learned perk of a weapon or armor tree the merc may not learn (its background or race does not
+   allow it) and returns the points to m.pp. Returns how many perks were refunded. Used by the v8 save migration and the loader. */
+function refundTrees(m){if(!m||!Array.isArray(m.perks))return 0;const ok=new Set(weaponTrees(m).concat(armorTrees(m)));let n=0;
+ m.perks=m.perks.filter(id=>{const P=PERKIX[id];if(P&&(P.kind==='weapon'||P.kind==='armor')&&!ok.has(P.key)){n++;return false}return true});
+ if(n)m.pp=Math.max(0,Math.floor(Number(m.pp)||0))+n;return n}
 // {perk, tree, key, tier, kind} for a perk id, or null.
 function perkById(id){return PERKIX[id]||null}
 function mercStyle(m){return m&&BG[m.bg]&&BG[m.bg].style||'melee'}
@@ -12263,7 +12293,7 @@ function giftAwake(m){const g=m&&m.gift;return!!(g&&Array.isArray(m.perks)&&m.pe
 // Weapon tree keys the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order.
 function weaponTrees(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w)&&MAST[w])}
 // Every tree the merc has, in display order: style trees, the gift, weapon trees, armor trees. [{key, tree, kind}]
-function mercTrees(m){armorPerksHeal(m);const out=[],tr=Array.isArray(m.trees)?m.trees:[];
+function mercTrees(m){const out=[],tr=Array.isArray(m.trees)?m.trees:[];
  for(const k of tr)if(MAST[k]&&MAST[k].kind==='style')out.push({key:k,tree:MAST[k],kind:'style'});
  const g=m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift'?m.gift:null;if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
  for(const k of weaponTrees(m))out.push({key:k,tree:MAST[k],kind:'weapon'});
@@ -12276,7 +12306,7 @@ function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(
 // Spends a point on perk id. Awakens the gift on its first perk; hitpoints gained are healed at once. Returns true when learned.
 function learnPerk(m,id){if(!canLearn(m,id))return false;const hp0=calc(m).hp;m.perks.push(id);m.pp--;const hp1=calc(m).hp;if(hp1>hp0)m.hp=Math.min(hp1,(m.hp||0)+hp1-hp0);else m.hp=Math.min(m.hp,hp1);syncMast(m);return true}
 // Older UI code reads m.mast; keep it a mirror of m.perks.
-function syncMast(m){if(!m)return;armorPerksHeal(m);const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
+function syncMast(m){if(!m)return;const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
 // 4 style trees drawn from the background pool. r: a random source (default the seeded game stream).
 function rollTrees(bg,r){const pool=(BG[bg]&&BG[bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice();
  if(r){for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=pool[i];pool[i]=pool[j];pool[j]=t}}else shuffle(pool);return pool.slice(0,4)}
@@ -12514,12 +12544,17 @@ const AI_PLAN={
  ogre:{spread:1},
  wyvern:{dodge:1,spread:1,ground:1.5}
 };
+/* Deadlock guard: the sum of every living unit's hitpoints is sampled once a round; if it has not changed for AI_STALL rounds,
+   aiProfile makes every AI unit drop caution and advance, so two careful sides can never stand apart forever. */
+const AI_STALL=12;
+function aiStalled(){const b=B;if(!b||!b.units)return false;const S=b.aiStall||(b.aiStall={r:-1,sum:-1,since:0});if(S.r!==b.round){S.r=b.round;let sum=0;for(const x of b.units)if(x.alive)sum+=x.hp;if(sum!==S.sum){S.sum=sum;S.since=b.round}}return b.round-S.since>=AI_STALL}
 function aiPlan(u){const b=B;if(u.side!==0)return null;if(b.opts.plan)return b.opts.plan;return AI_PLAN[b.opts.f]||{}}
 function aiProfile(u){let role=u.role;
  if(!role){role='line';if(aiHasBow(u))role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster'}
  const P=Object.assign({role},AI_ROLE[role]||AI_ROLE.line);if(u.def&&u.def.dive)P.back=1.8;if(u.fly&&u.side===1)P.back=Math.max(P.back,1.7);   // fliers go over the line for the casters and archers
  if(u.def&&u.def.flee&&u.hp<u.hpMax*u.def.flee)P.care*=2.5;            // the skittish hang back when hurt, but they keep fighting
  if(B.round>AI_LATE){P.care*=.3;P.shy=0}                                // a long battle: everyone presses, so it ends
+ if(aiStalled()){P.care=0;P.shy=0;P.form=0;P.high=0;P.back=1;P.adv=Math.max(P.adv,6)}   // deadlock: nobody has bled for a while, so everyone closes in
  return P}
 async function aiTurn2(u){const b=B;if(!b||!u||!u.alive)return;
  if(u.side===0&&b.opts.pilot==='naive')return AI_NAIVE(u);
@@ -14675,7 +14710,7 @@ function viewIcon(n,size){const rows=n==='rotr'?pxFlip(VICON.rotl):VICON[n],u=ro
 
 /* ================= FRAME ================= */
 let hudStr='';
-function frame(t){requestAnimationFrame(frame);const raw=t-now,dt=Math.min(.05,raw/1000||0),t0=performance.now();now=t;perfTick(raw);
+function frame(t){requestAnimationFrame(frame);if(window.innerWidth!==cw||window.innerHeight!==ch)screenRecover(false);const raw=t-now,dt=Math.min(.05,raw/1000||0),t0=performance.now();now=t;perfTick(raw);
  if(mode!==lastMode){lastMode=mode;setRes();refreshScene();if(mode==='world')WV.boot=true}
  g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
  if(mode==='world'&&G&&W){if(!sheetOpen)worldTick(dt);if(mode==='world'){drawWorld(dt);drawMinimap();const hh=Math.floor(G.hour),s=G.crowns+'|'+G.food+'|'+G.roster.length+'|'+G.day+'|'+hh+'|'+(G.weather?G.weather.kind:'');
@@ -14683,6 +14718,21 @@ function frame(t){requestAnimationFrame(frame);const raw=t-now,dt=Math.min(.05,r
  g.imageSmoothingEnabled=true;if(mode==='battle'&&B)drawBattle(dt);
  else if(mode==='title'){drawBackdrop('title');if(typeof fxAmbient==='function')fxAmbient('title',dt);drawVignette(.9)}
  PERF.draw+=(performance.now()-t0-PERF.draw)*.05}
+
+/* ---- coming back to the game (app switch, lock screen, bfcache): the viewport may have changed while hidden without a
+   resize event (so the canvas would be stretched), and iOS may have purged cached canvases. Re-measure, re-fit and
+   rebuild the board's caches; measure again once the browser toolbars have settled. ---- */
+function screenRecover(deep){try{if(typeof Layout!=='undefined'&&Layout&&Layout.update)Layout.update()}catch(e){}
+ try{resize()}catch(e){}
+ if(deep){BGC.key='';try{if(typeof B!=='undefined'&&B&&B.tiles)viewInvalidate()}catch(e){}try{if(typeof WCH!=='undefined')WCH.w=null}catch(e){}
+  try{if(typeof MM!=='undefined'&&MM)MM.sig=''}catch(e){}}}
+function screenBack(){screenRecover(true);setTimeout(()=>screenRecover(false),250);setTimeout(()=>screenRecover(false),900)}
+if(typeof document!=='undefined'&&typeof window!=='undefined'){
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)screenBack()});
+ window.addEventListener('pageshow',e=>{if(e.persisted)screenBack()});
+ window.addEventListener('focus',()=>screenRecover(false));
+ window.addEventListener('orientationchange',()=>setTimeout(()=>screenRecover(true),300));
+}
 
 /* ---- 71-tiles.js ---- */
 /* ================= TILES, PROPS, BACKDROPS (pixel-art terrain; contract: drawTilePx, drawPropPx, propBoxPx, drawBackdropPx, sceneTint) =================
@@ -17339,7 +17389,7 @@ const MSK={
  ogre:{g:[96,84,48,74],big:1,top:52,wide:18},
  aogre:{g:[100,88,50,78],big:1,top:56,wide:19},
  wyvern:{g:[152,132,76,112],size:2,fly:1,lift:14,top:74,wide:30,fr:{idle:4,walk:4,attack:3,cast:3,hit:2,death:3}},
- hatch:{g:[60,52,30,44],fly:1,lift:8,top:22,wide:10,fr:{idle:4}}
+ hatch:{g:[60,52,30,44],fly:1,lift:8,top:30,wide:10,fr:{idle:4}}
 };
 /* which figure an enemy is: its EN id or name (the monsters agent's ids are read as they land) */
 const MS_ID={gserp:'gserpent',whatch:'hatch',adder:'adder',viper:'viper',spitter:'viper',sviper:'viper',gserpent:'gserpent',serpent:'gserpent',bigserpent:'gserpent',thornling:'thorn',sapling:'thorn',thorn:'thorn',
@@ -17384,9 +17434,7 @@ const MSR={
  gs:usRamp('0aHbcd',2),gsB:usRamp('jkdl',2),
  bark:usRamp('aijk',2),barkL:usRamp('aijk',2),bark2:usRamp('0Gonp',2),moss:usRamp('Bwv',1),leaf:usRamp('BwvA',1),leafL:usRamp('BwvA',2),lich:usRamp('nmlr',1),gold:usRamp('Ybcd',1),amber:usRamp('KEyd',1),
  eld:usRamp('2opq',1),eldL:usRamp('Gonm',2),
- og:usRamp('iuts',2),ogD:usRamp('aiut',2),fur:usRamp('aijk',1),furD:usRamp('0aij',2),club:usRamp('aijk',2),iron:usRamp('Gopq',1),ironL:usRamp('Gopq',2),cloth:usRamp('fKg',1),bone:usRamp('nmlr',2),
- wy:usRamp('1fKgh',3),wyB:usRamp('abcd',2),wyM:usRamp('01ff',3),wyMn:usRamp('1fKg',2),wyH:usRamp('nmlr',1),wyS:usRamp('opqr',2),
- hat:usRamp('fKgh',2)};
+ og:usRamp('iuts',2),ogD:usRamp('aiut',2),fur:usRamp('aijk',1),furD:usRamp('0aij',2),club:usRamp('aijk',2),iron:usRamp('Gopq',1),ironL:usRamp('Gopq',2),cloth:usRamp('fKg',1),bone:usRamp('nmlr',2)};
 function msTX(f){return(x,y)=>f(x,y)}
 
 /* ================= SERPENTS ================= */
@@ -17601,66 +17649,141 @@ function msOgreDead(v,arm){const S=MSR.og,I=MSR.iron;usPart();msE(-6,-5,14,4.5,M
 function msAogre(v,st,fr,va){msOgre(v,st,fr,va,1)}
 
 /* ================= WYVERNS ================= */
-/* a 2x2 flier: two legs, wings for arms, a long neck, a long tail with a barbed sting. Drawn hovering (the board lifts it);
-   phases of the flap: 0 up, 1 mid, 2 down. k scales the whole figure (1 wyvern, .4 a hatchling) */
-const MS_WING=[{e:[-6,-62],w:[6,-86],t:[[-18,-96],[-36,-86],[-48,-66]],b:[-18,-36]},{e:[-8,-54],w:[-6,-70],t:[[-34,-82],[-54,-66],[-60,-46]],b:[-20,-33]},
- {e:[-8,-40],w:[-14,-44],t:[[-44,-34],[-54,-20],[-46,-6]],b:[-18,-28]},{e:[8,-52],w:[22,-68],t:[[40,-76],[54,-60],[52,-40]],b:[-8,-34]},{e:[-10,-40],w:[-20,-38],t:[[-34,-42],[-38,-34],[-30,-28]],b:[-16,-30]}];
-function msWyPose(st,fr,va){const p={ph:1,pitch:0,bx:0,by:0,head:[28,-52],neck:[18,-44],jaw:0,tail:null,legs:0,dead:0,low:0,tuck:0,eye:0};
- const wave=f=>[0,1,2,1][f&3];
+/* a 2x2 flier after the owner's reference (shots/ref/wyvern-ref.jpg): an indigo body with a pale-blue belly, a segmented ridge of
+   crimson plates from the brow down the neck, back and the whole tail, two raised swept-back wings (crimson bones, plum membrane,
+   ice-pale claws at the wrists), an angular head with pale swept horns, two hanging legs with red bands and ice claws, and a long
+   tail curling down and forward under the body to a red spade with a pale spike. Design units: the ground under it at y 0, x forward
+   (screen-right), y down; the whole figure is posed by msWyPose and scaled by k (1.1 the wyvern, .46 a hatchling, which also gets a
+   bigger head, stubbier wings and fewer plates). Wing phases: 0 raised (the reference), 1 level, 2 down, 3 swept forward (buffet),
+   4 folded (dive), 5 high (takeoff). v 0 front three-quarter (belly, eye), v 1 back three-quarter (the ridge and the wing tops). */
+const MSW={body:usRamp('1GDXx',3),bodyD:usRamp('1GD',1),belly:usRamp('DXxF',1),plate:usRamp('0ffgg',3),bone:usRamp('0fg',1),spar:usRamp('0fgg',1),
+ mem:usRamp('01fD',2),memF:usRamp('01ff',2),horn:usRamp('XxFqr',3),claw:usRamp('XFqr',2)};
+/* wings: offsets from the shoulder in the reference (raised) phase. e elbow, w wrist (the claw), t the tips (t[0] the long top one), b where the membrane meets the back */
+const MSW_NEAR={s:[9,-55],e:[-5,-18],w:[-14,-35],t:[[-38,-42],[-37,-21],[-27,-8]],b:[-20,3]},
+ MSW_FAR={s:[17,-59],e:[5,-14],w:[9,-30],t:[[-17,-40],[-19,-22],[-13,-8]],b:[-10,1]};
+/* phase -> how the wing offsets are posed: [x scale, y scale, rotation (+ forward)] */
+const MSW_PH=[[1,1,0],[1.06,.42,.12],[.96,-.5,.2],[.9,.95,.75],[.55,.5,-.35],[.86,1.18,-.12]];
+function msWyPose(st,fr,va){const p={ph:0,pitch:0,bx:0,by:0,head:[36,-49],ha:.48,neck:[21,-60],jaw:0,tail:null,legs:0,dead:0,low:0,eye:0};
+ const wave=[0,1,2,1];
  switch(st){
-  case'idle':p.ph=wave(fr);p.by=[0,1,2,1][fr&3]-1;p.head=[28,-52-([0,1,2,1][fr&3]>1?1:0)];break;
-  case'walk':p.ph=wave(fr);p.by=[0,2,3,2][fr&3]-2;p.pitch=.08;break;
+  case'idle':p.ph=wave[fr&3];p.by=[0,1,2,1][fr&3]-1;p.head=[37,-49+((fr&3)===2?1:0)];break;
+  case'walk':p.ph=wave[fr&3];p.by=[-1,1,2,1][fr&3];p.pitch=.08;p.bx=1;p.head=[38,-48];break;
   case'attack':
-   if(va==='sting'){p.ph=fr===0?0:1;if(fr===0)p.tail=[[-14,-26],[-28,-34],[-34,-54],[-20,-72],[0,-74]];else if(fr===1)p.tail=[[-14,-26],[-26,-40],[-16,-64],[10,-68],[38,-52]];else p.tail=[[-14,-26],[-30,-26],[-42,-36],[-48,-52]];p.head=fr===1?[30,-46]:[26,-54]}
-   else if(va==='buffet'){p.ph=fr===0?0:fr===1?3:2;p.pitch=fr===1?-.06:0;p.head=fr===0?[24,-56]:[30,-52];p.jaw=fr===1?1:0}
-   else if(va==='dive'){if(fr===0){p.ph=4;p.pitch=.35;p.head=[32,-44];p.tuck=1}else if(fr===1){p.ph=0;p.pitch=.12;p.legs=1;p.jaw=1;p.head=[34,-44]}else{p.ph=2;p.legs=1}}
-   else{p.ph=1;if(fr===0){p.head=[18,-60];p.neck=[14,-48]}else if(fr===1){p.head=[44,-38];p.neck=[28,-42];p.jaw=1;p.pitch=.1}else{p.head=[32,-48]}}break;
-  case'cast':if(va==='takeoff'||va==='land'){p.ph=[0,2,1][fr];p.legs=va==='land'?1:0;p.by=fr===1?2:0}
-   else{p.ph=0;p.head=[24,-62+fr];p.neck=[16,-50];p.jaw=fr>0?1:0;p.pitch=-.08}break;
-  case'hit':p.ph=fr===0?0:1;p.pitch=-.12;p.head=[20,-58];p.bx=-3;break;
-  case'death':if(fr===0){p.ph=0;p.pitch=-.18;p.head=[18,-60];p.jaw=1}else if(fr===1){p.ph=2;p.pitch=.25;p.low=14;p.head=[34,-30];p.jaw=1;p.eye=1}else p.dead=1;break}
+   if(va==='sting'){p.ph=fr===2?0:1;p.head=fr===1?[35,-47]:[36,-51];
+    p.tail=fr===0?[[-12,-40],[-26,-44],[-36,-56],[-34,-70],[-22,-80],[-10,-78]]:fr===1?[[-14,-44],[-22,-36],[-14,-24],[2,-20],[22,-22],[42,-24]]:[[-14,-44],[-28,-44],[-38,-36],[-40,-24],[-34,-14],[-24,-10]]}
+   else if(va==='buffet'){p.ph=fr===0?5:fr===1?3:2;p.pitch=fr===1?-.06:0;p.head=fr===0?[34,-53]:[38,-49];p.jaw=fr===1?1:0}
+   else if(va==='dive'){if(fr===0){p.ph=4;p.pitch=.38;p.head=[40,-44];p.ha=.6}else if(fr===1){p.ph=5;p.pitch=.14;p.legs=1;p.jaw=1;p.head=[41,-44]}else{p.ph=2;p.legs=1;p.by=2}}
+   else{p.ph=fr===1?1:0;if(fr===0){p.head=[28,-60];p.neck=[17,-60];p.ha=0}else if(fr===1){p.head=[47,-42];p.neck=[30,-52];p.jaw=1;p.pitch=.1;p.ha=.25}else{p.head=[39,-48]}}break;
+  case'cast':if(va==='takeoff'||va==='land'){p.ph=[5,2,1][fr];p.legs=va==='land'?1:0;p.by=fr===1?3:0}
+   else{p.ph=fr?5:0;p.head=[34,-57+fr];p.neck=[20,-60];p.jaw=fr>0?1:0;p.pitch=-.08;p.ha=-.15}break;
+  case'hit':p.ph=fr===0?5:1;p.pitch=-.14;p.head=[31,-55];p.ha=0;p.bx=-3;p.eye=fr===0?1:0;break;
+  case'death':if(fr===0){p.ph=5;p.pitch=-.2;p.head=[29,-58];p.ha=-.3;p.jaw=1;p.eye=1}
+   else if(fr===1){p.ph=2;p.pitch=.3;p.low=18;p.head=[40,-38];p.ha=.8;p.jaw=1;p.eye=1}else p.dead=1;break}
  return p}
-function msWyvern(v,st,fr,va,k){k=k||1;const p=msWyPose(st,fr,va),R=MSR.wy,Bl=MSR.wyB,M=MSR.wyM,Hn=MSR.wyH;
- if(p.dead){msWyDead(v,k);return}
- const cx=0,cy=-28,cs=Math.cos(p.pitch),sn=Math.sin(p.pitch),T=(x,y)=>{const dx=x-cx,dy=y-cy;return[(cx+dx*cs-dy*sn)*k+p.bx*k,(cy+dx*sn+dy*cs)*k+(p.by+p.low)*k]},
-  TL=L=>L.map(q=>T(q[0],q[1])),sc=(x,y)=>(y&1)&&(((x+200+((y>>1)&1)*2)&3)===0)?-1:0;
- const wing=(W,far)=>{const o=far?[-5,-5]:[5,3],sh=[2+o[0],-38+o[1]],f=q=>[q[0]+o[0]*(far?1.6:1),q[1]+o[1]*(far?1.3:1)],e=f(W.e),w=f(W.w),tp=W.t.map(f),b=f(W.b);
-  usPart();msPoly(TL([sh,e,w,tp[0],[(tp[0][0]+tp[1][0])/2+3,(tp[0][1]+tp[1][1])/2+4],tp[1],[(tp[1][0]+tp[2][0])/2+4,(tp[1][1]+tp[2][1])/2+3],tp[2],[(tp[2][0]+b[0])/2+5,(tp[2][1]+b[1])/2],b]),far?M:MSR.wyMn);
-  usPart();const A=TL([sh,e,w]);msTube(A,t=>(2.8-t*1.2)*Math.max(.6,k),Hn);for(const q of tp){usPart();msTube([A[2],T(q[0],q[1])],t=>(.9-t*.4)*Math.max(.7,k),Hn)}
-  const cl=T(w[0],w[1]);usPart();usP(Math.round(cl[0]),Math.round(cl[1])-1,'l');usP(Math.round(cl[0])+1,Math.round(cl[1])-2,'l')};
- const W=MS_WING[p.ph];
- // far wing, far leg, tail
- usGrp=1;wing(W,1);
- const leg=(x0,far)=>{const fo=far?-4:0,ky=p.legs?-14:-12,fx=p.legs?14+x0:x0+2,fy=p.legs?-8:-4;usPart();msTube(TL([[x0+fo,-24],[x0+5+fo,ky],[fx+fo,fy]]),t=>(5.4-t*2.8)*Math.max(.6,k),R,sc);
-  usPart();const f=T(fx+fo,fy);for(const a of[-2,0,2])msTube([f,[f[0]+(3+Math.abs(a)*.4)*k,f[1]+(2+a*.6)*k]],.8,Hn)};
- usGrp=2;leg(-2,1);
- usGrp=3;usPart();const tl=TL(p.tail||[[-14,-26],[-30,-22],[-44,-28],[-54,-38],[-58,-48]]);const TS=msTube(tl,t=>(5.2-t*4)*Math.max(.55,k),R,sc);
- if(k>.6)for(let i=4;i<TS.length;i+=7){const q=TS[i],r=5.2-(i/TS.length)*4;usPart();usP(Math.round(q[0]),Math.round(q[1]-r*k-1),Hn,1)}
- {const e=TS[TS.length-1],e2=TS[Math.max(0,TS.length-6)],dx=e[0]-e2[0],dy=e[1]-e2[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,nx=-uy,ny=ux,s2=k*1.1;usPart();
-  msPoly([[e[0]-ux*2*s2+nx*3*s2,e[1]-uy*2*s2+ny*3*s2],[e[0]+ux*9*s2,e[1]+uy*9*s2],[e[0]-ux*2*s2-nx*3*s2,e[1]-uy*2*s2-ny*3*s2],[e[0]-ux*5*s2,e[1]-uy*5*s2]],MSR.wyS);usF(Math.round(e[0]+ux*7*s2),Math.round(e[1]+uy*7*s2),'A');if(k>.6)usF(Math.round(e[0]+ux*5*s2),Math.round(e[1]+uy*5*s2),'A')}
- // body: belly, chest, the plates of the belly toward the camera, spines down the back
- usGrp=0;usPart();msE(...T(-6,-25),16*k,9*k,R,sc);msE(...T(8,-31),11*k,10.5*k,R,sc);
- if(v===0){usPart(1);for(let x=-10;x<=16;x+=1){const yb=x<4?-25+9*Math.sqrt(Math.max(0,1-((x+6)/16)**2)):-31+10.5*Math.sqrt(Math.max(0,1-((x-8)/11)**2));for(let j=1;j<4;j++){const q=T(x,yb-j);usP(Math.round(q[0]),Math.round(q[1]),Bl,j===1?-1:((Math.round(q[1]))&1)?-1:0)}}}
- if(k>.6){usPart();for(let x=-14;x<=12;x+=4){const q=T(x,-34-(x>0?x*.25:0));usP(Math.round(q[0]),Math.round(q[1]),Hn,1);usP(Math.round(q[0])-1,Math.round(q[1])+1,Hn)}}
- // the neck and the head
- const hd=p.head,nk=p.neck;usPart();const NS=msTube(TL([[12,-33],nk,[(nk[0]+hd[0])/2-2,(nk[1]+hd[1])/2-2],[hd[0]-5,hd[1]+1]]),t=>(6.4-t*2.6)*Math.max(.55,k),R,sc);
- if(v===0){usPart(1);for(let i=2;i<NS.length-3;i+=1){const q=NS[i];usP(Math.round(q[0]+2*k),Math.round(q[1]+2*k),Bl,(i&2)?-1:0)}}
- if(k>.6)for(let i=3;i<NS.length;i+=5){const q=NS[i];usPart();usP(Math.round(q[0]-3*k),Math.round(q[1]-4*k),Hn,1)}
- const H=T(hd[0],hd[1]),hx=H[0],hy=H[1];usPart();msTube([[hx-8*k,hy-2*k],[hx-14*k,hy-8*k],[hx-17*k,hy-9*k]],t=>(1.8-t*1.3)*Math.max(.6,k),Hn);
- usPart();msE(hx,hy,7*k,4.6*k,R,sc);msE(hx+6*k,hy+1*k,5.5*k,3*k,R);
- if(k>.6){usB(Math.round(hx-2),Math.round(hy-4),-1);usB(Math.round(hx),Math.round(hy-4),-1)}
- if(v===0||k<.6){const ex=Math.round(hx+1*k),ey=Math.round(hy-1.5*k);usF(ex,ey,p.eye?'0':'y');if(k>.6){usF(ex+1,ey,p.eye?'0':'e');usF(ex,ey+1,'0');usF(ex-1,ey-1,'1');usF(ex,ey-1,'1');usF(ex+1,ey-1,'1')}usF(Math.round(hx+10.5*k),Math.round(hy),'0')}
- if(p.jaw){usPart();const jy=hy+3*k;msPoly([[hx-3*k,jy-1],[hx+11*k,jy+2*k],[hx+9*k,jy+4*k],[hx-2*k,jy+2*k]],R);for(let x=Math.round(hx-1*k);x<=Math.round(hx+9*k);x++)usF(x,Math.round(jy+.5),'g');if(k>.6)for(let x=Math.round(hx+1);x<=Math.round(hx+9);x+=3)usF(x,Math.round(jy-.5),'r')}
- else if(k>.6){for(let x=Math.round(hx+2);x<=Math.round(hx+9);x+=3)usF(x,Math.round(hy+3),'l')}
- usPart();msTube([[hx-6*k,hy-3*k],[hx-12*k,hy-9*k],[hx-12*k,hy-13*k]],t=>(2.2-t*1.6)*Math.max(.6,k),Hn);
- // near leg, near wing
- usGrp=4;leg(4,0);
- usGrp=5;if(!p.tuck||true)wing(W,0);usGrp=0}
-function msWyDead(v,k){const R=MSR.wy,M=MSR.wyM,Hn=MSR.wyH;usPart();msTube([[-14*k,-6*k],[-34*k,-4*k],[-50*k,-8*k],[-58*k,-4*k]],t=>(5-t*3.6)*Math.max(.6,k),R);
- usPart();msE(-2*k,-8*k,16*k,7*k,R);usPart();msTube([[10*k,-9*k],[22*k,-6*k],[30*k,-5*k]],t=>(5-t*2)*Math.max(.6,k),R);usPart();msE(36*k,-5*k,7*k,4*k,R);if(v===0)usF(Math.round(36*k),Math.round(-6*k),'0');
- usGrp=5;usPart();msPoly([[-6*k,-14*k],[-30*k,-26*k],[-48*k,-18*k],[-40*k,-8*k],[-20*k,-6*k]],M);usPart();msTube([[-6*k,-14*k],[-30*k,-26*k]],1.6*Math.max(.7,k),Hn);
- usPart();msTube([[-30*k,-26*k],[-48*k,-18*k]],1,Hn);usPart();msTube([[-30*k,-26*k],[-40*k,-8*k]],1,Hn);usGrp=0}
-function msHatch(v,st,fr,va){msWyvern(v,st,fr,va,.4)}
+/* a filled ellipse painted only where the figure already is (belly light, bands) */
+function msEin(cx,cy,rx,ry,R,b){const y0=Math.floor(cy-ry-1),y1=Math.ceil(cy+ry+1),x0=Math.floor(cx-rx-1),x1=Math.ceil(cx+rx+1);
+ for(let y=y0;y<=y1;y++){const q=(y+.5-cy)/ry;if(q*q>1)continue;for(let x=x0;x<=x1;x++){const a=(x+.5-cx)/rx;if(a*a+q*q<=1&&usHas(x,y))usP(x,y,R,typeof b==='function'?b(x,y):b|0)}}}
+/* the ridge: a row of crimson plates along a spline S (screen px) on the side the normal points to (out = +1 left of travel).
+   Each plate is its own part (the shading pass lights its top-left edge and darkens the next one's overlap); alternating outline
+   groups give the crisp dark seams between plates of the reference. */
+function msRidge(S,t0,t1,step,rf,off,out,grp){const n=S.length;let L=0;const cl=[0];for(let i=1;i<n;i++){L+=Math.hypot(S[i][0]-S[i-1][0],S[i][1]-S[i-1][1]);cl.push(L)}
+ const g0=usGrp,pts=[];for(let d=L*t0;d<=L*t1;d+=step){let i=1;while(i<n-1&&cl[i]<d)i++;const a=S[i-1],b=S[i],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,t=d/(L||1);
+  const r=rf(t),o=off(t);pts.push([a[0]+(b[0]-a[0])*.5-dy/l*o*out,a[1]+(b[1]-a[1])*.5+dx/l*o*out,r,dx/l,dy/l])}
+ pts.forEach((q,j)=>{if(grp)usGrp=grp+(j&1);usPart();const r=q[2];msE(q[0],q[1],r*1.05,r*.85,MSW.plate);
+  if(r>2.6&&(j%3)===1){const hx=Math.round(q[0]-r*.3),hy=Math.round(q[1]-r*.45);usF(hx,hy,'h')}});usGrp=g0;return pts}
+function msWyvern(v,st,fr,va,k,juv){k=k||1;const p=msWyPose(st,fr,va),W=MSW;
+ if(p.dead){msWyDead(v,k,juv);return}
+ const big=k>.7,hs=juv?1.5:1.3,ws=juv?.88:1,DY=6,cs=Math.cos(p.pitch),sn=Math.sin(p.pitch),
+  T=(x,y)=>{const dx=x,dy=y+46;return[(dx*cs-dy*sn+p.bx)*k,(-46+dx*sn+dy*cs+DY+p.by+p.low)*k]},TL=L=>L.map(q=>T(q[0],q[1])),R=r=>Math.max(.7,r*k),BD=juv?msT0:(x,y)=>((x+y)&1)?0:-1,PR=r=>big?r*k:Math.min(1.7,r*k*.9);
+ /* ---- a wing (far: behind the body, near: in front) ---- */
+ const wing=(far)=>{const D=far?MSW_FAR:MSW_NEAR,ph=MSW_PH[p.ph],ca=Math.cos(ph[2]),sa=Math.sin(ph[2]),s0=D.s,
+   P=q=>{let x=q[0]*ph[0]*ws,y=q[1]*ph[1]*ws;const xr=x*ca-y*sa,yr=x*sa+y*ca;return T(s0[0]+xr,s0[1]+yr)};
+  const s=T(s0[0],s0[1]),e=P(D.e),w=P(D.w),t=D.t.map(P),b=P(D.b),lerp=(a,c,f)=>[a[0]+(c[0]-a[0])*f,a[1]+(c[1]-a[1])*f],
+   sc=(a,c)=>{const m=lerp(a,c,.5);return lerp(m,w,.2)};
+  const mem=far?W.memF:W.mem,dith=(x,y)=>far?0:((x&1)&&!((x+y)&3))?1:0;
+  usPart();msPoly([s,e,w,t[0],sc(t[0],t[1]),t[1],sc(t[1],t[2]),t[2],sc(t[2],b),b],mem,(x,y)=>dith(x,y)-(far?0:0));
+  if(far&&big){for(const f of[[.35,.3],[.55,.55],[.25,.62]]){const q=lerp(lerp(w,t[0],f[0]),lerp(t[1],b,f[0]),f[1]),x=Math.round(q[0]),y=Math.round(q[1]);
+   for(const d of[[0,0],[1,0],[2,0],[-1,1],[0,1],[1,1],[2,1],[0,2],[1,2]])if(usHas(x+d[0],y+d[1]))usF(x+d[0],y+d[1],'X');if(usHas(x,y))usF(x,y,'x')}}
+  else if(big){for(const f of[[.4,.35],[.6,.6]]){const q=lerp(lerp(w,t[0],f[0]),lerp(t[1],b,f[0]),f[1]),x=Math.round(q[0]),y=Math.round(q[1]);for(const d of[[0,0],[1,0],[0,1],[1,1],[2,1]])if(usHas(x+d[0],y+d[1]))usF(x+d[0],y+d[1],'X');if(usHas(x,y))usF(x,y,'x')}}
+  // finger bones: thin crimson, a pale highlight along each
+  for(let i=1;i<3;i++){usPart();msL(w[0],w[1],t[i][0],t[i][1],W.bone,0);if(big){const a=lerp(w,t[i],.2),c=lerp(w,t[i],.62);msFL(a[0],a[1],c[0],c[1],'q')}}
+  // the leading edge (wrist to the long tip): a plated crimson spar
+  usPart();msTube([w,lerp(w,t[0],.5),t[0]],u=>R(1.5-u*.9),W.spar);if(big){const a=lerp(w,t[0],.08),c=lerp(w,t[0],.7);msFL(a[0],a[1]-1,c[0],c[1]-1,'g')}
+  // the arm: shoulder, elbow, wrist, thick and plated
+  usPart();const A=msTube([s,e,w],u=>R(2.7-u*1.2),W.spar);if(big)for(let i=4;i<A.length-2;i+=6){const q=A[i];usB(Math.round(q[0]+1),Math.round(q[1]+1),-1);usB(Math.round(q[0]+2),Math.round(q[1]),-1)}
+  if(big){const a=lerp(s,e,.3),c=lerp(e,w,.6);msFL(a[0]-1,a[1]-1,c[0]-1,c[1]-1,'q')}
+  // the wrist claw: an ice-pale spike out of the joint
+  const dx=w[0]-e[0],dy=w[1]-e[1],l=Math.hypot(dx,dy)||1;usPart();msL(w[0],w[1],w[0]+dx/l*R(4),w[1]+dy/l*R(4)-R(1),W.claw,1)};
+ /* ---- a hind leg: thigh, red band, shin, ice claws ---- */
+ const leg=(far)=>{const o=far?[10,-2]:[0,0],h=[-5+o[0],-39+o[1]],kn=p.legs?[h[0]+8,h[1]+7]:[h[0]-3,h[1]+11],an=p.legs?[kn[0]+6,kn[1]+3]:[kn[0]-2,kn[1]+7],
+   fo=p.legs?[an[0]+3,an[1]+1]:[an[0]+1,an[1]+2],RB=far?W.bodyD:W.body;
+  usPart();const th=T((h[0]+kn[0])/2,(h[1]+kn[1])/2);msE(th[0],th[1],R(juv?4.4:5.4),R(juv?5:6.6),RB,far?0:BD);
+  if(big){usPart(1);const q=T(kn[0]+(h[0]-kn[0])*.2,kn[1]+(h[1]-kn[1])*.2);msEin(q[0],q[1],R(5.6),R(1.7),W.plate,0)}
+  usPart();msTube(TL([kn,an,fo]),u=>R(3.1-u*1.1),RB,far?null:BD);if(big&&!far){usPart(1);const q=T(an[0],an[1]-1);msEin(q[0],q[1],R(3),R(1.2),W.plate,0)}
+  usPart();const f=T(fo[0],fo[1]);const cl=p.legs?[[3,-1],[3,1.5],[1.5,3]]:[[-1.6,3],[.4,3.6],[2.4,2.8]];
+  if(juv){usP(Math.round(f[0]),Math.round(f[1]+1),W.claw,0);usP(Math.round(f[0]+1),Math.round(f[1]+1),W.claw,0)}else for(const c of cl)msL(f[0]+c[0]*.2*k,f[1]+c[1]*.2*k,f[0]+c[0]*k,f[1]+c[1]*k,W.claw,0)};
+ /* ---- far wing, far leg ---- */
+ usGrp=1;wing(1);usGrp=2;if(v===0)leg(1);
+ /* ---- the tail (in front of the body in the back view) ---- */
+ const tail=()=>{usPart();const S=msTube(TL(p.tail||[[-11,-39],[-21,-40],[-28,-33],[-29,-22],[-23,-12],[-14,-8],[-6,-9]]),u=>R((juv?4.4:6)-u*(juv?2.6:3.8)),W.body,BD);
+  const n=S.length;if(v===0&&big)for(let i=4;i<n-6;i++){const a=S[i-1],b=S[i],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,r=(5.4-i/n*3.4)*k*.55;usB(Math.round(b[0]+dy/l*r),Math.round(b[1]-dx/l*r),1)}
+  msRidge(S,.02,juv?.8:.9,big?3.8:3.4,u=>PR(Math.max(1.5,3.2-u*1.8)),u=>Math.max(.6,(5.4-u*3.4)*k*(juv?.7:.92)),-1,big?10:0);
+  const e=S[n-1],e2=S[Math.max(0,n-8)],dx=e[0]-e2[0],dy=e[1]-e2[1],l=Math.hypot(dx,dy)||1,ux=dx/l,uy=dy/l,nx=-uy,ny=ux,s2=k*(juv?1.6:1.05);
+  // the spade: a crimson arrowhead with barbs, a pale spike rising out of it
+  usPart();msPoly([[e[0]-ux*2*s2,e[1]-uy*2*s2],[e[0]-ux*4*s2+nx*4.5*s2,e[1]-uy*4*s2+ny*4.5*s2],[e[0]+ux*8*s2,e[1]+uy*8*s2],[e[0]-ux*4*s2-nx*4.5*s2,e[1]-uy*4*s2-ny*4.5*s2]],W.plate);
+  const sp=[-ux*.4+nx*.92,-uy*.4+ny*.92],sg=sp[1]>0?-1:1;usPart();msL(e[0]+ux*s2,e[1]+uy*s2,e[0]+ux*s2+sp[0]*sg*6*s2,e[1]+uy*s2+sp[1]*sg*6*s2,W.horn,1);
+  if(big)usF(Math.round(e[0]+ux*4*s2),Math.round(e[1]+uy*4*s2),'h')};
+ usGrp=3;if(v===0)tail();
+ /* ---- body: haunch and chest, the pale belly, the ridge down the back ---- */
+ usGrp=8;usPart();const bc=T(-6,-40),cc=T(7,-51);msE(bc[0],bc[1],R(juv?10:11.5),R(juv?8:8.6),W.body,BD);msE(cc[0],cc[1],R(juv?9:10.5),R(juv?8:9.6),W.body,BD);
+ if(v===0){usPart(1);const q=T(2,-40);msEin(q[0],q[1],R(15),R(4.2),W.belly,(x,y)=>(y&1)&&big&&((x+y)&3)===0?-1:0);
+  if(big){const q2=T(-6,-38.5);for(let x=-6;x<=6;x+=4)usB(Math.round(q2[0]+x),Math.round(q2[1]),1)}}
+ // neck (its own tube, so the head turns on it)
+ const hd=juv?[p.head[0]-7,p.head[1]-5]:[p.head[0]-3,p.head[1]-4],nk=juv?[p.neck[0]-3,p.neck[1]-3]:[p.neck[0]-2,p.neck[1]-6];usPart();const NS=msTube(TL([[7,-55],nk,[(nk[0]+hd[0])/2,(nk[1]+hd[1])/2-1],[hd[0]-5,hd[1]-1]]),u=>R((juv?6.5:6.2)-u*2),W.body,BD);
+ if(v===0){usPart(1);for(let i=2;i<NS.length-4;i++){const q=NS[i];usP(Math.round(q[0]+R(2.6)),Math.round(q[1]+R(2.6)),W.belly,(i&3)===0&&big?-1:0);if(big)usP(Math.round(q[0]+R(3.6)),Math.round(q[1]+R(2.1)),W.belly,0)}}
+ // ridge: neck base to the tail root (behind the wings), then the neck
+ const back=msSpline(TL([[-14,-45],[-6,-51],[2,-57],[10,-60]]),.5);
+ msRidge(back,0,1,big?4.2:3,u=>PR(v===1?4:3.8),u=>(v===1?1.2:2.6)*k,1,big?12:0);
+ if(v===1&&big)msRidge(msSpline(TL([[-16,-45],[-6,-48],[6,-51],[14,-53]]),.5),0,1,3.6,u=>PR(3),u=>1.6*k,1,big?14:0);
+ msRidge(NS,.02,.92,big?3.6:3,u=>PR(3.6-u*1.1),u=>(v===1?2.4:3.6)*k*(juv?1.2:1),1,big?12:0);
+ /* ---- head: an angular skull pointing down-forward, crimson crown and snout ridge, blue cheek and jaw ---- */
+ msWyHead(T(hd[0],hd[1]),p.ha*(juv?.6:1)+p.pitch,k*hs,v,p.jaw,p.eye,big,BD);
+ /* ---- near leg, near wing ---- */
+ usGrp=4;if(v===0)leg(0);
+ if(v===1){usGrp=3;tail()}
+ usGrp=5;wing(0);usGrp=0}
+/* the head (H its centre on screen, ha its tilt, hk its scale): horns, skull, crimson crown, eye, jaw */
+function msWyHead(H,ha,hk,v,jaw,eye,big,BD){const W=MSW,hc=Math.cos(ha),hsn=Math.sin(ha),
+  Q=(u,w)=>[H[0]+(u*hc-w*hsn)*hk,H[1]+(u*hsn+w*hc)*hk],QL=L=>L.map(q=>Q(q[0],q[1]));usGrp=8;
+ // horns first (behind the skull): two pale swept-back horns
+ usPart();msTube(QL([[-4,-4],[-9,-9],[-14,-11]]),u=>Math.max(.6,(1.7-u*1.3)*hk),W.horn);usPart();msTube(QL([[0,-5],[-3,-10],[-7,-14]]),u=>Math.max(.6,(1.6-u*1.2)*hk),W.horn);
+ usPart();msPoly(QL([[-8,-3.5],[-3,-7],[3,-6.2],[9,-3],[10.8,-.4],[10,2.4],[4,3],[-3,4.6],[-8,2.6]]),W.body,BD);
+ usGrp=9;usPart();msPoly(QL([[-8,-3.5],[-5,-6],[-3,-7.4],[-1,-6.2],[1,-7.4],[3,-6.4],[9,-3.2],[10.8,-.8],[9,-.8],[4,-3],[-2,-3.4],[-7,-1.4]]),W.plate);
+ if(big){usF(...Q(4,-4.3).map(Math.round),'h');usF(...Q(7,-3.2).map(Math.round),'h')}usGrp=8;
+ if(v===0||!big){const ey=Q(1,-1.6).map(Math.round);if(eye){usF(ey[0],ey[1],'0');usF(ey[0]+1,ey[1],'0')}else{usF(ey[0],ey[1],'F');usF(ey[0]+1,ey[1],'r');if(big){usF(ey[0]-1,ey[1]-1,'0');usF(ey[0],ey[1]-1,'0');usF(ey[0]+1,ey[1]-1,'0')}}}
+ {const ns=Q(9.6,-.4).map(Math.round);usF(ns[0],ns[1],'0')}
+ // the jaw: closed a blue line with pale teeth; open, dropped, the red mouth showing
+ if(jaw){usPart();msPoly(QL([[-3,3],[3,4.6],[10,8.6],[9,10.4],[2,8],[-4,5.2]]),W.body);usPart(1);msPoly(QL([[1,3.2],[10.4,2.4],[9.6,7.4],[2,5]]),usRamp('0fg',1));
+  if(big){for(const u of[3.5,6,8.5]){usF(...Q(u,2.6).map(Math.round),'r');usF(...Q(u+.3,5.8+u*.2).map(Math.round),'q')}}}
+ else{usPart();msPoly(QL([[-3,3],[4,3],[9.8,2.4],[9.4,4.6],[3,5.6],[-4,5]]),W.body);if(big)for(const u of[3,5.5,8])usF(...Q(u,3.2).map(Math.round),'q');usF(...Q(9,3.2).map(Math.round),'0')}
+ if(v===0&&big){usPart(1);const c=Q(-1,3);msEin(c[0],c[1],2.6*hk,1.4*hk,W.belly,0)}}
+function msWyDead(v,k,juv){const W=MSW,R=r=>Math.max(.7,r*k),big=k>.7,hs=juv?1.4:1,T=(x,y)=>[x*k,y*k];usGrp=3;
+ usPart();const S=msTube([T(-14,-6),T(-30,-5),T(-42,-8),T(-52,-4),T(-58,-3)],u=>R(4.6-u*3),W.body);
+ msRidge(S,.05,.9,3.4,u=>Math.max(1,(2.8-u*1.4)*(big?k:k*1.6)),u=>R(3-u*2),-1,big?10:0);
+ {const e=S[S.length-1],s2=k*(juv?1.6:1.05);usPart();msPoly([[e[0]+2*s2,e[1]],[e[0]-1*s2,e[1]-4*s2],[e[0]-8*s2,e[1]],[e[0]-1*s2,e[1]+2*s2]],W.plate)}
+ usGrp=8;usPart();const b=T(-2,-8);msE(b[0],b[1],R(16),R(7),W.body);usPart(1);msEin(b[0]+R(1),b[1]+R(4.5),R(14),R(2.6),W.belly,0);
+ usPart();const N=msTube([T(10,-9),T(20,-7),T(28,-5)],u=>R(5.4-u*2),W.body);msRidge(N,.1,.9,3.2,u=>2.6*(big?k:k*1.4),u=>R(3),1,big?12:0);
+ msRidge(msSpline([T(-16,-12),T(-4,-15),T(10,-13)],.5),0,1,3.6,u=>3*(big?k:k*1.5),u=>R(1.6),1,big?12:0);
+ const hk=k*hs,H=T(34,-5),Q=(u,w)=>[H[0]+u*hk,H[1]+w*hk],QL=L=>L.map(q=>Q(q[0],q[1]));usGrp=8;
+ usPart();msTube(QL([[-4,-3],[-10,-6],[-14,-6]]),u=>Math.max(.6,(1.6-u*1.2)*hk),W.horn);
+ usPart();msPoly(QL([[-8,-3],[-3,-5],[3,-4.5],[11,-1.5],[12.5,1],[11,3.5],[3,4],[-8,3]]),W.body);usGrp=9;usPart();msPoly(QL([[-8,-3],[-3,-5.2],[3,-4.7],[11,-1.7],[12.5,.5],[4,-1.8],[-7,-.5]]),W.plate);usGrp=8;
+ if(v===0){const e=Q(1,-.8).map(Math.round);usF(e[0],e[1],'0');usF(e[0]+1,e[1],'0')}
+ usPart();for(const c of[[-8,-1],[-6,-1]]){const f=T(c[0],c[1]);msL(f[0],f[1],f[0]+2*k,f[1],W.claw,0)}
+ // a wing draped over it, the other crumpled behind
+ usGrp=5;const s=T(4,-12),w=T(-14,-26),t0=T(-40,-20),t1=T(-34,-6),t2=T(-20,-3);usPart();msPoly([s,w,t0,[(t0[0]+t1[0])/2+2*k,(t0[1]+t1[1])/2-1*k],t1,t2,T(-6,-8)],W.mem,(x,y)=>(x+y)&1);
+ usPart();msTube([s,w],u=>R(2.4-u*.8),W.plate);usPart();msTube([w,t0],u=>R(1.3-u*.5),W.plate);usPart();msL(w[0],w[1],t1[0],t1[1],W.bone,0);usPart();msL(w[0],w[1],t2[0],t2[1],W.bone,0);
+ usPart();msL(w[0],w[1],w[0]+2*k,w[1]-3*k,W.claw,1);usGrp=0}
+function msHatch(v,st,fr,va){msWyvern(v,st,fr,va,.46,1)}
 
 /* ================= ICONS: monster abilities and statuses (16x16, outlined at load; added to ICONS of 06-icons.js) ================= */
 const MS_ICSRC=`
@@ -18002,7 +18125,7 @@ mlll0lllll0llm..
  const al={'ab-barkskin':'st-bark','ab-wdive':'st-diving','ab-hsting':'ab-wsting','ab-limb':'ab-limbcrush'};for(const k in al)if(ICONS[al[k]]&&!ICONS[k]){ICONS[k]=ICONS[al[k]];try{if(typeof icCss==='function')icCss(k)}catch(e){}}})();
 
 /* ================= API: build, cache ================= */
-const MSD={adder:msAdder,viper:msViper,gserpent:msGserpent,ent:(v,st,fr,va)=>msEnt(v,st,fr,va,MS_ENT),elder:msElder,thorn:msThorn,ogre:(v,st,fr,va)=>msOgre(v,st,fr,va,0),aogre:msAogre,wyvern:(v,st,fr,va)=>msWyvern(v,st,fr,va,1.12),hatch:msHatch};
+const MSD={adder:msAdder,viper:msViper,gserpent:msGserpent,ent:(v,st,fr,va)=>msEnt(v,st,fr,va,MS_ENT),elder:msElder,thorn:msThorn,ogre:(v,st,fr,va)=>msOgre(v,st,fr,va,0),aogre:msAogre,wyvern:(v,st,fr,va)=>msWyvern(v,st,fr,va,1.1),hatch:msHatch};
 const MS_VAR={attack:1,cast:1};
 function msBuild(kind,face,st,fr,va){if(typeof document==='undefined')return null;const K=MSK[kind],t0=typeof performance!=='undefined'?performance.now():0,v=face>=2?1:0,mir=face===1||face===2;
  if(typeof usGrid!=='function'||typeof usResolve!=='function')return null;msBegin(K);
@@ -18018,11 +18141,18 @@ function monsterSpriteWarm(u,faces){const k=monsterKind(u);if(!k||!MSD[k])return
 function monsterSpriteBox(u){const i=monsterInfo(u);return i.kind?{w:i.wide*2,h:i.top}:null}
 
 /* ================= PORTRAITS: a 32x32 window on the figure's front view (idle), over the foes' portrait ground ================= */
-const MS_PT={adder:[6,-9],viper:[3,-15],gserpent:[20,-40],thorn:[0,-15],ent:[2,-55],elder:[2,-60],ogre:[7,-45],aogre:[7,-47],wyvern:[33,-56],hatch:[3,-19]};
+const MS_PT={adder:[6,-9],viper:[3,-15],gserpent:[20,-40],thorn:[0,-15],ent:[2,-55],elder:[2,-60],ogre:[7,-45],aogre:[7,-47],wyvern:[34,-54],hatch:[11,-22]};
 function msKindOfKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?msKindOfId(x,EN[x]):MSK[x]?x:null;if(x.def)return monsterKind(x);if(x.n&&typeof EN==='object'){const k=msEnKey(x);return k?msKindOfId(k,x):null}return null}
+/* the wyvern's portrait: a head-and-shoulders bust drawn at portrait scale (the battle sprite's head is too small to crop) */
+function msWyPortrait(){if(typeof usBeginAt!=='function')return null;const W=MSW,BD=(x,y)=>((x+y)&1)?0:-1;usBeginAt(32,32,0,0);usGrp=5;
+ usPart();msPoly([[-2,24],[2,4],[-2,-2],[8,-1],[10,10],[6,22]],W.mem,(x,y)=>(x+y)&1);usPart();msTube([[4,30],[6,14],[9,1]],u=>2.6-u*1,W.plate);msFL(4,22,7,6,'q');usPart();msL(9,1,10,-2,W.claw,1);
+ usGrp=8;usPart();const N=msTube([[6,36],[8,27],[12,20],[16,16]],u=>6.4-u*2,W.body,BD);usPart(1);for(let i=0;i<N.length;i++){const q=N[i];msEin(q[0]+4,q[1]+3,1.6,1.6,W.belly,(i&3)===0?-1:0)}
+ msRidge(N,0,.85,3.4,u=>3.4-u*.6,u=>4.6,1,12);
+ msWyHead([18,15],.4,1.12,0,0,0,true,BD);usGrp=0;return usResolve(usG,true)}
+const MS_PTD={wyvern:msWyPortrait};
 function monsterPortrait(key){if(typeof document==='undefined')return null;const k=msKindOfKey(key);if(!k||!MSD[k])return null;let c=MS.pt.get(k);if(c!==undefined)return c;c=null;
- try{const s=monsterSpriteOf(k,0,'idle',0,''),cv=pxCanvas(32,32);if(s&&s.cv&&cv){const q=cv.getContext('2d'),bg0=PAL.f,bg1=PAL['1'];q.fillStyle=bg0;q.fillRect(0,0,32,32);q.fillStyle=bg1;for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)q.fillRect(x,y,1,1);
-  const o=MS_PT[k]||[0,-16];q.imageSmoothingEnabled=false;q.drawImage(s.cv,16-o[0]-s.ax,16-o[1]-s.ay);c=cv}}catch(e){c=null}
+ try{const s=MS_PTD[k]?{cv:MS_PTD[k](),ax:0,ay:0,own:1}:monsterSpriteOf(k,0,'idle',0,''),cv=pxCanvas(32,32);if(s&&s.cv&&cv){const q=cv.getContext('2d'),bg0=PAL.f,bg1=PAL['1'];q.fillStyle=bg0;q.fillRect(0,0,32,32);q.fillStyle=bg1;for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)q.fillRect(x,y,1,1);
+  const o=s.own?[16,16]:MS_PT[k]||[0,-16];q.imageSmoothingEnabled=false;q.drawImage(s.cv,16-o[0]-s.ax,16-o[1]-s.ay);c=cv}}catch(e){c=null}
  MS.pt.set(k,c);return c}
 function monsterPortraitURL(key){const k=msKindOfKey(key);if(!k)return'';let u=MS.ptu.get(k);if(u!==undefined)return u;u='';try{const c=monsterPortrait(key);if(c)u=c.toDataURL()}catch(e){u=''}MS.ptu.set(k,u);return u}
 
@@ -18317,7 +18447,7 @@ function continueGame(){const r=readSave();if(r.state==='none'){newGame();return
      SET.allyBars true: allies' HP and armor bars show on the battle board (the battle HUD toggles it with setOpt('allyBars', v))
    reducedMotion() is true when either SET.motion==='reduce' or the device asks for it; #app carries class .rm then. */
 const SETKEY='wyrdmarch_settings_v1';
-const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true};
+const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,awake:true};
 let _setConfirmUser=false,_rmq=null;
 function coarsePointer(){try{return!!window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
 function reducedMotion(){let dev=false;try{dev=!!(_rmq&&_rmq.matches===true)}catch(e){}return SET.motion==='reduce'||dev}
@@ -18326,16 +18456,17 @@ function applyMotion(){const rm=reducedMotion();try{const a=$('app');if(a)a.clas
 function loadSettings(){SET.confirm=coarsePointer();
  try{const o=JSON.parse(storeGet(SETKEY)||'null');if(o&&typeof o==='object'){if(o.speed===1||o.speed===.35)SET.speed=o.speed;
    if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy;
-   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars}}catch(e){}
+   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.awake==='boolean')SET.awake=o.awake}}catch(e){}
  SPEEDF=SET.speed;
  try{_rmq=window.matchMedia('(prefers-reduced-motion: reduce)');const f=()=>applyMotion();if(_rmq.addEventListener)_rmq.addEventListener('change',f);else if(_rmq.addListener)_rmq.addListener(f)}catch(e){_rmq=null}
  applyMotion();applyTheme(SET.theme)}
-function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
+function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,awake:SET.awake};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
 function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=SET.speed}
  else if(k==='deploy'){SET.deploy=!!v}
  else if(k==='confirm'){SET.confirm=!!v;_setConfirmUser=true;if(typeof fcClear==='function')fcClear()}
  else if(k==='motion'){SET.motion=v==='reduce'?'reduce':'auto';applyMotion()}
  else if(k==='theme'){SET.theme=typeof THEMES!=='undefined'&&THEMES[v]?v:'verdigris';applyTheme(SET.theme)}
+ else if(k==='awake'){SET.awake=!!v;if(SET.awake)wakeOn();else wakeOff()}
  else if(k==='allyBars'){SET.allyBars=!!v;try{if(typeof _allyBars!=='undefined')_allyBars=SET.allyBars}catch(e){}}
  saveSettings();settingsRefresh();if(mode==='battle'&&B)updateBUI()}
 /* ---- themes: CSS colours rewritten through themeHex (08-frames.js), frames rebuilt, the title and town redrawn ----
@@ -18360,6 +18491,7 @@ function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();
  +row('fast','fast','Battle speed','How quickly foes and comrades act',seg('speed',[[1,'Normal'],[.35,'Fast']],SET.speed===.35?.35:1))
  +row('swords','sword','Confirm attacks','First tap shows the forecast, second tap strikes',seg('confirm',[[true,'On'],[false,'Off']],!!SET.confirm))
  +row('company','company','Deployment','Place your swords before each battle',seg('deploy',[[true,'On'],[false,'Off']],SET.deploy!==false))
+ +row('sun','sun','Keep screen awake','Stop the phone from dimming and locking while the game is open',seg('awake',[[true,'On'],[false,'Off']],SET.awake!==false))
  +row('hp','heart','Ally bars','Health and armor bars over your own swords in battle',seg('allyBars',[[true,'Show'],[false,'Hide']],SET.allyBars!==false))
  +(themes?row('banner','banner','Colours',(THEMES[SET.theme]||THEMES.verdigris).d,themes,'wide'):'')
  +row('info','sun','Motion','Auto follows this device'+(reducedMotion()&&SET.motion!=='reduce'?' (it asks for less motion)':''),seg('motion',[['auto','Auto'],['reduce','Reduced']],SET.motion))
@@ -18591,6 +18723,18 @@ function boot(){loadSettings();wirePress();if(typeof initBattleHud==='function')
  try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(lay)}catch(e){}
  setInterval(chromeTick,250);requestAnimationFrame(frame)}
 boot();
+
+/* ---- keep the screen awake while playing (Screen Wake Lock API). Browsers grant it only after a tap and drop it when
+   the page is hidden, so it is re-requested on every tap while not held and whenever the game becomes visible again.
+   Where the API is missing or refused (older iOS, some embedded frames) this does nothing. ---- */
+const WAKE={s:null,busy:false};
+async function wakeOn(){if(typeof navigator==='undefined'||!navigator.wakeLock||(typeof SET!=='undefined'&&SET.awake===false)||document.hidden||WAKE.s||WAKE.busy)return;
+ WAKE.busy=true;try{const s=await navigator.wakeLock.request('screen');WAKE.s=s;s.addEventListener('release',()=>{if(WAKE.s===s)WAKE.s=null})}catch(e){}finally{WAKE.busy=false}}
+function wakeOff(){const s=WAKE.s;WAKE.s=null;try{if(s)s.release()}catch(e){}}
+if(typeof document!=='undefined'){
+ document.addEventListener('pointerdown',()=>{if(!WAKE.s)wakeOn()},{passive:true});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeOn()});
+}
 
 </script>
 </body>

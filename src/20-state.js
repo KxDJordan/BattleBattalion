@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=7;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=8;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -51,7 +51,15 @@ const MIGRATE={
  5:g=>{g.wsize='small';if(typeof g.name!=='string'||!g.name.trim())g.name=BANNERDEF.name;g.banner=bannerFix(null,g.name);return g},
  /* v7: famed items. G.famed {id: {base, n, mods, price, pw, from?, day?}} holds every famed item the company has found
     (see 12-famed.js); older companies have found none. */
- 6:g=>{g.famed={};return g}
+ 6:g=>{g.famed={};return g},
+ /* v8: trees by background. Each background now allows at most 5 weapon trees (BG[bg].wt) and 1 or 2 armor trees (BG[bg].at; before,
+    every merc had all three). A merc who learned perks in a tree its background no longer allows gets those perks taken back and the
+    points returned to spend again (refundTrees in 61-talents.js); recruits waiting in towns too. G.refund [{name, n}] lists the
+    company's swords who got points back and G.note 'refund' tells the player once (refundSheet in 55-company.js). */
+ 7:g=>{const out=[],fix=(m,own)=>{if(!svObj(m)||!BG[m.bg]||!Array.isArray(m.perks))return;delete m.armp;
+   m.perks=m.perks.filter(id=>typeof id==='string');const n=refundTrees(m);if(n&&own)out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})};
+  if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
+  if(out.length){g.refund=out;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
 };
 // One merc of a version 4 save to talents (v5). Draws no game randomness: the top-up trees come from a stream seeded by the merc's id.
 function migrateMerc(m){if(Array.isArray(m.trees)&&Array.isArray(m.perks)){if(svObj(m.eq)&&m.eq.b===undefined)m.eq.b=null;return m}   // already in the new shape
@@ -74,7 +82,10 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
    const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift);
    if(!m.trees.some(k=>MAST[k].kind==='style')){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57);m.trees=rollTrees(m.bg,r).concat(m.trees)}
-   const have=new Set(m.trees.concat(weaponTrees(m),typeof ARMORT!=='undefined'?ARMORT:[])),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>typeof id==='string'&&perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
+   // perks only of the trees the merc has (mercTrees: its style trees and gift, its background's weapon and armor trees); a perk of a
+   // weapon or armor tree it may not learn is refunded (refundTrees), anything else unreadable is dropped
+   delete m.armp;if(Array.isArray(m.perks)){m.perks=m.perks.filter(id=>typeof id==='string');refundTrees(m)}
+   const have=new Set(mercTrees(m).map(x=>x.key)),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
  if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
  fixHands(m);
  if(!svObj(m.tal))m.tal={};for(const k in m.tal)if(!svFin(m.tal[k]))delete m.tal[k];
@@ -117,7 +128,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(g.contract)g.contract.done=!!g.contract.done;else g.contract=null;
  if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;
  let nid=svNum(g.nid,1);const seen=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=x.id+1};g.roster.forEach(seen);g.parties.forEach(seen);g.portals.forEach(seen);g.sites.forEach(seen);g.towns.forEach(t=>t.recruits.forEach(seen));g.nid=Math.floor(nid);
- g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
+ g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.refund=Array.isArray(g.refund)?g.refund.filter(r=>svObj(r)&&typeof r.name==='string'&&svFin(r.n)&&r.n>0).map(r=>({name:r.name.slice(0,40),n:Math.floor(r.n)})).slice(0,MAXROSTER):[];if(!g.refund.length){delete g.refund;if(g.note==='refund')g.note=null}else if(!g.note)g.note='refund';g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
  if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.
 function cleanName(s){s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,NAMEMAX):'';return s||BANNERDEF.name}

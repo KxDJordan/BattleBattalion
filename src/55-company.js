@@ -141,8 +141,8 @@ function coStat(m,s,k){const t=m.tal[k]||0,cd=cpCond(m);let v=k==='brv'?coBrv(m,
  return`<div class="cst${hurt&&k!=='hp'?' worn':''}" data-stat="${k}">${coStatIc(k)}<span>${coStatName(k)}${pnStars(t)}</span><b>${hurt?cur+'<small>/'+v+'</small>':v}</b>${pnBar(100*cur/(STATMAX[k]||100),k==='hp'?'hp':hurt?'worn':'st')}</div>`}
 function coStatKeys(m,s){const ks=['hp','arm'];if(m.eq.h||cpHasHelms())ks.push('helm');ks.push('fat','init','ms','rs','md','rd');if(coBrv(m,s)!==null)ks.push('brv');return ks}
 /* condition line under the doll: piece, points left of its full value, a meter */
-function coArmChip(m){const c=tlArmClass(m),n=tlArmTrees().filter(k=>tlTreeArm(k)===c)[0];
- return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':''):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
+function coArmChip(m){const c=tlArmClass(m),n=tlArmKeys(m).filter(k=>tlTreeArm(k)===c)[0];
+ return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':': '+tlBgA(m)+' learns no '+TL_ARMN[c].toLowerCase()+' armor tree'):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
 function coCondRow(k,id,cur,mx){const it=ITEMS[id];if(!it)return`<div class="pd-c none">${coIc(k==='h'?'helmet':'armor-light')}<b>${k==='h'?'No helmet':'No armor'}</b><small>${k==='h'?'head hits land in full':'unarmored'}</small></div>`;
  return`<div class="pd-c${cur<mx?' worn':''}" data-cond="${k}">${k==='h'?coIc('helmet'):pnItemIcon(id,16)}<b>${pnItemName(id)}</b><small>${cur<mx?cur+'/'+mx:mx}</small>${pnBar(mx?100*cur/mx:0,cur<mx?'worn':'ar')}</div>`}
 function coInjList(m){const L=cpInj(m);if(!L.length)return'';
@@ -184,9 +184,9 @@ function tgNode(m,o){const st=tgState(m,o),sel=coPerk&&coPerk.pid===o.id,p=o.per
 function tgTreeHead(m,x,O){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key),T=x.tree,ac=x.kind==='armor'?tlTreeArm(x.key):null,on=ac&&ac===tlArmClass(m);
  return`<div class="tg-th">${coIc(tlTreeIcon(x.key))}<b>${x.kind==='gift'?tlGiftLabel(x.key):T.n}</b>${ac?`<em class="tg-ac${on?' on':''}" title="${on?'Worn now: these perks work':'Works only in '+TL_ARMN[ac].toLowerCase()+' armor'}">${on?coIc('check')+'Worn':TL_ARMN[ac]}</em>`:''}<span>${T.d||''}</span>${n?`<small>${n} learned</small>`:''}</div>`}
 /* the armor-class trees: like the weapon trees, columns by the level each tier opens (2 / 5 / 8); the class worn now is lit */
-function coArmorTrees(m,T,O,cols){const ak=T.filter(x=>x.kind==='armor');if(!ak.length)return'';const lv=m.lvl,aLv=tlTierLv('armor',1),cur=tlArmClass(m),
+function coArmorTrees(m,T,O,cols){const ak=T.filter(x=>x.kind==='armor');if(!ak.length)return`<div class="tg-wh tg-ah lk">${coIc('armor')}<b>Armor trees</b><span>${tlArmNote(m)}</span></div>`;const lv=m.lvl,aLv=tlTierLv('armor',1),cur=tlArmClass(m),
   at=Math.max(1,...ak.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/at));
- let h=`<div class="tg-sec"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span>${lv<aLv?'Open at level '+aLv+'. ':''}Each works only while wearing armor of its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
+ let h=`<div class="tg-sec"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span title="${tlArmNote(m)}; ${ak.length>1?'each works':'it works'} only in armor of its class">${lv<aLv?'Open at level '+aLv+'. ':''}${tlArmNote(m,1)}: ${ak.length>1?'each works':'works'} only in its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
  h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:at},(_,j)=>{const need=tlTierLv('armor',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
  for(const x of ak){const on=tlTreeArm(x.key)===cur;h+=`<div class="tg-tree k-armor${on?' worn':' off'}" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
   for(let t=1;t<=at;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('armor',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
@@ -295,3 +295,10 @@ let lvSel=[];
 function levelSheet(i){coSel=G.roster[i].id;coLast=i;coScreen='merc';coRender()}
 function lvPick(i,k){const j=lvSel.indexOf(k);if(j>=0)lvSel.splice(j,1);else if(lvSel.length<3)lvSel.push(k);levelSheet(i)}
 function lvConfirm(i){const m=G.roster[i];if(lvSel.length!==3)return;lvSel.forEach(k=>{m.base[k]+=m.rolls[k];if(k==='hp')m.hp+=m.rolls[k]});m.rolls=null;m.pend--;lvSel=[];save();mercSheet(i)}
+/* The v8 save migration (20-state.js) refunds perks of weapon and armor trees a background no longer allows; G.refund [{name, n}]
+   lists who got points back and G.note 'refund' asks for this sheet once, on the map. showNote (40-world.js) knows only its own
+   notes, so it is wrapped here: 'refund' opens refundSheet; after any other note, a pending refund is queued as the next one. */
+function refundSheet(){const L=Array.isArray(G.refund)?G.refund:[];delete G.refund;if(!L.length)return;const tot=L.reduce((a,r)=>a+r.n,0);
+ sheet(`<h2>Perk points returned</h2><p>Each background now trains at most five weapon families and one or two weights of armor. Perks learned in a tree a sword can no longer learn were taken back, and the points returned to spend again:</p>
+ <ul class="rf-list">${L.map(r=>`<li><b>${htmlEsc(r.name)}</b> ${r.n} point${r.n===1?'':'s'}</li>`).join('')}</ul>
+ <p class="dim">${tot} point${tot===1?'':'s'} in all. Spend them in the company screen, on a merc's Talents.</p><button class="pri" onclick="closeSheet()">Understood</button>`)}

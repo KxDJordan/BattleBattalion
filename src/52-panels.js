@@ -205,6 +205,12 @@ function tlArmTrees(){const L=[];for(const k in MAST)if(tlKind(MAST[k])==='armor
 function tlTreeArm(key){const T=MAST[key]||{};return tlArmNorm(T.ac||T.cls||T.armor||T.aw||T.wt)||tlArmNorm(key)}
 function tlArmClass(m){if(!m)return null;if(typeof armorClass==='function'){const c=tlTry(()=>armorClass(m),undefined);if(c!==undefined)return tlArmNorm(c)}
  const a=ITEMS[m.eq&&m.eq.a];return!a?null:a.arm<=60?'light':a.arm<=150?'medium':'heavy'}
+/* the armor trees this merc's background allows (BG[bg].at via mercTrees), and a short line naming them */
+function tlArmKeys(m){return tlTrees(m).filter(x=>x.kind==='armor').map(x=>x.key)}
+function tlBgA(m){const n=BG[m.bg]?BG[m.bg].n.toLowerCase():'sword';return(/^[aeiou]/.test(n)?'an ':'a ')+n}
+function tlArmNote(m,short){const L=tlArmKeys(m).map(k=>(TL_ARMN[tlTreeArm(k)]||MAST[k].n).toLowerCase()),b=tlBgA(m),J=L.join(' and ');
+ if(short)return L.length?J[0].toUpperCase()+J.slice(1)+' only':'None';if(!L.length)return'No armor tree for '+b;
+ return(b[0].toUpperCase()+b.slice(1))+' learns '+(L.length===1?'only the '+J+' armor tree':'only the '+J+' armor trees')}
 function tlPid(k,p,t,j){return p&&p.id!=null?String(p.id):k+'#'+t+'.'+j}
 function tlLegacy(m){return!Array.isArray(m.perks)&&!!m.mast&&typeof m.mast==='object'}
 /* the merc's gift tree key (its variant), or null */

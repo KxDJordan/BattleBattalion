@@ -859,7 +859,7 @@ function viewIcon(n,size){const rows=n==='rotr'?pxFlip(VICON.rotl):VICON[n],u=ro
 
 /* ================= FRAME ================= */
 let hudStr='';
-function frame(t){requestAnimationFrame(frame);const raw=t-now,dt=Math.min(.05,raw/1000||0),t0=performance.now();now=t;perfTick(raw);
+function frame(t){requestAnimationFrame(frame);if(window.innerWidth!==cw||window.innerHeight!==ch)screenRecover(false);const raw=t-now,dt=Math.min(.05,raw/1000||0),t0=performance.now();now=t;perfTick(raw);
  if(mode!==lastMode){lastMode=mode;setRes();refreshScene();if(mode==='world')WV.boot=true}
  g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
  if(mode==='world'&&G&&W){if(!sheetOpen)worldTick(dt);if(mode==='world'){drawWorld(dt);drawMinimap();const hh=Math.floor(G.hour),s=G.crowns+'|'+G.food+'|'+G.roster.length+'|'+G.day+'|'+hh+'|'+(G.weather?G.weather.kind:'');
@@ -867,3 +867,18 @@ function frame(t){requestAnimationFrame(frame);const raw=t-now,dt=Math.min(.05,r
  g.imageSmoothingEnabled=true;if(mode==='battle'&&B)drawBattle(dt);
  else if(mode==='title'){drawBackdrop('title');if(typeof fxAmbient==='function')fxAmbient('title',dt);drawVignette(.9)}
  PERF.draw+=(performance.now()-t0-PERF.draw)*.05}
+
+/* ---- coming back to the game (app switch, lock screen, bfcache): the viewport may have changed while hidden without a
+   resize event (so the canvas would be stretched), and iOS may have purged cached canvases. Re-measure, re-fit and
+   rebuild the board's caches; measure again once the browser toolbars have settled. ---- */
+function screenRecover(deep){try{if(typeof Layout!=='undefined'&&Layout&&Layout.update)Layout.update()}catch(e){}
+ try{resize()}catch(e){}
+ if(deep){BGC.key='';try{if(typeof B!=='undefined'&&B&&B.tiles)viewInvalidate()}catch(e){}try{if(typeof WCH!=='undefined')WCH.w=null}catch(e){}
+  try{if(typeof MM!=='undefined'&&MM)MM.sig=''}catch(e){}}}
+function screenBack(){screenRecover(true);setTimeout(()=>screenRecover(false),250);setTimeout(()=>screenRecover(false),900)}
+if(typeof document!=='undefined'&&typeof window!=='undefined'){
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)screenBack()});
+ window.addEventListener('pageshow',e=>{if(e.persisted)screenBack()});
+ window.addEventListener('focus',()=>screenRecover(false));
+ window.addEventListener('orientationchange',()=>setTimeout(()=>screenRecover(true),300));
+}

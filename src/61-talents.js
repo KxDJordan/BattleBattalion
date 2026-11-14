@@ -4,7 +4,7 @@
      m.gift   the gift tree key (a MAST entry of kind 'gift') or null; chosen from the gift and BG[bg].style (giftKey)
      m.perks  [perk ids] learned, in order;  m.pp unspent perk points (one a level, level 1 included)
    Weapon trees are not stored: weaponTrees(m) = BG[bg].wt minus RACE[race].noWt.
-   Armor trees are not stored either: every merc has lightarmor, medarmor and heavyarmor (armorTrees(m)); their tier t opens at level 3t-1.
+   Armor trees are not stored either: armorTrees(m) = BG[bg].at (1 or 2 of lightarmor medarmor heavyarmor); their tier t opens at level 3t-1.
    Tier t of a style or gift tree opens at level t, of a weapon tree at level 3t; any open perk can be bought with a point.
    The first perk learned in the gift tree awakens the gift (calc() then grants its pool).
    m.mast is a derived, read-only mirror {treeKey: perks owned} kept for older UI code; nothing in the rules reads it.
@@ -12,18 +12,17 @@
 const PERKIX={};for(const k in MAST)MAST[k].tiers.forEach((tier,ti)=>tier.forEach(p=>{PERKIX[p.id]={perk:p,tree:MAST[k],key:k,tier:ti+1,kind:MAST[k].kind}}));
 // The level at which tier t (1-based) of a tree of this kind opens: style and gift t, weapon 3t (3 6 9), armor 3t-1 (2 5 8).
 function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}
-/* Armor trees: every merc has all three (ARMORT, display order light medium heavy); a perk of one works only while the body armor worn
-   is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off). armorTrees(m) -> their keys. */
+/* Armor trees: a merc may learn only its background's (BG[bg].at: 1 or 2 of ARMORT, display order light medium heavy); a perk of one
+   works only while the body armor worn is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off).
+   armorTrees(m) -> the keys it may learn, in ARMORT order. */
 const ARMORT=['lightarmor','medarmor','heavyarmor'].filter(k=>MAST[k]&&MAST[k].kind==='armor');
-function armorTrees(m){return ARMORT.slice()}
-/* Saves: the loader (repairMerc in 20-state.js) keeps only perks of m.trees and weaponTrees(m), so the armor perks are mirrored in
-   m.armp = {ids: armor perk ids, base: the other perks, joined}. When m.perks is exactly what the loader leaves (base, and none of ids)
-   the ids are put back. calc, mercTrees and syncMast call this; it never removes a perk, and a copy given other perks is left alone. */
+function armorTrees(m){const b=m&&BG[m.bg],ok=b&&Array.isArray(b.at)?b.at:[];return ARMORT.filter(k=>ok.includes(k))}
 const isArmorPerk=id=>!!(PERKIX[id]&&PERKIX[id].kind==='armor');
-function armorPerksHeal(m){if(!m||!Array.isArray(m.perks))return;const A=m.armp;
- if(A&&Array.isArray(A.ids)&&A.ids.length&&!m.perks.some(isArmorPerk)&&m.perks.join()===A.base)for(const id of A.ids)if(typeof id==='string'&&isArmorPerk(id)&&!m.perks.includes(id))m.perks.push(id);
- if(!m.perks.some(isArmorPerk))return;const ids=m.perks.filter(isArmorPerk),base=m.perks.filter(id=>!isArmorPerk(id)).join();
- if(!A||A.base!==base||!Array.isArray(A.ids)||A.ids.join()!==ids.join())m.armp={ids,base}}
+/* refundTrees(m): takes back every learned perk of a weapon or armor tree the merc may not learn (its background or race does not
+   allow it) and returns the points to m.pp. Returns how many perks were refunded. Used by the v8 save migration and the loader. */
+function refundTrees(m){if(!m||!Array.isArray(m.perks))return 0;const ok=new Set(weaponTrees(m).concat(armorTrees(m)));let n=0;
+ m.perks=m.perks.filter(id=>{const P=PERKIX[id];if(P&&(P.kind==='weapon'||P.kind==='armor')&&!ok.has(P.key)){n++;return false}return true});
+ if(n)m.pp=Math.max(0,Math.floor(Number(m.pp)||0))+n;return n}
 // {perk, tree, key, tier, kind} for a perk id, or null.
 function perkById(id){return PERKIX[id]||null}
 function mercStyle(m){return m&&BG[m.bg]&&BG[m.bg].style||'melee'}
@@ -36,7 +35,7 @@ function giftAwake(m){const g=m&&m.gift;return!!(g&&Array.isArray(m.perks)&&m.pe
 // Weapon tree keys the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order.
 function weaponTrees(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w)&&MAST[w])}
 // Every tree the merc has, in display order: style trees, the gift, weapon trees, armor trees. [{key, tree, kind}]
-function mercTrees(m){armorPerksHeal(m);const out=[],tr=Array.isArray(m.trees)?m.trees:[];
+function mercTrees(m){const out=[],tr=Array.isArray(m.trees)?m.trees:[];
  for(const k of tr)if(MAST[k]&&MAST[k].kind==='style')out.push({key:k,tree:MAST[k],kind:'style'});
  const g=m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift'?m.gift:null;if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
  for(const k of weaponTrees(m))out.push({key:k,tree:MAST[k],kind:'weapon'});
@@ -49,7 +48,7 @@ function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(
 // Spends a point on perk id. Awakens the gift on its first perk; hitpoints gained are healed at once. Returns true when learned.
 function learnPerk(m,id){if(!canLearn(m,id))return false;const hp0=calc(m).hp;m.perks.push(id);m.pp--;const hp1=calc(m).hp;if(hp1>hp0)m.hp=Math.min(hp1,(m.hp||0)+hp1-hp0);else m.hp=Math.min(m.hp,hp1);syncMast(m);return true}
 // Older UI code reads m.mast; keep it a mirror of m.perks.
-function syncMast(m){if(!m)return;armorPerksHeal(m);const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
+function syncMast(m){if(!m)return;const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
 // 4 style trees drawn from the background pool. r: a random source (default the seeded game stream).
 function rollTrees(bg,r){const pool=(BG[bg]&&BG[bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice();
  if(r){for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=pool[i];pool[i]=pool[j];pool[j]=t}}else shuffle(pool);return pool.slice(0,4)}

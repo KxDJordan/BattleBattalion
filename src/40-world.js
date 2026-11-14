@@ -278,7 +278,8 @@ function worldBands(){return Math.round(8*Math.sqrt(worldK()))}                 
 function addPortal(){const pos=randOk(WS/2,WS/2,2,26*WN/64);G.portals.push({id:G.nid++,x:pos.x,y:pos.y,realm:pick(REALMS)})}
 function startCrisis(){G.crisis={closed:0,total:3,ended:false};for(let i=0;i<3;i++)addPortal();for(let i=0;i<3;i++)spawnParty('void');
  if(sheetOpen)G.note='crisis';else crisisSheet()}   // a day can turn inside a town (inn): announce once the town is left
-function showNote(){const n=G.note;G.note=null;if(n==='crisis')crisisSheet();else if(n==='newlands')newLandsSheet()}
+function showNote(){const n=G.note;G.note=null;if(n==='crisis')crisisSheet();else if(n==='newlands')newLandsSheet();else if(n==='refund'&&typeof refundSheet==='function')refundSheet();
+ if(!G.note&&n!=='refund'&&Array.isArray(G.refund)&&G.refund.length)G.note='refund'}   // the perk refund note waits behind any other note
 function crisisSheet(){sheet(`<h2>The Sundering</h2><p>The sky splits. Three rifts have torn open across the land and riftspawn pour through them.</p><p class="dim">Each rift leads to another world: three battles with no rest between them, and a tyrant at the end. Close all three to end the crisis.</p><button class="pri" onclick="closeSheet()">To arms</button>`)}
 function newLandsSheet(){const t=G.towns[0],n=G.portals.length;
  sheet(`<h2>New lands</h2><p>The old country is behind you. The company marched for weeks and has come down into a wider land: ${t.name} stands before you, with ${G.towns.length-1} more towns beyond it, roads between them and rivers to cross.</p>

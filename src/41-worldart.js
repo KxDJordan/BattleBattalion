@@ -381,7 +381,7 @@ function waLair(P,fk,night,f){const B=P.h-3,R=WARAMP;
   for(let y=B-36;y<=B;y++){const t=(y-(B-36))/36,hw=Math.round(3+t*11+(waHash(y,1,51)-.5)*2),xo=Math.round(Math.sin(y*.4)*1.2);for(let x=-hw;x<=hw;x++){const k=x<-hw*.4?'q':x>hw*.4?'o':'p';P.p(20+x+xo,y,waHash(x,y,52)<.12?'o':k)}}
   for(let i=0;i<6;i++)P.p(14+i*2,B-26+(i&1)*7,'n');
   P.r(15,B-37,11,2,'j');P.r(14,B-36,13,1,'k');P.p(18,B-38,'l');P.p(20,B-38,'l');P.p(19,B-39,'m');   // the nest, eggs in it
-  const up=(f>>1)&1;P.s(19,B-46-up,up?['f......','Kf.....','KKf....','KKKggg0','.ggggg.','g..g.g.']:['.......','.......','fffKgg0','KKKgggg','.KKgg..','g..g.g.']);
+  const up=(f>>1)&1;P.s(19,B-46-up,up?['g......','Dg.....','DDg..q.','DDgXXg0','.gXXXX.','X..q.q.']:['.......','.....q.','gggXXg0','DDXXXXX','.DDgX..','X..q.q.']);
   P.s(5,B-1,['l.l','lll']);P.s(30,B,['ll.l','.lll']);P.outline()}
  else{waGround(P,18,B-1,17,5,'D','G');const a=f&3;
   waBlob(P,[[18,B-8,9,8],[9,B-4,6,5],[27,B-4,6,5]],(x,y,l)=>{if(y>B)return null;const h=waHash(x,y,21);l+=(h-.5)*.4;return l>.85?'C':l>.2?'D':'G'});
@@ -456,8 +456,8 @@ const WAMON={
  thorn:{b:['.vAv.','vvgvv','.vjv.','..j..','.jkj.'],la:['.j.j.'],lb:['..jj.']},
  ogre:{b:['....ttt....','...tt0t0...','...ttttt...','..utttttu..','.uttttttu..','.ut.ttt.tu.','.u..jjj..u.','....jij....'],la:['....t.t....','...uu.uu...'],lb:['...t...t...','..uu...uu..']},
  aogre:{b:['..l.....l..','...lpppl...','...prrpp...','..oppppqo..','.oppqqqppo.','.op.ppp.po.','.o..jjj..o.','....jij....'],la:['....o.o....','...GG.GG...'],lb:['...o...o...','..GG...GG..']}};
-const WAWYV=[['..f.............f..','..fK...........Kf..','...fK.........Kf...','...fKK.......KKf...','....fKK.....KKf....','....fKKg...gKKf....','.....fKggggggKf.hh.','..gg..ggggggggggge0','.g..gggggg.........','g....l..l..........'],
- ['...................','...................','...................','................hh.','......ggggggggggge0','..gg.gggggggggg....','.g..fKKgggggKKf....','g..fKKK.l.l.KKKf...','..fKK.........KKf..','..f.............f..']];
+const WAWYV=[['..g.............g..','..gD...........fg..','...gD.........fg...','...gDD.......ffg...','....gDD.....ffg....','....gDDg...gffg.q..','.....gDgggggfg.gXg.','..gg.XXXXXXXXXXXXg0','.g..gXxxxxxX.......','g....q..q..........'],   // the wyvern after the owner's reference: indigo body,
+ ['...................','...................','...................','................q..','......gggggggg.gXg.','..gg.XXXXXXXXXXXXg0','.g..fgXxxxxXgf.....','g..Dgff.q.q.ffgf...','..DgD.........fgf..','..g.............g..']];   // crimson ridge and spars, plum membrane, ice horns and claws
 function waMonFig(P,F,x,by,step,up,flip){const n=F.b[0].length,h=F.b.length+F.la.length,y=by-h+1-up,x0=x-(n>>1);P.s(x0,y,F.b,flip);if(F.la.length)P.s(x0,y+F.b.length,step?F.lb:F.la,flip);return{x0,y,w:n}}
 function waClub(P,B,iron){const x=B.x0+B.w,y=B.y+3;for(let j=0;j<6;j++)P.p(x-(j>>2),y+j,'j');P.p(x,y-1,iron?'p':'k');P.p(x+1,y-1,iron?'p':'k');P.p(x,y-2,iron?'q':'k');P.p(x+1,y-2,iron?'p':'j');P.p(x+1,y,iron?'o':'j')}
 function waMonBand(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,up=i=>moving&&((f+i)&3)===1?1:0;
@@ -468,7 +468,7 @@ function waMonBand(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&
  else if(fk==='ogre'){const L=k>=3?[['aogre',cx+2,B],['ogre',cx-9,B+1],['gob',cx+13,B+2]]:k===2?[['ogre',cx-5,B],['ogre',cx+7,B+2]]:[['ogre',cx,B]];
   L.forEach((e,i)=>{if(e[0]==='gob'){const b=waFigure(P,WAFIG.gob,e[1],e[2],st(i),up(i));waWeapon(P,'spear',b);return}const b=waMonFig(P,WAMON[e[0]],e[1],e[2],st(i),up(i));waClub(P,b,e[0]==='aogre')})}
  else if(fk==='wyvern'){const fl=f&1,hv=(f>>1)&1,W=WAWYV[fl];const fl2=P.flat;P.flat=true;P.ell(cx,B,9,2,()=>'0');P.flat=fl2;   // its shadow on the ground, then the wyvern on the wing above it
-  P.s(cx-10,B-18-hv,W,false);if(k>=2){const h2=WAWYV[1-fl].map(r=>r.slice(10));P.s(cx-14,B-8+hv,['.gg.','gKKg','.ggg']);if(k>=3)P.s(cx+9,B-6-hv,['.gg.','gKKg','.ggg'])}}
+  P.s(cx-10,B-18-hv,W,false);if(k>=2){const h2=WAWYV[1-fl].map(r=>r.slice(10));P.s(cx-14,B-8+hv,['g..g','gXXg','.XXg']);if(k>=3)P.s(cx+9,B-6-hv,['g..g','gXXg','.XXg'])}}
  P.outline()}
 function waBandSprite(fk,k,f,dir,moving,co){const key='band'+fk+'|'+(co?co.k+'.'+co.fs+(co.bn?'.'+co.bn.sig:''):k)+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(moving?1:0),w=co?48:40,h=co?38:30;
  return waSprite(key,w,h,w>>1,h-3,P=>{if(WAMONF[fk])waMonBand(P,fk,k,f&3,moving);else waBandPaint(P,fk,k,f&3,moving,co);if(dir<0)P.mirror()})}

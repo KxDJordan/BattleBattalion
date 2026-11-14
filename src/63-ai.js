@@ -99,12 +99,17 @@ const AI_PLAN={
  ogre:{spread:1},
  wyvern:{dodge:1,spread:1,ground:1.5}
 };
+/* Deadlock guard: the sum of every living unit's hitpoints is sampled once a round; if it has not changed for AI_STALL rounds,
+   aiProfile makes every AI unit drop caution and advance, so two careful sides can never stand apart forever. */
+const AI_STALL=12;
+function aiStalled(){const b=B;if(!b||!b.units)return false;const S=b.aiStall||(b.aiStall={r:-1,sum:-1,since:0});if(S.r!==b.round){S.r=b.round;let sum=0;for(const x of b.units)if(x.alive)sum+=x.hp;if(sum!==S.sum){S.sum=sum;S.since=b.round}}return b.round-S.since>=AI_STALL}
 function aiPlan(u){const b=B;if(u.side!==0)return null;if(b.opts.plan)return b.opts.plan;return AI_PLAN[b.opts.f]||{}}
 function aiProfile(u){let role=u.role;
  if(!role){role='line';if(aiHasBow(u))role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster'}
  const P=Object.assign({role},AI_ROLE[role]||AI_ROLE.line);if(u.def&&u.def.dive)P.back=1.8;if(u.fly&&u.side===1)P.back=Math.max(P.back,1.7);   // fliers go over the line for the casters and archers
  if(u.def&&u.def.flee&&u.hp<u.hpMax*u.def.flee)P.care*=2.5;            // the skittish hang back when hurt, but they keep fighting
  if(B.round>AI_LATE){P.care*=.3;P.shy=0}                                // a long battle: everyone presses, so it ends
+ if(aiStalled()){P.care=0;P.shy=0;P.form=0;P.high=0;P.back=1;P.adv=Math.max(P.adv,6)}   // deadlock: nobody has bled for a while, so everyone closes in
  return P}
 async function aiTurn2(u){const b=B;if(!b||!u||!u.alive)return;
  if(u.side===0&&b.opts.pilot==='naive')return AI_NAIVE(u);

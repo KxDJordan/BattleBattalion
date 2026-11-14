@@ -9,7 +9,7 @@
      SET.allyBars true: allies' HP and armor bars show on the battle board (the battle HUD toggles it with setOpt('allyBars', v))
    reducedMotion() is true when either SET.motion==='reduce' or the device asks for it; #app carries class .rm then. */
 const SETKEY='wyrdmarch_settings_v1';
-const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true};
+const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,awake:true};
 let _setConfirmUser=false,_rmq=null;
 function coarsePointer(){try{return!!window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
 function reducedMotion(){let dev=false;try{dev=!!(_rmq&&_rmq.matches===true)}catch(e){}return SET.motion==='reduce'||dev}
@@ -18,16 +18,17 @@ function applyMotion(){const rm=reducedMotion();try{const a=$('app');if(a)a.clas
 function loadSettings(){SET.confirm=coarsePointer();
  try{const o=JSON.parse(storeGet(SETKEY)||'null');if(o&&typeof o==='object'){if(o.speed===1||o.speed===.35)SET.speed=o.speed;
    if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy;
-   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars}}catch(e){}
+   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.awake==='boolean')SET.awake=o.awake}}catch(e){}
  SPEEDF=SET.speed;
  try{_rmq=window.matchMedia('(prefers-reduced-motion: reduce)');const f=()=>applyMotion();if(_rmq.addEventListener)_rmq.addEventListener('change',f);else if(_rmq.addListener)_rmq.addListener(f)}catch(e){_rmq=null}
  applyMotion();applyTheme(SET.theme)}
-function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
+function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,awake:SET.awake};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
 function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=SET.speed}
  else if(k==='deploy'){SET.deploy=!!v}
  else if(k==='confirm'){SET.confirm=!!v;_setConfirmUser=true;if(typeof fcClear==='function')fcClear()}
  else if(k==='motion'){SET.motion=v==='reduce'?'reduce':'auto';applyMotion()}
  else if(k==='theme'){SET.theme=typeof THEMES!=='undefined'&&THEMES[v]?v:'verdigris';applyTheme(SET.theme)}
+ else if(k==='awake'){SET.awake=!!v;if(SET.awake)wakeOn();else wakeOff()}
  else if(k==='allyBars'){SET.allyBars=!!v;try{if(typeof _allyBars!=='undefined')_allyBars=SET.allyBars}catch(e){}}
  saveSettings();settingsRefresh();if(mode==='battle'&&B)updateBUI()}
 /* ---- themes: CSS colours rewritten through themeHex (08-frames.js), frames rebuilt, the title and town redrawn ----
@@ -52,6 +53,7 @@ function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();
  +row('fast','fast','Battle speed','How quickly foes and comrades act',seg('speed',[[1,'Normal'],[.35,'Fast']],SET.speed===.35?.35:1))
  +row('swords','sword','Confirm attacks','First tap shows the forecast, second tap strikes',seg('confirm',[[true,'On'],[false,'Off']],!!SET.confirm))
  +row('company','company','Deployment','Place your swords before each battle',seg('deploy',[[true,'On'],[false,'Off']],SET.deploy!==false))
+ +row('sun','sun','Keep screen awake','Stop the phone from dimming and locking while the game is open',seg('awake',[[true,'On'],[false,'Off']],SET.awake!==false))
  +row('hp','heart','Ally bars','Health and armor bars over your own swords in battle',seg('allyBars',[[true,'Show'],[false,'Hide']],SET.allyBars!==false))
  +(themes?row('banner','banner','Colours',(THEMES[SET.theme]||THEMES.verdigris).d,themes,'wide'):'')
  +row('info','sun','Motion','Auto follows this device'+(reducedMotion()&&SET.motion!=='reduce'?' (it asks for less motion)':''),seg('motion',[['auto','Auto'],['reduce','Reduced']],SET.motion))
@@ -283,3 +285,15 @@ function boot(){loadSettings();wirePress();if(typeof initBattleHud==='function')
  try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(lay)}catch(e){}
  setInterval(chromeTick,250);requestAnimationFrame(frame)}
 boot();
+
+/* ---- keep the screen awake while playing (Screen Wake Lock API). Browsers grant it only after a tap and drop it when
+   the page is hidden, so it is re-requested on every tap while not held and whenever the game becomes visible again.
+   Where the API is missing or refused (older iOS, some embedded frames) this does nothing. ---- */
+const WAKE={s:null,busy:false};
+async function wakeOn(){if(typeof navigator==='undefined'||!navigator.wakeLock||(typeof SET!=='undefined'&&SET.awake===false)||document.hidden||WAKE.s||WAKE.busy)return;
+ WAKE.busy=true;try{const s=await navigator.wakeLock.request('screen');WAKE.s=s;s.addEventListener('release',()=>{if(WAKE.s===s)WAKE.s=null})}catch(e){}finally{WAKE.busy=false}}
+function wakeOff(){const s=WAKE.s;WAKE.s=null;try{if(s)s.release()}catch(e){}}
+if(typeof document!=='undefined'){
+ document.addEventListener('pointerdown',()=>{if(!WAKE.s)wakeOn()},{passive:true});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeOn()});
+}

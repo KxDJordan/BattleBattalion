@@ -22,7 +22,7 @@ const MSK={
  ogre:{g:[96,84,48,74],big:1,top:52,wide:18},
  aogre:{g:[100,88,50,78],big:1,top:56,wide:19},
  wyvern:{g:[152,132,76,112],size:2,fly:1,lift:14,top:74,wide:30,fr:{idle:4,walk:4,attack:3,cast:3,hit:2,death:3}},
- hatch:{g:[60,52,30,44],fly:1,lift:8,top:22,wide:10,fr:{idle:4}}
+ hatch:{g:[60,52,30,44],fly:1,lift:8,top:30,wide:10,fr:{idle:4}}
 };
 /* which figure an enemy is: its EN id or name (the monsters agent's ids are read as they land) */
 const MS_ID={gserp:'gserpent',whatch:'hatch',adder:'adder',viper:'viper',spitter:'viper',sviper:'viper',gserpent:'gserpent',serpent:'gserpent',bigserpent:'gserpent',thornling:'thorn',sapling:'thorn',thorn:'thorn',
@@ -67,9 +67,7 @@ const MSR={
  gs:usRamp('0aHbcd',2),gsB:usRamp('jkdl',2),
  bark:usRamp('aijk',2),barkL:usRamp('aijk',2),bark2:usRamp('0Gonp',2),moss:usRamp('Bwv',1),leaf:usRamp('BwvA',1),leafL:usRamp('BwvA',2),lich:usRamp('nmlr',1),gold:usRamp('Ybcd',1),amber:usRamp('KEyd',1),
  eld:usRamp('2opq',1),eldL:usRamp('Gonm',2),
- og:usRamp('iuts',2),ogD:usRamp('aiut',2),fur:usRamp('aijk',1),furD:usRamp('0aij',2),club:usRamp('aijk',2),iron:usRamp('Gopq',1),ironL:usRamp('Gopq',2),cloth:usRamp('fKg',1),bone:usRamp('nmlr',2),
- wy:usRamp('1fKgh',3),wyB:usRamp('abcd',2),wyM:usRamp('01ff',3),wyMn:usRamp('1fKg',2),wyH:usRamp('nmlr',1),wyS:usRamp('opqr',2),
- hat:usRamp('fKgh',2)};
+ og:usRamp('iuts',2),ogD:usRamp('aiut',2),fur:usRamp('aijk',1),furD:usRamp('0aij',2),club:usRamp('aijk',2),iron:usRamp('Gopq',1),ironL:usRamp('Gopq',2),cloth:usRamp('fKg',1),bone:usRamp('nmlr',2)};
 function msTX(f){return(x,y)=>f(x,y)}
 
 /* ================= SERPENTS ================= */
@@ -284,66 +282,141 @@ function msOgreDead(v,arm){const S=MSR.og,I=MSR.iron;usPart();msE(-6,-5,14,4.5,M
 function msAogre(v,st,fr,va){msOgre(v,st,fr,va,1)}
 
 /* ================= WYVERNS ================= */
-/* a 2x2 flier: two legs, wings for arms, a long neck, a long tail with a barbed sting. Drawn hovering (the board lifts it);
-   phases of the flap: 0 up, 1 mid, 2 down. k scales the whole figure (1 wyvern, .4 a hatchling) */
-const MS_WING=[{e:[-6,-62],w:[6,-86],t:[[-18,-96],[-36,-86],[-48,-66]],b:[-18,-36]},{e:[-8,-54],w:[-6,-70],t:[[-34,-82],[-54,-66],[-60,-46]],b:[-20,-33]},
- {e:[-8,-40],w:[-14,-44],t:[[-44,-34],[-54,-20],[-46,-6]],b:[-18,-28]},{e:[8,-52],w:[22,-68],t:[[40,-76],[54,-60],[52,-40]],b:[-8,-34]},{e:[-10,-40],w:[-20,-38],t:[[-34,-42],[-38,-34],[-30,-28]],b:[-16,-30]}];
-function msWyPose(st,fr,va){const p={ph:1,pitch:0,bx:0,by:0,head:[28,-52],neck:[18,-44],jaw:0,tail:null,legs:0,dead:0,low:0,tuck:0,eye:0};
- const wave=f=>[0,1,2,1][f&3];
+/* a 2x2 flier after the owner's reference (shots/ref/wyvern-ref.jpg): an indigo body with a pale-blue belly, a segmented ridge of
+   crimson plates from the brow down the neck, back and the whole tail, two raised swept-back wings (crimson bones, plum membrane,
+   ice-pale claws at the wrists), an angular head with pale swept horns, two hanging legs with red bands and ice claws, and a long
+   tail curling down and forward under the body to a red spade with a pale spike. Design units: the ground under it at y 0, x forward
+   (screen-right), y down; the whole figure is posed by msWyPose and scaled by k (1.1 the wyvern, .46 a hatchling, which also gets a
+   bigger head, stubbier wings and fewer plates). Wing phases: 0 raised (the reference), 1 level, 2 down, 3 swept forward (buffet),
+   4 folded (dive), 5 high (takeoff). v 0 front three-quarter (belly, eye), v 1 back three-quarter (the ridge and the wing tops). */
+const MSW={body:usRamp('1GDXx',3),bodyD:usRamp('1GD',1),belly:usRamp('DXxF',1),plate:usRamp('0ffgg',3),bone:usRamp('0fg',1),spar:usRamp('0fgg',1),
+ mem:usRamp('01fD',2),memF:usRamp('01ff',2),horn:usRamp('XxFqr',3),claw:usRamp('XFqr',2)};
+/* wings: offsets from the shoulder in the reference (raised) phase. e elbow, w wrist (the claw), t the tips (t[0] the long top one), b where the membrane meets the back */
+const MSW_NEAR={s:[9,-55],e:[-5,-18],w:[-14,-35],t:[[-38,-42],[-37,-21],[-27,-8]],b:[-20,3]},
+ MSW_FAR={s:[17,-59],e:[5,-14],w:[9,-30],t:[[-17,-40],[-19,-22],[-13,-8]],b:[-10,1]};
+/* phase -> how the wing offsets are posed: [x scale, y scale, rotation (+ forward)] */
+const MSW_PH=[[1,1,0],[1.06,.42,.12],[.96,-.5,.2],[.9,.95,.75],[.55,.5,-.35],[.86,1.18,-.12]];
+function msWyPose(st,fr,va){const p={ph:0,pitch:0,bx:0,by:0,head:[36,-49],ha:.48,neck:[21,-60],jaw:0,tail:null,legs:0,dead:0,low:0,eye:0};
+ const wave=[0,1,2,1];
  switch(st){
-  case'idle':p.ph=wave(fr);p.by=[0,1,2,1][fr&3]-1;p.head=[28,-52-([0,1,2,1][fr&3]>1?1:0)];break;
-  case'walk':p.ph=wave(fr);p.by=[0,2,3,2][fr&3]-2;p.pitch=.08;break;
+  case'idle':p.ph=wave[fr&3];p.by=[0,1,2,1][fr&3]-1;p.head=[37,-49+((fr&3)===2?1:0)];break;
+  case'walk':p.ph=wave[fr&3];p.by=[-1,1,2,1][fr&3];p.pitch=.08;p.bx=1;p.head=[38,-48];break;
   case'attack':
-   if(va==='sting'){p.ph=fr===0?0:1;if(fr===0)p.tail=[[-14,-26],[-28,-34],[-34,-54],[-20,-72],[0,-74]];else if(fr===1)p.tail=[[-14,-26],[-26,-40],[-16,-64],[10,-68],[38,-52]];else p.tail=[[-14,-26],[-30,-26],[-42,-36],[-48,-52]];p.head=fr===1?[30,-46]:[26,-54]}
-   else if(va==='buffet'){p.ph=fr===0?0:fr===1?3:2;p.pitch=fr===1?-.06:0;p.head=fr===0?[24,-56]:[30,-52];p.jaw=fr===1?1:0}
-   else if(va==='dive'){if(fr===0){p.ph=4;p.pitch=.35;p.head=[32,-44];p.tuck=1}else if(fr===1){p.ph=0;p.pitch=.12;p.legs=1;p.jaw=1;p.head=[34,-44]}else{p.ph=2;p.legs=1}}
-   else{p.ph=1;if(fr===0){p.head=[18,-60];p.neck=[14,-48]}else if(fr===1){p.head=[44,-38];p.neck=[28,-42];p.jaw=1;p.pitch=.1}else{p.head=[32,-48]}}break;
-  case'cast':if(va==='takeoff'||va==='land'){p.ph=[0,2,1][fr];p.legs=va==='land'?1:0;p.by=fr===1?2:0}
-   else{p.ph=0;p.head=[24,-62+fr];p.neck=[16,-50];p.jaw=fr>0?1:0;p.pitch=-.08}break;
-  case'hit':p.ph=fr===0?0:1;p.pitch=-.12;p.head=[20,-58];p.bx=-3;break;
-  case'death':if(fr===0){p.ph=0;p.pitch=-.18;p.head=[18,-60];p.jaw=1}else if(fr===1){p.ph=2;p.pitch=.25;p.low=14;p.head=[34,-30];p.jaw=1;p.eye=1}else p.dead=1;break}
+   if(va==='sting'){p.ph=fr===2?0:1;p.head=fr===1?[35,-47]:[36,-51];
+    p.tail=fr===0?[[-12,-40],[-26,-44],[-36,-56],[-34,-70],[-22,-80],[-10,-78]]:fr===1?[[-14,-44],[-22,-36],[-14,-24],[2,-20],[22,-22],[42,-24]]:[[-14,-44],[-28,-44],[-38,-36],[-40,-24],[-34,-14],[-24,-10]]}
+   else if(va==='buffet'){p.ph=fr===0?5:fr===1?3:2;p.pitch=fr===1?-.06:0;p.head=fr===0?[34,-53]:[38,-49];p.jaw=fr===1?1:0}
+   else if(va==='dive'){if(fr===0){p.ph=4;p.pitch=.38;p.head=[40,-44];p.ha=.6}else if(fr===1){p.ph=5;p.pitch=.14;p.legs=1;p.jaw=1;p.head=[41,-44]}else{p.ph=2;p.legs=1;p.by=2}}
+   else{p.ph=fr===1?1:0;if(fr===0){p.head=[28,-60];p.neck=[17,-60];p.ha=0}else if(fr===1){p.head=[47,-42];p.neck=[30,-52];p.jaw=1;p.pitch=.1;p.ha=.25}else{p.head=[39,-48]}}break;
+  case'cast':if(va==='takeoff'||va==='land'){p.ph=[5,2,1][fr];p.legs=va==='land'?1:0;p.by=fr===1?3:0}
+   else{p.ph=fr?5:0;p.head=[34,-57+fr];p.neck=[20,-60];p.jaw=fr>0?1:0;p.pitch=-.08;p.ha=-.15}break;
+  case'hit':p.ph=fr===0?5:1;p.pitch=-.14;p.head=[31,-55];p.ha=0;p.bx=-3;p.eye=fr===0?1:0;break;
+  case'death':if(fr===0){p.ph=5;p.pitch=-.2;p.head=[29,-58];p.ha=-.3;p.jaw=1;p.eye=1}
+   else if(fr===1){p.ph=2;p.pitch=.3;p.low=18;p.head=[40,-38];p.ha=.8;p.jaw=1;p.eye=1}else p.dead=1;break}
  return p}
-function msWyvern(v,st,fr,va,k){k=k||1;const p=msWyPose(st,fr,va),R=MSR.wy,Bl=MSR.wyB,M=MSR.wyM,Hn=MSR.wyH;
- if(p.dead){msWyDead(v,k);return}
- const cx=0,cy=-28,cs=Math.cos(p.pitch),sn=Math.sin(p.pitch),T=(x,y)=>{const dx=x-cx,dy=y-cy;return[(cx+dx*cs-dy*sn)*k+p.bx*k,(cy+dx*sn+dy*cs)*k+(p.by+p.low)*k]},
-  TL=L=>L.map(q=>T(q[0],q[1])),sc=(x,y)=>(y&1)&&(((x+200+((y>>1)&1)*2)&3)===0)?-1:0;
- const wing=(W,far)=>{const o=far?[-5,-5]:[5,3],sh=[2+o[0],-38+o[1]],f=q=>[q[0]+o[0]*(far?1.6:1),q[1]+o[1]*(far?1.3:1)],e=f(W.e),w=f(W.w),tp=W.t.map(f),b=f(W.b);
-  usPart();msPoly(TL([sh,e,w,tp[0],[(tp[0][0]+tp[1][0])/2+3,(tp[0][1]+tp[1][1])/2+4],tp[1],[(tp[1][0]+tp[2][0])/2+4,(tp[1][1]+tp[2][1])/2+3],tp[2],[(tp[2][0]+b[0])/2+5,(tp[2][1]+b[1])/2],b]),far?M:MSR.wyMn);
-  usPart();const A=TL([sh,e,w]);msTube(A,t=>(2.8-t*1.2)*Math.max(.6,k),Hn);for(const q of tp){usPart();msTube([A[2],T(q[0],q[1])],t=>(.9-t*.4)*Math.max(.7,k),Hn)}
-  const cl=T(w[0],w[1]);usPart();usP(Math.round(cl[0]),Math.round(cl[1])-1,'l');usP(Math.round(cl[0])+1,Math.round(cl[1])-2,'l')};
- const W=MS_WING[p.ph];
- // far wing, far leg, tail
- usGrp=1;wing(W,1);
- const leg=(x0,far)=>{const fo=far?-4:0,ky=p.legs?-14:-12,fx=p.legs?14+x0:x0+2,fy=p.legs?-8:-4;usPart();msTube(TL([[x0+fo,-24],[x0+5+fo,ky],[fx+fo,fy]]),t=>(5.4-t*2.8)*Math.max(.6,k),R,sc);
-  usPart();const f=T(fx+fo,fy);for(const a of[-2,0,2])msTube([f,[f[0]+(3+Math.abs(a)*.4)*k,f[1]+(2+a*.6)*k]],.8,Hn)};
- usGrp=2;leg(-2,1);
- usGrp=3;usPart();const tl=TL(p.tail||[[-14,-26],[-30,-22],[-44,-28],[-54,-38],[-58,-48]]);const TS=msTube(tl,t=>(5.2-t*4)*Math.max(.55,k),R,sc);
- if(k>.6)for(let i=4;i<TS.length;i+=7){const q=TS[i],r=5.2-(i/TS.length)*4;usPart();usP(Math.round(q[0]),Math.round(q[1]-r*k-1),Hn,1)}
- {const e=TS[TS.length-1],e2=TS[Math.max(0,TS.length-6)],dx=e[0]-e2[0],dy=e[1]-e2[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,nx=-uy,ny=ux,s2=k*1.1;usPart();
-  msPoly([[e[0]-ux*2*s2+nx*3*s2,e[1]-uy*2*s2+ny*3*s2],[e[0]+ux*9*s2,e[1]+uy*9*s2],[e[0]-ux*2*s2-nx*3*s2,e[1]-uy*2*s2-ny*3*s2],[e[0]-ux*5*s2,e[1]-uy*5*s2]],MSR.wyS);usF(Math.round(e[0]+ux*7*s2),Math.round(e[1]+uy*7*s2),'A');if(k>.6)usF(Math.round(e[0]+ux*5*s2),Math.round(e[1]+uy*5*s2),'A')}
- // body: belly, chest, the plates of the belly toward the camera, spines down the back
- usGrp=0;usPart();msE(...T(-6,-25),16*k,9*k,R,sc);msE(...T(8,-31),11*k,10.5*k,R,sc);
- if(v===0){usPart(1);for(let x=-10;x<=16;x+=1){const yb=x<4?-25+9*Math.sqrt(Math.max(0,1-((x+6)/16)**2)):-31+10.5*Math.sqrt(Math.max(0,1-((x-8)/11)**2));for(let j=1;j<4;j++){const q=T(x,yb-j);usP(Math.round(q[0]),Math.round(q[1]),Bl,j===1?-1:((Math.round(q[1]))&1)?-1:0)}}}
- if(k>.6){usPart();for(let x=-14;x<=12;x+=4){const q=T(x,-34-(x>0?x*.25:0));usP(Math.round(q[0]),Math.round(q[1]),Hn,1);usP(Math.round(q[0])-1,Math.round(q[1])+1,Hn)}}
- // the neck and the head
- const hd=p.head,nk=p.neck;usPart();const NS=msTube(TL([[12,-33],nk,[(nk[0]+hd[0])/2-2,(nk[1]+hd[1])/2-2],[hd[0]-5,hd[1]+1]]),t=>(6.4-t*2.6)*Math.max(.55,k),R,sc);
- if(v===0){usPart(1);for(let i=2;i<NS.length-3;i+=1){const q=NS[i];usP(Math.round(q[0]+2*k),Math.round(q[1]+2*k),Bl,(i&2)?-1:0)}}
- if(k>.6)for(let i=3;i<NS.length;i+=5){const q=NS[i];usPart();usP(Math.round(q[0]-3*k),Math.round(q[1]-4*k),Hn,1)}
- const H=T(hd[0],hd[1]),hx=H[0],hy=H[1];usPart();msTube([[hx-8*k,hy-2*k],[hx-14*k,hy-8*k],[hx-17*k,hy-9*k]],t=>(1.8-t*1.3)*Math.max(.6,k),Hn);
- usPart();msE(hx,hy,7*k,4.6*k,R,sc);msE(hx+6*k,hy+1*k,5.5*k,3*k,R);
- if(k>.6){usB(Math.round(hx-2),Math.round(hy-4),-1);usB(Math.round(hx),Math.round(hy-4),-1)}
- if(v===0||k<.6){const ex=Math.round(hx+1*k),ey=Math.round(hy-1.5*k);usF(ex,ey,p.eye?'0':'y');if(k>.6){usF(ex+1,ey,p.eye?'0':'e');usF(ex,ey+1,'0');usF(ex-1,ey-1,'1');usF(ex,ey-1,'1');usF(ex+1,ey-1,'1')}usF(Math.round(hx+10.5*k),Math.round(hy),'0')}
- if(p.jaw){usPart();const jy=hy+3*k;msPoly([[hx-3*k,jy-1],[hx+11*k,jy+2*k],[hx+9*k,jy+4*k],[hx-2*k,jy+2*k]],R);for(let x=Math.round(hx-1*k);x<=Math.round(hx+9*k);x++)usF(x,Math.round(jy+.5),'g');if(k>.6)for(let x=Math.round(hx+1);x<=Math.round(hx+9);x+=3)usF(x,Math.round(jy-.5),'r')}
- else if(k>.6){for(let x=Math.round(hx+2);x<=Math.round(hx+9);x+=3)usF(x,Math.round(hy+3),'l')}
- usPart();msTube([[hx-6*k,hy-3*k],[hx-12*k,hy-9*k],[hx-12*k,hy-13*k]],t=>(2.2-t*1.6)*Math.max(.6,k),Hn);
- // near leg, near wing
- usGrp=4;leg(4,0);
- usGrp=5;if(!p.tuck||true)wing(W,0);usGrp=0}
-function msWyDead(v,k){const R=MSR.wy,M=MSR.wyM,Hn=MSR.wyH;usPart();msTube([[-14*k,-6*k],[-34*k,-4*k],[-50*k,-8*k],[-58*k,-4*k]],t=>(5-t*3.6)*Math.max(.6,k),R);
- usPart();msE(-2*k,-8*k,16*k,7*k,R);usPart();msTube([[10*k,-9*k],[22*k,-6*k],[30*k,-5*k]],t=>(5-t*2)*Math.max(.6,k),R);usPart();msE(36*k,-5*k,7*k,4*k,R);if(v===0)usF(Math.round(36*k),Math.round(-6*k),'0');
- usGrp=5;usPart();msPoly([[-6*k,-14*k],[-30*k,-26*k],[-48*k,-18*k],[-40*k,-8*k],[-20*k,-6*k]],M);usPart();msTube([[-6*k,-14*k],[-30*k,-26*k]],1.6*Math.max(.7,k),Hn);
- usPart();msTube([[-30*k,-26*k],[-48*k,-18*k]],1,Hn);usPart();msTube([[-30*k,-26*k],[-40*k,-8*k]],1,Hn);usGrp=0}
-function msHatch(v,st,fr,va){msWyvern(v,st,fr,va,.4)}
+/* a filled ellipse painted only where the figure already is (belly light, bands) */
+function msEin(cx,cy,rx,ry,R,b){const y0=Math.floor(cy-ry-1),y1=Math.ceil(cy+ry+1),x0=Math.floor(cx-rx-1),x1=Math.ceil(cx+rx+1);
+ for(let y=y0;y<=y1;y++){const q=(y+.5-cy)/ry;if(q*q>1)continue;for(let x=x0;x<=x1;x++){const a=(x+.5-cx)/rx;if(a*a+q*q<=1&&usHas(x,y))usP(x,y,R,typeof b==='function'?b(x,y):b|0)}}}
+/* the ridge: a row of crimson plates along a spline S (screen px) on the side the normal points to (out = +1 left of travel).
+   Each plate is its own part (the shading pass lights its top-left edge and darkens the next one's overlap); alternating outline
+   groups give the crisp dark seams between plates of the reference. */
+function msRidge(S,t0,t1,step,rf,off,out,grp){const n=S.length;let L=0;const cl=[0];for(let i=1;i<n;i++){L+=Math.hypot(S[i][0]-S[i-1][0],S[i][1]-S[i-1][1]);cl.push(L)}
+ const g0=usGrp,pts=[];for(let d=L*t0;d<=L*t1;d+=step){let i=1;while(i<n-1&&cl[i]<d)i++;const a=S[i-1],b=S[i],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,t=d/(L||1);
+  const r=rf(t),o=off(t);pts.push([a[0]+(b[0]-a[0])*.5-dy/l*o*out,a[1]+(b[1]-a[1])*.5+dx/l*o*out,r,dx/l,dy/l])}
+ pts.forEach((q,j)=>{if(grp)usGrp=grp+(j&1);usPart();const r=q[2];msE(q[0],q[1],r*1.05,r*.85,MSW.plate);
+  if(r>2.6&&(j%3)===1){const hx=Math.round(q[0]-r*.3),hy=Math.round(q[1]-r*.45);usF(hx,hy,'h')}});usGrp=g0;return pts}
+function msWyvern(v,st,fr,va,k,juv){k=k||1;const p=msWyPose(st,fr,va),W=MSW;
+ if(p.dead){msWyDead(v,k,juv);return}
+ const big=k>.7,hs=juv?1.5:1.3,ws=juv?.88:1,DY=6,cs=Math.cos(p.pitch),sn=Math.sin(p.pitch),
+  T=(x,y)=>{const dx=x,dy=y+46;return[(dx*cs-dy*sn+p.bx)*k,(-46+dx*sn+dy*cs+DY+p.by+p.low)*k]},TL=L=>L.map(q=>T(q[0],q[1])),R=r=>Math.max(.7,r*k),BD=juv?msT0:(x,y)=>((x+y)&1)?0:-1,PR=r=>big?r*k:Math.min(1.7,r*k*.9);
+ /* ---- a wing (far: behind the body, near: in front) ---- */
+ const wing=(far)=>{const D=far?MSW_FAR:MSW_NEAR,ph=MSW_PH[p.ph],ca=Math.cos(ph[2]),sa=Math.sin(ph[2]),s0=D.s,
+   P=q=>{let x=q[0]*ph[0]*ws,y=q[1]*ph[1]*ws;const xr=x*ca-y*sa,yr=x*sa+y*ca;return T(s0[0]+xr,s0[1]+yr)};
+  const s=T(s0[0],s0[1]),e=P(D.e),w=P(D.w),t=D.t.map(P),b=P(D.b),lerp=(a,c,f)=>[a[0]+(c[0]-a[0])*f,a[1]+(c[1]-a[1])*f],
+   sc=(a,c)=>{const m=lerp(a,c,.5);return lerp(m,w,.2)};
+  const mem=far?W.memF:W.mem,dith=(x,y)=>far?0:((x&1)&&!((x+y)&3))?1:0;
+  usPart();msPoly([s,e,w,t[0],sc(t[0],t[1]),t[1],sc(t[1],t[2]),t[2],sc(t[2],b),b],mem,(x,y)=>dith(x,y)-(far?0:0));
+  if(far&&big){for(const f of[[.35,.3],[.55,.55],[.25,.62]]){const q=lerp(lerp(w,t[0],f[0]),lerp(t[1],b,f[0]),f[1]),x=Math.round(q[0]),y=Math.round(q[1]);
+   for(const d of[[0,0],[1,0],[2,0],[-1,1],[0,1],[1,1],[2,1],[0,2],[1,2]])if(usHas(x+d[0],y+d[1]))usF(x+d[0],y+d[1],'X');if(usHas(x,y))usF(x,y,'x')}}
+  else if(big){for(const f of[[.4,.35],[.6,.6]]){const q=lerp(lerp(w,t[0],f[0]),lerp(t[1],b,f[0]),f[1]),x=Math.round(q[0]),y=Math.round(q[1]);for(const d of[[0,0],[1,0],[0,1],[1,1],[2,1]])if(usHas(x+d[0],y+d[1]))usF(x+d[0],y+d[1],'X');if(usHas(x,y))usF(x,y,'x')}}
+  // finger bones: thin crimson, a pale highlight along each
+  for(let i=1;i<3;i++){usPart();msL(w[0],w[1],t[i][0],t[i][1],W.bone,0);if(big){const a=lerp(w,t[i],.2),c=lerp(w,t[i],.62);msFL(a[0],a[1],c[0],c[1],'q')}}
+  // the leading edge (wrist to the long tip): a plated crimson spar
+  usPart();msTube([w,lerp(w,t[0],.5),t[0]],u=>R(1.5-u*.9),W.spar);if(big){const a=lerp(w,t[0],.08),c=lerp(w,t[0],.7);msFL(a[0],a[1]-1,c[0],c[1]-1,'g')}
+  // the arm: shoulder, elbow, wrist, thick and plated
+  usPart();const A=msTube([s,e,w],u=>R(2.7-u*1.2),W.spar);if(big)for(let i=4;i<A.length-2;i+=6){const q=A[i];usB(Math.round(q[0]+1),Math.round(q[1]+1),-1);usB(Math.round(q[0]+2),Math.round(q[1]),-1)}
+  if(big){const a=lerp(s,e,.3),c=lerp(e,w,.6);msFL(a[0]-1,a[1]-1,c[0]-1,c[1]-1,'q')}
+  // the wrist claw: an ice-pale spike out of the joint
+  const dx=w[0]-e[0],dy=w[1]-e[1],l=Math.hypot(dx,dy)||1;usPart();msL(w[0],w[1],w[0]+dx/l*R(4),w[1]+dy/l*R(4)-R(1),W.claw,1)};
+ /* ---- a hind leg: thigh, red band, shin, ice claws ---- */
+ const leg=(far)=>{const o=far?[10,-2]:[0,0],h=[-5+o[0],-39+o[1]],kn=p.legs?[h[0]+8,h[1]+7]:[h[0]-3,h[1]+11],an=p.legs?[kn[0]+6,kn[1]+3]:[kn[0]-2,kn[1]+7],
+   fo=p.legs?[an[0]+3,an[1]+1]:[an[0]+1,an[1]+2],RB=far?W.bodyD:W.body;
+  usPart();const th=T((h[0]+kn[0])/2,(h[1]+kn[1])/2);msE(th[0],th[1],R(juv?4.4:5.4),R(juv?5:6.6),RB,far?0:BD);
+  if(big){usPart(1);const q=T(kn[0]+(h[0]-kn[0])*.2,kn[1]+(h[1]-kn[1])*.2);msEin(q[0],q[1],R(5.6),R(1.7),W.plate,0)}
+  usPart();msTube(TL([kn,an,fo]),u=>R(3.1-u*1.1),RB,far?null:BD);if(big&&!far){usPart(1);const q=T(an[0],an[1]-1);msEin(q[0],q[1],R(3),R(1.2),W.plate,0)}
+  usPart();const f=T(fo[0],fo[1]);const cl=p.legs?[[3,-1],[3,1.5],[1.5,3]]:[[-1.6,3],[.4,3.6],[2.4,2.8]];
+  if(juv){usP(Math.round(f[0]),Math.round(f[1]+1),W.claw,0);usP(Math.round(f[0]+1),Math.round(f[1]+1),W.claw,0)}else for(const c of cl)msL(f[0]+c[0]*.2*k,f[1]+c[1]*.2*k,f[0]+c[0]*k,f[1]+c[1]*k,W.claw,0)};
+ /* ---- far wing, far leg ---- */
+ usGrp=1;wing(1);usGrp=2;if(v===0)leg(1);
+ /* ---- the tail (in front of the body in the back view) ---- */
+ const tail=()=>{usPart();const S=msTube(TL(p.tail||[[-11,-39],[-21,-40],[-28,-33],[-29,-22],[-23,-12],[-14,-8],[-6,-9]]),u=>R((juv?4.4:6)-u*(juv?2.6:3.8)),W.body,BD);
+  const n=S.length;if(v===0&&big)for(let i=4;i<n-6;i++){const a=S[i-1],b=S[i],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,r=(5.4-i/n*3.4)*k*.55;usB(Math.round(b[0]+dy/l*r),Math.round(b[1]-dx/l*r),1)}
+  msRidge(S,.02,juv?.8:.9,big?3.8:3.4,u=>PR(Math.max(1.5,3.2-u*1.8)),u=>Math.max(.6,(5.4-u*3.4)*k*(juv?.7:.92)),-1,big?10:0);
+  const e=S[n-1],e2=S[Math.max(0,n-8)],dx=e[0]-e2[0],dy=e[1]-e2[1],l=Math.hypot(dx,dy)||1,ux=dx/l,uy=dy/l,nx=-uy,ny=ux,s2=k*(juv?1.6:1.05);
+  // the spade: a crimson arrowhead with barbs, a pale spike rising out of it
+  usPart();msPoly([[e[0]-ux*2*s2,e[1]-uy*2*s2],[e[0]-ux*4*s2+nx*4.5*s2,e[1]-uy*4*s2+ny*4.5*s2],[e[0]+ux*8*s2,e[1]+uy*8*s2],[e[0]-ux*4*s2-nx*4.5*s2,e[1]-uy*4*s2-ny*4.5*s2]],W.plate);
+  const sp=[-ux*.4+nx*.92,-uy*.4+ny*.92],sg=sp[1]>0?-1:1;usPart();msL(e[0]+ux*s2,e[1]+uy*s2,e[0]+ux*s2+sp[0]*sg*6*s2,e[1]+uy*s2+sp[1]*sg*6*s2,W.horn,1);
+  if(big)usF(Math.round(e[0]+ux*4*s2),Math.round(e[1]+uy*4*s2),'h')};
+ usGrp=3;if(v===0)tail();
+ /* ---- body: haunch and chest, the pale belly, the ridge down the back ---- */
+ usGrp=8;usPart();const bc=T(-6,-40),cc=T(7,-51);msE(bc[0],bc[1],R(juv?10:11.5),R(juv?8:8.6),W.body,BD);msE(cc[0],cc[1],R(juv?9:10.5),R(juv?8:9.6),W.body,BD);
+ if(v===0){usPart(1);const q=T(2,-40);msEin(q[0],q[1],R(15),R(4.2),W.belly,(x,y)=>(y&1)&&big&&((x+y)&3)===0?-1:0);
+  if(big){const q2=T(-6,-38.5);for(let x=-6;x<=6;x+=4)usB(Math.round(q2[0]+x),Math.round(q2[1]),1)}}
+ // neck (its own tube, so the head turns on it)
+ const hd=juv?[p.head[0]-7,p.head[1]-5]:[p.head[0]-3,p.head[1]-4],nk=juv?[p.neck[0]-3,p.neck[1]-3]:[p.neck[0]-2,p.neck[1]-6];usPart();const NS=msTube(TL([[7,-55],nk,[(nk[0]+hd[0])/2,(nk[1]+hd[1])/2-1],[hd[0]-5,hd[1]-1]]),u=>R((juv?6.5:6.2)-u*2),W.body,BD);
+ if(v===0){usPart(1);for(let i=2;i<NS.length-4;i++){const q=NS[i];usP(Math.round(q[0]+R(2.6)),Math.round(q[1]+R(2.6)),W.belly,(i&3)===0&&big?-1:0);if(big)usP(Math.round(q[0]+R(3.6)),Math.round(q[1]+R(2.1)),W.belly,0)}}
+ // ridge: neck base to the tail root (behind the wings), then the neck
+ const back=msSpline(TL([[-14,-45],[-6,-51],[2,-57],[10,-60]]),.5);
+ msRidge(back,0,1,big?4.2:3,u=>PR(v===1?4:3.8),u=>(v===1?1.2:2.6)*k,1,big?12:0);
+ if(v===1&&big)msRidge(msSpline(TL([[-16,-45],[-6,-48],[6,-51],[14,-53]]),.5),0,1,3.6,u=>PR(3),u=>1.6*k,1,big?14:0);
+ msRidge(NS,.02,.92,big?3.6:3,u=>PR(3.6-u*1.1),u=>(v===1?2.4:3.6)*k*(juv?1.2:1),1,big?12:0);
+ /* ---- head: an angular skull pointing down-forward, crimson crown and snout ridge, blue cheek and jaw ---- */
+ msWyHead(T(hd[0],hd[1]),p.ha*(juv?.6:1)+p.pitch,k*hs,v,p.jaw,p.eye,big,BD);
+ /* ---- near leg, near wing ---- */
+ usGrp=4;if(v===0)leg(0);
+ if(v===1){usGrp=3;tail()}
+ usGrp=5;wing(0);usGrp=0}
+/* the head (H its centre on screen, ha its tilt, hk its scale): horns, skull, crimson crown, eye, jaw */
+function msWyHead(H,ha,hk,v,jaw,eye,big,BD){const W=MSW,hc=Math.cos(ha),hsn=Math.sin(ha),
+  Q=(u,w)=>[H[0]+(u*hc-w*hsn)*hk,H[1]+(u*hsn+w*hc)*hk],QL=L=>L.map(q=>Q(q[0],q[1]));usGrp=8;
+ // horns first (behind the skull): two pale swept-back horns
+ usPart();msTube(QL([[-4,-4],[-9,-9],[-14,-11]]),u=>Math.max(.6,(1.7-u*1.3)*hk),W.horn);usPart();msTube(QL([[0,-5],[-3,-10],[-7,-14]]),u=>Math.max(.6,(1.6-u*1.2)*hk),W.horn);
+ usPart();msPoly(QL([[-8,-3.5],[-3,-7],[3,-6.2],[9,-3],[10.8,-.4],[10,2.4],[4,3],[-3,4.6],[-8,2.6]]),W.body,BD);
+ usGrp=9;usPart();msPoly(QL([[-8,-3.5],[-5,-6],[-3,-7.4],[-1,-6.2],[1,-7.4],[3,-6.4],[9,-3.2],[10.8,-.8],[9,-.8],[4,-3],[-2,-3.4],[-7,-1.4]]),W.plate);
+ if(big){usF(...Q(4,-4.3).map(Math.round),'h');usF(...Q(7,-3.2).map(Math.round),'h')}usGrp=8;
+ if(v===0||!big){const ey=Q(1,-1.6).map(Math.round);if(eye){usF(ey[0],ey[1],'0');usF(ey[0]+1,ey[1],'0')}else{usF(ey[0],ey[1],'F');usF(ey[0]+1,ey[1],'r');if(big){usF(ey[0]-1,ey[1]-1,'0');usF(ey[0],ey[1]-1,'0');usF(ey[0]+1,ey[1]-1,'0')}}}
+ {const ns=Q(9.6,-.4).map(Math.round);usF(ns[0],ns[1],'0')}
+ // the jaw: closed a blue line with pale teeth; open, dropped, the red mouth showing
+ if(jaw){usPart();msPoly(QL([[-3,3],[3,4.6],[10,8.6],[9,10.4],[2,8],[-4,5.2]]),W.body);usPart(1);msPoly(QL([[1,3.2],[10.4,2.4],[9.6,7.4],[2,5]]),usRamp('0fg',1));
+  if(big){for(const u of[3.5,6,8.5]){usF(...Q(u,2.6).map(Math.round),'r');usF(...Q(u+.3,5.8+u*.2).map(Math.round),'q')}}}
+ else{usPart();msPoly(QL([[-3,3],[4,3],[9.8,2.4],[9.4,4.6],[3,5.6],[-4,5]]),W.body);if(big)for(const u of[3,5.5,8])usF(...Q(u,3.2).map(Math.round),'q');usF(...Q(9,3.2).map(Math.round),'0')}
+ if(v===0&&big){usPart(1);const c=Q(-1,3);msEin(c[0],c[1],2.6*hk,1.4*hk,W.belly,0)}}
+function msWyDead(v,k,juv){const W=MSW,R=r=>Math.max(.7,r*k),big=k>.7,hs=juv?1.4:1,T=(x,y)=>[x*k,y*k];usGrp=3;
+ usPart();const S=msTube([T(-14,-6),T(-30,-5),T(-42,-8),T(-52,-4),T(-58,-3)],u=>R(4.6-u*3),W.body);
+ msRidge(S,.05,.9,3.4,u=>Math.max(1,(2.8-u*1.4)*(big?k:k*1.6)),u=>R(3-u*2),-1,big?10:0);
+ {const e=S[S.length-1],s2=k*(juv?1.6:1.05);usPart();msPoly([[e[0]+2*s2,e[1]],[e[0]-1*s2,e[1]-4*s2],[e[0]-8*s2,e[1]],[e[0]-1*s2,e[1]+2*s2]],W.plate)}
+ usGrp=8;usPart();const b=T(-2,-8);msE(b[0],b[1],R(16),R(7),W.body);usPart(1);msEin(b[0]+R(1),b[1]+R(4.5),R(14),R(2.6),W.belly,0);
+ usPart();const N=msTube([T(10,-9),T(20,-7),T(28,-5)],u=>R(5.4-u*2),W.body);msRidge(N,.1,.9,3.2,u=>2.6*(big?k:k*1.4),u=>R(3),1,big?12:0);
+ msRidge(msSpline([T(-16,-12),T(-4,-15),T(10,-13)],.5),0,1,3.6,u=>3*(big?k:k*1.5),u=>R(1.6),1,big?12:0);
+ const hk=k*hs,H=T(34,-5),Q=(u,w)=>[H[0]+u*hk,H[1]+w*hk],QL=L=>L.map(q=>Q(q[0],q[1]));usGrp=8;
+ usPart();msTube(QL([[-4,-3],[-10,-6],[-14,-6]]),u=>Math.max(.6,(1.6-u*1.2)*hk),W.horn);
+ usPart();msPoly(QL([[-8,-3],[-3,-5],[3,-4.5],[11,-1.5],[12.5,1],[11,3.5],[3,4],[-8,3]]),W.body);usGrp=9;usPart();msPoly(QL([[-8,-3],[-3,-5.2],[3,-4.7],[11,-1.7],[12.5,.5],[4,-1.8],[-7,-.5]]),W.plate);usGrp=8;
+ if(v===0){const e=Q(1,-.8).map(Math.round);usF(e[0],e[1],'0');usF(e[0]+1,e[1],'0')}
+ usPart();for(const c of[[-8,-1],[-6,-1]]){const f=T(c[0],c[1]);msL(f[0],f[1],f[0]+2*k,f[1],W.claw,0)}
+ // a wing draped over it, the other crumpled behind
+ usGrp=5;const s=T(4,-12),w=T(-14,-26),t0=T(-40,-20),t1=T(-34,-6),t2=T(-20,-3);usPart();msPoly([s,w,t0,[(t0[0]+t1[0])/2+2*k,(t0[1]+t1[1])/2-1*k],t1,t2,T(-6,-8)],W.mem,(x,y)=>(x+y)&1);
+ usPart();msTube([s,w],u=>R(2.4-u*.8),W.plate);usPart();msTube([w,t0],u=>R(1.3-u*.5),W.plate);usPart();msL(w[0],w[1],t1[0],t1[1],W.bone,0);usPart();msL(w[0],w[1],t2[0],t2[1],W.bone,0);
+ usPart();msL(w[0],w[1],w[0]+2*k,w[1]-3*k,W.claw,1);usGrp=0}
+function msHatch(v,st,fr,va){msWyvern(v,st,fr,va,.46,1)}
 
 /* ================= ICONS: monster abilities and statuses (16x16, outlined at load; added to ICONS of 06-icons.js) ================= */
 const MS_ICSRC=`
@@ -685,7 +758,7 @@ mlll0lllll0llm..
  const al={'ab-barkskin':'st-bark','ab-wdive':'st-diving','ab-hsting':'ab-wsting','ab-limb':'ab-limbcrush'};for(const k in al)if(ICONS[al[k]]&&!ICONS[k]){ICONS[k]=ICONS[al[k]];try{if(typeof icCss==='function')icCss(k)}catch(e){}}})();
 
 /* ================= API: build, cache ================= */
-const MSD={adder:msAdder,viper:msViper,gserpent:msGserpent,ent:(v,st,fr,va)=>msEnt(v,st,fr,va,MS_ENT),elder:msElder,thorn:msThorn,ogre:(v,st,fr,va)=>msOgre(v,st,fr,va,0),aogre:msAogre,wyvern:(v,st,fr,va)=>msWyvern(v,st,fr,va,1.12),hatch:msHatch};
+const MSD={adder:msAdder,viper:msViper,gserpent:msGserpent,ent:(v,st,fr,va)=>msEnt(v,st,fr,va,MS_ENT),elder:msElder,thorn:msThorn,ogre:(v,st,fr,va)=>msOgre(v,st,fr,va,0),aogre:msAogre,wyvern:(v,st,fr,va)=>msWyvern(v,st,fr,va,1.1),hatch:msHatch};
 const MS_VAR={attack:1,cast:1};
 function msBuild(kind,face,st,fr,va){if(typeof document==='undefined')return null;const K=MSK[kind],t0=typeof performance!=='undefined'?performance.now():0,v=face>=2?1:0,mir=face===1||face===2;
  if(typeof usGrid!=='function'||typeof usResolve!=='function')return null;msBegin(K);
@@ -701,10 +774,17 @@ function monsterSpriteWarm(u,faces){const k=monsterKind(u);if(!k||!MSD[k])return
 function monsterSpriteBox(u){const i=monsterInfo(u);return i.kind?{w:i.wide*2,h:i.top}:null}
 
 /* ================= PORTRAITS: a 32x32 window on the figure's front view (idle), over the foes' portrait ground ================= */
-const MS_PT={adder:[6,-9],viper:[3,-15],gserpent:[20,-40],thorn:[0,-15],ent:[2,-55],elder:[2,-60],ogre:[7,-45],aogre:[7,-47],wyvern:[33,-56],hatch:[3,-19]};
+const MS_PT={adder:[6,-9],viper:[3,-15],gserpent:[20,-40],thorn:[0,-15],ent:[2,-55],elder:[2,-60],ogre:[7,-45],aogre:[7,-47],wyvern:[34,-54],hatch:[11,-22]};
 function msKindOfKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?msKindOfId(x,EN[x]):MSK[x]?x:null;if(x.def)return monsterKind(x);if(x.n&&typeof EN==='object'){const k=msEnKey(x);return k?msKindOfId(k,x):null}return null}
+/* the wyvern's portrait: a head-and-shoulders bust drawn at portrait scale (the battle sprite's head is too small to crop) */
+function msWyPortrait(){if(typeof usBeginAt!=='function')return null;const W=MSW,BD=(x,y)=>((x+y)&1)?0:-1;usBeginAt(32,32,0,0);usGrp=5;
+ usPart();msPoly([[-2,24],[2,4],[-2,-2],[8,-1],[10,10],[6,22]],W.mem,(x,y)=>(x+y)&1);usPart();msTube([[4,30],[6,14],[9,1]],u=>2.6-u*1,W.plate);msFL(4,22,7,6,'q');usPart();msL(9,1,10,-2,W.claw,1);
+ usGrp=8;usPart();const N=msTube([[6,36],[8,27],[12,20],[16,16]],u=>6.4-u*2,W.body,BD);usPart(1);for(let i=0;i<N.length;i++){const q=N[i];msEin(q[0]+4,q[1]+3,1.6,1.6,W.belly,(i&3)===0?-1:0)}
+ msRidge(N,0,.85,3.4,u=>3.4-u*.6,u=>4.6,1,12);
+ msWyHead([18,15],.4,1.12,0,0,0,true,BD);usGrp=0;return usResolve(usG,true)}
+const MS_PTD={wyvern:msWyPortrait};
 function monsterPortrait(key){if(typeof document==='undefined')return null;const k=msKindOfKey(key);if(!k||!MSD[k])return null;let c=MS.pt.get(k);if(c!==undefined)return c;c=null;
- try{const s=monsterSpriteOf(k,0,'idle',0,''),cv=pxCanvas(32,32);if(s&&s.cv&&cv){const q=cv.getContext('2d'),bg0=PAL.f,bg1=PAL['1'];q.fillStyle=bg0;q.fillRect(0,0,32,32);q.fillStyle=bg1;for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)q.fillRect(x,y,1,1);
-  const o=MS_PT[k]||[0,-16];q.imageSmoothingEnabled=false;q.drawImage(s.cv,16-o[0]-s.ax,16-o[1]-s.ay);c=cv}}catch(e){c=null}
+ try{const s=MS_PTD[k]?{cv:MS_PTD[k](),ax:0,ay:0,own:1}:monsterSpriteOf(k,0,'idle',0,''),cv=pxCanvas(32,32);if(s&&s.cv&&cv){const q=cv.getContext('2d'),bg0=PAL.f,bg1=PAL['1'];q.fillStyle=bg0;q.fillRect(0,0,32,32);q.fillStyle=bg1;for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)q.fillRect(x,y,1,1);
+  const o=s.own?[16,16]:MS_PT[k]||[0,-16];q.imageSmoothingEnabled=false;q.drawImage(s.cv,16-o[0]-s.ax,16-o[1]-s.ay);c=cv}}catch(e){c=null}
  MS.pt.set(k,c);return c}
 function monsterPortraitURL(key){const k=msKindOfKey(key);if(!k)return'';let u=MS.ptu.get(k);if(u!==undefined)return u;u='';try{const c=monsterPortrait(key);if(c)u=c.toDataURL()}catch(e){u=''}MS.ptu.set(k,u);return u}
