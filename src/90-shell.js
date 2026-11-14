@@ -201,11 +201,11 @@ ${mbtn('info','How to play','Controls and the rules of the road','howSheet()',''
 ${mbtn('close','Quit to title','Saves first','quitToTitle()','','door')}
 ${mbtn('banner','Retire the company','End this march and read its chronicle','retireConfirm()','warn','banner')}</div>`)}
 /* entries the content agents' sheets hang on (typeof-guarded): the crisis (18-crises.js crisisSheet), the Eastern War (19-east.js
-   eastWarSheet, once the war has come), fabled warriors (21-fabled.js fabledSheet) */
+   eastWarSheet, once the war has come), fabled warriors (21-fabled.js openFabled) */
 function menuExtra(){if(!G)return'';let h='';
  if(typeof crisisSheet==='function'&&(G.crisis||G.day>=(G.crisisDay||18)-3)){let n='The crisis';try{const C=typeof CRISES==='object'&&CRISES&&CRISES[G.crisisKind];if(C&&C.n)n=C.n}catch(e){}h+=mbtn('boss',htmlEsc(n),'The crisis sheet: what it is and how to end it','closeSheet(true);crisisSheet()','','')}
  if(typeof eastWarSheet==='function'&&(typeof eastWarOn!=='function'||eastWarOn()))h+=mbtn('flag','The Eastern War','Choose a side, or stay out and profit','closeSheet(true);eastWarSheet()','','flag');
- if(typeof fabledSheet==='function'&&!(typeof isSolo==='function'&&isSolo()&&false))h+=mbtn('star','Fabled warriors','Named fighters of legend: met, joined, fallen','closeSheet(true);fabledSheet()','','gem');
+ if(typeof openFabled==='function')h+=mbtn('star','Fabled warriors','Named fighters of legend: met, joined, fallen','closeSheet(true);openFabled()','','gem');
  return h}
 // the world shell's run duties (chromeTick): the crisis outcome and the victory summary, an ironman book written every new day
 let _ironDay=0;

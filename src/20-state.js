@@ -143,7 +143,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  if(!Array.isArray(m.traits))m.traits=migrateTraits(m);else{const seen={};m.traits=m.traits.filter(k=>typeof k==='string'&&TRAITS[k]&&!seen[k]&&(seen[k]=1));
   m.traits=m.traits.filter((k,i)=>!m.traits.slice(0,i).some(o=>TRAITS[o].opp===k||TRAITS[k].opp===o)).slice(0,2)}   // known, no repeats, no opposed pair, at most 2
  {const S={};if(svObj(m.slain))for(const k in m.slain){const n=m.slain[k];if(typeof QUARRY==='object'&&QUARRY[k]&&svFin(n)&&n>0)S[k]=Math.min(9999,Math.floor(n))}m.slain=S}   // the quarry tally: known keys, whole kills
- if(svFin(m.kills)&&m.kills>0)m.kills=Math.min(99999,Math.floor(m.kills));else delete m.kills;if(typeof m.fabled!=='string'||!m.fabled)delete m.fabled;
+ if(svFin(m.kills)&&m.kills>0)m.kills=Math.min(99999,Math.floor(m.kills));else delete m.kills;if(typeof m.fabled!=='string'||!m.fabled)delete m.fabled;if(m.title!==undefined){if(typeof m.title==='string'&&m.title)m.title=m.title.slice(0,60);else delete m.title}
  m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
 function repairContract(c,nTowns){if(!svObj(c))return false;if(c.type!=='deliver'&&c.type!=='hunt')return typeof CTYPES!=='undefined'&&!!CTYPES[c.type]&&typeof ctrRepair==='function'&&!!ctrRepair(c,nTowns);
  if(typeof ctrRepair==='function'&&ctrRepair(c,nTowns)===false)return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skulls

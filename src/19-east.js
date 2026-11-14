@@ -46,7 +46,7 @@ Object.assign(EN,{
  samurai:{n:'Samurai',hp:96,arm:140,helm:110,ms:70,md:16,rd:16,init:110,d:[36,52],w:'katana',xp:300,role:'line',brv:72,east:1,abs:['iaido','slash','riposte']},
  taisho:{n:'Samurai general',hp:160,arm:220,helm:170,ms:78,md:20,rd:18,init:112,d:[48,68],w:'katana2',xp:600,role:'caster',brv:90,lead:1,banner:1,max:1,sub:'samurai',east:1,abs:['brally','iaido','riposte']}
 });
-const EASTLOOT=['tanto','wakizashi','katana','suyari','jumonji','hankyu','naginata','jingasa','hachigane','kabuto','tatami','dou','kesa'];
+const EASTLOOT=['tanto','wakizashi','katana','suyari','jumonji','hankyu','naginata','jingasa','hachigane','kabuto','tatami','do','kesa'];
 FACT.east={n:'The Shogunate',g:'K',col:'#c4493f',skin:'#f0c8a0',tier:'early',spawn:{gate:2,d0:0,d1:0},east:1,biomes:null,lair:'Break an eastern war camp',
  units:[['ashi',18],['ashi',18],['ashiy',22],['shinobi',36],['sohei',40],['onna',44],['samurai',52],['taisho',96]],rank:[.5,1.2,.3,19],loot:EASTLOOT};
 
@@ -67,6 +67,7 @@ Object.assign(ITEMS,{
  suyari:{k:'w',n:'Su yari',wt:'spear',d:[24,34],ap:4,fat:9,rng:1,ign:.2,hit:20,price:130,tier:1},
  jumonji:{k:'w',n:'Jumonji yari',wt:'spear',d:[36,48],ap:4,fat:11,rng:1,ign:.3,hit:20,price:900,tier:3},
  omiyari:{k:'w',n:'Omi yari',wt:'spear',two:1,d:[54,76],ap:6,fat:16,rng:2,ign:.3,hit:5,price:1500,tier:4},
+ bo:{k:'w',n:'Bo staff',wt:'staff',two:1,d:[22,36],ap:4,fat:7,rng:1,ign:.25,spell:.1,price:120,tier:2},
  hankyu:{k:'w',n:'Hankyu',wt:'bow',two:1,d:[26,42],ap:4,fat:9,rng:6,ign:.25,hit:5,price:240,tier:2,shot:'arrow'},
  yumi:{k:'w',n:'Yumi',wt:'bow',two:1,d:[40,60],ap:5,fat:12,rng:8,ign:.3,price:980,tier:4,shot:'arrow'},
  daikyu:{k:'w',n:'Lacquered daikyu',wt:'bow',two:1,d:[50,74],ap:5,fat:13,rng:8,ign:.35,hit:10,price:2600,tier:5,shot:'arrow'},
@@ -77,17 +78,17 @@ Object.assign(ITEMS,{
  kawari:{k:'h',n:'Kawari kabuto',arm:250,fat:14,price:3300,tier:5},
  kesa:{k:'a',n:'Monk\'s kesa',arm:55,fat:2,price:240,tier:2},
  tatami:{k:'a',n:'Tatami do',arm:85,fat:8,price:300,tier:2},
- dou:{k:'a',n:'Lamellar do',arm:150,fat:15,price:1050,tier:3},
+ do:{k:'a',n:'Lamellar do',arm:150,fat:15,price:1050,tier:3},
  domaru:{k:'a',n:'Do-maru',arm:210,fat:22,price:1900,tier:4},
  oyoroi:{k:'a',n:'O-yoroi',arm:300,fat:33,price:4600,tier:5}
 });
-const EASTITEMS=['tanto','yoroidoshi','wakizashi','katana','katana2','katana3','nodachi','odachi','naginata','naginata2','suyari','jumonji','omiyari','hankyu','yumi','daikyu','jingasa','hachigane','kabuto','menpo','kawari','kesa','tatami','dou','domaru','oyoroi'];
+const EASTITEMS=['tanto','yoroidoshi','wakizashi','katana','katana2','katana3','nodachi','odachi','naginata','naginata2','suyari','jumonji','omiyari','hankyu','yumi','daikyu','bo','jingasa','hachigane','kabuto','menpo','kawari','kesa','tatami','do','domaru','oyoroi'];
 /* the two eastern weapon skills (executed by the common rules: once, mult, hit, bleed, tgt 'aoe', status) */
 Object.assign(AB,{
  iaido:{n:'Iaijutsu',ap:4,fat:14,tgt:'enemy',wpn:1,needs:'sword',once:1,mult:1.5,hit:20,bleed:2,fx:'slash',d:'The draw-cut: the blade leaves the scabbard and strikes in one motion. 150% damage, +20 to hit, and a wound that reaches flesh bleeds for 2 turns. Once per battle.'},
  nsweep:{n:'Naginata sweep',ap:6,fat:22,tgt:'aoe',wpn:1,needs:'polearm',two:1,mult:.8,hit:5,status:{daze:1},fx:'spin',d:'A wide, low arc of the naginata: strike every adjacent foe at 80% damage, +5 to hit, and leave each one hit dazed.'}
 });
-{const SK={katana:['slash','riposte','iaido'],katana2:['slash','riposte','iaido'],katana3:['slash','riposte','iaido'],wakizashi:['slash','riposte'],nodachi:['halfsword','gswing','iaido'],odachi:['halfsword','gswing','iaido'],
+{const SK={katana:['slash','riposte','iaido'],katana2:['slash','riposte','iaido'],katana3:['slash','riposte','iaido'],wakizashi:['slash','riposte'],nodachi:['halfsword','gswing'],odachi:['halfsword','gswing'],
   naginata:['hook','nsweep'],naginata2:['hook','nsweep'],suyari:['thrust','spearwall'],jumonji:['thrust','spearwall'],omiyari:['impale'],tanto:['puncture'],yoroidoshi:['puncture'],hankyu:['quick'],yumi:['quick'],daikyu:['quick']};
  for(const id of EASTITEMS){const i=ITEMS[id];i.east=1;i.look=i.look||id;if(i.k==='w')i.sk=SK[id]||(typeof WSK==='object'&&WSK[i.wt])||[]}}
 
@@ -245,10 +246,10 @@ function eastMarks(){const v=eastWar(),L=[];if(!v||v.stage!=='war')return L;L.pu
  for(const s of v.sieges){const t=G.towns[s.i];if(t)L.push({x:t.x,y:t.y,kind:'east-siege',label:'Besieged by the East',town:s.i})}return L}
 
 /* ---- daily ---- */
-function eastDay(){if(!G||!Array.isArray(G.towns))return[];if(!G.east)eastInit(G);if(!G.east)return[];G.eastNews=[];
+function eastDay(news){if(!G||!Array.isArray(G.towns))return[];if(!G.east)eastInit(G);if(!G.east)return[];G.eastNews=[];
  if(eastWarDue())eastStart();else if(eastWarOn())eastWarDay();
  if(G.contract&&G.contract.ew)eastBattleEnd(null,true);
- const out=G.eastNews;G.eastNews=null;return out||[]}
+ const out=G.eastNews||[];G.eastNews=null;if(Array.isArray(news))for(const t of out)news.push(t);return out}
 
 /* ---- the war sheet ---- */
 function eastWarSheet(){const v=eastWar();if(!v||typeof sheet!=='function')return false;const e=G.east,H=Array.isArray(G.houses)?G.houses:[],hn=H.map(h=>h.short||h.n).join(', ');
@@ -266,3 +267,10 @@ function eastWarSheet(){const v=eastWar();if(!v||typeof sheet!=='function')retur
  ${btn('out','Stay out and profit','No standing changes. War contracts from both sides stay open to the company. +'+EW.renown.out+' renown when it is over.')}</div>
  ${ch?`<p class="ew-chosen">${ch==='houses'?'The company stands with the houses.':ch==='east'?'The company is in eastern pay.':'The company stays out of it.'}</p><div class="ew-row"><button class="btn" onclick="closeSheet()">Close</button></div>`:''}</div>`,'ew');return true}
 function eastNoteSheet(n){if(n==='east'||n==='eastend')return eastWarSheet();return false}
+
+/* ---- markets: eastern stalls carry eastern gear (about two thirds of the stock), western stalls almost none ----
+   eastStock(t, stock, maxT) -> the stock list (draws rnd: call it where stockTown rolls the stalls). */
+function eastStock(t,stock,maxT){if(!t||!Array.isArray(stock)||typeof marketPool!=='function'||typeof stockPick!=='function')return stock;const pool=marketPool(maxT),E=pool.filter(id=>ITEMS[id].east),Wp=pool.filter(id=>!ITEMS[id].east);
+ const eastern=!!t.east||t.own==='east';return stock.map((id,k)=>{const it=ITEMS[id];if(!it||it.k==='t')return id;
+  if(eastern)return!it.east&&E.length&&(k%3!==2)?stockPick(E.filter(e=>ITEMS[e].k===it.k).length?E.filter(e=>ITEMS[e].k===it.k):E,maxT):id;
+  return it.east&&Wp.length&&rnd()<.9?stockPick(Wp.filter(e=>ITEMS[e].k===it.k).length?Wp.filter(e=>ITEMS[e].k===it.k):Wp,maxT):id})}

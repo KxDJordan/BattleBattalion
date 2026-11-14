@@ -111,7 +111,7 @@ const FABLED={
   where:['crisis','boss'],crisis:['deadmarch'],f:['undead','deadmarch'],earn:null,cost:0,
   legend:'Hanged three times for grave-robbery and buried twice. The third time he did not wait to be dug up. He speaks for the Bone Throne now.',
   pt:{hair:'bald',beard:'long',beardC:'W',skin:'pale',bg:['D','0','C'],marks:{scar:1}},boss:{phases:[{at:.6,n:'The dead rise',say:'Ulfgar calls, and the earth gives up its dead.',summon:['skel','skel']},{at:.3,n:'Unburied',say:'The Herald will not stay down.',heal:.2,enrage:{dmg:.15}}]}},
- kagemaru:{n:'Kagemaru',title:'the Silent Blade',bg:'thief',bgN:'Shinobi',race:'human',east:1,lvl:9,st:{init:16,ms:8,md:6},traits:['quick'],gear:['fb:nightblade','fb:shadetanto'],eq:{a:'jack',h:'hood'},
+ kagemaru:{n:'Kagemaru',title:'the Silent Blade',bg:'thief',bgN:'Shinobi',race:'human',east:1,lvl:9,st:{init:16,ms:8,md:6},traits:['quick'],gear:['fb:nightblade','fb:shadetanto'],eq:{a:'jack'},
   where:['recruit','rival','east'],earn:{k:'deed',stat:'kills',n:150,d:'Slay 150 foes'},cost:3600,
   legend:'Nobody has seen his face and lived to describe it. The Shogunate swears he serves it; three houses swear he serves them. He serves the best-paid name in the land.',
   pt:{hat:'mask',hatC:'night',hair:'tail',hairC:'G',bg:['0','1','4'],skin:'tan',veil:'night'}},
@@ -131,10 +131,10 @@ const FABLED={
   where:['recruit','rival','crisis'],crisis:['deadmarch','sunder'],earn:{k:'renown',tier:3},cost:3400,
   legend:'She has burned nine witches, two liches and a bishop. Only the bishop was a mistake, she says, and she still will not say which way.',
   pt:{hat:'wide',hatC:'black',hair:'long',hairC:'K',bg:['0','f','g'],skin:'pale'}},
- mattias:{n:'Black Mattias',title:'the Gunsmoke Saint',bg:'deserter',bgN:'Gunner',race:'human',lvl:10,st:{rs:14,init:6},traits:['eagle'],gear:['fb:saintsrifle','fb:sinpistol'],eq:{a:'leather',h:'cap'},
+ mattias:{n:'Black Mattias',title:'the Gunsmoke Saint',bg:'deserter',bgN:'Gunner',race:'human',lvl:10,st:{rs:14,init:6},traits:['eagle'],gear:['fb:saintsrifle','fb:sinpistol'],eq:{a:'leather'},
   where:['recruit','rival'],earn:{k:'renown',tier:4},cost:3800,
   legend:'A priest who took up the long gun when his parish was put to the torch. He gives last rites before every shot and has never needed to give them twice.',
-  pt:{hair:'swept',hairC:'G',beard:'goatee',bg:['o','0','E'],marks:{soot:1}}},
+  pt:{hat:'wide',hatC:'black',hair:'swept',hairC:'G',beard:'goatee',bg:['o','0','E'],marks:{soot:1}}},
  ysolde:{n:'Ysolde Riftborn',title:'the Sundered Blade',bg:'spellblade',bgN:'Rift-walker',race:'elf',fem:1,lvl:11,st:{ms:10,init:10,md:6},traits:[],gift:'qi',gear:['fb:sunderedge','fb:riftmail'],eq:{h:'coif'},
   where:['recruit','crisis','boss'],crisis:['sunder'],earn:{k:'deed',stat:'rifts',n:2,d:'Seal two rifts'},cost:4600,
   legend:'She walked out of the first rift with a blade from another world and no memory of the one she left. She hunts what comes through, and what sent it.',
@@ -142,15 +142,15 @@ const FABLED={
  brannoc:{n:'Brannoc',title:'the Mountain-Breaker',bg:'woodcutter',bgN:'Mountain hermit',race:'halforc',lvl:10,st:{hp:20,ms:8},traits:['hulking'],gear:['fb:mountainmaul','fb:bearhide'],eq:{h:'kettle'},
   where:['recruit','rival','crisis'],crisis:['horde','barbarian'],earn:{k:'quarry',q:'hunter.ogre',n:2,d:'Slay two ogres'},cost:3600,
   legend:'He brought down a rockslide on an ogre clan with one swing at the right stone. Ogres still run from his name; men are wiser to do the same.',
-  pt:{hair:'shaggy',hairC:'G',beard:'full',bg:['j','i','k']}},
+  pt:{hair:'shaggy',hairC:'H',beard:'short',beardC:'H',bg:['j','i','k'],marks:{scar:1}}},
  agathe:{n:'Sister Agathe',title:'the Lantern of Saint Vey',bg:'acolyte',bgN:'Lantern sister',race:'human',fem:1,lvl:8,st:{hp:10,md:6,brv:25},traits:['loyal'],gift:'chi',gear:['fb:lanternmace','fb:saintstower'],eq:{a:'mail',h:'coif'},
   where:['recruit'],earn:{k:'renown',tier:3},cost:2800,
   legend:'She carried the Saint’s lantern through the plague year and it never went out. Wounded men swear it heals; dying ones swear it is the last kind thing they saw.',
   pt:{hat:'band',hatC:'white',hair:'bun',hairC:'H',bg:['y','Y','e'],skin:'fair',beads:['c','b','d','e']}},
- yuki:{n:'Hayase Yuki',title:'the Hundred Arrows',bg:'hunter',bgN:'Yumi archer',race:'human',east:1,fem:1,lvl:10,st:{rs:14,init:10},traits:[],gear:['fb:hundredbow','fb:snowdo'],eq:{h:'cap'},
+ yuki:{n:'Hayase Yuki',title:'the Hundred Arrows',bg:'hunter',bgN:'Yumi archer',race:'human',east:1,fem:1,lvl:10,st:{rs:14,init:10},traits:[],gear:['fb:hundredbow','fb:snowdo'],eq:{},
   where:['recruit','rival','east'],earn:{k:'stand',f:'east',tier:3,alt:{k:'renown',tier:4},d:'Be honoured by the Shogunate (or Renowned)'},cost:3600,
   legend:'At the siege of Snow Gate she loosed a hundred arrows in a single night and every one found a throat. They sing it in the East; she does not.',
-  pt:{hair:'tail',hairC:'G',bg:['F','X','r'],skin:'fair'}}};
+  pt:{hat:'band',hatC:'red',hair:'tail',hairC:'G',bg:['F','X','r'],skin:'fair'}}};
 for(const id in FABLED){const F=FABLED[id];F.id=id;F.tree='fab.'+id;F.gear=F.gear.filter(g=>ITEMS[g]);for(const g of F.gear)ITEMS[g].from=F.n+', '+F.title}
 // The fabled boss/east hosts' eastern guard (phase summons of '@east'): the east agent's eastern soldier ids when they exist, else steel of our own.
 function fabledEastGuard(){const L=['samurai','ashigaru','eastsam','esamurai','eashigaru'].filter(k=>typeof EN==='object'&&EN[k]);return L.length?L[0]:(EN.knight?'knight':EN.bandit?'bandit':Object.keys(EN)[0])}
