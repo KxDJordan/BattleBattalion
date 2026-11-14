@@ -707,9 +707,9 @@ function rvBuyFee(r){return Math.round((150+rivalPower(r)*12+(r.hired?250:0))*rv
 function rivalParley(p){const r=p&&rivalById(p.f);if(!r||!r.alive)return null;const hostile=partyHostile(p),T=repTier(r.id),P=RVPERS[r.pers]||RVPERS.greedy,opts=[],st=['','weaker than the company','an even match','stronger than the company'][rivalStr(r)];
  const ti=nearestTown(p.x,p.y),own=G.towns[ti]&&G.towns[ti].own;
  const talk=r.talk===G.day;opts.push({k:'news',n:'Trade news',d:talk?'You have already traded news today.':'Swap road talk: what they are about and the nearest nest. +2 standing.',cost:0,ok:!hostile&&!talk,why:hostile?'They are not here to talk':talk?'Already traded news today':''});
- const m=rvHireCand(r),fee=m?rvHireFee(r,m):0,full=G.roster.length>=MAXROSTER;
+ const m=rvHireCand(r),fee=m?rvHireFee(r,m):0,full=G.roster.length>=MAXROSTER,solo=!(typeof canRecruit!=='function'||canRecruit());
  opts.push({k:'hire',n:m?`Hire ${m.name}`:'Hire a sword',d:m?`Level ${m.lvl} ${BG[m.bg].n.toLowerCase()} joins the company for ${fee} crowns. +3 standing.`:'They cannot spare anyone.',cost:fee,m:m?m.id:null,
-  ok:!!m&&!hostile&&T.min>=-10&&!full&&G.crowns>=fee,why:!m?'Too few to spare a sword':hostile?'They are not here to talk':T.min<-10?`Their standing is ${T.n.toLowerCase()}`:full?'The roster is full':G.crowns<fee?'Not enough crowns':''});
+  ok:!!m&&!solo&&!hostile&&T.min>=-10&&!full&&G.crowns>=fee,why:solo?recruitWhy():!m?'Too few to spare a sword':hostile?'They are not here to talk':T.min<-10?`Their standing is ${T.n.toLowerCase()}`:full?'The roster is full':G.crowns<fee?'Not enough crowns':''});
  if(hostile){const bf=rvBuyFee(r);opts.push({k:'buyoff',n:'Buy them off',d:`${bf} crowns and they leave the company alone for three days${r.hired?`, breaking their contract with ${factName(r.hired.by)}`:''}.`,cost:bf,ok:G.crowns>=bf,why:G.crowns<bf?'Not enough crowns':''})}
  opts.push({k:'challenge',n:'Challenge them',d:`An open fight, banner against banner. No town minds. ${P.honour?'They accept with honour: +50% renown if you win.':''} −10 standing.`.replace('  ',' '),cost:0,ok:true});
  const repCost=!hostile&&own?`−8 standing with ${factName(own)}, `:'';

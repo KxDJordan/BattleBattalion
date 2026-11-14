@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=11;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=12;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -84,7 +84,12 @@ const MIGRATE={
   if(Array.isArray(g.parties))for(const p of g.parties)if(svObj(p)&&svObj(p.cargo))p.cargo=cargoFix(p.cargo,p.id,g.seed);
   const cs=[g.contract].concat(...(Array.isArray(g.towns)?g.towns.map(t=>svObj(t)&&Array.isArray(t.contracts)?t.contracts:[]):[]));
   for(const c of cs)if(svObj(c)&&typeof c.rival==='string'){if(/^h[0-9]$/.test(c.rival))c.outbid=c.rival;delete c.rival}
-  if(Array.isArray(g.towns)&&g.towns.length>=2)rivalsInit(g);return g}
+  if(Array.isArray(g.towns)&&g.towns.length>=2)rivalsInit(g);return g},
+ /* v12: the Monster hunter tree. Every merc (the company's, recruits waiting in towns, every rival company's) gets an empty kill
+    tally m.slain {quarry key: kills} (61-talents.js); kills count from now on. Nothing else changes. */
+ 11:g=>{const fix=m=>{if(svObj(m))m.slain={}};if(Array.isArray(g.roster))g.roster.forEach(fix);
+  if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});
+  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(fix)});return g}
 };
 // The traits an old merc gets in the v9 migration (and a merc record that has none): rolled from its background by a stream seeded by its id.
 function migrateTraits(m){return rollTraits(m.bg,mulberry(((svNum(m.id,0)|0)^0x7a175)>>>0))}
@@ -127,6 +132,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  if(m.colors!==undefined){const c=typeof colorsFix==='function'?colorsFix(m.colors):null;if(c)m.colors=c;else delete m.colors}
  if(!Array.isArray(m.traits))m.traits=migrateTraits(m);else{const seen={};m.traits=m.traits.filter(k=>typeof k==='string'&&TRAITS[k]&&!seen[k]&&(seen[k]=1));
   m.traits=m.traits.filter((k,i)=>!m.traits.slice(0,i).some(o=>TRAITS[o].opp===k||TRAITS[k].opp===o)).slice(0,2)}   // known, no repeats, no opposed pair, at most 2
+ {const S={};if(svObj(m.slain))for(const k in m.slain){const n=m.slain[k];if(typeof QUARRY==='object'&&QUARRY[k]&&svFin(n)&&n>0)S[k]=Math.min(9999,Math.floor(n))}m.slain=S}   // the quarry tally: known keys, whole kills
  m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
 function repairContract(c,nTowns){if(!svObj(c))return false;if(c.type!=='deliver'&&c.type!=='hunt')return typeof CTYPES!=='undefined'&&!!CTYPES[c.type]&&typeof ctrRepair==='function'&&!!ctrRepair(c,nTowns);
  if(typeof ctrRepair==='function'&&ctrRepair(c,nTowns)===false)return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skullsif(!svFin(c.pay)||typeof c.title!=='string')return false;

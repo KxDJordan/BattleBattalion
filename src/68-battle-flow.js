@@ -80,12 +80,13 @@ function rivalResolve(b,res,win){const r=typeof battleRival==='function'?battleR
  r.roster=r.roster.filter(m=>!gone.some(u=>u.m===m));
  if(win){rr.loot.forEach(x=>res.loot.push(x.id));
   const jc=RIVAL.join[r.pers]!=null?RIVAL.join[r.pers]:.4;
-  for(const u of downU.slice().sort((x,y)=>(y.m.lvl||1)-(x.m.lvl||1)||x.id-y.id)){if(rnd()<jc){const m=u.m;rr.joiner={id:m.id,name:m.name,lvl:m.lvl,bg:m.bg,bgN:BG[m.bg]?BG[m.bg].n:m.bg,room:G.roster.length<MAXROSTER,taken:false,declined:false};break}}}
+  for(const u of downU.slice().sort((x,y)=>(y.m.lvl||1)-(x.m.lvl||1)||x.id-y.id)){if(rnd()<jc){const m=u.m;rr.joiner={id:m.id,name:m.name,lvl:m.lvl,bg:m.bg,bgN:BG[m.bg]?BG[m.bg].n:m.bg,room:G.roster.length<MAXROSTER,solo:!(typeof canRecruit!=='function'||canRecruit()),taken:false,declined:false};break}}}
  if(!r.roster.length)rr.wiped=true;   // the world wipes it out (worldBattleEnd -> rvBattleEnd)
  return rr}
 /* rivalJoin(res?): the struck-down rival sword of res.rival.joiner (default B.result) leaves the rival's roster for the company's,
    as he is (1 hitpoint, injuries, gear). Refused when the roster holds MAXROSTER. Returns the merc, or null. No randomness. */
 function rivalJoin(res){res=res||(typeof B!=='undefined'&&B&&B.result)||null;const rr=res&&res.rival,j=rr&&rr.joiner;if(!j||j.taken||j.declined)return null;
+ if(!(typeof canRecruit!=='function'||canRecruit())){j.solo=true;return null}
  if(G.roster.length>=MAXROSTER){j.room=false;return null}const r=battleRival(rr.id),i=r?r.roster.findIndex(m=>m.id===j.id):-1;if(i<0)return null;
  const m=r.roster.splice(i,1)[0];if(G.roster.some(x=>x.id===m.id)||!Number.isInteger(m.id))m.id=G.nid++;delete m.rv;delete m.dead;m.slot=null;m.hp=Math.max(1,m.hp);
  m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);j.taken=true;j.id=m.id;if(!r.roster.length){rr.wiped=true;if(!(typeof B!=='undefined'&&B)&&typeof rvWipe==='function')rvWipe(r,'when its last sword joined '+(G.name||'the company'))}return m}   // before settleBattle the world wipes it itself
@@ -133,10 +134,10 @@ function brRival(res){const rr=res.rival;if(!rr)return'';const r=typeof battleRi
  const j=rr.joiner;if(res.win&&j){const m=r?r.roster.find(x=>x.id===j.id):null,mm=m||(G.roster.find(x=>x.id===j.id)),por=mm&&typeof portraitHTML==='function'?portraitHTML(mm,32):'';
   if(j.taken)h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p class="good"><b>${j.name}</b> joins the company, at 1 hitpoint, wounds and all.</p></div>`;
   else if(j.declined)h+=`<p class="dim br-join">${j.name} is left where they fell.</p>`;
-  else h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p><b>${j.name}</b>, a level ${j.lvl} ${String(j.bgN).toLowerCase()}, was struck down but lives, and asks to join you.${j.room?'':` <span class="bad">No room: the roster holds ${MAXROSTER}.</span>`}</p><div class="row">${j.room?`<button class="pri" onclick="brJoin(1)">Take ${j.name} on</button>`:''}<button onclick="brJoin(0)">Leave them</button></div></div>`}
+  else h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p><b>${j.name}</b>, a level ${j.lvl} ${String(j.bgN).toLowerCase()}, was struck down but lives, and asks to join you.${j.solo?` <span class="bad">${typeof recruitWhy==='function'?recruitWhy():'You ride alone'}: nobody joins.</span>`:j.room?'':` <span class="bad">No room: the roster holds ${MAXROSTER}.</span>`}</p><div class="row">${j.room&&!j.solo?`<button class="pri" onclick="brJoin(1)">Take ${j.name} on</button>`:''}<button onclick="brJoin(0)">Leave them</button></div></div>`}
  return h}
 // The joiner's answer from the results sheet (UI: no randomness). Redraws the sheet.
-function brJoin(yes){const res=B&&B.result;if(!res||!res.rival||!res.rival.joiner)return;const j=res.rival.joiner;if(yes){if(!rivalJoin(res)&&typeof toast==='function')toast(j.room?'He cannot join now':'The roster is full')}else j.declined=true;
+function brJoin(yes){const res=B&&B.result;if(!res||!res.rival||!res.rival.joiner)return;const j=res.rival.joiner;if(yes){if(!rivalJoin(res)&&typeof toast==='function')toast(j.solo?(typeof recruitWhy==='function'?recruitWhy():'You ride alone'):j.room?'He cannot join now':'The roster is full')}else j.declined=true;
  if(typeof sheet==='function')sheet(battleResultHTML(res))}
 function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'||r.inj.length||r.arm||r.helm||r.lvl||r.shield),fine=(res.men||[]).length-men.length;let h;
  if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
@@ -162,7 +163,7 @@ function endBattle(win){const b=B;if(!b)return null;if(b.result)return b.result;
 // {kind:'wiped',days} | {kind:'world',toast?} | {kind:'dunNext',stage,realm} | {kind:'dunDone',pay,ended}
 // src is only given when there is no battle to read it from (a withdrawal before the first blow, see fleeEncounter).
 function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result||null;B=null;mode='world';
- if(!G.roster.length){clearSave();return{kind:'wiped',days:G.day}}
+ if(!G.roster.length){clearSave();return{kind:'wiped',days:G.day,solo:typeof isSolo==='function'&&isSolo()}}   // a solo run ends with its one sword
  G.grace=3;const out={kind:'world',toast:null};
  // the world's consequences first (caravan loot, reputation, sieges broken, nests cleared: 40-world.js), while the beaten party is still on the map
  if(typeof worldBattleEnd==='function'){try{out.world=worldBattleEnd(s,win,B0res)}catch(e){out.world=null}}   // (the result record rides along: res.rival, res.cargo)
@@ -184,7 +185,7 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
 // crowns dropped on the run, and whatever settleBattle() makes of a lost fight of that kind (a hunt is forfeit, a rift closes).
 function fleeEncounter(o){const c0=G.crowns;G.crowns=Math.floor(G.crowns*.9);const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
 function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
- if(out.kind==='wiped'){sheet(`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p><button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
+ if(out.kind==='wiped'){sheet((out.solo?`<h2>The hunt is over</h2><p>The slayer is dead, and nobody rides on in their name. The hunt lasted ${out.days} days.</p>`:`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p>`)+`<button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
  if(out.kind==='dunNext'){sheet(`<h2>${BIO[out.realm].n}</h2><p>${out.stage===1?'The path winds deeper. The air tastes of iron.':'A throne of fused stone. Something vast stirs upon it.'}</p><p class="dim">The company catches its breath (+15% HP). Battle ${out.stage+1} of 3.</p><button class="pri" onclick="dunBattle()">Press on</button>`);return out}
  if(out.kind==='dunDone'){let msg=`<h2>The rift collapses</h2><p>The tyrant falls and the tear in the world seals behind you. You carry out <span class="coin">${out.pay} crowns</span> of strange gold and a rift-forged blade.</p>`;
   if(out.ended)msg+=`<p class="good">The last of the three rifts is closed. The Sundering is over, though lesser rifts may still open.</p>`;

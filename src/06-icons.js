@@ -6392,14 +6392,15 @@ const IC_PKW={d:null,hit:'melee',ign:'ab-puncture',ap:'ap',stun:'stun',spell:'ma
 function icStamp(rows,g,corner){if(!g)return rows;const h=g.length,w=g[0].length,x0=corner==='tl'||corner==='bl'?1:14-w,y0=corner==='tl'||corner==='tr'?1:14-h,b=[];
  for(let y=0;y<16;y++){let r='';for(let x=0;x<16;x++){const gy=y-y0,gx=x-x0;r+=gy>=0&&gy<h&&gx>=0&&gx<w?g[gy][gx]:'.'}b.push(r)}return pxLayer(rows,_icOutline(b))}
 function icCompose(base,map,ov,corner){const bn=icResolve0(base);if(bn==='none'||!ICONS[bn])return null;let rows=ICONS[bn];if(map)rows=_icMap(rows,map);return ov?icStamp(rows,IC_OV[ov],corner||'br'):rows}
-const IC_TREEK={mana:{d:'F',c:'x',b:'X'},aura:{d:'e',c:'y',b:'Y'},qi:{d:'6',c:'z',b:'Z'},chi:{d:'e',c:'A',b:'B'},steel:{d:'r',c:'q',b:'p'},brass:{d:'d',c:'c',b:'b'},verd:{d:'6',c:'5',b:'7'}};
+const IC_TREEK={mana:{d:'F',c:'x',b:'X'},aura:{d:'e',c:'y',b:'Y'},qi:{d:'6',c:'z',b:'Z'},chi:{d:'e',c:'A',b:'B'},steel:{d:'r',c:'q',b:'p'},brass:{d:'d',c:'c',b:'b'},verd:{d:'6',c:'5',b:'7'},hunt:{d:'h',c:'g',b:'f'}};
 const IC_ARMT=['lightarmor','medarmor','heavyarmor'];                       // armor-class trees: a verdigris ring (drawn before the rules' MAST entries exist)
 const IC_RESLMN={mana:{L:'F',M:'x',N:'X'},aura:{L:'e',M:'y',N:'Y'},qi:{L:'6',M:'z',N:'Z'},chi:{L:'e',M:'A',N:'B'}};
-function icTreeTone(T){return!T?'brass':T.kind==='armor'?'verd':T.kind==='weapon'?'steel':T.kind==='gift'&&T.res?T.res:'brass'}
+function icTreeTone(T){return!T?'brass':T.kind==='hunter'?'hunt':T.kind==='armor'?'verd':T.kind==='weapon'?'steel':T.kind==='gift'&&T.res?T.res:'brass'}
 function icMast(key){const T=typeof MAST==='object'&&MAST&&MAST[key]||(IC_ARMT.includes(key)?{kind:'armor'}:null);if(!T||!IC_RING)return null;const tone=icTreeTone(T);let mo=null;
  if(T.kind==='weapon')mo=IC_MO['w-'+(T.wt||key)]||IC_MO['w-sword'];
  else if(T.kind==='gift'){const m=IC_RESLMN[T.res]||IC_RESLMN.aura,st=T.style||'melee';const tpl=st==='ranged'?'garrow':T.res==='chi'&&st==='melee'?'gfist':st==='melee'?'gblade':null;
   if(tpl&&IC_MO[tpl])mo=_icMap(IC_MO[tpl],m);else mo=_icMap(IC_MO.garrow,m)}
+ else if(T.kind==='hunter')mo=IC_MO.hunter;
  else if(T.kind==='armor')mo=IC_MO[key]||IC_MO[/heavy/.test(key)?'heavyarmor':/med/.test(key)?'medarmor':'lightarmor'];
  else{mo=IC_MO[key];if(!mo){const s=(key+' '+(T.n||'')+' '+(T.aff||[]).join(' ')).toLowerCase();mo=IC_MO[/shield/.test(s)?'shieldbearer':/bow|ranged|shot/.test(s)?'sharpshooter':/two/.test(s)?'brute':/support|heal|medic/.test(s)?'medic':'duelist']}}
  const ring=_icMap(IC_RING,IC_TREEK[tone]||IC_TREEK.brass);return _icOutline(pxLayer(ring,mo))}
@@ -6410,8 +6411,17 @@ function icPerkMain(p,T){if(!p)return'star';if(p.flag&&IC_PKFLAG[p.flag])return 
  if(p.st){let best=null,bv=-1;for(const k in p.st){const v=Math.abs(p.st[k])*(k==='dmg'?100:1);if(IC_PKST[k]&&v>bv){bv=v;best=IC_PKST[k]}}if(best)return best}
  return'star'}
 const IC_PIP=['.MM.','MLLN','MLLN','.NN.'];
+/* Monster Hunter quarries (rules' QUARRY[perkKey] = {n, en:[EN ids], per, cap}): q-<species> is the drawn head of that quarry.
+   icQuarryKey(perk,id) finds the QUARRY key of a hunter perk; icQuarry(key | EN id) the icon name, by the quarry's EN ids, else by keywords. */
+const IC_QRX=[[/gob/,'q-gob'],[/wolf|dire/,'q-wolf'],[/spider|web/,'q-spider'],[/serp|adder|viper|snake|gserp/,'q-serpent'],[/bear|owl/,'q-bear'],[/thorn|ent\b|^ent|elder|tree/,'q-ent'],
+ [/ogre/,'q-ogre'],[/skel|zomb|necro|dead|undead|restless|bone/,'q-dead'],[/imp|rift|vknight|vmage|tyrant|void|spawn/,'q-rift']];
+function icQuarryKey(p,id){const Q=typeof QUARRY==='object'&&QUARRY?QUARRY:null,c=[p&&p.q,p&&p.quarry,p&&p.key,id!=null?String(id).split('.').pop():null,id!=null?String(id):null].filter(x=>typeof x==='string'&&x);
+ if(Q){for(const k of c)if(Q[k])return k;for(const k in Q){const e=Q[k]&&Q[k].perk;if(e&&(e===id||e===(p&&p.id)))return k}}return c[0]||''}
+function icQuarry(key){key=String(key||'');const Q=typeof QUARRY==='object'&&QUARRY?QUARRY[key]:null;if(Q&&Q.icon&&icHas(Q.icon))return Q.icon;
+ const s=(key+' '+(Q?(Q.en||[]).join(' ')+' '+(Q.n||''):'')).toLowerCase();for(const [re,n] of IC_QRX)if(re.test(s))return n;return'skull'}
 function icPerk(id){let r=null;try{r=typeof perkById==='function'?perkById(id):null}catch(e){}let p=r&&r.perk,T=r&&r.tree;
  if(!p&&typeof MAST==='object'){const k=String(id).split('.')[0];T=MAST[k];if(T)for(const q of T.p||[])if(q.id===id)p=q}if(!p)return null;
+ if(T&&T.kind==='hunter'){const q=icResolve0(icQuarry(icQuarryKey(p,id)));if(q!=='none'&&ICONS[q]){const k=IC_TREEK.hunt;return icStamp(ICONS[q],_icMap(IC_PIP,{L:k.d,M:k.c,N:k.b}),'tl')}}
  if(p.ab&&typeof AB==='object'&&AB[p.ab])return icResolve('ab-'+p.ab)!=='none'?ICONS[icResolve('ab-'+p.ab)]:null;
  const main=icResolve(icPerkMain(p,T));if(main==='none'||!ICONS[main])return null;const k=IC_TREEK[icTreeTone(T)]||IC_TREEK.brass;
  return icStamp(ICONS[main],_icMap(IC_PIP,{L:k.d,M:k.c,N:k.b}),'tl')}

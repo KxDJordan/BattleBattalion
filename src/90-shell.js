@@ -206,7 +206,7 @@ const NCNAMES=['The Ashen Banner','The Grey Wolves','The Brass Lanterns','The Su
  'The Saltmarsh Irregulars','The Iron Ravens','The Lantern Guard','The Oathless','The Ninefold Shield','The Cinder Company','The Wayward Spears','The Stag Riders','The Long Road Company'];
 const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',origin:'free',open:false};
 /* origins (events agent's ORIGINS): icon, name, the story, and the one rule each, picked in the setup dialog */
-const NCORIC={free:'or-free',deserters:'or-deserters',noble:'or-noble',academy:'or-academy',beast:'or-hunters',hunters:'or-hunters',pilgrims:'or-pilgrims'};
+const NCORIC={slayer:'or-slayer',free:'or-free',deserters:'or-deserters',noble:'or-noble',academy:'or-academy',beast:'or-hunters',hunters:'or-hunters',pilgrims:'or-pilgrims'};
 function ncOrigins(){return typeof ORIGINS==='object'&&ORIGINS?Object.keys(ORIGINS):[]}
 function ncOrIcon(k){const O=ORIGINS[k]||{},a=NCORIC[k];if(a&&typeof icHas==='function'&&icHas(a))return a;return O.icon||'banner'}
 function ncOriginHTML(){const L=ncOrigins();if(!L.length)return'';if(!ORIGINS[NCS.origin])NCS.origin=L.includes('free')?'free':L[0];const O=ORIGINS[NCS.origin];

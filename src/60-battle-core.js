@@ -146,7 +146,7 @@ function enemyWpn(d){const it=d.w&&ITEMS[d.w]&&ITEMS[d.w].k==='w'?ITEMS[d.w]:nul
  const w={n:it.n,wt:it.wt,d:d.d.slice(),ap:it.ap,fat:0,rng:d.rng||it.rng||1,ign:it.ign!=null?it.ign:.25,id:d.w,sk:it.sk};for(const k of ['hit','two','crush','stun','look','shot','fx'])if(it[k])w[k]=it[k];
  if(it.reload)w.reload=Object.assign({},it.reload);return w}
 function mkEnemy(id,f){const d=EN[id],sh=d.shield?typeof d.shield==='object'?d.shield:{hp:d.shield,md:10,rd:10}:null;
- return initLoad(initUnit({side:1,def:d,f,name:d.n,lvl:1,hp:d.hp,hpMax:d.hp,arm:d.arm,armMax:d.arm,helm:d.helm!=null?d.helm:Math.round(d.arm*.6),apMax:d.ap||9,ap:9,fat:0,fatMax:9999,init:d.init,ms:d.ms,rs:d.rs||0,md:d.md,rd:d.rd,
+ return initLoad(initUnit({side:1,def:d,eid:id,f,name:d.n,lvl:1,hp:d.hp,hpMax:d.hp,arm:d.arm,armMax:d.arm,helm:d.helm!=null?d.helm:Math.round(d.arm*.6),apMax:d.ap||9,ap:9,fat:0,fatMax:9999,init:d.init,ms:d.ms,rs:d.rs||0,md:d.md,rd:d.rd,
   brv:d.brv!=null?d.brv:clamp(Math.round(30+d.xp/10),30,85),fearless:d.fearless!=null?!!d.fearless:!!(d.boss||(f==='undead'&&!d.spell)),noHead:!!d.noHead,
   wpn:enemyWpn(d),abs:[],res:{},flags:{},dmgB:0,buffs:[],st:{},alive:true,shield:!!sh,shp:sh?sh.hp:0,shb:sh?{md:sh.md||0,rd:sh.rd||0}:null,
   spell:d.spell,kbN:d.kb||0,kbCh:d.kbCh||0,onhit:d.onhit,sz:d.size>1?d.size:1,fly:!!d.fly,fw:d.fireWeak||0,back:!!(d.rng||d.spell||(d.w&&isRangedW(ITEMS[d.w]))),wid:null,alt:null,wpnAlt:enemySide(d)}))}
@@ -399,7 +399,7 @@ function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.mele
  if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
  if(B.auraOn){ch+=bestAdj(u,'cmd');if(!melee)ch-=bestAdj(t,'guard')}
  ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;
- ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a);return clamp(Math.round(ch),5,95)}
+ ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit;return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
 // Traits: Hard-headed / Glass-jawed (t.flags.headDef) move it the other way; Steady-handed adds to headB.
 function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0)-((t.flags&&t.flags.headDef)||0),0,100)}
@@ -420,7 +420,7 @@ function armorDr(t){const f=t.flags||{};let dr=0;if(f.nimble)dr+=nimbleDr(t);if(
 function drOf(u,t,a){let dr=buffSum(t,'dr')+armorDr(t);const f=t.flags||{};if(f.forged&&t.arm>0)dr+=.15;if(f.drB)dr+=f.drB;if(f.lastStand&&t.hp<t.hpMax/2)dr+=f.lastStand;
  if(f.drRanged||f.drMelee){if(shotKind(u,t,a)===2)dr+=f.drRanged||0;else dr+=f.drMelee||0}
  if(t.shield){if(f.shieldDr)dr+=f.shieldDr;if(f.deflect&&shotKind(u,t,a)===2)dr+=f.deflect}return dr}
-function dmgAfter(u,t,a,dmg,o){const f=u.flags||{};dmg*=1+buffSum(u,'dmg')+(u.dmgB||0)+dmgBonus(u,t,a);
+function dmgAfter(u,t,a,dmg,o){const f=u.flags||{};dmg*=1+buffSum(u,'dmg')+(u.dmgB||0)+dmgBonus(u,t,a)+quarryVs(u,t).dmg;   // quarry: a Monster hunter's bonus against its species
  const hb=(f.exec?.25:0)+(f.vsHurt||0)+(a.vsHurt||0);if(hb&&t.hp<t.hpMax/2)dmg*=1+hb;if(o&&o.splash)dmg*=o.splash;if(T(u).h>T(t).h)dmg*=1.1;if(t.fw&&fireAb(a))dmg*=1+t.fw;
  return Math.round(dmg*Math.max(.2,1-drOf(u,t,a)))}
 // Fire: an ability that sets the target burning (or carries fire:1). Foes with def.fireWeak (ents) take that much more from it, and from burning.
@@ -456,7 +456,8 @@ const heavyHit=t=>Math.max(8,Math.ceil(t.hpMax*HEAVYHIT));              // hitpo
 function applyInjury(u,id){const st=INJ[id].st;for(const k in st){const v=st[k];if(k==='hp'){u.hpMax=Math.max(5,u.hpMax+v);u.hp=Math.min(u.hp,u.hpMax)}else if(k==='fat')u.fatMax=Math.max(20,u.fatMax+v);else if(k==='dmg')u.dmgB=(u.dmgB||0)+v;else u[k]+=v}}
 // Rolls an injury for the merc behind unit t (head or body, permanent or not). Returns its id, or null.
 function inflictInjury(t,head,perm,slow){if(!t.m)return null;const id=rollInjury(t.m,head,perm,slow);if(!id)return null;if(t.alive)applyInjury(t,id);float(t,INJ[id].n,'#ff7a6b');say(`${t.name}: ${INJ[id].n.toLowerCase()}.`);FX.emit('injury',{t,id});return id}
-function killUnit(t,src,head){t.hp=0;t.alive=false;if(t.m){t.down=rnd()<DOWNCH;if(t.down)inflictInjury(t,head,rnd()<PERMCH,true)}   // struck down and alive: always at the price of an injury (a rival's merc too)
+function killUnit(t,src,head){t.hp=0;t.alive=false;if(src)countSlain(src,t);   // the killing blow counts toward the killer's quarry tally (m.slain)
+ if(t.m){t.down=rnd()<DOWNCH;if(t.down)inflictInjury(t,head,rnd()<PERMCH,true)}   // struck down and alive: always at the price of an injury (a rival's merc too)
  say(`${t.name} ${t.m&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
  for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
  if(t.side===1&&B.rival)checkRout(1)}
