@@ -67,3 +67,12 @@
 #inspect .ins-h>.rv-bn{flex:none;align-self:center;margin-right:-4px}
 #inspect .ins-h>.rv-bn+.ins-n{flex:1}
 #inspect .ins-sub .pxi{vertical-align:-3px}
+.mk-trade{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0;padding:4px 6px 4px 4px;background:#0b1514;box-shadow:inset 0 0 0 2px #8a6a2a}
+.mk-trade>span{display:flex;align-items:center;gap:6px;min-width:0}
+.mk-trade>span>span{display:flex;flex-direction:column;line-height:1.1}
+.mk-trade small{font-size:.74rem;color:var(--dim)}
+#pn .mk-trade .pn-btn{min-height:36px}
+#wbContract{position:relative}
+#wbContract .wb-race{position:absolute;left:2px;top:2px;width:16px;height:16px;line-height:0;pointer-events:none}
+@media (prefers-reduced-motion:no-preference){#app:not(.rm) #wbContract.race .wb-race{animation:wb-race 1s steps(2,end) infinite}}
+@keyframes wb-race{50%{transform:translateY(-1px)}}

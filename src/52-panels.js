@@ -148,7 +148,13 @@ function pnParts(e,P){const T=pnTpl();if(!T||pnFocusIn(e)){e.innerHTML=P.join(''
  if(kept&&typeof e.getAnimations==='function'){try{for(const a of e.getAnimations({subtree:true}))if(a.effect&&a.effect.target!==e&&typeof CSSAnimation!=='undefined'&&a instanceof CSSAnimation)a.currentTime=0}catch(x){}}}
 function pnField(x){const t=x.nodeType===1&&x.tagName;return t==='INPUT'||t==='TEXTAREA'||t==='SELECT'||(t&&x.querySelector&&!!x.querySelector('input,textarea,select'))}
 function pnSameAttrs(a,b){const A=a.attributes,B=b.attributes;if(A.length!==B.length)return false;for(let i=0;i<A.length;i++){const x=A[i];if(b.getAttribute(x.name)!==x.value)return false}return true}
-function showPanel(o){const r=panelRoot(),fresh=!PN.id,L=$('pnList'),D=$('pnDetail');
+/* the market's inventory: one button sells every trade good in the stash (world agent's sellTrade / tradePrice), with the total stated */
+function pnTradeBar(o){if(o.id!=='town'||typeof townTab==='undefined'||townTab!=='market'||typeof sellTrade!=='function'||!G||!Array.isArray(G.stash)||typeof o.list!=='string'||o.list.indexOf('sellTrade(')>=0)return;
+ let n=0,v=0;for(const id of G.stash){const it=ITEMS[id];if(!it||it.k!=='t')continue;n++;let q=null;if(typeof tradePrice==='function'){try{q=tradePrice(id,G.town)}catch(e){}}v+=q&&q.v!=null?+q.v:typeof q==='number'?q:pnTgWorth(it)}
+ if(!n)return;const at=o.list.indexOf('<div class="pn-sec"><span>Spare in the stash');if(at<0)return;
+ const bar=`<div class="mk-trade"><span>${pnIcon('tg','',32)}<span><b>${n} trade good${n===1?'':'s'}</b><small>Sell for ${Math.round(v)} crowns here</small></span></span><button type="button" class="pn-btn pri" onclick="sellTrade()">Sell all</button></div>`;
+ o.list=o.list.slice(0,at)+bar+o.list.slice(at)}
+function showPanel(o){try{pnTradeBar(o)}catch(e){}const r=panelRoot(),fresh=!PN.id,L=$('pnList'),D=$('pnDetail');
  if(fresh&&pnSheetUp()&&typeof closeSheet==='function')closeSheet(true);
  const l0=L.scrollTop,d0=D.scrollTop;
  if(PN.lkey)PN.scroll[PN.lkey]=l0;

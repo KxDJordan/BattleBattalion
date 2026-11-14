@@ -125,7 +125,7 @@ function mkMercUnit(m,side){const s=calc(m),res={},c=armorCond(m),sh=s.shield;fo
    mkRivalUnit(m,r): the enemy unit for rival merc m (u.m = m, u.side = 1, u.f = u.rival = r.id). Its formation slot m.slot
    ({row:0 front | 1 back, col}) is mirrored onto the enemy's edge, so the company it faces sees it as its own Lines tab set it.
    rivalPreview(r): what the deployment screen may show of it: [{id,name,bg,bgN,lvl,back,role,hp,hpMax,inj}] (no rnd). */
-const MAXRIVAL=12;
+const MAXRIVAL=12,AMBUSHAP=3;   // o.ambush: every foe loses AMBUSHAP on its first turn; o.duel: a fair start (nothing changes)
 function battleRival(id){if(id==null||id===false)return null;if(typeof id==='object')return id&&Array.isArray(id.roster)?id:null;
  if(typeof rivalById==='function'){try{const r=rivalById(id);if(r&&Array.isArray(r.roster))return r}catch(e){}}
  const L=typeof G!=='undefined'&&G&&Array.isArray(G.rivals)?G.rivals:[];for(const r of L)if(r&&r.id===id&&Array.isArray(r.roster))return r;return null}
@@ -195,7 +195,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
  B=b;const used=new Set(),pu=place(f.map(m=>{const u=mkPlayerUnit(m),s=m.slot;if(dep[m.id])u.slot=dep[m.id];else if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:s.col,r:s.row?DEPLOY.p.back:DEPLOY.p.front};return u}),DEPLOY.p.front,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used),
   eu=place(o.rival?rf.map(m=>mkRivalUnit(m,rv)):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)}),DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
- b.rival=o.rival||null;
+ b.rival=o.rival||null;if(o.ambush)for(const u of eu)u.unready=1;   // an ambush (o.ambush, from a parley): the company acts first in round 1, the foe starts unready
  b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o,used);else b.obj=null;b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
  mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${battleFoeN(o)} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} ${b.rival?'swords':'foes'}.`);nextTurn();return b}
 /* spawnUnit(u): adds a unit mid-battle (reserves, summons, the raised dead). u needs side and its stats (mkEnemy(id,f) and
@@ -618,10 +618,10 @@ function checkEnd(){const b=B;if(!b||b.over)return true;const p=b.units.some(u=>
 async function nextTurn(){const b=B;if(!b||checkEnd())return;
  if(b.opts.turnCap&&b.turns>=b.opts.turnCap){b.over=true;b.busy=true;b.stuck=true;battleSync();if(b.onEnd)b.onEnd({stuck:true,win:false,rounds:b.round,turns:b.turns});return}
  b.turns++;let u=null;
- while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);b.order=al.sort((x,y)=>y.roll-x.roll||x.id-y.id);if(b.obj&&checkEnd())return}
+ while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);const amb=b.round===1&&b.opts.ambush;b.order=al.sort((x,y)=>(amb?x.side-y.side:0)||y.roll-x.roll||x.id-y.id);if(b.obj&&checkEnd())return}
   const x=b.order.shift();if(x.alive&&!x.vip)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
- u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic
+ u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;if(u.unready){u.unready=0;u.ap=Math.max(0,u.ap-AMBUSHAP);float(u,'Caught unready','#ffd27a')}u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic
  u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;auraScan();
  if(u.flags&&u.flags.armRegen>0&&u.armMax>0&&u.arm<u.armMax){const a0=u.arm;u.arm=Math.min(u.armMax,u.arm+u.flags.armRegen);float(u,'Armor +'+(u.arm-a0),'#c8d0d8')}   // Mail mender
  for(const k in u.res)u.res[k].cur=Math.min(u.res[k].max,u.res[k].cur+u.res[k].regen);

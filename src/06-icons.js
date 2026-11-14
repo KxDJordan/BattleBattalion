@@ -6223,6 +6223,9 @@ function icItem(id){const I=typeof ITEMS==='object'&&ITEMS&&ITEMS[id];if(!I)retu
 const TG_KEYS=[[/spice|pepper|saffron|cinnamon|clove/,'tg-spice'],[/salt/,'tg-salt'],[/fur|pelt|hide|fleece/,'tg-furs'],[/glass|crystal|shard/,'tg-glass'],[/ale|beer|mead|cask|barrel/,'tg-ale'],
  [/grain|wheat|flour|barley|corn/,'tg-grain'],[/fish|eel|herring/,'tg-fish'],[/timber|lumber|log|plank|wood/,'tg-timber'],[/ore|iron|ingot|steel|bar|copper|tin/,'tg-ore'],[/herb|tea|leaf|root/,'tg-herbs'],
  [/silk|cloth|linen|wool|dye|velvet|bolt/,'tg-silk'],[/wine|oil|brandy|amphor/,'tg-wine'],[/gem|jewel|amber|pearl|ruby|sapphire|jade/,'tg-gems'],[/cattle|beef|meat|ham/,'tg-furs'],[/yew|stave/,'tg-timber'],[/leather/,'tg-furs']];
+/* the world's trade goods name their icons tg-<item id>: each is the drawing of its good */
+(function(){const A={flour:'tg-grain',hides:'tg-leather',saltfish:'tg-fish',ironbar:'tg-ore',yewstaves:'tg-yew',furbale:'tg-furs',herbbundle:'tg-herbs',saltbrick:'tg-salt',spices:'tg-spice',riftglass:'tg-glass',alecask:'tg-ale'};
+ for(const k in A)if(ICONS[A[k]]&&!ICONS['tg-'+k]){ICONS['tg-'+k]=ICONS[A[k]];if(typeof icCss==='function')icCss('tg-'+k)}})();
 function tgIcon(id){const I=typeof ITEMS==='object'&&ITEMS&&ITEMS[id];if(!I)return'tg';if(I.icon&&icHas(I.icon))return I.icon;if(I.good&&icHas('tg-'+I.good))return'tg-'+I.good;if(icHas('tg-'+id))return'tg-'+id;
  const s=(id+' '+(I.n||'')+' '+(I.good||'')).toLowerCase();for(const [re,n] of TG_KEYS)if(re.test(s))return n;return'tg'}
 /* it-<id>: every item draws its own icon from the same cells / painters as its battle sprite (73-units.js);

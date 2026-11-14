@@ -88,7 +88,7 @@ function rivalResolve(b,res,win){const r=typeof battleRival==='function'?battleR
 function rivalJoin(res){res=res||(typeof B!=='undefined'&&B&&B.result)||null;const rr=res&&res.rival,j=rr&&rr.joiner;if(!j||j.taken||j.declined)return null;
  if(G.roster.length>=MAXROSTER){j.room=false;return null}const r=battleRival(rr.id),i=r?r.roster.findIndex(m=>m.id===j.id):-1;if(i<0)return null;
  const m=r.roster.splice(i,1)[0];if(G.roster.some(x=>x.id===m.id)||!Number.isInteger(m.id))m.id=G.nid++;delete m.rv;delete m.dead;m.slot=null;m.hp=Math.max(1,m.hp);
- m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);j.taken=true;j.id=m.id;if(!r.roster.length)rr.wiped=true;return m}
+ m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);j.taken=true;j.id=m.id;if(!r.roster.length){rr.wiped=true;if(!(typeof B!=='undefined'&&B)&&typeof rvWipe==='function')rvWipe(r,'when its last sword joined '+(G.name||'the company'))}return m}   // before settleBattle the world wipes it itself
 // The cargo of the caravan a won battle was against, for the results sheet: {good, text} (cargoText, 40-world.js), or null.
 // It is the world's to hand over (cargoTake, from worldBattleEnd in settleBattle); this only reads it.
 function caravanCargo(s){if(!s||s.type!=='party'||!G||!Array.isArray(G.parties))return null;const p=G.parties.find(q=>q.id===s.id);if(!p||p.goal!=='caravan'||!p.cargo)return null;

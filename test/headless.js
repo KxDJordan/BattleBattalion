@@ -1117,6 +1117,10 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    rv=setup('honour',SEED+3500);rv.roster.length=0;const fb=X.startBattle({f:'rH',rival:'rH',quiet:true,src:{type:'test'},turnCap:TURNCAP,onEnd(){}});ok(fb&&!fb.rival&&X.FACT[fb.opts.f],'an empty rival company did not fall back to a faction');X.B=null;X.mode='world';
    rv=setup('honour',SEED+3501);{const b=X.startBattle({f:'rH',rival:'rH',quiet:true,src:{type:'test'},turnCap:TURNCAP,onEnd(){}}),eu=b.units.filter(u=>u.side===1);b.busy=true;
     for(let k=0;k<Math.ceil(eu.length/2)-1;k++){eu[k].alive=false;eu[k].hp=0}ok(!X.rivalBroken(b),'the rival broke too early');X.killUnit(eu[Math.ceil(eu.length/2)-1],null,false);ok(b.rout[1]&&eu.filter(u=>u.alive&&!u.fearless).every(u=>u.mor===0),'a rival that lost half its swords did not break');b.over=true;X.B=null;X.mode='world'}
+   // an ambush (parley 'attack'): the company acts first in round 1 and every foe starts its first turn AMBUSHAP short
+   rv=setup('greedy',SEED+3502);{const seen=[];const b=X.startBattle({f:'rH',rival:'rH',ambush:1,quiet:true,src:{type:'test'},turnCap:TURNCAP,onEnd(){}});const n0=b.units.filter(u=>u.side===0).length;
+    ok(b.cur&&b.cur.side===0&&b.order.slice(0,n0-1).every(u=>u.side===0),'an ambush did not give the company the first round');const e=b.order.find(u=>u.side===1);ok(e&&e.unready===1,'ambushed foes are not unready');
+    b.over=true;X.B=null;X.mode='world'}
    // caravan cargo on the results sheet (the world hands it over through worldBattleEnd)
    if(typeof X.cargoText==='function'){X.G.roster=X.clone(ours);const p={id:99901,goal:'caravan',f:X.G.houses&&X.G.houses[0]?X.G.houses[0].id:'free',x:X.G.p.x,y:X.G.p.y,mult:.5,cargo:{good:'grain',crowns:40,items:[],food:6,tools:0,salves:0,parts:{},trade:[]}};X.G.parties.push(p);
     const cc=X.caravanCargo({type:'party',id:p.id});ok(cc&&typeof cc.text==='string'&&cc.text.length>0,'caravanCargo does not read the cargo');X.G.parties=X.G.parties.filter(q=>q!==p)}
