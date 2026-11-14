@@ -184,6 +184,15 @@ function port(u,size){size=size||32;if(u&&u.def&&typeof monsterPortraitURL==='fu
  if(typeof portraitHTML==='function'){try{const c=_portC&&_portC.get(u);if(c&&c[size])return c[size];const h=portraitHTML(u,size);if(h){if(_portC){const o=c||{};o[size]=h;_portC.set(u,o)}return h}}catch(e){}}
  return'<span class="pfb s'+u.side+'" style="width:'+size+'px;height:'+size+'px">'+esc(uInit(u.name))+'</span>'}
 function setHTML(id,h){const e=$(id);if(!e||e._h===h)return false;const st=e.scrollTop,sl=e.scrollLeft;e.innerHTML=h;e._h=h;e.scrollTop=st;e.scrollLeft=sl;return true}
+/* setHTMLs([[id,html,zeroX],...]): setHTML for several elements without layout thrash. Every scroll offset is read before the first
+   write (one layout at most, none when nothing changed) and only a non-zero offset is put back (a zero one cannot have moved, and
+   writing it forces another layout). zeroX: the element scrolls back to its left edge when its contents change. parts: the html as
+   whole-element pieces (the turn order's tokens), written through pnParts (52-panels.js) so a hit re-parses one token, not all. */
+const _shW=[];
+function setHTMLs(L){let n=0;for(const x of L){const e=$(x[0]);if(!e||e._h===x[1])continue;const w=_shW[n]||(_shW[n]={e:null,h:'',st:0,sl:0,z:false,p:null});w.e=e;w.h=x[1];w.z=!!x[2];w.p=x[3]||null;n++}
+ if(!n)return;for(let i=0;i<n;i++){const w=_shW[i];w.st=w.e.scrollTop;w.sl=w.e.scrollLeft}
+ for(let i=0;i<n;i++){const w=_shW[i];if(w.p&&typeof pnParts==='function')pnParts(w.e,w.p);else{w.e.innerHTML=w.h;w.e._pp=null}w.e._h=w.h}
+ for(let i=0;i<n;i++){const w=_shW[i],e=w.e;if(w.st)e.scrollTop=w.st;if(w.sl&&!w.z)e.scrollLeft=w.sl;else if(w.sl)e.scrollLeft=0;w.e=null;w.h='';w.p=null}}
 function focusUnit(id){if(!B)return;const u=B.units[id];if(!u||!u.alive)return;B.cam.tx=u.sx;B.cam.ty=u.sy-10;say(unitLine(u)+'.')}
 const ABICO={shove:'a-shove',aimed:'a-aim',pin:'a-pin',footwork:'a-step',adren:'a-bolt',indom:'a-ward',bolt:'a-orb',fireball:'a-flame',blink:'a-blink',chain:'a-chain',astrike:'a-slash',awave:'a-wave',crush:'a-hammer',adash:'a-dash',flame:'a-flame',frost:'a-snow',gale:'a-wind',thunder:'a-burst',reinforce:'a-guard',mend:'a-cross',empower:'a-up',swift:'a-clock'};
 const WTICO={sword:1,axe:1,mace:1,dagger:1,spear:1,bow:1,staff:1,fist:1};
@@ -209,11 +218,13 @@ function abDesc(id,u){if(id==='attack'){const w=u.wpn||{};return SH_ATKD[w.wt]||
 function abLine(u,a){const d=abDesc(a.id,u);return'<b>'+esc(a.n)+'</b><span>'+a.ap+' AP'+(a.fat>0?' · '+a.fat+' fat':'')+(a.cost?' · <em style="color:'+RESC[a.cost[0]]+'">'+a.cost[1]+' '+RESN[a.cost[0]]+'</em>':'')+'</span>'+(d&&d.toLowerCase()!==String(a.n).toLowerCase()?'<i>'+esc(d)+'</i>':'')}
 let abPeek=null,abPeekT=0;
 function abHint(id){abPeek=id;clearTimeout(abPeekT);abPeekT=setTimeout(()=>{abPeek=null;updateBUI()},2600);updateBUI()}
-function orderHTML(u){const tok=(x,cls)=>{const hp=Math.max(0,Math.round(100*x.hp/x.hpMax)),m=shMor(x),fl=m===0,tele=B.tele&&B.tele.length&&B.tele.some(q=>q.u===x);
+function orderHTML(u){return orderParts(u).join('')}
+// the turn order as pieces: the round, the objective chip, the unit acting, then the rest (each one whole element, or '')
+function orderParts(u){const tok=(x,cls)=>{const hp=Math.max(0,Math.round(100*x.hp/x.hpMax)),m=shMor(x),fl=m===0,tele=B.tele&&B.tele.length&&B.tele.some(q=>q.u===x);
   return'<button class="oc s'+x.side+' '+cls+(fl?' flee':m===1?' brk':'')+(tele?' tele':'')+'" onclick="focusUnit('+x.id+')" aria-label="'+esc(x.name)+', '+x.hp+' of '+x.hpMax+' hitpoints'+(shLoaded(x)===false?', unloaded':'')+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')+'" title="'+esc(x.name)+(fl?' (fleeing)':'')+'">'+port(x,32)
    +(fl?'<span class="omk">'+pic('morale-0',16,'flag')+'</span>':tele?'<span class="omk">'+pic('telegraph',16,'a-burst')+'</span>':'')+(shLoaded(x)===false?'<span class="oul" title="Unloaded">'+shUnlMark()+'</span>':'')+'<i class="ohp'+(hp<34?' low':'')+'"><b style="width:'+hp+'%"></b></i></button>'};
  const rest=B.order.filter(x=>x&&x.alive);
- return'<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>'+objChipHTML()+tok(u,'cur')+rest.map(x=>tok(x,'')).join('')}
+ const P=['<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>',objChipHTML(),tok(u,'cur')];for(const x of rest)P.push(tok(x,''));return P}
 function statI(icon,svg,val,cls,title,col){return'<span class="si '+cls+'" title="'+title+'"'+(col?' style="color:'+col+'"':'')+'>'+pic(icon,16,svg)+'<b>'+val+'</b></span>'}
 function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>(x.key!=='unloaded'||shLoaded(u)===null)&&x.key!=='tired');   // the weapon carries the unloaded badge; Tired has its own marker by the stamina
  for(let i=0;i<L.length&&i<6;i++)h+=SH_VALST[L[i].key]?stVal(L[i].key,L[i].turns|0):stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
@@ -254,8 +265,7 @@ function shWrongHand(u,id){if(typeof useBlock!=='function')return false;let r=''
 function barIds(u){const ids=['attack'];if(AB.reload&&(shReloadW(shHand(u))||(u.abs||[]).includes('reload')))ids.push('reload');for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id)&&!shWrongHand(u,id))ids.push(id);
  if(AB.withdraw&&!ids.includes('withdraw')&&u.r===shEdge(u))ids.push('withdraw');return ids}
 function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side===0&&!B.auto&&u.mor!==0;fcCheck();planOK();
- if(setHTML('order',orderHTML(u))){const o=$('order');if(o)o.scrollLeft=0}
- setHTML('uinfo',cardHTML(u));
+ const op=orderParts(u),oh=op.join(''),ch=cardHTML(u);   // written together with the bars below (setHTMLs)
  const bl=$('blog');if(bl&&bl.textContent!==(B.log||''))bl.textContent=B.log||'';
  let hdr='',h='',dense=false;
  if(!mine)h='<div class="await s'+u.side+'"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><b>'+esc(u.name)+'</b><span>'+(u.mor===0?'fleeing':u.side===0?'auto':'acting')+'</span></div>';
@@ -271,8 +281,8 @@ function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side==
    h+='<button class="ab pxb '+(B.sel===id?'sel on':'')+(a.withdraw?' wd':'')+(ok?'':' off')+(pw?' pl':'')+(lk||plk?' lk':'')+(rl?' rl':'')+'" aria-disabled="'+!ok+'" aria-pressed="'+(B.sel===id)+'" aria-label="'+esc(a.n)+', '+a.ap+' AP'+(a.cost?', '+a.cost[1]+' '+RESN[a.cost[0]]:'')+(why?', '+esc(why.toLowerCase()):'')+'" title="'+esc(a.n+(why?' ('+why.toLowerCase()+')':''))+'" onpointerdown="abHint(\''+id+'\')" onclick="selAb(\''+id+'\')"'+(a.cost?' style="--rc:'+RESC[a.cost[0]]+'"':'')+'>'+abIcon(u,id,32)+'<b class="apc">'+a.ap+'</b>'+(a.cost?'<em class="rcc">'+a.cost[1]+'</em>':'')+(lk||plk?'<i class="lkb">'+pic('lock',16,'a-burst')+'</i>':'')+'</button>'})}
  const hd=$('ahdr');if(hd&&hd._h!==hdr){hd.innerHTML=hdr;hd._h=hdr;hd.classList.toggle('on',!!hdr);hd.classList.toggle('aim',!!(mine&&(B.sel||FC.armed)))}
  const ab=$('abar');if(ab&&ab._d!==dense){ab._d=dense;ab.classList.toggle('dense',dense)}
- setHTML('abar',h);setHTML('bcmd',cmdHTML(u,mine));
- setHTML('bend',swapHTML(u,mine)+'<button class="pri end pxb" aria-label="End turn" title="End turn" '+(mine&&!B.busy&&!B.over?'':'disabled')+' onclick="endTurn()">'+pic('endturn',32,'glass')+'</button>')}
+ setHTMLs([['order',oh,1,op],['uinfo',ch],['abar',h],['bcmd',cmdHTML(u,mine)],
+  ['bend',swapHTML(u,mine)+'<button class="pri end pxb" aria-label="End turn" title="End turn" '+(mine&&!B.busy&&!B.over?'':'disabled')+' onclick="endTurn()">'+pic('endturn',32,'glass')+'</button>']])}
 /* weapon swap control beside the end-turn button: the weapon in hand (big), the backup (small), the cost (AP or FREE) */
 function swapCost(u,a){a=a||abilityInfo(u,'swap');let ap=a.ap|0;try{if(typeof swapAP==='function'){const v=swapAP(u);if(typeof v==='number')ap=v}}catch(e){}return ap}
 function swapHTML(u,mine){if(!mine||!AB.swap||!u||u.side!==0)return'';const alt=shAlt(u);if(!alt&&!(u.abs||[]).includes('swap'))return'';

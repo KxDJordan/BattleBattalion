@@ -44,8 +44,13 @@ function monsterFrames(u,st){const k=monsterKind(u);if(!k)return 0;const K=MSK[k
 /* ---- painter: shapes filled into the part grid (design coordinates) ---- */
 function msBegin(K){const g0=K.g,id=g0[0]+'x'+g0[1];let g=MS.grids.get(id);if(!g){g=usGrid(g0[0],g0[1]);MS.grids.set(id,g)}usWipe(g);usG=g;usOX=g0[2];usOY=g0[3];usZ=0;usGrp=0;return g}
 const msT0=()=>0;
+// A row of an ellipse is one run (the test grows with |x - cx|), so only its two ends are searched; the pixels in between are
+// painted in the same order with the same tex calls as a test of every pixel.
 function msE(cx,cy,rx,ry,R,tex){tex=tex||msT0;const y0=Math.floor(cy-ry-1),y1=Math.ceil(cy+ry+1),x0=Math.floor(cx-rx-1),x1=Math.ceil(cx+rx+1);
- for(let y=y0;y<=y1;y++){const b=(y+.5-cy)/ry;if(b*b>1)continue;for(let x=x0;x<=x1;x++){const a=(x+.5-cx)/rx;if(a*a+b*b<=1)usP(x,y,R,tex(x,y))}}}
+ for(let y=y0;y<=y1;y++){const b=(y+.5-cy)/ry,bb=b*b;if(bb>1)continue;let xa=x0,xb=x1;
+  for(;xa<=x1;xa++){const a=(xa+.5-cx)/rx;if(a*a+bb<=1)break}
+  for(;xb>xa;xb--){const a=(xb+.5-cx)/rx;if(a*a+bb<=1)break}
+  for(let x=xa;x<=xb;x++)usP(x,y,R,tex(x,y))}}
 function msD(cx,cy,r,R,tex){if(r<.75){usP(Math.floor(cx),Math.floor(cy),R,tex?tex(Math.floor(cx),Math.floor(cy)):0);return}msE(cx,cy,r,r,R,tex)}
 function msPoly(pts,R,tex){tex=tex||msT0;let y0=1e9,y1=-1e9;for(const p of pts){if(p[1]<y0)y0=p[1];if(p[1]>y1)y1=p[1]}const n=pts.length;
  for(let y=Math.floor(y0);y<=Math.ceil(y1);y++){const yc=y+.5,X=[];for(let i=0,j=n-1;i<n;j=i++){const a=pts[i],b=pts[j];if((a[1]>yc)!==(b[1]>yc))X.push(a[0]+(yc-a[1])*(b[0]-a[0])/(b[1]-a[1]))}X.sort((p,q)=>p-q);
@@ -829,9 +834,14 @@ mlll0lllll0llm..
 /* ================= API: build, cache ================= */
 const MSD={adder:msAdder,viper:msViper,gserpent:msGserpent,ent:(v,st,fr,va)=>msEnt(v,st,fr,va,MS_ENT),elder:msElder,thorn:msThorn,ogre:(v,st,fr,va)=>msOgre(v,st,fr,va,0),aogre:msAogre,wyvern:(v,st,fr,va)=>msWyvern(v,st,fr,va,1.1),hatch:msHatch,wagon:msWagon};
 const MS_VAR={attack:1,cast:1};
+/* Facings 0 and 1 (and 3 and 2) paint the same figure, one of them flipped before shading: the painted grid (and the part tables
+   usShade reads) of the last few paints is kept, so the mirrored facing skips the painting and only flips and shades. */
+const MS_PG=[];
+function msPgSave(pk,g){const e={pk,R:g.R.slice(),F:g.F.slice(),Z:g.Z.slice(),B:g.B.slice(),OL:usOL.slice(),NC:usNC.slice(),z:usZ};MS_PG.unshift(e);if(MS_PG.length>12)MS_PG.length=12}
+function msPgLoad(pk,g){for(const e of MS_PG){if(e.pk!==pk||e.R.length!==g.R.length)continue;const R=g.R,F=g.F;for(let i=0;i<R.length;i++){R[i]=e.R[i];F[i]=e.F[i]}g.Z.set(e.Z);g.B.set(e.B);usOL.set(e.OL);usNC.set(e.NC);usZ=e.z;return true}return false}
 function msBuild(kind,face,st,fr,va){if(typeof document==='undefined')return null;const K=MSK[kind],t0=typeof performance!=='undefined'?performance.now():0,v=face>=2?1:0,mir=face===1||face===2;
- if(typeof usGrid!=='function'||typeof usResolve!=='function')return null;msBegin(K);
- try{MSD[kind](v,st,fr,va||'')}catch(e){if(!MS.err){MS.err=1;if(typeof console!=='undefined')console.error('monster sprite',kind,st,fr,e)}}
+ if(typeof usGrid!=='function'||typeof usResolve!=='function')return null;msBegin(K);const pk=kind+'|'+v+'|'+st+'|'+fr+'|'+(va||'');
+ if(!msPgLoad(pk,usG)){try{MSD[kind](v,st,fr,va||'')}catch(e){if(!MS.err){MS.err=1;if(typeof console!=='undefined')console.error('monster sprite',kind,st,fr,e)}}msPgSave(pk,usG)}
  if(mir)usFlip(usG);const cv=usResolve(usG,true);MS.builds++;if(t0)MS.ms+=performance.now()-t0;return cv?{cv,ax:mir?K.g[0]-1-K.g[2]:K.g[2],ay:K.g[3]}:null}
 function msNorm(kind,st){const K=MSK[kind];if(!MS_FR[st])st='idle';const F=K.fr&&K.fr[st]||MS_FR[st];return[st,F]}
 function monsterSpriteOf(kind,face,state,frame,va){if(!MSK[kind]||!MSD[kind])return null;const n=msNorm(kind,state),st=n[0],F=n[1];face=((face|0)%4+4)%4;frame=((frame|0)%F+F)%F;va=MS_VAR[st]&&va?va:'';
@@ -839,7 +849,9 @@ function monsterSpriteOf(kind,face,state,frame,va){if(!MSK[kind]||!MSD[kind])ret
 function monsterSpritePx(u,face,state,frame){if(typeof document==='undefined')return null;const k=monsterKind(u);if(!k||!MSD[k])return null;let va='';if(MS_VAR[state]&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
  return monsterSpriteOf(k,face,state,frame,va)}
 /* pre-build a monster's common frames (the board warms one unit and one facing a frame at the start of a battle) */
-function monsterSpriteWarm(u,faces){const k=monsterKind(u);if(!k||!MSD[k])return 0;let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of['idle','walk','hit']){const F=msNorm(k,st)[1];for(let i=0;i<F;i++){const id=k+'|'+f+'|'+st+'|'+i+'|';if(!MS.fr.has(id)){monsterSpriteOf(k,f,st,i,'');n++}}}}return n}
+// optional: until (performance.now() deadline: stops before a build past it and sets MS.cut), states (a subset of MS_WARM)
+const MS_WARM=['idle','walk','hit'];
+function monsterSpriteWarm(u,faces,until,states){MS.cut=0;const k=monsterKind(u);if(!k||!MSD[k])return 0;let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of MS_WARM){if(states&&states.indexOf(st)<0)continue;const F=msNorm(k,st)[1];for(let i=0;i<F;i++){const id=k+'|'+f+'|'+st+'|'+i+'|';if(!MS.fr.has(id)){if(until&&performance.now()>=until){MS.cut=1;return n}monsterSpriteOf(k,f,st,i,'');n++}}}}return n}
 function monsterSpriteBox(u){const i=monsterInfo(u);return i.kind?{w:i.wide*2,h:i.top}:null}
 
 /* ================= PORTRAITS: a 32x32 window on the figure's front view (idle), over the foes' portrait ground ================= */

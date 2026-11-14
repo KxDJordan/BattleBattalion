@@ -20,7 +20,7 @@ function usWipe(g){g.R.fill(null);g.F.fill(null);g.Z.fill(0);g.B.fill(0)}
 function usBegin(big){let g=US.grid[big];const d=US_DIM[big];if(!g){g=US.grid[big]=usGrid(d.w,d.h);US.tmp[big]=usGrid(d.w,d.h)}usWipe(g);usG=g;usOX=d.ax;usOY=d.ay;usZ=0;usGrp=0;usGl=0;usGL.fill(0);return g}
 function usPart(nc){if(usZ<250)usZ++;usNC[usZ]=nc?1:0;usOL[usZ]=usGrp;usGL[usZ]=usGl;return usZ}
 function usI(x,y){x+=usOX;y+=usOY;return x<0||y<0||x>=usG.w||y>=usG.h?-1:y*usG.w+x}
-function usP(x,y,r,b){const i=usI(x,y);if(i<0||!r)return;if(typeof r==='string'){usG.R[i]=null;usG.F[i]=r}else{usG.R[i]=r;usG.F[i]=null}usG.Z[i]=usZ;usG.B[i]=b|0}
+function usP(x,y,r,b){x+=usOX;y+=usOY;const g=usG;if(x<0||y<0||x>=g.w||y>=g.h||!r)return;const i=y*g.w+x;if(typeof r==='string'){g.R[i]=null;g.F[i]=r}else{g.R[i]=r;g.F[i]=null}g.Z[i]=usZ;g.B[i]=b|0}   // usI inlined: the hottest call of a sprite build
 function usF(x,y,k){const i=usI(x,y);if(i<0)return;if(!usG.Z[i])usG.Z[i]=usZ;usG.F[i]=k}                 // detail pixel, keeps the part beneath
 function usB(x,y,d){const i=usI(x,y);if(i>=0&&usG.R[i])usG.B[i]+=d}
 function usE(x,y){const i=usI(x,y);if(i<0)return;usG.R[i]=null;usG.F[i]=null;usG.Z[i]=0;usG.B[i]=0}
@@ -29,13 +29,23 @@ function usRect(x0,y0,x1,y1,r,b){const f=typeof b==='function';for(let y=y0;y<=y
 function usFlip(g){const w=g.w,R=g.R,F=g.F,Z=g.Z,B=g.B;for(let y=0;y<g.h;y++)for(let a=y*w,b=a+w-1;a<b;a++,b--){let t=R[a];R[a]=R[b];R[b]=t;t=F[a];F[a]=F[b];F[b]=t;t=Z[a];Z[a]=Z[b];Z[b]=t;t=B[a];B[a]=B[b];B[b]=t}}
 function usRGB(){const o={};for(const k in PAL){const v=parseInt(PAL[k].slice(1),16);o[k]=[v>>16&255,v>>8&255,v&255]}return o}
 /* shade + outline -> canvas (usResolveKeys: the same pass -> rows of PAL keys, for icons and portraits) */
+// Little-endian (every phone): one 32-bit write per pixel, into one ImageData per grid size reused across builds (no garbage per sprite).
+const US_LE=new Uint8Array(new Uint32Array([1]).buffer)[0]===1,US_ID=new Map();
+function usP32(){const o={};for(const k in PAL){const v=parseInt(PAL[k].slice(1),16);o[k]=(0xff000000|(v&255)<<16|(v&0xff00)|(v>>16&255))>>>0}return o}
 function usResolve(g,deep){const w=g.w,h=g.h,cv=pxCanvas(w,h);if(!cv||!cv.getContext)return null;const q=cv.getContext('2d');if(!q||!q.createImageData)return null;
+ if(US_LE){const id=w*65536+h;let e=US_ID.get(id);if(!e){const im=q.createImageData(w,h);e={im,d:new Uint32Array(im.data.buffer),y0:0,y1:h-1};US_ID.set(id,e)}const d=e.d,P=US.p32||(US.p32=usP32());d.fill(0,e.y0*w,(e.y1+1)*w);   // clear the rows the last sprite used
+  const bx=usShade(g,deep,(i,k)=>{const c=P[k];if(c)d[i]=c});if(!bx){e.y0=0;e.y1=-1;return cv}e.y0=bx[1];e.y1=bx[3];q.putImageData(e.im,0,0,bx[0],bx[1],bx[2]-bx[0]+1,bx[3]-bx[1]+1);return cv}
  const im=q.createImageData(w,h),d=im.data,rgb=US.rgb||(US.rgb=usRGB());usShade(g,deep,(i,k)=>{const c=rgb[k];if(c){const j=i*4;d[j]=c[0];d[j+1]=c[1];d[j+2]=c[2];d[j+3]=255}});q.putImageData(im,0,0);return cv}
 function usResolveKeys(g,deep){const w=g.w,o=[];for(let y=0;y<g.h;y++)o.push(new Array(w).fill('.'));usShade(g,deep,(i,k)=>{o[(i/w)|0][i%w]=k});return o.map(r=>r.join(''))}
 /* a private grid of any size for icons / portraits: usBeginAt(w,h,ox,oy) ... usResolveKeys(usG) */
 const US_GX=new Map();function usBeginAt(w,h,ox,oy){const k=w+'x'+h;let g=US_GX.get(k);if(!g){g=usGrid(w,h);US_GX.set(k,g)}usWipe(g);usG=g;usOX=ox|0;usOY=oy|0;usZ=0;usGrp=0;return g}
-function usShade(g,deep,put){const w=g.w,h=g.h,R=g.R,F=g.F,Z=g.Z,B=g.B;
- for(let y=0,i=0;y<h;y++)for(let x=0;x<w;x++,i++){const z=Z[i];let k;
+// Only the box round the painted cells (plus the outline ring) can produce a pixel: find it with one cheap pass over Z, shade
+// inside it in the same row-major order, and return it [x0,y0,x1,y1] (null: nothing painted) for a partial putImageData.
+const US_BOX=[0,0,0,0];
+function usShade(g,deep,put){const w=g.w,h=g.h,R=g.R,F=g.F,Z=g.Z,B=g.B;let bx0=w,bx1=-1,by0=-1,by1=-1;
+ for(let y=0,r=0;y<h;y++,r+=w){let a=0;while(a<w&&!Z[r+a])a++;if(a===w)continue;let b=w-1;while(!Z[r+b])b--;if(a<bx0)bx0=a;if(b>bx1)bx1=b;if(by0<0)by0=y;by1=y}
+ if(by0<0)return null;const X0=bx0>0?bx0-1:0,X1=bx1<w-1?bx1+1:w-1,Y0=by0>0?by0-1:0,Y1=by1<h-1?by1+1:h-1;US_BOX[0]=X0;US_BOX[1]=Y0;US_BOX[2]=X1;US_BOX[3]=Y1;
+ for(let y=Y0;y<=Y1;y++)for(let x=X0,i=y*w+X0;x<=X1;x++,i++){const z=Z[i];let k;
   if(z){k=F[i];const r=R[i];
    const zl=x>0?Z[i-1]:0,zu=y>0?Z[i-w]:0,zr=x<w-1?Z[i+1]:0,zd=y<h-1?Z[i+w]:0,og=usOL[z];
    if((zl>z&&usOL[zl]&&usOL[zl]!==og)||(zu>z&&usOL[zu]&&usOL[zu]!==og)||(zr>z&&usOL[zr]&&usOL[zr]!==og)||(zd>z&&usOL[zd]&&usOL[zd]!==og))k='0';
@@ -45,7 +55,8 @@ function usShade(g,deep,put){const w=g.w,h=g.h,R=g.R,F=g.F,Z=g.Z,B=g.B;
      else if(deep&&!lit&&!dk&&((x<w-2&&!Z[i+2])||(y<h-2&&!Z[i+2*w])))e=-1}
     let t=r.b+B[i]+e;const n=r.t.length;if(t<0)t=0;else if(t>=n)t=n-1;k=r.t[t]}}
   else if((x>0&&Z[i-1])||(x<w-1&&Z[i+1])||(y>0&&Z[i-w])||(y<h-1&&Z[i+w]))k='0';
-  if(k)put(i,k)}}
+  if(k)put(i,k)}
+ return US_BOX}
 
 /* ---- ramps: tones dark -> light, b = resting tone ---- */
 function usRamp(t,b){return{t,b:b==null?1:b}}
@@ -1037,8 +1048,9 @@ function usGlintFrame(o,ph){const c=pxCanvas(o.cv.width,o.cv.height);if(!c)retur
 function usMon(u,face,state,frame){if(!u||!u.def||u.m||typeof monsterSpritePx!=='function')return null;try{return monsterSpritePx(u,face,state,frame)||null}catch(e){return null}}   // monster art (76-monsters.js) draws its own enemies first
 function unitSpritePx(u,face,state,frame){const M=usMon(u,face,state,frame);if(M)return M;const L=usLook(u),n=UNIT_FRAMES[state];if(!n){state='idle'}const nf=UNIT_FRAMES[state];
  face=((face|0)%4+4)%4;frame=((frame|0)%nf+nf)%nf;const i=face*US_NF+US_OFF[state]+frame;const o=L.fr[i]||(L.fr[i]=usBuild(L,face,state,frame));return o.gl?usGlint(o):o}
-/* pre-build every frame of a unit (call at battle start); returns the number of frames built */
-function unitSpriteWarm(u,faces){if(usMon(u,0,'idle',0))return 0;const L=usLook(u);let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of US_WARM)for(let k=0;k<UNIT_FRAMES[st];k++){const i=f*US_NF+US_OFF[st]+k;if(!L.fr[i]){L.fr[i]=usBuild(L,f,st,k);n++}}}return n}
+/* pre-build every frame of a unit (call at battle start); returns the number of frames built.
+   Optional: until (a performance.now() deadline: stops before a build past it and sets US.cut), states (a subset of US_WARM). */
+function unitSpriteWarm(u,faces,until,states){US.cut=0;if(usMon(u,0,'idle',0))return 0;const L=usLook(u);let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of states||US_WARM)for(let k=0;k<UNIT_FRAMES[st];k++){const i=f*US_NF+US_OFF[st]+k;if(!L.fr[i]){if(until&&performance.now()>=until){US.cut=1;return n}L.fr[i]=usBuild(L,f,st,k);n++}}}return n}
 function unitSpriteBox(u){if(u&&u.def&&!u.m&&typeof monsterSpriteBox==='function'){try{const b=monsterSpriteBox(u);if(b)return b}catch(e){}}const M=usMon(u,0,'idle',0);if(M&&M.cv)return M.box||{w:M.cv.width,h:Math.max(8,Math.min(M.cv.height,(M.ay|0)||M.cv.height)),mon:1};const L=usLook(u);return L.big?{w:40,h:48}:{w:24,h:32}}
 /* crafted items draw their icon from the same painters as their sprite (06-icons.js icItemRows), replacing any stand-in registered earlier */
 (function(){if(typeof ITEMS!=='object'||typeof ICONS!=='object'||typeof icItemRows!=='function')return;for(const id in ITEMS){if(!ITEMS[id].craft)continue;const n='it-'+id;let r=null;try{r=icItemRows(id)}catch(e){r=null}if(!r)continue;

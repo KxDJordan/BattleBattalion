@@ -9,7 +9,7 @@
    Route: MP.wps = [{x,y,dest,kind,ref,label}], MP.legs = [{path,hours}] (leg i ends at wps[i]). */
 const MP={open:false,root:null,cv:null,q:null,d:1,us:1,tp:4,z:1,zf:1,zmax:1,cx:0,cy:0,cw:0,ch:0,inner:{x:0,y:0,w:1,h:1},view:{x:0,y:0,w:1,h:1},
  wps:[],legs:[],sel:null,labels:true,roads:true,legend:false,terr:null,terrKey:'',lab:null,labKey:'',inc:null,incKey:'',
- dirty:true,raf:0,frame:0,ptr:new Map(),gs:null,queue:null,qTimer:0,qBattle:false,wxSig:'',MAXWP:8,F:6};
+ dirty:true,raf:0,frame:0,bc:null,bcq:null,bcOk:false,bsA:[],bsB:[],bsN:-1,ptr:new Map(),gs:null,queue:null,qTimer:0,qBattle:false,wxSig:'',MAXWP:8,F:6};
 const MPTERR=['Open water','Grassland','Forest','Hills','Mountains','Marsh','Desert','Snowfield'];
 const MPKEY=['X','v','B','m','o','7','d','q'];            // fallback terrain colours (PAL keys) by terrain code
 const MPSIZE=['','Hamlet','Town','City'];
@@ -335,9 +335,7 @@ function mpDots(q,pts,col,phase,seen){const us=MP.us,step=7*us;let acc=phase?ste
 function mpContractMark(){const L=G.contract?lkCtrMarks():[];for(const m of L)if(m.kind!=='turnin')return{kind:m.kind,x:m.x,y:m.y};for(const m of L)return{kind:'turnin',x:m.x,y:m.y,town:true};return null}
 function mpKnownPortals(){return(G.portals||[]).filter(p=>mpSeenW(p.x,p.y))}
 function mpKnownRuins(){return(Array.isArray(G.sites)?G.sites:[]).filter(s=>s&&(s.kind==='ruin'||!s.kind)&&mpSeenW(s.x,s.y))}
-function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!q||!G||!W)return;
- const terr=mpTerrain(),o=mpOrigin(),k=mpK(),Wp=WN*MP.tp*z,X=wx=>o.x+Math.round(wx*k),Y=wy=>o.y+Math.round(wy*k),fr=MP.frame;
- q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=false;q.globalAlpha=1;
+function mpDrawBase(q,us,I,z,cw,ch,terr,o,Wp,X,Y,tc,inc,ru){
  /* parchment page */
  mpFill(q,'l',0,0,cw,ch);const sp=MP.speck||(MP.speck=(function(){const rows=[];for(let y=0;y<48;y++){let s='';for(let x=0;x<48;x++){const h=mpHash(x,y,9);s+=h<.012?'k':h<.06?'m':'.'}rows.push(s)}return rows})());
  const sc=pxScaled('mps:speck',sp,us);if(sc)for(let y=0;y<ch;y+=sc.height)for(let x=0;x<cw;x+=sc.width)q.drawImage(sc,x,y);
@@ -345,16 +343,31 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  /* the sheet, with a neatline */
  mpFill(q,'m',o.x-us,o.y-us,Wp+4*us,Wp+4*us);mpFill(q,'0',o.x-2*us,o.y-2*us,Wp+4*us,Wp+4*us);mpFill(q,'c',o.x-us,o.y-us,Wp+2*us,Wp+2*us);
  if(terr)q.drawImage(terr,o.x,o.y,Wp,Wp);else mpFill(q,'v',o.x,o.y,Wp,Wp);
- if(MP.terrOn!==false){const tc=mpTerritory();if(tc)q.drawImage(tc,o.x,o.y,Wp,Wp)}
+ if(tc)q.drawImage(tc,o.x,o.y,Wp,Wp);
  /* terra incognita caption */
- const inc=mpIncognita();if(inc){const words=['Terra','Incognita'],r=inc.r*MP.tp*z,one=mpTextW('Terra Incognita')*us<r*1.7;
+ if(inc){const words=['Terra','Incognita'],r=inc.r*MP.tp*z,one=mpTextW('Terra Incognita')*us<r*1.7;
   const lines=one?['Terra Incognita']:words;if(mpTextW(lines[0]==='Terra'?'Incognita':lines[0])*us<r*1.9){let ty=o.y+Math.round(inc.y*MP.tp*z)-Math.round(lines.length*MPTH*us/2);
    for(const ln of lines){const c=mpTextCv(ln,'j','l',us);if(c)q.drawImage(c,o.x+Math.round(inc.x*MP.tp*z-c.width/2),ty);ty+=MPTH*us}}}
  /* the march already under way (brass), then the planned route (madder) */
  if(G.moving&&G.path&&G.path.length&&!MP.wps.length)mpDots(q,[{x:X(G.p.x),y:Y(G.p.y)}].concat(G.path.map(p=>({x:X(p.x),y:Y(p.y)}))),'d',false);
  const dseen=new Set();let a={x:X(G.p.x),y:Y(G.p.y)};for(let i=0;i<MP.legs.length;i++){const pts=[a].concat(MP.legs[i].path.map(p=>({x:X(p.x),y:Y(p.y)})));mpDots(q,pts,i&1?'E':'g',false,dseen);a=pts[pts.length-1]}
  /* sites */
- for(const s of mpKnownRuins())mpAt(q,'ruin',MPS.ruin,X(s.x),Y(s.y),'c');
+ for(const s of ru)mpAt(q,'ruin',MPS.ruin,X(s.x),Y(s.y),'c');
+ q.restore()}
+function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!q||!G||!W)return;
+ const terr=mpTerrain(),o=mpOrigin(),k=mpK(),Wp=WN*MP.tp*z,X=wx=>o.x+Math.round(wx*k),Y=wy=>o.y+Math.round(wy*k),fr=MP.frame;
+ q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=false;q.globalAlpha=1;
+ /* the base layer (page, sheet, land, march, ruins): drawn straight while it changes; once two draws in a row have the same base it is
+    kept in its own canvas and copied in (one opaque full-canvas copy instead of a few dozen layers each time the blink ticks) */
+ const BS=MP.bsA;let n=0;const P=v=>{BS[n++]=v};const tcv=MP.terrOn!==false?mpTerritory():null,inc=mpIncognita(),ru=mpKnownRuins(),mv=!!(G.moving&&G.path&&G.path.length&&!MP.wps.length);
+ P(cw);P(ch);P(us);P(I.x);P(I.y);P(I.w);P(I.h);P(o.x);P(o.y);P(z);P(k);P(terr);P(tcv);P(inc);P(MP.terrOn!==false);P(G.p.x);P(G.p.y);P(mv);P(MP.speck);
+ if(mv){P(G.path);for(const p of G.path){P(p.x);P(p.y)}}P(MP.legs.length);for(const l of MP.legs){P(l);P(l.path);P(l.path.length)}P(ru.length);for(const r of ru){P(r.x);P(r.y)}
+ let same=n===MP.bsN;if(same){const B2=MP.bsB;for(let i=0;i<n;i++)if(BS[i]!==B2[i]){same=false;break}}MP.bsA=MP.bsB;MP.bsB=BS;MP.bsN=n;
+ if(same&&MP.bc&&MP.bcOk)q.drawImage(MP.bc,0,0);
+ else if(same){if(!MP.bc){MP.bc=pxCanvas(cw,ch);MP.bcq=MP.bc&&MP.bc.getContext('2d')}if(MP.bc&&(MP.bc.width!==cw||MP.bc.height!==ch)){MP.bc.width=cw;MP.bc.height=ch}
+  if(MP.bcq){const b=MP.bcq;b.setTransform(1,0,0,1,0,0);b.imageSmoothingEnabled=false;b.globalAlpha=1;mpDrawBase(b,us,I,z,cw,ch,terr,o,Wp,X,Y,tcv,inc,ru);MP.bcOk=true;q.drawImage(MP.bc,0,0)}else mpDrawBase(q,us,I,z,cw,ch,terr,o,Wp,X,Y,tcv,inc,ru)}
+ else{MP.bcOk=false;mpDrawBase(q,us,I,z,cw,ch,terr,o,Wp,X,Y,tcv,inc,ru)}
+ q.save();q.beginPath();q.rect(I.x,I.y,I.w,I.h);q.clip();
  for(const p of mpKnownPortals())mpAt(q,fr&1?'portal2':'portal',fr&1?MPS.portal2:MPS.portal,X(p.x),Y(p.y),'c');
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)){const sx=X(n.x),sy=Y(n.y),ti=typeof waNestTier==='function'?waNestTier(n):1;mpAt(q,'nest',MPS.nest,sx,sy,'c');for(let i=0;i<ti;i++){mpFill(q,'0',sx-4*us+i*3*us,sy+4*us,3*us,3*us);mpFill(q,'g',sx-3*us+i*3*us,sy+5*us,us,us)}}
  G.towns.forEach(t=>{const s=mpTownSize(t);mpAt(q,s===1?'hamlet':s===3?'city':'town',mpTownRows(t),X(t.x),Y(t.y),'c')});
@@ -393,7 +406,9 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
   const lc=mpTextCv('5 leagues','0','l',us);if(lc)q.drawImage(lc,bx+bl-lc.width+us,by-MPTH*us)}
  MP.dirty=false}
 function mpLoop(){if(!MP.open){MP.raf=0;return}MP.raf=requestAnimationFrame(mpLoop);const still=typeof reduced!=='undefined'&&reduced,f=still?0:Math.floor(performance.now()/420);
- if(f!==MP.frame){MP.frame=f;MP.dirty=true}if(MP.dirty)mpDraw()}
+ if(f!==MP.frame){MP.frame=f;if(mpBlinks())MP.dirty=true}if(MP.dirty)mpDraw()}
+// what MP.frame changes on the sheet: known rifts, the contract's marks, the selection brackets (nothing else reads it)
+function mpBlinks(){return !!MP.sel||mpKnownPortals().length>0||(!!G.contract&&lkCtrMarks().length>0)}
 
 /* ================= INPUT ================= */
 /* what is under a device point: {kind:'town'|'portal'|'lair'|'ruin'|'land'|'fog'|'sea'|'off', ...} */
@@ -500,7 +515,7 @@ function openMap(){if(MP.open)return true;if(typeof document==='undefined'||mode
  MP.cx=G.p.x/TS*MP.tp;MP.cy=G.p.y/TS*MP.tp;mpLayout();MP.cx=G.p.x/TS*MP.tp;MP.cy=G.p.y/TS*MP.tp;mpClampCam();
  MP.wps=mpCurrentRoute();mpRecalc();mpTools();mpSide();MP.dirty=true;mpDraw();if(!MP.raf)MP.raf=requestAnimationFrame(mpLoop);
  try{const b=r.querySelector('#mpClose');if(b&&b.focus)b.focus({preventScroll:true})}catch(e){}return true}
-function closeMap(quiet){if(!MP.open)return false;MP.open=false;MP.root.classList.remove('on');MP.ptr.clear();MP.gs=null;sheetOpen=false;return true}
+function closeMap(quiet){if(!MP.open)return false;MP.open=false;MP.bc=MP.bcq=null;MP.bcOk=false;MP.bsN=-1;MP.root.classList.remove('on');MP.ptr.clear();MP.gs=null;sheetOpen=false;return true}
 /* ================= WORLD HUD: weather + time of day ================= */
 function mapTimeOfDay(h){h=((+h||0)%24+24)%24;return h<5||h>=21?{k:'moon',n:'Night'}:h<7?{k:'dawn',n:'Dawn'}:h<12?{k:'sun',n:'Morning'}:h<18?{k:'sun',n:'Afternoon'}:{k:'dawn',n:'Dusk'}}
 const MPWX={clear:['','Clear'],rain:['rain','Rain'],snow:['snow','Snow'],storm:['storm','Storm'],fog:['fog','Fog'],sand:['sand','Sandstorm'],cloud:['cloud','Overcast']};

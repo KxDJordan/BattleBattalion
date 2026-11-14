@@ -157,28 +157,47 @@ function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic;let n=0,tint=nu
     const c=anSprite('st-'+k);if(!c)continue;let dup=false;for(let j=0;j<n;j++)if(ic[j]===c)dup=true;if(!dup)ic[n++]=c}
   for(let i=0;i<L.length;i++){const k=L[i].key,pr=AN_PRI[k]!=null?AN_PRI[k]:6;if(AN_TINT[k]&&pr<tp){tp=pr;tint=AN_TINT[k]}}}
  s.icn=n;s.tint=tint}
+/* The bars and the target brackets are painted once into small canvases (per unit / per bracket shape) and re-painted only when
+   what they show changes (a numeric key of every input), so a frame costs one drawImage per unit instead of ~20 fillRects.
+   The pixels are the same: the canvas holds exactly the rects the frame used to fill, blitted at whole art pixels. Only when
+   the board is drawn at a whole-number scale (o.exact, set by the board): mid-zoom or mid-rotation the rects are filled
+   directly as before, since a scaled fillRect and a scaled blit round their edges differently. */
+const AN_BOB=[0,1,2,1],AN_BRK=new Map();
+function anOvCv(c,w,h){if(!c)c=pxCanvas(w,h);else if(c.width!==w||c.height!==h){c.width=w;c.height=h}else c.getContext('2d').clearRect(0,0,w,h);return c}
+// brackets round a target, origin (X,Y) = (l-1, a-1) of the old code: W = 2hw+2p+4 wide, H = hh+2p+1 tall
+function anBrkPaint(q,X,Y,hw,hh,L,p){const W=2*hw+2*p+4,H=hh+2*p+1,l=X+1,r=X+W-2,a=Y+1,b=Y+H-2;
+ q.fillStyle=PAL['0'];q.fillRect(l-1,a-1,L+2,3);q.fillRect(l-1,a-1,3,L+2);q.fillRect(r-L,a-1,L+2,3);q.fillRect(r-1,a-1,3,L+2);
+ q.fillRect(l-1,b-1,L+2,3);q.fillRect(l-1,b-L,3,L+2);q.fillRect(r-L,b-1,L+2,3);q.fillRect(r-1,b-L,3,L+2);
+ q.fillStyle=PAL[p?'e':'h'];q.fillRect(l,a,L,1);q.fillRect(l,a,1,L);q.fillRect(r-L+1,a,L,1);q.fillRect(r,a,1,L);
+ q.fillRect(l,b,L,1);q.fillRect(l,b-L+1,1,L);q.fillRect(r-L+1,b,L,1);q.fillRect(r,b-L+1,1,L)}
+function anBrackets(hw,hh,L,p){const id=((hw*64+hh)*16+L)*2+p;let c=AN_BRK.get(id);if(c)return c;
+ c=anOvCv(null,2*hw+2*p+4,hh+2*p+1);if(!c)return null;anBrkPaint(c.getContext('2d'),0,0,hw,hh,L,p);AN_BRK.set(id,c);return c}
+// bars, origin (X,Y) = (x0, top-3): w+5 wide (frame + shield pip), bh+3 tall (the pip may reach 3 rows above the frame)
+function anBarsPaint(q,X,Y,w,bh,helm,arm,ah,aa,hw,lw,low,foe,sw,scol){const x0=X,top=Y+3,hx=x0+1,hy=top+bh-3;
+ q.fillStyle=PAL['0'];q.fillRect(x0+1,top,w,bh);q.fillRect(x0,top+1,w+2,bh-2);
+ if(helm){q.fillStyle=PAL['3'];q.fillRect(hx,top+1,w,1);if(ah){q.fillStyle=PAL['c'];q.fillRect(hx,top+1,ah,1);q.fillStyle=PAL['e'];q.fillRect(hx+ah-1,top+1,1,1)}}
+ if(arm){const ay=top+(helm?3:1);q.fillStyle=PAL['3'];q.fillRect(hx,ay,w,1);if(aa){q.fillStyle=PAL['q'];q.fillRect(hx,ay,aa,1);q.fillStyle=PAL['r'];q.fillRect(hx+aa-1,ay,1,1)}}
+ q.fillStyle=PAL['2'];q.fillRect(hx,hy,w,2);
+ if(lw>hw){q.fillStyle=PAL['e'];q.fillRect(hx+hw,hy,lw-hw,2)}
+ if(hw){q.fillStyle=PAL[foe?'h':'6'];q.fillRect(hx,hy,hw,1);q.fillStyle=PAL[foe?'g':'5'];q.fillRect(hx,hy+1,hw,1);
+  if(low){q.fillStyle=PAL['r'];q.fillRect(hx,hy,hw,1)}
+  q.fillStyle=PAL[foe?'f':'7'];for(let i=4;i<hw;i+=4)q.fillRect(hx+i-1,hy+1,1,1)}
+ if(sw){q.fillStyle=PAL['0'];q.fillRect(x0+w+2,top+bh-7,3,7);q.fillStyle=PAL['3'];q.fillRect(x0+w+3,top+bh-6,1,5);q.fillStyle=PAL[scol?'E':'k'];q.fillRect(x0+w+3,top+bh-1-sw,1,sw)}}   // shield hitpoints: a wooden pip beside the bars
 function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;const s=anOf(u),t=anNow(),big=!!o.big,wide=!!o.wide,w=wide?30:big?22:16,rm=typeof reduced!=='undefined'&&reduced,
   noBars=u.side===0&&(o.bars===false||(typeof SET!=='undefined'&&SET&&SET.allyBars===false));
  x=Math.round(x);y=Math.round(y);const arm=u.armMax>0,helm=u.helmMax>0,bh=4+(arm?2:0)+(helm?2:0),x0=x-(w>>1)-1,top=y-2-bh,foe=u.side!==0;
- if(o.tgt){const hw=wide?32:big?20:12,hh=o.top?o.top+(wide?4:0):big?46:30,p=rm?0:((t/170)|0)&1,l=x-hw-1-p,r=x+hw+p,a=y+1-p,b=y+hh-1+p,L=wide?8:big?6:4;
-  q.fillStyle=PAL['0'];q.fillRect(l-1,a-1,L+2,3);q.fillRect(l-1,a-1,3,L+2);q.fillRect(r-L,a-1,L+2,3);q.fillRect(r-1,a-1,3,L+2);
-  q.fillRect(l-1,b-1,L+2,3);q.fillRect(l-1,b-L,3,L+2);q.fillRect(r-L,b-1,L+2,3);q.fillRect(r-1,b-L,3,L+2);
-  q.fillStyle=PAL[p?'e':'h'];q.fillRect(l,a,L,1);q.fillRect(l,a,1,L);q.fillRect(r-L+1,a,L,1);q.fillRect(r,a,1,L);
-  q.fillRect(l,b,L,1);q.fillRect(l,b-L+1,1,L);q.fillRect(r-L+1,b,L,1);q.fillRect(r,b-L+1,1,L)}
+ if(o.tgt){const hw=wide?32:big?20:12,hh=o.top?o.top+(wide?4:0):big?46:30,p=rm?0:((t/170)|0)&1,L=wide?8:big?6:4,X=x-hw-2-p,Y=y-p,c=o.exact?anBrackets(hw,hh,L,p):null;if(c)q.drawImage(c,X,Y);else anBrkPaint(q,X,Y,hw,hh,L,p)}
  // frame with clipped corners; rows from the top: head armor (brass), body armor (steel), hitpoints
- if(!noBars){q.fillStyle=PAL['0'];q.fillRect(x0+1,top,w,bh);q.fillRect(x0,top+1,w+2,bh-2);
- const hx=x0+1,hy=top+bh-3,hp=Math.max(0,Math.min(u.hpMax,s.hp)),hw=hp>0?Math.max(1,Math.round(w*hp/u.hpMax)):0,lw=Math.min(w,Math.round(w*Math.max(0,s.lag)/u.hpMax));
- if(helm){const aw=s.helm>0?Math.max(1,Math.round(w*Math.min(1,s.helm/u.helmMax))):0;q.fillStyle=PAL['3'];q.fillRect(hx,top+1,w,1);if(aw){q.fillStyle=PAL['c'];q.fillRect(hx,top+1,aw,1);q.fillStyle=PAL['e'];q.fillRect(hx+aw-1,top+1,1,1)}}
- if(arm){const ay=top+(helm?3:1),aw=s.arm>0?Math.max(1,Math.round(w*Math.min(1,s.arm/u.armMax))):0;q.fillStyle=PAL['3'];q.fillRect(hx,ay,w,1);if(aw){q.fillStyle=PAL['q'];q.fillRect(hx,ay,aw,1);q.fillStyle=PAL['r'];q.fillRect(hx+aw-1,ay,1,1)}}
- q.fillStyle=PAL['2'];q.fillRect(hx,hy,w,2);
- if(lw>hw){q.fillStyle=PAL['e'];q.fillRect(hx+hw,hy,lw-hw,2)}
- if(hw){const low=hp<u.hpMax*.3&&!rm&&((t/260)|0)&1;q.fillStyle=PAL[foe?'h':'6'];q.fillRect(hx,hy,hw,1);q.fillStyle=PAL[foe?'g':'5'];q.fillRect(hx,hy+1,hw,1);
-  if(low){q.fillStyle=PAL['r'];q.fillRect(hx,hy,hw,1)}
-  q.fillStyle=PAL[foe?'f':'7'];for(let i=4;i<hw;i+=4)q.fillRect(hx+i-1,hy+1,1,1)}
- if(u.shpMax>0&&u.shield){const sw=Math.max(1,Math.round(5*u.shp/u.shpMax));q.fillStyle=PAL['0'];q.fillRect(x0+w+2,top+bh-7,3,7);q.fillStyle=PAL['3'];q.fillRect(x0+w+3,top+bh-6,1,5);q.fillStyle=PAL[u.shp<u.shpMax*.4?'E':'k'];q.fillRect(x0+w+3,top+bh-1-sw,1,sw)}}   // shield hitpoints: a wooden pip beside the bars
+ if(!noBars){const hp=Math.max(0,Math.min(u.hpMax,s.hp)),hw=hp>0?Math.max(1,Math.round(w*hp/u.hpMax)):0,lw=Math.min(w,Math.round(w*Math.max(0,s.lag)/u.hpMax)),
+  ah=helm&&s.helm>0?Math.max(1,Math.round(w*Math.min(1,s.helm/u.helmMax))):0,aa=arm&&s.arm>0?Math.max(1,Math.round(w*Math.min(1,s.arm/u.armMax))):0,
+  low=hw&&hp<u.hpMax*.3&&!rm&&((t/260)|0)&1?1:0,sw=u.shpMax>0&&u.shield?Math.max(1,Math.round(5*u.shp/u.shpMax)):0,scol=sw&&u.shp<u.shpMax*.4?1:0,lx=lw>hw?lw:0;
+  const k=((((((((((w*2+(arm?1:0))*2+(helm?1:0))*32+ah)*32+aa)*32+hw)*32+lx)*2+low)*2+(foe?1:0))*8+sw)*2+scol);   // every input of the picture
+  if(!o.exact){anBarsPaint(q,x0,top-3,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol)}
+  else{if(s.obK!==k||!s.obC){s.obK=-1;const c=s.obC=anOvCv(s.obC,w+5,bh+3);if(c){anBarsPaint(c.getContext('2d'),0,0,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol);s.obK=k}}
+   if(s.obK===k)q.drawImage(s.obC,x0,top-3);else anBarsPaint(q,x0,top-3,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol)}}
  // morale flag and status icons (16x16 native, outlined), packed tighter when there are many
  if(s.rev<0)anStRefresh(u,s,t);
  const n=s.icn>3?3:s.icn;let ty=top;
  if(n){const step=n<3?14:12,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=top-15;ty=top-13;
   for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
- if(o.cur){const c=anSprite(foe?'chev1':'chev0'),bob=rm?0:[0,1,2,1][((t/140)|0)&3];if(c)q.drawImage(c,x-4,ty-8-bob)}}
+ if(o.cur){const c=anSprite(foe?'chev1':'chev0'),bob=rm?0:AN_BOB[((t/140)|0)&3];if(c)q.drawImage(c,x-4,ty-8-bob)}}

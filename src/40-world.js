@@ -25,9 +25,12 @@ const WVIS=[1,1,.62,1.3,1,.7,1.1,1],WVISBASE=7;        // sight by ground under 
 const B64C='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
 /* ---- binary heap (keys with float priorities) ---- */
-function wgHeap(){return{k:[],f:[]}}
-function wgPush(h,k,f){const K=h.k,F=h.f;let i=K.length;K.push(k);F.push(f);while(i>0){const p=(i-1)>>1;if(F[p]<=f)break;K[i]=K[p];F[i]=F[p];i=p}K[i]=k;F[i]=f}
-function wgPop(h){const K=h.k,F=h.f,top=K[0],n=K.length-1,k=K[n],f=F[n];K.length=n;F.length=n;
+// typed arrays (one pair shared by every heap, as only one is in use at a time), the same sift steps as plain arrays had
+const WGHB={k:new Int32Array(1024),f:new Float64Array(1024)};
+function wgHeap(){return{k:WGHB.k,f:WGHB.f,n:0}}
+function wgPush(h,k,f){if(h.n>=h.k.length){const K=new Int32Array(h.k.length*2),F=new Float64Array(h.k.length*2);K.set(h.k);F.set(h.f);h.k=WGHB.k=K;h.f=WGHB.f=F}
+ const K=h.k,F=h.f;let i=h.n++;while(i>0){const p=(i-1)>>1;if(F[p]<=f)break;K[i]=K[p];F[i]=F[p];i=p}K[i]=k;F[i]=f}
+function wgPop(h){const K=h.k,F=h.f,top=K[0],n=--h.n,k=K[n],f=F[n];
  if(n>0){let i=0;for(;;){let c=2*i+1;if(c>=n)break;if(c+1<n&&F[c+1]<F[c])c++;if(F[c]>=f)break;K[i]=K[c];F[i]=F[c];i=c}K[i]=k;F[i]=f}return top}
 
 /* ---- generation helpers (4-neighbour grids) ---- */
@@ -36,7 +39,7 @@ function wgBfs(src){const N=WN*WN,d=new Int16Array(N).fill(999),q=[];for(let i=0
 // Dijkstra from the start tiles; cost(k,n,dir) < 0 blocks the step; stops at the first tile stop() accepts.
 function wgPath(starts,cost,stop){const N=WN*WN,dist=new Float32Array(N).fill(1e9),prev=new Int32Array(N).fill(-1),done=new Uint8Array(N),h=wgHeap();
  for(const s of starts){dist[s]=0;wgPush(h,s,0)}let end=-1;
- while(h.k.length){const k=wgPop(h);if(done[k])continue;done[k]=1;if(stop&&stop(k,dist[k])){end=k;break}const x=k%WN,y=(k/WN)|0;
+ while(h.n){const k=wgPop(h);if(done[k])continue;done[k]=1;if(stop&&stop(k,dist[k])){end=k;break}const x=k%WN,y=(k/WN)|0;
   for(let j=0;j<4;j++){const nx=x+WDX[j],ny=y+WDY[j];if(nx<0||ny<0||nx>=WN||ny>=WN)continue;const n=ny*WN+nx;if(done[n])continue;const c=cost(k,n,j);if(c<0)continue;
    const nd=dist[k]+c;if(nd<dist[n]){dist[n]=nd;prev[n]=k;wgPush(h,n,nd)}}}
  return{end,prev,dist}}
@@ -62,7 +65,7 @@ function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WOR
  for(let y=0;y<WN;y++)for(let x=0;x<WN;x++){const i=y*WN+x,ux=x+(wx(x,y)-.5)*14,uy=y+(wy(x,y)-.5)*14,d=Math.min(x,y,WN-1-x,WN-1-y),e=clamp(1-d/12,0,1),rr=Math.hypot(x-(WN-1)/2,y-(WN-1)/2)/(WN/2);
   el[i]=a1(ux,uy)*.5+a2(ux,uy)*.26+a3(x,y)*.15+a4(x,y)*.09-Math.pow(e,1.7)*.55-Math.max(0,rr-1.02)*1.2;
   ridge[i]=(1-Math.abs(2*rg(ux,uy)-1))*.8+rg2(x,y)*.2}
- const pct=(arr,keep,q)=>{const v=[];for(let i=0;i<N;i++)if(keep(i))v.push(arr[i]);v.sort((a,b)=>a-b);return v.length?v[Math.min(v.length-1,Math.floor(v.length*q))]:0};
+ const PV=new Float64Array(N),pct=(arr,keep,q)=>{let n=0;for(let i=0;i<N;i++)if(keep(i))PV[n++]=arr[i];if(!n)return 0;const v=PV.subarray(0,n).sort();return v[Math.min(n-1,Math.floor(n*q))]};   // a typed sort: the same order as (a,b)=>a-b
  const sea=pct(el,()=>true,.47);let top=sea+1e-6;for(let i=0;i<N;i++)if(el[i]>top)top=el[i];
  for(let i=0;i<N;i++){tiles[i]=el[i]>sea&&edgeOf(i)>=3?1:0;el[i]=clamp((el[i]-sea)/(top-sea),0,1)}
  // drop specks: single land tiles in the sea and one-tile puddles
@@ -101,7 +104,7 @@ function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WOR
   for(let i=0;i<N;i++){const x=i%WN,y=(i/WN)|0;tm[i]=y/(WN-1)+(te(x,y)-.5)*.36-el[i]*.06;mo[i]=mo1(x,y)*.62+mo2(x,y)*.38+(rd[i]<=1?.1:rd[i]===2?.05:0)+(cd[i]<=1?.03:0)}
   const cold=Math.max(.17,pct(tm,gen,.14)),hot=Math.min(.8,pct(tm,gen,.8)),low=pct(el,gen,.3),wet=pct(mo,gen,.56),damp=pct(mo,gen,.62);
   for(let i=0;i<N;i++){if(!gen(i))continue;const t=tm[i],m=mo[i];tiles[i]=t<cold?7:t>hot&&m<damp?6:m>wet&&el[i]<low&&t>cold+.06?5:m>damp?2:1}
-  for(let pass=0;pass<2;pass++){const out=tiles.slice();for(let i=0;i<N;i++){const t=tiles[i];if(t===0||t===3||t===4)continue;const x=i%WN,y=(i/WN)|0,c=[0,0,0,0,0,0,0,0];let same=0;
+  const C8=new Int32Array(8);for(let pass=0;pass<2;pass++){const out=tiles.slice();for(let i=0;i<N;i++){const t=tiles[i];if(t===0||t===3||t===4)continue;const x=i%WN,y=(i/WN)|0,c=C8.fill(0);let same=0;
     for(let ay=-1;ay<=1;ay++)for(let ax=-1;ax<=1;ax++){if(!ax&&!ay)continue;const nx=x+ax,ny=y+ay;if(nx<0||ny<0||nx>=WN||ny>=WN)continue;const u=tiles[ny*WN+nx];if(u===t)same++;c[u]++}
     if(same>1)continue;let b=t,bn=1;for(const u of [1,2,5,6,7])if(c[u]>bn){bn=c[u];b=u}out[i]=b}tiles.set(out)}}
  // 6. the mainland
@@ -115,7 +118,7 @@ function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WOR
  for(const c of cand)c.d=99;
  let dmin=AK>1?7*Math.sqrt(12*AK/NT):7;
  while(picks.length<NT){let best=null,bv=-1e9;for(const c of cand){if(c.d<dmin)continue;const v=c.s+Math.min(c.d,15*dmin/7)*.3;if(v>bv){bv=v;best=c}}   // good sites first, then whatever fills the emptiest country
-  if(!best){if(dmin>7.01){dmin=Math.max(7,dmin-.75);continue}break}picks.push(best);for(const c of cand){const q=Math.hypot(best.x-c.x,best.y-c.y);if(q<c.d)c.d=q}}
+  if(!best){if(dmin>7.01){dmin=Math.max(7,dmin-.75);continue}break}picks.push(best);for(const c of cand){const dx=best.x-c.x,dy=best.y-c.y;if(dx>=c.d||-dx>=c.d||dy>=c.d||-dy>=c.d)continue;const q=Math.hypot(dx,dy);if(q<c.d)c.d=q}}   // an axis gap of c.d already rules it out
  // 8. roads: a minimum spanning tree over the towns plus a few loops, each laid along the cheapest ground; later roads reuse earlier ones
  const RC=[0,1,1.7,2.4,0,2.8,1.3,1.5],T=picks.length,
   rc=new Float32Array(N),step=(k,n)=>{const b=rc[n];if(b<0)return-1;if(road[n])return .15;return river[n]?b+(river[k]?14:5):b};
@@ -126,7 +129,7 @@ function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WOR
  const net=()=>{const g=link.map(l=>Float32Array.from(l));for(let a=0;a<T;a++)g[a][a]=0;for(let k=0;k<T;k++)for(let a=0;a<T;a++)for(let b=0;b<T;b++)if(g[a][k]+g[k][b]<g[a][b])g[a][b]=g[a][k]+g[k][b];return g};
  for(const e of edges)link[e[0]][e[1]]=link[e[1]][e[0]]=e[2];
  {const pairs=[];for(let a=0;a<T;a++)for(let b=a+1;b<T;b++)if(link[a][b]>=1e9&&D0[a][b]<1e9)pairs.push([a,b,D0[a][b]]);pairs.sort((p,q)=>p[2]-q[2]);let loops=0;
-  for(const p of pairs){if(loops>=Math.round(3*T/12))break;const g=net();if(g[p[0]][p[1]]>p[2]*2.1&&p[2]<34*SK){link[p[0]][p[1]]=link[p[1]][p[0]]=p[2];edges.push(p);loops++}}}
+  let g=null;for(const p of pairs){if(loops>=Math.round(3*T/12))break;if(!g)g=net();if(g[p[0]][p[1]]>p[2]*2.1&&p[2]<34*SK){link[p[0]][p[1]]=link[p[1]][p[0]]=p[2];edges.push(p);loops++;g=null}}}   // the net only changes with a new link
  edges.sort((a,b)=>a[2]-b[2]);
  for(const e of edges){const A=picks[e[0]],B=picks[e[1]],L=Math.hypot(B.x-A.x,B.y-A.y)||1,res=wgPath([A.i],(k,n)=>{const c=step(k,n);return c<0||road[n]?c:c+Math.min(3,Math.abs((n%WN-A.x)*(B.y-A.y)-(((n/WN)|0)-A.y)*(B.x-A.x))/L)*.16},k=>k===B.i);if(res.end<0)continue;const ch=wgChain(res.prev,res.end);for(let i=0;i<ch.length-1;i++)wgLink(road,ch[i],ch[i+1])}
  // 9. sizes (cities at crossroads, on coasts and rivers), the starting town first, names
@@ -138,7 +141,7 @@ function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WOR
  const order=start?[start].concat(picks.filter(p=>p!==start)):[],names=T>TOWNN.length?TOWNN.concat(TOWNX.filter(n=>!TOWNN.includes(n))):TOWNN.slice();for(let i=names.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=names[i];names[i]=names[j];names[j]=t}
  const towns=order.map((p,k)=>({name:names[k%names.length],x:(p.x+.5)*TS,y:(p.y+.5)*TS,size:p.size}));
  // 10. ruins in the wild, away from towns and off the roads
- const sc=[];for(let i=0;i<N;i++){if(!ok[i]||road[i]||river[i]||edgeOf(i)<3)continue;const x=i%WN,y=(i/WN)|0;if(picks.some(p=>Math.hypot(p.x-x,p.y-y)<4.5))continue;
+ const sc=[];for(let i=0;i<N;i++){if(!ok[i]||road[i]||river[i]||edgeOf(i)<3)continue;const x=i%WN,y=(i/WN)|0;{let near=false;for(const p of picks){const dx=p.x-x,dy=p.y-y;if(dx<4.5&&dx>-4.5&&dy<4.5&&dy>-4.5&&Math.hypot(dx,dy)<4.5){near=true;break}}if(near)continue}
   let nr=0;for(let j=0;j<4;j++)if(road[(y+WDY[j])*WN+x+WDX[j]])nr++;sc.push({i,x,y,s:r()-(nr?.6:0)})}
  sc.sort((a,b)=>b.s-a.s||a.i-b.i);const sp=[];for(const c of sc){if(sp.every(p=>Math.hypot(p.x-c.x,p.y-c.y)>=9)){sp.push(c);if(sp.length>=Math.round(8*Math.pow(AK,.9)))break}}
  const rn=[...RUINS.keys()];for(let i=rn.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=rn[i];rn[i]=rn[j];rn[j]=t}
@@ -192,7 +195,8 @@ function visionBase(){if(!G||!W)return 0;return Math.max(2.5,WVISBASE*WVIS[tileA
 function visionRadius(){if(!G||!W)return 0;return visionBase()+(typeof followerHas==='function'&&followerHas('scout')?2*TS:0)}   // the scout follower sees two tiles further
 function bandSight(){return clamp(visionBase()*.55,2*TS,3.75*TS)}       // how far a band can pick the company out: never further than before, less at night, in cover or foul weather
 function seenAt(tx,ty){return tx>=0&&ty>=0&&tx<WN&&ty<WN&&!!W&&W.seen[ty*WN+tx]===1}
-function visibleAt(tx,ty){if(!G||!W||tx<0||ty<0||tx>=WN||ty>=WN)return false;return Math.hypot((tx+.5)*TS-G.p.x,(ty+.5)*TS-G.p.y)<=visionRadius()}
+function visibleAt(tx,ty){return visibleWithin(tx,ty,null)}
+function visibleWithin(tx,ty,r){if(!G||!W||tx<0||ty<0||tx>=WN||ty>=WN)return false;return Math.hypot((tx+.5)*TS-G.p.x,(ty+.5)*TS-G.p.y)<=(r==null?visionRadius():r)}   // r: the sight radius when the caller has it already
 function fogRevealAt(x,y,rad){const x0=Math.max(0,Math.floor((x-rad)/TS)),x1=Math.min(WN-1,Math.floor((x+rad)/TS)),y0=Math.max(0,Math.floor((y-rad)/TS)),y1=Math.min(WN-1,Math.floor((y+rad)/TS));let ch=false;
  for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){const i=ty*WN+tx;if(!W.seen[i]&&Math.hypot((tx+.5)*TS-x,(ty+.5)*TS-y)<=rad){W.seen[i]=1;ch=true}}
  if(ch)W.fogRev++;return ch}

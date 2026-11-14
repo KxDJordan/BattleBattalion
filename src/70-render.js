@@ -93,7 +93,7 @@ function drawBackdrop(kind){const key=kind+'|'+cv.width+'|'+cv.height;
 const WNAME=['Open water','Grassland','Forest','Hills','Mountains','Marsh','Desert','Snowfield'];
 const WVT=16,WVC=16,WVP=WVT*WVC,WVU=TS/WVT,WVTB=12,WVDIM=112;      // art px per tile, tiles per chunk, art px per chunk, world units per art px, where a tile's tall part stands (art px below the tile top)
 const WV={deco:{size:1,frame:0,night:false,own:null,mask:0,pr:1},mks:[],mkn:0,dk:[],s:0,sdef:1,smin:1,smax:1,z:0,zt:0,x:0,y:0,tx:0,ty:0,free:false,hold:false,pinch:false,ps:0,zax:0,zay:0,sig:'',gz:-1,boot:true,mv:false,
- sc:1,bx:0,by:0,f4:0,fs:0,vr:0,ring:null,ringR:-1,ringAt:0,dir:1,lx:0,cost:0,build:0,bd:new Map(),plates:[],np:0,night:0};
+ sc:1,bx:0,by:0,vx0:0,vy0:0,vx1:0,vy1:0,f4:0,fs:0,vr:0,ring:null,ringR:-1,ringAt:0,dir:1,lx:0,cost:0,build:0,bd:new Map(),plates:[],np:0,night:0};
 const WVA={init:false,tile:false,tall:false,site:false,box:false,band:false,co:false,mark:false,tint:false,wx:false,key:false,warn:{}};
 function wvArtInit(){WVA.init=true;WVA.deco=typeof drawTownDecoPx==='function';WVA.tile=typeof drawWorldTilePx==='function';WVA.tall=typeof drawWorldTallPx==='function';WVA.site=typeof drawSitePx==='function';WVA.box=typeof siteBoxPx==='function';
  WVA.band=typeof drawBandPx==='function';WVA.co=typeof drawCompanyPx==='function';WVA.mark=typeof drawMarkerPx==='function';WVA.tint=typeof worldTint==='function';WVA.wx=typeof drawWeatherPx==='function';WVA.key=typeof worldKeyColor==='function'}
@@ -164,11 +164,17 @@ const WBAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
 function wvC32(k,a){const n=parseInt(PAL[k].slice(1),16);return((a==null?255:a)<<24|(n&255)<<16|(n&0xff00)|n>>16)>>>0}
 function wvCtx(c,opaque){const q=c.getContext('2d',opaque?{alpha:false}:undefined);q.imageSmoothingEnabled=false;return q}
 // how far the tall parts reach over the tile edges, measured once from the art itself
-function wvTallProbe(){WCH.up=0;WCH.side=0;WCH.tallT.fill(0);if(!WVA.tall)return;const c=mkCanvas(48,64),q=c.getContext('2d',{willReadFrequently:true});q.imageSmoothingEnabled=false;let up=0,side=0;
- try{for(let t=0;t<8;t++)for(let v=0;v<9;v++){q.clearRect(0,0,48,64);const o=WTO;o.t=t;for(let i=0;i<8;i++)o.n[i]=t;o.river=v>=3&&v<6?5:0;o.road=v>=6?10:0;o.c=3+v*7+t;o.r=5+v*3+t*2;o.frame=0;drawWorldTallPx(q,16,40,o);
-   const d=q.getImageData(0,0,48,64).data;let hit=false;for(let y=0;y<64;y++)for(let x=0;x<48;x++)if(d[(y*48+x)*4+3]){hit=true;if(40-y>up)up=40-y;if(16-x>side)side=16-x;if(x-31>side)side=x-31}
+// The art is fixed, so the answer is kept for the next world; when the art module can hand over a tile's tall part as palette
+// indices (worldTallIxPx: 32x32, drawn at x-8,y-16, 0 = empty) that is read instead of drawing and reading back a canvas.
+const WTP={tall:null,up:0,side:0,tallT:new Uint8Array(8)};
+function wvTallProbe(){if(WTP.tall===WVA.tall&&WVA.tall){WCH.up=WTP.up;WCH.side=WTP.side;WCH.tallT.set(WTP.tallT);return}
+ WCH.up=0;WCH.side=0;WCH.tallT.fill(0);if(!WVA.tall)return;const ix=typeof worldTallIxPx==='function';let c=null,q=null;if(!ix){c=mkCanvas(48,64);q=c.getContext('2d',{willReadFrequently:true});q.imageSmoothingEnabled=false}let up=0,side=0;
+ try{for(let t=0;t<8;t++)for(let v=0;v<9;v++){const o=WTO;o.t=t;for(let i=0;i<8;i++)o.n[i]=t;o.river=v>=3&&v<6?5:0;o.road=v>=6?10:0;o.c=3+v*7+t;o.r=5+v*3+t*2;o.frame=0;let hit=false;
+   if(ix){const d=worldTallIxPx(o);if(d)for(let k=0;k<1024;k++)if(d[k]){const x=8+(k&31),y=24+(k>>5);hit=true;if(40-y>up)up=40-y;if(16-x>side)side=16-x;if(x-31>side)side=x-31}}
+   else{q.clearRect(0,0,48,64);drawWorldTallPx(q,16,40,o);const d=q.getImageData(0,0,48,64).data;for(let y=0;y<64;y++)for(let x=0;x<48;x++)if(d[(y*48+x)*4+3]){hit=true;if(40-y>up)up=40-y;if(16-x>side)side=16-x;if(x-31>side)side=x-31}}
    if(hit)WCH.tallT[t]|=v<3?1:v<6?2:4}}catch(e){wvFail('tall',e);WCH.tallT.fill(0);return}
- if(up||side){WCH.up=clamp(up,16,40);WCH.side=clamp(side,8,16)}}   // never less than the art contract says (x-8..x+24, y-16..y+16)
+ if(up||side){WCH.up=clamp(up,16,40);WCH.side=clamp(side,8,16)}   // never less than the art contract says (x-8..x+24, y-16..y+16)
+ WTP.tall=WVA.tall;WTP.up=WCH.up;WTP.side=WCH.side;WTP.tallT.set(WCH.tallT)}
 function wvUnknownInit(){if(WCH.unk32)return;const N=64,u=WCH.unk32=new Uint32Array(N*N),c0=wvC32('0'),c1=wvC32('1'),c2=wvC32('2'),L=8,lat=[];for(let i=0;i<L*L;i++)lat.push(hash2(i%L,(i/L)|0,91));
  const nf=(x,y)=>{const fx=x/N*L,fy=y/N*L,ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),a=lat[iy*L+ix],b=lat[iy*L+(ix+1)%L],c=lat[(iy+1)%L*L+ix],d=lat[(iy+1)%L*L+(ix+1)%L];return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy};
  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=nf(x,y),th=(WBAYER[(y&3)*4+(x&3)]+.5)/16;u[y*N+x]=(v-.5)*5+.5>th?(hash2(x,y,5)<.03&&v>.62?c2:c1):c0}
@@ -176,37 +182,42 @@ function wvUnknownInit(){if(WCH.unk32)return;const N=64,u=WCH.unk32=new Uint32Ar
  const t=mkCanvas(N,N),tq=t.getContext('2d'),im=tq.createImageData(N,N);new Uint32Array(im.data.buffer).set(u);tq.putImageData(im,0,0);
  WCH.unk=mkCanvas(WVP,WVP);const q=wvCtx(WCH.unk,true);for(let y=0;y<WVP;y+=N)for(let x=0;x<WVP;x+=N)q.drawImage(t,x,y)}
 function wchReset(){WCH.w=W;WCH.cols=Math.ceil(WN/WVC);WCH.rows=Math.ceil(WN/WVC);WCH.list=new Array(WCH.cols*WCH.rows).fill(null);if(!WVA.init)wvArtInit();wvTallProbe();WCH.bh=WVT+WCH.up;WCH.aw=WVP+2*WCH.side;wvUnknownInit();
- const k=WCH.key||(WCH.key=mkCanvas(WN,WN)),q=k.getContext('2d');for(let y=0;y<WN;y++)for(let x=0;x<WN;x++){const i=y*WN+x;q.fillStyle=PAL[wvKeyOf(W.tiles[i],W.river?W.river[i]:0,W.road?W.road[i]:0)];q.fillRect(x,y,1,1)}
+ // the key colours, one pixel a tile, written in one go (the same opaque pixels a fillRect each would give)
+ {const k=WCH.key&&WCH.key.width===WN&&WCH.key.height===WN?WCH.key:(WCH.key=mkCanvas(WN,WN)),q=k.getContext('2d'),im=q.createImageData(WN,WN),d=new Uint32Array(im.data.buffer),C={};
+  for(let i=0;i<WN*WN;i++){const kk=wvKeyOf(W.tiles[i],W.river?W.river[i]:0,W.road?W.road[i]:0);d[i]=C[kk]||(C[kk]=wvC32(kk))}q.putImageData(im,0,0)}
  WCH.fs=new Uint8Array(WN*WN);WCH.frev=-2;WCH.tk='?';WSPR.clear();WSBX.clear();MM.w=null}
 function wchAt(cx,cy){if(cx<0||cy<0||cx>=WCH.cols||cy>=WCH.rows)return null;return WCH.list[cy*WCH.cols+cx]}
 function wchGet(cx,cy){if(cx<0||cy<0||cx>=WCH.cols||cy>=WCH.rows)return null;const i=cy*WCH.cols+cx;let ch=WCH.list[i];if(ch)return ch;
  const flat=mkCanvas(WVP,WVP),q=wvCtx(flat,true);q.fillStyle=PAL['0'];q.fillRect(0,0,WVP,WVP);q.drawImage(WCH.key,cx*WVC,cy*WVC,WVC,WVC,0,0,WVP,WVP);   // flat key colours until the tiles are painted
- ch=WCH.list[i]={cx,cy,x0:cx*WVP,y0:cy*WVP,flat,q,tall:null,tq:null,has:new Uint8Array(WVC),row:0,col:0,ph:0,anim:[],ai:0,af:-1,frev:0,comp:flat,cc:null,cq:null,ck:-1,ctk:'',fog:0,fd:true,fogcv:null,fq:null,ts:null,fv:false,vis:false,tt:null,ttq:null,ttk:'',ttr:-1};return ch}
+ ch=WCH.list[i]={cx,cy,x0:cx*WVP,y0:cy*WVP,flat,q,tall:null,tq:null,has:new Uint8Array(WVC),row:0,col:0,ph:0,anim:[],ai:0,af:-1,frev:0,comp:flat,cc:null,cq:null,ck:-1,ctk:'',fog:0,fd:true,fogcv:null,fq:null,ts:null,fv:false,vis:false,tt:null,ttq:null,ttk:'',ttr:-1,ver:0,tm:new Uint8Array(WVC*WVC)};return ch}   // ver: bumped whenever any of its canvases change (frame skipping)
 // Paints the next tile row of a chunk: ground first, then its tall parts, then the two merged. Resumable inside a row
 // (ch.col, ch.ph): cold art is slow, so the clock (deadline dl) is checked after every tile. Returns false when it ran out of time.
-function wchBuildRow(ch,dl){const r=ch.row,ty=ch.cy*WVC+r,q=ch.q,tx0=ch.cx*WVC,f=WV.f4;
+function wchBuildRow(ch,dl){ch.ver++;const r=ch.row,ty=ch.cy*WVC+r,q=ch.q,tx0=ch.cx*WVC,f=WV.f4;
  if(ty<WN){if(!ch.ph){for(;ch.col<WVC;ch.col++){const lc=ch.col,tx=tx0+lc;if(tx>=WN)break;if(wvTile(q,lc*WVT,r*WVT,wvTileO(tx,ty,f)))ch.anim.push(r*WVC+lc);if(performance.now()>dl){ch.col++;return false}}ch.ph=1;ch.col=0}
   if(WVA.tall)for(;ch.col<WVC;ch.col++){const lc=ch.col,tx=tx0+lc;if(tx>=WN)break;const i=ty*WN+tx,m=WCH.tallT[W.tiles[i]];if(!m||!(m&1||(m&2&&W.river&&W.river[i])||(m&4&&W.road&&W.road[i])))continue;
    if(!ch.tall){ch.tall=mkCanvas(WCH.aw,WCH.bh*WVC);ch.tq=wvCtx(ch.tall)}
-   try{drawWorldTallPx(ch.tq,WCH.side+lc*WVT,r*WCH.bh+WCH.up,wvTileO(tx,ty,f));ch.has[r]=1}catch(e){wvFail('tall',e);return true}if(performance.now()>dl){ch.col++;return false}}
+   try{if(drawWorldTallPx(ch.tq,WCH.side+lc*WVT,r*WCH.bh+WCH.up,wvTileO(tx,ty,f))!==false)ch.tm[r*WVC+lc]=1;ch.has[r]=1}catch(e){wvFail('tall',e);return true}if(performance.now()>dl){ch.col++;return false}}
   if(ch.has[r])q.drawImage(ch.tall,0,r*WCH.bh,WCH.aw,WCH.bh,-WCH.side,r*WVT-WCH.up,WCH.aw,WCH.bh)}
  ch.col=0;ch.ph=0; ch.row++;ch.frev++;
  if(ch.row===WVC&&(WCH.up||WCH.side))for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const n=wchAt(ch.cx+dx,ch.cy+dy);if(!n||n.row<WVC)continue;if(dy<=0)wchStitch(n,ch);if(dy>=0)wchStitch(ch,n)}return true}
 // tall parts of src that lean over the edge into dst (tree tops over the chunk above, wide peaks over the one beside)
 function wchStitch(dst,src){if(!src.tall||(src.cy===dst.cy&&!WCH.side)||(src.cx!==dst.cx&&!WCH.side))return;const n=src.cy>dst.cy?Math.min(WVC,Math.ceil(WCH.up/WVT)):WVC;
- for(let r=0;r<n;r++)if(src.has[r])dst.q.drawImage(src.tall,0,r*WCH.bh,WCH.aw,WCH.bh,src.x0-WCH.side-dst.x0,src.y0+r*WVT-WCH.up-dst.y0,WCH.aw,WCH.bh);dst.frev++}
+ for(let r=0;r<n;r++)if(src.has[r])dst.q.drawImage(src.tall,0,r*WCH.bh,WCH.aw,WCH.bh,src.x0-WCH.side-dst.x0,src.y0+r*WVT-WCH.up-dst.y0,WCH.aw,WCH.bh);dst.frev++;dst.ver++}
 // draws the tall bands that cross a map rect (art px), back to front, from tile row r0 down; (ox,oy) is the map position of the
 // target's origin. lit: use the bands in the current light (for the screen) instead of the raw ones (for the caches).
 function wvBands(q,ox,oy,mx,my,mw,mh,r0,lit){if(!WCH.up&&!WCH.side)return 0;const r1=Math.min(WN-1,Math.floor((my+mh-1+WCH.up)/WVT)),c0=Math.max(0,Math.floor((mx-WCH.side)/WVP)),c1=Math.min(WCH.cols-1,Math.floor((mx+mw-1+WCH.side)/WVP));let n=0;
  for(let R=Math.max(0,r0);R<=r1;R++){const cy=(R/WVC)|0,lr=R-cy*WVC,by=R*WVT-WCH.up,y0=Math.max(my,by),y1=Math.min(my+mh,by+WCH.bh);if(y1<=y0)continue;
   for(let cx=c0;cx<=c1;cx++){const ch=WCH.list[cy*WCH.cols+cx];if(!ch||!ch.tall||!ch.has[lr]||ch.row<=lr)continue;const bx=ch.x0-WCH.side,x0=Math.max(mx,bx),x1=Math.min(mx+mw,bx+WCH.aw);if(x1<=x0)continue;
+   {const T=ch.tm,o=lr*WVC,a=Math.max(0,Math.floor((x0-ch.x0-WCH.side-WVT)/WVT)+1),b=Math.min(WVC-1,Math.ceil((x1-ch.x0+WCH.side)/WVT)-1);let k=a;while(k<=b&&!T[o+k])k++;if(k>b)continue}   // no tall art of this row reaches the rect: nothing to draw
    q.drawImage(lit?wchTallLit(ch):ch.tall,x0-bx,lr*WCH.bh+y0-by,x1-x0,y1-y0,x0-ox,y0-oy,x1-x0,y1-y0);n++}}return n}
 // a chunk's tall bands in the current light (made on demand: only chunks with a sprite standing among their trees need one)
 function wchTallLit(ch){if(!WCH.ton)return ch.tall;if(ch.ttk===WCH.tk&&ch.ttr===ch.row)return ch.tt;const w=ch.tall.width,h=ch.tall.height;if(!ch.tt){ch.tt=mkCanvas(w,h);ch.ttq=ch.tt.getContext('2d')}const q=ch.ttq;
  q.globalCompositeOperation='copy';q.drawImage(ch.tall,0,0);wvTintRect(q,0,0,w,h);q.globalCompositeOperation='destination-in';q.drawImage(ch.tall,0,0);q.globalCompositeOperation='source-over';ch.ttk=WCH.tk;ch.ttr=ch.row;return ch.tt}
 function wvTintRect(q,x,y,w,h){if(!WCH.ton)return;q.globalCompositeOperation='multiply';q.fillStyle=WCH.tm;q.fillRect(x,y,w,h);if(WCH.ta!=='#000000'){q.globalCompositeOperation='lighter';q.fillStyle=WCH.ta;q.fillRect(x,y,w,h)}q.globalCompositeOperation='source-over'}
-function wchAnimTile(ch,i,f){const lc=i%WVC,r=(i/WVC)|0,x=lc*WVT,y=r*WVT;wvTile(ch.q,x,y,wvTileO(ch.cx*WVC+lc,ch.cy*WVC+r,f));wvBands(ch.q,ch.x0,ch.y0,ch.x0+x,ch.y0+y,WVT,WVT,ch.cy*WVC+r);
- if(ch.comp===ch.cc){const q=ch.cq;q.drawImage(ch.flat,x,y,WVT,WVT,x,y,WVT,WVT);wvTintRect(q,x,y,WVT,WVT);if(ch.fog)q.drawImage(ch.fogcv,x,y,WVT,WVT,x,y,WVT,WVT)}}
+function wchAnimTile(ch,i,f){ch.ver++;const lc=i%WVC,r=(i/WVC)|0,x=lc*WVT,y=r*WVT;wvTile(ch.q,x,y,wvTileO(ch.cx*WVC+lc,ch.cy*WVC+r,f));wvBands(ch.q,ch.x0,ch.y0,ch.x0+x,ch.y0+y,WVT,WVT,ch.cy*WVC+r);
+ // the comp gets the same tile painted again rather than a copy from the flat canvas: drawing from a canvas that is written again
+ // a moment later makes the browser copy all of it each time (the tile is opaque and the bands stay inside it, so the pixels are the same)
+ if(ch.comp===ch.cc){const q=ch.cq;wvTile(q,x,y,wvTileO(ch.cx*WVC+lc,ch.cy*WVC+r,f));wvBands(q,ch.x0,ch.y0,ch.x0+x,ch.y0+y,WVT,WVT,ch.cy*WVC+r);wvTintRect(q,x,y,WVT,WVT);if(ch.fog)q.drawImage(ch.fogcv,x,y,WVT,WVT,x,y,WVT,WVT)}}
 /* the unknown: per chunk, a dithered edge that follows the seen set (soft at tile corners, a little ragged) */
 function wvUnseen(x,y){return WCH.fs[(y<0?0:y>=WN?WN-1:y)*WN+(x<0?0:x>=WN?WN-1:x)]}
 // One tile of a chunk's fog canvas: clear, solid unknown, or a dithered edge from the four corner weights (0..4 unseen tiles each).
@@ -226,7 +237,7 @@ function wchFog(ch){const V=WCH.vg,tx0=ch.cx*WVC,ty0=ch.cy*WVC;let lo=4,hi=0;
  for(let lr=0;lr<WVC;lr++)for(let lc=0;lc<WVC;lc++){const k=lr*17+lc,a=V[k],b=V[k+1],c=V[k+17],e=V[k+18],sg=a|b<<3|c<<6|e<<9,i=lr*WVC+lc;if(sg===S[i])continue;
   if((dt.length&3)===3&&performance.now()>WCH.dl){ch.fd=true;return all?null:dt}wchFogTile(ch,lc,lr,a,b,c,e);S[i]=sg;dt.push(i)}
  return all?null:dt}
-function wchComp(ch){let dt=WCH.dt;dt.length=0;if(ch.fd){ch.fd=false;dt=wchFog(ch)}
+function wchComp(ch){ch.ver++;let dt=WCH.dt;dt.length=0;if(ch.fd){ch.fd=false;dt=wchFog(ch)}
  if(ch.fog===2)ch.comp=WCH.unk;else if(!WCH.ton&&!ch.fog)ch.comp=ch.flat;
  else{if(!ch.cc){ch.cc=mkCanvas(WVP,WVP);ch.cq=wvCtx(ch.cc,true)}const q=ch.cq;
   if(dt&&ch.comp===ch.cc&&ch.ck===ch.frev&&ch.ctk===WCH.tk)for(let n=0;n<dt.length;n++){const x=dt[n]%WVC*WVT,y=(dt[n]/WVC|0)*WVT;q.drawImage(ch.flat,x,y,WVT,WVT,x,y,WVT,WVT);wvTintRect(q,x,y,WVT,WVT);q.drawImage(ch.fogcv,x,y,WVT,WVT,x,y,WVT,WVT)}   // only the tiles whose fog moved
@@ -294,7 +305,8 @@ function wvSprCv(e){if(!WCH.ton||e.raw)return e.c;if(e.tk===WCH.tk)return e.tc;i
  q.globalCompositeOperation='copy';q.drawImage(e.c,0,0);wvTintRect(q,0,0,w,h);q.globalCompositeOperation='destination-in';q.drawImage(e.c,0,0);q.globalCompositeOperation='source-over';if(e.lit)q.drawImage(e.lit,0,0);e.tk=WCH.tk;return t}
 // draws a standing sprite, then puts back the tall parts of the tiles in front of it (tree tops and peaks south of its feet)
 function wvDrawSprite(e,x,y,snap){const sc=WV.sc;if(snap){x=Math.round(x*sc)/sc;y=Math.round(y*sc)/sc}else{x=Math.round(x);y=Math.round(y)}
- g.drawImage(wvSprCv(e),x-e.ax,y-e.ay);if(!WCH.up&&!WCH.side)return;
+ const c=wvSprCv(e),dx=x-e.ax,dy=y-e.ay;if(dx>WV.vx1+1||dy>WV.vy1+1||dx+e.w<WV.vx0-1||dy+e.h<WV.vy0-1)return;   // wholly off screen (still lit above, at the same pace)
+ g.drawImage(c,dx,dy);if(!WCH.up&&!WCH.side)return;
  const mx=Math.floor(x+e.x0),my=Math.floor(y+e.y0),mw=Math.ceil(x+e.x1)-mx,mh=Math.ceil(y+e.y1)-my;if(mw>0&&mh>0)wvBands(g,0,0,mx,my,mw,mh,Math.floor((y-WVTB)/WVT)+1,true)}
 
 /* ---- name plates (own 4x6 capitals; drawn in whole device pixels over the scene) ---- */
@@ -329,43 +341,72 @@ function wvPathDots(vx0,vy0,vx1,vy1){const p=G.p,P=G.path,ph=reduced?0:(now/70)%
  g.fillStyle=c0;for(let i=0;i<n;i+=2)g.fillRect(D[i]-1,D[i+1]-1,3,3);g.fillStyle=c1;for(let i=0;i<n;i+=2)g.fillRect(D[i]-1,D[i+1]-1,2,2);
  const R=G.route;if(R&&R.length>1){g.fillStyle=PAL.m;for(let i=1;i<R.length;i++){const ax=R[i-1].x/WVU,ay=R[i-1].y/WVU,dx=R[i].x/WVU-ax,dy=R[i].y/WVU-ay,L=Math.hypot(dx,dy);for(let d=5;d<L;d+=9)g.fillRect(Math.round(ax+dx*d/L),Math.round(ay+dy*d/L),1,1)}}}
 function wvMark(x,y,kind){const o={kind,frame:WV.fs};if(WVA.mark){try{drawMarkerPx(g,Math.round(x),Math.round(y),o);return}catch(e){wvFail('mark',e)}}wvMarkOld(g,Math.round(x),Math.round(y),o)}
+/* Frame skipping. drawWorld collects the frame's draw list first (chunk canvases and their versions, sprites, the rim, markers, plates)
+   into WSG.a and compares it with the list of the last frame it drew (WSG.b). When nothing on the list changed and nothing on it moves
+   with the clock (flickering glows, weather, the march's dots), the canvas already shows exactly this frame and the pixel work is
+   skipped. When the town view or the map screen covers the whole canvas (both are opaque, inset 0) nothing is drawn at all. Everything
+   stateful (camera, chunk work, sprite caches and re-tints, easing, the rim) still runs every frame, so the next drawn frame is the same
+   as without skipping. A frame is drawn at least once a second regardless. */
+const WSG={a:[],b:[],n:0,pn:-1,at:-1e9,live:false,ok:false};
+function wsg(v){WSG.a[WSG.n++]=v}
+function wsgSame(){const a=WSG.a,b=WSG.b,n=WSG.n;if(n!==WSG.pn)return false;for(let i=0;i<n;i++)if(a[i]!==b[i])return false;return true}
+function wvCovered(){return(typeof TV!=='undefined'&&!!TV&&TV.shown&&!!TV.root&&TV.root.classList.contains('on'))||(typeof MP!=='undefined'&&!!MP&&MP.open&&!!MP.root&&MP.root.classList.contains('on'))}
+// worldVisible for one pass (a frame's list, a minimap paint): the company's sight radius cannot change inside it, so it is taken once
+function wvVisFn(){if(typeof visibleWithin!=='function'||typeof visibleAt!=='function'||typeof visionRadius!=='function')return worldVisible;const r=visionRadius();return(x,y)=>visibleWithin(Math.floor(x/TS),Math.floor(y/TS),r)}
 function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot=true;WV.free=false}
  worldCam(dt||0);const t0=performance.now(),p=G.p,sc=WV.sc,bx=WV.bx,by=WV.by,W_=cv.width,H_=cv.height;WV.f4=reduced?0:Math.floor(now/250);WV.fs=reduced?0:Math.floor(now/140);
  wvFogSync();wvTintTick(WV.boot);const night=WV.night=wvNight(G.hour);
- const vx0=-bx/sc,vy0=-by/sc,vx1=(W_-bx)/sc,vy1=(H_-by)/sc,AM=WN*WVT;
+ const vx0=WV.vx0=-bx/sc,vy0=WV.vy0=-by/sc,vx1=WV.vx1=(W_-bx)/sc,vy1=WV.vy1=(H_-by)/sc,AM=WN*WVT;
  const cx0=clamp(Math.floor(vx0/WVP),0,WCH.cols-1),cx1=clamp(Math.floor(vx1/WVP),0,WCH.cols-1),cy0=clamp(Math.floor(vy0/WVP),0,WCH.rows-1),cy1=clamp(Math.floor(vy1/WVP),0,WCH.rows-1);
  wchWork(cx0,cy0,cx1,cy1,vx0,vy0,vx1,vy1);if(WCH.w!==W){WV.boot=true;return}
- g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.imageSmoothingEnabled=false;
- if(vx0<0||vy0<0||vx1>AM||vy1>AM){g.fillStyle=PAL['0'];g.fillRect(0,0,W_,H_)}
- for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=WCH.list[cy*WCH.cols+cx],x=Math.round(bx+ch.x0*sc),y=Math.round(by+ch.y0*sc);g.drawImage(ch.comp,x,y,Math.round(bx+(ch.x0+WVP)*sc)-x,Math.round(by+(ch.y0+WVP)*sc)-y)}
- g.setTransform(sc,0,0,sc,bx,by);
- if(G.moving&&G.path.length)wvPathDots(vx0,vy0,vx1,vy1);
  // standing things, back to front
- WSN=0;WV.np=0;WV.tn=0;WV.nc=0;const M=40,inV=(x,y)=>x>vx0-M&&x<vx1+M&&y>vy0-M&&y<vy1+M+24,fs=WV.fs,c=G.contract,CM=lkCtrMarks();let turnin=-1;WV.mkn=0;for(let i=0;i<CM.length;i++)if(CM[i].kind==='turnin'){turnin=CM[i].town;break}
+ WSN=0;WV.np=0;WV.tn=0;WV.nc=0;const vis=wvVisFn(),M=40,inV=(x,y)=>x>vx0-M&&x<vx1+M&&y>vy0-M&&y<vy1+M+24,fs=WV.fs,c=G.contract,CM=lkCtrMarks();let turnin=-1;WV.mkn=0;for(let i=0;i<CM.length;i++)if(CM[i].kind==='turnin'){turnin=CM[i].town;break}
  for(let i=0;i<G.towns.length;i++){const o=G.towns[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y))continue;const seen=worldSeen(o.x,o.y),so={kind:'town',size:o.size||2,frame:WV.f4%4,night:night>.5};let top=y-7;
   if(seen){const e=wvSprite('T'+so.size+(so.night?'n':'d')+so.frame,'T'+so.size,'site',so);wvPush(y,e,x,false);top=y+e.y0;
    if(WVA.deco){const dk=wvDecoOf(o,i);if(dk){const DO=WV.deco;DO.size=so.size;DO.frame=so.frame;DO.night=so.night;const e2=wvSprite(dk.key+(so.night?'n':'d')+so.frame,dk.key,'deco',DO);wvPush(y+.001,e2,x,false)}}}
   wvPlateAt(o.name,seen?(i===turnin?'d':'l'):'n',seen?'1':'0',x,top-2);if(i===turnin)WV.mk={x,y:top-13}}
  if(G.sites)for(const o of G.sites){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;wvPush(y,wvSprite('R'+(o.kind||'ruin')+(o.n|0)%4,'R'+(o.kind||'ruin')+(o.n|0)%4,'site',{kind:o.kind||'ruin',size:1,frame:0,night:false,n:o.n}),x,false)}
  for(let i=0;i<CM.length;i++){const m=CM[i];if(m.kind==='turnin')continue;const x=m.x/WVU,y=m.y/WVU;let top=y-2;
-  if(m.kind==='lair'&&inV(x,y)&&worldVisible(m.x,m.y)){const fk=m.f||'bandit',e=wvSprite('L'+fk+WV.f4%4,'L'+fk,'site',{kind:'lair',f:fk,size:c.diff||1,frame:WV.f4%4,night:night>.5});wvPush(y,e,x,false);top=y+e.y0}
+  if(m.kind==='lair'&&inV(x,y)&&vis(m.x,m.y)){const fk=m.f||'bandit',e=wvSprite('L'+fk+WV.f4%4,'L'+fk,'site',{kind:'lair',f:fk,size:c.diff||1,frame:WV.f4%4,night:night>.5});wvPush(y,e,x,false);top=y+e.y0}
   const k=WV.mkn++,Q=WV.mks[k]||(WV.mks[k]={x:0,y:0});Q.x=x;Q.y=top-3}
  if(Array.isArray(G.nests))for(const n of G.nests){if(!n)continue;const x=n.x/WVU,y=n.y/WVU;if(!inV(x,y)||!worldSeen(n.x,n.y))continue;const ti=waNestTierSafe(n),fk=n.f||'bandit';
   wvPush(y,wvSprite('N'+fk+ti+(night>.5?'n':'d')+WV.f4%4,'N'+fk+ti,'site',{kind:'nest',f:fk,tier:ti,frame:WV.f4%4,night:night>.5}),x,false)}
- for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldVisible(o.x,o.y))continue;wvPush(y,wvSprite('P'+o.realm+fs%12,'P'+o.realm,'site',{kind:'portal',realm:o.realm,size:1,frame:fs%12,night:night>.5}),x,false)}
+ let pglow=false;for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!vis(o.x,o.y))continue;pglow=true;wvPush(y,wvSprite('P'+o.realm+fs%12,'P'+o.realm,'site',{kind:'portal',realm:o.realm,size:1,frame:fs%12,night:night>.5}),x,false)}
  for(const o of G.parties){const x=o.x/WVU,y=o.y/WVU;let b=WV.bd.get(o.id);if(!b){if(WV.bd.size>200)WV.bd.clear();b={x:o.x,dir:(o.tx||0)<o.x?-1:1,t:-1e9};WV.bd.set(o.id,b)}
   if(Math.abs(o.x-b.x)>.02){b.dir=o.x<b.x?-1:1;b.t=now}else if(o.x!==b.x||Math.abs((o.y-(b.y||0)))>.02)b.t=now;b.x=o.x;b.y=o.y;
-  if(!inV(x,y)||!worldVisible(o.x,o.y))continue;const mv=now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
+  if(!inV(x,y)||!vis(o.x,o.y))continue;const mv=now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
   const hf=o.f==='free'||!!lkHouse(o.f),gl=o.goal==='caravan'||o.goal==='patrol'||o.goal==='raid'?o.goal:hf?'patrol':'',hs=gl==='patrol'||gl==='caravan'?lkHouse(o.f):null;
   wvPush(y,wvSprite('B'+gl+o.f+str+b.dir+(mv?'m':'s')+f,'B'+gl+o.f+str+b.dir,'band',{f:o.f,str,frame:f,dir:b.dir,moving:mv,goal:gl,house:hs}),x,true)}
  {if(Math.abs(p.x-WV.lx)>.02){WV.dir=p.x<WV.lx?-1:1}WV.lx=p.x;const mv=!!G.moving&&!sheetOpen,f=fs%12,n=G.roster.length;wvPush(p.y/WVU+.01,wvSprite('C'+n+WV.dir+(mv?'m':'s')+f,'C'+n+WV.dir,'co',{n,frame:f,dir:WV.dir,moving:mv}),p.x/WVU,true)}
  for(let i=1;i<WSN;i++){const s=WSL[i];let j=i-1;while(j>=0&&(WSL[j].y>s.y||(WSL[j].y===s.y&&WSL[j].i>s.i))){WSL[j+1]=WSL[j];j--}WSL[j+1]=s}
- for(let i=0;i<WSN;i++){const s=WSL[i];wvDrawSprite(s.e,s.x,s.y,s.snap)}
- // the edge of sight
+ // the edge of sight: the radius eases every frame; the rim canvas is made here so that it follows the radius on skipped frames too
+ let rc=null,rD=0,rX=0,rY=0;
  if(WCH.fogOn&&typeof visionRadius==='function'){const tr=Math.max(8,visionRadius()/WVU);if(WV.boot||reduced||!WV.vr)WV.vr=tr;else WV.vr+=(tr-WV.vr)*(1-Math.exp(-(dt||0)*5));
   let R=WV.ringR,k=1;const still=Math.abs(tr-WV.vr)<.75;if(still)WV.vr=tr;    // the rim is redrawn exact once the radius settles; while it moves the old rim is stretched
   if(R<0||(still&&R!==Math.round(tr))||WV.vr/R<.72||WV.vr/R>1.38)R=Math.round(WV.vr);if(!still)k=WV.vr/R;
-  const rc=wvRing(R),D=Math.round(rc.width*k*sc)/sc,x=Math.round((p.x/WVU-D/2)*sc)/sc,y=Math.round((p.y/WVU-D/2)*sc)/sc;g.drawImage(rc,x,y,D,D);g.fillStyle='rgba(16,29,28,'+(WVDIM/255).toFixed(3)+')';
+  rc=wvRing(R);rD=Math.round(rc.width*k*sc)/sc;rX=Math.round((p.x/WVU-rD/2)*sc)/sc;rY=Math.round((p.y/WVU-rD/2)*sc)/sc}
+ const wk=G.weather&&G.weather.kind,wx=!!(wk&&wk!=='clear'&&WVA.wx),wind=wx?Math.sin(G.day*1.7+Math.floor(G.hour/6)):0,dots=!!(G.moving&&G.path.length);
+ // the draw list (see WSG)
+ let live=dots||(wx&&!reduced)||(pglow&&!reduced);WSG.n=0;
+ wsg(W_);wsg(H_);wsg(sc);wsg(bx);wsg(by);wsg(dpr);wsg(night);wsg(WCH.tk);wsg(WCH.frev);wsg(reduced);wsg(wk);wsg(wind);
+ for(let cy=cy0-1;cy<=cy1+1;cy++)for(let cx=cx0-1;cx<=cx1+1;cx++){const ch=wchAt(cx,cy);wsg(ch);if(ch){wsg(ch.ver);wsg(ch.comp)}}
+ for(let i=0;i<WSN;i++){const s=WSL[i],e=s.e;wsg(e);wsg(s.x);wsg(s.y);wsg(s.snap);if(WCH.ton&&!e.raw&&e.tk!==WCH.tk)live=true}
+ wsg(rc);wsg(rc?WV.ringR:-1);wsg(rD);wsg(rX);wsg(rY);   // the rim canvas is redrawn in place for a new radius
+ {const n0=WSG.n,R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++){wsg(R[i].x);wsg(R[i].y)}wsg(-1);if(dots&&!G.dest){const e=G.path[G.path.length-1];wsg(e.x);wsg(e.y)}wsg(-2);
+  if(c){for(let i=0;i<WV.mkn;i++){wsg(WV.mks[i].x);wsg(WV.mks[i].y)}wsg(-3);if(turnin>=0&&WV.mk&&inV(G.towns[turnin].x/WVU,G.towns[turnin].y/WVU)){wsg(WV.mk.x);wsg(WV.mk.y)}}if(WSG.n>n0+2+(c?1:0))wsg(fs)}   // markers bob with the clock
+ if(insW){wsg(insW.x);wsg(insW.y);wsg(insW.r);wsg(reduced||(now/260|0)&1)}else wsg(null);
+ if(night>.02&&!reduced)for(let i=0;i<G.towns.length;i++){const o=G.towns[i];if(inV(o.x/WVU,o.y/WVU)&&worldSeen(o.x,o.y)){live=true;break}}
+ for(let i=0;i<WV.np;i++){const q=WV.plates[i];wsg(q.c);wsg(q.x);wsg(q.y)}
+ if(wvCovered()){WSG.ok=false;for(let i=0;i<WSN;i++)wvSprCv(WSL[i].e);drawVignette(.42+night*.2);WV.boot=false;return}   // under the town view or the map: the sprites still take the light at a drawn frame's pace
+ if(WSG.ok&&!live&&!WSG.live&&!WV.boot&&now-WSG.at<1000&&wsgSame()){drawVignette(.42+night*.2);return}
+ {const a=WSG.a;WSG.a=WSG.b;WSG.b=a;WSG.pn=WSG.n;WSG.ok=true;WSG.at=now;WSG.live=live}
+ g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.imageSmoothingEnabled=false;
+ if(vx0<0||vy0<0||vx1>AM||vy1>AM){g.fillStyle=PAL['0'];g.fillRect(0,0,W_,H_)}
+ for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=WCH.list[cy*WCH.cols+cx],x=Math.round(bx+ch.x0*sc),y=Math.round(by+ch.y0*sc);g.drawImage(ch.comp,x,y,Math.round(bx+(ch.x0+WVP)*sc)-x,Math.round(by+(ch.y0+WVP)*sc)-y)}
+ g.setTransform(sc,0,0,sc,bx,by);
+ if(dots)wvPathDots(vx0,vy0,vx1,vy1);
+ for(let i=0;i<WSN;i++){const s=WSL[i];wvDrawSprite(s.e,s.x,s.y,s.snap)}
+ if(rc){const D=rD,x=rX,y=rY;g.drawImage(rc,x,y,D,D);g.fillStyle='rgba(16,29,28,'+(WVDIM/255).toFixed(3)+')';
   if(y>vy0)g.fillRect(vx0,vy0,vx1-vx0,y-vy0);if(y+D<vy1)g.fillRect(vx0,y+D,vx1-vx0,vy1-y-D);if(x>vx0)g.fillRect(vx0,y,x-vx0,D);if(x+D<vx1)g.fillRect(x+D,y,vx1-x-D,D)}
  // markers: route waypoints, the tap destination, the contract
  {const R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++)wvMark(R[i].x/WVU,R[i].y/WVU,'waypoint');
@@ -377,10 +418,10 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  g.globalCompositeOperation='lighter';
  if(night>.02){for(let i=0;i<G.towns.length;i++){const o=G.towns[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;const s=10+5*(o.size||2),fl=reduced?1:.92+.08*Math.sin(now/110+i*3);drawGlow('#ffb04a',x,y-6,s*1.5,s*1.1,night*.5*fl)}
   drawGlow('#ffc070',p.x/WVU,p.y/WVU-6,20,16,night*.34)}
- for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(inV(x,y)&&worldVisible(o.x,o.y))drawGlow('#9a5cff',x,y-10,24,26,.42+(reduced?0:.1*Math.sin(now/400+o.id)))}
+ for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(inV(x,y)&&vis(o.x,o.y))drawGlow('#9a5cff',x,y-10,24,26,.42+(reduced?0:.1*Math.sin(now/400+o.id)))}
  g.globalCompositeOperation='source-over';g.globalAlpha=1;
  // weather, in screen space at the art scale
- const wk=G.weather&&G.weather.kind;if(wk&&wk!=='clear'&&WVA.wx){g.setTransform(sc,0,0,sc,0,0);try{drawWeatherPx(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind:Math.sin(G.day*1.7+Math.floor(G.hour/6))})}catch(e){wvFail('wx',e)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
+ if(wx){g.setTransform(sc,0,0,sc,0,0);try{drawWeatherPx(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind})}catch(e){wvFail('wx',e)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
  // name plates
  g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;const P=Math.max(1,Math.round(dpr*1.5));for(let i=0;i<WV.np;i++){const q=WV.plates[i],w=q.c.width*P,h=q.c.height*P;g.drawImage(q.c,Math.round(bx+q.x*sc-w/2),Math.round(by+q.y*sc-h),w,h)}
  g.setTransform(dpr,0,0,dpr,0,0);drawVignette(.42+night*.2);WV.boot=false;WV.cost+=(performance.now()-t0-WV.cost)*.1}
@@ -404,7 +445,7 @@ function wvMiniFog(){const pk=Math.floor(G.p.y/TS)*WN+Math.floor(G.p.x/TS)+(type
  for(let y=0;y<WN;y++)for(let x=0;x<WN;x++){const i=y*WN+x;if(WCH.fs[i])d[i]=(x+y)&1?u0:u1;else if(vr>=0?Math.hypot((x+.5)*TS-px,(y+.5)*TS-py)>vr:vis&&!visibleAt(x,y))d[i]=dim}
  const s=wvScratch(WN,WN,'c');s.putImageData(im,0,0);q.drawImage(WSC.c,0,0,WN,WN,0,0,WN,WN);return true}
 function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el!==MM.el){MM.el=el;MM.t=0;MM.sig='';if(typeof wireMinimap==='function')wireMinimap(el)}
- if(now-MM.t<110)return;const cwid=el.clientWidth,chei=el.clientHeight;if(cwid<8||chei<8)return;MM.t=now;const c0=G.contract,pulse=(now/300|0)&1,fogNew=wvMiniFog();let vis='';for(const o of G.parties)if(worldVisible(o.x,o.y))vis+=((o.x/TS)|0)+'.'+((o.y/TS)|0)+';';
+ if(now-MM.t<110)return;const cwid=el.clientWidth,chei=el.clientHeight;if(cwid<8||chei<8)return;MM.t=now;const vsb=wvVisFn(),c0=G.contract,pulse=(now/300|0)&1,fogNew=wvMiniFog();let vis='';for(const o of G.parties)if(vsb(o.x,o.y))vis+=((o.x/TS)|0)+'.'+((o.y/TS)|0)+';';
  const sig=(G.p.x/TS*2|0)+','+(G.p.y/TS*2|0)+','+(wcam.x/TS*2|0)+','+(wcam.y/TS*2|0)+','+WV.s+','+G.path.length+','+G.portals.length+','+pulse+','+(c0?c0.type+(c0.done?1:0)+(c0.stage|0):'')+(G.nests?G.nests.length:0)+','+SR.w+','+SR.h+','+cwid+','+vis+(G.route?G.route.length:0);
  if(sig===MM.sig&&!fogNew)return;MM.sig=sig;
  const d=Math.min(3,window.devicePixelRatio||1),w=Math.round(cwid*d),h=Math.round(chei*d);if(el.width!==w||el.height!==h){el.width=w;el.height=h}
@@ -414,8 +455,8 @@ function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el
  if(G.moving&&G.path.length){q.fillStyle=PAL.l;for(const s of G.path)q.fillRect(ox+tile(s.x)+((k-th)>>1),oy+tile(s.y)+((k-th)>>1),th,th)}
  if(G.sites){q.fillStyle=PAL.m;for(const o of G.sites)if(worldSeen(o.x,o.y))q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}
  for(const o of G.towns)box(ox+tile(o.x),oy+tile(o.y),((o.size||2)>2?th:0),'0',worldSeen(o.x,o.y)?'c':'m');
- for(const o of G.parties)if(worldVisible(o.x,o.y)){q.fillStyle=PAL['0'];q.fillRect(ox+tile(o.x)-th,oy+tile(o.y)-th,k+2*th,k+2*th);q.fillStyle=PAL.g;q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}
- for(const o of G.portals)if(worldVisible(o.x,o.y))box(ox+tile(o.x),oy+tile(o.y),pulse?th:0,'D','C');
+ for(const o of G.parties)if(vsb(o.x,o.y)){q.fillStyle=PAL['0'];q.fillRect(ox+tile(o.x)-th,oy+tile(o.y)-th,k+2*th,k+2*th);q.fillStyle=PAL.g;q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}
+ for(const o of G.portals)if(vsb(o.x,o.y))box(ox+tile(o.x),oy+tile(o.y),pulse?th:0,'D','C');
  if(G.route&&G.route.length>1)for(let i=1;i<G.route.length;i++)box(ox+tile(G.route[i].x),oy+tile(G.route[i].y),0,'0','5');
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&worldSeen(n.x,n.y))box(ox+tile(n.x),oy+tile(n.y),0,'0','f');
  if(c0)for(const m of lkCtrMarks()){const done=m.kind==='turnin',mx=m.x,my=m.y;
@@ -657,10 +698,17 @@ function ellInit(){ELL.ok=true;ELL.sh=ellSpr(16,7,'0');ELL.shB=ellSpr(28,12,'0')
  ELL.shW=ellSpr(54,24,'0');ELL.r0W=ellSpr(62,28,'5',1);ELL.r1W=ellSpr(62,28,'g',1);ELL.c0W=mix(ELL.shW,ELL.r0W);ELL.c1W=mix(ELL.shW,ELL.r1W);return ELL}
 function unitTop(u){const mi=umon(u);if(mi.kind)return mi.top;if(typeof unitSpriteBox==='function'){try{const b=unitSpriteBox(u);if(b&&b.h>0)return b.h}catch(e){}}return u.def&&u.def.big?48:32}
 // Sprites are built on first use; warming one unit a frame at the start of a battle keeps that off the action frames.
-const WARM={b:null,i:0};
+// Passes: every unit's idle frames in every facing first (a rotation needs them all at once), then walk and hit, then the rest.
+// Each frame spends at most WARMMS ms (at least one sprite), so the warm-up never turns into a run of long frames.
+const WARM={b:null,i:0,p:0},WARMP=[['idle'],['walk','hit'],['attack','cast','death']],WARMMS=3;
 const WARMF=[0];
-function warmSprites(){if(typeof unitSpriteWarm!=='function'||!HAVE.sprite)return;if(WARM.b!==B){WARM.b=B;WARM.i=0}if(WARM.i>=B.units.length*4)return;   // one unit, one facing a frame
- try{WARMF[0]=WARM.i&3;const wu=B.units[WARM.i>>2];if(!(typeof monsterSpriteWarm==='function'&&wu.def&&monsterSpriteWarm(wu,WARMF)>=0&&umon(wu).kind))unitSpriteWarm(wu,WARMF);WARM.i++}catch(e){WARM.i=1e9}}
+function warmSprites(){if(typeof unitSpriteWarm!=='function'||!HAVE.sprite)return;if(WARM.b!==B){WARM.b=B;WARM.i=0;WARM.p=0}if(WARM.p>=WARMP.length)return;
+ const until=performance.now()+WARMMS;
+ try{for(;;){if(WARM.i>=B.units.length*4){WARM.i=0;if(++WARM.p>=WARMP.length)return}
+  WARMF[0]=WARM.i&3;const wu=B.units[WARM.i>>2],st=WARMP[WARM.p];let cut=0,mon=false;
+  if(typeof monsterSpriteWarm==='function'&&wu.def){monsterSpriteWarm(wu,WARMF,until,st);mon=!!umon(wu).kind;cut=MS.cut}
+  if(!mon){unitSpriteWarm(wu,WARMF,until,st);cut=US.cut}
+  if(cut)return;WARM.i++;if(performance.now()>=until)return}}catch(e){WARM.p=9}}
 function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.def){try{s=monsterSpritePx(u,v.pD,v.pS,v.pF)}catch(e){s=null}}
  if(!s){try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}}if(!s||!s.cv||!s.cv.width)return false;
  const mi=umon(u),wide=mi.size>1,big=!wide&&(u.def&&u.def.big||mi.bigSh),x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=wide?E.shW:big?E.shB:E.sh;
@@ -696,7 +744,7 @@ function drawUnitOld(u,v){const sc=(u.def&&u.def.big?1.35:1)/2,x=(u.sx+v.pX)/2,y
  g.globalAlpha=1;v.ox=Math.round(x);v.oy=Math.round(y-46*sc)}
 function drawUnit(u,v){v.drawn=true;if(HAVE.sprite&&drawUnitPx(u,v))return;drawUnitOld(u,v)}
 /* fallback overlay (no 74-anim.js): armor over health as pixel bars, status pips, a marker over the acting unit */
-const OO={cur:false,big:false,tgt:false,bars:true,wide:false,top:0};
+const OO={cur:false,big:false,tgt:false,bars:true,wide:false,top:0,exact:false};
 function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBarsOn();let ty=y-(u.armMax?7:5);if(bars){g.fillStyle=PAL['0'];g.fillRect(bx-1,ty-1,w+2,u.armMax?7:4);
  if(u.armMax){g.fillStyle=PAL.o;g.fillRect(bx,ty,w,2);g.fillStyle=PAL.q;g.fillRect(bx,ty,Math.ceil(w*u.arm/u.armMax),2);ty+=3}
  g.fillStyle=PAL.f;g.fillRect(bx,ty,w,2);if(v.hpLag>u.hp){g.fillStyle=PAL.e;g.fillRect(bx,ty,Math.ceil(w*Math.min(1,v.hpLag/u.hpMax)),2)}g.fillStyle=PAL[u.side?'g':'A'];g.fillRect(bx,ty,Math.ceil(w*u.hp/u.hpMax),2)}
@@ -705,7 +753,8 @@ function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBars
  if(cur){const cy=py-(px>bx?7:3)-(reduced?0:(now/260|0)&1);g.fillStyle=PAL['0'];g.fillRect(x-4,cy-5,8,3);g.fillRect(x-3,cy-2,6,2);g.fillRect(x-2,cy,4,1);g.fillStyle=PAL.d;g.fillRect(x-3,cy-4,6,2);g.fillRect(x-2,cy-2,4,1);g.fillRect(x-1,cy-1,2,1)}}
 // SET.allyBars false (the HUD's toggle, B): the company's HP/armor bars stay hidden; o.bars carries it to the art's overlay too
 function allyBarsOn(){return!(typeof SET==='object'&&SET&&SET.allyBars===false)&&(typeof shAllyBars!=='function'||shAllyBars())}
-function drawUnitOverlays(){const us=B.units,ab=allyBarsOn();for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;const cur=u===B.cur;
+function drawUnitOverlays(){const us=B.units,ab=allyBarsOn(),cam=B.cam;OO.exact=cam.z===cam.zt&&BKX===1&&cam.s===Math.round(cam.s);   // whole-number scale: the overlay may blit its cached bars
+ for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;const cur=u===B.cur;
   if(HAVE.over){OO.cur=cur;const mi=umon(u);OO.big=!!(u.def&&u.def.big)||mi.size>1;OO.wide=mi.size>1;OO.top=mi.kind?mi.top:0;OO.tgt=!!(B.targets&&unitTiles(u).some(q=>B.targets.has(key(q[0],q[1]))));OO.bars=ab||u.side!==0;try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
   drawOverlayOld(u,v,v.ox,v.oy,cur)}g.globalAlpha=1;
  /* objective marks (phase 7): the escorted VIP wears a gold shield, the siege leader a red crown; both bob unless motion is reduced */

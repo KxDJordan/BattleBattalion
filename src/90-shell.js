@@ -292,7 +292,7 @@ function boot(){loadSettings();wirePress();if(typeof initBattleHud==='function')
  try{if(window.visualViewport)window.visualViewport.addEventListener('resize',lay)}catch(e){}
  ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{lay();setTimeout(lay,250);settingsRefresh()}));
  try{window.matchMedia('(pointer:coarse)').addEventListener('change',()=>{if(!_setConfirmUser)SET.confirm=coarsePointer();lay()})}catch(e){}
- try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(lay)}catch(e){}
+ try{if(document.fonts){if(document.fonts.ready)document.fonts.ready.then(lay);if(document.fonts.addEventListener)document.fonts.addEventListener('loadingdone',()=>lay())}}catch(e){}   // the web fonts load after the script (they no longer hold up the first frame): lay out again when they arrive
  setInterval(chromeTick,250);requestAnimationFrame(frame)}
 boot();
 

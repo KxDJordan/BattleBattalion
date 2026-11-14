@@ -254,7 +254,10 @@ function waTallBuild(t,n,c,r,river,road){const ix=WA.tix,uni=waClass(t,n,c,r),P=
  return true}
 function drawWorldTallPx(q,x,y,o){if(!waInit())return;const t=o.t&7,n=o.n||WAN[t],river=o.river&15,road=o.road&15,c=o.c|0,r=o.r|0,A=WA.tall,key=waKey(t,n,c,r,river,road,0);let s=A.map.get(key);
  if(s===undefined){if(waTallBuild(t,n,c,r,river,road)){s=waSlot(A);waStore(A,s,WA.tix)}else s=-1;A.map.set(key,s)}
- if(s>=0)waDrawSlot(q,A,s,x-8,y-16)}
+ if(s>=0)waDrawSlot(q,A,s,x-8,y-16);return s>=0}   // false: this tile has no tall part (nothing was drawn)
+
+// for the renderer's one-time measure of how far tall parts reach: a tile's tall part as palette indices (32x32, drawn at x-8,y-16), or null
+function worldTallIxPx(o){if(!waInit())return null;const t=o.t&7,n=o.n||WAN[t];return waTallBuild(t,n,o.c|0,o.r|0,o.river&15,o.road&15)?WA.tix:null}
 
 /* ================= SPRITES: locations, bands, the company, markers =================
    Painted once per (kind, variant, animation frame) into a palette-index buffer, outlined with '0', cached as a canvas.
@@ -660,3 +663,8 @@ function drawGoalPx(q,x,y,o){const gl=o.goal,k=clamp(Math.round(+o.str||1),1,3),
  else{const fk=WAFIG[o.f]?o.f:'bandit';key='raid'+fk+k;paint=P=>waRaidPaint(P,fk,k,f&3,mv)}
  const s=waSprite(key+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(mv?1:0),w,h,w>>1,h-3,P=>{paint(P);if(dir<0)P.mirror()});
  waShadow(q,x,y,gl==='caravan'?30:gl==='patrol'?14+k*8:10+k*7,6);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
+
+/* Warm-up: the ground textures and the tree/peak pool are pure tables. Made while the title is idle, the first world frame after a
+   new game does not wait for them (the same tables, only made earlier; nothing is drawn). */
+if(typeof window!=='undefined'&&typeof document!=='undefined'&&typeof HTMLCanvasElement!=='undefined'){const waWarm=()=>{if(WA.ok||(typeof mode!=='undefined'&&mode!=='title'))return;try{if(waInit())waPool()}catch(e){}};
+ setTimeout(()=>{if(typeof requestIdleCallback==='function')requestIdleCallback(waWarm,{timeout:3000});else waWarm()},2500)}   // well after load, while the title waits for a tap

@@ -1,9 +1,10 @@
 /* ================= INSPECT =================
    Long-press (touch) / right-click (mouse) tooltip card for units, tiles, towns, bands and rifts.
    Public: Inspect.show(html,x,y,touch) Inspect.hide() Inspect.release() Inspect.visible  inspectAt(sx,sy,touch) */
+// show() skips the rebuild while the card's html is unchanged (a long-press scrub across one unit or tile, every pointermove).
 const Inspect={el:null,visible:false,timer:0,
  show(html,x,y,touch){let el=this.el;if(!el){el=this.el=document.createElement('div');el.id='inspect';el.setAttribute('role','tooltip');($('app')||document.body).appendChild(el)}
-  clearTimeout(this.timer);el.innerHTML=html;el.classList.toggle('wide',html.indexOf('ins-c2')>=0);el.classList.add('on');this.visible=true;
+  clearTimeout(this.timer);if(el._h!==html){el.innerHTML=html;el._h=html}el.classList.toggle('wide',html.indexOf('ins-c2')>=0);el.classList.add('on');this.visible=true;
   const w=el.offsetWidth,h=el.offsetHeight,vw=window.innerWidth,vh=window.innerHeight,gap=touch?38:18,m=6;
   const sl=typeof SR!=='undefined'?Math.max(m,SR.x+4):m,sr=typeof SR!=='undefined'?Math.min(vw-m,SR.x+SR.w-4):vw-m;
   // beside the finger, never under the hand: inside the scene if it fits, else over a rail, else above/below

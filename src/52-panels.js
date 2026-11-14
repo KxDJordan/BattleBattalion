@@ -98,22 +98,68 @@ function panelRoot(){if(PN.root)return PN.root;const r=document.createElement('d
  if(sh&&typeof MutationObserver!=='undefined')new MutationObserver(()=>{const up=pnSheetUp();if(up&&PN.id)PN.over=true;else if(!up&&PN.over){PN.over=false;pnAssert()}}).observe(sh,{attributes:true});
  PN.root=r;return r}
 function pnDo(i){const f=PN.h[i];if(f)f()}
+/* A tap re-renders the whole panel through showPanel, so it keeps the forced layouts to one: both scroll offsets are read before the
+   first write, an offset is written back only when it or the new one is non-zero (a zero one cannot have moved; always on opening), the fade and slide-in
+   animations restart on a style flush (pnRestyle) instead of a layout, and header pieces whose html did not change are left alone
+   (pnSet; never while focus is inside them, so focus is lost exactly as before). The DOM that results is the same.
+   The list and the detail go through pnMorph: the new html is parsed off-document, and every node equal to the one it would replace
+   (isEqualNode) is kept, so a tap that changes one row restyles and lays out one row, not the whole pane. CSS animations in the pane
+   are restarted as a rebuild would restart them. Form fields are never kept, and a pane holding the focus is rebuilt outright. */
+function pnRestyle(e){try{if(typeof getComputedStyle==='function'){void getComputedStyle(e).animationName;return}}catch(x){}void e.offsetWidth}
+function pnSet(e,h){if(e._ph===h){const a=typeof document!=='undefined'&&document.activeElement;if(!(a&&a!==document.body&&e.contains&&e.contains(a)))return}e.innerHTML=h;e._ph=h}
+let PN_T=null;
+function pnFocusIn(e){const a=typeof document!=='undefined'&&document.activeElement;return!!(a&&a!==document.body&&e.contains&&e.contains(a))}
+function pnTpl(){if(PN_T===null){try{const T=document.createElement('template');PN_T=typeof DocumentFragment!=='undefined'&&T.content instanceof DocumentFragment?T:false}catch(x){PN_T=false}}return PN_T||null}   // false: no real DOM (the headless tests)
+function pnMorph(e,h){const T=pnTpl();
+ if(!T||pnFocusIn(e)||typeof e.isEqualNode!=='function'){e.innerHTML=h;return}
+ T.innerHTML=h;const kept=pnKids(e,T.content);T.innerHTML='';
+ if(kept&&typeof e.getAnimations==='function'){try{for(const a of e.getAnimations({subtree:true}))if(a.effect&&a.effect.target!==e&&typeof CSSAnimation!=='undefined'&&a instanceof CSSAnimation)a.currentTime=0}catch(x){}}}
+// makes e's children equal to those of the parsed fragment (or element) n, moving nodes out of it; returns how many old nodes were kept.
+// An old node is kept where it equals the new one at its place or, among up to 64 siblings, anywhere (the turn order shifts by one);
+// an element that differs only inside keeps itself and its attributes and is matched child by child.
+function pnKids(e,n){const o=Array.from(e.childNodes),m=Array.from(n.childNodes),no=o.length,nm=m.length;if(!no||!nm){e.textContent='';while(n.firstChild)e.appendChild(n.firstChild);return 0}
+ const used=new Uint8Array(no),R=new Array(nm),scan=no<=64&&nm<=64;let kept=0;
+ for(let i=0;i<nm;i++){const b=m[i];if(pnField(b))continue;
+  if(i<no&&!used[i]&&o[i].nodeType===b.nodeType&&o[i].isEqualNode(b)){used[i]=1;R[i]=o[i];kept++;continue}
+  if(scan&&b.nodeType===1)for(let j=0;j<no;j++)if(!used[j]&&o[j].nodeType===1&&o[j].isEqualNode(b)){used[j]=1;R[i]=o[j];kept++;break}}
+ for(let i=0;i<nm;i++){if(R[i])continue;const b=m[i],a=i<no&&!used[i]?o[i]:null;
+  if(a&&a.nodeType===1&&b.nodeType===1&&a.tagName===b.tagName&&!pnField(b)&&pnSameAttrs(a,b)){used[i]=1;R[i]=a;kept+=1+pnKids(a,b)}else R[i]=b}
+ for(let j=0;j<no;j++)if(!used[j])e.removeChild(o[j]);
+ for(let i=0;i<nm;i++){const c=e.childNodes[i];if(c!==R[i])e.insertBefore(R[i],c||null)}
+ return kept}
+/* pnParts(e, parts): e's contents become parts.join(''), where each part is a whole element (or nothing): a part whose html is the
+   same as one already there keeps its nodes, wherever it moved, and only new parts are parsed. For long strips rebuilt often
+   (the battle turn order: one token changes on a hit, all shift by one on a new turn). Animations restart as after a rebuild. */
+function pnParts(e,P){const T=pnTpl();if(!T||pnFocusIn(e)){e.innerHTML=P.join('');e._pp=null;return}
+ let old=e._pp;if(old){let n=0;for(const q of old)for(const x of q.n){if(x.parentNode!==e){old=null;break}n++}if(old&&n!==e.childNodes.length)old=null}
+ if(!old){e.textContent='';old=[]}
+ const at=new Map();for(let j=0;j<old.length;j++){const L=at.get(old[j].s);if(L)L.push(j);else at.set(old[j].s,[j])}
+ const used=new Uint8Array(old.length),R=new Array(P.length);let kept=0;
+ for(let i=0;i<P.length;i++){const s=P[i];let j=-1;if(i<old.length&&!used[i]&&old[i].s===s)j=i;else{const L=at.get(s);if(L)for(const q of L)if(!used[q]){j=q;break}}
+  if(j>=0){used[j]=1;R[i]=old[j];kept++}else{T.innerHTML=s;R[i]={s,n:Array.from(T.content.childNodes)}}}
+ T.innerHTML='';for(let j=0;j<old.length;j++)if(!used[j])for(const x of old[j].n)e.removeChild(x);
+ let k=0;for(const q of R)for(const x of q.n){const c=e.childNodes[k];if(c!==x)e.insertBefore(x,c||null);k++}
+ e._pp=R;
+ if(kept&&typeof e.getAnimations==='function'){try{for(const a of e.getAnimations({subtree:true}))if(a.effect&&a.effect.target!==e&&typeof CSSAnimation!=='undefined'&&a instanceof CSSAnimation)a.currentTime=0}catch(x){}}}
+function pnField(x){const t=x.nodeType===1&&x.tagName;return t==='INPUT'||t==='TEXTAREA'||t==='SELECT'||(t&&x.querySelector&&!!x.querySelector('input,textarea,select'))}
+function pnSameAttrs(a,b){const A=a.attributes,B=b.attributes;if(A.length!==B.length)return false;for(let i=0;i<A.length;i++){const x=A[i];if(b.getAttribute(x.name)!==x.value)return false}return true}
 function showPanel(o){const r=panelRoot(),fresh=!PN.id,L=$('pnList'),D=$('pnDetail');
  if(fresh&&pnSheetUp()&&typeof closeSheet==='function')closeSheet(true);
- if(PN.lkey)PN.scroll[PN.lkey]=L.scrollTop;
- const sameD=!fresh&&PN.id===o.id&&PN.dkey===o.detailKey,dTop=sameD?D.scrollTop:0;
+ const l0=L.scrollTop,d0=D.scrollTop;
+ if(PN.lkey)PN.scroll[PN.lkey]=l0;
+ const sameD=!fresh&&PN.id===o.id&&PN.dkey===o.detailKey,dTop=sameD?d0:0;
  PN.id=o.id;PN.h=[o.onClose||closePanel];const act=f=>'pnDo('+(PN.h.push(f)-1)+')';
  r.dataset.panel=o.id;r.dataset.view=o.view||'';r.classList.toggle('pn-norail',!(o.tabs&&o.tabs.length));r.classList.toggle('pn-single',!!o.single);
- $('pnTitle').textContent=o.title||'';{const bn=$('pnBan');if(bn){bn.innerHTML=o.banner||'';bn.classList.toggle('on',!!o.banner)}}$('pnSub').textContent=o.sub||'';$('pnMeta').innerHTML=o.meta||'';
- $('pnClose').innerHTML=pnIcon(o.closeIcon||'x')+`<span>${o.closeLabel||'Close'}</span>`;
- const N=$('pnNote');N.innerHTML=o.note||'';N.classList.toggle('on',!!o.note);
- $('pnRail').innerHTML=(o.tabs||[]).map(t=>`<button type="button" role="tab" class="pn-tab${t.k===o.tab?' on':''}" aria-selected="${t.k===o.tab}" onclick="${act(()=>o.onTab(t.k))}">${pnIcon(t.icon||t.k,'',32)}<span>${t.n}</span>${t.badge?`<i>${t.badge}</i>`:''}</button>`).join('')
-  +((o.railEnd||[]).length?'<span class="pn-railgap"></span>'+o.railEnd.map(t=>`<button type="button" class="pn-tab alt" onclick="${act(t.fn)}">${pnIcon(t.icon,'',32)}<span>${t.n}</span>${t.badge?`<i>${t.badge}</i>`:''}</button>`).join(''):'');
+ $('pnTitle').textContent=o.title||'';{const bn=$('pnBan');if(bn){pnSet(bn,o.banner||'');bn.classList.toggle('on',!!o.banner)}}$('pnSub').textContent=o.sub||'';pnSet($('pnMeta'),o.meta||'');
+ pnSet($('pnClose'),pnIcon(o.closeIcon||'x')+`<span>${o.closeLabel||'Close'}</span>`);
+ const N=$('pnNote');pnSet(N,o.note||'');N.classList.toggle('on',!!o.note);
+ pnSet($('pnRail'),(o.tabs||[]).map(t=>`<button type="button" role="tab" class="pn-tab${t.k===o.tab?' on':''}" aria-selected="${t.k===o.tab}" onclick="${act(()=>o.onTab(t.k))}">${pnIcon(t.icon||t.k,'',32)}<span>${t.n}</span>${t.badge?`<i>${t.badge}</i>`:''}</button>`).join('')
+  +((o.railEnd||[]).length?'<span class="pn-railgap"></span>'+o.railEnd.map(t=>`<button type="button" class="pn-tab alt" onclick="${act(t.fn)}">${pnIcon(t.icon,'',32)}<span>${t.n}</span>${t.badge?`<i>${t.badge}</i>`:''}</button>`).join(''):''));
  $('pnRail').style.setProperty('--pn-n',String(Math.max(1,(o.tabs||[]).length+(o.railEnd||[]).length)));   // tab height comes from the viewport, not the grid track (Safari sized it wrong on first open)
- L.innerHTML=o.list||'';D.innerHTML=o.detail||'';const F=$('pnFoot');F.innerHTML=o.foot||'';F.classList.toggle('on',!!o.foot);
- r.classList.add('pn-on');if(fresh){r.classList.remove('pn-in');void r.offsetWidth;r.classList.add('pn-in')}
- L.scrollTop=PN.scroll[o.listKey]||0;PN.lkey=o.listKey;
- D.scrollTop=dTop;PN.dkey=o.detailKey;if(!sameD){D.classList.remove('pn-fade');void D.offsetWidth;D.classList.add('pn-fade')}
+ pnMorph(L,o.list||'');pnMorph(D,o.detail||'');const F=$('pnFoot');pnSet(F,o.foot||'');F.classList.toggle('on',!!o.foot);
+ r.classList.add('pn-on');if(fresh){r.classList.remove('pn-in');pnRestyle(r);r.classList.add('pn-in')}
+ {const lt=PN.scroll[o.listKey]||0;if(fresh||lt||l0)L.scrollTop=lt}PN.lkey=o.listKey;
+ if(fresh||dTop||d0)D.scrollTop=dTop;PN.dkey=o.detailKey;if(!sameD){D.classList.remove('pn-fade');pnRestyle(D);D.classList.add('pn-fade')}
  const s=L.querySelector('.pn-row.on');if(typeof o.after==='function'){try{o.after(r)}catch(e){}}if(s){const a=s.offsetTop,b=a+s.offsetHeight;if(b<=L.scrollTop+30||a>=L.scrollTop+L.clientHeight)L.scrollTop=Math.max(0,a-Math.max(30,(L.clientHeight-s.offsetHeight)/2))}
  PN.town=!!(G&&G.townOpen);sheetOpen=true}
 function panelOpen(){return PN.id}
