@@ -415,16 +415,28 @@ function waBandPaint(P,fk,k,f,moving,co){const B=P.h-4,cx=P.w>>1,F=WAFIG[fk];
  for(let i=0;i<n;i++)L.push({i,x:x1-i*gap,y:B-(i&1?2:0)+(n===1?0:1)-(i===3?1:0)});
  const bi=n>=2?1:0,fs=co?co.fs:k,fw=[4,6,8,10][fs-1],fh=[3,4,5,6][fs-1],ph=co?16+fs:11+fs*2+(fk==='gob'?-3:fk==='orc'?1:0);
  L.slice().sort((a,b)=>a.y-b.y).forEach(e=>{const i=e.i,st=moving?((f+i)&1):0,up=F.hover?((f+i*2)>>1)&1:moving&&((f+i)&3)===1?1:0;
-  if(i===bi){const px=e.x-(F.b[0].length>>1)-1,py=e.y-up;P.r(px,py-ph,1,ph+1,co?'a':'i');if(co){P.p(px,py-ph-1,'e')}waFlag(P,px,py-ph,fw,fh,F.flag,moving?f:f>>1,-1,F.flag[3]);if(co&&fs>2){for(let j=1;j<fh-1;j++)P.p(px-2,py-ph+j,'6')}}
+  if(i===bi){const px=e.x-(F.b[0].length>>1)-1,py=e.y-up,bn=co&&co.bn;if(bn){const ph2=ph+3;P.r(px,py-ph2,1,ph2+1,'a');P.p(px,py-ph2-1,'e');waBanner(P,px,py-ph2,bn,moving?f:f>>1)}else{P.r(px,py-ph,1,ph+1,co?'a':'i');if(co){P.p(px,py-ph-1,'e')}waFlag(P,px,py-ph,fw,fh,F.flag,moving?f:f>>1,-1,F.flag[3]);}if(co&&fs>2){for(let j=1;j<fh-1;j++)P.p(px-2,py-ph+j,'6')}}
   const kit=co?[null,{'5':'7','c':'5'},{'q':'7','p':'3','o':'3'},null][i]:(i===2&&fk==='orc'?{'g':'u'}:i===1&&fk==='bandit'?{'g':'X'}:null),bx=waFigure(P,F,e.x,e.y,st,up,kit);
   const wp=co?['spear','sword','bow','shield'][i]:(i===bi&&n>1?null:F.wpn);if(wp&&!(i===bi&&n===1&&co))waWeapon(P,wp,bx);
   if(co&&i===0){P.p(bx.x0+3,bx.y-1,'6');P.p(bx.x0+2,bx.y-2,'6');P.p(bx.x0+1,bx.y-2,'5')}});
  P.outline()}
-function waBandSprite(fk,k,f,dir,moving,co){const key='band'+fk+'|'+(co?co.k+'.'+co.fs:k)+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(moving?1:0),w=co?48:40,h=co?34:30;
+function waBandSprite(fk,k,f,dir,moving,co){const key='band'+fk+'|'+(co?co.k+'.'+co.fs+(co.bn?'.'+co.bn.sig:''):k)+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(moving?1:0),w=co?48:40,h=co?38:30;
  return waSprite(key,w,h,w>>1,h-3,P=>{waBandPaint(P,fk,k,f&3,moving,co);if(dir<0)P.mirror()})}
 function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const fk=WAFIG[o.f]||o.f==='beast'?o.f:'bandit',k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,s=waBandSprite(fk,k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),null);
  waShadow(q,x,y,fk==='beast'?12+k*5:8+k*7,5);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
-function drawCompanyPx(q,x,y,o){if(!waInit())return;o=o||{};const n=Math.max(1,o.n|0),k=n<=3?1:n<=6?2:n<=9?3:4,fs=n<=5?2:n<=10?3:4,f=waRM()?0:o.frame|0,s=waBandSprite('co',k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),{k,fs});
+/* the company banner (G.banner {c1,c2,emblem}, 46-banner.js): a waving flag in the field colour c1, a c2 border and the emblem shrunk to fit.
+   Absent (old saves, no banner module): the brass and verdigris pennant as before. Recomputed only when the banner changes. */
+const WABN={sig:null,v:null};
+function waBannerOf(){const G0=typeof G!=='undefined'?G:null,b0=G0&&G0.banner;if(!b0||typeof BANNERC!=='object')return null;let b=b0;try{if(typeof bannerFix==='function')b=bannerFix(b0)}catch(e){}
+ const sig=b.c1+'.'+b.c2+'.'+b.emblem;if(WABN.sig===sig)return WABN.v;const ramp=k=>{const c=BANNERC[k];return c&&Array.isArray(c.r)?c.r:PAL[k]?[k,k,k]:null},A=ramp(b.c1);
+ let v=null;if(A){const C=ramp(b.c2===b.c1?'l':b.c2)||['m','l','r'],E=typeof EMBLEMS==='object'&&EMBLEMS[b.emblem]?EMBLEMS[b.emblem].r:null;
+  let em=null;if(E){const n=E.length,m=8,pick={'#':3,'+':2,'-':1,'=':2};em=[];for(let y=0;y<m;y++){let r='';for(let x=0;x<m;x++){let best='.',bw=0;for(let j=0;j<2;j++)for(let i=0;i<2;i++){const ch=(E[y*2+j]||'')[x*2+i]||'.',w=pick[ch]||0;if(w>bw){bw=w;best=ch}}r+=best}em.push(r)}}
+  v={A,C,em,sig}}WABN.sig=sig;WABN.v=v;return v}
+function waBanner(P,x,y,bn,f){const W=14,H=10,A=bn.A,C=bn.C;
+ for(let i=0;i<W;i++){const yo=((i+(f&3))>>2)&1,xx=x-1-i;for(let j=0;j<H;j++){if(i===W-1&&j>=3&&j<=H-4)continue;if(i>=W-2&&(j===H>>1))continue;
+   const bd=j===0||j===H-1||i===W-1||i===W-2&&(j<3||j>H-4);P.p(xx,y+j+yo,bd?(j===H-1||i>=W-2?C[0]:C[1]):(j===1?A[2]:j>=H-2?A[0]:A[1]))}}
+ if(bn.em){const ox=x-1-3,oy=y+1;for(let j=0;j<8;j++)for(let i=0;i<8;i++){const ch=bn.em[j][i];if(ch==='.')continue;const fi=3+(7-i),yo=((fi+(f&3))>>2)&1;P.p(ox-(7-i),oy+j+yo,ch==='-'?C[0]:ch==='+'?C[2]:ch==='='?A[0]:C[1])}}}
+function drawCompanyPx(q,x,y,o){if(!waInit())return;o=o||{};const n=Math.max(1,o.n|0),k=n<=3?1:n<=6?2:n<=9?3:4,fs=n<=5?2:n<=10?3:4,f=waRM()?0:o.frame|0,bn=waBannerOf(),s=waBandSprite('co',k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),{k,fs,bn});
  waShadow(q,x,y,10+k*8,6);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
 
 /* ---- markers (anchor: bottom centre) ---- */

@@ -26,15 +26,21 @@ const ROLES={
  blade:{st:['hp','ms','md'],w:['shortsword','arming','runeblade'],b:[null,null,null],s:['buckler','buckler','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
  bow:{st:['rs','hp','rd'],w:['shortbow','warbow','warbow'],b:['knife','knife','rondel'],s:[null,null,null],a:['padded','leather','mail'],h:['hood','cap','kettle']},
  mage:{st:['hp','rd','md'],w:['staff','focus','focus'],b:[null,null,null],s:[null,null,null],a:['robe','robe','leather'],h:['hood','hood','cap']},
+ hammer:{st:['hp','ms','md'],w:['mallet','warhammer','warhammer'],b:[null,'maul','warmaul'],s:['roundshield','heater','heater'],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ pole:{st:['hp','ms','md'],w:['bill','halberd','glaive'],b:['knife','knife','knife'],s:[null,null,null],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ great:{st:['hp','ms','md'],w:['greatsword','zweihander','zweihander'],b:[null,null,null],s:[null,null,null],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
+ xbow:{st:['rs','hp','rd'],w:['lightxbow','crossbow','crossbow'],b:['knife','knife','rondel'],s:[null,null,null],a:['padded','leather','mail'],h:['hood','cap','kettle']},
+ gun:{st:['rs','hp','rd'],w:['pistol','pistol','duelpistol'],b:['shortsword','arming','arming'],s:['buckler','kite','kite'],a:['padded','leather','mail'],h:['hood','cap','kettle']},
+ tower:{st:['hp','ms','md'],w:['shortsword','arming','arming'],b:[null,null,null],s:['tower','tower','steeltower'],a:['leather','mail','plate'],h:['cap','kettle','greathelm']},
  heal:{st:['hp','ms','md'],w:['club','mace','mace'],b:[null,null,null],s:['buckler','kite','heater'],a:['padded','mail','scale'],h:['cap','kettle','barbute']}
 };
 const S=(bg,role,gift)=>({bg,role,gift:gift||null});
 const PROFILES=[
  {id:'L1x4',lvl:1,day:2,tier:-1,team:null},                                     // the company a new game starts with, perk points spent
  {id:'L4x6',lvl:4,day:12,tier:0,team:[S('squire','tank','aura'),S('sellsword','axe'),S('militia','spear'),S('acolyte','heal','chi'),S('hunter','bow'),S('hedge','mage','mana')]},
- {id:'L8x9',lvl:8,day:30,tier:1,team:[S('knight','tank','aura'),S('squire','tank'),S('sellsword','axe'),S('militia','spear'),S('wildling','two','qi'),S('acolyte','heal','chi'),S('hunter','bow'),S('hunter','bow'),S('hedge','mage','mana')]},
- {id:'L12x12',lvl:12,day:50,tier:2,team:[S('knight','tank','aura'),S('squire','tank','aura'),S('sellsword','axe'),S('sellsword','mace'),S('militia','spear'),S('militia','pike'),S('wildling','two','qi'),S('spellblade','blade','qi'),
-   S('monk','heal','chi'),S('hunter','bow'),S('hunter','bow'),S('hedge','mage','mana')]}
+ {id:'L8x9',lvl:8,day:30,tier:1,team:[S('knight','tank','aura'),S('squire','great'),S('sellsword','hammer'),S('militia','pole'),S('wildling','two','qi'),S('acolyte','heal','chi'),S('hunter','bow'),S('hunter','xbow'),S('hedge','mage','mana')]},
+ {id:'L12x12',lvl:12,day:50,tier:2,team:[S('knight','tank','aura'),S('squire','tower','aura'),S('sellsword','axe'),S('sellsword','hammer'),S('militia','spear'),S('militia','pole'),S('wildling','two','qi'),S('spellblade','gun','qi'),
+   S('monk','heal','chi'),S('hunter','bow'),S('hunter','xbow'),S('hedge','mage','mana')]}
 ];
 /* ---------- DOM stubs (as in test/headless.js) ---------- */
 function hole(props){const store=Object.assign(Object.create(null),props||{});

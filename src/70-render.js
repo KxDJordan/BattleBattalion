@@ -409,7 +409,7 @@ function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el
  // the view
  {const x0=clamp(X(wcam.x+SR.x/wcam.z),ox,ox+S-th),y0=clamp(Y(wcam.y+SR.y/wcam.z),oy,oy+S-th),x1=clamp(X(wcam.x+(SR.x+SR.w)/wcam.z),ox+th,ox+S),y1=clamp(Y(wcam.y+(SR.y+SR.h)/wcam.z),oy+th,oy+S);
   q.fillStyle=PAL.l;q.fillRect(x0,y0,x1-x0,th);q.fillRect(x0,y1-th,x1-x0,th);q.fillRect(x0,y0,th,y1-y0);q.fillRect(x1-th,y0,th,y1-y0)}
- box(ox+tile(G.p.x),oy+tile(G.p.y),th,'r','5')}
+ box(ox+tile(G.p.x),oy+tile(G.p.y),th,'r',G.banner&&PAL[G.banner.c1]?G.banner.c1:'5')}   // the company in its banner colour (shell)
 function minimapToWorld(el,clientX,clientY){const r=el.getBoundingClientRect();if(!MM.s)return null;return{x:clamp((clientX-r.left-MM.ox)/MM.s,1,WS-1),y:clamp((clientY-r.top-MM.oy)/MM.s,1,WS-1)}}
 
 /* ================= BATTLE =================
@@ -587,16 +587,22 @@ function ellSpr(w,h,col,ring){const id='e'+w+'|'+h+col+(ring?1:0);let c=OVC.get(
  q.fillStyle=PAL[col];for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(inn(x,y,0)&&!(ring&&inn(x,y,1)&&inn(x-1,y,0)&&inn(x+1,y,0)&&inn(x,y-1,0)&&inn(x,y+1,0)&&h>2))q.fillRect(x,y,1,1);OVC.set(id,c);return c}
 const FONT={'0':'.###.#...##..###.#.###..##...#.###.','1':'..#...##....#....#....#....#...###.','2':'.###.#...#....#...#...#...#...#####','3':'####.....#....#.###.....#....#####.','4':'...#...##..#.#.#..#.#####...#....#.',
  '5':'######....####.....#....##...#.###.','6':'.###.#....#....####.#...##...#.###.','7':'#####....#...#...#....#....#....#..','8':'.###.#...##...#.###.#...##...#.###.','9':'.###.#...##...#.####....#....#.###.',
- '%':'##..###.#....#...#...#....#.###..##','A':'.###.#...##...#######...##...##...#','P':'####.#...##...#####.#....#....#....','!':'..#....#...##...###.#######.##.###.','-':'...............#####...............','+':'.......#....#..#####..#....#.......',' ':'...................................'};
+ '%':'##..###.#....#...#...#....#.###..##','A':'.###.#...##...#######...##...##...#','P':'####.#...##...#####.#....#....#....','!':'..#....#...##...###.#######.##.###.','-':'...............#####...............','+':'.......#....#..#####..#....#.......',' ':'...................................',
+ 'L':'#....#....#....#....#....#....#####','E':'######....#....####.#....#....#####','F':'######....#....####.#....#....#....','T':'#####..#....#....#....#....#....#..'};
 function glyph(ch,col){const id='g'+ch+col;let c=OVC.get(id);if(c)return c;c=mkCanvas(5,7);const q=c.getContext('2d'),s=FONT[ch]||FONT[' '];q.fillStyle=PAL[col]||col;for(let i=0;i<35;i++)if(s[i]==='#')q.fillRect(i%5,(i/5)|0,1,1);OVC.set(id,c);return c}
 const PILLS=new Map();
 function pillSpr(txt,col){const id=txt+'|'+col;let c=PILLS.get(id);if(c)return c;if(PILLS.size>240)PILLS.clear();let w=5;for(let i=0;i<txt.length;i++)w+=txt[i]===' '?3:6;const h=11;c=mkCanvas(w,h);const q=c.getContext('2d');
  q.fillStyle=PAL['0'];q.fillRect(1,0,w-2,h);q.fillRect(0,1,w,h-2);q.fillStyle=PAL.b;q.fillRect(1,1,w-2,h-2);q.fillStyle=PAL['1'];q.fillRect(2,2,w-4,h-4);q.fillStyle=PAL['0'];q.fillRect(1,1,1,1);q.fillRect(w-2,1,1,1);q.fillRect(1,h-2,1,1);q.fillRect(w-2,h-2,1,1);
  for(let i=0,x=3;i<txt.length;i++){if(txt[i]===' '){x+=3;continue}q.drawImage(glyph(txt[i],txt[i]==='!'?'E':col),x,2);x+=6}PILLS.set(id,c);return c}
-const PILLQ={n:0,c:[],x:[],y:[]};
-function pillAt(txt,col,ax,ay){const i=PILLQ.n++;PILLQ.c[i]=pillSpr(txt,col);PILLQ.x[i]=ax;PILLQ.y[i]=ay}       // art-space anchor: bottom centre of the pill
-function pillsFlush(sc){if(!PILLQ.n)return;const P=Math.max(1,Math.round(dpr*1.5));g.setTransform(1,0,0,1,0,0);
- for(let i=0;i<PILLQ.n;i++){const c=PILLQ.c[i],w=c.width*P,h=c.height*P;g.drawImage(c,Math.round(btx+PILLQ.x[i]*sc*BKX-w/2),Math.round(bty+PILLQ.y[i]*sc-h),w,h)}PILLQ.n=0}
+// A pill of several coloured parts with a dark notch between them (the move plan: "4 AP" | "5 LEFT"); parts: [[txt,col],...]
+function pillSpr2(parts){const id=parts.map(p=>p[0]+'|'+p[1]).join('/');let c=PILLS.get(id);if(c)return c;if(PILLS.size>240)PILLS.clear();
+ const ws=parts.map(p=>{let w=0;for(let i=0;i<p[0].length;i++)w+=p[0][i]===' '?3:6;return w});let w=5+ws.reduce((a,b)=>a+b,0)+(parts.length-1)*4;const h=11;c=mkCanvas(w,h);const q=c.getContext('2d');
+ q.fillStyle=PAL['0'];q.fillRect(1,0,w-2,h);q.fillRect(0,1,w,h-2);q.fillStyle=PAL.b;q.fillRect(1,1,w-2,h-2);q.fillStyle=PAL['1'];q.fillRect(2,2,w-4,h-4);q.fillStyle=PAL['0'];q.fillRect(1,1,1,1);q.fillRect(w-2,1,1,1);q.fillRect(1,h-2,1,1);q.fillRect(w-2,h-2,1,1);
+ let x=3;parts.forEach((p,j)=>{if(j){q.fillStyle=PAL.b;q.fillRect(x,2,1,h-4);x+=4}for(let i=0;i<p[0].length;i++){const ch=p[0][i];if(ch===' '){x+=3;continue}q.drawImage(glyph(ch,p[1]),x,2);x+=6}});PILLS.set(id,c);return c}
+const PILLQ={n:0,c:[],x:[],y:[],s:[]};
+function pillAt(txt,col,ax,ay,big){const i=PILLQ.n++;PILLQ.c[i]=Array.isArray(txt)?pillSpr2(txt):pillSpr(txt,col);PILLQ.x[i]=ax;PILLQ.y[i]=ay;PILLQ.s[i]=big?1:0}       // art-space anchor: bottom centre of the pill
+function pillsFlush(sc){if(!PILLQ.n)return;const P0=Math.max(1,Math.round(dpr*1.5)),P1=Math.max(2,Math.round(dpr*2));g.setTransform(1,0,0,1,0,0);
+ for(let i=0;i<PILLQ.n;i++){const c=PILLQ.c[i],P=PILLQ.s[i]?P1:P0,w=c.width*P,h=c.height*P;g.drawImage(c,Math.round(btx+PILLQ.x[i]*sc*BKX-w/2),Math.round(bty+PILLQ.y[i]*sc-h),w,h)}PILLQ.n=0}
 
 /* ---- units ---- */
 const VIS=new WeakMap(),SOX=27,SOY=50,SPW=56,SPH=57;
@@ -663,15 +669,17 @@ function drawUnitOld(u,v){const sc=(u.def&&u.def.big?1.35:1)/2,x=(u.sx+v.pX)/2,y
  g.globalAlpha=1;v.ox=Math.round(x);v.oy=Math.round(y-46*sc)}
 function drawUnit(u,v){v.drawn=true;if(HAVE.sprite&&drawUnitPx(u,v))return;drawUnitOld(u,v)}
 /* fallback overlay (no 74-anim.js): armor over health as pixel bars, status pips, a marker over the acting unit */
-const OO={cur:false,big:false,tgt:false};
-function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8;let ty=y-(u.armMax?7:5);g.fillStyle=PAL['0'];g.fillRect(bx-1,ty-1,w+2,u.armMax?7:4);
+const OO={cur:false,big:false,tgt:false,bars:true};
+function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBarsOn();let ty=y-(u.armMax?7:5);if(bars){g.fillStyle=PAL['0'];g.fillRect(bx-1,ty-1,w+2,u.armMax?7:4);
  if(u.armMax){g.fillStyle=PAL.o;g.fillRect(bx,ty,w,2);g.fillStyle=PAL.q;g.fillRect(bx,ty,Math.ceil(w*u.arm/u.armMax),2);ty+=3}
- g.fillStyle=PAL.f;g.fillRect(bx,ty,w,2);if(v.hpLag>u.hp){g.fillStyle=PAL.e;g.fillRect(bx,ty,Math.ceil(w*Math.min(1,v.hpLag/u.hpMax)),2)}g.fillStyle=PAL[u.side?'g':'A'];g.fillRect(bx,ty,Math.ceil(w*u.hp/u.hpMax),2);
+ g.fillStyle=PAL.f;g.fillRect(bx,ty,w,2);if(v.hpLag>u.hp){g.fillStyle=PAL.e;g.fillRect(bx,ty,Math.ceil(w*Math.min(1,v.hpLag/u.hpMax)),2)}g.fillStyle=PAL[u.side?'g':'A'];g.fillRect(bx,ty,Math.ceil(w*u.hp/u.hpMax),2)}
  let px=bx;const py=y-(u.armMax?12:10),dot=c=>{g.fillStyle=PAL['0'];g.fillRect(px,py,4,4);g.fillStyle=PAL[c];g.fillRect(px+1,py+1,2,2);px+=5};
  if(u.st.burn)dot('E');if(u.st.chill)dot('F');if(u.st.root||u.rooted)dot('A');if(u.st.stun)dot('y');if(u.buffs.length)dot('r');
  if(cur){const cy=py-(px>bx?7:3)-(reduced?0:(now/260|0)&1);g.fillStyle=PAL['0'];g.fillRect(x-4,cy-5,8,3);g.fillRect(x-3,cy-2,6,2);g.fillRect(x-2,cy,4,1);g.fillStyle=PAL.d;g.fillRect(x-3,cy-4,6,2);g.fillRect(x-2,cy-2,4,1);g.fillRect(x-1,cy-1,2,1)}}
-function drawUnitOverlays(){const us=B.units;for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;const cur=u===B.cur;
-  if(HAVE.over){OO.cur=cur;OO.big=!!(u.def&&u.def.big);OO.tgt=!!(B.targets&&B.targets.has(key(u.c,u.r)));try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
+// SET.allyBars false (the HUD's toggle, B): the company's HP/armor bars stay hidden; o.bars carries it to the art's overlay too
+function allyBarsOn(){return!(typeof SET==='object'&&SET&&SET.allyBars===false)&&(typeof shAllyBars!=='function'||shAllyBars())}
+function drawUnitOverlays(){const us=B.units,ab=allyBarsOn();for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;const cur=u===B.cur;
+  if(HAVE.over){OO.cur=cur;OO.big=!!(u.def&&u.def.big);OO.tgt=!!(B.targets&&B.targets.has(key(u.c,u.r)));OO.bars=ab||u.side!==0;try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
   drawOverlayOld(u,v,v.ox,v.oy,cur)}g.globalAlpha=1}
 
 /* ---- picking: exact against the drawn columns (tops and exposed cliff faces), front to back ---- */
@@ -696,38 +704,52 @@ function ovCtx(R,d){let c=R.ov[d];if(!c)c=R.ov[d]=mkCanvas(R.w[d],R.h[d]);else i
  const q=c.getContext('2d');if(!R.ovOn[d]){q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);R.ovOn[d]=1}q.setTransform(1,0,0,1,-R.x0[d],-R.y0[d]);q.globalAlpha=1;return q}
 /* movement reach reads on any ground: dark blue wash on bright biomes (snow, desert, glass), ice-blue on dark ones, both with a shadowed border */
 function reachBright(){const h=(B.P&&B.P.top)||'#000',n=parseInt(h.slice(1),16);return((n>>16)*.3+(n>>8&255)*.59+(n&255)*.11)>150}
-function buildOverlays(R){const u=B.cur,reach=!B.sel&&B.reach&&!B.busy&&!B.auto?B.reach:null,tg=B.targets||null,own=u&&u.alive&&!visOf(u).mv?key(u.c,u.r):-1,sel=B.busy?null:B.sel||null;
+function buildOverlays(R){const u=B.cur,reach=!B.sel&&B.reach&&!B.busy&&!B.auto?B.reach:null,tg=B.targets||null,own=u&&u.alive&&!visOf(u).mv?key(u.c,u.r):-1,sel=B.busy?null:B.sel||null,pl=PL.k;
  if(tg!==OV.targets||R!==OV.TgR){OV.targets=tg;OV.TgR=R;for(let d=0;d<ND;d++)OV.Tg[d].length=0;if(tg)for(const k of tg)OV.Tg[R.dp[k]].push(k)}
- if(OV.sig===B.tiles&&OV.reach===reach&&OV.sel===sel&&OV.own===own&&OV.hts===VIEW.heights&&OV.R===R)return;OV.sig=B.tiles;OV.reach=reach;OV.sel=sel;OV.own=own;OV.hts=VIEW.heights;OV.R=R;
+ if(OV.sig===B.tiles&&OV.reach===reach&&OV.sel===sel&&OV.own===own&&OV.hts===VIEW.heights&&OV.R===R&&OV.pk===pl)return;OV.sig=B.tiles;OV.reach=reach;OV.sel=sel;OV.own=own;OV.hts=VIEW.heights;OV.R=R;OV.pk=pl;
  for(let d=0;d<ND;d++)if(R.ovOn[d]){const c=R.ov[d],q=c.getContext('2d');q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);R.ovOn[d]=0}
- let rng=-1,kind='enemy';if(sel&&u){try{const a=abilityInfo(u,sel);if(a.rng>0&&TGC[a.tgt]){rng=a.rng;kind=a.tgt}}catch(e){}}
+ let rng=-1,kind='enemy',oc=u?u.c:0,orr=u?u.r:0;if(sel&&u){try{const a=abilityInfo(u,sel);if(a.rng>0&&TGC[a.tgt]){rng=a.rng;kind=a.tgt}}catch(e){}}
+ else if(pl>=0&&u){try{const a=abilityInfo(u,'attack');if(a.rng>1){rng=a.rng;oc=pl%BW;orr=(pl/BW)|0}}catch(e){}}   // a planned move with a reach or ranged weapon: its attack range from the planned tile
  const hts=VIEW.heights,k=R.rot,tl=B.tiles;if(!reach&&rng<0&&!hts&&own<0)return;
- const inR=q=>q>=0&&(reach.has(q)||q===own),inG=q=>q>=0&&Math.abs(q%BW-u.c)+Math.abs(((q/BW)|0)-u.r)<=rng,low=(q,h)=>q<0||tl[q].h<h;
+ const inR=q=>q>=0&&(reach.has(q)||q===own),inG=q=>q>=0&&Math.abs(q%BW-oc)+Math.abs(((q/BW)|0)-orr)<=rng,low=(q,h)=>q<0||tl[q].h<h;
  for(let i=0;i<NT;i++){const q=R.ord[i],d=R.dp[q],vc=R.vc[q],vr=R.vr[q],x=R.ax[q]-16,y=R.ay[q]-8,nw=vKey(vc-1,vr,k),ne=vKey(vc,vr-1,k),se=vKey(vc+1,vr,k),sw=vKey(vc,vr+1,k);
   if(hts){const c=ovCtx(R,d),h=tl[q].h;c.globalAlpha=.6;if(low(nw,h))c.drawImage(ovSpr('nw','l'),x,y);if(low(ne,h))c.drawImage(ovSpr('ne','l'),x,y);if(low(se,h))c.drawImage(ovSpr('se','l'),x,y);if(low(sw,h))c.drawImage(ovSpr('sw','l'),x,y);c.globalAlpha=1;
    if(tl[q].t!=='block'){const z=glyph(''+h,'0'),gx=x+14,gy=y+5;c.drawImage(z,gx-1,gy);c.drawImage(z,gx+1,gy);c.drawImage(z,gx,gy-1);c.drawImage(z,gx,gy+1);c.drawImage(glyph(''+h,HTC[h]||'l'),gx,gy)}}
   if(reach&&reach.has(q)){const c=ovCtx(R,d),br=reachBright(),ec=br?'X':'e';c.globalAlpha=br?.5:.34;c.drawImage(ovSpr('fill',br?'X':'F'),x,y);
    c.globalAlpha=.75;if(!inR(nw))c.drawImage(ovSpr('nw','0'),x,y+1);if(!inR(ne))c.drawImage(ovSpr('ne','0'),x,y+1);if(!inR(se))c.drawImage(ovSpr('se','0'),x,y+1);if(!inR(sw))c.drawImage(ovSpr('sw','0'),x,y+1);c.globalAlpha=1;
    if(!inR(nw))c.drawImage(ovSpr('nw',ec),x,y);if(!inR(ne))c.drawImage(ovSpr('ne',ec),x,y);if(!inR(se))c.drawImage(ovSpr('se',ec),x,y);if(!inR(sw))c.drawImage(ovSpr('sw',ec),x,y)}
-  if(rng>=0&&inG(q)){const c=ovCtx(R,d),col=TGC[kind][1];c.globalAlpha=.1;c.drawImage(ovSpr('fill',col),x,y);c.globalAlpha=1;if(!inG(nw))c.drawImage(ovSpr('nw',col),x,y);if(!inG(ne))c.drawImage(ovSpr('ne',col),x,y);if(!inG(se))c.drawImage(ovSpr('se',col),x,y);if(!inG(sw))c.drawImage(ovSpr('sw',col),x,y)}
+  if(rng>=0&&inG(q)){const c=ovCtx(R,d),col=TGC[kind][1];c.globalAlpha=.14;c.drawImage(ovSpr('fill',col),x,y);c.globalAlpha=.6;if(!inG(nw))c.drawImage(ovSpr('nw','0'),x,y+1);if(!inG(ne))c.drawImage(ovSpr('ne','0'),x,y+1);if(!inG(se))c.drawImage(ovSpr('se','0'),x,y+1);if(!inG(sw))c.drawImage(ovSpr('sw','0'),x,y+1);c.globalAlpha=1;if(!inG(nw))c.drawImage(ovSpr('nw',col),x,y);if(!inG(ne))c.drawImage(ovSpr('ne',col),x,y);if(!inG(se))c.drawImage(ovSpr('se',col),x,y);if(!inG(sw))c.drawImage(ovSpr('sw',col),x,y)}
   if(q===own){const c=ovCtx(R,d);c.drawImage(ovSpr('ring2','c'),x,y);c.drawImage(ovSpr('ring','d'),x,y)}}}
 function drawOverlays(R,d){if(R.ovOn[d])g.drawImage(R.ov[d],R.x0[d],R.y0[d]);
  const Tg=OV.Tg[d];if(Tg.length){const C=TGC[B.selKind]||TGC.move,f=ovSpr('fill',C[0]),b=ovSpr('brk',C[1]),pu=reduced?.5:(now/140|0)%6/5;g.globalAlpha=.34+(pu>.5?1-pu:pu)*.3;
   for(let i=0;i<Tg.length;i++)g.drawImage(f,R.ax[Tg[i]]-16,R.ay[Tg[i]]-8);g.globalAlpha=1;for(let i=0;i<Tg.length;i++)g.drawImage(b,R.ax[Tg[i]]-16,R.ay[Tg[i]]-8)}
  const hk=HOV.k;if(hk>=0&&R.dp[hk]===d&&hk!==HOV.dest){g.globalAlpha=.75;g.drawImage(ovSpr('brk','r'),R.ax[hk]-16,R.ay[hk]-8);g.globalAlpha=1}
  if(HOV.dest>=0&&R.dp[HOV.dest]===d){const x=R.ax[HOV.dest]-16,y=R.ay[HOV.dest]-8;g.globalAlpha=.3;g.drawImage(ovSpr('fill',HOV.hz?'E':'d'),x,y);g.globalAlpha=1;g.drawImage(ovSpr('ring2',HOV.hz?'E':'d'),x,y)}
+ if(PL.k>=0&&R.dp[PL.k]===d){const x=R.ax[PL.k]-16,y=R.ay[PL.k]-8,pu=reduced?.5:(now/120|0)%8/7,a=pu>.5?1-pu:pu;g.globalAlpha=.34+a*.3;g.drawImage(ovSpr('fill',PL.hz?'E':'d'),x,y);g.globalAlpha=1;
+  g.drawImage(ovSpr('ring2','0'),x,y+1);g.drawImage(ovSpr('ring2',PL.hz?'E':'d'),x,y);g.drawImage(ovSpr('ring','e'),x,y)}
+ for(let i=0;i<PL.tn;i++){const q=PL.tg[i];if(R.dp[q]!==d)continue;const x=R.ax[q]-16,y=R.ay[q]-8;g.drawImage(ovSpr('dash','0'),x,y+1);g.drawImage(ovSpr('dash','E'),x,y)}
  if(insK>=0&&R.dp[insK]===d)g.drawImage(ovSpr('dash','r'),R.ax[insK]-16,R.ay[insK]-8);
  bmDraw(R,d)}
 function uiK(){return 1/Math.sqrt(clamp(B.cam.z,.5,1))}
+/* the move plan (65-battle-ui.js: B.plan, planInfo): its tile, path, pill, and the foes in reach from there; read once a frame */
+const PL={k:-1,path:null,cost:0,left:0,hz:false,tg:new Int16Array(40),tn:0,I:null};
+function planPrep(){PL.k=-1;PL.tn=0;PL.I=null;const p=typeof planOK==='function'?planOK():null;if(!p)return;PL.k=p.k;PL.path=p.path;PL.cost=p.cost;PL.left=p.left;PL.hz=!!p.hz;
+ let I=null;try{I=typeof planInfo==='function'?planInfo():null}catch(e){}PL.I=I;const S=I&&(B.sel?I.sel:I.atk);if(S)for(const q of S){if(PL.tn>=40)break;if(!(B.targets&&B.targets.has(q)))PL.tg[PL.tn++]=q}}
+function drawPlan(R){if(PL.k<0||!PL.path)return;const P=PL.path,u=B.cur,ph=reduced?0:(now/90|0)%4,c0=PAL['0'],c1=PAL[PL.hz?'E':'d'];let x0=Math.round(u.sx/2),y0=Math.round(u.sy/2);
+ for(let i=0;i<P.length;i++){const x1=R.ax[P[i]],y1=R.ay[P[i]];for(let j=0;j<4;j++){const a=(j+ph/4)/4,x=Math.round(x0+(x1-x0)*a),y=Math.round(y0+(y1-y0)*a);g.fillStyle=c0;g.fillRect(x-2,y-2,5,5);g.fillStyle=c1;g.fillRect(x-1,y-1,3,3)}x0=x1;y0=y1}
+ const bob=reduced?0:(now/260|0)&1;pillAt([[PL.cost+' AP'+(PL.hz?' !':''),PL.hz?'h':'d'],[PL.left+' LEFT',PL.left>0?'A':'h']],null,x0,y0-12-bob,true)}
 function pathPrep(R){const u=B.cur,k=HOV.k;HOV.dest=-1;if(k<0||!u||!OV.reach||u.side!==0||B.auto||!OV.reach.has(k)||k===key(u.c,u.r)||unitAt(k%BW,(k/BW)|0))return;
  if(HOV.pk!==k||HOV.reach!==OV.reach){HOV.pk=k;HOV.reach=OV.reach;HOV.path=pathTo(OV.reach,k);HOV.cost=OV.reach.get(k).cost;HOV.hz=HOV.path.some(q=>B.tiles[q].t==='haz')}
- if(HOV.path.length)HOV.dest=k}
+ if(HOV.path.length&&k!==PL.k)HOV.dest=k}
 function drawPathPreview(R){if(HOV.dest<0)return;const P=HOV.path,u=B.cur,ph=reduced?0:(now/90|0)%4,c0=PAL['0'],c1=PAL[HOV.hz?'E':'e'];let x0=Math.round(u.sx/2),y0=Math.round(u.sy/2);
  for(let i=0;i<P.length;i++){const x1=R.ax[P[i]],y1=R.ay[P[i]];for(let j=0;j<4;j++){const a=(j+ph/4)/4,x=Math.round(x0+(x1-x0)*a),y=Math.round(y0+(y1-y0)*a);g.fillStyle=c0;g.fillRect(x-2,y-2,4,4);g.fillStyle=c1;g.fillRect(x-1,y-1,2,2)}x0=x1;y0=y1}
  pillAt(HOV.cost+' AP'+(HOV.hz?' !':''),HOV.hz?'h':'d',x0,y0-11)}
+// hover over the planned tile: the plan's own pill says it; elsewhere, the hover path draws as before
 const HC={t:0,n:0,u:[],p:[],c:[]};
 function drawHitChances(){const u=B.cur;if(!u||u.side!==0||B.busy||B.auto||!u.alive){HC.n=0;return}
- if(now-HC.t>180){HC.t=now;HC.n=0;const a=abilityInfo(u,B.sel||'attack');if(a.tgt==='enemy')for(let i=0;i<B.units.length;i++){const t=B.units[i];if(t.alive&&t.side===1&&mdist(u,t)<=a.rng&&!(a.needShieldT&&!t.shield)){let blk=false;try{blk=typeof losInfo==='function'&&losInfo(u,t,a).blocked}catch(e){}
+ if(now-HC.t>180){HC.t=now;HC.n=0;const a=abilityInfo(u,B.sel||'attack');
+  if(PL.k>=0&&PL.I&&typeof planHit==='function'){const S=B.sel?PL.I.sel:PL.I.atk;if(S&&a.tgt==='enemy')for(const q of S){const t=unitAt(q%BW,(q/BW)|0);if(!t||HC.n>=24)continue;const h=planHit(t,a);if(h==null)continue;HC.u[HC.n]=t;HC.c[HC.n]=h<0?'':h>=75?'A':h<45?'h':'d';HC.p[HC.n++]=h<0?'':h+'%'}}
+  else if(a.tgt==='enemy')for(let i=0;i<B.units.length;i++){const t=B.units[i];if(t.alive&&t.side===1&&mdist(u,t)<=a.rng&&!(a.needShieldT&&!t.shield)){let blk=false;try{blk=typeof losInfo==='function'&&losInfo(u,t,a).blocked}catch(e){}
     const h=blk?0:hitChance(u,t,a);HC.u[HC.n]=t;HC.c[HC.n]=blk?'':h>=75?'A':h<45?'h':'d';HC.p[HC.n++]=h+'%'}}}
  for(let i=0;i<HC.n;i++){const t=HC.u[i],v=VIS.get(t);if(!t.alive||!v||!v.drawn)continue;
   if(!HC.c[i]){const c=typeof anSprite==='function'?anSprite('los-blocked'):null;if(c&&!(BM.los&&BM.tg===t))g.drawImage(c,v.ox-9,v.oy-(HAVE.over?27:34));continue}
@@ -758,7 +780,7 @@ function bmPrep(R){if(now-BM.t<140&&BM.R===R)return;BM.t=now;BM.R=R;let n=0;
  // the same walk over the grid as the rules' losInfo(): from the lower tile key to the higher one
  let p=u,q=t;if(key(t.c,t.r)<key(u.c,u.r)){p=t;q=u}const dc=q.c-p.c,dr=q.r-p.r,m=Math.max(Math.abs(dc),Math.abs(dr)),top=Math.max(T_(u).h,T_(t).h)+1;
  for(let i=1;i<m&&BM.n<40;i++){const c=Math.round(p.c+dc*i/m),r=Math.round(p.r+dr*i/m),k=key(c,r),tl=B.tiles[k];let ty=0;
-  if(tl.t==='block'||tl.h>top)ty=3;else{const x=unitAt(c,r);if(x&&x!==u&&x!==t)ty=kind===2&&x.side===u.side?2:1}
+  if(tl.t==='block'||tl.h>top)ty=3;else if(kind===2){const x=unitAt(c,r);if(x&&x!==u&&x!==t)ty=x.side===u.side?2:1}   // a reach weapon (kind 1) strikes over bodies: no cover, no stray
   if(ty){BM.k[BM.n]=k;BM.ty[BM.n++]=ty}}
  if(BM.blocked){let bd=1e9;for(let i=0;i<BM.n;i++)if(BM.ty[i]===3){const k=BM.k[i],d=Math.abs(k%BW-u.c)+Math.abs(((k/BW)|0)-u.r);if(d<bd){bd=d;BM.stop=k}}}}
 const T_=u=>B.tiles[key(u.c,u.r)];
@@ -797,7 +819,7 @@ function tfArt(){const c=B.cam,s=c.z===c.zt?c.s:c.z*2*dpr;g.setTransform(s*BKX,0
 function tfBoard(){const c=B.cam,s=(c.z===c.zt?c.s:c.z*2*dpr)/2;g.setTransform(s*BKX,0,0,s,btx,bty)}
 function drawBattle(dt){dt=dt||0;const cam=B.cam;if(!HAVE.init)haveInit();let R=viewEnsure();BKX=rotStep();R=V;
  if(now-TN.at>1000){TN.at=now;if(tintRefresh()){viewBuild();R=V}}
- updateBattleCam(dt);g.imageSmoothingEnabled=false;drawSky();stripsEnsure(R);animTick(R);warmSprites();buildOverlays(R);pathPrep(R);bmPrep(R);
+ updateBattleCam(dt);g.imageSmoothingEnabled=false;drawSky();stripsEnsure(R);animTick(R);warmSprites();planPrep();buildOverlays(R);pathPrep(R);bmPrep(R);
  for(let d=0;d<ND;d++)DU[d].length=0;
  for(let i=0;i<B.units.length;i++){const u=B.units[i],v=visOf(u);v.drawn=false;if(u.alive)stepUnit(u,v,dt);else if(!v.deadT)v.deadT=now;poseTo(u,v);if(v.show)DU[clamp(u.alive?v.depth:R.dp[key(u.c,u.r)],0,ND-1)].push(u)}
  if(typeof fxScan==='function')fxScan(dt);
@@ -806,11 +828,12 @@ function drawBattle(dt){dt=dt||0;const cam=B.cam;if(!HAVE.init)haveInit();let R=
  tfArt();propFade(R,dt);const vy0=-bty/sc-2,vy1=(cv.height-bty)/sc+2;
  for(let d=0;d<ND;d++){if(R.y0[d]<vy1&&R.y0[d]+R.h[d]>vy0){g.drawImage(R.cv[d],R.x0[d],R.y0[d],R.w[d],R.h[d]);drawOverlays(R,d)}
   if(R.props[d].length)drawProps(R,d);const L=DU[d];for(let i=0;i<L.length;i++)drawUnit(L[i],VIS.get(L[i]))}
- drawUnitOverlays();drawPathPreview(R);bmLine(R);drawHitChances();pillsFlush(sc);
+ drawUnitOverlays();drawPlan(R);drawPathPreview(R);bmLine(R);drawHitChances();pillsFlush(sc);
  btx=btx0;g.setTransform(sc/2,0,0,sc/2,btx,bty);g.imageSmoothingEnabled=true;if(typeof fxDraw==='function')fxDraw(dt);   // effects: board space (1 unit = half an art pixel), never squashed
  g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';if(typeof fxAmbient==='function')fxAmbient(B.bk,dt);drawVignette(.8)}
 /* pixel icons for the view buttons in the battle HUD (rotate left / right, heights) */
 const VICON={rotl:['................','................','....l...........','...ll...........','..lllllll.......','.llllllllll.....','..lll....lll....','...ll.....lll...','....l......ll...','...........ll...','...........ll...','..........lll...','....ll...lll....','....lllllll.....','.....lllll......','................'],
+ bars:['................','.00000000000000.','.0AAAAAAAAABBB0.','.0AAAAAAAAABBB0.','.00000000000000.','.0qqqqqqpppppp0.','.00000000000000.','................','......0000......','.....0ssss0.....','.....0ssss0.....','......0ss0......','....00555500....','...0555555550...','...0555555550...','...0000000000...'],
  heights:['................','................','..........dddd..','..........dccc..','..........dccc..','......ddddcccb..','......dcccbbbb..','......dcccbbbb..','..ddddcccbbbbb..','..dcccbbbbbbbb..','..dcccbbbbbbbb..','..dcccbbbbbbbb..','..aaaaaaaaaaaa..','................','................','................']};
 function viewIcon(n,size){const rows=n==='rotr'?pxFlip(VICON.rotl):VICON[n],u=rows?pxURL('view:'+n,rows,1):'';size=size||16;
  return u?'<img class="pxi" src="'+u+'" width="'+size+'" height="'+size+'" alt="" draggable="false" style="display:block;flex:none;width:'+size+'px;height:'+size+'px;image-rendering:pixelated">':'<b aria-hidden="true">'+(n==='rotl'?'‹':n==='rotr'?'›':'#')+'</b>'}

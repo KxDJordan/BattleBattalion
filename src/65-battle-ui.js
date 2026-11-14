@@ -27,19 +27,36 @@ function shWhyNoReserve(){if(!B)return'';if(!shReserves().length)return'Nobody i
 function shItem(x){if(!x)return null;if(typeof x==='object')return x;return typeof ITEMS==='object'&&ITEMS[x]||null}
 function shHand(u){if(!u)return null;if(u.wid!==undefined)return shItem(u.wid)||(u.wid==null?(typeof FIST==='object'?FIST:null):u.wpn);return u.wpn||null}
 function shAlt(u){if(!u)return null;if(!u.m&&u.wpnAlt)return u.wpnAlt;if(u.m&&u.alt!==undefined)return shItem(u.alt)||(u.alt===null&&u.hand==='b'&&u.wid!=null?(typeof FIST==='object'?FIST:null):null);if(u.altW)return shItem(u.altW);if(u.m&&u.m.eq&&u.m.eq.b)return shItem(u.m.eq.b);if(u.def&&u.def.side){const sw=u.wpn&&u.def.rng&&u.wpn.wt!=='bow';return sw?{n:'Bow',wt:'bow',two:1}:shItem(u.def.side)}return null}
-function shWIcon(w){const wt=w&&w.wt;return wt&&typeof icHas==='function'&&icHas(wt)?wt:wt==='bow'?'bow':w?'sword':'fist'}
+function shWIcon(w){const wt=w&&w.wt;return wt&&typeof icHas==='function'&&icHas(wt)?wt:shRangedW(w)?'bow':wt==='hammer'&&typeof icHas==='function'&&icHas('mace')?'mace':(wt==='polearm'||wt==='greatsword')&&typeof icHas==='function'&&icHas(wt==='polearm'?'spear':'sword')?(wt==='polearm'?'spear':'sword'):w?'sword':'fist'}
 function shWName(w){return w?w.n||(w.wt?w.wt[0].toUpperCase()+w.wt.slice(1):'Weapon'):'Bare hands'}
 // a shield that is carried but slung on the back (two-handed weapon in hand): no defence, no shield skills
 function shSlung(u){if(!u||!(u.shpMax>0))return false;if(u.slung!==undefined)return!!u.slung&&u.shp>0;if(!u.shield)return false;try{if(typeof shieldSlung==='function')return!!shieldSlung(u)}catch(e){}if(u.shUp!==undefined)return!u.shUp;const w=shHand(u);return!!(w&&w.two)}
-function shBowAb(u,a){if(!a||a.magic)return false;return a.needs==='bow'||(!!a.wpn&&!!u.wpn&&u.wpn.wt==='bow')}
+/* ranged weapons: bows, crossbows, flintlocks (and any item the rules mark ranged); the rules' isRangedAtk wins when it is loaded */
+const SH_RW={bow:1,crossbow:1,flintlock:1};
+function shRangedW(w){return!!w&&(!!SH_RW[w.wt]||!!w.ranged)}
+function shBowAb(u,a){if(!a||a.magic)return false;try{if(typeof isRangedAtk==='function')return!!isRangedAtk(u,a)}catch(e){}return a.needs==='bow'||(!!a.wpn&&!!u.wpn&&shRangedW(u.wpn))}
 function shLockedNow(u){if(!u||!u.alive||!B)return false;try{if(typeof rangedLocked==='function')return!!rangedLocked(u)}catch(e){}
  return B.units.some(e=>e.alive&&e.side!==u.side&&!e.gone&&mdist(e,u)===1&&e.mor!==0&&!(e.st&&e.st.stun))}
-function shLocked(u,a){if(!u)return false;if(a){if(!shBowAb(u,a)||a.noBow||(a.needs&&u.wpn&&u.wpn.wt!==a.needs))return false}else if(!(u.wpn&&u.wpn.wt==='bow'))return false;return shLockedNow(u)}
+function shLocked(u,a){if(!u)return false;if(a){if(!shBowAb(u,a)||a.noBow||(a.needs&&u.wpn&&u.wpn.wt!==a.needs&&a.needs!=='ranged'))return false}else if(!shRangedW(u.wpn))return false;return shLockedNow(u)}
 const SH_LOCKTXT='Ranged lock: an enemy is adjacent';
+/* reload weapons (crossbow, flintlock): u.loaded for the weapon in hand, u.ld[weapon id] for the one stowed. null: no reload needed */
+function shReloadW(w){return!!(w&&w.reload)}
+function shLoaded(u,w){if(!u)return null;const h=shHand(u);w=w||h;if(!shReloadW(w))return null;
+ if(w===h||w===u.wpn){if(typeof u.loaded==='boolean')return u.loaded;return true}
+ const id=w.id||(u.m&&u.alt)||null,L=u.ld;if(id&&L&&typeof L==='object'&&typeof L[id]==='boolean')return L[id];return true}
+function shReloadCost(u,w){w=w||shHand(u);const r=w&&w.reload;if(!r)return null;let a=null;try{if(AB.reload)a=abilityInfo(u,'reload')}catch(e){}return{ap:a&&a.ap!=null?a.ap:(r.ap|0),fat:a&&a.fat!=null?a.fat:(r.fat|0)}}
+const SH_UNLOADTXT='Unloaded: reload first';
+/* the shield carried: its item (mercs: the equipped one; foes: their def) and a name for its type */
+const SH_LOOK={buckler:'Buckler',round:'Round shield',kite:'Kite shield',heater:'Heater shield',tower:'Tower shield',spiked:'Spiked shield'};
+function shShieldItem(u){if(!u)return null;try{if(u.m&&u.m.eq&&u.m.eq.s)return shItem(u.m.eq.s);const d=u.def&&u.def.shield;if(typeof d==='string')return shItem(d);if(d&&typeof d==='object')return d}catch(e){}return null}
+function shShieldName(u){const it=shShieldItem(u);if(it&&it.n)return it.n;return it&&SH_LOOK[it.look]||'Shield'}
+function shShieldIcon(u){const it=shShieldItem(u),lk=it&&it.look||(u.m&&u.m.eq&&u.m.eq.s)||null;if(lk&&typeof icHas==='function'){if(icHas('shield-'+lk))return'shield-'+lk;if(icHas(lk))return lk}return'shield'}
 function shCanSwap(u){try{if(typeof canSwap==='function')return!!canSwap(u)}catch(e){}return!!shAlt(u)}
 /* why an ability cannot be used now, in a few words ('' when it can) */
 function shWhyNot(u,a){if(!u||!a)return'';try{if(canUse(u,a)&&!shLocked(u,a))return''}catch(e){}if(u.mor===0)return'Fleeing: will not take orders';
  if(shLocked(u,a))return SH_LOCKTXT;
+ if(a.id==='reload'||a.reload||a.reloadW){const L=shLoaded(u);if(L===null)return'Nothing to reload';if(L)return'Already loaded'}
+ else if(a.wpn&&shBowAb(u,a)&&shLoaded(u)===false&&!(u.ap<a.ap))return SH_UNLOADTXT;
  if((a.swapW||a.id==='swap')&&!shCanSwap(u))return'No backup weapon';
  try{if(typeof useBlock==='function'){const r=useBlock(u,a);if(r)return r}}catch(e){}
  if(u.ap<a.ap)return'Needs '+a.ap+' AP ('+u.ap+' left)';if(u.fat+(a.fat||0)>u.fatMax)return'Too tired: '+(u.fatMax-u.fat)+' stamina left';
@@ -71,7 +88,13 @@ function reservesSheet(){if(!B||B.over)return;const R=shReserves(),ok=shCanReser
 function hudCallReserve(id){if(!B||B.over||B.busy||!shCanReserve())return;closeSheet(true);let u=null;try{u=callReserve(id)}catch(e){}if(!u)toast(shWhyNoReserve());else{B.cam.tx=u.sx;B.cam.ty=u.sy-10}updateBUI()}
 function selAb(id){const u=B.cur;if(B.busy||u.side!==0)return;fcClear();const a=abilityInfo(u,id);
  if(a.withdraw){if(!canUse(u,a))return;if(B.sel===id){useAbility(u,a,key(u.c,u.r));return}B.sel=id;B.targets=new Set([key(u.c,u.r)]);B.selKind='move';updateBUI();return}   // irreversible: the first tap arms it, the second (or a tap on the unit) leaves
- if(B.sel===id){B.sel=null;B.targets=null;updateBUI();return}if(!canUse(u,a)||shLocked(u,a)){abHint(id);if(shLocked(u,a))fxLockPopSafe(u);return}
+ if(B.sel===id){B.sel=null;B.targets=null;updateBUI();return}
+ // a planned move: an ability with nothing in reach now but something from the planned tile is armed as a preview (its targets from
+ // there are marked on the board; nothing can be struck until the move is made)
+ const now=canUse(u,a)&&!shLocked(u,a),P=planOK();
+ if(P&&(a.tgt==='enemy'||a.tgt==='ally')){const ts=now?validTargets(u,a):new Set();if(!ts.size){const pt=planSim(u,P,()=>{const w=planWhyAb(u,a);return w&&!w.why?w.tg:null});
+   if(pt&&pt.size){B.sel=id;B.targets=ts;B.selKind=a.tgt;updateBUI();return}}}
+ if(!now){abHint(id);if(shLocked(u,a))fxLockPopSafe(u);return}
  if(a.tgt==='self'){useAbility(u,a,key(u.c,u.r));return}
  if(a.tgt==='aoe'){if(!B.units.some(t=>t.alive&&t.side!==u.side&&mdist(u,t)===1)){toast('No foe is adjacent');return}useAbility(u,a,key(u.c,u.r));return}
  const ts=validTargets(u,a);if(!ts.size){toast('Nothing in reach for '+a.n);return}B.sel=id;B.targets=ts;B.selKind=a.tgt;updateBUI()}
@@ -83,18 +106,66 @@ function pickKey(mx,my){if(typeof pickAtBoard==='function')return pickAtBoard(mx
 function aimAt(k){if(!B||B.busy||B.over||!B.cur||B.cur.side!==0||B.auto||k<0)return null;const u=B.cur,t=unitAt(k%BW,(k/BW)|0);if(!t||t.side===u.side)return null;
  if(B.sel){const a=abilityInfo(u,B.sel);if(a.tgt!=='enemy')return null;if(B.targets&&B.targets.has(k))return{u,t,a,k,blocked:false};
   if(mdist(u,t)<=a.rng&&shLocked(u,a))return{u,t,a,k,blocked:true,lock:true};
+  if(mdist(u,t)<=a.rng&&a.wpn&&shLoaded(u)===false&&shBowAb(u,a))return{u,t,a,k,blocked:true,unl:true};
   return mdist(u,t)<=a.rng&&canUse(u,a)&&shLos(u,t,a).blocked?{u,t,a,k,blocked:true}:null}
- const a=abilityInfo(u,'attack');if(mdist(u,t)<=a.rng&&shLocked(u,a))return{u,t,a,k,blocked:true,lock:true};return mdist(u,t)<=a.rng&&canUse(u,a)?{u,t,a,k,blocked:!!shLos(u,t,a).blocked}:null}
+ const a=abilityInfo(u,'attack');if(mdist(u,t)<=a.rng&&shLocked(u,a))return{u,t,a,k,blocked:true,lock:true};
+ if(mdist(u,t)<=a.rng&&shLoaded(u)===false&&shBowAb(u,a))return{u,t,a,k,blocked:true,unl:true};return mdist(u,t)<=a.rng&&canUse(u,a)?{u,t,a,k,blocked:!!shLos(u,t,a).blocked}:null}
 function unitLine(t){const m=shMor(t);return t.name+': '+t.hp+'/'+t.hpMax+' HP'+(t.helmMax>0?', helmet '+t.helm:'')+(t.armMax>0?', armor '+t.arm:'')+(t.shpMax>0?(t.shield?', shield '+t.shp:shSlung(t)?', shield slung':', shield split'):'')+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')}
-function battleTap(mx,my){if(!B||B.busy||B.over||B.cur.side!==0)return;const u=B.cur,k=pickKey(mx,my);logClose();
- if(k<0){fcClear();B.sel=null;B.targets=null;updateBUI();return}const c=k%BW,r=(k/BW)|0,t=unitAt(c,r),aim=aimAt(k);
- if(aim&&aim.blocked){fcShow(aim,false);if(aim.lock){say(SH_LOCKTXT+': '+u.name+' cannot shoot. Swap to a sidearm or step away.');fxLockPopSafe(u)}else say('No line of fire to '+t.name+'.');updateBUI();return}
- if(aim){if(SET.confirm&&!(FC.armed&&FC.k===k&&FC.id===aim.a.id)){fcShow(aim,true);updateBUI();return}fcClear();useAbility(u,aim.a,k);return}
+/* ---- two-tap movement planning ----
+   The first tap on a reachable tile plans the move (B.plan = {k, path, cost, ...}): the board draws the path, the tile and a pill
+   with the AP it costs and the AP left; the ability tiles grey out (with a reason) for whatever could not be used from there.
+   The second tap on the same tile walks. Another reachable tile moves the plan; the unit itself or open ground clears it.
+   Touch always plans first; a mouse click plans first only when SET.confirm is on (else it walks at once, as before).
+   What is possible from the planned tile is worked out by standing the unit there for a moment (tile, AP, fatigue), asking the
+   rules (canUse, validTargets, rangedLocked through shLocked) and putting everything back: no rule state changes, no rnd. */
+const PLN={reach:null,rev:-1,cache:new Map()};
+function planOK(){const p=B&&B.plan;if(!p)return null;const u=B.cur;
+ if(!u||p.u!==u||B.busy||B.over||B.auto||u.side!==0||!u.alive||!B.reach||p.reach!==B.reach||!B.reach.has(p.k)){B.plan=null;return null}return p}
+function planClear(){if(B&&B.plan){B.plan=null;return true}return false}
+function planSet(k,touch){const u=B.cur,q=B.reach&&B.reach.get(k);if(!u||!q)return null;const path=pathTo(B.reach,k);if(!path.length)return null;
+ B.plan={k,path,cost:q.cost,u,reach:B.reach,touch:!!touch,left:Math.max(0,u.ap-q.cost),fat:2*path.length,hz:path.some(x=>B.tiles[x].t==='haz')};return B.plan}
+function planGo(){const p=planOK();if(!p)return false;const u=B.cur;B.plan=null;B.sel=null;B.targets=null;fcClear();B.busy=true;B.reach=null;updateBUI();
+ walkPath(u,p.path).then(()=>{B.busy=false;afterAction()});return true}
+// Runs fn with u standing on the planned tile with what the walk would leave it (AP, fatigue); always restores.
+function planSim(u,p,fn){const c=u.c,r=u.r,ap=u.ap,fat=u.fat;try{u.c=p.k%BW;u.r=(p.k/BW)|0;u.ap=Math.max(0,ap-p.cost);u.fat=fat+p.fat;return fn()}catch(e){return null}finally{u.c=c;u.r=r;u.ap=ap;u.fat=fat}}
+// Why a could not be used after the planned move ('' when it could, and then the targets it would have there).
+function planWhyAb(u,a){if(u.mor===0)return{why:'Fleeing: will not take orders'};
+ if(shLocked(u,a))return{why:'Ranged lock there: an enemy would be adjacent',lock:true};
+ if(u.ap<a.ap)return{why:'Not enough AP after moving ('+u.ap+' left, needs '+a.ap+')'};
+ if(u.fat+(a.fat||0)>u.fatMax)return{why:'Too tired after moving ('+Math.max(0,u.fatMax-u.fat)+' stamina left)'};
+ let ok=false;try{ok=canUse(u,a)}catch(e){}
+ if(!ok){if(a.withdraw)return{why:'Only from your own edge of the field'};const w=shWhyNot(u,a);return{why:w||'Not usable from there'}}
+ if(a.tgt==='enemy'||a.tgt==='ally'||a.tgt==='move'){let ts=null;try{ts=validTargets(u,a)}catch(e){}
+  if(!ts||!ts.size)return{why:a.tgt==='enemy'?'No target in reach from there':a.tgt==='ally'?'No comrade in reach from there':'No room to go from there'};return{why:'',tg:ts}}
+ if(a.tgt==='aoe'&&!B.units.some(t=>t.alive&&t.side!==u.side&&mdist(u,t)===1))return{why:'No foe would be adjacent there'};
+ return{why:''}}
+// Everything the HUD and the board show about the plan, cached per planned tile (a new reach, i.e. any action, drops the cache).
+function planInfo(){const p=planOK();if(!p)return null;if(PLN.reach!==B.reach||PLN.rev!==SHV.rev){PLN.reach=B.reach;PLN.rev=SHV.rev;PLN.cache.clear()}
+ const ck=p.k+'|'+(B.sel||'');let I=PLN.cache.get(ck);if(I)return I;const u=B.cur,ids=barIds(u);if(B.sel&&!ids.includes(B.sel))ids.push(B.sel);
+ I=planSim(u,p,()=>{const R={ab:{},atk:null,sel:null,swap:null,ap:u.ap,fat:u.fat,lock:shLockedNow(u)};
+  for(const id of ids){let a=null;try{a=abilityInfo(u,id)}catch(e){}if(!a)continue;R.ab[id]=planWhyAb(u,a)}
+  if(AB.swap&&shAlt(u)){let a=null;try{a=abilityInfo(u,'swap')}catch(e){}if(a){const ap=swapCost(u,a);R.swap=!shCanSwap(u)?{why:'No backup weapon'}:u.ap<ap?{why:'Not enough AP after moving ('+u.ap+' left)'}:{why:''}}}
+  const at=R.ab.attack;R.atk=at&&at.tg||null;R.sel=B.sel&&R.ab[B.sel]&&R.ab[B.sel].tg||null;return R})||{ab:{},atk:null,sel:null,swap:null,ap:0,fat:0,lock:false};
+ PLN.cache.set(ck,I);return I}
+// The hit chance from the planned tile (for the board's pills), or null.
+function planHit(t,a){const p=planOK();if(!p)return null;return planSim(B.cur,p,()=>{let blk=false;try{blk=typeof losInfo==='function'&&losInfo(B.cur,t,a).blocked}catch(e){}return blk?-1:hitChance(B.cur,t,a)})}
+function battleTap(mx,my,touch){if(!B||B.busy||B.over||B.cur.side!==0)return;const u=B.cur,k=pickKey(mx,my),plan=planOK();logClose();
+ if(k<0){fcClear();B.sel=null;B.targets=null;planClear();updateBUI();return}const c=k%BW,r=(k/BW)|0,t=unitAt(c,r),aim=aimAt(k);
+ if(aim&&aim.blocked){fcShow(aim,false);if(aim.lock){say(SH_LOCKTXT+': '+u.name+' cannot shoot. Swap to a sidearm or step away.');fxLockPopSafe(u)}else if(aim.unl)say(u.name+'\'s '+shWName(shHand(u)).toLowerCase()+' is not loaded: reload first.');else say('No line of fire to '+t.name+'.');updateBUI();return}
+ if(aim){if(SET.confirm&&!(FC.armed&&FC.k===k&&FC.id===aim.a.id)){fcShow(aim,true);updateBUI();return}fcClear();planClear();useAbility(u,aim.a,k);return}
  fcClear();
- if(B.sel){if(B.targets.has(k)){useAbility(u,abilityInfo(u,B.sel),k);return}B.sel=null;B.targets=null;updateBUI();return}
- if(t&&t.side===1){const a=abilityInfo(u,'attack');say(unitLine(t)+(mdist(u,t)<=a.rng?'':', out of reach')+'.');return}
- if(t&&t.side===0){say(unitLine(t)+'.');return}
- if(B.reach&&B.reach.has(k)&&k!==key(u.c,u.r)){const path=pathTo(B.reach,k);B.busy=true;B.reach=null;walkPath(u,path).then(()=>{B.busy=false;afterAction()});return}
+ if(B.sel){if(B.targets.has(k)){planClear();useAbility(u,abilityInfo(u,B.sel),k);return}
+  if(plan&&t){const I=planInfo();if(I&&I.sel&&I.sel.has(k)){say(t.name+' is in reach from the planned tile: tap that tile again to move there first.');updateBUI();return}}
+  B.sel=null;B.targets=null;if(plan&&k===plan.k){planGo();return}updateBUI();return}
+ if(t&&t.side===1){const a=abilityInfo(u,'attack'),I=plan&&planInfo(),far=mdist(u,t)>a.rng;
+  if(far&&I&&I.atk&&I.atk.has(k))say(t.name+' is in reach from the planned tile: tap that tile again to move there first.');
+  else say(unitLine(t)+(far?', out of reach':'')+'.');updateBUI();return}
+ if(t&&t.side===0){if(t===u&&planClear()){updateBUI();return}say(unitLine(t)+'.');return}
+ if(B.reach&&B.reach.has(k)&&k!==key(u.c,u.r)){
+  if(!touch&&!SET.confirm){planClear();const path=pathTo(B.reach,k);B.busy=true;B.reach=null;walkPath(u,path).then(()=>{B.busy=false;afterAction()});return}
+  if(plan&&plan.k===k){planGo();return}
+  planSet(k,touch);updateBUI();return}
+ if(planClear()){updateBUI();return}                                  // the first tap off the plan only clears it
  const tl=B.tiles[k];say(`${tl.t==='block'?'Impassable':tl.t==='rough'?'Rough ground':tl.t==='haz'?'Burning ground':'Open ground'}, height ${tl.h}.`)}
 
 /* ================= BATTLE HUD =================
@@ -115,41 +186,46 @@ function setHTML(id,h){const e=$(id);if(!e||e._h===h)return false;const st=e.scr
 function focusUnit(id){if(!B)return;const u=B.units[id];if(!u||!u.alive)return;B.cam.tx=u.sx;B.cam.ty=u.sy-10;say(unitLine(u)+'.')}
 const ABICO={shove:'a-shove',aimed:'a-aim',pin:'a-pin',footwork:'a-step',adren:'a-bolt',indom:'a-ward',bolt:'a-orb',fireball:'a-flame',blink:'a-blink',chain:'a-chain',astrike:'a-slash',awave:'a-wave',crush:'a-hammer',adash:'a-dash',flame:'a-flame',frost:'a-snow',gale:'a-wind',thunder:'a-burst',reinforce:'a-guard',mend:'a-cross',empower:'a-up',swift:'a-clock'};
 const WTICO={sword:1,axe:1,mace:1,dagger:1,spear:1,bow:1,staff:1,fist:1};
-function abIcon(u,id,size){if(id==='attack'||id==='aoo'){const wt=u.wpn&&u.wpn.wt;return pic(WTICO[wt]?wt:'ab-attack',size,wt==='bow'?'a-bow':'sword')}
+function abIcon(u,id,size){if(id==='attack'||id==='aoo'){const wt=u.wpn&&u.wpn.wt;return pic(WTICO[wt]||(wt&&typeof icHas==='function'&&icHas(wt))?wt:'ab-attack',size,shRangedW(u.wpn)?'a-bow':'sword')}
  if(id==='spell')return pic('ab-bolt',size,'a-orb');return pic('ab-'+id,size,ABICO[id]||'a-burst')}
 const STSVG={burn:'a-flame',chill:'a-snow',root:'a-pin',stun:'a-burst',buff:'a-up',indom:'a-ward'},STC={burn:'#ff8a3c',chill:'#8fd8ff',root:'#9bd96f',stun:'#ecc64f',buff:'#e9e0c9',indom:'#c8d0d8'};
 /* one status badge: icon, a count (turns, or `extra` such as a chance), colour by what it does to the bearer */
 function stIcon(k,n,extra){const S=shStatus(k),col=STC[k]||(S&&S.good?'#9bd96f':'#ef8a78'),nm=S?S.n:k;
  return'<span class="sd'+(S&&S.good?' gd':'')+'" style="--sc:'+col+'" title="'+esc(nm+(n>0?' ('+n+(n===1?' turn':' turns')+')':'')+(S&&S.d?': '+S.d:''))+'">'+pic('st-'+k,16,STSVG[k]||'a-burst')+(n>1||extra?'<b>'+(extra||n)+'</b>':'')+'</span>'}
 let ABDESC=null;
-function abDesc(id,u){if(id==='attack')return u.wpn.wt==='bow'?'Loose an arrow at a foe in range':'Strike a foe in reach';if(AB[id]&&AB[id].d)return AB[id].d;
+const SH_ATKD={bow:'Loose an arrow at a foe in range',crossbow:'Loose a bolt at a foe in range; then it must be reloaded',flintlock:'Fire at a foe in range; then it must be reloaded',polearm:'Strike a foe up to 2 tiles away, over the front rank',greatsword:'Strike a foe up to 2 tiles away, over the front rank',hammer:'Crush a foe in reach: hard on armor'};
+function abDesc(id,u){if(id==='attack'){const w=u.wpn||{};return SH_ATKD[w.wt]||(shRangedW(w)?'Shoot at a foe in range':w.rng>1?'Strike a foe up to '+w.rng+' tiles away':'Strike a foe in reach')}
+ if(id==='reload'&&!(AB.reload&&AB.reload.d)){const L=shLoaded(u);return L===false?'Load the weapon in hand so it can fire again':'The weapon in hand is loaded'}if(AB[id]&&AB[id].d)return AB[id].d;
  if(!ABDESC){ABDESC={};for(const k in MAST){const T=MAST[k],L=Array.isArray(T.tiers)?[].concat(...T.tiers):Array.isArray(T.p)?T.p:[];for(const p of L)if(p&&p.ab&&p.d)ABDESC[p.ab]=p.d.replace(/^Unlocks[^.]*\.\s*/,'').replace(/^Ability:\s*/,'')}}
  const d=ABDESC[id]||'';return d?d[0].toUpperCase()+d.slice(1):''}
 function abLine(u,a){const d=abDesc(a.id,u);return'<b>'+esc(a.n)+'</b><span>'+a.ap+' AP'+(a.fat>0?' · '+a.fat+' fat':'')+(a.cost?' · <em style="color:'+RESC[a.cost[0]]+'">'+a.cost[1]+' '+RESN[a.cost[0]]+'</em>':'')+'</span>'+(d&&d.toLowerCase()!==String(a.n).toLowerCase()?'<i>'+esc(d)+'</i>':'')}
 let abPeek=null,abPeekT=0;
 function abHint(id){abPeek=id;clearTimeout(abPeekT);abPeekT=setTimeout(()=>{abPeek=null;updateBUI()},2600);updateBUI()}
 function orderHTML(u){const tok=(x,cls)=>{const hp=Math.max(0,Math.round(100*x.hp/x.hpMax)),m=shMor(x),fl=m===0,tele=B.tele&&B.tele.length&&B.tele.some(q=>q.u===x);
-  return'<button class="oc s'+x.side+' '+cls+(fl?' flee':m===1?' brk':'')+(tele?' tele':'')+'" onclick="focusUnit('+x.id+')" aria-label="'+esc(x.name)+', '+x.hp+' of '+x.hpMax+' hitpoints'+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')+'" title="'+esc(x.name)+(fl?' (fleeing)':'')+'">'+port(x,32)
-   +(fl?'<span class="omk">'+pic('morale-0',16,'flag')+'</span>':tele?'<span class="omk">'+pic('telegraph',16,'a-burst')+'</span>':'')+'<i class="ohp'+(hp<34?' low':'')+'"><b style="width:'+hp+'%"></b></i></button>'};
+  return'<button class="oc s'+x.side+' '+cls+(fl?' flee':m===1?' brk':'')+(tele?' tele':'')+'" onclick="focusUnit('+x.id+')" aria-label="'+esc(x.name)+', '+x.hp+' of '+x.hpMax+' hitpoints'+(shLoaded(x)===false?', unloaded':'')+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')+'" title="'+esc(x.name)+(fl?' (fleeing)':'')+'">'+port(x,32)
+   +(fl?'<span class="omk">'+pic('morale-0',16,'flag')+'</span>':tele?'<span class="omk">'+pic('telegraph',16,'a-burst')+'</span>':'')+(shLoaded(x)===false?'<span class="oul" title="Unloaded">'+shUnlMark()+'</span>':'')+'<i class="ohp'+(hp<34?' low':'')+'"><b style="width:'+hp+'%"></b></i></button>'};
  const rest=B.order.filter(x=>x&&x.alive);
  return'<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>'+tok(u,'cur')+rest.map(x=>tok(x,'')).join('')}
 function statI(icon,svg,val,cls,title,col){return'<span class="si '+cls+'" title="'+title+'"'+(col?' style="color:'+col+'"':'')+'>'+pic(icon,16,svg)+'<b>'+val+'</b></span>'}
-function chipStatuses(u){let h='';const L=shStatuses(u);for(let i=0;i<L.length&&i<6;i++)h+=stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
+function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>x.key!=='unloaded'||shLoaded(u)===null);   // the weapon on the chip carries the unloaded badge
+ for(let i=0;i<L.length&&i<6;i++)h+=stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
 /* unit chip: name, level, morale (flag icon in the state's colour) with resolve, statuses; hitpoints, head and body armor, shield, stamina, gifts; action pips */
-function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u);let pips='';for(let i=0;i<n;i++)pips+='<i class="'+(i<u.ap?'on':'')+(i>=u.apMax?' x':'')+'"></i>';
+function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u),P=B.plan&&B.plan.u===u?B.plan:null,keep=P?u.ap-P.cost:u.ap;let pips='';for(let i=0;i<n;i++)pips+='<i class="'+(i<u.ap?'on':'')+(i>=keep&&i<u.ap?' pl':'')+(i>=u.apMax?' x':'')+'"></i>';
  let h='<span class="uport s'+u.side+'">'+port(u,32)+'</span><div class="ubody"><div class="uname"><b>'+esc(u.name)+'</b>'+(mine?'<small class="ulv" title="Level '+u.lvl+'">'+u.lvl+'</small>':'')+chipArms(u)+chipStatuses(u)+'</div><div class="ustats">'+statI('hp','heart',u.hp,'hp','Hitpoints '+u.hp+' of '+u.hpMax);
  if(u.helmMax>0)h+=statI('helmet','shield',u.helm,'arm hd'+(u.helm<=0?' out':''),'Head armor '+u.helm+' of '+u.helmMax);
  if(u.armMax>0)h+=statI('armor','shield',u.arm,'arm'+(u.arm<=0?' out':''),'Body armor '+u.arm+' of '+u.armMax);
- if(u.shpMax>0){const sl=shSlung(u),ok=u.shield||sl;h+=statI(!ok?'st-splitshield':sl?'slung':'shield','shield',ok?u.shp:0,'arm sh'+(ok?'':' out')+(sl?' sl':''),!ok?'Shield split':sl?'Shield slung on the back ('+u.shp+' of '+u.shpMax+'): no defence and no shield skills while a two-handed weapon is in hand':'Shield raised: '+u.shp+' of '+u.shpMax)}
- h+='</div><div class="urow"><div class="pips" title="Action points '+u.ap+'">'+pips+'</div>';
+ if(u.shpMax>0){const sl=shSlung(u),ok=u.shield||sl;const sn=shShieldName(u);h+=statI(!ok?'st-splitshield':sl?'slung':shShieldIcon(u),'shield',ok?u.shp:0,'arm sh'+(ok?'':' out')+(sl?' sl':''),!ok?sn+' split':sl?sn+' slung on the back ('+u.shp+' of '+u.shpMax+'): no defence and no shield skills while a two-handed weapon is in hand':sn+' raised: '+u.shp+' of '+u.shpMax)}
+ h+='</div><div class="urow"><div class="pips'+(P?' plan':'')+'" title="Action points '+u.ap+(P?': the planned move spends '+P.cost+', '+P.left+' left':'')+'">'+pips+'</div>';
  if(m>=0)h+='<span class="umor m'+m+'" style="--sc:'+SH_MORC[m]+'" title="'+shMorN(m)+(brv!=null?': resolve '+brv:'')+'">'+pic('morale-'+m,16,'flag')+(brv!=null?'<b>'+brv+'</b>':'')+'</span>';
  else if(u.fearless)h+='<span class="umor" style="--sc:#c8d0d8" title="Fearless: never tests morale">'+pic('resolve',16,'flag')+'</span>';
  if(u.fatMax<=999)h+=statI('fatigue','drop',u.fatMax-u.fat,'fat','Stamina left: fatigue '+u.fat+' of '+u.fatMax);
  for(const k in u.res)h+=statI(k,'gem',u.res[k].cur,'res',RESN[k]+' '+u.res[k].cur+' of '+u.res[k].max,RESC[k]);
  return h+'</div></div>'}
 /* the weapon in hand (and, small, the backup) on the chip's name row; a lock when a bow in hand is pinned by an adjacent foe */
-function chipArms(u){const w=shHand(u),a=shAlt(u);if(!w&&!a)return'';const lk=shLocked(u);
- return'<span class="uwp'+(lk?' lk':'')+'" title="'+esc('In hand: '+shWName(w)+(a?' · backup: '+shWName(a):'')+(lk?' · '+SH_LOCKTXT:''))+'">'+pic(shWIcon(w),16,'sword')+(a?'<i>'+pic(shWIcon(a),16,'sword')+'</i>':'')+(lk?pic('ranged-lock',16,'a-burst'):'')+'</span>'}
+function chipArms(u){const w=shHand(u),a=shAlt(u);if(!w&&!a)return'';const lk=shLocked(u),ld=shLoaded(u),rc=ld===false?shReloadCost(u,w):null;
+ return'<span class="uwp'+(lk?' lk':'')+(ld===false?' unl':'')+'" title="'+esc('In hand: '+shWName(w)+(ld===false?' (unloaded: reload'+(rc?' for '+rc.ap+' AP':'')+')':ld?' (loaded)':'')+(a?' · backup: '+shWName(a)+(shLoaded(u,a)===false?' (unloaded)':''):'')+(lk?' · '+SH_LOCKTXT:''))+'"><span class="uwh">'+pic(shWIcon(w),16,'sword')+(ld===false?shUnlMark():'')+'</span>'+(a?'<i>'+pic(shWIcon(a),16,'sword')+'</i>':'')+(lk?pic('ranged-lock',16,'a-burst'):'')+'</span>'}
+/* the "unloaded" marker: the art's icon when it has one, else a pixel badge (an empty chamber) drawn in CSS */
+function shUnlMark(){if(typeof icHas==='function'){for(const n of ['unloaded','st-unloaded'])if(icHas(n))return'<em class="unl">'+pic(n,16,'a-burst')+'</em>'}return'<em class="unl unlc" aria-hidden="true"></em>'}
 function chipInspect(){try{if(!B||!B.cur||typeof Inspect==='undefined'||typeof unitCard!=='function')return;if(Inspect.visible){Inspect.hide();return}const r=$('uinfo').getBoundingClientRect();Inspect.show(unitCard(B.cur),r.left+8,r.bottom+60,false);Inspect.release()}catch(e){}}
 function cmdHTML(u,mine){const act=mine&&!B.busy&&!B.over,R=shReserves(),rok=act&&shCanReserve(),canR=typeof canRetreat==='function'?canRetreat():true;
  return'<button class="tg pxb icon '+(SPEEDF<1?'on':'')+'" aria-pressed="'+(SPEEDF<1)+'" aria-label="Fast battle speed" title="Fast" onclick="toggleFast()">'+pic('fast',32,'fast')+'</button>'
@@ -157,23 +233,29 @@ function cmdHTML(u,mine){const act=mine&&!B.busy&&!B.over,R=shReserves(),rok=act
  +'<button class="tg pxb icon warn" aria-label="Sound the retreat" title="Sound the retreat" '+(act&&canR?'':'disabled')+' onclick="retreat()">'+pic('retreat',32,'flag')+'</button>'
  +'<button class="tg pxb icon" aria-label="Settings" title="Settings" onclick="settingsSheet()">'+pic('settings',32,'sun')+'</button>'
  +'<span class="vw">'+(R.length?'<button class="tg pxb icon sm rsvb'+(rok?' rdy':'')+'" aria-label="Reserves: '+R.length+' waiting'+(rok?', one can be called in':'')+'" title="Reserves ('+R.length+')" '+(B.over?'disabled':'')+' onclick="reservesSheet()">'+pic('reserve',16,'flag')+'<em>'+R.length+'</em></button>':'')
+ +'<button class="tg pxb icon sm abt '+(shAllyBars()?'on':'')+'" aria-pressed="'+shAllyBars()+'" aria-label="Show allies\' health and armor bars" title="Ally bars (B)" onclick="toggleAllyBars()">'+allyBarsIcon(16)+'</button>'
  +(typeof rotateView==='function'&&typeof viewIcon==='function'?'<button class="tg pxb icon sm" aria-label="Turn the view left" title="Turn left (Q)" onclick="rotateView(-1)">'+viewIcon('rotl',16)+'</button>'
   +'<button class="tg pxb icon sm" aria-label="Turn the view right" title="Turn right (E)" onclick="rotateView(1)">'+viewIcon('rotr',16)+'</button>'
   +'<button class="tg pxb icon sm '+(VIEW.heights?'on':'')+'" aria-pressed="'+!!VIEW.heights+'" aria-label="Show heights" title="Heights (H)" onclick="toggleHeights()">'+viewIcon('heights',16)+'</button>':'')+'</span>'}
 /* the ability ids on the bar: attack, the unit's own, and Withdraw while it stands on its own edge of the field */
-function barIds(u){const ids=['attack'];for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id))ids.push(id);
+function barIds(u){const ids=['attack'];if(AB.reload&&(shReloadW(shHand(u))||(u.abs||[]).includes('reload')))ids.push('reload');for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id))ids.push(id);
  if(AB.withdraw&&!ids.includes('withdraw')&&u.r===shEdge(u))ids.push('withdraw');return ids}
-function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side===0&&!B.auto&&u.mor!==0;fcCheck();
+function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side===0&&!B.auto&&u.mor!==0;fcCheck();planOK();
  if(setHTML('order',orderHTML(u))){const o=$('order');if(o)o.scrollLeft=0}
  setHTML('uinfo',cardHTML(u));
  const bl=$('blog');if(bl&&bl.textContent!==(B.log||''))bl.textContent=B.log||'';
  let hdr='',h='',dense=false;
  if(!mine)h='<div class="await s'+u.side+'"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><b>'+esc(u.name)+'</b><span>'+(u.mor===0?'fleeing':u.side===0?'auto':'acting')+'</span></div>';
- else{const ids=barIds(u),show=B.sel||(FC.t?FC.id:null)||(ids.includes(abPeek)?abPeek:null);dense=ids.length>6;
+ else{const ids=barIds(u),I=planInfo(),P=I&&B.plan;let show=B.sel||(FC.t?FC.id:null)||(ids.includes(abPeek)?abPeek:null);dense=ids.length>6;
   const swapOK=AB.swap&&(shAlt(u)||shCanSwap(u));if(abPeek==='swap'&&swapOK&&!show)show='swap';
-  if(show){const sa=abilityInfo(u,show),why=B.sel===show||FC.t?'':shWhyNot(u,sa);hdr=(show==='swap'?pic('swap',16,'a-burst'):abIcon(u,show,16))+abLine(u,sa)+(FC.armed?'<u>Tap again to strike</u>':FC.t&&FC.lock?'<u class="bad">'+SH_LOCKTXT+'</u>':FC.t&&FC.blocked?'<u class="bad">No line of fire</u>':B.sel?'<u>'+(sa.withdraw?'Tap again to leave the field':'Tap a '+(sa.tgt==='move'?'tile':sa.tgt==='ally'?'comrade':'foe'))+'</u>':why?'<u class="bad">'+(why===SH_LOCKTXT?pic('ranged-lock',16,'a-burst'):'')+esc(why)+'</u>':'')}
-  ids.forEach(id=>{const a=abilityInfo(u,id),lk=shLocked(u,a),ok=!lk&&canUse(u,a)&&!B.busy;
-   h+='<button class="ab pxb '+(B.sel===id?'sel on':'')+(a.withdraw?' wd':'')+(ok?'':' off')+(lk?' lk':'')+'" aria-disabled="'+!ok+'" aria-pressed="'+(B.sel===id)+'" aria-label="'+esc(a.n)+', '+a.ap+' AP'+(a.cost?', '+a.cost[1]+' '+RESN[a.cost[0]]:'')+(lk?', '+SH_LOCKTXT.toLowerCase():'')+'" title="'+esc(a.n+(lk?' ('+SH_LOCKTXT.toLowerCase()+')':''))+'" onpointerdown="abHint(\''+id+'\')" onclick="selAb(\''+id+'\')"'+(a.cost?' style="--rc:'+RESC[a.cost[0]]+'"':'')+'>'+abIcon(u,id,32)+'<b class="apc">'+a.ap+'</b>'+(a.cost?'<em class="rcc">'+a.cost[1]+'</em>':'')+(lk?'<i class="lkb">'+pic('lock',16,'a-burst')+'</i>':'')+'</button>'})}
+  if(show){const sa=abilityInfo(u,show),pw=P?(show==='swap'?I.swap&&I.swap.why:I.ab[show]&&I.ab[show].why)||'':'',why=B.sel===show||FC.t?'':pw||shWhyNot(u,sa);
+   let pl='';if(P&&B.sel===show&&!FC.t){const n=I.sel?I.sel.size:0;pl=sa.tgt==='enemy'||sa.tgt==='ally'?'<u class="pln">'+(n?n+' in reach from the planned tile':'none in reach from the planned tile')+'</u>':pw?'<u class="pln bad">'+esc(pw)+'</u>':''}
+   hdr=(show==='swap'?pic('swap',16,'a-burst'):abIcon(u,show,16))+abLine(u,sa)+(FC.armed?'<u>Tap again to strike</u>':FC.t&&FC.lock?'<u class="bad">'+SH_LOCKTXT+'</u>':FC.t&&FC.unl?'<u class="bad">'+SH_UNLOADTXT+'</u>':FC.t&&FC.blocked?'<u class="bad">No line of fire</u>':B.sel?(P&&B.targets&&!B.targets.size?'<u>Move first: '+(P.touch?'tap':'click')+' the planned tile again</u>':'<u>'+(sa.withdraw?'Tap again to leave the field':'Tap a '+(sa.tgt==='move'?'tile':sa.tgt==='ally'?'comrade':'foe'))+'</u>')+pl:why?'<u class="bad">'+(why===SH_LOCKTXT||/^Ranged lock/.test(why)?pic('ranged-lock',16,'a-burst'):'')+esc(why)+'</u>':'')}
+  else if(P){const n=I.atk?I.atk.size:0,nb=ids.filter(id=>I.ab[id]&&I.ab[id].why).length;
+   hdr=pic('ab-footwork',16,'a-step')+'<b>Move</b><span>'+P.cost+' AP · '+P.left+' left</span>'+(P.hz?'<u class="bad">Burning ground on the way</u>':'')+(I.lock&&shRangedW(u.wpn)?'<u class="bad">'+pic('ranged-lock',16,'a-burst')+'Ranged lock there</u>':'')
+    +'<i>'+(n?n+(n===1?' foe':' foes')+' in reach from there':'No foe in reach from there')+(nb?' · '+nb+' greyed':'')+'</i><u>'+(P.touch?'Tap':'Click')+' again to move</u>'}
+  ids.forEach(id=>{const a=abilityInfo(u,id),lk=shLocked(u,a),pa=P&&I.ab[id],pw=pa?pa.why:'',plk=!!(pa&&pa.lock),ok=!lk&&canUse(u,a)&&!B.busy&&!pw,rl=(id==='reload'||a.reloadW)&&ok&&shLoaded(u)===false,why=pw||(lk?SH_LOCKTXT:'')||(ok||B.busy?'':shWhyNot(u,a));
+   h+='<button class="ab pxb '+(B.sel===id?'sel on':'')+(a.withdraw?' wd':'')+(ok?'':' off')+(pw?' pl':'')+(lk||plk?' lk':'')+(rl?' rl':'')+'" aria-disabled="'+!ok+'" aria-pressed="'+(B.sel===id)+'" aria-label="'+esc(a.n)+', '+a.ap+' AP'+(a.cost?', '+a.cost[1]+' '+RESN[a.cost[0]]:'')+(why?', '+esc(why.toLowerCase()):'')+'" title="'+esc(a.n+(why?' ('+why.toLowerCase()+')':''))+'" onpointerdown="abHint(\''+id+'\')" onclick="selAb(\''+id+'\')"'+(a.cost?' style="--rc:'+RESC[a.cost[0]]+'"':'')+'>'+abIcon(u,id,32)+'<b class="apc">'+a.ap+'</b>'+(a.cost?'<em class="rcc">'+a.cost[1]+'</em>':'')+(lk||plk?'<i class="lkb">'+pic('lock',16,'a-burst')+'</i>':'')+'</button>'})}
  const hd=$('ahdr');if(hd&&hd._h!==hdr){hd.innerHTML=hdr;hd._h=hdr;hd.classList.toggle('on',!!hdr);hd.classList.toggle('aim',!!(mine&&(B.sel||FC.armed)))}
  const ab=$('abar');if(ab&&ab._d!==dense){ab._d=dense;ab.classList.toggle('dense',dense)}
  setHTML('abar',h);setHTML('bcmd',cmdHTML(u,mine));
@@ -181,11 +263,18 @@ function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side==
 /* weapon swap control beside the end-turn button: the weapon in hand (big), the backup (small), the cost (AP or FREE) */
 function swapCost(u,a){a=a||abilityInfo(u,'swap');let ap=a.ap|0;try{if(typeof swapAP==='function'){const v=swapAP(u);if(typeof v==='number')ap=v}}catch(e){}return ap}
 function swapHTML(u,mine){if(!mine||!AB.swap||!u||u.side!==0)return'';const alt=shAlt(u);if(!alt&&!(u.abs||[]).includes('swap'))return'';
- const a=abilityInfo(u,'swap'),w=shHand(u),ap=swapCost(u,a),ok=!!alt&&shCanSwap(u)&&canUse(u,a)&&!B.busy&&!B.over,why=ok?'':!alt?'No backup weapon':shWhyNot(u,a)||'Not now',free=ap<=0;
- return'<button class="swp pxb'+(ok?'':' off')+(free?' free':'')+'" aria-disabled="'+!ok+'" aria-label="Swap weapons: '+esc(shWName(w))+' in hand, '+esc(alt?shWName(alt):'no backup')+' stowed, '+(free?'free':ap+' AP')+(ok?'':'. '+esc(why))+'" title="'+esc('Swap to '+(alt?shWName(alt):'nothing')+(ok?'':' ('+why+')'))+'" onpointerdown="abHint(\'swap\')" onclick="hudSwap()">'
-  +'<span class="swh">'+pic(shWIcon(w),32,'sword')+'</span><span class="swa">'+pic('swap',16,'a-burst')+(alt?pic(shWIcon(alt),16,'sword'):'')+'</span><b class="apc">'+(free?'FREE':ap)+'</b></button>'}
+ const a=abilityInfo(u,'swap'),w=shHand(u),ap=swapCost(u,a),I=planInfo(),pw=I&&I.swap&&I.swap.why||'',ok=!!alt&&shCanSwap(u)&&canUse(u,a)&&!B.busy&&!B.over&&!pw,why=ok?'':!alt?'No backup weapon':pw||shWhyNot(u,a)||'Not now',free=ap<=0,al=alt?shLoaded(u,alt):null;
+ return'<button class="swp pxb'+(ok?'':' off')+(free?' free':'')+'" aria-disabled="'+!ok+'" aria-label="Swap weapons: '+esc(shWName(w))+' in hand, '+esc(alt?shWName(alt):'no backup')+' stowed, '+(free?'free':ap+' AP')+(ok?'':'. '+esc(why))+'" title="'+esc('Swap to '+(alt?shWName(alt):'nothing')+(al===false?', unloaded':al?', loaded':'')+(ok?'':' ('+why+')'))+'" onpointerdown="abHint(\'swap\')" onclick="hudSwap()">'
+  +'<span class="swh">'+pic(shWIcon(w),32,'sword')+(shLoaded(u)===false?shUnlMark():'')+'</span><span class="swa">'+pic('swap',16,'a-burst')+(alt?pic(shWIcon(alt),16,'sword'):'')+(al===false?shUnlMark():'')+'</span><b class="apc">'+(free?'FREE':ap)+'</b></button>'}
 function hudSwap(){if(!B||B.busy||B.over)return;const u=B.cur;if(!u||u.side!==0||B.auto)return;const a=abilityInfo(u,'swap');if(!shCanSwap(u)||!canUse(u,a)){abHint('swap');return}fcClear();B.sel=null;B.targets=null;useAbility(u,a,key(u.c,u.r))}
 function fxLockPopSafe(u){try{if(typeof fxLockPop==='function')fxLockPop(u,true)}catch(e){}}
+/* ally HP/armor bars on the board: SET.allyBars through setOpt (persisted by the shell); a local flag until SET knows it */
+let _allyBars=true;
+function shAllyBars(){return typeof SET==='object'&&SET&&typeof SET.allyBars==='boolean'?SET.allyBars:_allyBars}
+function toggleAllyBars(){const v=!shAllyBars();_allyBars=v;try{if(typeof setOpt==='function')setOpt('allyBars',v)}catch(e){}
+ try{if(typeof SET==='object'&&SET&&SET.allyBars!==v)SET.allyBars=v}catch(e){}
+ if(typeof SHV==='object')SHV.rev++;if(typeof OV==='object'&&OV)OV.sig=null;if(B)updateBUI()}
+function allyBarsIcon(size){if(typeof icHas==='function'){for(const n of ['allybars','ally-bars'])if(icHas(n))return pic(n,size,'heart')}return typeof viewIcon==='function'?viewIcon('bars',size):'<b>HP</b>'}
 function toggleFast(){const f=SPEEDF<1?1:.35;SPEEDF=f;if(typeof SET!=='undefined'){SET.speed=f;if(typeof saveSettings==='function')saveSettings();if(typeof settingsRefresh==='function')settingsRefresh()}updateBUI()}
 function toggleAuto(){if(!B||B.over)return;fcClear();if(B.auto){B.auto=false;updateBUI();return}B.auto=true;if(!B.busy)nextAuto();else updateBUI()}
 async function nextAuto(){const u=B.cur;if(u.side!==0||B.busy)return;B.busy=true;B.reach=null;updateBUI();await aiTurn(u);if(B.over)return;nextTurn()}
@@ -193,7 +282,7 @@ async function nextAuto(){const u=B.cur;if(u.side!==0||B.busy)return;B.busy=true
 /* ---- forecast window: what the armed strike would do to the foe under the pointer ----
    Mouse: hovering a valid foe shows it. Touch (SET.confirm): the first tap shows it and arms the strike,
    a second tap on the same foe, or a tap on the window itself, strikes. */
-const FC={el:null,u:null,t:null,a:null,k:-1,id:null,armed:false,blocked:false,lock:false,raf:0,sel:null};
+const FC={el:null,u:null,t:null,a:null,k:-1,id:null,armed:false,blocked:false,lock:false,unl:false,raf:0,sel:null};
 function fcEl(){if(FC.el)return FC.el;try{const app=$('app');if(!app||typeof document==='undefined')return null;const e=document.createElement('button');e.id='fcw';e.className='pxf hidden';e.type='button';
   e.addEventListener('click',()=>{if(FC.armed)fcStrike()});app.appendChild(e);FC.el=e;return e}catch(e){return null}}
 /* Everything forecast() reports has a place here, as icons and numbers:
@@ -207,10 +296,14 @@ function fcRange(lo,hi){return lo===hi?''+lo:lo+'–'+hi}
 function fcLoc(icon,svg,title,pct,L,armNow){if(!L)return'';
  return'<span class="fcl'+(L.sure?' sure':L.kill?' kill':'')+'" title="'+title+'">'+pic(icon,16,svg)+(pct!=null?'<em>'+pct+'%</em>':'')+'<span class="fcd hp">'+pic('hp',16,'heart')+'<b>'+fcRange(L.hpMin,L.hpMax)+'</b></span>'
   +(armNow>0||L.armMax>0?'<span class="fcd arm" title="Armor lost"><i class="pip"></i><b>'+fcRange(L.armMin,L.armMax)+'</b></span>':'')+(L.kill?pic('skull',16,'skull'):'')+'</span>'}
-function fcHTML(u,t,a,armed){const lock=shLocked(u,a);if(lock){FC.blocked=true;FC.lock=true;const alt=shAlt(u),sw=AB.swap&&alt&&alt.wt!=='bow';
-  return'<span class="fcp">'+port(t,32)+'</span><span class="fcb"><span class="fcn"><b>'+esc(t.name)+'</b><i>'+pic('hp',16,'heart')+t.hp+'</i></span><span class="fcr"><span class="fch lo blk" title="'+SH_LOCKTXT+': a bow cannot be used with a foe this close">'+pic('ranged-lock',16,'a-burst')+'<b>'+SH_LOCKTXT+'</b></span></span>'
+function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.blocked=true;FC.lock=true;const alt=shAlt(u),sw=AB.swap&&alt&&!shRangedW(alt);
+  return'<span class="fcp">'+port(t,32)+'</span><span class="fcb"><span class="fcn"><b>'+esc(t.name)+'</b><i>'+pic('hp',16,'heart')+t.hp+'</i></span><span class="fcr"><span class="fch lo blk" title="'+SH_LOCKTXT+': a ranged weapon cannot be used with a foe this close">'+pic('ranged-lock',16,'a-burst')+'<b>'+SH_LOCKTXT+'</b></span></span>'
    +'<span class="fcs fclk">'+(sw?pic('swap',16,'a-burst')+'<i>Swap to '+esc(shWName(alt))+', or step away</i>':'<i>Step away first, or fight hand to hand</i>')+'</span></span>'}
- FC.lock=false;let f=null;try{f=forecast(u,t,a)}catch(e){}f=f||{};const blocked=!!f.blocked;let st='',mods='',rows='';FC.blocked=blocked;
+ FC.lock=false;
+ if(a.wpn&&shBowAb(u,a)&&shLoaded(u)===false){FC.blocked=true;FC.unl=true;const rc=shReloadCost(u),ok=AB.reload&&rc&&u.ap>=rc.ap;
+  return'<span class="fcp">'+port(t,32)+'</span><span class="fcb"><span class="fcn"><b>'+esc(t.name)+'</b><i>'+pic('hp',16,'heart')+t.hp+'</i></span><span class="fcr"><span class="fch lo blk" title="'+esc(shWName(shHand(u)))+' must be reloaded before it fires again">'+shUnlMark()+'<b>Unloaded</b></span></span>'
+   +'<span class="fcs fclk">'+(rc?pic('ab-reload',16,'a-burst')+'<i>Reload first: '+rc.ap+' AP'+(rc.fat?', '+rc.fat+' fatigue':'')+(ok?'':' (not enough AP)')+'</i>':'<i>Reload first</i>')+'</span></span>'}
+ let f=null;try{f=forecast(u,t,a)}catch(e){}f=f||{};const blocked=!!f.blocked;let st='',mods='',rows='';FC.blocked=blocked;
  if(f.cover>0)mods+='<span class="fcm bad" title="'+f.cover+(f.cover===1?' unit':' units')+' in the line of fire: −'+f.cover*(typeof COVERPEN==='number'?COVERPEN:15)+' to hit (already counted)">'+pic('cover',16,'shield')+'<b>'+(f.cover>1?'×'+f.cover:'')+'</b></span>';
  if(f.mor&&(f.mor.att||f.mor.def)){const v=(f.mor.att||0)-(f.mor.def||0);if(v)mods+='<span class="fcm '+(v>0?'good':'bad')+'" title="Morale: '+(f.mor.att?'yours '+(f.mor.att>0?'+':'')+f.mor.att:'')+(f.mor.att&&f.mor.def?', ':'')+(f.mor.def?'theirs '+(f.mor.def>0?'−':'+')+Math.abs(f.mor.def):'')+' (already counted)">'+pic('morale-'+(v>0?4:1),16,'flag')+'<b>'+(v>0?'+':'−')+Math.abs(v)+'</b></span>'}
  if(f.riposte)mods+='<span class="fcm bad" title="A miss draws a riposte">'+pic('riposte',16,'sword')+'<b>!</b></span>';
@@ -221,6 +314,10 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);if(lock){FC.blocked=true;F
   rows+=fcLoc('helmet','shield','A hit on the head: '+(typeof HEADMULT==='number'?'×'+HEADMULT+' to hitpoints':'more to hitpoints'),f.headCh,f.head,t.helm)}
  else rows+=fcLoc('armor','shield','A hit',null,{hpMin:f.hpMin,hpMax:f.hpMax,armMin:f.armMin,armMax:f.armMax,kill:f.kill,sure:f.sure},t.arm);
  if(f.pierce)st+='<span class="sd" style="--sc:#f3d98b" title="Bypasses armor altogether">'+pic('ab-puncture',16,'a-burst')+'</span>';
+ else{let ig=typeof f.ign==='number'?f.ign:null;if(ig==null&&a.wpn&&!a.magic){try{if(typeof ignOf==='function')ig=ignOf(u,a)}catch(e){}}
+  if(ig>=.35&&(t.armMax>0||t.helmMax>0))st+='<span class="sd" style="--sc:#f3d98b" title="Armor pierce: '+Math.round(ig*100)+'% of the damage goes past armor">'+pic('ab-puncture',16,'a-burst')+'<b>'+Math.round(ig*100)+'%</b></span>'}
+ if(a.wpn&&shBowAb(u,a)&&shLoaded(u)===true){const rc=shReloadCost(u);st+='<span class="sd" style="--sc:#b9ad8f" title="Fires, then must be reloaded'+(rc?' ('+rc.ap+' AP)':'')+'">'+pic('ab-reload',16,'a-burst')+'<b>'+(rc?rc.ap:'')+'</b></span>'}
+ const ov=fcOver(u,t,a);if(ov)st+=ov;
  if(f.kill)st+='<span class="fck'+(f.sure?' sure':'')+'" title="'+(f.sure?'A hit kills':'A strong hit kills')+'">'+pic('skull',16,'skull')+'<b>'+(f.sure?'Kills':'Lethal')+'</b></span>';
  for(const s of f.statuses||[])st+=stIcon(s.k,s.n,s.ch<1?Math.round(s.ch*100)+'%':s.n>1?s.n:'');
  if(f.kb&&f.kb.ch>0)st+='<span class="sd" style="--sc:#ecc64f" title="Knocked back '+f.kb.n+'">'+pic('ab-shove',16,'a-shove')+'<b>'+(f.kb.ch<1?Math.round(f.kb.ch*100)+'%':f.kb.n)+'</b></span>';
@@ -232,11 +329,16 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);if(lock){FC.blocked=true;F
  +(blocked?'<span class="fcr"><span class="fch lo blk" title="Something stands in the way: this cannot be ordered">'+pic('los-blocked',16,'a-burst')+'<b>No line of fire</b></span></span>'
   :'<span class="fcr"><span class="fch'+(f.hit>=75?' hi':f.hit<45?' lo':'')+'" title="Chance to hit">'+abIcon(u,a.id,16)+'<b>'+f.hit+'%</b></span>'+mods+'</span>'+rows
   +(st?'<span class="fcs">'+st+'</span>':'')+ff)+'</span>'}
+/* a reach weapon striking 2 tiles away: who (or what) stands in between, struck over */
+function fcOver(u,t,a){if(!a||a.magic||shBowAb(u,a)||mdist(u,t)!==2)return'';const L=[];
+ for(const [dc,dr] of DIRS){const c=u.c+dc,r=u.r+dr;if(!inb(c,r)||Math.abs(c-t.c)+Math.abs(r-t.r)!==1)continue;const x=unitAt(c,r);if(x&&x!==t)L.push(x)}
+ if(!L.length)return'';const al=L.filter(x=>x.side===u.side),x=al[0]||L[0];
+ return'<span class="fcov'+(al.length?' al':'')+'" title="Strikes over '+esc(x.name)+(al.length?' (a comrade: the blow passes over)':'')+'">'+pic(shWIcon(shHand(u)),16,'sword')+'<i>over</i><span class="fcfa">'+port(x,16)+'</span></span>'}
 function fcShow(aim,armed){const e=fcEl();FC.u=aim.u;FC.t=aim.t;FC.a=aim.a;FC.k=aim.k;FC.id=aim.a.id;FC.armed=!!armed;FC.sel=B.sel;if(!e)return;
  let h='';try{h=fcHTML(aim.u,aim.t,aim.a,armed)}catch(err){h=''}if(!h){fcClear();return}
  if(e._h!==h){e.innerHTML=h;e._h=h}e.classList.remove('hidden');e.classList.toggle('armed',!!armed);e.setAttribute('aria-label',armed?'Strike '+aim.t.name:'Forecast against '+aim.t.name);
  fcPlace();if(!FC.raf&&typeof requestAnimationFrame==='function'){const tick=()=>{FC.raf=0;if(!FC.t)return;fcPlace();FC.raf=requestAnimationFrame(tick)};FC.raf=requestAnimationFrame(tick)}}
-function fcClear(){const had=FC.armed;FC.u=FC.t=FC.a=null;FC.k=-1;FC.id=null;FC.armed=false;FC.blocked=false;FC.lock=false;if(FC.el){FC.el.classList.add('hidden')}return had}
+function fcClear(){const had=FC.armed;FC.u=FC.t=FC.a=null;FC.k=-1;FC.id=null;FC.armed=false;FC.blocked=false;FC.lock=false;FC.unl=false;if(FC.el){FC.el.classList.add('hidden')}return had}
 // Drops a forecast that no longer describes the board (the turn moved on, the foe died, another ability was armed).
 function fcCheck(){if(!FC.t)return;if(!B||B.busy||B.over||B.auto||B.cur!==FC.u||!FC.t.alive||FC.sel!==B.sel||mode!=='battle'||!aimAt(FC.k)){fcClear();return}
  const e=FC.el;if(e){let h='';try{h=fcHTML(FC.u,FC.t,FC.a,FC.armed)}catch(err){}if(h&&e._h!==h){e.innerHTML=h;e._h=h}}}

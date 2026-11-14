@@ -39,15 +39,15 @@ function ptTorso(P){const L=ptL(),W=PT_TORSO[P.build||'normal'],sk=P.skin,T=y=>{
   neck=(y1)=>{for(let y=19;y<=y1;y++){ptH(L,13,18,y,sk[1]);ptS(L,13,y,sk[0]);ptS(L,14,y,sk[0]);ptS(L,18,y,sk[2])}ptH(L,13,18,22,sk[2]);ptH(L,14,18,23,sk[2]);ptS(L,14,23,sk[1])},
   vneck=(depth,hem)=>{for(let y=24;y<=24+depth;y++){const w=Math.round((24+depth-y)*3/depth);for(let x=15-w;x<=16+w;x++)ptS(L,x,y,x>=16?sk[2]:x>=15-w+1?sk[1]:sk[1]);if(hem){ptS(L,14-w,y,hem);ptS(L,17+w,y,hem)}}};
  const a=P.armor;
- if(a==='rags'){const r=PT_CLOTH[P.ragC||'tan'];fill(r);neck(24);vneck(4,r[0]);
+ if(a==='rags'){const r=ptCl(P.ragC||'tan');fill(r);neck(24);vneck(4,r[0]);
   ptR(L,7,28,9,30,'m');ptS(L,9,28,'n');ptH(L,7,9,30,'n');ptS(L,8,29,r[0]);                      // patch
   ptS(L,22,27,r[0]);ptS(L,23,28,r[0]);ptS(L,22,29,r[0]);ptS(L,5,26,r[0]);ptS(L,6,27,r[0]);ptH(L,19,21,30,r[0])}
- else if(a==='robe'){const r=PT_CLOTH[P.robeC||'blue'];fill(r);neck(23);
+ else if(a==='robe'){const r=ptCl(P.robeC||'blue');fill(r);neck(23);
   for(let i=0;i<8;i++){ptS(L,12+Math.round(i*.55),24+i,'c');ptS(L,13+Math.round(i*.55),24+i,'b');if(i<5){ptS(L,19-Math.round(i*.6),24+i,'c');ptS(L,20-Math.round(i*.6),24+i,r[0])}}
   ptH(L,12,19,24,'c');ptS(L,12,24,'d');ptS(L,19,24,'b');for(let y=25;y<=27;y++)ptH(L,14+(y-25>>1),18-(y-25),y,r[0]);
   ptS(L,7,28,'F');ptS(L,8,27,'F');ptS(L,8,29,'F');ptS(L,9,28,'F');ptS(L,8,28,'r');                // ward sigil
   ptH(L,3,5,31,'c');ptH(L,26,28,31,'b')}
- else if(a==='padded'){const r=PT_CLOTH.white;fill(r,(x,y,t)=>(x%4===2&&y>24)?r[Math.max(0,t-1)]:r[t]);neck(22);
+ else if(a==='padded'){const r=P.clothC||PT_CLOTH.white;fill(r,(x,y,t)=>(x%4===2&&y>24)?r[Math.max(0,t-1)]:r[t]);neck(22);
   ptH(L,11,20,23,'l');ptH(L,11,20,24,'m');ptH(L,12,19,25,'n');ptS(L,11,23,'r');ptS(L,12,23,'r');ptS(L,20,23,'m');ptS(L,20,24,'n');
   for(let y=26;y<32;y+=2){ptS(L,15,y,'j');ptS(L,16,y,'i')}for(let x=4;x<28;x++)if(inT(x,29)&&x%4!==2)ptS(L,x,29,x>21?'n':'m')}
  else if(a==='leather'){const r=PT_CLOTH.tan;fill(r);neck(23);
@@ -71,7 +71,7 @@ function ptTorso(P){const L=ptL(),W=PT_TORSO[P.build||'normal'],sk=P.skin,T=y=>{
  else if(a==='void'){const r=['0','G','D'];neck(21);fill(r,(x,y,t)=>r[t]);ptH(L,11,20,22,'D');ptH(L,11,20,23,'G');ptH(L,11,20,24,'0');ptH(L,11,13,22,'C');
   for(const s of [0,1]){for(let i=0;i<6;i++){const x=s?26+ (i>>1):5-(i>>1),y=24-i;ptS(L,x,y,i<2?'D':'G');ptS(L,s?x-1:x+1,y,s?'D':'C')}}
   ptS(L,15,27,'C');ptS(L,16,27,'D');ptS(L,15,28,'D');ptS(L,16,28,'C');ptS(L,15,29,'C');ptS(L,16,29,'D')}
- else{const r=PT_CLOTH[P.shirtC||'white'];fill(['4','n','m']);neck(24);vneck(3,'4')}
+ else{const r=PT_CLOTH[P.shirtC||'white'];fill(P.clothC||['4','n','m']);neck(24);vneck(3,'4')}
  if(P.beads){const c=P.beads,pts=[[11,24],[11,25],[12,26],[13,27],[14,28],[15,29],[16,29],[17,28],[18,27],[19,26],[20,25],[20,24]];pts.forEach(([x,y],i)=>ptS(L,x,y,i%2?c[0]:c[1]));ptR(L,15,30,16,31,c[2]||'c');ptS(L,15,30,c[3]||'d')}
  return ptOut(L)}
 
@@ -188,7 +188,7 @@ function ptBeard(L,P,E){const b=P.beard;if(!b)return;const c=P.beardC||P.hairC,e
   ptS(L,x,y,k)}
  if(b!=='stache'&&b!=='chops'&&b!=='goatee'){ptH(L,14,17,my,sk[3]==='0'?'0':'f');if(b==='dwarf'||b==='fork')ptH(L,14,17,my,c[0])}}
 /* ---- headgear (drawn over hair) ---- */
-function ptHat(L,P,E){const t=P.hat;if(!t)return;const sk=P.skin,ey=P.ey||14,c=t==='coif'?PT_CLOTH.steel:PT_CLOTH[P.hatC]||PT_CLOTH.brown;
+function ptHat(L,P,E){const t=P.hat;if(!t)return;const sk=P.skin,ey=P.ey||14,c=t==='coif'?PT_CLOTH.steel:ptCl(P.hatC)||PT_CLOTH.brown;
  if(t==='great'||t==='barbute'){ptFullHelm(L,P,E,t);return}
  if(t==='hood'||t==='coif'){const peak=E.y0-3,out=y=>{const d=y-peak;return d<=0?3:d===1?5:d===2?7:d===3?8:Math.max(9,P.head.w[clamp(y-E.y0,0,P.head.w.length-1)]+2)};
   for(let y=peak;y<=23;y++){const hw=y>E.y1?out(E.y1)-(y-E.y1>1?1:0):out(y);for(let x=16-hw;x<=15+hw;x++){
@@ -248,10 +248,27 @@ const PT_WPN={
  staff:{x:24,y:2,r:['.kkj..','kj.ji.','k...j.','kj.ji.','.kji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..']},
  focus:{x:24,y:1,r:['..r...','.rFx..','.FxxX.','.xxXX.','c.xX.b','dc..cb','.dccb.','..ji..','..ji..','..ji..','..cb..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..','..ji..']},
  rift:{x:24,y:9,r:['..CD..','..CD..','..GG..','..GG..','..GG..','CDDDDG','.DDDDG','..FC..','..FC..','..FC..','..FC..','..FC..','..FC..','..FC..','..FC..']},
+ hammer:{x:23,y:4,r:['...rp...','rqqqqpo.','qqqqpppo','pqqpppo.','...cb...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...']},
+ pick:{x:23,y:3,r:['...rp...','.rqqqp..','qqqqppo.','pqp.ppo.','....p.o.','...cb..o','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...']},
+ maul:{x:23,y:1,r:['.rqqqpo.','rqqqqppo','qqqqpppo','qqqppppo','.pppooo.','...ji...','...cb...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...','...ji...']},
+ halberd:{x:22,y:0,r:['...r.....','...qp....','...qp....','.o.qprq..','oo.qpqqq.','.o.qpqqqp','...qpqqpo','...qppo..','...cb....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....']},
+ bill:{x:22,y:0,r:['...r.....','...qp....','...qpq...','..rqqpp..','o.qqqpo..','.ooqpo...','...qpo...','...qo....','...cb....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....']},
+ glaive:{x:22,y:0,r:['....r....','...rq....','...qqp...','..rqqpo..','..qqqpo..','..qqppo..','..qqpo...','..qpo....','...cb....','...ji....','...cb....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....','...ji....']},
+ gsword:{x:23,y:4,r:['...cb...','...ji...','...ji...','...ji...','...ji...','...ji...','dccccccb','.bbbbbba','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...','...qp...']},
+ zwei:{x:22,y:3,r:['....op....','....ji....','....ji....','....ji....','....ji....','....ji....','pqqqqqqqqo','.oooooooo.','....qp....','...oqpo...','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....','....qp....']},
+ rgsword:{x:23,y:4,r:['...xX...','...ji...','...ji...','...ji...','...ji...','...ji...','dccxXccb','.bbbbbba','...qp...','...xp...','...qp...','...qp...','...qX...','...qp...','...qp...','...xp...','...qp...','...qp...','...qX...','...qp...','...qp...','...qp...','...qp...','...qp...']},
+ xbow:{x:21,y:3,r:['.....o.....','....o.o....','kkj..k..jji','.kkjjkjjji.','..mm.k.mm..','....mkm....','.....kj....','.....kj....','.....kj....','.....kj....','.....qp....','.....kj....','.....kj....','.....kj....','....kkj....','....kkj....','....kkji...','....kkji...','....kjji...']},
+ pistol:{x:24,y:9,r:['..cb.','..po.','..po.','..po.','..po.','..po.','.qcb.','.kjpo','.kj..','kji..','kji..','.c...']},
+ musket:{x:24,y:0,r:['..cb.','..po.','..po.','..po.','..pok','..pok','..cb.','..pok','..pok','..pok','..pok','..cb.','.qpok','.cpok','..kji','..kji','..kji','..kji','.kkji','.kkji','.kkji','.kkji','.kkji','.kkji']},
  quiver:{x:23,y:6,r:['g.l.g..','gflfg..','.f.f...','.jkji..','.jkji..','.jkjii.','..jkji.','..jkji.','..jkjii','...jkji','...jkji','...jkji','...jkji','...jkji','...jkji','...jkji','...jkji']}};
 function ptWeapon(P){const L=ptL(),id=P.wpn;if(!id||!PT_WPN[id])return null;const w=PT_WPN[id];ptSt(L,w.r,w.x+(P.wx||0),w.y+(P.wy||0));return ptOut(L)}
-function ptShield(P){const s=P.shield;if(!s)return null;const L=ptL(),c=PT_CLOTH[P.shC||'red'];
- if(s==='buckler'){for(let y=17;y<32;y++)for(let x=0;x<=8;x++){const dx=x-3.5,dy=y-23.5,d=dx*dx+dy*dy;if(d>27)continue;ptS(L,x,y,d>16?(dx+dy<-1?'q':dx+dy>3?'o':'p'):d<3?(dx+dy<0?'d':'c'):(dx+dy<-2?'k':dx+dy>3?'i':'j'))}}
+function ptCl(x){return Array.isArray(x)?x:PT_CLOTH[x]}
+function ptShield(P){const s=P.shield;if(!s)return null;const L=ptL(),c=ptCl(P.shC||'red')||PT_CLOTH.red;
+ if(s==='round'||s==='spiked'){const cx=4.5,cy=22.5,R=6.6,rim=s==='spiked'?['o','p','q']:['i','j','k'];for(let y=14;y<32;y++)for(let x=0;x<=11;x++){const dx=x-cx,dy=y-cy,d=Math.sqrt(dx*dx+dy*dy);if(d>R)continue;
+   ptS(L,x,y,d>R-1.3?(dx+dy<-2?rim[2]:dx+dy>3?rim[0]:rim[1]):d<1.6?(dx+dy<0?'r':'q'):d<2.5?(dx+dy<0?'q':'o'):(dx+dy<-3?c[2]:dx+dy>4?c[0]:c[1]))}
+  if(s==='round'){ptS(L,2,20,'l');ptS(L,7,26,'l')}else{ptS(L,4,15,'q');ptS(L,4,14,'r');ptS(L,10,22,'q');ptS(L,11,22,'p')}}
+ else if(s==='tower'){for(let y=11;y<32;y++)for(let x=0;x<=8;x++){const rim=x===8||y===11||x===0&&y>11;ptS(L,x,y,rim?(y===11?'d':x===8?'b':'c'):x>=6?c[0]:x<=2?c[2]:c[1])}ptH(L,1,7,12,'c');ptH(L,1,7,30,'b');ptR(L,3,19,5,21,'c');ptS(L,3,19,'d');ptS(L,5,21,'b')}
+ else if(s==='buckler'){for(let y=17;y<32;y++)for(let x=0;x<=8;x++){const dx=x-3.5,dy=y-23.5,d=dx*dx+dy*dy;if(d>27)continue;ptS(L,x,y,d>16?(dx+dy<-1?'q':dx+dy>3?'o':'p'):d<3?(dx+dy<0?'d':'c'):(dx+dy<-2?'k':dx+dy>3?'i':'j'))}}
  else{const top=s==='kite'?14:17;for(let y=top;y<32;y++){const x1=y===top?5:y===top+1?6:7;for(let x=0;x<=x1;x++){const rim=x===x1||y===top||(y===top+1&&x===6);
    ptS(L,x,y,rim?(y===top&&x<4?'q':x===x1&&y>top+3?'o':'p'):s==='kite'?(x===3?'l':x===4?'m':x>=5?c[0]:c[1]):(y>=top+4&&y<=top+5?(x>=5?'m':'l'):x>=5?c[0]:c[1]))}}
   ptS(L,1,top+2,'c');if(s==='kite')ptS(L,1,top+8,'c')}
@@ -260,20 +277,42 @@ const PT_GEM=['...0...','..0r0..','.0raa0.','0raaab0','.0aab0.','..0b0..','...0.
 const PT_RESK={mana:['x','X'],aura:['y','Y'],qi:['z','Z'],chi:['A','B']};
 
 /* ---- assemble ---- */
+/* ---- livery (tailor): cloth and accent as dye ramps [dark,mid,light], metal finish remaps the steel tones ---- */
+const PT_STEEL='opqrG';
+function ptLivMap(mt){if(!mt)return null;return{o:mt[0],p:mt[1],q:mt[2],r:mt[3],G:mt[4]||mt[0]}}
+function ptLivTorso(T,P){const v=P.liv,a=P.armor,mm=(a==='mail'||a==='scale'||a==='plate')?ptLivMap(v.mt):null,ac=v.ac;
+ const out=T.map(r=>r.slice());
+ if(mm)for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=out[y][x];if(mm[k]&&!(y>=19&&y<=24&&x>=13&&x<=18&&a!=='plate'&&ptG(T,x,y)===P.skin[1]))out[y][x]=mm[k]}
+ if(ac){if(a==='robe')for(let y=22;y<32;y++)for(let x=0;x<32;x++){const k=out[y][x];if(k==='c')out[y][x]=ac[1];else if(k==='b')out[y][x]=ac[0];else if(k==='d')out[y][x]=ac[2]}
+  if(a==='mail'||a==='scale'||a==='plate'){for(let y=26;y<32;y++){const w=y<27?2:3;for(let x=16-w;x<=15+w;x++)if(out[y][x]!=='.'&&out[y][x]!=='0')out[y][x]=x<=16-w?ac[2]:x>=15+w?ac[0]:ac[1]}
+   ptH(out,13,18,26,ac[2]);out[26][12]='0';out[26][19]='0'}
+  if(a==='leather')for(let y=22;y<32;y++)for(let x=0;x<32;x++){if(out[y][x]==='a'&&x>6&&x<24)out[y][x]=ac[0];else if(out[y][x]==='i'&&x>6&&x<24&&y>23)out[y][x]=ac[1]}
+  if(a==='padded'||a==='rags'||a==='none')for(let x=4;x<28;x++){const y=30;if(out[y][x]!=='.'&&out[y][x]!=='0')out[y][x]=x<16?ac[1]:ac[0]}}
+ return out}
 function ptBust(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38+((x^y)&1?0:0)||y>=29)C[y][x]=bg[1];
  if(bg[2])for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y<16)C[y][x]=bg[2];
  if(P.under)P.under(C);
  const sh=ptShield(P);if(sh)ptOver(C,sh);const wp=ptWeapon(P);if(wp)ptOver(C,wp);
- ptOver(C,ptTorso(P));
+ ptOver(C,P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P));
  const hd=ptHead(P,R),L=hd.L,E=hd.E;
  if(P.hairBack)P.hairBack(L,E);
- ptHair(L,P,E,R);if((P.ears==='elf'&&P.hat!=='hood')||P.ears==='gob')ptEars(L,P,E);ptBeard(L,P,E);ptHat(L,P,E);if(P.over)P.over(L,E);
+ ptHair(L,P,E,R);if((P.ears==='elf'&&P.hat!=='hood')||P.ears==='gob')ptEars(L,P,E);ptBeard(L,P,E);
+ if(P.liv&&(P.liv.mt||P.liv.ac)&&P.hat){const B=L.map(r=>r.slice());ptHat(L,P,E);const mm=/coif|kettle|nasal|great|barbute/.test(P.hat)?ptLivMap(P.liv.mt):null,ac=P.liv.ac,pm=ac&&P.hat==='great'?{f:ac[0],g:ac[1],h:ac[2]}:null;
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=L[y][x];if(k===B[y][x])continue;if(mm&&mm[k])L[y][x]=mm[k];else if(pm&&pm[k])L[y][x]=pm[k]}}
+ else ptHat(L,P,E);if(P.over)P.over(L,E);
  ptOver(C,ptOut(L));if(P.top)P.top(C,E);
  if(P.gem){const g=PT_RESK[P.gem];if(g)ptSt(C,PT_GEM,0,0,{a:g[0],b:g[1]})}
  return C.map(r=>r.join(''))}
 
 /* ---- mercenaries ---- */
+const PT_NEWW={hammer:1,polearm:1,greatsword:1,crossbow:1,flintlock:1};
+const PT_WPNOF={warhammer:'hammer',pickhammer:'pick',maul:'maul',warmaul:'maul',bill:'bill',halberd:'halberd',glaive:'glaive',greatsword:'gsword',zweihander:'zwei',runegreat:'rgsword',xbow:'xbow',arbalest:'xbow',pistol:'pistol',musket:'musket'};
+function ptDye(k){if(!k)return null;let a=null;try{if(typeof dyeRamp==='function')a=dyeRamp(k)}catch(e){}if(!Array.isArray(a)&&typeof US_DYE==='object')a=US_DYE[k]||null;return Array.isArray(a)&&a.length>=3&&a.every(x=>PAL[x])?a.slice(0,3):null}
+function ptFin(k){if(!k||k==='steel'||typeof usFinOf!=='function')return null;const f=usFinOf(k);if(!f)return null;const t=f[0].split('');t.push(f[1][0]);return t}
+function ptColSig(m){const c=m&&m.colors;return c&&typeof c==='object'?(c.cloth||'')+'/'+(c.accent||'')+'/'+(c.metal||''):''}
+function ptLivery(P,m){const c=m&&m.colors;if(!c||typeof c!=='object')return;const cl=ptDye(c.cloth),ac=ptDye(c.accent),mt=ptFin(c.metal);if(!cl&&!ac&&!mt)return;
+ P.liv={cl,ac,mt};if(cl){P.ragC=cl;P.robeC=cl;P.clothC=cl;if(P.hat==='hood')P.hatC=cl}if(ac){P.shC=ac;if(P.hat==='band'||P.hat==='feather')P.hatC=ac}}
 function ptPick(R,a){return a[R(a.length)]}
 function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
  const P={seed,race,fem,face:{},marks:{}};
@@ -328,8 +367,9 @@ function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed
  // gear
  const a=ITEMS[eq.a]?eq.a:null;P.armor=a||'none';if(a==='plate'||a==='scale')P.build=race==='elf'?'normal':'broad';
  P.ragC=ptPick(R,['tan','brown','tan','green']);P.robeC=bg==='monk'||bg==='acolyte'?'red':ptPick(R,['blue','blue','purple']);
- const w=ITEMS[eq.w];if(w){P.wpn=eq.w==='riftedge'?'rift':eq.w==='focus'?'focus':eq.w==='pike'?'pike':eq.w==='greataxe'?'axe':eq.w==='club'?'club':w.wt==='axe'?'axe1':w.wt}
- if(ITEMS[eq.s]){P.shield=eq.s;P.shC=ptPick(R,['red','blue','green','purple','white'])}
+ const w=ITEMS[eq.w];if(w){const nw=typeof usWpnOf==='function'&&PT_NEWW[w.wt]?PT_WPNOF[usWpnOf(eq.w)]:null;P.wpn=nw||(eq.w==='riftedge'?'rift':eq.w==='focus'?'focus':eq.w==='pike'?'pike':eq.w==='greataxe'?'axe':eq.w==='club'?'club':w.wt==='axe'?'axe1':w.wt)}
+ if(ITEMS[eq.s]){P.shield=typeof usShLook==='function'?usShLook(eq.s):eq.s;P.shC=ptPick(R,['red','blue','green','purple','white'])}
+ ptLivery(P,m);
  if(race==='dwarf'){P.wy=3}
  P.gem=typeof mercRes==='function'?mercRes(m):null;
  return P}
@@ -442,14 +482,17 @@ function ptEnemyRows(id,f){const seed=ptHash('en:'+id),bg=['f','1','g'].slice(0,
  case'gobarch':return B({head:PT_HEAD.gob,skin:PT_SKIN.gob,ears:'gob',ey:14,my:18,build:'slim',armor:'leather',face:{eye:3,iris:'0',white:'y',brow:9,nose:5,mouth:1,nolip:1},hat:'hood',hatC:'brown',wpn:'quiver'});
  case'gobsham':return B({head:PT_HEAD.gob,skin:PT_SKIN.gob,ears:'gob',ey:14,my:18,build:'slim',armor:'fur',face:{eye:4,iris:'C',white:'r',brow:9,nose:5,mouth:5,nolip:1},marks:{paint:1,paintC:'l'},hat:'skullcap',wpn:'staff',beads:['l','g']});
  case'skel':return B({head:PT_HEAD.skull,skin:PT_SKIN.bone,ears:'none',build:'slim',armor:'mail',face:{eye:5,iris:'F',brow:9,nose:4,mouth:9},hat:'kettle',wpn:'sword',shield:'kite',shC:'night',over:ptSkullJaw});
+ case'skelhal':return B({head:PT_HEAD.skull,skin:PT_SKIN.bone,ears:'none',build:'slim',armor:'mail',face:{eye:5,iris:'F',brow:9,nose:4,mouth:9},hat:'kettle',wpn:'halberd',over:ptSkullJaw});
  case'zomb':return B({head:PT_HEAD.human,skin:PT_SKIN.rot,ears:'human',build:'normal',armor:'rags',ragC:'night',hair:'wisps',hairC:PT_HAIRC.N,face:{eye:0,iris:'A',white:'l',brow:2,browC:'1',nose:0,mouth:5,bags:1,nolip:1},marks:{scar:2},over:(L,E)=>{ptR(L,18,13,20,15,'0');ptS(L,19,14,'f');ptH(L,10,12,9,'g');ptS(L,11,10,'f');ptS(L,20,19,'f');ptS(L,21,18,'g');ptS(L,20,18,'f')}});
  case'necro':return B({head:PT_HEAD.skull,skin:PT_SKIN.ash,ears:'none',build:'slim',armor:'robe',robeC:'purple',face:{eye:4,iris:'A',white:'r',brow:2,browC:'G',nose:1,mouth:4,bags:1},hat:'hood',hatC:'purple',wpn:'staff',beads:['l','m']});
  case'wolf':return beast('wolf');case'spider':return beast('spider');case'bear':return beast('bear');
  case'orcy':return B({head:PT_HEAD.orc,skin:PT_SKIN.dorc,ears:'orc',ey:13,my:19,build:'broad',armor:'fur',hair:'bun',hairC:PT_HAIRC.G,face:{eye:0,iris:'g',white:'y',brow:5,browC:'1',nose:2,mouth:7},marks:{paint:1,paintC:'g'},wpn:'axe1'});
  case'orcw':return B({head:PT_HEAD.orc,skin:PT_SKIN.dorc,ears:'orc',ey:13,my:19,build:'broad',armor:'mail',face:{eye:0,iris:'g',white:'y',brow:5,browC:'1',nose:2,mouth:7},marks:{scar:2},hat:'nasal',wpn:'axe1'});
+ case'obrute':return B({head:PT_HEAD.orc,skin:PT_SKIN.dorc,ears:'orc',ey:13,my:19,build:'broad',armor:'mail',face:{eye:0,iris:'g',white:'y',brow:5,browC:'1',nose:2,mouth:7},marks:{scar:2},hat:'nasal',wpn:'maul'});
  case'orcl':return B({head:PT_HEAD.orc,skin:PT_SKIN.dorc,ears:'orc',ey:13,my:19,build:'huge',armor:'plate',face:{eye:4,iris:'E',white:'y',brow:5,browC:'1',nose:2,mouth:7},marks:{scar:1,paint:1,paintC:'g'},hat:'horns',hair:'mohawk',hairC:PT_HAIRC.K,wpn:'axe',wx:2});
  case'thug':return B({head:PT_HEAD.human,skin:PT_SKIN.fair,build:'broad',armor:'rags',ragC:'brown',hair:'bald',hairC:PT_HAIRC.G,face:{iris:'0',brow:3,browC:'G',nose:2,mouth:4,bags:1},marks:{stubble:1,scar:3},wpn:'club',shield:'buckler'});
  case'bmark':return B({head:PT_HEAD.human,skin:PT_SKIN.tan,build:'normal',armor:'leather',hair:'short',hairC:PT_HAIRC.G,face:{iris:'0',brow:2,browC:'0',nose:0,mouth:9,lid:1},hat:'hood',hatC:'night',wpn:'bow',over:(L,E)=>{const P2={hat:'mask',hatC:'red',skin:PT_SKIN.tan,ey:14};ptHat(L,P2,E)}});
+ case'bxbow':return B({head:PT_HEAD.human,skin:PT_SKIN.tan,build:'normal',armor:'leather',hair:'short',hairC:PT_HAIRC.G,face:{iris:'0',brow:2,browC:'0',nose:0,mouth:9,lid:1},hat:'hood',hatC:'night',wpn:'xbow',over:(L,E)=>{const P2={hat:'mask',hatC:'red',skin:PT_SKIN.tan,ey:14};ptHat(L,P2,E)}});
  case'braid':return B({head:PT_HEAD.human,skin:PT_SKIN.fair,build:'normal',armor:'mail',hair:'short',hairC:PT_HAIRC.H,beard:'short',face:{iris:'0',brow:2,browC:'i',nose:1,mouth:0,lid:1},marks:{scar:1},hat:'kettle',wpn:'sword',shield:'heater',shC:'night'});
  case'blead':return B({head:PT_HEAD.human,skin:PT_SKIN.fair,build:'broad',armor:'scale',hair:'mane',hairC:PT_HAIRC.G,beard:'full',face:{iris:'0',brow:3,browC:'0',nose:1,mouth:3},marks:{patch:1,scar:2},hat:'feather',wpn:'sword',shield:'heater',shC:'red'});
  case'imp':return B({head:PT_HEAD.imp,skin:PT_SKIN.void,ears:'gob',ey:14,my:18,build:'slim',armor:'bare',face:{eye:4,iris:'E',white:'y',brow:9,nose:4,mouth:5,nolip:1},hat:'horns',hornC:['G','o','p']});
@@ -467,7 +510,7 @@ function ptVoidHelm(L,E){for(let y=E.y0-1;y<=E.y1;y++){const x0=y<E.y0?E.X0(E.y0
 /* ---- public API ---- */
 let PT_HELMS=null;function ptHelmsExist(){if(PT_HELMS===null){PT_HELMS=false;for(const k in ITEMS)if(ITEMS[k].k==='h'){PT_HELMS=true;break}}return PT_HELMS}
 function ptKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?'e:'+x:null;
- const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')}
+ const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)}
  if(x.def){for(const k in EN)if(EN[k]===x.def)return'e:'+k;if(x.eid&&EN[x.eid])return'e:'+x.eid}return null}
 function portraitRows(x){let key=null;try{key=ptKey(x)}catch(e){}if(!key)key='e:?';let r=PTC.rows.get(key);if(r)return r;
  try{if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;r=ptBust(ptMercSpec(m))}else r=ptEnemyRows(key.slice(2),x&&x.f)}catch(e){r=null}

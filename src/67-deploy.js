@@ -105,11 +105,12 @@ function dpPaint(bk,tod,f,W,H){const P=tvPainter(W,H),S=DPGROUND[bk]||DPGROUND.p
  const crystal=(x,y,h)=>{const c=S.cry||['C','D','e'];for(let j=0;j<h;j++){const w2=j<2?0:j<h-2?1:2;for(let i=-w2;i<=w2;i++)P.p(x+i,y-h+j,i<0?c[0]:i>0?c[1]:j<h/2?c[2]:c[0])}P.em=1;P.p(x,y-h,c[2]);P.em=0;P.r(x-2,y,5,1,c[1])};
  const spots=[];for(let i=0;i<nP;i++){const x=rr(3,W-5),y=rr(yH+5,H-2);if(Math.abs(x-W*.16)<9||Math.abs(x-W*.6)<9)continue;spots.push([x,y])}
  spots.sort((a,b)=>a[1]-b[1]).forEach(([x,y])=>{const s=Math.round((y-yH)/(H-yH)*3);if(S.prop==='rock')rock(x,y,s);else if(S.prop==='pine')pine(x,y,5+s*2);else if(S.prop==='leafy')leafy(x,y,2+s);else if(S.prop==='dead')dead(x,y,6+s*2);else crystal(x,y,5+s*2)});
- // banners: the enemy's on the far side, the company's brass one near
+ // banners: the enemy's on the far side, the company's own colours near
  const M=typeof TWMARK!=='undefined'&&TWMARK[f]?TWMARK[f].f:'gfh',flag=(x,y,h,c,flip)=>{P.r(x,y-h,1,h,'0');P.p(x,y-h-1,'c');const d=flip?-1:1;for(let j=0;j<5;j++)for(let i=1;i<=6;i++){if(j===4&&i%2===0)continue;P.p(x+d*i,y-h+j+(i>4?1:0),j===0?c[1]:i===6||j===3?c[2]:c[0])}P.d(x-2,y,5,1,g[2],0)};
- flag(Math.round(W*.6),yH+7,11,[M[0],M[1],M[2]],1);flag(Math.round(W*.16),H-3,14,['c','d','b'],0);
+ flag(Math.round(W*.6),yH+7,11,[M[0],M[1],M[2]],1);const ban=G&&G.banner&&typeof BANNERC!=='undefined'?G.banner:null,bc=ban&&BANNERC[ban.c1]&&BANNERC[ban.c1].r,b2=ban&&BANNERC[ban.c2]&&BANNERC[ban.c2].r;
+ flag(Math.round(W*.16),H-3,14,bc?[bc[1],bc[2],b2?b2[1]:bc[0]]:['c','d','b'],0);
  return P}
-function dpVignette(el,bk,tod,f){if(!el||typeof tvPainter!=='function')return;const s=DP.big?3:2,W=Math.max(40,Math.ceil(el.clientWidth/s)),H=Math.max(20,Math.ceil(el.clientHeight/s)),key=[bk,tod,f,W,H,G.day].join('|');
+function dpVignette(el,bk,tod,f){if(!el||typeof tvPainter!=='function')return;const s=DP.big?3:2,W=Math.max(40,Math.ceil(el.clientWidth/s)),H=Math.max(20,Math.ceil(el.clientHeight/s)),key=[bk,tod,f,W,H,G.day,G.banner?G.banner.c1+G.banner.c2:''].join('|');
  if(el.dataset.key===key)return;const P=dpPaint(bk,tod,f,W,H),c=tvCompose(P,DPREALMSKY[bk]?'day':tod,[]);if(!c)return;c.className='dp-cv';c.style.width=W*s+'px';c.style.height=H*s+'px';c.setAttribute('aria-hidden','true');
  const old=el.querySelector('canvas');if(old)old.remove();el.insertBefore(c,el.firstChild);el.dataset.key=key}
 /* top-down miniature of the rolled battlefield (only when the rules handed its tiles over): the enemy edge is at the top.

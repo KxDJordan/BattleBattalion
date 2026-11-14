@@ -6,7 +6,7 @@
    Everything cosmetic derives from a hash of the town name; the game's seeded rnd() stream is never touched. */
 const TV={root:null,cv:null,g:null,W:0,H:0,s:2,key:'',pic:null,an:null,hot:-1,down:-1,raf:0,last:0,tick:0,note:'',paid:false,force:null,dirty:true,ms:0,frames:0,sp:new Map()};
 const TVK=Object.keys(PAL),TVI={};TVK.forEach((k,i)=>TVI[k]=i+1);
-const TVPLACES=[['contracts','Notice board','board'],['tavern','Tavern','tavern'],['market','Market','market'],['inn','Inn','inn'],['temple','Temple','temple']];
+const TVPLACES=[['contracts','Notice board','board'],['tavern','Tavern','tavern'],['market','Market','market'],['inn','Inn','inn'],['temple','Temple','temple'],['tailor','Tailor','tailor']];
 function tvCan(){return typeof window!=='undefined'&&typeof document!=='undefined'&&typeof HTMLCanvasElement!=='undefined'&&typeof ImageData!=='undefined'}
 function tvHash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function tvRM(){try{const a=$('app');if(a&&a.classList.contains('rm'))return true;if(typeof SET!=='undefined'&&SET){if(SET.motion==='reduce')return true}
@@ -189,9 +189,9 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
  /* -- layout of the four street places (the temple stands behind the notice board, the lowest of them) -- */
  const order=[['tavern','board','market','inn'],['inn','market','board','tavern'],['market','tavern','board','inn'],['inn','board','tavern','market']][(hs>>>20)%4];
  const WD={tavern:80,inn:84,market:80,board:38},tot=order.reduce((a,k)=>a+WD[k],0),gap=Math.max(-5,(W-tot)/(order.length+.6)),X={};{let cx=gap*.8;order.forEach(k=>{X[k]=Math.round(cx);cx+=WD[k]+gap})}
- const tcx=X.board+19;
+ const tcx=X.board+19,tlx=X.market+40;
  // the town's own landmark keeps clear of the temple
- const land=['mill','tower','beacon','gate','mill','tower','gate','beacon'][ti%8],lx=(()=>{const c=[.3,.4,.5,.6,.7].map(f=>Math.round(W*f)),a=c[(hs>>>16)%5];return Math.abs(a-tcx)>=46?a:c.slice().sort((p,q)=>Math.abs(q-tcx)-Math.abs(p-tcx))[0]})();
+ const land=['mill','tower','beacon','gate','mill','tower','gate','beacon'][ti%8],lx=(()=>{const c=[.3,.4,.5,.6,.7].map(f=>Math.round(W*f)),far=a=>Math.min(Math.abs(a-tcx),Math.abs(a-tlx)),a=c[(hs>>>16)%5];return far(a)>=46?a:c.slice().sort((p,q)=>far(q)-far(p))[0]})();
  const lmK=bio==='desert'?['d','c','k']:['q','p','o'];
  const LH=Math.round(clamp(yB*.62,70,104)),by0=yB-6,brick=(i,j,hw)=>i<-hw+2?lmK[0]:i>hw-3?lmK[2]:(j%6===5||((i+(j/6|0)*3+60)%7===0))?lmK[2]:lmK[1];
  if(land==='mill'){const h=LH-22;for(let j=0;j<h;j++){const hw=6+Math.round(j/9);for(let i=-hw;i<=hw;i++)P.p(lx+i,by0-h+j,brick(i,j,hw+1))}
@@ -244,6 +244,28 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
   if(lamps)an.lights.push({x:cx,y:ty+4,r:18});
   an.bell={x:cx-2,y:cy+5};P.id=0;an.box.temple={x:x-5,y:cy-13,w:w+10,h:Math.max(24,bt-(cy-13))}};
  temple(tcx);
+ /* -- tailor: a narrow jettied house behind the market stalls, its upper floor above the awnings; bolts of dyed cloth drying on a
+    pole and a sign with the shears. Plum tiles so it reads apart from the other roofs. -- */
+ const tailor=cx=>{P.id=6;const w=40,x=cx-20,by=yB-3,m2=wallM==='stone'||wallM==='logs'?'plaster':wallM,gT=by-30,uT=by-62,rT=uT-23,rP=TVRAMP.plum;
+  wall(x+2,gT,w-4,31,'stone');
+  wall(x,uT,w,32,m2);if(m2==='plaster'||m2==='adobe')timber(x,uT,w,32,3);
+  P.r(x-2,gT-1,w+4,2,'i');P.r(x-2,gT-1,w+4,1,'j');for(let i=1;i<w;i+=6)P.r(x+i,gT+1,2,2,'i');                         // jetty beam and joist ends
+  roofGable(x-4,rT,w+8,24,rP,m2);P.r(x-4,uT,w+8,1,'1');P.r(x-3,uT+1,w+6,1,'i');
+  win(cx-3,rT+11,6,6,{lit:lit(.6)});                                                                          // gable light
+  win(x+5,uT+6,9,10,{sh:TVRAMP.plum});win(x+w-14,uT+6,9,10,{sh:TVRAMP.plum});
+  // the shop's middle window: bolts of cloth on show
+  P.r(x+16,uT+6,8,11,'i');P.r(x+17,uT+7,6,9,dim?'G':'1');[['g','h'],['x','F'],['y','e']].forEach((c,i)=>{P.r(x+17+i*2,uT+9,2,7,c[0]);P.p(x+17+i*2,uT+9,c[1])});P.r(x+16,uT+17,8,1,'k');
+  // a pole out of the left wall with three lengths of dyed cloth drying
+  P.r(x-15,uT+3,16,1,'i');P.p(x-15,uT+3,'0');P.r(x-1,uT+2,2,3,'0');
+  [[x-14,['f','g','h'],13],[x-9,['X','x','F'],10],[x-4,['Y','y','e'],12]].forEach(([cx2,r,L])=>{for(let j=0;j<L;j++){const sw=Math.round(Math.sin(j*.5)*.6);P.p(cx2+sw,uT+4+j,r[0]);P.r(cx2+1+sw,uT+4+j,2,1,r[1]);P.p(cx2+3+sw,uT+4+j,j%4===1?r[2]:r[1])}
+   P.r(cx2,uT+4+L,4,1,r[0]);P.p(cx2+1,uT+5+L,r[0]);P.p(cx2+3,uT+5+L,r[0])});
+  // the sign: an iron bracket and a board with the shears
+  P.r(x+w,uT+5,9,1,'0');P.r(x+w,uT+6,1,2,'0');P.p(x+w+1,uT+6,'0');P.r(x+w+2,uT+6,1,2,'0');P.r(x+w+7,uT+6,1,2,'0');
+  P.r(x+w+1,uT+8,9,9,'0');P.r(x+w+2,uT+9,7,7,'k');P.r(x+w+2,uT+9,7,1,'l');P.r(x+w+8,uT+9,1,7,'j');
+  P.s(['q...q','.q.q.','..p..','.c.c.','c...c'],x+w+3,uT+10);
+  if(lamps)an.lights.push({x:cx,y:uT+12,r:16});
+  P.id=0;an.box.tailor={x:x-16,y:rT,w:w+28,h:Math.max(24,(yB+2-60)-rT)}};
+ tailor(tlx);
  /* -- tavern -- */
  const tavern=x=>{P.id=2;const up=wallM==='stone'?'plaster':wallM;
   wall(x+3,yB-28,72,28,'stone');wall(x+1,yB-52,76,24,up);if(up==='plaster'||up==='adobe')timber(x+1,yB-52,76,24,4);
@@ -347,7 +369,7 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
  an.P=P;return{P,an}}
 
 /* outline pixels (just outside each building's silhouette) for the hover / pressed highlight */
-function tvOutlines(P){const W=P.W,H=P.H,o={1:[],2:[],3:[],4:[],5:[]},id=i=>P.fl[i]>>3&7;
+function tvOutlines(P){const W=P.W,H=P.H,o={1:[],2:[],3:[],4:[],5:[],6:[]},id=i=>P.fl[i]>>3&7;
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(id(i))continue;let k=0;if(x>0&&(k=id(i-1))){}else if(x<W-1&&(k=id(i+1))){}else if(y>0&&(k=id(i-W))){}else if(y<H-1&&(k=id(i+W))){}if(k)o[k].push(x,y)}
  return o}
 
@@ -396,7 +418,7 @@ function tvDraw(){const g=TV.g,an=TV.an;if(!g||!TV.pic||!an)return;const W=TV.W,
   if(w.x<-10||w.x>W+4)an.walk=null}
  // advance smoke
  for(const p of an.puffs){p.age+=.5;if(p.age>35)p.age=0}}
-function tvOutline(){const g=TV.g,o=TV.out;if(!g||!o)return;const k=TV.down>=0?TV.down:TV.hot;if(k<0)return;const a=o[[1,2,3,4,5][k]];if(!a)return;
+function tvOutline(){const g=TV.g,o=TV.out;if(!g||!o)return;const k=TV.down>=0?TV.down:TV.hot;if(k<0)return;const a=o[[1,2,3,4,5,6][k]];if(!a)return;
  g.fillStyle=PAL[TV.down>=0?'r':'e'];for(let i=0;i<a.length;i+=2)g.fillRect(a[i],a[i+1],1,1)}
 function tvFrame(ts){TV.raf=0;if(!TV.root||!TV.shown)return;
  if(!G||!G.townOpen||mode!=='world'){tvHide();return}
@@ -417,7 +439,7 @@ function tvRoot(){if(TV.root)return TV.root;const r=document.createElement('div'
  TV.root=r;TV.cv=r.querySelector('canvas');TV.g=TV.cv.getContext('2d');return r}
 function tvBadges(t){const hurt=G.roster.filter(m=>m.hp<calc(m).hp).length,c=G.contract;
  return{contracts:TV.paid?{t:'Paid',c:'ok'}:c?{t:'In hand',c:'dim'}:t.contracts.length?{t:t.contracts.length,c:''}:null,
-  tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpInjured==='function'?cpInjured().length:0)}}
+  tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:null,tailor:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpInjured==='function'?cpInjured().length:0)}}
 function tvRect(e){try{return e.getBoundingClientRect()}catch(_){return null}}
 function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=r.clientWidth||window.innerWidth,vh=r.clientHeight||window.innerHeight;
  const s=Math.max(2,Math.floor(Math.min(vw/300,vh/170))),W=Math.ceil(vw/s),H=Math.ceil(vh/s),tod=tvTod(),bio=tvBiome(t);
@@ -426,7 +448,7 @@ function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=
   TV.cv.width=W;TV.cv.height=H;TV.cv.style.width=W*s+'px';TV.cv.style.height=H*s+'px';TV.g.imageSmoothingEnabled=false;r.style.setProperty('--s',s);r.dataset.tod=tod;r.dataset.bio=bio}
  const B=tvBadges(t),box=TV.an.box,P=$('tvPlaces');
  P.innerHTML=TVPLACES.map(([k,n,ic],i)=>{const b=box[ic]||box[k],bd=B[k],x=Math.max(0,b.x)*TV.s,w=Math.max(44,(Math.min(TV.W,b.x+b.w)-Math.max(0,b.x))*TV.s),top=b.y*TV.s,h=Math.max(44,b.h*TV.s);
-  return`<button type="button" class="tv-place" data-i="${i}" style="left:${x}px;top:${top}px;width:${w}px;height:${h}px" aria-label="${n}${bd?', '+bd.t+(k==='contracts'&&+bd.t?' contracts posted':k==='tavern'?' looking for work':k==='inn'?' wounded':k==='temple'?' injured':''):''}" onclick="tvGo('${k}')"><span class="tv-plate${k==='temple'?' up':''}">${typeof cpIcon==='function'?cpIcon(ic,16):tvIcon(ic,16)}<b>${n}</b>${bd?`<i class="tv-badge ${bd.c}${typeof bd.t==='string'?' txt':''}">${bd.t}</i>`:''}</span></button>`}).join('');
+  return`<button type="button" class="tv-place" data-i="${i}" style="left:${x}px;top:${top}px;width:${w}px;height:${h}px" aria-label="${n}${bd?', '+bd.t+(k==='contracts'&&+bd.t?' contracts posted':k==='tavern'?' looking for work':k==='inn'?' wounded':k==='temple'?' injured':''):''}" onclick="tvGo('${k}')"><span class="tv-plate${k==='temple'||k==='tailor'?' up':''}">${typeof cpIcon==='function'?cpIcon(ic,16):tvIcon(ic,16)}<b>${n}</b>${bd?`<i class="tv-badge ${bd.c}${typeof bd.t==='string'?' txt':''}">${bd.t}</i>`:''}</span></button>`}).join('');
  P.querySelectorAll('.tv-place').forEach(el=>{const i=+el.dataset.i,set=(h,d)=>{if(h!==null)TV.hot=h;if(d!==null)TV.down=d;TV.dirty=true};
   el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')set(i,null)});el.addEventListener('pointerleave',()=>set(TV.hot===i?-1:TV.hot,TV.down===i?-1:TV.down));
   el.addEventListener('pointerdown',()=>set(null,i));el.addEventListener('pointerup',()=>set(null,-1));el.addEventListener('pointercancel',()=>set(-1,-1));
@@ -441,8 +463,8 @@ function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=
  const ready=G.roster.filter(m=>m.pend||m.pp).length;
  $('tvCo').innerHTML=`${tvIcon('company',16)}<span>Company</span>${ready?`<i class="tv-badge">${ready}</i>`:''}`;$('tvLeave').innerHTML=`${tvIcon('back',16)}<span>Leave town</span>`;
  // the temple's plate sits above its bell: slide it sideways when the town's nameplate or the purse is in the way
- {const e=P.querySelector('.tv-plate.up');if(e){e.style.marginLeft='';const r=e.getBoundingClientRect();let dx=0;for(const q of [tvRect($('tvName').parentNode),tvRect($('tvRes'))]){if(!q||r.bottom<q.top-2||r.top>q.bottom+4)continue;if(r.left+dx<q.right+8&&r.right+dx>q.left-8)dx+=q.left<vw/2?q.right+8-(r.left+dx):q.left-8-(r.right+dx)}
-   if(r.left+dx<6)dx=6-r.left;if(dx)e.style.marginLeft=dx+'px'}}
+ {const ups=[];P.querySelectorAll('.tv-plate.up').forEach(e=>{e.style.marginLeft='';const r=e.getBoundingClientRect();let dx=0;for(const q of [tvRect($('tvName').parentNode),tvRect($('tvRes'))].concat(ups)){if(!q||r.bottom<q.top-2||r.top>q.bottom+4)continue;if(r.left+dx<q.right+8&&r.right+dx>q.left-8)dx+=q.left<vw/2?q.right+8-(r.left+dx):q.left-8-(r.right+dx)}
+   if(r.left+dx<6)dx=6-r.left;if(r.right+dx>vw-6)dx=vw-6-r.right;if(dx)e.style.marginLeft=dx+'px';ups.push({left:r.left+dx,right:r.right+dx,top:r.top,bottom:r.bottom})})}
  const N=$('tvNote');N.innerHTML=TV.note?`${TV.paid?tvIcon('coin',32):''}<div>${TV.note}</div>`:'';N.classList.toggle('on',!!TV.note);N.classList.toggle('paid',!!TV.paid)}
 /* show the scene for the current town. Returns false when there is no real canvas (headless), so the caller falls back to the panel. */
 function tvShow(note){if(!tvCan()||!G||G.town==null||!G.towns[G.town])return false;

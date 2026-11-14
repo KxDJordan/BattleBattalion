@@ -75,8 +75,13 @@ const MPS={
  ruin:['.00....','0qp0.0.','0qp00q0','0qp00p0','0qp00p0','0nnnnn0','.00000.'],
  cross:['00...00','0g0.0g0','.0g0g0.','..0g0..','.0g0g0.','0g0.0g0','00...00']
 };
-MPS.company=(function(r){const w=r[0].length,p=['.'.repeat(w+2)].concat(r.map(x=>'.'+x+'.'),['.'.repeat(w+2)]),h=p.length,on=(x,y)=>y>=0&&y<h&&x>=0&&x<w+2&&p[y][x]!=='.';
- return p.map((row,y)=>{let o='';for(let x=0;x<w+2;x++)o+=on(x,y)?row[x]:(on(x-1,y)||on(x+1,y)||on(x,y-1)||on(x,y+1))?'e':'.';return o})})(MPS.company);
+const MPS_CO=MPS.company.slice();
+function mpHalo(r){return(function(r){const w=r[0].length,p=['.'.repeat(w+2)].concat(r.map(x=>'.'+x+'.'),['.'.repeat(w+2)]),h=p.length,on=(x,y)=>y>=0&&y<h&&x>=0&&x<w+2&&p[y][x]!=='.';
+ return p.map((row,y)=>{let o='';for(let x=0;x<w+2;x++)o+=on(x,y)?row[x]:(on(x-1,y)||on(x+1,y)||on(x,y-1)||on(x,y+1))?'e':'.';return o})})(r)}
+MPS.company=mpHalo(MPS_CO);
+/* the company's flag in its banner colour (c1) */
+function mpCompanyRows(){const b=G&&G.banner,R=b&&typeof BANNERC!=='undefined'&&BANNERC[b.c1]?BANNERC[b.c1].r:null;if(!R)return{k:'company',rows:MPS.company};
+ const m={e:R[2],y:R[1],c:R[0],b:R[0]};return{k:'company'+R.join(''),rows:mpHalo(MPS_CO.map(r=>r.split('').map(c=>m[c]||c).join('')))}}
 const MPDIG=['###/#.#/#.#/#.#/###','.#./##./.#./.#./###','###/..#/###/#../###','###/..#/.##/..#/###','#.#/#.#/###/..#/..#','###/#../###/..#/###','###/#../###/#.#/###','###/..#/..#/.#./.#.','###/#.#/###/#.#/###','###/#.#/###/..#/###'];
 function mpPinRows(n){const rows=MPS.pin.map(r=>r.split('')),d=MPDIG[n%10].split('/');for(let y=0;y<5;y++)for(let x=0;x<3;x++)if(d[y][x]==='#')rows[y+2][x+3]='r';return rows.map(r=>r.join(''))}
 function mpOutline(rows){const h=rows.length,w=rows[0].length,on=(x,y)=>y>=0&&y<h&&x>=0&&x<w&&rows[y][x]!=='.';
@@ -119,6 +124,7 @@ function mpPaint(n,tp,o){const S=n*tp,K=new Array(S*S),tAt=(x,y)=>x<0||y<0||x>=n
    const cut=(x,y)=>{K[(py0+y)*S+px0+x]=wk;land[(py0+y)*S+px0+x]=0};
    if(wN&&wW)cut(0,0);if(wN&&wE)cut(tp-1,0);if(wS&&wW)cut(0,tp-1);if(wS&&wE)cut(tp-1,tp-1)}
   const ox=px0+Math.floor(h2*(tp-2)),oy=py0+Math.floor(h3*(tp-2));       // glyph origin (3x3 box fits anywhere)
+  if(tp<3){if(t===4&&h<.6)put(px0+(h2<.5?0:1),py0,'q');else if(t===2&&h<.5)put(px0+(h2<.5?0:1),py0+1,'7');continue}   // two art px a tile: a single glint at most
   if(t===0){if(h<.16){const X=px0+Math.floor(h2*(tp-1)),Y=py0+Math.floor(h3*tp);put(X,Y,'x');if(X+1<px0+tp)put(X+1,Y,'x')}}
   else if(t===1){if(h<.3)put(ox+1,oy+1,h<.15?'A':'w')}
   else if(t===2){put(ox+1,oy,'w');put(ox,oy+1,'w');put(ox+1,oy+1,'7');put(ox+2,oy+1,'7');put(ox+1,oy+2,'3');
@@ -221,6 +227,7 @@ function mpLayout(){if(!MP.root)return;const el=MP.root.querySelector('.mp-map')
  MP.view={x:f+pl,y:f,w:Math.max(8,cw-2*f-pl),h:Math.max(8,ch-2*f-pb)};
  const room=Math.min(MP.view.w,MP.view.h)-4*MP.us;let btp=4,bz=1,bs=0;
  for(const tp of [4,5,6]){const z=Math.max(1,Math.floor(room/(WN*tp))),s=WN*tp*z<=room?tp*z:0;if(s>bs||(s===bs&&s&&tp>btp)){bs=s;btp=tp;bz=z}}
+ if(!bs)for(const tp of [3,2]){if(WN*tp<=room){btp=tp;bz=1;break}if(tp===2){btp=2;bz=1}}            // the larger worlds: fewer art px per tile so the whole sheet still fits
  const old=MP.tp,oz=MP.z,ozf=MP.zf;MP.tp=btp;MP.zf=bz;MP.zmax=Math.max(bz,Math.min(bz+7,Math.ceil(30*d/btp)));
  if(old!==btp){MP.cx=MP.cx/old*btp;MP.cy=MP.cy/old*btp}
  MP.z=MP.fresh||oz===ozf?bz:clamp(Math.round(oz*old/btp),bz,MP.zmax);MP.fresh=false;mpClampCam();MP.dirty=true;mpZoomUI()}
@@ -295,7 +302,7 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  const s=MP.sel;if(s){const sx=X(s.x),sy=Y(s.y),r=(s.kind==='town'?Math.floor(mpTownRows(G.towns[s.ref]).length/2)+3:6)*us+(fr&1?us:0),L=3*us,br=(x,y,dx,dy)=>{mpFill(q,'0',x-us,y-us,L*1+2*us,3*us);mpFill(q,'0',x-us,y-us,3*us,L+2*us);q.fillStyle=PAL.e;q.fillRect(x,y,L,us);q.fillRect(x,y,us,L)};
   q.save();q.translate(sx,sy);for(const [mx2,my2] of [[1,1],[-1,1],[1,-1],[-1,-1]]){q.save();q.scale(mx2,my2);br(-r,-r);q.restore()}q.restore()}
  /* company */
- mpAt(q,'company',MPS.company,X(G.p.x)+3*us,Y(G.p.y)+us,'b');
+ {const cr=MP.coRows&&MP.coRows.b===(G.banner&&G.banner.c1)?MP.coRows:(MP.coRows=Object.assign(mpCompanyRows(),{b:G.banner&&G.banner.c1}));mpAt(q,cr.k,cr.rows,X(G.p.x)+3*us,Y(G.p.y)+us,'b')}
  /* numbered pins */
  MP.wps.forEach((w,i)=>{const sx=X(w.x),sy=Y(w.y),up=w.kind==='town'?Math.floor(mpTownRows(G.towns[w.ref]).length/2)+1:w.kind==='land'?0:5;mpAt(q,'pin'+(i+1),mpPinRows(i+1),sx,sy-up*us,'b')});
  q.restore();

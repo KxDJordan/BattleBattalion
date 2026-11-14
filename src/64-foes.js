@@ -63,7 +63,8 @@ function foeRank(f){const b=B;if(!b||!FACT[f])return 1;if(b.frank&&b.frank.f===f
 function enemyInit(u,id){let d=u.def||EN[id];
  // A warband has only so many leaders: the ones beyond def.max take the field as def.sub instead.
  if(d.max&&d.sub&&EN[d.sub]&&B&&!u.spawned){const n=B.fcnt||(B.fcnt={});n[id]=(n[id]||0)+1;if(n[id]>d.max){const e=mkEnemy(d.sub,u.f);for(const k in e)u[k]=e[k];id=d.sub;d=u.def}}
- u.eid=id;u.role=d.role||'line';u.abs=(d.abs||[]).filter(a=>AB[a]);if(u.wpnAlt&&AB.swap)u.abs.push('swap');   // a sidearm (def.side): the archer is not helpless when a foe gets close
+ u.eid=id;u.role=d.role||'line';u.abs=(d.abs||[]).filter(a=>AB[a]);if(u.wpn.reload&&AB.reload&&!u.abs.includes('reload'))u.abs.push('reload');   // a crossbow or firearm: it reloads like a merc
+ if(u.wpnAlt&&AB.swap)u.abs.push('swap');   // a sidearm (def.side): the archer is not helpless when a foe gets close
 u.cds={};u.usedN={};u.spell=undefined;
  if(d.res)for(const k in d.res)u.res[k]={cur:d.res[k][0],max:d.res[k][0],regen:d.res[k][1]};
  if(d.fatMax){u.fatMax=d.fatMax;u.wpn.fat=d.wfat||10}

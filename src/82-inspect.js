@@ -42,12 +42,19 @@ function insTraits(u){const d=u.def||{},L=[],S=k=>typeof STATUS==='object'&&STAT
  return L.map(x=>`<div class="ins-ab">${insIc(x[0])}<div><b>${x[1]}</b><span>${x[2]}</span></div></div>`).join('')}
 /* ---- arms and talents (mercs): weapon in hand and backup, shield raised or slung, gift variant, trees, learned perks ---- */
 function insWn(w){return w?(w.n||w.wt||'Weapon'):'Bare hands'}
+const INS_WT={sword:'Sword',axe:'Axe',mace:'Mace',dagger:'Dagger',spear:'Spear',bow:'Bow',staff:'Staff',fist:'Unarmed',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Flintlock'};
+// the weapon's family and what sets it apart: reach over the front rank, armor pierce, reload
+function insWl(w){if(!w||!w.d)return'';const L=[`${w.d[0]}–${w.d[1]} dmg`];if(w.rng>1)L.push((typeof shRangedW==='function'&&shRangedW(w)?'range ':'reach ')+w.rng);if(w.two)L.push('two-handed');
+ if((w.ign||0)>=.35)L.push(Math.round(w.ign*100)+'% armor pierce');if(w.reload)L.push('reload '+(w.reload.ap|0)+' AP');
+ const x=w.rng===2&&!(typeof shRangedW==='function'&&shRangedW(w))?' Strikes over the front rank (not through walls).':'';return L.join(' · ')+(x?`<br>${x.trim()}`:'')}
 function insArms(u){const sh=typeof shHand==='function'?shHand(u):u.wpn,al=typeof shAlt==='function'?shAlt(u):null,ic=w=>typeof shWIcon==='function'?shWIcon(w):'sword';let h='';
- const wl=w=>w&&w.d?`${w.d[0]}–${w.d[1]} dmg${w.rng>1?' · range '+w.rng:''}${w.two?' · two-handed':''}`:'';
- if(al||u.side===0){h+=`<div class="ins-ab">${insIc(ic(sh))}<div><b>${insWn(sh)}</b><i>in hand</i><span>${wl(sh)}</span></div></div>`;
-  if(al)h+=`<div class="ins-ab ins-alt">${insIc(ic(al))}<div><b>${insWn(al)}</b><i>backup${AB.swap?' · swap '+(typeof swapCost==='function'&&B&&B.cur===u?(swapCost(u)<=0?'free':swapCost(u)+' AP'):(AB.swap.ap|0)+' AP'):''}</i><span>${wl(al)}</span></div></div>`}
- if(u.shpMax>0&&(u.shield||u.slung)){const sl=typeof shSlung==='function'&&shSlung(u);h+=`<div class="ins-ab">${insIc(sl?'slung':'shield')}<div><b>${sl?'Shield slung':'Shield raised'}</b><span>${sl?'On the back while a two-handed weapon is in hand: no defence, no shield skills.':'Defence and shield skills while a one-handed weapon is in hand.'}</span></div></div>`}
- if(typeof shLocked==='function'&&shLocked(u))h+=`<div class="ins-ab ins-s bd">${insIc('ranged-lock')}<div><b>Ranged lock</b><span>An enemy is adjacent: no bow shots until it falls or ${u.side===0?'this sword steps':'it steps'} away.</span></div></div>`;
+ const ld=w=>{const L=typeof shLoaded==='function'?shLoaded(u,w):null;return L===null?'':L?' · <span class="ins-good">loaded</span>':' · <span class="ins-bad">unloaded</span>'},fam=w=>w&&w.wt&&INS_WT[w.wt]&&INS_WT[w.wt]!==insWn(w)?INS_WT[w.wt].toLowerCase()+' · ':'';
+ if(al||u.side===0||(sh&&(sh.reload||sh.rng===2))){h+=`<div class="ins-ab">${insIc(ic(sh))}<div><b>${insWn(sh)}</b><i>${fam(sh)}in hand${ld(sh)}</i><span>${insWl(sh)}</span></div></div>`;
+  if(al)h+=`<div class="ins-ab ins-alt">${insIc(ic(al))}<div><b>${insWn(al)}</b><i>${fam(al)}backup${ld(al)}${AB.swap?' · swap '+(typeof swapCost==='function'&&B&&B.cur===u?(swapCost(u)<=0?'free':swapCost(u)+' AP'):(AB.swap.ap|0)+' AP'):''}</i><span>${insWl(al)}</span></div></div>`}
+ if(u.shpMax>0&&(u.shield||u.slung)){const sl=typeof shSlung==='function'&&shSlung(u),it=typeof shShieldItem==='function'?shShieldItem(u):null,nm=typeof shShieldName==='function'?shShieldName(u):'Shield',
+   ty=it&&it.look&&typeof SH_LOOK==='object'&&SH_LOOK[it.look]&&SH_LOOK[it.look]!==nm?SH_LOOK[it.look].toLowerCase()+' · ':'',st=it&&(it.md||it.rd)?` · +${it.md|0} melee def, +${it.rd|0} ranged def`:'',sk=it&&Array.isArray(it.sk)?it.sk.filter(id=>AB[id]).map(id=>AB[id].n).join(', '):'';
+  h+=`<div class="ins-ab">${insIc(sl?'slung':typeof shShieldIcon==='function'?shShieldIcon(u):'shield')}<div><b>${nm}</b><i>${ty}${sl?'slung':'raised'} · ${u.shp}/${u.shpMax}</i><span>${sl?'On the back while a two-handed weapon is in hand: no defence, no shield skills.':'Raised'+st+'.'+(sk?' Skills: '+sk+'.':'')}</span></div></div>`}
+ if(typeof shLocked==='function'&&shLocked(u))h+=`<div class="ins-ab ins-s bd">${insIc('ranged-lock')}<div><b>Ranged lock</b><span>An enemy is adjacent: no shots until it falls or ${u.side===0?'this sword steps':'it steps'} away.</span></div></div>`;
  return h}
 function insAbChips(u){const L=[];for(const id of u.abs||[]){const a=AB[id];if(!a||L.includes(id))continue;L.push(id)}if(!L.length)return'';
  return`<div class="ins-trees">${L.map(id=>`<span title="${AB[id].d||''}">${insIc('ab-'+id)}<b>${AB[id].n}</b></span>`).join('')}</div>`}
@@ -95,7 +102,9 @@ function tileCard(k){const t=B.tiles[k],u=B.cur,c=k%BW,r=(k/BW)|0;let h=`<div cl
  if(B.corpses&&B.corpses.some(x=>x.c===c&&x.r===r))L.push('A body lies here. A necromancer can raise it.');
  if(t.t!=='block'){if(u&&u.alive){const dh=t.h-T(u).h;if(dh>0)L.push(`${dh} above ${u.name}: stepping up costs 1 extra AP${dh>1?', and a climb of 2 is too steep':''}.`);else if(dh<0)L.push(`${-dh} below ${u.name}.`)}
   L.push('Higher ground gives +10 to hit and +10% damage.');
-  if(u&&u.side===0&&!B.busy&&!B.auto&&B.reach){const q=B.reach.get(k);if(q&&q.cost)L.push(`<b class="ins-hit">${q.cost} AP</b> for ${u.name} to move here (has ${u.ap}).`);else if(k!==key(u.c,u.r))L.push(`Out of ${u.name}'s reach this turn.`)}
+  if(u&&u.side===0&&!B.busy&&!B.auto&&B.reach){const q=B.reach.get(k);if(q&&q.cost)L.push(`<b class="ins-hit">${q.cost} AP</b> for ${u.name} to move here (has ${u.ap}).`);else if(k!==key(u.c,u.r))L.push(`Out of ${u.name}'s reach this turn.`)
+   const P=typeof planOK==='function'?planOK():null,I=P&&P.k===k&&typeof planInfo==='function'?planInfo():null;
+   if(I){const n=I.atk?I.atk.size:0,off=Object.keys(I.ab).filter(id=>I.ab[id].why);L.push(`<b class="ins-hit">Planned move</b>: ${P.left} AP left, ${n?n+(n===1?' foe':' foes')+' in reach':'no foe in reach'} from here.${off.length?' Not possible after it: '+off.map(id=>{try{return abilityInfo(u,id).n}catch(e){return id}}).join(', ')+'.':''}`)}}
   // the line of fire from the acting unit to whoever would stand here
   if(u&&u.alive&&u.side===0&&typeof losInfo==='function'&&k!==key(u.c,u.r)){try{const a=abilityInfo(u,B.sel&&AB[B.sel]&&AB[B.sel].tgt==='enemy'?B.sel:'attack'),d=Math.abs(c-u.c)+Math.abs(r-u.r);
     if(a.rng>1&&d>1){const los=losInfo(u,{c,r},a),pen=typeof COVERPEN==='number'?COVERPEN:15;

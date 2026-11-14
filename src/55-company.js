@@ -218,12 +218,12 @@ function coGripTag(id){const g=tlGrip(id);return g?` <span class="pn-grip">${g}<
 function coItemDesc(id){const it=ITEMS[id];if(it&&it.k==='h')return`${it.arm} head armor, −${it.fat||0} fatigue`;return itemDesc(id)}
 function coWornNote(m,k){if(k!=='a'&&k!=='h')return'';const c=cpCond(m),cur=k==='a'?c.a:c.h,mx=k==='a'?c.aM:c.hM;return cur<mx?` · ${cur}/${mx} left, repaired with tools at camp`:''}
 function coRender(){const ask=coAsk;coAsk=null;const sel=coIndex(),nf=G.roster.filter(m=>m.field).length,ready=G.roster.filter(m=>m.pend||m.pp).length;
- const o={id:'company',view:coScreen,title:'The company',sub:`Fielded ${nf}/${MAXFIELD}  ·  Renown ${G.renown}  ·  Stash ${G.stash.length}`,meta:pnPurse(),
+ const o={id:'company',view:coScreen,title:typeof companyName==='function'?companyName():'The company',banner:typeof bannerHTML==='function'&&G.banner?bannerHTML(G.banner,32):'',sub:`Fielded ${nf}/${MAXFIELD}  ·  Renown ${G.renown}  ·  Stash ${G.stash.length}`,meta:pnPurse(),
   closeLabel:G.townOpen?'Back to town':'Close',closeIcon:G.townOpen?'back':'x',onClose:coClose,
   tabs:[{k:'roster',n:'Roster',icon:'company',badge:ready||''},{k:'formation',n:'Lines',icon:'swords'}],tab:coScreen,onTab:coTabGo,after:fmBind};
  if(coScreen==='merc'){const m=G.roster[sel],s=calc(m);m.hp=Math.min(m.hp,s.hp);
   const v=m.pend?coLevel(m,sel):coView==='slot'?coSlotView(m,sel,coSlot):coTalents(m,sel);
-  o.title=m.name;o.sub=`${sel+1} of ${G.roster.length}`;o.closeLabel='Roster';o.closeIcon='back';o.onClose=coBack;
+  o.title=m.name;o.sub=`${sel+1} of ${G.roster.length}`;o.banner='';o.closeLabel='Roster';o.closeIcon='back';o.onClose=coBack;
   o.meta=`<button type="button" class="pn-btn sm ico" aria-label="Previous sword" onclick="coStep(-1)">${coIc('back')}</button><button type="button" class="pn-btn sm ico" aria-label="Next sword" onclick="coStep(1)">${coIc('back',16,'flipx')}</button>`;
   o.list=coLeft(m,sel,s,ask===m.id);o.listKey='co:m'+m.id;o.detail=v.detail;o.detailKey='co:'+v.key;o.foot=v.foot}
  else if(coScreen==='formation'){o.single=true;o.list=coFormation();o.listKey='co:form'}

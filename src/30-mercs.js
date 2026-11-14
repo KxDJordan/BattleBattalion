@@ -11,6 +11,7 @@ function newMerc(bg){const b=BG[bg],race=rnd()<.55?'human':pick(['elf','dwarf','
  let x=rnd();for(const [k,p] of (b.r||[])){if(x<p){gift=giftKey(k,b.style||'melee');break}x-=p}   // one resource only
  const eq={w:null,b:null,s:null,a:null,h:null};b.gear.forEach(gs=>{const id=pick(gs.split('|'));if(ITEMS[id])eq[ITEMS[id].k]=id});
  if(b.side){const id=pick(b.side.split('|'));if(ITEMS[id]&&ITEMS[id].k==='w')eq.b=id}
+ if(eq.s&&ITEMS[eq.w]&&ITEMS[eq.w].two)eq.s=null;   // a recruit who carries a two-hander brings no shield
  const m={id:G.nid++,name:pick(NAMES),bg,race,lvl:1,xp:0,pp:1,pend:0,base,tal,trees:gift?trees.concat([gift]):trees,gift,perks:[],eq,hp:base.hp,field:false,inj:[]};
  fixHands(m);syncMast(m);return m}
 // The merc's gift resource (mana aura qi chi) or null.
@@ -18,24 +19,31 @@ function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)
 /* calc(m, o?): the merc's fighting numbers from base stats, perks, gear and injuries, with the main weapon in hand
    (o.hand 'b': the sidearm in hand instead; battle units recompute on a swap).
    {hp,fat,init,ms,rs,md,rd,brv,ap, arm (body armor max), helm (head armor max), res, abs (perk abilities, then weapon and shield skills, swap),
-    flags (perk flags and summed mods), dmg, wpn (a copy of the weapon in hand with weapon-tree changes, id = item id or null for fists),
-    shield:{hp,md,rd,raised}|null (md/rd are what it adds when raised; slung with a two-handed weapon in hand),
+    flags (perk flags and summed mods; a raised tower shield adds its guard and shGuard), dmg,
+    wpn (a copy of the weapon in hand with weapon-tree changes, reload included; id = item id or null for fists),
+    shield:{id,look,hp,md,rd,raised,guard,wallB,spike}|null (md/rd are what it adds when raised; slung with a two-handed weapon in hand;
+           guard/wallB/spike from the item: Cover for allies beside it, the Shield wall bonus, the Spiked bash roll),
     hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand), inj:[ids]} */
 function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null;
  const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,ap:9,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[],
   hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[]};
- const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();
+ const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();if(wpn.reload)wpn.reload=Object.assign({},wpn.reload);
+ const sh=ITEMS[eq.s]&&ITEMS[eq.s].k==='s'?ITEMS[eq.s]:null,raised=!!sh&&!wpn.two;let shHpOff=0;
  for(const id of (Array.isArray(m.perks)?m.perks:legacyPerks(m.mast))){const P=perkById(id);if(!P)continue;const p=P.perk,T=P.tree;
-  if(T.kind==='weapon'&&T.wt!==wpn.wt){s.off.push(id);continue}s.perks.push(id);
+  // weapon trees work only with their family in hand; the shield tree only while a shield is raised (its shield hitpoints count whenever one is carried)
+  if(T.kind==='weapon'&&(T.wt==='shield'?!raised:T.wt!==wpn.wt)){s.off.push(id);if(T.wt==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}s.perks.push(id);
   if(p.st)for(const q in p.st)s[q]=(s[q]||0)+p.st[q];if(p.ab&&AB[p.ab]&&!s.abs.includes(p.ab))s.abs.push(p.ab);
   if(p.flag)s.flags[p.flag]=1;if(p.mod)for(const q in p.mod)s.flags[q]=(s.flags[q]||0)+p.mod[q];
   if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
-   if(x.hit)wpn.hit=(wpn.hit||0)+x.hit;if(x.stun)wpn.stun=(wpn.stun||0)+x.stun;if(x.spell)wpn.spell=(wpn.spell||0)+x.spell}
+   if(x.hit)wpn.hit=(wpn.hit||0)+x.hit;if(x.stun)wpn.stun=(wpn.stun||0)+x.stun;if(x.spell)wpn.spell=(wpn.spell||0)+x.spell;if(x.crush)wpn.crush=(wpn.crush||0)+x.crush;
+   if(x.rld&&wpn.reload)wpn.reload.ap=Math.max(2,wpn.reload.ap+x.rld)}
   if(T.kind==='gift'&&T.res){const R=s.res[T.res]||(s.res[T.res]={max:GIFTBASE,regen:GIFTREGEN});if(p.res)R.max+=p.res;if(p.regen)R.regen+=p.regen}}
- const sh=ITEMS[eq.s]&&ITEMS[eq.s].k==='s'?ITEMS[eq.s]:null,a=ITEMS[eq.a],h=ITEMS[eq.h];s.wpn=wpn;
- if(sh){const sd=s.flags.shieldDef||0,raised=!wpn.two;s.fat-=sh.fat;s.shield={hp:Math.round((sh.hp||48)*(1+(s.flags.shieldHp||0))),md:sh.md+sd,rd:sh.rd+sd,raised};if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd}}
+ const a=ITEMS[eq.a],h=ITEMS[eq.h];s.wpn=wpn;
+ if(sh){const sd=s.flags.shieldDef||0;s.fat-=sh.fat;s.shield={id:eq.s,look:sh.look||'heater',hp:Math.round((sh.hp||48)*(1+(s.flags.shieldHp||0)+shHpOff)),md:sh.md+sd,rd:sh.rd+sd,raised,
+   guard:sh.guard||0,wallB:sh.wallB||0,spike:sh.spike?sh.spike.slice():null};
+  if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd;if(sh.guard){s.flags.guard=(s.flags.guard||0)+sh.guard;s.flags.shGuard=sh.guard}}}
  if(a){s.arm=a.arm;s.fat-=a.fat}if(h){s.helm=h.arm;s.fat-=h.fat}
- for(const id of (wpn.sk||[]).concat(sh&&!wpn.two&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
+ for(const id of (wpn.sk||[]).concat(raised&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
  if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}
  if(s.hp<5)s.hp=5;if(s.fat<20)s.fat=20;s.ap=clamp(Math.round(s.ap),4,12);return s}

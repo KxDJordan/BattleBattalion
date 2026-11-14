@@ -9,14 +9,14 @@ function stockTown(t){t.ref=G.day;t.recruits=[];for(let i=0;i<4;i++)t.recruits.p
  t.contracts=[];for(let i=0;i<3;i++)t.contracts.push(genContract(t))}
 function openTown(i){G.town=i;const t=G.towns[i];if(G.day-t.ref>=3)stockTown(t);let note='';const c=G.contract;
  if(c&&((c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i))){G.crowns+=c.pay;G.renown+=8*c.diff;note=`<p class="good">Contract fulfilled. You are paid ${c.pay} crowns.</p>`;G.contract=null}
- townTab='contracts';townSel={contracts:0,tavern:0,market:'food',temple:0};panelForget('town:');
+ townTab='contracts';townSel={contracts:0,tavern:0,market:'food',temple:0,tailor:0};if(typeof TLR!=='undefined')TLR.draft=null;panelForget('town:');
  townAt=typeof tvCan==='function'&&tvCan()?'scene':'panel';renderTown(note);save()}
 function mastChips(m){return tlTrees(m).filter(x=>x.kind!=='weapon').map(x=>{const r=tlGiftRes(x.key);return`<span class="chip" style="${r?'border-color:'+RESC[r]+';color:'+RESC[r]:''}">${x.kind==='gift'?tlGiftLabel(x.key):x.tree.n}</span>`}).join('')}
 /* ---- town panel (two-pane, see 52-panels.js) ---- */
 /* townAt: 'scene' = the illustrated town square (51-townview.js) is in front, 'panel' = one of its four places is open.
    Without a real canvas (headless tests) the scene is skipped and the town is the panel alone, as before. */
-let townNote='',townSel={contracts:0,tavern:0,market:'food',temple:0},townAt='panel';
-const TOWNTABS=[['contracts','Contracts'],['tavern','Tavern'],['market','Market'],['inn','Inn'],['temple','Temple']];
+let townNote='',townSel={contracts:0,tavern:0,market:'food',temple:0,tailor:0},townAt='panel';
+const TOWNTABS=[['contracts','Contracts'],['tavern','Tavern'],['market','Market'],['tailor','Tailor'],['inn','Inn'],['temple','Temple']];
 const TOOLLOT=10;   // tools are sold by the lot
 function toolPrice(n){return Math.max(1,Math.round((typeof TOOLPRICE==='number'&&TOOLPRICE>0?TOOLPRICE:3)*(n||TOOLLOT)))}
 function townGo(k){townTab=k;renderTown()}
@@ -110,6 +110,7 @@ function townView(t){let list='',detail='',foot='',key=townTab;
    foot=`<span class="pn-fl">${pnCoin(it.price,'big'+(G.crowns<it.price?' short':''))}<small>${G.crowns<it.price?'<em>Not enough crowns</em>':own?own+' in the stash':'to the stash'}</small></span><button type="button" class="pn-btn pri${G.crowns<it.price?' off':''}" onclick="buyItem(${i})">Buy for ${it.price}</button>`}
   else{const id=G.stash[i],it=ITEMS[id];detail=itemDetail(id);
    foot=`<span class="pn-fl">${pnCoin(Math.floor(it.price*.4),'big')}<small>worth ${it.price} new</small></span><button type="button" class="pn-btn" onclick="sellItem(${i})">Sell for ${Math.floor(it.price*.4)}</button>`}}
+ else if(townTab==='tailor'&&typeof tailorView==='function'){const v=tailorView(t);list=v.list;detail=v.detail;foot=v.foot;key=v.key}
  else if(townTab==='temple'){const L=[];G.roster.forEach((m,mi)=>cpInj(m).forEach(j=>L.push({m,mi,j,cost:cpInjCost(m,j.id)})));const n=L.length,i=clamp(+townSel.temple||0,0,n-1);townSel.temple=i;key+=':'+i+':'+n;
   list+=pnSec('The injured',n?n+' wound'+(n===1?'':'s'):'None');
   if(!n){list+=pnEmpty('Nobody in the company carries a wound.');

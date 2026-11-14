@@ -24,7 +24,7 @@ const FRAMES={
  'pxb-on':_btn('e','c','b','a'),'pxb-on-down':_btnDown('b','a'),
  'pxb-dis':['.000.','02220','02220','02220','01110','.000.'],
  /* chips. slice 2 */
- pxtag:_tag('4','1'),'pxtag-gold':_tag('c','a'),'pxtag-good':_tag('5','2'),'pxtag-bad':_tag('g','f'),
+ pxtag:_tag('4','1'),'pxtag-gold':_tag('c','a'),'pxtag-good':_tag('B','2'),'pxtag-bad':_tag('g','f'),
  /* tooltip. slice 3 */
  pxtip:['.00000.','0bbbbb0','0b000b0','0b000b0','0b000b0','0bbbbb0','.00000.'],
  /* meter segment divider: tiles every 4 art px (8 CSS px) */
@@ -40,9 +40,43 @@ const _ROT=(function(){const W=30,H=20,g=[];for(let y=0;y<H;y++)g.push(new Array
  [[15,2],[16,1],[17,1],[18,1],[19,1],[20,2],[21,2],[22,3],[23,4],[23,5]].forEach(p=>{g[p[1]][p[0]]='d'});   // turn arrow
  [[21,5],[22,5],[24,5],[25,5],[22,6],[23,6],[24,6],[23,7]].forEach(p=>{g[p[1]][p[0]]='d'});
  return g.map(r=>r.join(''))})();
-(function(){try{if(typeof document==='undefined'||!document.documentElement||!document.documentElement.style)return;const R=document.documentElement;let ok=true;const set=(k,rows,sc)=>{const u=pxURL('fr:'+k,rows,sc);if(typeof u!=='string'||u.slice(0,5)!=='data:'){ok=false;return}R.style.setProperty('--'+k,'url('+u+')')};
- for(const k in FRAMES)set(k,FRAMES[k],FRAME_K);set('px-rotate',_ROT,4);
- if(ok&&R.classList)R.classList.add('px-ready')}catch(e){}})();
+/* ================= UI THEMES =================
+   THEMES[k] = {n, d, pine, verd, brass}: each family is {h: target hue, s: saturation factor, lk: lift toward white} or null (kept).
+   themeHex(hex, k) recolours one colour: the dark pine family (the teal hues), the verdigris accents (the same hues, lighter) and
+   the brass family move to the theme's hues at the same lightness, so contrast holds; gift colours, madder, vellum and every
+   other colour stay. The frames below are rebuilt from theme colours registered as extra PAL keys (themePalKey); 90-shell.js
+   rewrites the CSS colours with the same function (applyTheme). */
+const THEMES={
+ verdigris:{n:'Verdigris and brass',d:'The company colours',pine:null,verd:null,brass:null},
+ crimson:{n:'Crimson and gold',d:'Wine-dark panels, red seals',pine:{h:352,s:1.15},verd:{h:2,s:1.05},brass:null},
+ royal:{n:'Royal blue and gold',d:'Night-blue panels, sky accents',pine:{h:222,s:1.35},verd:{h:206,s:1.15},brass:null},
+ ash:{n:'Ash and ember',d:'Grey iron, glowing coals',pine:{h:215,s:.16},verd:{h:22,s:1.45},brass:{h:210,s:.14,lk:.18}},
+ forest:{n:'Forest and parchment',d:'Deep greens, leather and vellum',pine:{h:112,s:.95},verd:{h:88,s:.95},brass:{h:34,s:.55,lk:.22}},
+ amethyst:{n:'Amethyst and silver',d:'Dusk violet, cold silver',pine:{h:268,s:1.1},verd:{h:272,s:.95,lk:.08},brass:{h:220,s:.1,lk:.26}}};
+const THEMEKEEP=new Set(['62a6ee','2f5fa8','ecc64f','a8801f','3fd0b6','1f8573','9bd96f','4f8f3a','e9e0c9','e9c8bf','ffd9d0','8fd8ff','a8e4ff','c9a24a','f0c8a0','d09a72','9a6444']);
+function thRGB(h){h=h.replace('#','');if(h.length<=4)h=h.slice(0,3).split('').map(c=>c+c).join('');const n=parseInt(h.slice(0,6),16);return[n>>16&255,n>>8&255,n&255]}
+function thHSL(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);
+  h=mx===r?((g-b)/d+(g<b?6:0)):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60}return[h,s,l]}
+function thHex(h,s,l){h=((h%360)+360)%360;s=Math.max(0,Math.min(1,s));l=Math.max(0,Math.min(1,l));const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+ let r=0,g=0,b=0;if(h<60){r=c;g=x}else if(h<120){r=x;g=c}else if(h<180){g=c;b=x}else if(h<240){g=x;b=c}else if(h<300){r=x;b=c}else{r=c;b=x}
+ return'#'+[r,g,b].map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0')).join('')}
+/* '#rrggbb' (or #rgb) -> the theme's colour for it, '#rrggbb' */
+function themeHex(hex,k){const T=THEMES[k];const rgb=thRGB(hex),raw=rgb.map(v=>v.toString(16).padStart(2,'0')).join('');if(!T||THEMEKEEP.has(raw))return'#'+raw;
+ const [h,s,l]=thHSL(rgb[0],rgb[1],rgb[2]);let f=null;
+ if(h>=128&&h<=198&&s>.05)f=l>=.33?T.verd:T.pine;else if(h>=28&&h<=55&&s>=.35)f=T.brass;
+ if(!f)return'#'+raw;return thHex(f.h,s*f.s,l+(1-l)*(f.lk||0))}
+/* the frame and control keys a theme recolours */
+const THEMEKEYS=['0','1','2','3','4','5','6','7','a','b','c','d','e'];
+function themePalKey(k,t){if(t==='verdigris'||!THEMES[t])return k;const i=THEMEKEYS.indexOf(k);if(i<0)return k;const n=Object.keys(THEMES).indexOf(t);
+ const key=String.fromCharCode(0x2500+n*16+i);if(!PAL[key])PAL[key]=themeHex(PAL[k],t);return key}
+let FRAME_THEME='';
+/* (re)build every frame image in theme t and publish them on :root. Safe without a DOM. */
+function applyFrames(t){try{t=THEMES[t]?t:'verdigris';if(typeof document==='undefined'||!document.documentElement||!document.documentElement.style)return false;if(t===FRAME_THEME)return true;
+ const R=document.documentElement,map={};for(const k of THEMEKEYS)map[k]=themePalKey(k,t);let ok=true;
+ const set=(k,rows,sc,mp)=>{const u=pxURL('fr:'+k+':'+t,rows,sc,mp);if(typeof u!=='string'||u.slice(0,5)!=='data:'){ok=false;return}R.style.setProperty('--'+k,'url('+u+')')};
+ for(const k in FRAMES)set(k,FRAMES[k],FRAME_K,map);set('px-rotate',_ROT,4,map);
+ FRAME_THEME=t;if(ok&&R.classList)R.classList.add('px-ready');return ok}catch(e){return false}}
+applyFrames('verdigris');
 
 /* ================= STYLE TEST (debug): call styleTest() from the console ================= */
 function styleTest(){if(typeof document==='undefined')return;const app=document.getElementById('app');if(!app||!app.appendChild)return;

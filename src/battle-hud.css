@@ -210,3 +210,30 @@
 .si.sl .pxi{opacity:.6}.si.sl b{color:#7d8f86}
 .fcs.fclk{gap:4px;font-family:'Alegreya Sans',sans-serif;font-size:.74rem;color:#b9ad8f}.fcs.fclk i{font-style:normal}
 @media (max-width:700px){#bend .swp{width:52px;height:44px}}
+/* ---- move planning (two-tap movement): AP the planned move spends blink on the chip, greyed tiles say why in the label ---- */
+.pips.plan i.on.pl{background:#c4493f;box-shadow:inset 1px 1px 0 #ef8a78,inset -1px -1px 0 #5a1f1c;animation:hud-blink 1s steps(1,end) infinite}
+#ahdr u.pln{color:#f3d98b}#ahdr u.pln.bad{color:#ef8a78}
+#abar .ab.pl{box-shadow:inset 0 0 0 2px #8a6a2a,0 3px 0 #0b1514a6}
+#abar .ab.pl .apc{background:#7d8f86}
+/* ---- reload weapons: an "unloaded" badge (an empty chamber) on the chip, the tokens and the swap control; Reload tile ready ---- */
+.unl{position:relative;display:block;flex:none;font-style:normal;line-height:0}
+.unl.unlc{width:8px;height:8px;background:#0b1514;box-shadow:inset 0 0 0 2px #ef8a78,0 0 0 1px #0b1514}
+.unl.unlc::after{content:"";position:absolute;left:3px;top:3px;width:2px;height:2px;background:#5a1f1c}
+.uwp .uwh{position:relative;display:block;flex:none;line-height:0}
+.uwp .uwh .unl{position:absolute;right:-3px;bottom:-1px}
+.uwp.unl>.pxi:first-child{opacity:.7}
+#order .oc .oul{position:absolute;right:1px;bottom:6px;line-height:0}
+#order .oc .oul .unl .pxi{width:12px!important;height:12px!important}
+#bend .swp .swh{position:relative}
+#bend .swp .swh .unl{position:absolute;right:-2px;bottom:0}
+#bend .swp .swa .unl{margin-top:-6px;margin-left:8px}
+#abar .ab.rl{outline:2px solid #d1a94e;outline-offset:1px;animation:hud-blink 1s steps(1,end) infinite}
+/* ---- forecast: a reach weapon striking over a body ---- */
+.fcov{display:inline-flex;align-items:center;gap:2px;font-family:'Jersey 15',serif;font-size:.72rem;font-weight:700;color:#b9ad8f}
+.fcov i{font-style:normal}.fcov.al{color:#9fe0cd}
+.fcs .unl.unlc{margin:0 2px}
+/* ---- ally bars toggle sits in the small view row ---- */
+#bcmd .vw{gap:3px}
+#bcmd .vw .tg.sm{width:32px}
+@media (prefers-reduced-motion:reduce){.pips.plan i.on.pl,#abar .ab.rl{animation:none}}
+#app.rm .pips.plan i.on.pl,#app.rm #abar .ab.rl{animation:none}

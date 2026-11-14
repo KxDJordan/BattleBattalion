@@ -151,7 +151,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
   while(G.food<G.roster.length*12){const f=G.food;X.buyFood();if(G.food<=f)break;flags.food=true}
   levelUps(X,flags);gearUp(X,flags);
   { G.tools=Math.max(G.tools||0,80);const need=X.repairNeed().pts,rp=X.repairAll();ok(rp.pts===Math.min(need,80*X.TOOLPTS)&&rp.left===need-rp.pts,'repair in town went wrong');if(dmg0>0&&X.repairNeed().pts<dmg0)flags.repair=true;   // (resting at the inn may already have mended some)   // fixture: the smith and the temple put the company back together
-    for(const m of G.roster)for(const j of m.inj.slice()){if(j.days<0){flags.maimed=true;continue}const c=G.crowns,cost=X.injuryCost(m,j.id);ok(X.treatInjury(m,j.id)&&G.crowns===c-cost&&!m.inj.includes(j),'the temple did not treat '+j.id);flags.temple=true}
+    for(const m of G.roster)for(const j of m.inj.slice()){if(j.days<0){flags.maimed=true;continue}const cost=X.injuryCost(m,j.id);if(G.crowns<cost)G.crowns=cost+100;const c=G.crowns;ok(X.treatInjury(m,j.id)&&G.crowns===c-cost&&!m.inj.includes(j),'the temple did not treat '+j.id);flags.temple=true}
     G.roster.forEach(m=>{m.hp=Math.min(m.hp,X.calc(m).hp)}) }
   for(let j=G.stash.length-1;j>=0;j--){if(X.ITEMS[G.stash[j]].price>150||X.ITEMS[G.stash[j]].uniq)continue;c0=G.crowns;X.sellItem(j);if(G.crowns>c0)flags.sell=true}
   if(!G.contract){const want=!flags.deliver?'deliver':!flags.hunt?'hunt':null;let j=t.contracts.findIndex(c=>!want||c.type===want);
@@ -450,9 +450,11 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
 
    /* -- weapon and shield skills -- */
    A.park();
-   { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep']};
-     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');if(id!=='pike'&&id!=='greataxe')ok(it.sk.join()===sk[it.wt].join(),'weapon '+id+' has the wrong skills')}
-      if(it.k==='s')ok(it.hp>0&&it.sk.join()==='shieldwall,bash','shield '+id+' lacks hitpoints or skills')}
+   { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
+       hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
+     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(it.sk.join()===(own[id]||sk[it.wt].join()),'weapon '+id+' has the wrong skills');
+        ok(!!it.reload===it.sk.includes('reload')&&(!it.reload||(X.isRangedW(it)&&it.reload.ap>=2&&it.reload.fat>=0)),'weapon '+id+': reload weapons are ranged and carry the reload skill')}
+      if(it.k==='s')ok(it.hp>0&&it.sk.join()===(it.spike?'shieldwall,spikebash':'shieldwall,bash')&&['buckler','round','kite','heater','tower','spiked'].includes(it.look),'shield '+id+' lacks hitpoints, skills or a look')}
      ok(X.ITEMS.pike.sk.join()==='impale'&&X.ITEMS.greataxe.sk.join()==='split,round','two-hander skills');for(const id in X.AB)ok(X.AB[id].n&&X.AB[id].d,'ability '+id+' lacks a name or description');
      for(const k in X.STATUS)ok(X.STATUS[k].n&&X.STATUS[k].d&&X.STATUS[k].icon&&(X.STATUS[k].good===0||X.STATUS[k].good===1),'status '+k+' is incomplete');
      { const m=X.clone(roster[0]);m.eq.w='arming';m.eq.s='kite';const s=X.calc(m);ok(['slash','riposte','shieldwall','bash'].every(a=>s.abs.includes(a))&&s.shield&&s.shield.raised&&s.shield.hp===Math.round(X.ITEMS.kite.hp*(1+(s.flags.shieldHp||0))),'calc() must grant weapon and shield skills: '+s.abs.join()+' '+JSON.stringify(s.shield));
@@ -544,6 +546,95 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      X.startBattle(o);X.ctx.place=spy;drop();ok(placed&&placed.length===3&&placed.find(p=>p.id===ids[0]).c===3&&placed.find(p=>p.id===ids[0]).r===BH-1&&placed.find(p=>p.id===ids[1]).c===9&&placed.find(p=>p.id===ids[1]).r===BH-2&&placed.find(p=>p.id===ids[2]).r>=BH-2,'o.deploy tiles were not honored: '+JSON.stringify(placed));
      const pe=X.previewEnemies({f:'orc',mult:1,fixed:['orcl']});ok(pe[0]==='orcl'&&pe.every(id=>X.EN[id])&&X.battleBudget({mult:2})===2*X.battleBudget({mult:1}),'previewEnemies() / battleBudget() are wrong') }
    X.FX.on=null;X.FX.err=null;drop();
+   /* -- arms update: hammers, reach, reload, firearms, shield types and the shield tree, friendly fire with one projectile -- */
+   { X.FX.on=(type,d)=>{ev.push({type,d})};const Z=await arena(SEED+620),zb=Z.b,[p0,p1,p2,p3]=Z.P,[f0,f1,f2,f3]=Z.E;
+     const hitUntil=async(fn,cond,what)=>{for(let i=0;i<30;i++){await fn();if(cond())return}fail(what)};
+     const unspawn=(...us)=>{for(const u of us){const i=zb.units.indexOf(u);if(i>=0)zb.units.splice(i,1)}zb.units.forEach((u,i)=>{u.id=i});zb.cur=Z.anchor;X.auraScan()};
+     const spawnM=(m,c,r)=>{const u=X.mkPlayerUnit(m);u.c=c;u.r=r;const occ=X.unitAt(c,r);ok(X.spawnUnit(u)===u&&u.c===c&&u.r===r,'arms fixture spawn at '+c+','+r+': '+(occ&&occ.name)+' '+u.c+','+u.r+' '+zb.tiles[K(c,r)].t);return u};
+     const mer=(w,b2,s,perks,bg)=>{const m=X.clone(roster[0]);m.id=7000+Math.floor(X.rnd()*1e6);m.bg=bg||'knight';m.race='human';m.eq.w=w;m.eq.b=b2||null;m.eq.s=s||null;m.inj=[];delete m.cond;m.perks=perks||[];m.gift=null;m.trees=['vanguard','bulwark','brute','duelist'];m.lvl=Math.max(m.lvl,9);m.hp=X.calc(m).hp;return m};
+     // hammers crush armor: hurt(), the forecast and the item
+     Z.park();arm(p0,'warhammer');put(p0,2,mid);put(f0,3,mid);tough(f0);
+     f0.arm=60;ok(X.hurt(f0,50,.5,p0,{crush:.6})===25&&f0.arm===0,'a crushing blow must strip the armor: '+f0.arm);f0.arm=60;ok(X.hurt(f0,50,.5,p0,{})===24&&f0.arm===10,'the same blow without crushing');
+     f0.arm=f0.armMax=200;f0.helm=f0.helmMax=200;{const w0=p0.wpn;p0.wpn=Object.assign({},w0,{crush:0});const fa=X.forecast(p0,f0,ab(p0,'attack'));p0.wpn=w0;const fb=X.forecast(p0,f0,ab(p0,'attack')),fc=X.forecast(p0,f0,ab(p0,'batter'));
+       ok(fb.crush===w0.crush&&fb.armMax>fa.armMax&&fb.armMin>fa.armMin&&fc.crush===w0.crush+X.AB.batter.crushB,'the forecast must price armor crushing')}
+     ok(['mallet','warhammer','maul','warmaul'].every(id=>X.ITEMS[id].wt==='hammer'&&X.ITEMS[id].crush>0)&&X.ITEMS.maul.two&&!X.ITEMS.warhammer.two,'hammers: 1H war hammers, 2H mauls, all crushing');
+     ok(X.ITEMS.maul.sk.includes('hsmash')&&!X.ITEMS.warhammer.sk.includes('hsmash'),'the overhead smash is for mauls');
+     // reach 2: over an ally or an empty tile, never through a wall; polearms are two-handed only
+     for(const w of ['pike','bill','halberd','glaive','greatsword','zweihander','runegreat']){Z.park();arm(p0,w);put(p0,2,mid);put(p1,3,mid);put(f0,4,mid);const at=ab(p0,'attack'),L=X.losInfo(p0,f0,at);
+       ok(X.ITEMS[w].two&&at.rng===2&&X.validTargets(p0,at).has(KU(f0))&&!L.blocked&&!L.ff.length&&X.shotKind(p0,f0,at)===1&&X.forecast(p0,f0,at).reach,w+' must reach over an ally');
+       put(p1,0,0);ok(X.validTargets(p0,at).has(KU(f0)),w+' must reach over an empty tile');zb.tiles[K(3,mid)].t='block';ok(!X.validTargets(p0,at).has(KU(f0))&&X.losInfo(p0,f0,at).blocked,w+' must not reach through an obstacle');zb.tiles[K(3,mid)].t='ground';
+       put(f0,5,mid);ok(!X.validTargets(p0,at).has(KU(f0)),w+' reaches 2 tiles, not 3')}
+     ok(Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].wt==='polearm').every(id=>X.ITEMS[id].two&&X.ITEMS[id].rng===2),'polearms are two-handed with reach 2');
+     Z.park();arm(p0,'halberd');p0.ms=300;put(p0,2,mid);put(p1,3,mid);put(f0,4,mid);tough(f0);tough(p1);ev.length=0;
+     await hitUntil(()=>Z.use(p0,'attack',f0),()=>f0.hp<5000,'a halberd over an ally never landed');ok(!seen('ff').length&&p1.hp===p1.hpMax&&!seen('hit',d=>d.t===p1).length,'a reach blow over an ally hurts only the foe');
+     // the hook drags, the half-sword and the mordhau are for foes beside you
+     Z.park();arm(p0,'bill');p0.ms=300;put(p0,2,mid);put(f0,4,mid);tough(f0);ok(X.forecast(p0,f0,ab(p0,'hook')).pull.n===1,'the forecast must show the pull');ev.length=0;
+     await hitUntil(async()=>{put(f0,4,mid);await Z.use(p0,'hook',f0)},()=>f0.c===3,'the hook never dragged the foe');ok(seen('kb',d=>d.t===f0&&d.pull).length>=1,'a pull is announced as kb with pull');
+     Z.park();arm(p0,'greatsword');put(p0,2,mid);put(f0,4,mid);ok(!X.validTargets(p0,ab(p0,'halfsword')).has(KU(f0))&&ab(p0,'halfsword').ap===4,'half-sword: adjacent only, 4 AP');put(f0,3,mid);ok(X.validTargets(p0,ab(p0,'halfsword')).has(KU(f0)),'half-sword reaches a foe beside you');
+     // reload: start loaded, fire unloads, reload (AP and fatigue from the weapon, allowed while engaged), the ranged lock stops the shot
+     for(const w of ['lightxbow','crossbow','arbalest','pistol','duelpistol','musket']){Z.park();arm(p0,w);p0.rs=300;p0.loaded=true;p0.ld={};put(p0,2,mid);put(f0,6,mid);tough(f0);const it=X.ITEMS[w],at=ab(p0,'attack'),rl=ab(p0,'reload');
+       ok(X.isRangedW(it)&&at.n==='Shoot'&&rl.ap===it.reload.ap&&rl.fat===it.reload.fat&&!X.canUse(p0,rl)&&/Already/.test(X.useBlock(p0,rl))&&X.canUse(p0,at),w+': loaded, nothing to reload');
+       ev.length=0;await Z.use(p0,'attack',f0);ok(p0.loaded===false&&tries(p0,f0)===1&&!X.canUse(p0,at)&&/Not loaded/.test(X.useBlock(p0,at))&&!X.validTargets(p0,at).size&&X.forecast(p0,f0,at).unloaded&&X.statusList(p0).some(s=>s.key==='unloaded'),w+': firing must unload it');
+       for(const id of it.sk.filter(id=>id!=='reload'))ok(!X.canUse(p0,Object.assign(ab(p0,id),{ap:0,fat:0})),w+': '+id+' cannot fire unloaded');
+       put(f1,2,mid-1);p0.ap=9;ok(X.rangedLocked(p0)&&X.canUse(p0,rl),w+': reloading is allowed with a foe next to you');await Z.use(p0,'reload');ok(p0.loaded===true&&p0.ap===9-it.reload.ap&&p0.fat===it.reload.fat&&seen('reload',d=>d.u===p0).length===1&&!X.statusList(p0).some(s=>s.key==='unloaded'),w+': reload');
+       ok(!X.canUse(p0,at)&&/Engaged/.test(X.useBlock(p0,at)),w+': loaded but engaged, it cannot fire');put(f1,0,0);p0.ap=9;ok(X.canUse(p0,at),w+': clear again, it fires');ok(!X.canFree(p0),w+': no free attacks with a ranged weapon')}
+     ok(X.ITEMS.pistol.two!==1&&X.ITEMS.musket.two===1&&X.ITEMS.musket.ign>=.7&&X.ITEMS.pistol.ign>=.7,'pistols are one-handed, muskets two-handed, both pierce armor');
+     // a swapped-away weapon keeps its load; each starts loaded
+     { const q=spawnM(mer('lightxbow','pistol',null,[],'thief'),2,mid+2);put(f0,6,mid+2);tough(f0);ok(q.loaded&&q.ld.lightxbow===true&&q.ld.pistol===true&&q.wpn.wt==='crossbow','both weapons start loaded');
+       q.ap=9;q.rs=300;zb.cur=q;await X.useAbility(q,ab(q,'attack'),KU(f0));await rest(zb);ok(q.loaded===false&&q.ld.lightxbow===false,'the crossbow is spent');
+       ok(X.swapWeapons(q)&&q.wpn.wt==='flintlock'&&q.loaded===true&&q.ld.lightxbow===false,'the pistol comes out loaded');ok(X.swapWeapons(q)&&q.wpn.wt==='crossbow'&&q.loaded===false,'the crossbow comes back spent');
+       unspawn(q) }
+     // enemies with the new weapons
+     for(const [id,wt] of [['bxbow','crossbow'],['obrute','hammer'],['skelhal','polearm']]){const e=X.mkEnemy(id,id==='obrute'?'orc':id==='bxbow'?'bandit':'undead');X.enemyInit(e,id);ok(e.wpn.wt===wt&&e.loaded&&(!e.wpn.reload||e.abs.includes('reload'))&&e.abs.every(a=>X.AB[a]),'enemy '+id+' fights with a '+wt);
+       ok(Object.values(X.FACT).some(F=>F.units.some(x=>x[0]===id)),'enemy '+id+' belongs to a faction')}
+     // shields: types and stats, the tower's cover and wall, the spiked bash
+     { const sh=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='s').map(id=>X.ITEMS[id]);ok(['buckler','round','kite','heater','tower','spiked'].every(l=>sh.some(i=>i.look===l))&&sh.length>=9&&new Set(sh.map(i=>[i.md,i.rd,i.hp,i.fat].join())).size===sh.length,'shield types with their own numbers');
+       Z.park();const tw=spawnM(mer('arming',null,'tower'),5,mid+2),mate=spawnM(mer('arming',null,'buckler'),6,mid+2),sp=spawnM(mer('arming',null,'spiked'),5,mid+3);
+       ok(tw.flags.guard===X.ITEMS.tower.guard&&ab(tw,'shieldwall').buff.md===15+X.ITEMS.tower.wallB&&ab(mate,'shieldwall').buff.md===15,'a tower shield: cover and a stronger shield wall');
+       f0.wpn={n:'',wt:'bow',d:[10,20],ap:4,fat:0,rng:6,ign:.25};f0.rs=60;mate.rd=0;put(f0,6,mid-2);X.auraScan();const at=ab(f0,'attack'),h1=X.hitChance(f0,mate,at);put(tw,0,mid+3);X.auraScan();const h0=X.hitChance(f0,mate,at);
+       ok(h0-h1===X.ITEMS.tower.guard,'a raised tower shield covers the ally beside it: '+h0+' vs '+h1);put(tw,5,mid+2);X.auraScan();X.breakShield(tw);ok(X.hitChance(f0,mate,at)===h0&&!tw.flags.guard,'a split tower covers nobody');
+       ok(sp.abs.includes('spikebash')&&!sp.abs.includes('bash')&&ab(sp,'spikebash').dmgD.join()===X.ITEMS.spiked.spike.join(),'a spiked shield bashes with its spike');
+       put(f1,5,mid+4);tough(f1);const fs=X.forecast(sp,f1,ab(sp,'spikebash'));ok(fs.dmgMax>0&&fs.kb&&fs.kb.n===1,'the forecast knows the spiked bash');sp.ms=300;ev.length=0;
+       await hitUntil(async()=>{put(f1,5,mid+4);sp.ap=9;sp.fat=0;zb.cur=sp;await X.useAbility(sp,ab(sp,'spikebash'),KU(f1));await rest(zb)},()=>f1.hp<5000,'the spiked bash never drew blood');
+       unspawn(tw,mate,sp) }
+     // the shield tree: only while a shield is raised
+     { Z.park();const P=['shield.1a','shield.1b','shield.2a','shield.2b','shield.3a','shield.3b'],m=mer('arming','greataxe','heater',P),s=X.calc(m),s2=X.calc(m,{hand:'b'});
+       ok(X.weaponTrees(m).includes('shield')&&P.every(id=>s.perks.includes(id))&&s.abs.includes('scharge')&&s.abs.includes('fortress')&&s.flags.deflect===.1&&s.flags.shieldDr===.1&&s.shield.md===X.ITEMS.heater.md+4,'the shield tree works with the shield raised');
+       ok(P.every(id=>s2.off.includes(id))&&!s2.abs.includes('scharge')&&!s2.flags.deflect&&s2.shield.hp===s.shield.hp,'a slung shield: the shield tree sleeps (its hitpoints stay)');
+       ok(X.calc(mer('arming',null,null,P)).off.length===6,'no shield, no shield tree');
+       const g=spawnM(m,8,mid+2),mate=spawnM(mer('arming',null,'buckler'),9,mid+2);f0.wpn={n:'',wt:'bow',d:[30,40],ap:4,fat:0,rng:8,ign:.25};put(f0,8,mid-3);const at=ab(f0,'attack'),fA=X.forecast(f0,g,at);
+       const fl=g.flags;g.flags=Object.assign({},fl,{deflect:0,shieldDr:0});const fB=X.forecast(f0,g,at);g.flags=fl;ok(fA.dmgMax<fB.dmgMax,'Deflect and Iron wall cut the damage of a shot');
+       zb.cur=g;g.ap=9;g.fat=0;await X.useAbility(g,ab(g,'fortress'),KU(g));await rest(zb);ok(g.buffs.some(x=>x.key==='fortress')&&mate.buffs.some(x=>x.key==='fortress')&&X.statusList(mate).some(x=>x.key==='fortress'),'Testudo covers you and the ally beside you');
+       put(f1,8,mid-1);tough(f1);g.ms=300;g.ap=9;g.fat=0;ok(X.validTargets(g,ab(g,'scharge')).has(KU(f1)),'shield charge reaches 3 tiles');await X.useAbility(g,ab(g,'scharge'),KU(f1));await rest(zb);ok(g.r!==mid+2&&Math.abs(g.c-f1.c)+Math.abs(g.r-f1.r)<=2,'shield charge closes in');
+       X.breakShield(g);ok(!X.canUse(g,Object.assign(ab(g,'fortress'),{ap:0,fat:0}))&&X.drOf(f0,g,at)===X.drOf(f0,Object.assign({},g,{flags:Object.assign({},g.flags,{deflect:0,shieldDr:0})}),at),'a split shield: no shield skills, no shield-tree damage reduction');
+       unspawn(g,mate) }
+     // weapon trees follow background and race
+     for(const bg in X.BG)for(const race in X.RACE){const m=X.newMerc(bg);m.race=race;const wt=X.weaponTrees(m);m.lvl=9;m.pp=1;
+       ok(wt.every(w=>X.BG[bg].wt.includes(w)&&!X.RACE[race].noWt.includes(w)),'weapon trees outside '+bg+' / '+race);for(const w of X.WTS)ok(X.canLearn(m,w+'.1a')===wt.includes(w),'canLearn must follow the weapon trees: '+bg+' '+race+' '+w)}
+     ok(!X.BG.monk.wt.includes('flintlock')&&X.RACE.elf.noWt.includes('flintlock')&&X.RACE.halforc.noWt.includes('bow'),'no firearms for monks or elves, no bows for half-orcs');
+     // friendly fire: every ranged weapon attack with an ally in the line strays into him, ONE projectile, to him, and he takes the hit
+     const fsh=X.FX.shot,shotLog=[];X.FX.shot=function(a,b2,...r){shotLog.push({a,b:b2});return fsh.call(this,a,b2,...r)};
+     const ffCase=async(sh,mate,tg,id,dist,what)=>{let strays=0,miss=0;ev.length=0;
+       for(let i=0;i<200&&strays<8;i++){sh.loaded=true;sh.ap=9;shotLog.length=0;const n0=seen('ff').length,h0=seen('hit',d=>d.t===mate).length,a=ab(sh,id);await X.strike(sh,tg,a);
+        if(seen('ff').length>n0){strays++;const e=seen('ff').slice(-1)[0].d;ok(e.u===sh&&e.t===mate&&e.from===tg,what+': the ff event must carry u, the ally and from');
+         ok(shotLog.length===1&&shotLog[0].a===sh&&shotLog[0].b===mate,what+': a stray shot must be ONE projectile, to the ally ('+shotLog.length+')');ok(seen('hit',d=>d.t===mate).length===h0+1,what+': the ally must take the stray');
+         const m=seen('miss',d=>d.u===sh&&d.t===tg).slice(-1)[0];ok(m&&m.d.stray===mate,what+': the miss must name the stray')}
+        else{ok(shotLog.length===1&&shotLog[0].b===tg,what+': one projectile to the target ('+shotLog.length+')');if(seen('miss',d=>d.u===sh&&d.t===tg).length)miss++}}
+       ok(strays>=4,what+': stray shots must hit the ally in the line ('+strays+')');return strays};
+     const ffSet=(w,d)=>{Z.park();arm(p0,w);p0.rs=-300;p0.res={aura:{cur:999,max:999,regen:0},mana:{cur:999,max:999,regen:0}};put(p0,2,mid);put(p1,3,mid);put(f0,2+d,mid);tough(p1);tough(f0);p1.arm=p1.helm=0;p1.rd=0};
+     for(const [w,id,d] of [['shortbow','attack',5],['warbow','aarrow',6],['shortbow','quick',4],['lightxbow','attack',5],['crossbow','xaim',6],['pistol','attack',4],['musket','attack',6],['musket','blast',5],['warbow','seeker',5]]){
+       ffSet(w,d);const a=ab(p0,id);if(a.sure){ok(X.forecast(p0,f0,a).ff.length===0,id+' cannot miss: no stray risk');continue}
+       ok(X.losInfo(p0,f0,a).ff[0]===p1&&X.forecast(p0,f0,a).ff.length===1,w+' '+id+': the ally right in front is in the line of fire');await ffCase(p0,p1,f0,id,d,w+' '+id)}
+     { ffSet('shortbow',5);put(p1,2,mid+1);put(p2,3,mid-1);tough(p2);ev.length=0;for(let i=0;i<60;i++){shotLog.length=0;await X.strike(p0,f0,ab(p0,'attack'));ok(shotLog.length===1,'one projectile a shot')}ok(!seen('ff').length,'allies out of the line are never hit') }
+     { Z.park();const ea=f2,em=f3;ea.wpn={n:'',wt:'bow',d:[20,30],ap:4,fat:0,rng:6,ign:.25};ea.rs=-300;put(ea,4,0);put(em,4,1);put(p3,4,5);tough(em);tough(p3);em.arm=em.helm=0;await ffCase(ea,em,p3,'attack',5,'an enemy archer') }
+     X.FX.shot=fsh;
+     // the AI: reach from the second rank, reloading, crossbows and hammers in use
+     { const ros2=buildCompany(X,TIERS[2],SEED+630);const g2=(i,w,b2)=>{ros2[i].eq.w=w;ros2[i].eq.s=null;ros2[i].eq.b=b2||ros2[i].eq.b};g2(0,'halberd');g2(1,'crossbow','knife');g2(2,'musket','knife');g2(3,'maul');g2(4,'greatsword');
+       let reach=0;const rel=[0,0],fired={};X.FX.on=(type,d)=>{if((type==='hit'||type==='miss')&&d.u&&d.t&&d.u.wpn&&!d.stray){const wt=d.u.wpn.wt;if((wt==='polearm'||wt==='greatsword')&&Math.abs(d.u.c-d.t.c)+Math.abs(d.u.r-d.t.r)===2)reach++;fired[wt]=(fired[wt]||0)+1}if(type==='cast'&&d.ab&&d.ab.id==='reload')rel[d.u.side]++};
+       for(let i=0;i<4;i++){X.G.roster=X.clone(ros2);X.G.day=30;X.seedRng(SEED+640+i);const r=await X.autoBattle({f:i%2?'orc':'bandit',mult:1,biome:'plains',src:{type:'sim'},turnCap:TURNCAP,fixed:i%2?['obrute']:['bxbow','bxbow']});ok(r&&!r.stuck,'arms auto-battle did not end');X.settleBattle(r.win)}
+       ok(reach>=3&&rel[0]>=2&&rel[1]>=1&&fired.crossbow>=2&&fired.flintlock>=1&&fired.hammer>=2,'the AI must strike from the second rank, reload and use the new arms: '+JSON.stringify({reach,rel,fired}));X.FX.on=null;
+       console.log('arms update: reach over allies and walls, reload cycles ('+rel.join('/')+' reloads by the AI), '+reach+' blows from the second rank, crushing, hooks, firearms, shields and the shield tree, friendly fire as one projectile: ok') }
+     X.FX.on=null;drop() }
    console.log('hit locations and helmets, armor condition and repair, morale (checks, flight, rally, routs), injuries (inflicted, healed, treated), line of sight, cover and friendly fire,');
    console.log('weapon and shield skills (slash riposte split round stunblow puncture thrust spearwall impale quick sweep shieldwall bash), free attacks, withdraw, retreat, reserves, o.deploy, preview, spawn: ok');
    console.log('daily injury healing wired into newDay(): '+(X.wiredHeal?'yes':'NOT YET (40-world.js must call healInjuriesDaily())')) }
@@ -553,7 +644,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    // -- the catalog --
    const styles=keys.filter(k=>kind(k)==='style'),gifts=keys.filter(k=>kind(k)==='gift'),wts=keys.filter(k=>kind(k)==='weapon');
    ok(styles.length>=12&&['vanguard','bulwark','marksman','skirmisher'].every(k=>kind(k)==='style'),'at least 12 style trees, the four old ones kept');
-   ok(wts.length===8&&['sword','axe','mace','dagger','spear','bow','staff','fist'].every(w=>M[w]&&M[w].wt===w&&M[w].tiers.length===3&&M[w].tiers.every(t=>t.length===2)),'8 weapon trees of 3 tiers x 2 perks');
+   ok(wts.length===14&&['sword','axe','mace','dagger','spear','bow','staff','fist','hammer','polearm','greatsword','crossbow','flintlock','shield'].every(w=>M[w]&&M[w].wt===w&&M[w].tiers.length===3&&M[w].tiers.every(t=>t.length===2)),'14 weapon trees (13 families and the shield) of 3 tiers x 2 perks');
+   ok(X.WTS.length===14&&wts.every(k=>X.WTS.includes(k)),'WTS lists every weapon tree');
    for(const k of styles.concat(gifts))ok(M[k].tiers.length===6&&M[k].tiers.every(t=>t.length>=1),k+': 6 tiers');
    ok(M.mana.style==='caster'&&M.aura.style==='melee'&&M.qi.style==='melee'&&M.chi.style==='support'&&['mana','aura','qi','chi'].every(k=>kind(k)==='gift'&&M[k].res===k),'the four old gift trees keep their keys');
    for(const r of X.RESK){const vs=gifts.filter(k=>M[k].res===r).map(k=>M[k].style);ok(vs.includes('melee')&&vs.includes('ranged'),r+' needs melee and ranged variants');ok(X.giftKey(r,'melee')&&X.giftKey(r,'ranged')&&M[X.giftKey(r,'ranged')].style==='ranged','giftKey '+r)}
@@ -562,7 +654,10 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      if(p.ab)ok(X.AB[p.ab]&&X.AB[p.ab].n&&X.AB[p.ab].d,'perk '+p.id+' grants an unknown ability '+p.ab);ok(p.st||p.ab||p.flag||p.mod||p.res||p.wmod,'perk '+p.id+' does nothing')}));
    const nAb=new Set([...ids].map(id=>X.perkById(id).perk.ab).filter(Boolean)).size;
    { const pools=[];for(const bg in X.BG){const b=X.BG[bg];ok(X.TALSTYLE.includes(b.style),bg+' has no style');ok(b.pool.length>=6&&b.pool.length<=9&&b.pool.every(k=>M[k]&&kind(k)==='style')&&new Set(b.pool).size===b.pool.length,bg+': pool of 6-9 style trees');
-       ok(b.wt.length>=3&&b.wt.length<=5&&b.wt.every(w=>M[w]&&kind(w)==='weapon'),bg+': 3-5 weapon families');pools.push(b.pool.slice().sort().join())}
+       ok(b.wt.length>=3&&b.wt.length<=10&&b.wt.every(w=>M[w]&&kind(w)==='weapon')&&new Set(b.wt).size===b.wt.length,bg+': 3-10 weapon trees');pools.push(b.pool.slice().sort().join())}
+     ok(['knight','squire'].every(bg=>['greatsword','polearm','hammer','shield'].every(w=>X.BG[bg].wt.includes(w)))&&X.BG.hunter.wt.includes('crossbow')&&!X.BG.monk.wt.includes('flintlock'),'background weapon trees for the new families');
+     for(const k of wts)ok(Object.keys(X.BG).some(bg=>X.BG[bg].wt.includes(k)),'no background can learn the '+k+' tree');
+     for(const r in X.RACE)ok(Array.isArray(X.RACE[r].noWt)&&X.RACE[r].noWt.every(w=>M[w]&&kind(w)==='weapon'),'race '+r+': noWt');
      ok(new Set(pools).size===pools.length,'two backgrounds share the same pool');ok(X.RACE.halforc.noWt.includes('bow'),'a half-orc never gets the bow tree');
      const cov=new Set();for(const bg in X.BG)X.BG[bg].pool.forEach(k=>cov.add(k));ok(styles.every(k=>cov.has(k)),'a style tree no background can draw') }
    ok(X.tierLevel('style',1)===1&&X.tierLevel('gift',6)===6&&X.tierLevel('weapon',1)===3&&X.tierLevel('weapon',3)===9,'tierLevel');

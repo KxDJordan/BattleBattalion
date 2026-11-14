@@ -1,6 +1,6 @@
 /* ================= PANELS (two-pane landscape primitive) =================
    showPanel(o) draws a full-viewport panel: header, optional tab rail, list pane, detail pane.
-   o = {id, title, sub, meta(html), note(html), closeLabel, onClose(fn),
+   o = {id, title, sub, banner(html, left of the title), meta(html), note(html), closeLabel, onClose(fn),
         tabs:[{k,n,icon,badge}], tab, onTab(fn(k)), railEnd:[{n,icon,fn}],
         list(html), listKey, detail(html), detailKey, foot(html)}
    The list keeps its scroll position per listKey; the detail keeps it while detailKey is unchanged.
@@ -32,13 +32,17 @@ const PICON={
 /* pnIcon(k,cls,size): a pixel icon (art's pxIcon) when one exists for k, else the old line glyph. size 16/32/48. */
 const PNPX={contracts:'contract',x:'close',up:'level',armor:'armor-medium',sword:'sword',coin:'coin',food:'food',skull:'skull',star:'star',check:'check',back:'back',company:'company',tavern:'tavern',market:'market',inn:'inn'};
 const PNOWN={chev:['................','................','.....00.........','.....0c0........','.....0cc0.......','.....0ccc0......','.....0cccc0.....','.....0ccccc0....','.....0cbbb0.....','.....0cbb0......','.....0cb0.......','.....0b0........','.....00.........','................','................','................']};
+/* the tailor's sign: a spool of madder thread and a needle (16x16) */
+PNOWN.tailor=['................','...........00...','..00000000.0q0..','.0kkkkkkkj00q0..','.0jjjjjjji0q0...','..0hhhhhg0q0....','..0hgggggf0.....','..0hhhhhg00.....','..0hgggggf0.....','..0hhhhhgg0.....','..0hgggggf0.....','.0kkkkkkkj0.....','.0jjjjjjji0.....','..00000000......','................','................'];
+PNOWN.dice=['................','................','...0000000000...','..0rrrrrrrrrr0..','..0r00rrrr00q0..','..0r00rrrr00q0..','..0rrrrrrrrrq0..','..0rrrr00rrrq0..','..0rrrr00rrrq0..','..0rrrrrrrrrq0..','..0r00rrrr00q0..','..0r00rrrr00q0..','..0qqqqqqqqqp0..','...0000000000...','................','................'];
 function pnHasPx(n){return typeof pxIcon==='function'&&typeof iconRows==='function'&&!!iconRows(n)}
 function pnIcon(k,cls,size){const n=PNPX[k]||k,c='pn-i px'+(cls?' '+cls:'');size=size||16;
  if(pnHasPx(n))return pxIcon(n,size,c);
  if(PNOWN[k]){const u=pxURL('pn:'+k,PNOWN[k],1);if(u)return`<i class="${c}" style="width:${size}px;height:${size}px;background-image:url(${u})" aria-hidden="true"></i>`}
  if(!PICON[k])return typeof pxIcon==='function'?pxIcon(n,size,c):'';
  return`<svg class="pn-i${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${PICON[k]||''}</svg>`}
-function itemIconName(id){const it=ITEMS[id];if(!it)return'fist';if(it.k==='s')return'shield';if(it.k==='h')return'helmet';if(it.k==='a')return it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy';return it.wt||'sword'}
+function itemIconName(id){const it=ITEMS[id];if(!it)return'fist';if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
+if(it.k==='s')return'shield';if(it.k==='h')return'helmet';if(it.k==='a')return it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy';return it.wt||'sword'}
 function pnItemIcon(id,size){const n=itemIconName(id);return pnHasPx(n)||PNOWN[n]?pnIcon(n,'',size):pnIcon(n.indexOf('armor')===0?'armor':({mace:'axe',dagger:'sword',fist:'sword'})[n]||n,'',size)}
 function pnSkulls(n,of){let h='';for(let i=0;i<(of||n);i++)h+=pnIcon('skull',i<n?'':'off');return`<span class="pn-skulls" aria-label="Danger ${n} of ${of||n}">${h}</span>`}
 function pnStars(n){let h='';for(let i=0;i<n;i++)h+=pnIcon('star');return n?`<span class="pn-stars" aria-label="${n} talent star${n===1?'':'s'}">${h}</span>`:''}
@@ -67,7 +71,7 @@ function itemKind(id){const i=ITEMS[id];return i.k==='s'?'Shield':i.k==='a'?'Arm
 function pnSheetUp(){const s=$('sheet');return!!(s&&!s.classList.contains('hidden')&&s.getClientRects().length)}
 function pnAssert(){if(!PN.id)return;sheetOpen=true;if(G&&PN.town)G.townOpen=true}
 function panelRoot(){if(PN.root)return PN.root;const r=document.createElement('div');r.id='pn';r.setAttribute('role','dialog');r.setAttribute('aria-modal','true');
- r.innerHTML=`<div class="pn-head"><div class="pn-title"><b id="pnTitle"></b><span id="pnSub"></span></div><div class="pn-meta" id="pnMeta"></div><button type="button" class="pn-btn" id="pnClose" onclick="pnDo(0)"></button></div>
+ r.innerHTML=`<div class="pn-head"><span class="pn-ban" id="pnBan"></span><div class="pn-title"><b id="pnTitle"></b><span id="pnSub"></span></div><div class="pn-meta" id="pnMeta"></div><button type="button" class="pn-btn" id="pnClose" onclick="pnDo(0)"></button></div>
 <div class="pn-note" id="pnNote"></div>
 <div class="pn-body"><div class="pn-rail" id="pnRail" role="tablist"></div><div class="pn-list" id="pnList"></div><div class="pn-detail"><div class="pn-dscroll" id="pnDetail"></div><div class="pn-foot" id="pnFoot"></div></div></div>`;
  const app=$('app')||document.body,sh=$('sheet');if(sh&&sh.parentNode===app)app.insertBefore(r,sh);else app.appendChild(r);   // generic dialogs and toasts stay above the panel
@@ -84,7 +88,7 @@ function showPanel(o){const r=panelRoot(),fresh=!PN.id,L=$('pnList'),D=$('pnDeta
  const sameD=!fresh&&PN.id===o.id&&PN.dkey===o.detailKey,dTop=sameD?D.scrollTop:0;
  PN.id=o.id;PN.h=[o.onClose||closePanel];const act=f=>'pnDo('+(PN.h.push(f)-1)+')';
  r.dataset.panel=o.id;r.dataset.view=o.view||'';r.classList.toggle('pn-norail',!(o.tabs&&o.tabs.length));r.classList.toggle('pn-single',!!o.single);
- $('pnTitle').textContent=o.title||'';$('pnSub').textContent=o.sub||'';$('pnMeta').innerHTML=o.meta||'';
+ $('pnTitle').textContent=o.title||'';{const bn=$('pnBan');if(bn){bn.innerHTML=o.banner||'';bn.classList.toggle('on',!!o.banner)}}$('pnSub').textContent=o.sub||'';$('pnMeta').innerHTML=o.meta||'';
  $('pnClose').innerHTML=pnIcon(o.closeIcon||'x')+`<span>${o.closeLabel||'Close'}</span>`;
  const N=$('pnNote');N.innerHTML=o.note||'';N.classList.toggle('on',!!o.note);
  $('pnRail').innerHTML=(o.tabs||[]).map(t=>`<button type="button" role="tab" class="pn-tab${t.k===o.tab?' on':''}" aria-selected="${t.k===o.tab}" onclick="${act(()=>o.onTab(t.k))}">${pnIcon(t.icon||t.k,'',32)}<span>${t.n}</span>${t.badge?`<i>${t.badge}</i>`:''}</button>`).join('')

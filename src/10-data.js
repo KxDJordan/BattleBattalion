@@ -47,10 +47,52 @@ Object.assign(ITEMS,{
  barbute:{k:'h',n:'Barbute',arm:180,fat:10,price:1500},
  greathelm:{k:'h',n:'Great helm',arm:240,fat:14,price:2600}
 });
-const WSK={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep']},
- WSKID={greataxe:['split','round'],pike:['impale']},SHIELDHP={buckler:32,kite:64,heater:80};
-for(const id in ITEMS){const i=ITEMS[id];if(i.k==='w')i.sk=WSKID[id]||WSK[i.wt]||[];else if(i.k==='s'){i.sk=['shieldwall','bash'];i.hp=SHIELDHP[id]||48}}
-function itemDesc(id){const i=ITEMS[id];if(i.k==='w')return`${i.d[0]}–${i.d[1]} dmg, ${i.ap} AP${i.rng>1?', range '+i.rng:''}${i.two?', two-handed':''}${i.spell?', +'+Math.round(i.spell*100)+'% spell dmg':''}`;if(i.k==='s')return`+${i.md} melee def, +${i.rd} ranged def, ${i.hp} shield hp, −${i.fat} fatigue`;return`${i.arm} ${i.k==='h'?'head ':''}armor, −${i.fat} fatigue`}
+/* ---- Arms update: hammers, polearms, greatswords, crossbows, flintlocks, more shields ----
+   Weapon fields beyond the old ones: crush (armor crushing: a hit tears up that much more armor, as a fraction of the damage;
+   see hurt()), reload {ap, fat} (a reload weapon fires only when loaded: firing unloads it, the 'reload' skill loads it),
+   look (the art's shape key), shot ('arrow' | 'bolt' | 'ball': the projectile), fx ('smoke': a flintlock's discharge).
+   Shield fields: look (buckler round kite heater tower spiked), guard (Cover: shots and spells against allies next to the
+   raised shield get -guard to hit), wallB (Shield wall gives that much more melee and ranged defense), spike [min,max] (the
+   damage of Spiked bash). Ranged weapon families: RANGEDWT (bow, crossbow, flintlock): they shoot (ranged skill, the ranged
+   lock, friendly fire) and never take free attacks. */
+Object.assign(ITEMS,{
+ mallet:{k:'w',n:'Smith\'s hammer',wt:'hammer',d:[18,28],ap:4,fat:10,rng:1,ign:.35,crush:.3,price:90,look:'hammer'},
+ warhammer:{k:'w',n:'War hammer',wt:'hammer',d:[28,40],ap:4,fat:12,rng:1,ign:.5,crush:.6,price:620,look:'warhammer'},
+ maul:{k:'w',n:'Maul',wt:'hammer',two:1,d:[52,78],ap:6,fat:20,rng:1,ign:.5,crush:.8,price:840,look:'maul'},
+ warmaul:{k:'w',n:'Dwarven warmaul',wt:'hammer',two:1,d:[64,92],ap:6,fat:22,rng:1,ign:.6,crush:1,price:2200,look:'maul'},
+ bill:{k:'w',n:'Billhook',wt:'polearm',two:1,d:[34,50],ap:5,fat:14,rng:2,ign:.3,hit:5,price:280,look:'bill'},
+ halberd:{k:'w',n:'Halberd',wt:'polearm',two:1,d:[48,70],ap:6,fat:17,rng:2,ign:.4,price:950,look:'halberd'},
+ glaive:{k:'w',n:'War glaive',wt:'polearm',two:1,d:[56,80],ap:6,fat:16,rng:2,ign:.35,hit:5,price:1800,look:'glaive'},
+ greatsword:{k:'w',n:'Greatsword',wt:'greatsword',two:1,d:[46,66],ap:6,fat:16,rng:2,ign:.25,hit:5,price:720,look:'greatsword'},
+ zweihander:{k:'w',n:'Zweihänder',wt:'greatsword',two:1,d:[56,80],ap:6,fat:18,rng:2,ign:.3,hit:5,price:1650,look:'zweihander'},
+ runegreat:{k:'w',n:'Runed greatsword',wt:'greatsword',two:1,d:[66,92],ap:6,fat:18,rng:2,ign:.3,hit:10,price:3100,look:'runegreat'},
+ lightxbow:{k:'w',n:'Light crossbow',wt:'crossbow',two:1,d:[30,46],ap:4,fat:8,rng:6,ign:.4,hit:10,reload:{ap:3,fat:8},price:320,look:'crossbow',shot:'bolt'},
+ crossbow:{k:'w',n:'Heavy crossbow',wt:'crossbow',two:1,d:[42,64],ap:4,fat:10,rng:7,ign:.5,hit:10,reload:{ap:4,fat:12},price:980,look:'crossbow',shot:'bolt'},
+ arbalest:{k:'w',n:'Arbalest',wt:'crossbow',two:1,d:[54,80],ap:4,fat:12,rng:8,ign:.55,hit:10,reload:{ap:5,fat:16},price:2100,look:'arbalest',shot:'bolt'},
+ pistol:{k:'w',n:'Wheellock pistol',wt:'flintlock',d:[36,54],ap:4,fat:6,rng:4,ign:.7,reload:{ap:5,fat:10},price:760,look:'pistol',shot:'ball',fx:'smoke'},
+ duelpistol:{k:'w',n:'Duelling pistol',wt:'flintlock',d:[44,64],ap:4,fat:6,rng:5,ign:.75,hit:5,reload:{ap:5,fat:10},price:1600,look:'pistol',shot:'ball',fx:'smoke'},
+ musket:{k:'w',n:'Musket',wt:'flintlock',two:1,d:[70,100],ap:5,fat:10,rng:7,ign:.8,hit:-5,reload:{ap:5,fat:14},price:1400,look:'musket',shot:'ball',fx:'smoke'},
+ roundshield:{k:'s',n:'Round shield',md:14,rd:14,fat:7,price:150,look:'round'},
+ ironround:{k:'s',n:'Iron-rimmed round shield',md:18,rd:18,fat:9,price:520,look:'round'},
+ spiked:{k:'s',n:'Spiked shield',md:12,rd:8,fat:8,spike:[16,26],price:340,look:'spiked'},
+ warspiked:{k:'s',n:'War-spiked shield',md:16,rd:12,fat:11,spike:[24,38],price:900,look:'spiked'},
+ tower:{k:'s',n:'Tower shield',md:16,rd:30,fat:18,guard:8,wallB:10,price:680,look:'tower'},
+ steeltower:{k:'s',n:'Steel tower shield',md:18,rd:34,fat:20,guard:10,wallB:10,price:1450,look:'tower'}
+});
+ITEMS.buckler.look='buckler';ITEMS.kite.look='kite';ITEMS.heater.look='heater';
+for(const id of ['shortbow','warbow'])ITEMS[id].shot='arrow';
+const RANGEDWT=['bow','crossbow','flintlock'];
+// A ranged weapon (bow, crossbow, flintlock, or an enemy's ranged attack): it shoots with ranged skill, obeys the ranged lock, takes no free attacks.
+function isRangedW(w){return!!(w&&RANGEDWT.includes(w.wt))}
+const WSK={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
+  hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},
+ WSKID={greataxe:['split','round'],pike:['impale'],maul:['batter','hsmash'],warmaul:['batter','hsmash'],bill:['hook']},
+ SHIELDHP={buckler:32,kite:64,heater:80,roundshield:50,ironround:66,spiked:56,warspiked:72,tower:110,steeltower:140},SHIELDSK={spiked:['shieldwall','spikebash'],warspiked:['shieldwall','spikebash']};
+for(const id in ITEMS){const i=ITEMS[id];if(i.k==='w')i.sk=WSKID[id]||WSK[i.wt]||[];else if(i.k==='s'){i.sk=SHIELDSK[id]||['shieldwall','bash'];i.hp=SHIELDHP[id]||48}}
+function itemDesc(id){const i=ITEMS[id];
+ if(i.k==='w')return`${i.d[0]}–${i.d[1]} dmg, ${i.ap} AP${i.rng>1?(isRangedW(i)?', range ':', reach ')+i.rng:''}${i.two?', two-handed':''}${i.reload?', reload '+i.reload.ap+' AP':''}${i.crush?', crushes armor (+'+Math.round(i.crush*100)+'%)':''}${i.ign>=.5?', '+Math.round(i.ign*100)+'% through armor':''}${i.spell?', +'+Math.round(i.spell*100)+'% spell dmg':''}`;
+ if(i.k==='s')return`+${i.md} melee def, +${i.rd} ranged def, ${i.hp} shield hp, −${i.fat} fatigue${i.wallB?', shield wall +'+i.wallB:''}${i.guard?', covers allies beside it (−'+i.guard+' to be shot)':''}${i.spike?', spiked bash '+i.spike[0]+'–'+i.spike[1]:''}`;
+ return`${i.arm} ${i.k==='h'?'head ':''}armor, −${i.fat} fatigue`}
 const AB={
  shove:{n:'Shove',ap:3,fat:10,rng:1,tgt:'enemy',noDmg:1,kb:1,hit:20,d:'Push a foe back 1 tile.'},
  aimed:{n:'Aimed shot',ap:6,fat:14,tgt:'enemy',wpn:1,needs:'bow',hit:25,mult:1.3},
@@ -195,6 +237,34 @@ Object.assign(AB,{
  fistflurry:{n:'Flurry of fists',ap:5,fat:16,tgt:'enemy',wpn:1,needs:'fist',mult:.7,hits:3,fx:'multi',d:'Three punches at 70% damage each, while the foe stands.'},
  dragonkick:{n:'Dragon kick',ap:5,fat:20,tgt:'enemy',wpn:1,needs:'fist',mult:1.4,kb:2,status:{daze:1},fx:'shove',d:'A flying kick: 140% damage, knocks the foe back 2 tiles and dazes it.'}
 });
+/* ---- Arms update abilities: weapon skills of the new families, shield skills, their weapon trees ----
+   Fields read by the rules beyond the ones above: reloadW (the reload: AP and fatigue come from the weapon in hand's reload),
+   crushB (added to the weapon's armor crushing), pull (drag the target that many tiles toward the attacker), scare (a hit tests the
+   target's morale), spikeD (the damage roll is the raised shield's spike, not the weapon), ignW (armor piercing of that roll). */
+Object.assign(AB,{
+ reload:{n:'Reload',ap:4,fat:10,tgt:'self',reloadW:1,fx:'reload',d:'Load the crossbow or firearm in hand so it can fire again. AP and fatigue come from the weapon. Allowed with a foe next to you.'},
+ batter:{n:'Batter',fat:15,tgt:'enemy',wpn:1,needs:'hammer',mult:.75,crushB:1.5,fx:'bonk',d:'A blow at the plate, not the man: 75% damage, but it tears up 150% more armor.'},
+ hsmash:{n:'Overhead smash',ap:6,fat:22,tgt:'enemy',wpn:1,needs:'hammer',two:1,mult:1.25,crushB:.4,hit:-10,status:{daze:1},fx:'quake',d:'The maul comes down with both hands: 125% damage that crushes armor 40% harder and dazes. −10 to hit.'},
+ hook:{n:'Hook',fat:15,tgt:'enemy',wpn:1,needs:'polearm',mult:.5,pull:1,hit:5,fx:'hook',d:'Catch a foe with the hook and drag it 1 tile toward you: 50% damage, +5 to hit.'},
+ reap:{n:'Reap',ap:6,fat:22,tgt:'enemy',wpn:1,needs:'polearm',mult:.85,aoe:1,hit:-5,fx:'sweep',d:'A wide sweep at reach: 85% damage to the target and 70% of that to every foe beside it. −5 to hit.'},
+ halfsword:{n:'Half-sword',ap:4,fat:14,rng:1,tgt:'enemy',wpn:1,needs:'greatsword',mult:.8,hit:15,ignB:.25,fx:'stab',d:'Grip the blade and drive the point through a gap at a foe right beside you: 4 AP, 80% damage, +15 to hit, +25% armor piercing.'},
+ gswing:{n:'Great swing',fat:22,tgt:'enemy',wpn:1,needs:'greatsword',mult:1.3,hit:-10,kb:1,fx:'slash',d:'A full-body swing: 130% damage and the foe is knocked back 1 tile. −10 to hit.'},
+ xaim:{n:'Braced shot',ap:6,fat:12,tgt:'enemy',wpn:1,needs:'crossbow',mult:1.1,hit:20,head:10,fx:'bolt',d:'Brace the crossbow and take your time: 6 AP, +20 to hit, 110% damage, +10% head chance.'},
+ blast:{n:'Scattershot',fat:14,tgt:'enemy',wpn:1,needs:'flintlock',mult:.55,aoe:1,hit:10,fx:'smoke',d:'A charge of shot instead of a ball: 55% damage to the target and 70% of that to every foe beside it, +10 to hit.'},
+ spikebash:{n:'Spiked bash',ap:4,fat:14,rng:1,tgt:'enemy',shield:1,spikeD:1,ignW:.3,melee:1,nostun:1,mult:1,hit:10,kb:1,fx:'shove',d:'Ram the spiked boss into a foe: the shield’s spike damage (30% through armor), knocks it back 1 tile, +10 to hit.'},
+ scharge:{n:'Shield charge',ap:5,fat:18,rng:3,tgt:'enemy',shield:1,dash:1,noDmg:1,nostun:1,kb:1,hit:10,status:{daze:1},noDmgTxt:'Bowled over',fx:'charge',d:'Rush up to 3 tiles behind the shield and slam into a foe: it is knocked back 1 tile and dazed. No damage, +10 to hit.'},
+ fortress:{n:'Testudo',ap:4,fat:20,tgt:'self',shield:1,party:1,buff:{key:'fortress',md:8,rd:20,indom:1},dur:1,fx:'guard',d:'Shields up and locked: you and every ally next to you get +8 melee and +20 ranged defense and cannot be knocked back until your (their) next turn.'},
+ ringblow:{n:'Bell ringer',fat:18,tgt:'enemy',wpn:1,needs:'hammer',mult:.8,head:20,hit:-5,status:{stun:1},fx:'bonk',d:'Ring the helmet like a bell: 80% damage, +20% head chance, and the foe loses its next turn. −5 to hit.'},
+ demolish:{n:'Demolish',ap:6,fat:24,tgt:'enemy',wpn:1,needs:'hammer',mult:1.4,crushB:1,ignB:.2,hit:-5,fx:'quake',d:'Everything into one blow: 140% damage, armor crushed twice as hard, +20% armor piercing. −5 to hit.'},
+ trip:{n:'Trip',fat:14,tgt:'enemy',wpn:1,needs:'polearm',mult:.6,hit:5,status:{root:1,daze:1},fx:'hook',d:'Hook the legs out from under a foe: 60% damage, it cannot move on its next turn and is dazed. +5 to hit.'},
+ glaivecut:{n:'Headsman’s arc',ap:6,fat:22,tgt:'enemy',wpn:1,needs:'polearm',mult:1.3,vsHurt:.4,head:15,fx:'slash',d:'A long, falling cut: 130% damage, +40% more against a foe below half health, +15% head chance.'},
+ gsweep:{n:'Wide arc',ap:6,fat:24,tgt:'aoe',wpn:1,needs:'greatsword',mult:.9,fx:'spin',d:'Swing the greatsword through every foe beside you: 90% damage to each.'},
+ mordhau:{n:'Mordhau',fat:20,rng:1,tgt:'enemy',wpn:1,needs:'greatsword',mult:1.1,crushB:.6,hit:-5,nostun:1,status:{stun:1},fx:'bonk',d:'Reverse the sword and strike with the hilt at a foe beside you: 110% damage that crushes armor, and it loses its next turn. −5 to hit.'},
+ xpin:{n:'Pinning bolt',fat:14,tgt:'enemy',wpn:1,needs:'crossbow',mult:.8,status:{root:2},fx:'bolt',d:'A bolt through the foot: 80% damage, and the target cannot move for 2 turns.'},
+ xheart:{n:'Heartseeker',ap:6,fat:18,tgt:'enemy',wpn:1,needs:'crossbow',mult:1.5,hit:10,head:15,fx:'bolt',d:'A bolt for the heart: 6 AP, 150% damage, +10 to hit, +15% head chance.'},
+ fdeafen:{n:'Deafening shot',fat:16,tgt:'enemy',wpn:1,needs:'flintlock',mult:.9,scare:1,status:{daze:1},fx:'smoke',d:'Fire past the ear: 90% damage, the target is dazed and must test its morale.'},
+ fexecute:{n:'Execution',fat:18,tgt:'enemy',wpn:1,needs:'flintlock',mult:1.25,vsHurt:.5,ignB:.15,fx:'smoke',d:'A slow, sure shot: 125% damage, +15% armor piercing, a further +50% against a foe below half health.'}
+});
 // Descriptions of the older abilities (they used to borrow the perk text).
 {const D={shove:'Push an adjacent foe back 1 tile. No damage, +20 to hit.',aimed:'A slow, careful shot: +25 to hit, 130% damage, +15% head chance.',pin:'70% damage, and the target cannot move on its next turn.',
  footwork:'Step 1 tile without drawing free attacks.',adren:'Gain 4 action points. Once per battle.',indom:'Take half damage and ignore knockback for 2 turns.',
@@ -218,7 +288,9 @@ Object.assign(STATUS,{
  rage:{n:'Raging',d:'+25% damage, −10 melee defense.',icon:'rage',good:1},
  manashield:{n:'Mana shield',d:'Takes 30% less damage.',icon:'manashield',good:1},
  avatar:{n:'Avatar of war',d:'+30% damage, +10 melee skill, +10 melee defense.',icon:'avatar',good:1},
- steady:{n:'Steady breathing',d:'+15 ranged skill.',icon:'steady',good:1}
+ steady:{n:'Steady breathing',d:'+15 ranged skill.',icon:'steady',good:1},
+ fortress:{n:'Testudo',d:'+8 melee and +20 ranged defense, cannot be knocked back.',icon:'fortress',good:1},
+ unloaded:{n:'Unloaded',d:'The crossbow or firearm in hand is spent: it must be reloaded before it can fire again.',icon:'unloaded',good:0}
 });
 /* ---- Morale: u.mor 0..4. hit is added to the unit's own chance to hit, def to its defense against every attack. ---- */
 const MORN=['Fleeing','Breaking','Wavering','Steady','Confident'],
@@ -260,16 +332,20 @@ const INJ={
      'gift'   a resource tree (res: mana aura qi chi) in a fighting style (style: melee ranged caster support), 6 tiers;
               the first perk learned in it awakens the gift: a pool of GIFTBASE (regen GIFTREGEN a turn) plus the perks' res/regen
      'weapon' one per weapon family (wt), 3 tiers of two perks; they only work while a weapon of that family is in hand
+              (the shield tree, wt 'shield': only while a shield is raised)
    Tier t of a style or gift tree opens at level t, tier t of a weapon tree at level 3t (tierLevel). No same-tree prerequisites.
    aff: what the tree suits (melee ranged caster support one two shield bow light), read by autoLearn.
    Perk: {id, n, d, st?:{stat deltas, dmg as a fraction, ap = action points}, ab?:AB id, flag?:string, mod?:{flag:number},
-          res?:number, regen?:number, wmod?:{d:[+min,+max], ap, rng, ign, hit, stun, spell} (weapon trees: changes the weapon in hand)}
+          res?:number, regen?:number, wmod?:{d:[+min,+max], ap, rng, ign, hit, stun, spell, crush, rld (reload AP)} (weapon trees: changes the weapon in hand)}
    Ids are '<tree>.<tier>' (one perk in the tier) or '<tree>.<tier>a' / 'b'. d states the exact effect.
    The flags and mods the rules read (u.flags / calc(m).flags; mods add up):
      exec berserk forged path eagle (as before)   vsHurt vsFull dmgMelee dmgRanged twoDmg lowHpDmg duelHit duelDmg flankDmg spellB splitB
      drB drRanged drMelee lastStand   adjDef loneDef guard cmd flank coverIgn longShot rngB headB ignB bleedOn
-     regenHP medAura killHeal killRes brvAura healB freeSwap noLock undying   shieldDef shieldHp (calc only) */
-const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],WTS=['sword','axe','mace','dagger','spear','bow','staff','fist'];
+     regenHP medAura killHeal killRes brvAura healB freeSwap noLock undying   shieldDef shieldHp (calc only)
+     arms update: vsArm (damage while the target's body armor holds), reachHit (to hit a foe 2 tiles away with a reach weapon),
+     deflect (less damage from shots and spells while a shield is raised), shieldDr (less damage while a shield is raised), shGuard (Cover from a tower shield) */
+const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
+ WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'];   // weapon tree keys in display order ('shield': the shield tree)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
 const MAST={
  /* ---- style trees ---- */
@@ -285,7 +361,7 @@ const MAST={
   [perkDef('Bullseye','+10 ranged skill',{st:{rs:10}})],[perkDef('Aimed shot','Ability: a slow shot at +25 to hit for 130% damage',{ab:'aimed'})],
   [perkDef('Pinning shot','Ability: 70% damage and the target cannot move on its next turn',{ab:'pin'})],[perkDef('Eagle eye','+1 bow range, +5 ranged skill',{st:{rs:5},flag:'eagle'})],
   [perkDef('Volley','Ability: arrows on a foe and everyone beside it: 80% damage to the target, 56% to each neighbour',{ab:'volley'})],
-  [perkDef('Deadeye','+15% damage with bows, +10% head chance with weapon attacks',{mod:{dmgRanged:.15,headB:10}})]]},
+  [perkDef('Deadeye','+15% damage with ranged weapons, +10% head chance with weapon attacks',{mod:{dmgRanged:.15,headB:10}})]]},
  skirmisher:{n:'Skirmisher',kind:'style',aff:['melee','ranged','light'],d:'Movement and evasion',tiers:[
   [perkDef('Pathfinder','Climbing and rough ground cost no extra AP',{flag:'path'})],[perkDef('Footwork','Ability: step 1 tile without drawing free attacks',{ab:'footwork'})],
   [perkDef('Dodge','+8 melee and ranged defense',{st:{md:8,rd:8}})],[perkDef('Adrenaline','Ability: gain 4 AP, once per battle',{ab:'adren'})],
@@ -403,7 +479,32 @@ const MAST={
  fist:{n:'Open hand',kind:'weapon',wt:'fist',aff:['melee','light'],d:'Unarmed fighting',tiers:[
   [perkDef('Iron knuckles','Fists deal +6 minimum and +8 maximum damage',{wmod:{d:[6,8]}}),perkDef('Flowing stance','+6 melee defense while unarmed',{st:{md:6}})],
   [perkDef('Flurry of fists','Ability: three punches at 70% damage',{ab:'fistflurry'}),perkDef('Pressure points','+15% chance to stun with fists',{wmod:{stun:.15}})],
-  [perkDef('Dragon kick','Ability: 140% damage, knockback 2, dazes',{ab:'dragonkick'}),perkDef('Empty hand','Fists deal +6/+8 more damage and +20% armor piercing',{wmod:{d:[6,8],ign:.2}})]]}
+  [perkDef('Dragon kick','Ability: 140% damage, knockback 2, dazes',{ab:'dragonkick'}),perkDef('Empty hand','Fists deal +6/+8 more damage and +20% armor piercing',{wmod:{d:[6,8],ign:.2}})]]},
+ /* ---- the arms update: five more families and the shield ---- */
+ hammer:{n:'Hammer craft',kind:'weapon',wt:'hammer',aff:['melee'],d:'Plate is only metal',tiers:[
+  [perkDef('Plate breaker','Hammer hits crush 30% more armor',{wmod:{crush:.3}}),perkDef('Heavy head','+2 minimum and +5 maximum hammer damage',{wmod:{d:[2,5]}})],
+  [perkDef('Bell ringer','Ability: 80% damage, +20% head chance, stuns; −5 to hit',{ab:'ringblow'}),perkDef('Momentum','+15% damage with a hammer against a foe whose body armor still holds',{mod:{vsArm:.15}})],
+  [perkDef('Demolish','Ability: 140% damage, armor crushed twice as hard, +20% armor piercing',{ab:'demolish'}),perkDef('Anvil','+10 hitpoints, +10% armor piercing with a hammer in hand',{st:{hp:10},wmod:{ign:.1}})]]},
+ polearm:{n:'Polearm drill',kind:'weapon',wt:'polearm',aff:['melee','two'],d:'Bills, halberds and glaives from the second rank',tiers:[
+  [perkDef('Long reach','+5 to hit with polearms',{wmod:{hit:5}}),perkDef('Keep them off','+5 melee defense with a polearm in hand',{st:{md:5}})],
+  [perkDef('Trip','Ability: 60% damage, the foe cannot move on its next turn and is dazed',{ab:'trip'}),perkDef('Leverage','+10% damage with a polearm in hand',{st:{dmg:.1}})],
+  [perkDef('Headsman’s arc','Ability: 130% damage, +40% more against a foe below half health, +15% head chance',{ab:'glaivecut'}),perkDef('Second rank','+10 to hit when you strike a foe 2 tiles away',{mod:{reachHit:10}})]]},
+ greatsword:{n:'Greatsword school',kind:'weapon',wt:'greatsword',aff:['melee','two'],d:'Two hands on a long blade',tiers:[
+  [perkDef('Edge alignment','+5 to hit with greatswords',{wmod:{hit:5}}),perkDef('Broad blade','+3 minimum and +6 maximum greatsword damage',{wmod:{d:[3,6]}})],
+  [perkDef('Wide arc','Ability: strike every adjacent foe at 90% damage',{ab:'gsweep'}),perkDef('Measure','+4 melee defense and +5 initiative with a greatsword in hand',{st:{md:4,init:5}})],
+  [perkDef('Mordhau','Ability: a hilt blow at an adjacent foe: 110% damage that crushes armor, stuns; −5 to hit',{ab:'mordhau'}),perkDef('Master of the long sword','+5 melee skill, +10% damage with a greatsword in hand',{st:{ms:5,dmg:.1}})]]},
+ crossbow:{n:'Crossbow drill',kind:'weapon',wt:'crossbow',aff:['ranged'],d:'Crank, quarrel and trigger',tiers:[
+  [perkDef('Quick crank','Reloading a crossbow costs 1 less AP (at least 2)',{wmod:{rld:-1}}),perkDef('Steady rest','+6 ranged skill with a crossbow in hand',{st:{rs:6}})],
+  [perkDef('Pinning bolt','Ability: 80% damage, the target cannot move for 2 turns',{ab:'xpin'}),perkDef('Bodkin points','+10% armor piercing with crossbows',{wmod:{ign:.1}})],
+  [perkDef('Heartseeker','Ability: 150% damage, +10 to hit, +15% head chance (6 AP)',{ab:'xheart'}),perkDef('Well oiled','Reloading costs 1 less AP; +3 minimum and +5 maximum crossbow damage',{wmod:{rld:-1,d:[3,5]}})]]},
+ flintlock:{n:'Gunnery',kind:'weapon',wt:'flintlock',aff:['ranged'],d:'Powder, ball and nerve',tiers:[
+  [perkDef('Powder measure','+4 minimum and +6 maximum firearm damage',{wmod:{d:[4,6]}}),perkDef('Calm in the smoke','+6 ranged skill with a firearm in hand',{st:{rs:6}})],
+  [perkDef('Deafening shot','Ability: 90% damage, dazes and tests the target’s morale',{ab:'fdeafen'}),perkDef('Ramrod drill','Reloading a firearm costs 1 less AP (at least 2)',{wmod:{rld:-1}})],
+  [perkDef('Execution','Ability: 125% damage, +15% armor piercing, +50% more against a foe below half health',{ab:'fexecute'}),perkDef('Gunsmith','+10% armor piercing and +5 to hit with firearms',{wmod:{ign:.1,hit:5}})]]},
+ shield:{n:'Shield work',kind:'weapon',wt:'shield',aff:['shield','melee'],d:'Boss, rim and wall (only while a shield is raised)',tiers:[
+  [perkDef('Shield discipline','A raised shield gives +4 more melee and ranged defense',{mod:{shieldDef:4}}),perkDef('Hardened boss','Your shield has 30% more hitpoints',{mod:{shieldHp:.3}})],
+  [perkDef('Shield charge','Ability: rush up to 3 tiles and slam into a foe: knockback 1, daze',{ab:'scharge'}),perkDef('Deflect','Take 10% less damage from shots and spells while your shield is raised',{mod:{deflect:.1}})],
+  [perkDef('Testudo','Ability: you and every ally next to you get +8 melee and +20 ranged defense and no knockback until your next turn',{ab:'fortress'}),perkDef('Iron wall','Take 10% less damage from everything while your shield is raised',{mod:{shieldDr:.1}})]]}
 };
 // Perk ids, the flat list p (read by older UI code) and the tier count n.
 for(const k in MAST){const T=MAST[k];T.p=[];T.tiers.forEach((tier,ti)=>tier.forEach((p,j)=>{if(!p.id)p.id=k+'.'+(ti+1)+(tier.length>1?'ab'[j]:'');T.p.push(p)}))}
@@ -412,36 +513,36 @@ const MUNDANE=Object.keys(MAST).filter(k=>MAST[k].kind==='style');
 const GIFTV={mana:{caster:'mana',melee:'mana_m',ranged:'mana_r'},aura:{melee:'aura',ranged:'aura_r'},qi:{melee:'qi',ranged:'qi_r'},chi:{support:'chi',melee:'chi_m',ranged:'chi_r'}};
 /* Backgrounds. st may carry brv (resolve); gear lists one pick per slot, '-' meaning nothing (helmets are k:'h'). */
 const BG={
- farmhand:{n:'Farmhand',cost:90,wage:8,w:5,st:{hp:8,fat:10,ms:-3},m:['vanguard','bulwark'],r:[['chi',.15]],gear:['club|knife','rags','hood|-']},
- militia:{n:'Militiaman',cost:160,wage:11,w:5,st:{ms:4,md:2,brv:3},m:['vanguard','bulwark'],r:[['aura',.15]],gear:['spear','padded','buckler','cap|hood']},
- hunter:{n:'Hunter',cost:220,wage:13,w:4,st:{rs:12,ms:-4,init:8},m:['marksman','skirmisher'],r:[['qi',.3]],gear:['shortbow','rags|padded','hood']},
+ farmhand:{n:'Farmhand',cost:90,wage:8,w:5,st:{hp:8,fat:10,ms:-3},m:['vanguard','bulwark'],r:[['chi',.15]],gear:['club|knife|mallet','rags','hood|-']},
+ militia:{n:'Militiaman',cost:160,wage:11,w:5,st:{ms:4,md:2,brv:3},m:['vanguard','bulwark'],r:[['aura',.15]],gear:['spear|spear|bill','padded','buckler','cap|hood']},
+ hunter:{n:'Hunter',cost:220,wage:13,w:4,st:{rs:12,ms:-4,init:8},m:['marksman','skirmisher'],r:[['qi',.3]],gear:['shortbow|shortbow|lightxbow','rags|padded','hood']},
  thief:{n:'Cutpurse',cost:170,wage:11,w:3,st:{init:14,md:4,hp:-5,brv:-5},m:['skirmisher','vanguard'],r:[['aura',.2]],gear:['knife','rags','hood']},
- sellsword:{n:'Sellsword',cost:420,wage:24,w:3,st:{ms:10,md:4,hp:5,fat:5,brv:5},m:['vanguard','bulwark','skirmisher'],r:[['aura',.5]],gear:['shortsword|handaxe','leather','buckler','cap|coif']},
- squire:{n:'Squire',cost:380,wage:20,w:2,st:{ms:7,md:5,fat:5,brv:6},m:['bulwark','vanguard'],r:[['aura',1]],gear:['shortsword','padded','kite','coif|cap']},
+ sellsword:{n:'Sellsword',cost:420,wage:24,w:3,st:{ms:10,md:4,hp:5,fat:5,brv:5},m:['vanguard','bulwark','skirmisher'],r:[['aura',.5]],gear:['shortsword|handaxe|mallet','leather','buckler|roundshield','cap|coif']},
+ squire:{n:'Squire',cost:380,wage:20,w:2,st:{ms:7,md:5,fat:5,brv:6},m:['bulwark','vanguard'],r:[['aura',1]],gear:['shortsword|shortsword|greatsword','padded','kite','coif|cap']},
  hedge:{n:'Hedge mage',cost:480,wage:22,w:2,st:{hp:-8,ms:-8,fat:-5,brv:-3},m:['skirmisher','bulwark'],r:[['mana',1]],gear:['staff','robe','hood']},
  acolyte:{n:'Temple acolyte',cost:330,wage:16,w:2,st:{hp:4,ms:-2,brv:6},m:['bulwark','vanguard'],r:[['chi',1]],gear:['club','padded','hood']},
  monk:{n:'Wandering monk',cost:450,wage:20,w:2,st:{init:8,md:8,ms:5,brv:10},m:['skirmisher','vanguard'],r:[['chi',.6],['qi',.4]],gear:['staff','rags']},
  spellblade:{n:'Academy dropout',cost:540,wage:26,w:2,st:{ms:5},m:['vanguard','skirmisher'],r:[['qi',.6],['mana',.4]],gear:['shortsword','padded','cap|-']},
- wildling:{n:'Wildling',cost:300,wage:16,w:3,st:{hp:10,ms:6,md:-5,fat:10,brv:4},m:['vanguard','skirmisher'],r:[['qi',.4]],gear:['handaxe','rags']},
- knight:{n:'Disgraced knight',cost:900,wage:38,w:1,st:{ms:14,md:8,hp:10,fat:8,brv:12},m:['vanguard','bulwark'],r:[['aura',1]],gear:['arming','mail','kite','nasal']}
+ wildling:{n:'Wildling',cost:300,wage:16,w:3,st:{hp:10,ms:6,md:-5,fat:10,brv:4},m:['vanguard','skirmisher'],r:[['qi',.4]],gear:['handaxe|handaxe|mallet','rags','-|roundshield']},
+ knight:{n:'Disgraced knight',cost:900,wage:38,w:1,st:{ms:14,md:8,hp:10,fat:8,brv:12},m:['vanguard','bulwark'],r:[['aura',1]],gear:['arming|warhammer|greatsword','mail','kite|heater','nasal']}
 };
 const RACE={human:{n:'Human',st:{}},elf:{n:'Elf',st:{rs:5,init:8,hp:-5}},dwarf:{n:'Dwarf',st:{hp:8,fat:8,init:-10,brv:5}},halforc:{n:'Half-orc',st:{hp:6,ms:3,rd:-3,brv:3}}};
 /* Talents per background: style (melee ranged caster support: picks the gift variant), pool (the style trees a recruit draws 4 of),
    wt (the weapon families whose trees it may learn), side (a sidearm pick for m.eq.b, '-' = none). */
-Object.assign(BG.farmhand,{style:'melee',pool:['vanguard','bulwark','brute','survivor','brawler','shieldbearer','medic'],wt:['mace','axe','spear','dagger','fist']});
-Object.assign(BG.militia,{style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','skirmisher','marksman'],wt:['spear','sword','mace','bow'],side:'knife|-'});
-Object.assign(BG.hunter,{style:'ranged',pool:['marksman','sharpshooter','scout','skirmisher','survivor','medic','brawler'],wt:['bow','dagger','spear','axe'],side:'knife'});
-Object.assign(BG.thief,{style:'melee',pool:['skirmisher','duelist','scout','survivor','brawler','sharpshooter','marksman'],wt:['dagger','sword','fist','bow']});
-Object.assign(BG.sellsword,{style:'melee',pool:['vanguard','duelist','brute','bulwark','skirmisher','tactician','berserker','survivor','shieldbearer'],wt:['sword','axe','mace','spear','dagger'],side:'knife|-|-'});
-Object.assign(BG.squire,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','tactician','brute'],wt:['sword','spear','mace']});
+Object.assign(BG.farmhand,{style:'melee',pool:['vanguard','bulwark','brute','survivor','brawler','shieldbearer','medic'],wt:['mace','axe','hammer','spear','polearm','dagger','fist']});
+Object.assign(BG.militia,{style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','skirmisher','marksman'],wt:['spear','polearm','sword','mace','bow','crossbow','shield'],side:'knife|-'});
+Object.assign(BG.hunter,{style:'ranged',pool:['marksman','sharpshooter','scout','skirmisher','survivor','medic','brawler'],wt:['bow','crossbow','dagger','spear','axe'],side:'knife'});
+Object.assign(BG.thief,{style:'melee',pool:['skirmisher','duelist','scout','survivor','brawler','sharpshooter','marksman'],wt:['dagger','sword','fist','bow','crossbow','flintlock']});
+Object.assign(BG.sellsword,{style:'melee',pool:['vanguard','duelist','brute','bulwark','skirmisher','tactician','berserker','survivor','shieldbearer'],wt:['sword','axe','mace','hammer','spear','polearm','greatsword','crossbow','flintlock','shield'],side:'knife|-|-'});
+Object.assign(BG.squire,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','tactician','brute'],wt:['sword','spear','mace','hammer','polearm','greatsword','shield']});
 Object.assign(BG.hedge,{style:'caster',pool:['skirmisher','bulwark','medic','scout','survivor','tactician'],wt:['staff','dagger','fist'],side:'knife|-'});
-Object.assign(BG.acolyte,{style:'support',pool:['medic','bulwark','shieldbearer','tactician','survivor','vanguard','brawler'],wt:['mace','staff','spear','fist']});
+Object.assign(BG.acolyte,{style:'support',pool:['medic','bulwark','shieldbearer','tactician','survivor','vanguard','brawler'],wt:['mace','hammer','staff','spear','fist','shield']});
 Object.assign(BG.monk,{style:'melee',pool:['skirmisher','brawler','duelist','survivor','medic','scout','bulwark'],wt:['fist','staff','spear']});
-Object.assign(BG.spellblade,{style:'melee',pool:['duelist','vanguard','skirmisher','tactician','scout','brute'],wt:['sword','staff','dagger','spear']});
-Object.assign(BG.wildling,{style:'melee',pool:['berserker','brute','survivor','vanguard','skirmisher','scout','marksman','brawler'],wt:['axe','spear','bow','fist','mace']});
-Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor'],wt:['sword','mace','axe','spear']});
+Object.assign(BG.spellblade,{style:'melee',pool:['duelist','vanguard','skirmisher','tactician','scout','brute'],wt:['sword','greatsword','staff','dagger','spear','flintlock']});
+Object.assign(BG.wildling,{style:'melee',pool:['berserker','brute','survivor','vanguard','skirmisher','scout','marksman','brawler'],wt:['axe','spear','bow','fist','mace','hammer']});
+Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor'],wt:['sword','mace','axe','hammer','spear','polearm','greatsword','shield']});
 BG.hunter.r=[['qi',.2],['aura',.12],['chi',.08],['mana',.05]];      // a hunter's gift, if any, comes as its archery variant
-RACE.human.noWt=[];RACE.elf.noWt=[];RACE.dwarf.noWt=[];RACE.halforc.noWt=['bow'];   // weapon trees a race never learns
+RACE.human.noWt=[];RACE.elf.noWt=['flintlock','hammer'];RACE.dwarf.noWt=['bow','polearm'];RACE.halforc.noWt=['bow','crossbow','flintlock'];   // weapon trees a race never learns
 // Every ability carries a one-line description: mastery abilities take theirs from the perk that grants them.
 for(const k in MAST)for(const p of MAST[k].p)if(p.ab&&AB[p.ab]&&!AB[p.ab].d){const d=p.d.replace(/^Unlocks[^.]*\.\s*/,'').replace(/^Ability:\s*/,'');AB[p.ab].d=d[0].toUpperCase()+d.slice(1)+'.'}
 const NAMES=['Aldric','Brenna','Corvin','Dagny','Edda','Fenn','Garrick','Hesper','Ivo','Jorah','Kestrel','Lysa','Marek','Nessa','Osric','Petra','Quill','Rurik','Sable','Torvald','Una','Varek','Wren','Yara','Zane','Bram','Isolde','Tamsin','Hroth','Mira','Dunstan','Sorrel','Kael','Ottoline','Grett','Halvard'];
@@ -474,19 +575,23 @@ const EN={
  bmark:{n:'Brigand archer',hp:50,arm:30,helm:20,ms:45,rs:55,md:5,rd:5,init:105,d:[22,38],rng:6,xp:120,role:'sniper',brv:25,flee:.35,abs:['aimed'],side:{n:'Falchion',wt:'sword',d:[18,30],ap:4,fat:0,rng:1,ign:.2}},
  braid:{n:'Brigand raider',hp:70,arm:110,helm:70,ms:62,md:15,rd:15,init:105,d:[30,44],xp:220,role:'flanker',brv:32,dive:1,abs:['footwork']},
  blead:{n:'Brigand chief',hp:90,arm:70,helm:60,ms:72,md:14,rd:15,init:110,d:[40,56],xp:380,role:'caster',brv:75,lead:1,banner:1,max:1,sub:'braid',shield:{hp:64,md:12,rd:12},abs:['brally','shieldwall']},
+ bxbow:{n:'Brigand crossbowman',hp:44,arm:30,helm:20,ms:40,rs:40,ign:.3,md:5,rd:8,init:95,d:[22,36],w:'lightxbow',xp:130,role:'sniper',brv:28,flee:.35,abs:['xaim'],side:{n:'Falchion',wt:'sword',d:[18,30],ap:4,fat:0,rng:1,ign:.2}},
+ obrute:{n:'Orc crusher',hp:120,arm:110,helm:80,ms:62,md:4,rd:4,init:85,d:[56,84],w:'maul',wap:5,xp:300,role:'line',brv:70,tire:1,fury:6,fatMax:70,wfat:18,abs:['batter']},
+ skelhal:{n:'Skeleton halberdier',hp:45,arm:50,helm:40,ms:50,md:0,rd:12,init:75,d:[28,42],w:'halberd',wap:5,xp:140,role:'line',brv:99,fearless:1,abs:['hook']},
  imp:{n:'Rift imp',hp:50,arm:20,ms:62,md:12,rd:12,init:150,d:[24,36],ap:11,xp:180,role:'flanker',brv:99,fearless:1,noCorpse:1,abs:['iblink']},
  vknight:{n:'Void knight',hp:120,arm:220,helm:180,ms:72,md:15,rd:12,init:70,d:[45,65],ap:8,xp:420,role:'line',brv:99,fearless:1,abs:['vreap']},
  vmage:{n:'Void weaver',hp:70,arm:40,ms:45,md:8,rd:10,init:105,d:[12,20],xp:380,role:'caster',brv:80,max:3,sub:'imp',res:{mana:[32,5]},abs:['vlance','vblink','vward']},
  tyrant:{n:'Rift tyrant',hp:340,arm:300,helm:240,ms:80,md:15,rd:10,init:100,d:[60,85],kb:2,kbCh:.6,big:1,boss:1,xp:1500,role:'boss',brv:99,fearless:1,lead:1,enrage:.34,noCorpse:1,abs:['tsummon','tnova']}
 };
-/* FACT[f].units: [enemy id, budget cost]. rank: [g, cap, h?, base?], how the faction's quality follows the budget (see foeRank in 64-foes.js). */
+/* EN[id].w: an item id the foe fights with (its wt, range, reach, reload, crush and to-hit; d stays the foe's own and wap its AP).
+   FACT[f].units: [enemy id, budget cost]. rank: [g, cap, h?, base?], how the faction's quality follows the budget (see foeRank in 64-foes.js). */
 const FACT={
  gob:{n:'Goblins',g:'G',col:'#7a9a3c',skin:'#9fc25a',lair:'Burn out a goblin warren',units:[['gob',10],['gobarch',12],['gobsham',20]],rank:[.5,1.25],loot:['knife','shortbow','buckler','spear']},
- undead:{n:'Restless dead',g:'U',col:'#b9b39a',skin:'#e4e0cf',lair:'Put the restless dead to rest',units:[['skel',15],['zomb',14],['necro',30]],rank:[.3,1.4,0,17],loot:['shortsword','kite','spear','mail']},
+ undead:{n:'Restless dead',g:'U',col:'#b9b39a',skin:'#e4e0cf',lair:'Put the restless dead to rest',units:[['skel',15],['zomb',14],['skelhal',21],['necro',30]],rank:[.3,1.4,0,17],loot:['shortsword','kite','spear','mail','bill','halberd']},
  beast:{n:'Beasts',g:'B',col:'#6b5137',skin:'#8a6b49',lair:'Clear a den of beasts',units:[['wolf',19],['wolf',19],['spider',18],['bear',58]],rank:[.38,1.2,.3],loot:[]},
- orc:{n:'Orcs',g:'O',col:'#4f6b46',skin:'#7c9b62',lair:'Break an orc warcamp',units:[['orcy',38],['orcw',62],['orcl',105]],rank:[.46,1.6,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale']},
- bandit:{n:'Brigands',g:'R',col:'#5a5a66',skin:'#d9b99a',lair:'Root out a brigand hideout',units:[['thug',20],['bmark',25],['braid',44],['blead',71]],rank:[.5,1.1,.3,19],loot:['shortsword','club','padded','leather','shortbow','mace','heater']},
- void:{n:'Riftspawn',g:'V',col:'#7a46b8',skin:'#b99be6',lair:'Purge a riftspawn nest',units:[['imp',26],['vknight',62],['vmage',52]],rank:[.45,1.45],loot:['arming','warspear','scale','focus','warbow','rondel']}
+ orc:{n:'Orcs',g:'O',col:'#4f6b46',skin:'#7c9b62',lair:'Break an orc warcamp',units:[['orcy',38],['orcw',62],['obrute',60],['orcl',105]],rank:[.46,1.6,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','mallet','spiked']},
+ bandit:{n:'Brigands',g:'R',col:'#5a5a66',skin:'#d9b99a',lair:'Root out a brigand hideout',units:[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],rank:[.5,1.1,.3,19],loot:['shortsword','club','padded','leather','shortbow','mace','heater','lightxbow','crossbow','roundshield','pistol']},
+ void:{n:'Riftspawn',g:'V',col:'#7a46b8',skin:'#b99be6',lair:'Purge a riftspawn nest',units:[['imp',26],['vknight',62],['vmage',52]],rank:[.45,1.45],loot:['arming','warspear','scale','focus','warbow','rondel','zweihander','arbalest','steeltower']}
 };
 const BIOKEY=[null,'plains','forest','hills',null,'swamp','desert','snow'];
 const BIO={

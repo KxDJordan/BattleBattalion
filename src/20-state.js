@@ -1,12 +1,23 @@
 /* ================= STATE ================= */
-const WN=64,TS=32,WS=WN*TS,SPD=[0,1,.7,.62,0,.5,.8,.7];   // SPD: march speed by terrain code (roads and rivers: see tileSpeedOf in 40-world.js)
+const TS=32,SPD=[0,1,.7,.62,0,.5,.8,.7];   // SPD: march speed by terrain code (roads and rivers: see tileSpeedOf in 40-world.js)
+/* World sizes (G.wsize). WN tiles across, WS = WN*TS world units. They are set from the save (setWorldSize) before a world is
+   generated or loaded; everything else derives from WN. towns: how many the generator places. */
+const WORLDSZ={small:{n:64,towns:12,name:'Small',note:'A tight march: towns a day apart, the rifts never far.'},
+ medium:{n:80,towns:16,name:'Medium',note:'More roads and rivers, and room between the towns.'},
+ large:{n:96,towns:20,name:'Large',note:'A broad land of ranges and long roads. Supplies matter.'},
+ vast:{n:128,towns:26,name:'Vast',note:'Weeks from coast to coast. For long campaigns.'}};
+let WN=64,WS=WN*TS,WSZK='small';
+function setWorldSize(k){k=WORLDSZ[k]?k:'small';const n=WORLDSZ[k].n;WSZK=k;if(n===WN)return k;WN=n;WS=WN*TS;
+ if(typeof FP!=='undefined'&&FP)FP.cost=null;                                      // the pathfinder's buffers are sized for the old world
+ return k}
+function worldK(){return WN*WN/4096}                                              // land area relative to the small world
 let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
 /* ---- Saves ----
    G is stored as JSON under SAVEKEY with a version field G.v. Saves written before versioning have no
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=5;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=6;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -34,7 +45,10 @@ const MIGRATE={
     trees (topped up to 4 style trees from its background pool), its old gift tree (old keys stay valid), and the first n tier perks
     of every tree it had n in (the old perks kept their ids' effects); unspent points stay. The sidearm slot eq.b starts empty. */
  4:g=>{const fix=m=>{if(!svObj(m))return;migrateMerc(m)};if(Array.isArray(g.roster))g.roster.forEach(fix);
-  if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});return g}
+  if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});return g},
+ /* v6: the company's identity. Every older save is the small (64x64) world; the company gets the default name and the brass and
+    verdigris banner it always flew. Mercs keep their plain colours (m.colors absent). */
+ 5:g=>{g.wsize='small';if(typeof g.name!=='string'||!g.name.trim())g.name=BANNERDEF.name;g.banner=bannerFix(null,g.name);return g}
 };
 // One merc of a version 4 save to talents (v5). Draws no game randomness: the top-up trees come from a stream seeded by the merc's id.
 function migrateMerc(m){if(Array.isArray(m.trees)&&Array.isArray(m.perks)){if(svObj(m.eq)&&m.eq.b===undefined)m.eq.b=null;return m}   // already in the new shape
@@ -69,12 +83,14 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  m.lvl=clamp(Math.floor(svNum(m.lvl,1)),1,MAXLV);m.xp=Math.max(0,svNum(m.xp,0));m.pp=Math.max(0,Math.floor(svNum(m.pp,0)));m.pend=clamp(Math.floor(svNum(m.pend,0)),0,m.lvl-1);
  if(m.rolls){if(!svObj(m.rolls))m.rolls=null;else for(const k in ROLL)if(!svFin(m.rolls[k])){m.rolls=null;break}}
  m.slot=svObj(m.slot)&&(m.slot.row===0||m.slot.row===1)&&Number.isInteger(m.slot.col)&&m.slot.col>=0&&m.slot.col<(typeof BW==='number'?BW:12)?{row:m.slot.row,col:m.slot.col}:null;   // formation tile; null = default deployment
+ if(m.colors!==undefined){const c=typeof colorsFix==='function'?colorsFix(m.colors):null;if(c)m.colors=c;else delete m.colors}
  m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
 function repairContract(c,nTowns){if(!svObj(c))return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,3);if(!svFin(c.pay)||typeof c.title!=='string')return false;
  if(c.type==='deliver')return Number.isInteger(c.to)&&c.to>=0&&c.to<nTowns;
  if(c.type==='hunt')return !!FACT[c.f]&&svFin(c.x)&&svFin(c.y);return false}
 // Fills defaults in place. Returns '' when the save is usable, 'empty' for a company with nobody left, else what is wrong.
 function repairSave(g){if(!svFin(g.seed))return 'no world seed';
+ g.wsize=WORLDSZ[g.wsize]?g.wsize:'small';g.name=cleanName(g.name);g.banner=bannerFix(g.banner,g.name);
  if(!Array.isArray(g.towns))return 'no towns';g.towns=g.towns.filter(t=>svObj(t)&&svFin(t.x)&&svFin(t.y));if(g.towns.length<2)return 'no towns';
  if(!Array.isArray(g.roster))return 'no roster';if(!g.roster.length)return 'empty';
  g.roster=g.roster.filter(repairMerc);if(!g.roster.length)return 'no readable mercenaries';
@@ -100,13 +116,15 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.dun=null;g.path=[];g.moving=false;g.dest=null;g.tap=null;g.townOpen=false;g.note=typeof g.note==='string'?g.note:null;g.town=Number.isInteger(g.town)&&g.town>=0&&g.town<g.towns.length?g.town:null;
  if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.
+function cleanName(s){s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,NAMEMAX):'';return s||BANNERDEF.name}
+const NAMEMAX=24;
 function readSave(){const raw=storeGet(SAVEKEY);if(raw==null||raw==='')return{state:'none'};let g;
  try{g=JSON.parse(raw)}catch(e){return{state:'corrupt',why:'unreadable data'}}
  if(!svObj(g))return{state:'corrupt',why:'unreadable data'};const v=saveVersion(g);if(v>SAVEVER)return{state:'newer',v};
- try{g=migrateSave(g);const why=repairSave(g);if(why==='empty')return{state:'none'};if(why)return{state:'corrupt',why}}catch(e){return{state:'corrupt',why:String(e&&e.message||e)}}
+ const wk=WSZK;try{setWorldSize(svObj(g)&&WORLDSZ[g.wsize]?g.wsize:'small');g=migrateSave(g);const why=repairSave(g);if(why==='empty')return{state:'none'};if(why)return{state:'corrupt',why}}catch(e){return{state:'corrupt',why:String(e&&e.message||e)}}finally{setWorldSize(wk)}
  return{state:'ok',g,v}}
 function loadSave(){const r=readSave();return r.state==='ok'?r.g:null}          // a loadable campaign, or null
-function saveStatus(){const r=readSave(),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns}return s}
+function saveStatus(){const r=readSave(),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns;s.name=r.g.name;s.banner=r.g.banner;s.wsize=r.g.wsize;s.renown=r.g.renown}return s}
 function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length)return false;G.v=SAVEVER;G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(SAVEKEY,s)}
 function clearSave(){return storeDel(SAVEKEY)}
 // Keeps a copy of a save this version cannot read before a new company replaces it.

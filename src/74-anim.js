@@ -56,13 +56,17 @@ function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
  else if(type==='cast'){const u=d.u;if(!u)return;const s=anOf(u),ab=d.ab||{};if(ab.id==='swap'||ab.swap){anSwapPoll(u,s,anNow(),anSp());return}
   const fx=ab.fx||'';s.next=ab.id==='blink'||fx==='blink'?AN_BLINK:ab.id==='gale'?AN_LEAP:ab.id==='footwork'||fx==='dash'?AN_STEP:ab.dash||fx==='charge'?AN_DASH:ab.tgt==='move'&&ab.leap?AN_LEAP:-1;s.hold=false;
   if(d.t&&d.t!==u)anFace(s,d.t.c-u.c,d.t.r-u.r);else if(d.k>=0&&ab.tgt==='tile')anFace(s,d.k%BW-u.c,((d.k/BW)|0)-u.r);
+  if(ab.reloadW||ab.id==='reload'){anAct(s,3,t,Math.max(1,560*sp),0,0);return}
   if(ab.tgt==='aoe')anAct(s,1,t,260*sp,0,0);else if(!(ab.wpn||ab.id==='shove'||fx==='shove'||ab.tgt==='move'||ab.withdraw)){anAct(s,2,t,380*sp,0,0);s.hold=true}}
  else if(type==='spawn'){const u=d.u;if(!u)return;const s=anOf(u);s.dead=false;s.wd=false;s.c=u.c;s.r=u.r;s.h=anTileH(u.c,u.r);s.mv=false;s.hp=u.hp;s.lag=s.lag0=u.hp;s.arm=u.arm;s.helm=u.helm||0;if(!sp)return;
   s.spT=t;s.spK=u.side===0?0:u.risen?1:2;s.spD=(s.spK===1?620:s.spK===2?420:260)*sp;
   if(s.spK===0){const e=typeof EDGE==='object'&&EDGE?EDGE[0]:BH-1;s.fc=u.c;s.fr=u.r+(e>BH/2?1.4:-1.4);s.fh=s.h;s.mv=true;s.mt0=t;s.mdur=460*sp;s.mk=AN_WALK;s.hop=0;s.wt0=t;anFace(s,0,u.r-s.fr)}}   // a reserve walks in from beyond its own edge
  else if(type==='withdraw'){const u=d.u;if(!u)return;const s=anOf(u);s.wd=true;s.dead=false}
  else if(type==='hit'||type==='miss'){const u=d.u,tg=d.t;if(!u||!tg||u===tg)return;const s=anOf(u),dc=tg.c-u.c,dr=tg.r-u.r,ad=Math.abs(dc)+Math.abs(dr);anFace(s,dc,dr);
-  if(s.hold&&s.act===2){s.adur=Math.max(s.adur,t-s.at0+240*sp)}else anAct(s,1,t,240*sp,ad===1?s.dc:0,ad===1?s.dr:0)}
+  if(t-(s.ffT||-1e9)<900&&type==='hit')return;                                                          // a stray shot's hit on the ally: the shooter already loosed it
+  const ln=ad===1||(ad===2&&(!dc||!dr)&&tg.alive&&u.wpn&&(u.wpn.rng|0)>=2&&!(typeof isRangedW==='function'&&isRangedW(u.wpn)));
+  if(s.hold&&s.act===2){s.adur=Math.max(s.adur,t-s.at0+240*sp)}else anAct(s,1,t,240*sp,ln?s.dc:0,ln?s.dr:0)}
+ else if(type==='ff'){if(d.u)anOf(d.u).ffT=t}
  else if(type==='death'){const tg=d.t;if(!tg)return;const s=anOf(tg);if(!s.dead){s.dead=true;s.deadT=SPEEDF>0?Math.max(t,s.hitT):-1e9}}
  else if(type==='turn'){if(d.u)anOf(d.u).hold=false}}
 /* called by the effects when a blow will visibly land on `tg` at time `at` (ms, same clock as `now`) */
@@ -101,6 +105,7 @@ function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
   else if(t-s.swT<s.swD){const a=(t-s.swT)/s.swD;state='swap';frame=a<.34?0:a<.67?1:2;if(anN('swap')<3)state='idle',frame=0}
   else if(s.act&&t-s.at0<s.adur){const a=(t-s.at0)/s.adur;
    if(s.act===1){n=anN('attack');state='attack';frame=Math.min(n-1,(a*n)|0);if(s.lc||s.lr){const L=anLunge(a);gx+=s.lc*L;gy+=s.lr*L}}
+   else if(s.act===3){n=anN('reload');state=n>1?'reload':'cast';frame=Math.min(n-1,((t-s.at0)*anFps('reload')/1000/Math.max(sp,.45))|0)%n}
    else{n=anN('cast');state='cast';frame=Math.min(n-1,((t-s.at0)*anFps('cast')/1000/Math.max(sp,.45))|0)}}
   else if(sp&&s.gath){n=anN('cast');state='cast';frame=Math.min(n-1,1);lift+=((t/120)|0)&1?2:0}                       // gathering a telegraphed attack: arms raised, trembling
   else if(sp&&s.run){n=anN('walk');state='walk';frame=((t*14/1000+s.ph*n)|0)%n;gx+=(((t/90)|0)&1?.03:-.03)}               // fleeing: runs on the spot, shaking, until its turn takes it away
@@ -137,7 +142,8 @@ function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic;let n=0,tint=nu
     const c=anSprite('st-'+k);if(!c)continue;let dup=false;for(let j=0;j<n;j++)if(ic[j]===c)dup=true;if(!dup)ic[n++]=c}
   for(let i=0;i<L.length;i++){const k=L[i].key,pr=AN_PRI[k]!=null?AN_PRI[k]:6;if(AN_TINT[k]&&pr<tp){tp=pr;tint=AN_TINT[k]}}}
  s.icn=n;s.tint=tint}
-function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;const s=anOf(u),t=anNow(),big=!!o.big,w=big?22:16,rm=typeof reduced!=='undefined'&&reduced;
+function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;const s=anOf(u),t=anNow(),big=!!o.big,w=big?22:16,rm=typeof reduced!=='undefined'&&reduced,
+  noBars=u.side===0&&(o.bars===false||(typeof SET!=='undefined'&&SET&&SET.allyBars===false));
  x=Math.round(x);y=Math.round(y);const arm=u.armMax>0,helm=u.helmMax>0,bh=4+(arm?2:0)+(helm?2:0),x0=x-(w>>1)-1,top=y-2-bh,foe=u.side!==0;
  if(o.tgt){const hw=big?20:12,hh=big?46:30,p=rm?0:((t/170)|0)&1,l=x-hw-1-p,r=x+hw+p,a=y+1-p,b=y+hh-1+p,L=big?6:4;
   q.fillStyle=PAL['0'];q.fillRect(l-1,a-1,L+2,3);q.fillRect(l-1,a-1,3,L+2);q.fillRect(r-L,a-1,L+2,3);q.fillRect(r-1,a-1,3,L+2);
@@ -145,7 +151,7 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
   q.fillStyle=PAL[p?'e':'h'];q.fillRect(l,a,L,1);q.fillRect(l,a,1,L);q.fillRect(r-L+1,a,L,1);q.fillRect(r,a,1,L);
   q.fillRect(l,b,L,1);q.fillRect(l,b-L+1,1,L);q.fillRect(r-L+1,b,L,1);q.fillRect(r,b-L+1,1,L)}
  // frame with clipped corners; rows from the top: head armor (brass), body armor (steel), hitpoints
- q.fillStyle=PAL['0'];q.fillRect(x0+1,top,w,bh);q.fillRect(x0,top+1,w+2,bh-2);
+ if(!noBars){q.fillStyle=PAL['0'];q.fillRect(x0+1,top,w,bh);q.fillRect(x0,top+1,w+2,bh-2);
  const hx=x0+1,hy=top+bh-3,hp=Math.max(0,Math.min(u.hpMax,s.hp)),hw=hp>0?Math.max(1,Math.round(w*hp/u.hpMax)):0,lw=Math.min(w,Math.round(w*Math.max(0,s.lag)/u.hpMax));
  if(helm){const aw=s.helm>0?Math.max(1,Math.round(w*Math.min(1,s.helm/u.helmMax))):0;q.fillStyle=PAL['3'];q.fillRect(hx,top+1,w,1);if(aw){q.fillStyle=PAL['c'];q.fillRect(hx,top+1,aw,1);q.fillStyle=PAL['e'];q.fillRect(hx+aw-1,top+1,1,1)}}
  if(arm){const ay=top+(helm?3:1),aw=s.arm>0?Math.max(1,Math.round(w*Math.min(1,s.arm/u.armMax))):0;q.fillStyle=PAL['3'];q.fillRect(hx,ay,w,1);if(aw){q.fillStyle=PAL['q'];q.fillRect(hx,ay,aw,1);q.fillStyle=PAL['r'];q.fillRect(hx+aw-1,ay,1,1)}}
@@ -154,7 +160,7 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  if(hw){const low=hp<u.hpMax*.3&&!rm&&((t/260)|0)&1;q.fillStyle=PAL[foe?'h':'6'];q.fillRect(hx,hy,hw,1);q.fillStyle=PAL[foe?'g':'5'];q.fillRect(hx,hy+1,hw,1);
   if(low){q.fillStyle=PAL['r'];q.fillRect(hx,hy,hw,1)}
   q.fillStyle=PAL[foe?'f':'7'];for(let i=4;i<hw;i+=4)q.fillRect(hx+i-1,hy+1,1,1)}
- if(u.shpMax>0&&u.shield){const sw=Math.max(1,Math.round(5*u.shp/u.shpMax));q.fillStyle=PAL['0'];q.fillRect(x0+w+2,top+bh-7,3,7);q.fillStyle=PAL['3'];q.fillRect(x0+w+3,top+bh-6,1,5);q.fillStyle=PAL[u.shp<u.shpMax*.4?'E':'k'];q.fillRect(x0+w+3,top+bh-1-sw,1,sw)}   // shield hitpoints: a wooden pip beside the bars
+ if(u.shpMax>0&&u.shield){const sw=Math.max(1,Math.round(5*u.shp/u.shpMax));q.fillStyle=PAL['0'];q.fillRect(x0+w+2,top+bh-7,3,7);q.fillStyle=PAL['3'];q.fillRect(x0+w+3,top+bh-6,1,5);q.fillStyle=PAL[u.shp<u.shpMax*.4?'E':'k'];q.fillRect(x0+w+3,top+bh-1-sw,1,sw)}}   // shield hitpoints: a wooden pip beside the bars
  // morale flag and status icons (16x16 native, outlined), packed tighter when there are many
  if(s.rev<0)anStRefresh(u,s,t);
  const n=s.icn>3?3:s.icn;let ty=top;

@@ -28,13 +28,17 @@ const eff=(u,k)=>u[k]+buffSum(u,k);
      'morale' {u,from,to}    a unit's morale state changed (0 fleeing .. 4 confident, see MORN)
      'injury' {t,id}         a merc took injury INJ[id]
      'blocked' {u,t}         u has no line of fire to t
-     'ff' {u,t}              u's missed shot strays into its own ally t (the 'hit' on t follows)
+     'ff' {u,t,from}         u's missed shot at `from` strays into its own ally t (the 'hit' on t follows). The shot is decided
+                             before it flies: B.shots gets ONE projectile, from u to t; the 'miss' on `from` carries stray:t
      'spawn' {u}             a unit entered mid-battle (reserve, summon)
      'withdraw' {u,why}      a unit left the field alive: why is 'withdraw' | 'retreat' | 'fled'
      'status' {t,key,n}      t gained STATUS[key] (n turns, or shield damage for 'splitshield')
    Talents and arms:
      'swap' {u,from,to}      u swapped weapons: from / to are the weapon objects (u.wpn is now `to`; u.wid the item id in hand for mercs)
      'shield' {u,raised}     u's shield went up (raised true) or onto its back (slung) with the swap
+   Arms update:
+     'reload' {u}            u reloaded the weapon in hand (u.loaded is now true)
+     'kb' {t,pull:1}         t was dragged one tile toward the attacker (a hook)
    A throwing FX.on never breaks the rules. */
 const FX={on:null,cap:120,err:null,
  clock(){return typeof now==='number'?now:0},
@@ -67,8 +71,15 @@ function buildEnemies(f,budget,fixed){const list=(fixed||[]).slice(),U=FACT[f].u
    gone ('withdraw'|'retreat'|'fled' once it has left the field alive), c, r, id, sx, sy. Company units also carry m (the merc);
    enemies def (their EN entry) and f (faction). initUnit() fills whatever a hand-made unit lacks.
    Arms: slung (an intact shield on the back while a two-handed weapon is in hand: shield is false then), swapFree (this turn's swap costs nothing).
-   Mercs: hand ('w' main | 'b' sidearm), wid (item id in hand, null = fists), alt (the other item id or null), ld (the calc() the unit's numbers
-   came from). Enemies: wpnAlt (their sidearm as a weapon object, from def.side) or null; wid/alt stay null. */
+   Mercs: hand ('w' main | 'b' sidearm), wid (item id in hand, null = fists), alt (the other item id or null), cld (the calc() the unit's numbers
+   came from). Enemies: wpnAlt (their sidearm as a weapon object, from def.side) or null; wid/alt stay null.
+   Reload: loaded (bool: the weapon in hand can fire; always true for weapons without reload), ld {weapon key: loaded} for every weapon
+   the unit carries (wkey(w): the item id, else '@'+name), so a swapped-away crossbow keeps its bolt. Everyone starts loaded.
+   Shields (mercs): shw (Shield wall bonus), spike ([min,max] Spiked bash roll or null), from the shield item. */
+const wkey=w=>w?w.id||'@'+(w.n||w.wt||'w'):'@fist';
+// Every weapon the unit carries starts the battle loaded.
+function initLoad(u){u.ld={};for(const w of [u.wpn,u.m?altWeapon0(u):u.wpnAlt])if(w&&w.reload)u.ld[wkey(w)]=true;u.loaded=true;return u}
+function altWeapon0(u){const m=u.m,id=m&&m.eq&&(u.hand==='b'?m.eq.w:m.eq.b);if(!id||!ITEMS[id]||ITEMS[id].k!=='w')return null;return calc(m,{hand:u.hand==='b'?'w':'b'}).wpn}
 const EDGE=[BH-1,0];                                                    // each side's own edge row: withdrawing and fleeing units leave from it
 const FREEAB={id:'aoo',n:'aoo',wpn:1,mult:1,melee:1};                   // the free attack: zone of control, riposte, spear wall, a retreat
 function initUnit(u){const d=(k,v)=>{if(u[k]===undefined||u[k]===null)u[k]=v};
@@ -77,16 +88,21 @@ function initUnit(u){const d=(k,v)=>{if(u[k]===undefined||u[k]===null)u[k]=v};
  d('buffs',[]);d('st',{});d('alive',true);d('shield',false);d('shp',0);d('shpMax',u.shp);d('name','Unit');return u}
 function mkPlayerUnit(m){const s=calc(m),res={},c=armorCond(m),sh=s.shield;for(const k in s.res)res[k]={cur:s.res[k].max,max:s.res[k].max,regen:s.res[k].regen};
  const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m));
- return initUnit({side:0,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init,ms:s.ms,rs:s.rs,md:s.md,rd:s.rd,brv:s.brv,
+ return initLoad(initUnit({side:0,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init,ms:s.ms,rs:s.rs,md:s.md,rd:s.rd,brv:s.brv,
   wpn:s.wpn,abs:s.abs.slice(),res,flags:s.flags,dmgB:s.dmg,buffs:[],st:{},alive:true,shield:!!sh&&sh.raised,slung:!!sh&&!sh.raised,shp:sh?sh.hp:0,shpMax:sh?sh.hp:0,shb:sh?{md:sh.md,rd:sh.rd}:null,
-  hand:'w',wid:s.wid,alt:s.alt,ld:s,back:s.wpn.wt==='bow'||caster})}
+  hand:'w',wid:s.wid,alt:s.alt,cld:s,back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null}))}
 /* Enemy fields read from EN[id] beyond the old ones (all optional): helm (head armor; default 60% of arm), brv (resolve; default from xp),
    fearless (never tests morale; default: mindless undead and bosses), shield (hitpoints, or {hp,md,rd}: md/rd are what breaking it removes), noHead. */
+// An enemy's weapon: its own d, from EN[id].w (an item: family, range, reach, reload, crush, to-hit) or a plain blade / bow (rng).
+function enemyWpn(d){const it=d.w&&ITEMS[d.w]&&ITEMS[d.w].k==='w'?ITEMS[d.w]:null;
+ if(!it)return{n:'',wt:d.rng?'bow':'sword',d:d.d.slice(),ap:4,fat:0,rng:d.rng||1,ign:.25};
+ const w={n:it.n,wt:it.wt,d:d.d.slice(),ap:it.ap,fat:0,rng:d.rng||it.rng||1,ign:it.ign!=null?it.ign:.25,id:d.w,sk:it.sk};for(const k of ['hit','two','crush','stun','look','shot','fx'])if(it[k])w[k]=it[k];
+ if(it.reload)w.reload=Object.assign({},it.reload);return w}
 function mkEnemy(id,f){const d=EN[id],sh=d.shield?typeof d.shield==='object'?d.shield:{hp:d.shield,md:10,rd:10}:null;
- return initUnit({side:1,def:d,f,name:d.n,lvl:1,hp:d.hp,hpMax:d.hp,arm:d.arm,armMax:d.arm,helm:d.helm!=null?d.helm:Math.round(d.arm*.6),apMax:d.ap||9,ap:9,fat:0,fatMax:9999,init:d.init,ms:d.ms,rs:d.rs||0,md:d.md,rd:d.rd,
+ return initLoad(initUnit({side:1,def:d,f,name:d.n,lvl:1,hp:d.hp,hpMax:d.hp,arm:d.arm,armMax:d.arm,helm:d.helm!=null?d.helm:Math.round(d.arm*.6),apMax:d.ap||9,ap:9,fat:0,fatMax:9999,init:d.init,ms:d.ms,rs:d.rs||0,md:d.md,rd:d.rd,
   brv:d.brv!=null?d.brv:clamp(Math.round(30+d.xp/10),30,85),fearless:d.fearless!=null?!!d.fearless:!!(d.boss||(f==='undead'&&!d.spell)),noHead:!!d.noHead,
-  wpn:{n:'',wt:d.rng?'bow':'sword',d:d.d,ap:4,fat:0,rng:d.rng||1,ign:.25},abs:[],res:{},flags:{},dmgB:0,buffs:[],st:{},alive:true,shield:!!sh,shp:sh?sh.hp:0,shb:sh?{md:sh.md||0,rd:sh.rd||0}:null,
-  spell:d.spell,kbN:d.kb||0,kbCh:d.kbCh||0,onhit:d.onhit,back:!!(d.rng||d.spell),wid:null,alt:null,wpnAlt:enemySide(d)})}
+  wpn:enemyWpn(d),abs:[],res:{},flags:{},dmgB:0,buffs:[],st:{},alive:true,shield:!!sh,shp:sh?sh.hp:0,shb:sh?{md:sh.md||0,rd:sh.rd||0}:null,
+  spell:d.spell,kbN:d.kb||0,kbCh:d.kbCh||0,onhit:d.onhit,back:!!(d.rng||d.spell||(d.w&&isRangedW(ITEMS[d.w]))),wid:null,alt:null,wpnAlt:enemySide(d)}))}
 // An enemy's sidearm (def.side: an item id, or {n, wt?, d:[min,max], ap?, rng?, ign?, hit?, stun?, two?}) as a weapon object, or null.
 function enemySide(d){const x=d&&d.side;if(!x)return null;const it=typeof x==='string'?ITEMS[x]:x;if(!it||!Array.isArray(it.d))return null;
  return{n:it.n||'',wt:it.wt||'dagger',d:it.d.slice(),ap:it.ap||4,fat:typeof x==='string'?it.fat||0:it.fat||0,rng:it.rng||1,ign:it.ign!=null?it.ign:.25,hit:it.hit||0,stun:it.stun||0,two:it.two?1:0,id:typeof x==='string'?x:null}}
@@ -137,7 +153,7 @@ function spawnUnit(u){const b=B;if(!b||!u)return null;initUnit(u);const free=k=>
 // The statuses and timed buffs a unit carries now: [{key, n (name), turns}], keys from STATUS.
 function unitStatuses(u){const out=[],add=(key,turns)=>{if(!out.some(x=>x.key===key))out.push({key,n:STATUS[key]?STATUS[key].n:key,turns:turns||0})};
  for(const k in u.st)if(u.st[k]>0)add(k,u.st[k]);if(u.rooted&&!(u.st.root>0)&&!(u.st.webbed>0))add('root',0);if(u.dazed&&!(u.st.daze>0))add('daze',0);
- for(const x of u.buffs)add(x.key&&STATUS[x.key]?x.key:x.indom?'indom':'buff',x.dur);if(u.shpMax>0&&!u.shield&&!u.slung)add('splitshield',0);if(u.slung)add('slung',0);if(u.weakened&&!(u.st.weak>0))add('weak',0);return out}
+ for(const x of u.buffs)add(x.key&&STATUS[x.key]?x.key:x.indom?'indom':'buff',x.dur);if(u.shpMax>0&&!u.shield&&!u.slung)add('splitshield',0);if(u.slung)add('slung',0);if(u.weakened&&!(u.st.weak>0))add('weak',0);if(u.wpn&&u.wpn.reload&&u.loaded===false)add('unloaded',0);return out}
 const statusList=unitStatuses;                                           // alias: the same list under a name no other file defines
 // Gives t status key for n turns (never shortens one it already has) and tells the scene.
 function addStatus(t,key,n){if(!t.alive||!(n>0))return;const had=t.st[key]||0;t.st[key]=Math.max(had,n);if(t.st[key]>had)FX.emit('status',{t,key,n:t.st[key]})}
@@ -185,7 +201,7 @@ function leaveField(u,why){if(!B||!u.alive)return false;u.alive=false;u.gone=why
    resolveBattle() must count them as survivors, not as casualties. */
 function battleSync(){const b=B;if(!b||b.synced)return;b.synced=true;for(const u of b.units)if(u.side===0&&u.m&&(u.alive||u.gone||u.down))syncMerc(u)}
 // The foe that punishes u for turning its back: adjacent, able, armed for melee and not yet used this round.
-const canFree=e=>e.alive&&!e.st.stun&&e.mor!==0&&e.wpn.wt!=='bow';
+const canFree=e=>e.alive&&!e.st.stun&&e.mor!==0&&!isRangedW(e.wpn);
 function zocFoe(u){return B.units.find(e=>e.side!==u.side&&mdist(e,u)===1&&canFree(e)&&!e.aoo)||null}
 const FREESAY={zoc:(e,u)=>`${e.name} strikes as ${u.name} turns away.`,riposte:(e,u)=>`${e.name} ripostes.`,spearwall:(e,u)=>`${e.name} meets ${u.name} with the spear.`,retreat:(e,u)=>`${e.name} cuts at ${u.name}'s back.`};
 // One free attack by e on u (zone of control, riposte, spear wall, retreat). Returns true when it hit.
@@ -213,12 +229,19 @@ function callReserve(m,k){const b=B;if(!canCallReserve())return null;const i=b.r
  const u=mkPlayerUnit(b.reserves[i]);u.c=k%BW;u.r=(k/BW)|0;if(!spawnUnit(u))return null;b.reserves.splice(i,1);b.resRound=b.round;u.ap=0;say(`${u.name} joins the fight.`);FX.ui();return u}
 /* ---- Abilities ---- */
 function abilityInfo(u,id){const w=u.wpn,fl=u.flags||{},bowR=w.rng+(w.wt==='bow'?(fl.eagle?1:0)+(fl.rngB||0):0);
- if(id==='attack')return{id,n:w.wt==='bow'?'Shoot':'Attack',ap:w.ap,fat:w.fat||0,rng:bowR,tgt:'enemy',wpn:1,mult:1};
- const a=Object.assign({id},AB[id]);if(a.wpn){if(a.ap==null)a.ap=w.ap;if(a.rng==null)a.rng=bowR}if(a.swapW&&u.swapFree)a.ap=0;return a}
+ if(id==='attack'){const o={id,n:isRangedW(w)?'Shoot':'Attack',ap:w.ap,fat:w.fat||0,rng:bowR,tgt:'enemy',wpn:1,mult:1};if(w.fx)o.fx=w.fx;return o}
+ const a=Object.assign({id},AB[id]);if(a.wpn){if(a.ap==null)a.ap=w.ap;if(a.rng==null)a.rng=bowR}if(a.swapW&&u.swapFree)a.ap=0;
+ if(a.reloadW&&w.reload){a.ap=w.reload.ap;a.fat=w.reload.fat}
+ if(a.spikeD)a.dmgD=(u.spike||[10,18]).slice();
+ if(a.buff&&a.buff.key==='shieldwall'&&u.shw)a.buff=Object.assign({},a.buff,{md:(a.buff.md||0)+u.shw,rd:(a.buff.rd||0)+u.shw});
+ return a}
 /* ---- Arms: the ranged lock and the weapon swap ----
-   A ranged weapon attack is an ability that uses a bow: a.needs 'bow', or a weapon ability (a.wpn) with a bow in hand. Spells are not.
+   A ranged weapon attack is an ability that uses a ranged weapon (RANGEDWT: bow, crossbow, flintlock): a.needs one of them, or a weapon
+   ability (a.wpn) with one in hand. Spells are not. Reload weapons (wpn.reload) must also be loaded to fire (canFire); reloading is never locked.
    rangedLocked(u): an able foe (alive, not fleeing, not stunned) stands next to u, so it cannot shoot (perk flag noLock lifts it). */
-function isRangedAtk(u,a){return!!a&&!a.magic&&(a.needs==='bow'||(!!a.wpn&&u.wpn.wt==='bow'))}
+function isRangedAtk(u,a){return!!a&&!a.magic&&(RANGEDWT.includes(a.needs)||(!!a.wpn&&isRangedW(u.wpn)))}
+// False when a would fire a reload weapon that is not loaded.
+const canFire=(u,a)=>!(u.wpn&&u.wpn.reload&&u.loaded===false&&isRangedAtk(u,a));
 function rangedLocked(u){if(!B||!u||!u.alive||(u.flags&&u.flags.noLock))return false;for(const e of B.units)if(e.alive&&e.side!==u.side&&e.mor!==0&&!(e.st&&e.st.stun)&&Math.abs(e.c-u.c)+Math.abs(e.r-u.r)===1)return true;return false}
 // The other weapon as a weapon object (what u would hold after a swap), or null when it has nothing to swap to.
 function altWeapon(u){if(!canSwap(u))return null;return u.m?calc(u.m,{hand:u.hand==='b'?'w':'b'}).wpn:u.wpnAlt}
@@ -227,39 +250,47 @@ function canSwap(u){return!!(u&&u.alive&&(u.m?!!(u.hand&&u.m.eq&&u.m.eq.b&&u.wid
 /* swapWeapons(u): exchanges the weapon in hand for the other one, as the swap ability does (no AP paid here). Every number that came
    from the old weapon (weapon-tree perks, skills, damage, range) follows the new one; hitpoints, armor, fatigue, statuses, buffs and
    injuries stay. A shield is raised with a one-handed weapon or none in hand and slung with a two-handed one. Returns true when swapped. */
-function swapWeapons(u){if(!canSwap(u))return false;const from=u.wpn;
+function swapWeapons(u){if(!canSwap(u))return false;const from=u.wpn;u.ld=Object.assign({},u.ld);if(from&&from.reload)u.ld[wkey(from)]=u.loaded!==false;   // a fresh object: AI look-aheads restore u by a shallow copy
  if(u.m){const hand=u.hand==='b'?'w':'b',s=calc(u.m,{hand}),ld=calc(u.m,{hand:u.hand||'w'}),core=(x,k)=>x[k]-(x.shield&&x.shield.raised&&(k==='md'||k==='rd')?x.shield[k]:0);
   for(const k of ['ms','rs','md','rd','init','brv'])u[k]+=core(s,k)-core(ld,k);
   const dh=s.hp-ld.hp;if(dh){u.hpMax=Math.max(1,u.hpMax+dh);if(dh>0)u.hp+=dh;u.hp=Math.min(u.hp,u.hpMax)}u.fatMax=Math.max(30,u.fatMax+s.fat-ld.fat);u.dmgB=(u.dmgB||0)+s.dmg-ld.dmg;u.apMax+=s.ap-ld.ap;
   const shAbs=id=>AB[id]&&AB[id].shield,keep=u.abs.filter(id=>!ld.abs.includes(id));u.abs=s.abs.filter(id=>!shAbs(id)).concat(keep.filter(id=>!s.abs.includes(id)&&!shAbs(id)));
   for(const k in s.res)if(!u.res[k])u.res[k]={cur:0,max:s.res[k].max,regen:s.res[k].regen};
-  u.flags=s.flags;u.wpn=s.wpn;u.hand=hand;u.wid=s.wid;u.alt=s.alt;u.ld=s}
+  u.flags=s.flags;u.wpn=s.wpn;u.hand=hand;u.wid=s.wid;u.alt=s.alt;u.cld=s}
  else{const w=u.wpn;u.wpn=u.wpnAlt;u.wpnAlt=w;u.abs=u.abs.filter(id=>!(AB[id]&&AB[id].shield))}
  const intact=u.shpMax>0&&u.shp>0&&(u.shield||u.slung),up=!u.wpn.two;
  if(intact&&u.shield&&!up){u.shield=false;u.slung=true;if(u.shb){u.md-=u.shb.md;u.rd-=u.shb.rd}dropBuff(u,'shieldwall');FX.emit('shield',{u,raised:false})}
  else if(intact&&u.slung&&up){u.shield=true;u.slung=false;if(u.shb){u.md+=u.shb.md;u.rd+=u.shb.rd}FX.emit('shield',{u,raised:true})}
- if(u.shield&&u.m){const sh=ITEMS[u.m.eq.s];for(const id of (sh&&sh.sk)||[])if(AB[id]&&!u.abs.includes(id))u.abs.push(id)}
+ if(u.shield&&u.m){const sh=ITEMS[u.m.eq.s];for(const id of ((sh&&sh.sk)||[]).concat(u.cld.abs.filter(id=>AB[id]&&AB[id].shield)))if(AB[id]&&!u.abs.includes(id))u.abs.push(id)}   // shield skills and shield perks come back with the shield
+ {const k=wkey(u.wpn);u.loaded=!u.wpn.reload||u.ld[k]!==false}
  if(!u.m&&u.def&&Array.isArray(u.def.abs))for(const id of u.def.abs)if(AB[id]&&AB[id].shield&&u.shield&&!u.abs.includes(id))u.abs.push(id);
  float(u,u.wpn.n||'Fists','#e9e0c9');FX.emit('swap',{u,from,to:u.wpn});return true}
 // Why u cannot use a now ('' when it can): for the HUD. Mirrors canUse().
 function useBlock(u,a){if(!u||!a)return'Unavailable';if(u.mor===0)return'Fleeing';if(a.swapW&&!canSwap(u))return'No other weapon';
  if(a.needs&&u.wpn.wt!==a.needs)return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||a.needs+' in hand');if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
- if(a.noBow&&u.wpn.wt==='bow')return'Not with a bow in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
- if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
+ if(a.noBow&&isRangedW(u.wpn))return'Not with a ranged weapon in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
+ if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(!canFire(u,a))return'Not loaded: reload first';
+ if(a.reloadW&&!u.wpn.reload)return'Nothing to reload';if(a.reloadW&&u.loaded!==false)return'Already loaded';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
  if(u.ap<a.ap)return'Not enough AP';if(u.fat+a.fat>u.fatMax)return'Too tired';return''}
 function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(a.needs&&u.wpn.wt!==a.needs)return false;
  if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;
- if(a.noBow&&u.wpn.wt==='bow')return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;return true}
-function payFor(u,a){u.ap-=a.ap;u.fat+=a.fat;if(a.cost)u.res[a.cost[0]].cur-=a.cost[1];if(a.once)(u.used||(u.used={}))[a.id]=1;if(a.swapW)u.swapFree=false}
+ if(a.noBow&&isRangedW(u.wpn))return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;if(!canFire(u,a))return false;
+ if(a.reloadW&&(!u.wpn.reload||u.loaded!==false))return false;return true}
+function payFor(u,a){u.ap-=a.ap;u.fat+=a.fat;if(a.cost)u.res[a.cost[0]].cur-=a.cost[1];if(a.once)(u.used||(u.used={}))[a.id]=1;if(a.swapW)u.swapFree=false;
+ if(u.wpn&&u.wpn.reload&&isRangedAtk(u,a))setLoaded(u,false)}                           // firing a reload weapon spends its load
+// Loads or unloads the weapon in hand (u.loaded, and its entry in u.ld).
+function setLoaded(u,v){u.loaded=!!v;u.ld=Object.assign({},u.ld);u.ld[wkey(u.wpn)]=!!v}
 /* ---- Line of sight and cover ----
    shotKind: 0 a melee blow (adjacent, a free attack, a dash), 1 a reach weapon striking 2+ tiles away (a pike over the front
    rank: walls stop it, bodies do not), 2 a shot (bows, spells, aura waves).
    losInfo(u,t,a?) -> {blocked, cover, ff}. The line runs over the grid from one tile to the other (the same tiles both ways).
    An obstacle, or ground more than 1 step higher than both ends, blocks it. Every unit standing in it is 1 step of cover
    (at most 2; one step less when the shooter stands higher than the target), worth -COVERPEN to hit each. ff lists the
-   shooter's own side in the line: a shot that misses strays into one of them with chance FFCH, for FFDMG of its damage. */
-function shotKind(u,t,a){const d=mdist(u,t);if(d<=1||(a&&(a.melee||a.dash)))return 0;return a&&a.wpn&&!a.magic&&u.wpn.wt!=='bow'&&u.wpn.rng>=d?1:2}
+   shooter's own side in the line (an ally standing right in front of the shooter included): a shot that misses strays into one
+   of them with chance FFCH, for FFDMG of its damage (every shot: bows, crossbows, firearms, gift arrows, spells, aura waves).
+   A reach weapon (polearm, greatsword, pike: kind 1) strikes over the tile between, ally or empty, but not through a wall. */
+function shotKind(u,t,a){const d=mdist(u,t);if(d<=1||(a&&(a.melee||a.dash)))return 0;return a&&a.wpn&&!a.magic&&!isRangedW(u.wpn)&&u.wpn.rng>=d?1:2}
 function losInfo(u,t,a){const out={blocked:false,cover:0,ff:[]},kind=shotKind(u,t,a);if(!kind||!B)return out;
  let p=u,q=t;if(key(t.c,t.r)<key(u.c,u.r)){p=t;q=u}
  const dc=q.c-p.c,dr=q.r-p.r,n=Math.max(Math.abs(dc),Math.abs(dr)),top=Math.max(T(u).h,T(t).h)+1;let cov=0;
@@ -275,12 +306,12 @@ const morOf=u=>MORFX[u.mor==null?3:u.mor]||MORFX[3];
 const STBONUS={marked:15},WEAKDMG=.25;
 function hasAdj(x,side,not){for(const o of B.units)if(o.alive&&o!==x&&o!==not&&o.side===side&&Math.abs(o.c-x.c)+Math.abs(o.r-x.r)===1)return true;return false}
 function bestAdj(x,k){let v=0;for(const o of B.units)if(o.alive&&o!==x&&o.side===x.side&&o.flags&&o.flags[k]>v&&Math.abs(o.c-x.c)+Math.abs(o.r-x.r)===1)v=o.flags[k];return v}
-const isDuel=(u,a)=>!a.magic&&!u.wpn.two&&u.wpn.wt!=='bow'&&!u.shield;
+const isDuel=(u,a)=>!a.magic&&!u.wpn.two&&!isRangedW(u.wpn)&&!u.shield;
 function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
- if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(u.wpn.wt==='bow'?eff(u,'rs'):eff(u,'ms'))+(u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd')}
+ if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(isRangedAtk(u,a)?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd')}
  let ch=sk-df+(a.hit||0);const hd=T(u).h-T(t).h;ch+=hd>0?10:hd<0?-10:0;if(d>2&&!a.melee&&!fu.longShot)ch-=(d-2)*2;if(t.st.stun)ch+=15;if(t.st.webbed)ch+=10;if(t.st.marked>0)ch+=STBONUS.marked;
  if(ft.adjDef||ft.loneDef){if(hasAdj(t,t.side))ch-=ft.adjDef||0;else ch-=ft.loneDef||0}
- if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}
+ if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
  if(B.auraOn){ch+=bestAdj(u,'cmd');if(!melee)ch-=bestAdj(t,'guard')}
  ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;return clamp(Math.round(ch),5,95)}
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
@@ -291,24 +322,28 @@ function auraScan(){if(B)B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cmd
    dmgAfter(u,t,a,dmg,o): the rolled damage (weapon roll x mult, or the spell roll with its bonuses) after every multiplier:
    x(1 + damage buffs + dmgB + the talent bonuses that apply) -> x(1 + executioner/vsHurt) below half health -> x splash -> x1.1 from
    higher ground -> round(x max(.2, 1 - damage reduction)). */
-function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=u.wpn.wt==='bow',melee=mdist(u,t)<=1;
+function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
  if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
  if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
 function drOf(u,t,a){let dr=buffSum(t,'dr');const f=t.flags||{};if(f.forged&&t.arm>0)dr+=.15;if(f.drB)dr+=f.drB;if(f.lastStand&&t.hp<t.hpMax/2)dr+=f.lastStand;
- if(f.drRanged||f.drMelee){if(shotKind(u,t,a)===2)dr+=f.drRanged||0;else dr+=f.drMelee||0}return dr}
+ if(f.drRanged||f.drMelee){if(shotKind(u,t,a)===2)dr+=f.drRanged||0;else dr+=f.drMelee||0}
+ if(t.shield){if(f.shieldDr)dr+=f.shieldDr;if(f.deflect&&shotKind(u,t,a)===2)dr+=f.deflect}return dr}
 function dmgAfter(u,t,a,dmg,o){const f=u.flags||{};dmg*=1+buffSum(u,'dmg')+(u.dmgB||0)+dmgBonus(u,t,a);
  const hb=(f.exec?.25:0)+(f.vsHurt||0)+(a.vsHurt||0);if(hb&&t.hp<t.hpMax/2)dmg*=1+hb;if(o&&o.splash)dmg*=o.splash;if(T(u).h>T(t).h)dmg*=1.1;
  return Math.round(dmg*Math.max(.2,1-drOf(u,t,a)))}
 const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0?u.lvl*.03:0));
-const ignOf=(u,a)=>a.magic?a.ign||.5:(u.wpn.ign||.2)+(a.ignB||0)+(u.flags&&u.flags.ignB||0);
-const stunOf=(u,a)=>a.magic||a.nostun?0:u.wpn.stun||0;
+const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)+(u.flags&&u.flags.ignB||0);
+// The damage roll of a weapon ability (a Spiked bash rolls the shield's spike), and the armor crushing of the blow (hammers).
+const rollOf=(u,a)=>a.dmgD||u.wpn.d;
+const crushOf=(u,a)=>a.magic||a.noDmg?0:(a.dmgD?0:u.wpn.crush||0)+(a.crushB||0);
+const stunOf=(u,a)=>a.magic||a.nostun||a.dmgD?0:u.wpn.stun||0;
 const bleedOf=(u,a)=>Math.max(a.bleed||0,a.wpn&&!a.magic&&u.flags&&u.flags.bleedOn||0);
 const splitMult=(u,a)=>(a.smult||1)*(1+(u.flags&&u.flags.splitB||0));
 // Undying: a killing blow leaves t at 1 hitpoint, once per battle.
 const canUndy=t=>!!(t.flags&&t.flags.undying&&!t.undy);
 // Where an Aura dash would land: the free tile next to t that is closest to u (null if none).
 function dashSpot(u,t){let best=null,bd=1e9;for(const [x,y] of DIRS){const nc=t.c+x,nr=t.r+y;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr))continue;const d=Math.abs(nc-u.c)+Math.abs(nr-u.r);if(d<bd){bd=d;best=[nc,nr]}}return best}
-function validTargets(u,a){const out=new Set();if(isRangedAtk(u,a)&&rangedLocked(u))return out;
+function validTargets(u,a){const out=new Set();if(isRangedAtk(u,a)&&rangedLocked(u)||!canFire(u,a))return out;
  if(a.tgt==='enemy')B.units.forEach(t=>{if(t.alive&&t.side!==u.side&&mdist(u,t)<=a.rng&&!(a.dash&&mdist(u,t)>1&&u.wpn.rng<mdist(u,t)&&!dashSpot(u,t))&&!(a.needShieldT&&!t.shield)&&!losInfo(u,t,a).blocked)out.add(key(t.c,t.r))});
  else if(a.tgt==='ally')B.units.forEach(t=>{if(t.alive&&t.side===u.side&&mdist(u,t)<=a.rng&&!(a.noSelf&&t===u))out.add(key(t.c,t.r))});
  else if(a.tgt==='move')for(let r=0;r<BH;r++)for(let c=0;c<BW;c++){const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(!d||d>a.rng)continue;const t=B.tiles[key(c,r)];if(t.t==='block'||unitAt(c,r))continue;if(!a.leap&&t.h-T(u).h>1)continue;out.add(key(c,r))}
@@ -324,17 +359,20 @@ function killUnit(t,src,head){t.hp=0;t.alive=false;if(t.side===0&&t.m){t.down=rn
  for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25,1);else if(d<=3)moraleCheck(x,-10,1)}}
 /* hurt(t,dmg,ign,src,o): applies damage. The armor of the struck location soaks first (o.head: the helmet, else body armor);
    `ign` is the share that pierces it; o.pierce skips armor altogether; head hits do HEADMULT to hitpoints.
+   o.crush (hammers): the armor loses round(dmg x (1 + crush)) instead of dmg (capped by what it has); what it soaks stays dmg.
    src is the attacker (null for terrain, burn and bleeding); o.loc marks a weapon or spell hit (it reports its location and can injure).
    Returns the hitpoints taken. */
 function hurt(t,dmg,ign,src,o){o=o||{};const head=!!o.head,pool=head?'helm':'arm',a0=t[pool]||0;let hpd;
- if(o.pierce)hpd=dmg;else if(a0>0){const ad=Math.min(a0,dmg);t[pool]=a0-ad;hpd=Math.max(dmg-ad,Math.round(dmg*ign-t[pool]*.1),0)}else hpd=dmg;
+ if(o.pierce)hpd=dmg;else if(a0>0){const ad=Math.min(a0,o.crush>0?Math.round(dmg*(1+o.crush)):dmg);t[pool]=a0-ad;hpd=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*ign-t[pool]*.1),0)}else hpd=dmg;
  if(head)hpd=Math.round(hpd*HEADMULT);
  t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);if(undy){t.undy=1;t.hp=1}float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,'Undying','#ffd27a');FX.emit('status',{t,key:'undying',n:0})}
  if(t.hp<=0){killUnit(t,src||null,head);return hpd}
  if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH)inflictInjury(t,head,false);moraleCheck(t,30,-1)}
  return hpd}
 // Shield damage. A shield at 0 is destroyed: its defense and its skills are gone (and a merc's shield does not come home).
-function breakShield(t){if(!t.shield)return false;t.shp=0;t.shield=false;if(t.shb){t.md-=t.shb.md;t.rd-=t.shb.rd}dropBuff(t,'shieldwall');t.abs=t.abs.filter(id=>!(AB[id]&&AB[id].shield));
+function breakShield(t){if(!t.shield)return false;t.shp=0;t.shield=false;if(t.shb){t.md-=t.shb.md;t.rd-=t.shb.rd}dropBuff(t,'shieldwall');
+ if(t.flags&&t.flags.shGuard){t.flags=Object.assign({},t.flags);t.flags.guard=(t.flags.guard||0)-t.flags.shGuard;t.flags.shGuard=0;auraScan()}   // a split tower shield covers nobody
+ t.abs=t.abs.filter(id=>!(AB[id]&&AB[id].shield));
  float(t,'Shield split','#ffd27a');say(`${t.name}'s shield is split.`);FX.emit('status',{t,key:'splitshield',n:0});return true}
 function damageShield(t,n,src){if(!t.shield)return 0;const s0=t.shp,d=Math.min(s0,Math.max(0,n));float(t,'Shield -'+d,'#c8d0d8');if(d>=s0)breakShield(t);else{t.shp=s0-d;FX.emit('status',{t,key:'splitshield',n:d})}return d}
 // What a kill gives the killer through its talents: hitpoints (killHeal), its gift resource (killRes).
@@ -345,24 +383,37 @@ async function knockback(u,t,n){let dc=t.c-u.c,dr=t.r-u.r;if(Math.abs(dc)>=Math.
   const drop=cur.h-B.tiles[key(nc,nr)].h;t.c=nc;t.r=nr;FX.emit('kb',{t});await sleep(120);if(drop>=1)hurt(t,6*drop,1);if(t.alive&&T(t).t==='haz')hurt(t,12,1)}}
 /* strike(u,t,a,o): one attack of u on t with ability a. Returns true on a hit.
    o: splash (damage factor of a secondary hit), auto (cannot miss: arcs, stray shots), free (a free attack: it provokes neither
-   a riposte nor a stray shot), stray (this is a missed shot landing on an ally).
+   a riposte nor a stray shot), stray (this is a missed shot landing on an ally), noShot (the caller drew the projectile: strays,
+   shots flying on through a target, arcs).
+   Hit, miss or stray is settled BEFORE anything flies: a shot (2+ tiles away, or a spell) puts ONE projectile in B.shots, to where it
+   ends up (the target, or the ally it strays into). A stray emits 'miss' on the target (stray: the ally), then 'ff' {u, t: ally,
+   from: target}, then strikes the ally (auto, FFDMG of the damage, no projectile of its own).
    Order of the seeded draws: hit roll; on a miss the stray-shot roll (only with allies in the line) and its victim;
-   on a hit the damage roll, the location roll, then whatever hurt() needs (injury, morale), statuses, knockback. */
-async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const d=mdist(u,t);
- if(d>1||a.magic)FX.shot(u,t,a.magic?'#c9a8ff':a.cost?RESC[a.cost[0]]:'#e9e0c9',26,22);
- if(a.split){if(!t.shield)return false;damageShield(t,Math.round(ri(u.wpn.d[0],u.wpn.d[1])*splitMult(u,a)),u);await sleep(240);return true}
- if(!o.auto&&!a.sure&&rnd()*100>=hitChance(u,t,a)){float(t,'Miss','#c8d0d8');FX.emit('miss',{u,t});await sleep(230);
-  if(!o.free&&shotKind(u,t,a)===2){const ff=losInfo(u,t,a).ff;if(ff.length&&rnd()<FFCH){const v=ff[Math.floor(rnd()*ff.length)];say(`${u.name}'s shot strays into ${v.name}.`);FX.emit('ff',{u,t:v});await strike(u,v,a,{auto:1,stray:1,free:'stray',splash:(o.splash||1)*FFDMG})}}
+   on a hit the damage roll, the location roll, then whatever hurt() needs (injury, morale), statuses, knockback, a hook's pull, a scare. */
+async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const d=mdist(u,t),shot=(d>1||a.magic)&&!o.noShot&&!o.stray,
+  col=a.magic?'#c9a8ff':a.cost?RESC[a.cost[0]]:'#e9e0c9',fly=x=>{if(shot)FX.shot(u,x,col,26,22)};
+ if(a.split){fly(t);if(!t.shield)return false;damageShield(t,Math.round(ri(u.wpn.d[0],u.wpn.d[1])*splitMult(u,a)),u);await sleep(240);return true}
+ if(!o.auto&&!a.sure&&rnd()*100>=hitChance(u,t,a)){let v=null;
+  if(!o.free&&shotKind(u,t,a)===2){const ff=losInfo(u,t,a).ff;if(ff.length&&rnd()<FFCH)v=ff[Math.floor(rnd()*ff.length)]}
+  fly(v||t);float(t,'Miss','#c8d0d8');FX.emit('miss',v?{u,t,stray:v}:{u,t});await sleep(230);
+  if(v){if(v.alive&&u.alive){say(`${u.name}'s shot strays into ${v.name}.`);FX.emit('ff',{u,t:v,from:t});await strike(u,v,a,{auto:1,stray:1,free:'stray',noShot:1,splash:(o.splash||1)*FFDMG})}}
   else if(!o.free&&!a.magic&&d===1&&t.alive&&u.alive&&buffSum(t,'rip'))await freeAttack(t,u,'riposte');
   return false}
- let dmg=0;const ign=a.noDmg?1:ignOf(u,a);if(a.noDmg){}else if(a.magic)dmg=ri(a.magic[0],a.magic[1])*spellMult(u);else dmg=ri(u.wpn.d[0],u.wpn.d[1])*(a.mult||1);
+ fly(t);
+ let dmg=0;const ign=a.noDmg?1:ignOf(u,a),wd=rollOf(u,a);if(a.noDmg){}else if(a.magic)dmg=ri(a.magic[0],a.magic[1])*spellMult(u);else dmg=ri(wd[0],wd[1])*(a.mult||1);
  if(!a.noDmg)dmg=dmgAfter(u,t,a,dmg,o);
- let hpd=0;if(dmg>0){const head=rnd()*100<headChance(u,t,a);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
+ let hpd=0;if(dmg>0){const head=rnd()*100<headChance(u,t,a);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1,crush:crushOf(u,a)})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
  if(t.alive){const st=Object.assign({},a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);
   for(const k in st)addStatus(t,k,st[k]);
-  const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!buffSum(t,'indom'))await knockback(u,t,kb)}
+  const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!buffSum(t,'indom'))await knockback(u,t,kb);
+  if(a.pull&&t.alive&&u.alive&&!buffSum(t,'indom'))await pullUnit(u,t,a.pull);
+  if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1)}
  else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(!t.gone&&u.alive)onKill(u)}
  await sleep(240);return true}
+// A hook: t is dragged up to n tiles toward u, along the longer axis, while the next tile is free, walkable and at most 1 step up.
+async function pullUnit(u,t,n){for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){let dc=u.c-t.c,dr=u.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
+  const nc=t.c+dc,nr=t.r+dr;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr)||B.tiles[key(nc,nr)].h>T(t).h+1)break;
+  t.c=nc;t.r=nr;float(t,'Hooked','#ffd27a');FX.emit('kb',{t,pull:1});await sleep(120);if(t.alive&&T(t).t==='haz')hurt(t,12,1)}}
 /* ---- Movement ---- */
 function stepCost(u,fk,tk){const a=B.tiles[fk],b=B.tiles[tk];let c=2;if(!u.flags.path){if(b.h>a.h)c++;if(b.t==='rough')c++}return c}
 function dijkstra(u,max){const D=new Map(),st=key(u.c,u.r),occ=new Uint8Array(BW*BH);for(const x of B.units)if(x.alive)occ[key(x.c,x.r)]=1;D.set(st,{cost:0,prev:-1});const open=[st];
@@ -399,6 +450,7 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
  if(typeof a.run==='function'){await a.run(u,k,a);if(B!==b)return}
  else if(a.tgt==='self'){if(a.withdraw){u.ap+=a.ap;await withdraw(u);if(B!==b)return}
   if(a.swapW){swapWeapons(u);auraScan()}
+  if(a.reloadW&&u.wpn.reload){setLoaded(u,true);float(u,'Loaded','#e9e0c9');FX.emit('reload',{u})}
   if(a.gainAP){u.ap+=a.gainAP;float(u,'+'+a.gainAP+' AP','#ffd27a');FX.emit('buff',{t:u})}if(a.rest){u.fat=Math.max(0,u.fat-a.rest);float(u,'-'+a.rest+' fatigue','#8fd8ff')}
   if(a.party)for(const t of partyOf(u,a))allyEffect(u,t,a);
   else{if(a.heal)healUnit(u,healRoll(u,a));if(a.buff){addBuff(u,a.buff,a.dur);float(u,a.n,'#9bd96f');FX.emit('buff',{t:u})}}}
@@ -410,9 +462,9 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
    if(B===b&&u.alive&&(!a.dash||mdist(u,t)===1||u.wpn.rng>=mdist(u,t))){
     if(losInfo(u,t,a).blocked){float(u,'No line of fire','#c8d0d8');FX.emit('blocked',{u,t});await sleep(200)}
     else{const beyond=a.through?lineBeyond(u,t,a.through):[];await strike(u,t,a);for(let i=1;i<(a.hits||1)&&B===b&&t.alive&&u.alive;i++)await strike(u,t,a);
-    for(const o of beyond){if(B!==b||!u.alive)break;if(o.alive){FX.shot(t,o,'#e9e0c9',22,22);await strike(u,o,a,{splash:THROUGH})}}
+    for(const o of beyond){if(B!==b||!u.alive)break;if(o.alive){FX.shot(t,o,'#e9e0c9',22,22);await strike(u,o,a,{splash:THROUGH,noShot:1})}}
     if(a.aoe)for(const o of b.units.filter(o=>o.alive&&o.side!==u.side&&o!==t&&mdist(o,t)===1)){if(B!==b)break;await strike(u,o,a,{splash:.7})}
-    if(a.chain){let last=t;const hit=[t];for(let i=0;i<a.chain&&B===b;i++){const n=b.units.filter(o=>o.alive&&o.side!==u.side&&!hit.includes(o)&&mdist(o,last)<=3).sort((x,y)=>mdist(x,last)-mdist(y,last))[0];if(!n)break;FX.shot(last,n,'#c9a8ff',22,22);await strike(u,n,a,{splash:.6,auto:1});hit.push(n);last=n}}}}}}
+    if(a.chain){let last=t;const hit=[t];for(let i=0;i<a.chain&&B===b;i++){const n=b.units.filter(o=>o.alive&&o.side!==u.side&&!hit.includes(o)&&mdist(o,last)<=3).sort((x,y)=>mdist(x,last)-mdist(y,last))[0];if(!n)break;FX.shot(last,n,'#c9a8ff',22,22);await strike(u,n,a,{splash:.6,auto:1,noShot:1});hit.push(n);last=n}}}}}}
  await sleep(120);if(B!==b)return;b.busy=false;afterAction()}
 function afterAction(){if(checkEnd())return;if(!B.cur.alive||B.cur.mor===0){nextTurn();return}computeReach();FX.ui()}
 function computeReach(){const u=B.cur;B.reach=null;if(u&&u.side===0&&u.alive&&!u.rooted&&u.ap>=2)B.reach=dijkstra(u,u.ap)}

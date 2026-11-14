@@ -2,7 +2,8 @@
    Pointer gestures on the scene canvas: tap, one-finger drag pan, two-finger pan + pinch zoom (anchored at
    the midpoint), long-press inspect, mouse wheel zoom, hover path preview. Multi-pointer safe.
    Zoom is pixel-perfect in battle and on the world map: a pinch zooms freely and snaps to a whole scale on release,
-   the wheel and +/- step one scale at a time. Q / E turn the battle view a quarter, H toggles the heights overlay.
+   the wheel and +/- step one scale at a time. Q / E turn the battle view a quarter, H toggles the heights overlay, B the allies' bars.
+   Battle taps carry whether they came from a finger: touch always plans a move before making it (two-tap movement).
    World taps: a town, rift, lair, band, ruin or open ground marches there (worldTap); unexplored ground only when the
    way to it runs over known land (worldGo).
    Public: zoomAt(sx,sy,f) panBy(dx,dy) wireMinimap(el) resetPointers() worldTap(wx,wy) worldGo(wx,wy,dest) */
@@ -32,8 +33,8 @@ function worldTap(wx,wy){const k=worldPick(wx,wy,true);if(!k)return;const p=G.p,
  else if(k.type==='site'){const o=k.o;if(at(o.x,o.y)&&typeof siteSheet==='function')siteSheet(o.id);else goTo(o.x,o.y,{type:'site',id:o.id})}
  else if(k.type==='company'){for(let i=0;i<G.towns.length;i++)if(at(G.towns[i].x,G.towns[i].y)){openTown(i);return}if(G.moving){G.moving=false;if(G.route)G.route=[]}}
  else worldGo(wx,wy)}
-function sceneTap(x,y){if(sheetOpen)return;
- if(mode==='battle'&&B){const p=boardXY(x,y);battleTap(p.x,p.y)}
+function sceneTap(x,y,touch){if(sheetOpen)return;
+ if(mode==='battle'&&B){const p=boardXY(x,y);battleTap(p.x,p.y,!!touch)}
  else if(mode==='world'&&G){const w=worldXY(x,y);worldTap(w.x,w.y)}}
 function hoverAt(x,y){if(mode==='battle'&&B&&!B.busy&&!sheetOpen){const p=boardXY(x,y);setHoverTile(pickAtBoard(p.x,p.y))}else setHoverTile(-1)}
 function pinchState(){let a=null,b=null;for(const p of PT.values()){if(!a)a=p;else if(!b){b=p;break}}GS.pd=Math.hypot(a.x-b.x,a.y-b.y);GS.mx=(a.x+b.x)/2;GS.my=(a.y+b.y)/2}
@@ -60,7 +61,7 @@ function pointerEnd(e,cancel){if(!PT.has(e.pointerId))return;PT.delete(e.pointer
  GS=null;clearTimeout(lpT);holdCam(false);if(s.touch)setHoverTile(-1);if(s.multi){if(mode==='battle')zoomSnap();else if(mode==='world')worldZoomSnap()}
  if(s.long){Inspect.release();return}
  if(cancel||s.moved||s.multi||s.eat||e.pointerId!==s.id)return;
- sceneTap(e.clientX,e.clientY)}
+ sceneTap(e.clientX,e.clientY,s.touch)}
 cv.addEventListener('pointerup',e=>pointerEnd(e,false));
 cv.addEventListener('pointercancel',e=>pointerEnd(e,true));
 cv.addEventListener('lostpointercapture',e=>{if(PT.has(e.pointerId))pointerEnd(e,true)});
@@ -73,9 +74,9 @@ cv.addEventListener('wheel',e=>{e.preventDefault();if(sheetOpen)return;Inspect.h
 window.addEventListener('blur',resetPointers);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){resetPointers();Inspect.hide()}});
 document.addEventListener('gesturestart',e=>e.preventDefault());
-window.addEventListener('keydown',e=>{if(e.key==='Escape'){Inspect.hide();return}if(sheetOpen||e.ctrlKey||e.metaKey||e.altKey)return;const t=e.target,tn=t&&t.tagName,k=e.key,bat=mode==='battle'&&B;if(tn==='INPUT'||tn==='TEXTAREA'||tn==='SELECT')return;
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){Inspect.hide();if(mode==='battle'&&B&&typeof planClear==='function'&&planClear()&&typeof updateBUI==='function')updateBUI();return}if(sheetOpen||e.ctrlKey||e.metaKey||e.altKey)return;const t=e.target,tn=t&&t.tagName,k=e.key,bat=mode==='battle'&&B;if(tn==='INPUT'||tn==='TEXTAREA'||tn==='SELECT')return;
  if(k==='+'||k==='='){if(bat)zoomStep(1);else if(mode==='world'&&G)worldZoomStep(1)}else if(k==='-'||k==='_'){if(bat)zoomStep(-1);else if(mode==='world'&&G)worldZoomStep(-1)}
- else if(bat&&(k==='q'||k==='Q'))rotateView(-1);else if(bat&&(k==='e'||k==='E'))rotateView(1);else if(bat&&(k==='h'||k==='H'))toggleHeights()});
+ else if(bat&&(k==='q'||k==='Q'))rotateView(-1);else if(bat&&(k==='e'||k==='E'))rotateView(1);else if(bat&&(k==='h'||k==='H'))toggleHeights();else if(bat&&(k==='b'||k==='B')&&typeof toggleAllyBars==='function')toggleAllyBars()});
 window.addEventListener('resize',resize);
 /* minimap: tap (or drag) marches there */
 function wireMinimap(el){let d=null;el.style.touchAction='none';

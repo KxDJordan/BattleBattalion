@@ -171,7 +171,7 @@ function fxStrike(u,t,id,k,miss){const sp=fxSp(),a=fxUP(u),fx0=a.x,fy0=a.y,ah=a.
   case 'shove':FXS.sty=S_SHOVE;return 240*sp*AN_HIT_AT;
   case 'aimed':{const dl=150*sp;fly=Math.max(50,L/1.9)*ss;o=fxo(T_RET,bx,by,0,dl+fly+90,0);o.a=dl+fly;o=fxArrow(ax,ay,bx,by,fly,2,R_WHITE,dl);o.c=miss?1:0;FXS.sty=S_AIMED;return dl+fly}
   case 'pin':fly=Math.max(120,L/.8)*ss;o=fxArrow(ax,ay,miss?bx:fx1,miss?by:fy1-4,fly,Math.min(60,L*.3+16),-1,40*sp);o.c=miss?1:0;FXS.sty=S_PIN;return 40*sp+fly;
-  case 'astrike':case 'crush':case 'adash':case 'flame':case 'frost':{const r=id==='flame'?R_FIRE:id==='frost'?R_ICE:R_AURA;FXS.sty=id==='flame'?S_FIRE:id==='frost'?S_FROST:id==='crush'?S_CRUSH:S_AURA;
+  case 'astrike':case 'crush':case 'adash':case 'flame':case 'frost':{if(d>1&&fxReachW(u))return fxReach(u,t,miss,sp,ss,id==='flame'?R_FIRE:id==='frost'?R_ICE:R_AURA);const r=id==='flame'?R_FIRE:id==='frost'?R_ICE:R_AURA;FXS.sty=id==='flame'?S_FIRE:id==='frost'?S_FROST:id==='crush'?S_CRUSH:S_AURA;
    if(d>1){fly=Math.max(70,L/1.15)*ss;o=fxArrow(ax,ay,bx,by,fly,Math.min(26,L*.12),r,40*sp);o.c=miss?1:0;return 40*sp+fly}
    const ld=fxMelee(u,t,r,id==='crush'?S_BLUNT:S_SLASH,sp);
    if(id==='astrike'&&!miss){const tb=fy1-bh*.48,o2=fxo(T_SLASH,fx1-ux*16,tb-uy*16,ld+70*ss,200*ss,R_AURA);o2.a=Math.atan2(uy,ux);o2.b=13;o2.c=2}
@@ -179,17 +179,20 @@ function fxStrike(u,t,id,k,miss){const sp=fxSp(),a=fxUP(u),fx0=a.x,fy0=a.y,ah=a.
    return ld}
   default:
    if(id){const ld=fxStrikeX(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(ld>=0)return ld}
-   if(d>1){fly=Math.max(70,L/1.15)*ss;o=fxArrow(ax,ay,bx,by,fly,Math.min(28,L*.13),-1,40*sp);o.c=miss?1:0;FXS.sty=S_ARROW;return 40*sp+fly}
-   {const kd=fxWpnKind(u);FXS.sty=kd;return fxMelee(u,t,u.def&&u.def.quad?R_BONE:R_WHITE,kd,sp)}}}
+   if(d>1){const rw=fxArmsShot(u,t,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(rw>=0)return rw;fly=Math.max(70,L/1.15)*ss;o=fxArrow(ax,ay,bx,by,fly,Math.min(28,L*.13),-1,40*sp);o.c=miss?1:0;FXS.sty=S_ARROW;return 40*sp+fly}
+   {const kd=fxWpnKind(u);if(fxIsHammer(u)){FXS.sty=S_HAMMER;return fxMelee(u,t,R_WHITE,S_BLUNT,sp)}FXS.sty=kd;return fxMelee(u,t,u.def&&u.def.quad?R_BONE:R_WHITE,kd,sp)}}}
 
 /* ---- rules events ---- */
 function fxTail(t,re){const F=B.floats;for(let i=F.length-1;i>=0&&i>=F.length-3;i--){const f=F[i];if(f.u===t&&!f.fx&&re.test(f.txt))return f}return null}
 function fxOnHit(d){const t=d.t,u=d.u&&d.u!==d.t?d.u:null;if(!t)return;const dmg=d.dmg|0,arm=typeof d.armor==='number'?d.armor|0:0;let delay=0,sty=0;
- const f=fxTail(t,/^(-\d+|Armor)$/);if(f)f.fx=1;
- if(u){const id=FXS.cu===u?FXS.cid:fxFree(u,t),k=id&&FXS.cu===u?FXS.cn++:0;delay=fxStrike(u,t,id,k,false);sty=FXS.sty;if(id&&FXS.cu===u&&!FXS.multi)FXS.cu=null}
+ const f=fxTail(t,/^(-\d+|Armor)$/);if(f)f.fx=1;const ff=FXS.ffShot;
+ if(u&&ff&&ff.u===u&&ff.v===t&&now-ff.t0<2000){FXS.ffShot=null;delay=Math.max(0,ff.at-now);sty=ff.sty;if(FXS.cu===u&&!FXS.multi)FXS.cu=null}   // the stray already flies: its one projectile lands here
+ else if(u){const id=FXS.cu===u?FXS.cid:fxFree(u,t),k=id&&FXS.cu===u?FXS.cn++:0;delay=fxStrike(u,t,id,k,false);sty=FXS.sty;if(id&&FXS.cu===u&&!FXS.multi)FXS.cu=null}
  else if(fxTail(t,/^Slam$/))sty=S_SLAM;else if(FXS.turnU===t&&FXS.turnBurn){sty=S_BURN;FXS.turnBurn=false}else if(B.tiles[key(t.c,t.r)].t==='haz')sty=S_HAZ;else sty=S_FALL;
  const at=now+delay,e=fxQueue(t,u,at,dmg,arm,sty,false);e.head=!!d.head;animImpact(t,u,at,false)}
 function fxOnMiss(d){const t=d.t,u=d.u;if(!t)return;const f=fxTail(t,/^Miss$/);if(f)f.fx=1;let delay=0;
+ if(u&&u!==t&&d.stray&&d.stray!==t){const v=d.stray,id=FXS.cu===u?FXS.cid:fxFree(u,v),k=id&&FXS.cu===u?FXS.cn++:0;delay=fxStrike(u,v,id,k,false);   // a stray: ONE projectile, flying to the ally it hits
+  FXS.ffShot={u,v,at:now+delay,sty:FXS.sty,t0:now};const at=now+delay*.6;fxQueue(t,u,at,0,0,0,true);animImpact(t,u,at,true);return}
  if(u&&u!==t){const id=FXS.cu===u?FXS.cid:fxFree(u,t),k=id&&FXS.cu===u?FXS.cn++:0;delay=fxStrike(u,t,id,k,true);if(id&&FXS.cu===u&&!FXS.multi)FXS.cu=null;
   if(mdist(u,t)===1&&!(id==='awave')){const b=fxUP(t),o=fxo(T_SLASH,b.x,b.y-b.h*.5,delay*.7,170,R_WHITE);o.a=Math.atan2(b.y-fxUP(u).y,o.x-FUP.x);o.b=9;o.c=3}
   else if(FXS.sty===S_BLAST){const b=fxUP(t);ringFx(b.x+20,b.y+8,3,18,300,R_FIRE,delay,.5,2);for(let i=0;i<fxN(14);i++)spawn(K_SQ,R_FIRE,b.x+20+rr(-8,8),b.y+8,rr(-60,60),rr(-170,-50),rr(.3,.6),i&1?2:1,-40,2,delay/1000)}}
@@ -229,14 +232,14 @@ function fxOnTurn(u){if(!u)return;FXS.turnU=u;FXS.turnBurn=!!(u.st&&u.st.burn);F
  if(fxTail(u,/^Chilled$/))for(let i=0;i<fxN(10);i++)spawn(K_SQ,R_ICE,p.x+rr(-12,12),p.y-rr(p.h*.3,p.h),rr(-6,6),rr(20,50),rr(.5,.9),1,0,.5,rr(0,.2))}
 function fxEvent(type,d){if(!d||typeof B==='undefined'||!B||mode!=='battle')return;
  const vis=typeof document!=='undefined'&&SPEEDF>0&&typeof now==='number';
- if(type==='kb'&&d.t&&FXS.cu&&(FXS.cid==='shove'||FXS.cid==='bash'||FXS.cid==='kick')&&!(FXS.cab&&!FXS.cab.noDmg)){const u=FXS.cu,t=d.t,bash=FXS.cid==='bash',kick=FXS.cid==='kick';FXS.cu=null;      // a shove deals no damage, so no 'hit' is emitted: stage the push here
-  try{animEvent('miss',{u,t});const at=anNow()+240*fxSp()*AN_HIT_AT;animImpact(t,u,at,false);if(vis){const e=fxQueue(t,u,at,-1,0,kick?S_KICK:bash?S_BASH:S_SHOVE,false);const a=fxUP(u),ax=a.x,ay=a.y,b=fxUP(t);e.dx=b.x-ax;e.dy=b.y-ay;const L=Math.hypot(e.dx,e.dy)||1;e.dx/=L;e.dy/=L}}catch(e){}}
+ if(type==='kb'&&d.t&&FXS.cu&&(FXS.cid==='shove'||FXS.cid==='bash'||FXS.cid==='kick'||FXS.cid==='charge'||FXS.cid==='spikebash')&&!(FXS.cab&&!FXS.cab.noDmg)){const u=FXS.cu,t=d.t,bash=FXS.cid==='bash'||FXS.cid==='spikebash',kick=FXS.cid==='kick'||FXS.cid==='charge';FXS.cu=null;      // a shove deals no damage, so no 'hit' is emitted: stage the push here
+  try{animEvent('miss',{u,t});const at=anNow()+240*fxSp()*AN_HIT_AT;animImpact(t,u,at,false);if(vis){const e=fxQueue(t,u,at,-1,0,FXS.cid==='charge'?S_CHARGE:FXS.cid==='spikebash'?S_SPIKE:kick?S_KICK:bash?S_BASH:S_SHOVE,false);const a=fxUP(u),ax=a.x,ay=a.y,b=fxUP(t);e.dx=b.x-ax;e.dy=b.y-ay;const L=Math.hypot(e.dx,e.dy)||1;e.dx/=L;e.dy/=L}}catch(e){}}
  try{animEvent(type,d)}catch(e){}
  if(type==='withdraw'&&d.u)try{const v=fxU(d.u);v.dead=true;v.alive=false}catch(e){}
  if(typeof document==='undefined'||!(SPEEDF>0)||typeof now!=='number')return;FXS.live=true;
  try{if(type==='hit')fxOnHit(d);else if(type==='miss')fxOnMiss(d);else if(type==='death')fxOnDeath(d.t);else if(type==='cast')fxOnCast(d.u,d.t,d.ab,d.k);
   else if(type==='morale')fxOnMorale(d);else if(type==='injury')fxOnInjury(d);else if(type==='status')fxOnStatus(d);else if(type==='spawn')fxOnSpawn(d.u);else if(type==='withdraw')fxOnWithdraw(d);
-  else if(type==='blocked')fxOnBlocked(d);else if(type==='ff')fxOnFF(d);else if(type==='loc'){}
+  else if(type==='reload')fxOnReload(d.u);else if(type==='blocked')fxOnBlocked(d);else if(type==='ff')fxOnFF(d);else if(type==='loc'){}
   else if(type==='heal')fxOnHeal(d.t);else if(type==='buff')fxOnBuff(d.t);else if(type==='turn')fxOnTurn(d.u)}catch(e){if(!FXS.err){FXS.err=e;if(typeof console!=='undefined')console.warn('fx '+type+': '+(e&&e.stack||e))}}}
 if(typeof FX!=='undefined'&&FX)try{FX.on=fxEvent}catch(e){}
 
@@ -266,6 +269,7 @@ function fxOrb(r){let a=FXORB[r];if(a)return a;const m=r===R_AURA?':xyFe':r===R_
 let FXWEBS=null;
 function fxWebs(){return FXWEBS||(FXWEBS=[fxSpr('webb'),fxSpr('webb')])}
 function fxStrikeX(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const ab=FXS.cab||FXO_NIL,R=FXS.rmp|0;let o,fly,ld;
+ {const n=fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}
  {const n=fxStrikeN(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}
  switch(id){
   case'slash':ld=fxMelee(u,t,R_RED,S_SLASH,sp);if(!miss){const o2=fxo(T_SLASH,bx-ux*14,by-uy*14,ld+50*ss,170*ss,R_BLOOD);o2.a=Math.atan2(uy,ux);o2.b=9;o2.c=2}FXS.sty=S_BLEED;return ld;
@@ -406,7 +410,8 @@ function fxOnWithdraw(d){const u=d.u;if(!u)return;const p=fxUP(u),x=p.x,y=p.y,sp
 function fxOnBlocked(d){const u=d.u,t=d.t;if(!u||!t)return;const a=fxUP(u),ax=a.x,ay=a.y-a.h*.55,b=fxUP(t),bx=b.x,by=b.y-b.h*.48,sp=Math.max(.6,fxSp());
  const f=fxTail(u,/^No line of fire$/);if(f)f.fx=1;fxFloat(u,'NO LINE',FS_MISS);glyphFx('ic:los-blocked',ax+(bx-ax)*.45,ay+(by-ay)*.45-10,6,620*sp,0,null);
  const o=fxo(T_BEAM,ax,ay,0,200*sp,R_SMOKE);o.x2=ax+(bx-ax)*.45;o.y2=ay+(by-ay)*.45;puff(o.x2,o.y2+10,4)}
-function fxOnFF(d){const t=d.t;if(!t)return;const p=fxUP(t),sp=Math.max(.6,fxSp());fxFloat(t,'STRAY SHOT',FS_HP);glyphFx('ic:friendly-fire',p.x,p.y-p.h-12,10,760*sp,0,null);glyphFx('bang',p.x+12,p.y-p.h-10,4,520*sp,60,null)}
+function fxOnFF(d){const t=d.t;if(!t)return;const p=fxUP(t),sp=Math.max(.6,fxSp()),ff=FXS.ffShot,at=ff&&ff.v===t?Math.max(0,ff.at-now):0;
+ fxFloat(t,'FRIENDLY FIRE',FS_HP,at+40);glyphFx('ic:friendly-fire',p.x,p.y-p.h-12,10,760*sp,at,null);glyphFx('bang',p.x+12,p.y-p.h-10,4,520*sp,at+60,null);ringFx(p.x,p.y-p.h*.5,3,15,260*sp,R_RED,at,1,2)}
 /* ---- watchers: what a status looks like while it lasts ---- */
 function fxWatchX(u,v){const st=u.st;
  if((st.web||st.webbed)&&!v.web){v.web=true;const o=fxo(T_WEB,0,0,60,9000,R_BONE);o.u=u;o.s=v}
@@ -534,10 +539,11 @@ function fxDrawShape(o,t,dt){const q=DQ,p=Math.min(1,(t-o.t0)/o.dur),cx=Math.flo
    else if(p<.62){q.fillStyle=Rm[Rm.length-1];aLine(cx,cy,x2,y2,p<.4?5:3);q.fillStyle=Rm[2];aLine(cx,cy,x2,y2,3);q.fillStyle=Rm[0];aLine(cx,cy,x2,y2,1);q.fillStyle=Rm[0];A(x2-2,y2-2,5,5);
     if(!reduced){const f=Math.random();spawn(K_SQ,o.r,o.x+(o.x2-o.x)*f,o.y+(o.y2-o.y)*f,rr(-30,30),rr(-50,10),rr(.2,.4),1,0,2)}}
    else{const dx=x2-cx,dy=y2-cy,n=Math.max(4,(Math.hypot(dx,dy)/2)|0);q.fillStyle=Rm[p<.8?2:4];for(let i=0;i<n;i++){if((i+tick)&(p<.8?1:3))continue;A(Math.round(cx+dx*i/n),Math.round(cy+dy*i/n),2,1)}}break}
-  case T_PROJ:{const kind=o.a,dx=o.x2-o.x,dy=o.y2-o.y;let x=o.x+dx*p,y=o.y+dy*p,vx=dx,vy=dy;const arc=kind===0||kind===2||kind===5?o.b:0;if(arc){y-=Math.sin(p*Math.PI)*arc;vy-=Math.cos(p*Math.PI)*arc*Math.PI}
+  case T_PROJ:{const kind=o.a,dx=o.x2-o.x,dy=o.y2-o.y;let x=o.x+dx*p,y=o.y+dy*p,vx=dx,vy=dy;const arc=kind===0||kind===2||kind===5||kind===6?o.b:0;if(arc){y-=Math.sin(p*Math.PI)*arc;vy-=Math.cos(p*Math.PI)*arc*Math.PI}
    const L=Math.hypot(vx,vy)||1,ux=vx/L,uy=vy/L;let ax=Math.floor(x/2),ay=Math.floor(y/2);o.acc+=dt;
    if(kind===0){const tx=ax-ux*7,ty=ay-uy*7;q.fillStyle=PAL['0'];aLine(tx,ty+1,ax,ay+1,1);q.fillStyle=PAL.k;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.l;A(Math.round(tx),Math.round(ty),1,1);A(Math.round(tx+ux),Math.round(ty+uy),1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);q.fillStyle=PAL.q;A(Math.round(ax-ux),Math.round(ay-uy),1,1);
     if(o.r>=0&&!reduced)while(o.acc>.012){o.acc-=.012;spawn(o.r===R_WHITE?K_STREAK:K_SQ,o.r,x-ux*8+rr(-2,2),y-uy*8+rr(-2,2),o.r===R_WHITE?-ux*60:rr(-14,14),o.r===R_WHITE?-uy*60:rr(-40,-6),rr(.14,.3),Math.random()<.4?2:1,0,1)}}
+   else if(kind===6||kind===7)fxDrawShot(o,kind,x,y,ax,ay,ux,uy,p,tick);
    else{const wob=kind===1?Math.sin(p*20+o.seed)*2:kind===3?(((p*9+o.seed)%2)<1?-3:3):kind===4?Math.sin(p*9+o.seed)*3:0;ax+=Math.round(-uy*wob);ay+=Math.round(ux*wob);
     const id=kind===1?(tick&1?'orb0':'orb1'):kind===2?(tick&1?'fire0':'fire1'):kind===3?(tick&1?'hex0':'hex1'):'skull',c=kind===5&&o.s?o.s[tick&1]:fxSpr(id);
     if(kind===4&&c){q.fillStyle=PAL.D;A(ax-3,ay-3,7,7);q.fillStyle=PAL.C;A(ax-3,ay-4,7,1);A(ax-4,ay-3,1,7);A(ax+4,ay-3,1,7)}
@@ -578,6 +584,7 @@ function fxDrawShape(o,t,dt){const q=DQ,p=Math.min(1,(t-o.t0)/o.dur),cx=Math.flo
   case T_BARS:{const u=o.u;if(!u||!u.alive){o.on=false;o.u=null;break}const b=fxUP(u),fx=Math.floor(b.x/2),fy=Math.floor(b.y/2),up=Math.min(1,p/.16),dn=Math.max(0,(p-.74)/.26);
    for(let i=0;i<7;i++){const a=.2+i*.455,X=fx+Math.round(Math.cos(a)*11),Y=fy+Math.round(Math.sin(a)*5)+1,st=Math.max(0,Math.min(1,up*1.6-i*.08)),hh=Math.round((9+(i===3?3:i===2||i===4?2:0))*st*(1-dn));if(hh<1)continue;
     q.fillStyle=PAL['0'];A(X-2,Y-hh-1,4,hh+2);q.fillStyle=PAL.q;A(X-1,Y-hh,1,hh);q.fillStyle=PAL.p;A(X,Y-hh,1,hh);q.fillStyle=p<.3?PAL.r:PAL.q;A(X-1,Y-hh,2,1);q.fillStyle=PAL.o;A(X-1,Y-1,2,1)}break}
+  case T_SMOKE:fxDrawSmoke(o,t,p,cx,cy);break;
   default:fxDrawShapeX(o,t,dt,p,cx,cy,Rm,tick);break;
   case T_COL:{const h=(o.a>>1)+2,w=o.b?Math.round(1+7*p):Math.round(8*(1-p)),e=o.b?p:1-p;if(w<1)break;q.fillStyle=Rm[Math.min(Rm.length-1,((1-e)*3)|0)];
    for(let j=0;j<h;j++){if(o.b&&p>.5&&((j+tick)&1))continue;const ww=Math.max(1,Math.round(w*(.6+.4*fxHash(o.seed+tick,j))));A(cx-(ww>>1),cy-j,ww,1)}
@@ -702,7 +709,7 @@ function fxStrikeN(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){let o,r
    emitFx(1,null,ax,ay-20,60,90*sp,0,R_MANA);FXS.cAt=now+90*sp+fl;FXS.sty=S_STAR;return 90*sp+fl}
   case'master':{ld=fxMelee(u,t,R_GOLD,S_SLASH,sp*1.1);if(!miss){o=fxo(T_SLASH,bx-ux*14,by-uy*14,ld+40*ss,200*ss,R_GOLD);o.a=Math.atan2(uy,ux)+.5;o.b=14;o.c=-1;glyphFx('glint:rd',bx,by-6,0,200,ld)}FXS.sty=S_AIMED;return ld}}
  return -1}
-function fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
+function fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){if(sty>=S_A0){fxImpactA(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp);return}
  switch(sty){
   case S_AARW:burst(K_TRAIL,R_AURA,x,y,12,110,280,.26,1,0,4);for(let i=0;i<fxN(6);i++)spawn(K_STREAK,R_AURA,x,y,dx*rr(200,320)+rr(-40,40),dy*rr(200,320)+rr(-60,20),.22,1,0,2);ringFx(x,y,3,13,220,R_AURA,0,1);glowFx(x,y,40,'y',.5,150);break;
   case S_SUN:ringFx(x,fy,4,30,380,R_AURA,0,.5,2);ringFx(x,y,3,20,300,R_GOLD,60,1,2);glowFx(x,y,90,'y',.8,300);glowFx(x,y,40,'r',.6,120);fxShake(4);
@@ -729,7 +736,7 @@ function fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
   case S_STAR:ringFx(x,fy,4,34,420,R_GOLD,0,.5,2);ringFx(x,fy,4,24,360,R_MANA,80,.5,2);glowFx(x,y,100,'d',.8,320);glowFx(x,y,50,'r',.6,140);fxShake(5);
    for(let i=0;i<fxN(24);i++){const a=Math.random()*6.283,s2=rr(80,300);spawn(i%3?K_TRAIL:K_SQ,i&1?R_GOLD:R_MANA,x,y,Math.cos(a)*s2,Math.sin(a)*s2*.55-rr(40,140),rr(.3,.6),i&1?2:1,200,1.6)}{const o=fxo(T_CRACK,x,fy,0,900,0);o.a=1}break}}
 /* the caster's own beat, before the blow; true when drawn here */
-function fxCastN(u,t,ab,id,k,x,y,h,sp){
+function fxCastN(u,t,ab,id,k,x,y,h,sp){if(fxCastA(u,t,ab,id,k,x,y,h,sp))return true;
  switch(id){
   case'swapk':return true;
   case'aarrow':case'carrow':case'sunarrow':case'pvolley':ringFx(x,y,3,13,240*sp,R_AURA,0,.5);for(let i=0;i<fxN(8);i++)spawn(K_TRAIL,R_AURA,x+rr(-10,10),y-rr(0,8),0,rr(-230,-120),rr(.2,.36),1,0,1.5,rr(0,.08));if(id==='sunarrow')glowFx(x,y-h*.5,60,'y',.5,260);return true;
@@ -771,3 +778,98 @@ function fxBuffN(t,id,x,y,h,sp){
   case'breath':glyphFx('ic:ab-breath',x,y-h-10,10,560*sp,0,t);return true;
   case'avatar':case'rage':case'manashield':case'vanish':case'surge':case'lotus':case'secwind':return true}
  return false}
+
+
+/* ================= arms update: crossbows, flintlocks, reach weapons, hammers, shield skills =================
+   Shots: a crossbow looses a short, flat bolt (T_PROJ kind 6) with a string snap; a flintlock a ball (kind 7) behind a muzzle
+   flash, a drifting smoke cloud (T_SMOKE) and a small shake. Reach: a polearm / pike blow two tiles away is a long thrust
+   streak across both tiles; a greatsword's is a wide arc centred on the swordsman. Hammers dent armor (sparks, a dent).
+   Friendly fire: a stray is ONE projectile from the shooter to the ally it hits (fxOnMiss with d.stray stages it, the
+   following 'hit' on the ally reuses it, 'ff' pops FRIENDLY FIRE over the ally when it lands). */
+const S_A0=70,S_HAMMER=70,S_BELL=71,S_DEMO=72,S_BOLT=73,S_HEART=74,S_BALL=75,S_SCATTER=76,S_DEAF=77,S_EXEC=78,S_HOOK=79,S_SPIKE=80;
+const T_SMOKE=40;
+Object.assign(FXG,{flash:['...e...','.e.y.e.','..yey..','eyereye','..yey..','.e.y.e.','...e...'],flash1:['..E.E..','.EyyyE.','EyerrE.','.Eyyy E','..E.E..'].map(r=>r.replace(/ /g,'.')),
+ dent:['.rqqp.','rq00po','q0..0o','p0..0o','.oooo.'],bell:['..d..','.dcd.','.dcb.','dccbb','.0.0.']});
+Object.assign(FX_ID,{xaim:'xshot',xpin:'xshot',xheart:'xshot',blast:'gshot',fdeafen:'gshot',fexecute:'gshot',batter:'batter',ringblow:'ringblow',demolish:'demolish',hsmash:'hsmash',
+ hook:'hook',trip:'hook',reap:'polereap',glaivecut:'glaivecut',gswing:'gswing',mordhau:'mordhau',spikebash:'spikebash',reload:'reload',scharge:'charge',fortress:'guard',halfsword:'stab',gsweep:'round'});
+function fxW(u){return u&&u.wpn||FXO_NIL}
+function fxIsRangedW(w){if(!w)return false;if(typeof isRangedW==='function')try{return isRangedW(w)}catch(e){}return w.wt==='bow'||w.wt==='crossbow'||w.wt==='flintlock'}
+function fxIsHammer(u){const w=fxW(u);return w.wt==='hammer'}
+function fxReachW(u){const w=fxW(u);return!!u.wpn&&!fxIsRangedW(w)&&(w.rng|0)>=2}
+function fxShotOf(u){const w=fxW(u);return w.shot||(w.wt==='crossbow'?'bolt':w.wt==='flintlock'?'ball':null)}
+// a bolt: fast and flat, with the snap of the string at the bow
+function fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre){const lead=(pre||0)+70*sp,fly=Math.max(45,L/2.1)*ss,o=fxo(T_PROJ,ax+ux*8,ay-2,lead,fly,R_WHITE);o.x2=bx;o.y2=by;o.a=6;o.b=Math.min(9,L*.035);o.c=miss?1:0;
+ for(let i=-1;i<=1;i++)spawn(K_STREAK,R_WHITE,ax+ux*10-uy*i*4,ay-2+ux*i*4,-ux*140,-uy*140,.12,1,0,5,lead/1000);glyphFx('glint',ax+ux*10,ay-4,0,90,lead);FXS.sty=S_BOLT;return lead+fly}
+// a ball: muzzle flash, smoke that drifts off, a small shake
+function fxMuzzle(mx,my,ux,uy,delay,big){const dl=delay/1000;glyphFx(big?'flash':'flash1',mx+ux*6,my+uy*3,0,100,delay);glowFx(mx+ux*4,my,big?56:40,'E',.85,150,delay);
+ for(let i=0;i<fxN(8);i++){const a=Math.atan2(uy,ux)+rr(-.5,.5),v=rr(90,220);spawn(K_SQ,R_FIRE,mx,my,Math.cos(a)*v,Math.sin(a)*v*.7,rr(.08,.18),1,0,6,dl)}
+ if(!reduced)for(let i=0;i<(big?3:2);i++){const o=fxo(T_SMOKE,mx+ux*(8+i*10),my+uy*(4+i*5)-i*3,delay+i*40,1500+i*300,0);o.c=ux*rr(10,22)+rr(-8,8);o.d=-rr(7,14);o.b=big?1.2-i*.15:.9-i*.15}
+ for(let i=0;i<fxN(7);i++)spawn(K_SQ,R_SMOKE,mx+ux*8+rr(-4,4),my+rr(-4,4),ux*rr(20,60)+rr(-10,10),-rr(10,40),rr(.9,1.6),2,-10,1.4,dl+rr(0,.08));fxShake(big?2:1.4)}
+function fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre){const lead=(pre||0)+80*sp,fly=Math.max(28,L/3.4)*ss,two=!!fxW(u).two,mx=ax+ux*(two?24:18),my=ay-2+uy*(two?10:7),o=fxo(T_PROJ,mx,my,lead,fly,R_FIRE);
+ o.x2=bx;o.y2=by;o.a=7;o.b=0;o.c=miss?1:0;fxMuzzle(mx,my,ux,uy,lead,two);FXS.sty=S_BALL;return lead+fly}
+// a blow two tiles away with a long weapon
+function fxReach(u,t,miss,sp,ss,ramp,arc){const a=fxUP(u),ax=a.x,ay=a.y-a.h*.5,b=fxUP(t),bx=b.x,by=b.y-b.h*.48,dx=bx-ax,dy=by-ay,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,lead=240*sp*AN_HIT_AT,dur=Math.max(130,250*Math.max(.6,sp)),w=fxW(u);
+ if(arc||w.wt==='greatsword'){const ddx=dx/2,ddy=dy/2,Rr=Math.hypot(ddx,ddy/.5),a0=Math.atan2(ddy/.5,ddx),o=fxo(T_SPIN,ax,ay,lead*.35,dur,ramp||R_WHITE);o.a=Math.max(12,Math.round(Rr));o.b=2.5;o.c=a0-2;
+  puff(ax,a.y,5);const o2=fxo(T_SLASH,bx-ux*10,by-uy*10,lead*.8,dur*.8,ramp||R_WHITE);o2.a=Math.atan2(uy,ux);o2.b=12;o2.c=1;FXS.sty=S_SLASH;return lead}
+ const o=fxo(T_PIERCE,ax+ux*12,ay+uy*12,lead*.45,dur*.9,ramp||R_STEEL);o.x2=bx+ux*14;o.y2=by+uy*14;const o2=fxo(T_PIERCE,ax+ux*18,ay+uy*18-2,lead*.6,dur*.7,R_WHITE);o2.x2=bx+ux*8;o2.y2=by+uy*8-2;
+ for(let i=0;i<fxN(6);i++){const f=rr(.2,.9);spawn(K_STREAK,R_WHITE,ax+dx*f,ay+dy*f+rr(-4,4),ux*260,uy*260,.14,1,0,4,lead*.5/1000+f*.05)}
+ if(w.look==='halberd'||w.look==='glaive'||w.look==='bill'){const o3=fxo(T_SLASH,bx-ux*8,by-uy*8,lead*.9,dur*.7,R_STEEL);o3.a=Math.atan2(uy,ux);o3.b=9;o3.c=-1}
+ FXS.sty=S_PUNC;return lead}
+// the default shot / reach of the weapon in hand; -1 when it is a plain arrow (bows keep theirs)
+function fxArmsShot(u,t,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy){if(fxReachW(u)&&d<=Math.max(2,fxW(u).rng|0))return fxReach(u,t,miss,sp,ss);
+ const sh=fxShotOf(u);if(sh==='bolt')return fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(sh==='ball')return fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);return-1}
+function fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const ab=FXS.cab||FXO_NIL;let o,ld;
+ switch(id){
+  case'xshot':{let pre=0;if(ab.id==='xaim'||ab.id==='xheart'){pre=150*sp;o=fxo(T_RET,bx,by,0,pre+300,0);o.a=pre+130}const r=fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre);
+   if(ab.id==='xpin'&&!miss){FXS.sty=S_PIN}else if(ab.id==='xheart')FXS.sty=S_HEART;return r}
+  case'gshot':{if(ab.id==='blast'&&k>0){FXS.sty=S_SCATTER;return Math.max(30*sp,FXS.cAt-now)}let pre=0;if(ab.id==='fexecute'){pre=160*sp;o=fxo(T_RET,bx,by,0,pre+300,0);o.a=pre+140}
+   const r=fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre);
+   if(ab.id==='blast'){for(let i=0;i<4;i++){const q=fxo(T_PROJ,ax+ux*20,ay-2+uy*8,80*sp,Math.max(28,L/3.2)*ss*rr(.9,1.15),R_FIRE);q.x2=bx+rr(-26,26);q.y2=by+rr(-12,12);q.a=7;q.b=0;q.c=1}FXS.sty=S_SCATTER;FXS.cAt=now+r}
+   else FXS.sty=ab.id==='fdeafen'?S_DEAF:ab.id==='fexecute'?S_EXEC:S_BALL;return r}
+  case'batter':case'ringblow':case'demolish':case'hsmash':{ld=fxMelee(u,t,id==='batter'?R_SPARK:id==='ringblow'?R_GOLD:R_DUST,S_BLUNT,sp*(id==='batter'||id==='ringblow'?1:1.15));
+   if(id==='hsmash'||id==='demolish'){const a=fxUP(u);o=fxo(T_SPIN,a.x,a.y-a.h*.5,ld*.25,ld*.9,R_STEEL);o.a=14;o.b=2.2;o.c=-2.6}
+   FXS.sty=id==='ringblow'?S_BELL:id==='batter'?S_HAMMER:S_DEMO;return ld}
+  case'hook':{if(d>1)ld=fxReach(u,t,miss,sp,ss,R_STEEL);else ld=fxMelee(u,t,R_STEEL,S_PIERCE,sp);FXS.sty=S_HOOK;return ld}
+  case'polereap':{if(k>0){FXS.sty=S_SLASH;return Math.max(30*sp,FXS.cAt-now+40*sp)}ld=d>1?fxReach(u,t,miss,sp,ss,R_WHITE,1):fxMelee(u,t,R_WHITE,S_SLASH,sp);FXS.cAt=now+ld;FXS.sty=S_SLASH;return ld}
+  case'glaivecut':{ld=d>1?fxReach(u,t,miss,sp,ss,R_RED,1):fxMelee(u,t,R_RED,S_SLASH,sp);FXS.sty=S_DECAP;return ld}
+  case'gswing':{ld=d>1?fxReach(u,t,miss,sp,ss,R_WHITE,1):fxMelee(u,t,R_WHITE,S_SLASH,sp);if(!miss){o=fxo(T_SLASH,bx-ux*14,by-uy*14,ld+40*ss,180*ss,R_WHITE);o.a=Math.atan2(uy,ux);o.b=14;o.c=2}FXS.sty=S_CHARGE;return ld}
+  case'mordhau':ld=fxMelee(u,t,R_GOLD,S_BLUNT,sp);FXS.sty=S_STUN;return ld;
+  case'spikebash':FXS.sty=S_SPIKE;return 240*sp*AN_HIT_AT}
+ return -1}
+function fxImpactA(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
+ const sparks=n=>{cone(K_SQ,R_SPARK,x,y,dx*.6,-1,n,120,300,.35,1,520,1.4,1.3);cone(K_TRAIL,R_SPARK,x,y,dx,dy*.5-.4,n>>1,160,340,.22,1,200,3,.7)};
+ switch(sty){
+  case S_HAMMER:if(arm>0||dmg===-1){sparks(9);const g=glyphFx('dent',x+dx*3,y-2,0,460,0);g.d=-30;ringFx(x,y,2,11,190,R_SPARK,0,1,2)}else puff(x,fy,4);fxShake(2.6);break;
+  case S_BELL:fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_STUN,sp);sparks(6);for(let i=0;i<3;i++)ringFx(x,y-h*.32,4,13+i*5,300,i&1?R_WHITE:R_GOLD,i*80,.8);glyphFx('bell',x+10,y-h*.6,10,520,40);break;
+  case S_DEMO:{const o=fxo(T_CRACK,x,fy,0,900,0);o.a=1;ringFx(x,fy,4,24,340,R_DUST,0,.5,2);sparks(12);if(arm>0)glyphFx('dent',x,y-2,6,520,0);puff(x,fy,10);fxShake(5);
+   for(let i=0;i<fxN(10);i++)spawn(K_SQ,i%3?R_DUST:R_STEEL,x+rr(-14,14),fy+rr(-4,4),rr(-60,60),rr(-240,-110),rr(.4,.7),i&1?2:1,700,.6);if(t.st&&t.st.daze)fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_DAZE,sp);break}
+  case S_BOLT:case S_HEART:cone(K_SQ,R_DUST,x,y,-dx,-dy-.4,3,40,110,.3,1,400,1,.6);glyphFx('glint',x-dx*4,y-dy*4,0,110,0);if(arm>0)cone(K_SQ,R_SPARK,x,y,-dx,-.6,5,80,200,.3,1,400,1.5,1);
+   if(sty===S_HEART&&dmg>0){glyphFx('heart',x,y-h*.35,12,520,40);cone(K_SQ,fxBloodR(t),x,y,dx,dy*.4-.3,10,90,240,.45,2,500,1.2,.6)}break;
+  case S_BALL:case S_SCATTER:case S_DEAF:case S_EXEC:{for(let i=0;i<fxN(sty===S_SCATTER?3:5);i++)spawn(K_SQ,R_SMOKE,x+rr(-5,5),y+rr(-5,5),rr(-20,20),rr(-40,-10),rr(.4,.8),2,-10,1.2);
+   if(arm>0)cone(K_SQ,R_SPARK,x,y,-dx,-.7,sty===S_SCATTER?4:7,90,240,.3,1,420,1.5,1.2);if(dmg>0&&sty!==S_SCATTER)cone(K_SQ,fxBloodR(t),x+dx*6,y+dy*6,dx,dy*.5-.2,8,120,300,.4,1,480,1.4,.4);
+   glyphFx('glint:rE',x,y,0,90,0);fxShake(sty===S_SCATTER?1.2:2);
+   if(sty===S_DEAF){for(let i=0;i<3;i++)ringFx(x,y-h*.35,3,16+i*6,320,R_WHITE,i*70,.8);glyphFx('bang',x+12,y-h-6,6,520,40);fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_DAZE,sp)}
+   if(sty===S_EXEC&&dmg>0)glyphFx('skull',x,y-h*.6,12,560,60);break}
+  case S_HOOK:{const o=fxo(T_CLAW,x,y,0,240,R_STEEL);o.a=dx<0?1:-1;puff(x,fy,5);for(let i=0;i<fxN(5);i++)spawn(K_TRAIL,R_DUST,x+rr(-6,6),fy-rr(0,6),-dx*rr(120,200),-dy*rr(60,120),.25,1,0,3,.08);break}
+  case S_SPIKE:fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_BASH,sp);for(let i=0;i<4;i++)glyphFx('glint',x-dx*10+rr(-6,6),y-dy*10+rr(-6,6),0,120,i*30);if(dmg>0)cone(K_SQ,fxBloodR(t),x,y,dx,dy*.5-.4,8,80,220,.45,2,520,1.2,.8);break}}
+function fxCastA(u,t,ab,id,k,x,y,h,sp){switch(id){
+  case'reload':ringFx(x,y,3,12,240*sp,R_GOLD,0,.5);return true;
+  case'xshot':case'gshot':ringFx(x,y,3,12,220*sp,id==='gshot'?R_EMBER:R_STEEL,0,.5);return true;
+  case'batter':case'ringblow':case'demolish':case'hsmash':case'hook':case'polereap':case'glaivecut':case'gswing':case'mordhau':case'spikebash':return true}
+ return false}
+// what the reload looks like: a crossbow is cranked (clicks, brass), a firearm rammed (a puff of powder, the rod's glint)
+function fxOnReload(u){if(!u||!u.alive)return;const p=fxUB(u),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),gun=fxW(u).wt==='flintlock'||fxShotOf(u)==='ball';
+ if(gun){for(let i=0;i<fxN(6);i++)spawn(K_SQ,R_SMOKE,x+rr(-6,6),y-h*.85+rr(-3,3),rr(-12,12),rr(-40,-15),rr(.5,.9),i&1?2:1,-8,1,rr(0,.15));for(let i=0;i<3;i++)glyphFx('glint',x+4,y-h*.9-i*3,0,90,(60+i*120)*sp)}
+ else for(let i=0;i<3;i++){glyphFx('glint:rd',x+(i-1)*5,y-h*.45,0,90,(i*130)*sp);for(let j=0;j<fxN(3);j++)spawn(K_SQ,R_GOLD,x+(i-1)*5,y-h*.45,rr(-40,40),rr(-70,-20),.25,1,300,1,i*.13*sp)}
+ ringFx(x,y,3,13,280*sp,R_GOLD,300*sp,.5)}
+function fxDrawShot(o,kind,x,y,ax,ay,ux,uy,p,tick){const q=DQ;
+ if(kind===6){const tx=ax-ux*5,ty=ay-uy*5;q.fillStyle=PAL['0'];aLine(tx,ty+1,ax,ay+1,1);q.fillStyle=PAL.j;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.g;A(Math.round(tx),Math.round(ty),1,1);q.fillStyle=PAL.q;A(Math.round(ax-ux),Math.round(ay-uy),1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);
+  if(!reduced)while(o.acc>.016){o.acc-=.016;spawn(K_STREAK,R_WHITE,x-ux*8,y-uy*8,-ux*50,-uy*50,.1,1,0,1)}}
+ else{const tx=ax-ux*7,ty=ay-uy*7;q.fillStyle=PAL.E;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.y;aLine(ax-ux*3,ay-uy*3,ax,ay,1);q.fillStyle=PAL['0'];A(ax-1,ay,1,1);q.fillStyle=PAL.e;A(ax,ay-1,1,2);A(ax+1,ay,1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);
+  if(!reduced)while(o.acc>.02){o.acc-=.02;spawn(K_SQ,R_SMOKE,x-ux*10+rr(-2,2),y-uy*10+rr(-2,2),rr(-6,6),rr(-16,-4),rr(.3,.5),1,-6,1)}}
+ if(p>=1&&o.c)puff(o.x2,o.y2,3)}
+// a smoke cloud: three overlapping, growing discs that drift and thin out in steps
+function fxDrawSmoke(o,t,p,cx,cy){const q=DQ,age=(t-o.t0)/1000,X=Math.floor((o.x+o.c*age)/2),Y=Math.floor((o.y+o.d*age-6*age*age)/2),s=o.b||1,R0=Math.max(1,Math.round((2+5*Math.sqrt(p))*s)),tick=(t/70)|0;
+ const L=[[0,0,R0],[Math.round(R0*.7),Math.round(R0*.3),Math.round(R0*.75)],[-Math.round(R0*.6),Math.round(R0*.35),Math.round(R0*.7)]];
+ for(let n=0;n<3;n++){const [ox,oy,r]=L[n];for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const d=i*i+j*j;if(d>r*r)continue;if(p>.55&&((i+j+tick)&1))continue;if(p>.8&&((i+tick)&2))continue;
+   const lt=(i+j)<-r*.4&&d>r*r*.3;q.fillStyle=PAL[p<.3?(lt?'q':'p'):p<.65?(lt?'p':'o'):(lt?'o':'4')];A(X+ox+i,Y+oy+j,1,1)}}}

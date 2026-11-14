@@ -4,9 +4,12 @@
      SET.speed    1 normal | .35 fast   (copied to SPEEDF, which scales every battle delay)
      SET.confirm  true: the first tap on a foe shows the forecast, the second strikes. Default: on for touch, off for mouse.
      SET.motion   'auto' (follow the device) | 'reduce'
+     SET.deploy   true: the deployment screen before each battle
+     SET.theme    key of THEMES (08-frames.js): UI colours and the pixel frames, applied live (applyTheme)
+     SET.allyBars true: allies' HP and armor bars show on the battle board (the battle HUD toggles it with setOpt('allyBars', v))
    reducedMotion() is true when either SET.motion==='reduce' or the device asks for it; #app carries class .rm then. */
 const SETKEY='wyrdmarch_settings_v1';
-const SET={speed:1,confirm:false,motion:'auto',deploy:true};
+const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true};
 let _setConfirmUser=false,_rmq=null;
 function coarsePointer(){try{return!!window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
 function reducedMotion(){let dev=false;try{dev=!!(_rmq&&_rmq.matches===true)}catch(e){}return SET.motion==='reduce'||dev}
@@ -14,23 +17,43 @@ function applyMotion(){const rm=reducedMotion();try{const a=$('app');if(a)a.clas
  if(typeof reduced!=='undefined')reduced=rm;if(rm&&typeof Wipe!=='undefined')Wipe.stop();return rm}
 function loadSettings(){SET.confirm=coarsePointer();
  try{const o=JSON.parse(storeGet(SETKEY)||'null');if(o&&typeof o==='object'){if(o.speed===1||o.speed===.35)SET.speed=o.speed;
-   if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy}}catch(e){}
+   if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy;
+   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars}}catch(e){}
  SPEEDF=SET.speed;
  try{_rmq=window.matchMedia('(prefers-reduced-motion: reduce)');const f=()=>applyMotion();if(_rmq.addEventListener)_rmq.addEventListener('change',f);else if(_rmq.addListener)_rmq.addListener(f)}catch(e){_rmq=null}
- applyMotion()}
-function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
+ applyMotion();applyTheme(SET.theme)}
+function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
 function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=SET.speed}
  else if(k==='deploy'){SET.deploy=!!v}
  else if(k==='confirm'){SET.confirm=!!v;_setConfirmUser=true;if(typeof fcClear==='function')fcClear()}
  else if(k==='motion'){SET.motion=v==='reduce'?'reduce':'auto';applyMotion()}
+ else if(k==='theme'){SET.theme=typeof THEMES!=='undefined'&&THEMES[v]?v:'verdigris';applyTheme(SET.theme)}
+ else if(k==='allyBars'){SET.allyBars=!!v;try{if(typeof _allyBars!=='undefined')_allyBars=SET.allyBars}catch(e){}}
  saveSettings();settingsRefresh();if(mode==='battle'&&B)updateBUI()}
+/* ---- themes: CSS colours rewritten through themeHex (08-frames.js), frames rebuilt, the title and town redrawn ----
+   The build's stylesheet text is kept once; each theme is a fresh copy of it with every colour mapped (alpha suffixes kept). */
+const THM={base:null,el:null,cur:'verdigris',memo:{}};
+function applyTheme(t){if(typeof THEMES==='undefined')return false;t=THEMES[t]?t:'verdigris';
+ try{if(typeof applyFrames==='function')applyFrames(t)}catch(e){}
+ try{if(typeof document==='undefined'||!document.querySelector)return false;if(!THM.el){THM.el=document.querySelector('head style');if(THM.el)THM.base=THM.el.textContent}
+  if(!THM.el||typeof THM.base!=='string')return false;if(t===THM.cur&&THM.done)return true;
+  const memo=THM.memo[t]||(THM.memo[t]={});
+  THM.el.textContent=t==='verdigris'?THM.base:THM.base.replace(/#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g,(m0,h)=>{const k=h.toLowerCase();if(memo[k])return memo[k];
+   const al=h.length===8?k.slice(6):h.length===4?k[3]+k[3]:'',out=themeHex('#'+(h.length>=6?k.slice(0,6):k.slice(0,3)),t)+al;return memo[k]=out});
+  THM.cur=t;THM.done=true;const a=$('app');if(a&&a.dataset)a.dataset.theme=t}catch(e){return false}
+ try{if(mode==='title')drawTitleArt(true)}catch(e){}
+ return true}
+function themeSwatch(t){const T=THEMES[t],c=k=>themeHex(PAL[k],t);return`<span class="thsw" aria-hidden="true"><i style="background:${c('2')}"></i><i style="background:${c('5')}"></i><i style="background:${c('c')}"></i></span>`}
 function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();
  const seg=(k,opts,cur)=>'<div class="seg" role="radiogroup">'+opts.map(o=>'<button class="pxb sm'+(o[0]===cur?' on':'')+'" role="radio" aria-checked="'+(o[0]===cur)+'" onclick="'+(k==='full'?'settingsFull()':'setOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')')+'">'+o[1]+'</button>').join('')+'</div>';
- const row=(icon,svg,t,d,ctl)=>'<div class="setr"><span class="seti">'+pic(icon,32,svg)+'</span><div class="sett"><b>'+t+'</b><small>'+d+'</small></div>'+ctl+'</div>';
+ const row=(icon,svg,t,d,ctl,cls)=>'<div class="setr'+(cls?' '+cls:'')+'"><span class="seti">'+pic(icon,32,svg)+'</span><div class="sett"><b>'+t+'</b><small>'+d+'</small></div>'+ctl+'</div>';
+ const themes=typeof THEMES==='undefined'?'':'<div class="thg" role="radiogroup" aria-label="Colour theme">'+Object.keys(THEMES).map(t=>'<button class="pxb sm thb'+(t===SET.theme?' on':'')+'" role="radio" aria-checked="'+(t===SET.theme)+'" onclick="setOpt(\'theme\',\''+t+'\')">'+themeSwatch(t)+'<span>'+THEMES[t].n+'</span></button>').join('')+'</div>';
  return'<div class="row sp seth"><h2>Settings</h2><button class="pri" onclick="closeSheet()">Done</button></div><div class="setl">'
  +row('fast','fast','Battle speed','How quickly foes and comrades act',seg('speed',[[1,'Normal'],[.35,'Fast']],SET.speed===.35?.35:1))
  +row('swords','sword','Confirm attacks','First tap shows the forecast, second tap strikes',seg('confirm',[[true,'On'],[false,'Off']],!!SET.confirm))
  +row('company','company','Deployment','Place your swords before each battle',seg('deploy',[[true,'On'],[false,'Off']],SET.deploy!==false))
+ +row('hp','heart','Ally bars','Health and armor bars over your own swords in battle',seg('allyBars',[[true,'Show'],[false,'Hide']],SET.allyBars!==false))
+ +(themes?row('banner','banner','Colours',(THEMES[SET.theme]||THEMES.verdigris).d,themes,'wide'):'')
  +row('info','sun','Motion','Auto follows this device'+(reducedMotion()&&SET.motion!=='reduce'?' (it asks for less motion)':''),seg('motion',[['auto','Auto'],['reduce','Reduced']],SET.motion))
  +(fs?row('fullscreen','full','Fullscreen','Hide the browser frame',seg('full',[[true,'On'],[false,'Off']],full)):'')
  +'</div><p class="dim setn">Kept on this device, apart from the company\'s save.</p>'}
@@ -66,7 +89,7 @@ function wirePress(){try{document.addEventListener('pointerdown',e=>{if(reducedM
 
 /* ---- modal dialog ---- */
 let _closing=false,_uiMode='';
-function sheet(h){const b=$('sheetBody'),s=$('sheet'),was=sheetOpen;b.innerHTML=h;s.classList.remove('hidden');b.scrollTop=0;sheetOpen=true;
+function sheet(h,cls){const b=$('sheetBody'),s=$('sheet'),was=sheetOpen;b.className=cls||'';b.innerHTML=h;s.classList.remove('hidden');b.scrollTop=0;sheetOpen=true;
  if(Wipe.job&&Wipe.job.close)Wipe.stop();
  b.classList.remove('in');s.classList.remove('swin','swap');void b.offsetWidth;b.classList.add('in');s.classList.add(was?'swap':'swin')}
 function closeSheet(quiet){const s=$('sheet'),was=sheetOpen&&!s.classList.contains('hidden');let rc=null;
@@ -97,7 +120,9 @@ function toggleFullscreen(){try{const d=document,e=d.documentElement;
 function playAnyway(){Layout.anyway=true;Layout.update()}
 
 /* ---- world chrome: contract marker on the rail, stand-in minimap until the scene agent's drawMinimap exists ---- */
+let _hudCo='';
 function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
+ {const e=$('hCo'),k=G.name+'|'+JSON.stringify(G.banner);if(e&&k!==_hudCo&&typeof bannerHTML==='function'){_hudCo=k;e.innerHTML=bannerHTML(G.banner,24,'hbn')+`<b>${htmlEsc(companyName())}</b>`;e.title=companyName()}}
  if(cb){const c=G.contract;cb.classList.toggle('has',!!c);cb.classList.toggle('done',!!(c&&(c.done||c.type==='deliver')))}
  const zb=$('wbZoom');if(zb)zb.classList.toggle('on',G.zoom!==1&&G.zoom!=null);
  if(typeof drawMinimap!=='function'&&W&&W.img){const m=$('mini');if(!m)return;const x=m.getContext('2d'),k=m.width/WS;x.imageSmoothingEnabled=true;x.drawImage(W.img,0,0,m.width,m.height);
@@ -105,25 +130,71 @@ function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
   x.fillStyle='#d1a94e';x.strokeStyle='#101d1c';x.lineWidth=2;x.beginPath();x.arc(G.p.x*k,G.p.y*k,6,0,7);x.fill();x.stroke()}}
 function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world')worldChrome()}
 
-/* ---- menu ---- */
+/* ---- menu (in the field) ---- */
 function mbtn(icon,label,sub,on,cls,svg){return`<button class="mi ${cls||''}" onclick="${on}">${pic(icon,32,svg)}<span><b>${label}</b><small>${sub}</small></span></button>`}
-function menuSheet(){
- sheet(`<div class="row sp"><h2>The ledger</h2><span class="chip pxtag">Day ${G?G.day:1}</span></div>
+function menuSheet(){const b=G&&typeof bannerHTML==='function'?bannerHTML(G.banner,40,'mhb'):'';
+ sheet(`<div class="row sp mhd">${b}<div class="mht"><h2>The ledger</h2><small>${G?htmlEsc(companyName()):''}</small></div><span class="chip pxtag">Day ${G?G.day:1}</span></div>
 <p class="dim">The company's book is kept in this browser. It is written whenever you enter a town or finish a battle.</p>
 <div class="menu">${mbtn('back','Back to the march','Close this menu','closeSheet()','pri','play')}
 ${mbtn('save','Save now','Write the ledger','menuSave()','','save')}
-${mbtn('settings','Settings','Speed, confirm, motion','settingsSheet()','','sun')}
+${mbtn('settings','Settings','Speed, colours, motion','settingsSheet()','','sun')}
+${mbtn('info','How to play','Controls and the rules of the road','howSheet()','','scroll')}
 ${mbtn('close','Quit to title','Saves first','quitToTitle()','','door')}
 ${mbtn('skull','Abandon company','Start over from nothing','confirmNew()','warn','skull')}</div>`)}
 function menuSave(){save();toast('Saved');closeSheet()}
 function quitToTitle(){save();closeSheet(true);mode='title';setUI()}
-function confirmNew(){sheet(`<h2>Start over?</h2><p>This company and its world are lost for good.</p><div class="row"><button class="warn" onclick="newGame()">Start over</button><button class="pri" style="flex:1" onclick="closeSheet()">${mode==='title'?'Keep the old company':'Keep playing'}</button></div>`)}
+function confirmNew(){const st=saveStatus(),nm=st.name?htmlEsc(st.name):'This company';
+ sheet(`<h2>Start over?</h2><p>${nm} and ${st.wsize&&WORLDSZ[st.wsize]?'its '+WORLDSZ[st.wsize].name.toLowerCase()+' world':'its world'} are lost for good.</p><div class="row"><button class="warn" onclick="newCompanySetup()">Start over</button><button class="pri" style="flex:1" onclick="closeSheet()">${mode==='title'?'Keep the old company':'Keep playing'}</button></div>`)}
 
+/* ---- new company setup: name, world size, banner (field, charge, emblem) with a live flag; Begin raises it ----
+   NCS holds the choices while the dialog is open. Cosmetic dice use Math.random (never the game stream). */
+const NCNAMES=['The Ashen Banner','The Grey Wolves','The Brass Lanterns','The Sundered Oath','Kestrel Company','The Black Hollow','The Last Pennant','Thornmarch Swords','The Hollow Crowns',
+ 'The Saltmarsh Irregulars','The Iron Ravens','The Lantern Guard','The Oathless','The Ninefold Shield','The Cinder Company','The Wayward Spears','The Stag Riders','The Long Road Company'];
+const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',open:false};
+function ncRand(a){return a[Math.floor(Math.random()*a.length)]}
+function newCompanySetup(){const st=saveStatus();if(st.state==='newer'||st.state==='corrupt'){saveNotice(st);return}
+ NCS.name=ncRand(NCNAMES);NCS.wsize='small';const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.open=true;
+ sheet(`<div class="row sp seth ncs-h"><h2>Raise a company</h2><button onclick="ncCancel()">Back</button></div>
+<div class="ncs"><div class="ncs-l"><div class="ncs-flag" id="ncsFlag"></div>
+ <label class="ncs-nl" for="ncsName">Company name</label><div class="ncs-name"><input id="ncsName" type="text" maxlength="${NAMEMAX}" autocomplete="off" spellcheck="false" value="${htmlEsc(NCS.name)}" oninput="ncName(this.value)" onkeydown="if(event.key==='Enter'){this.blur()}"><button class="pxb sm icon" aria-label="Suggest a name" title="Suggest a name" onclick="ncDice()">${pnIcon('dice','',16)}</button></div>
+ <button class="pri big ncs-go" onclick="ncBegin()"><b>Begin</b><small id="ncsGoSub"></small></button></div>
+ <div class="ncs-r" id="ncsOpts"></div></div>`,'wide');ncDraw()}
+function ncCancel(){NCS.open=false;if(mode==='title')closeSheet(true);else menuSheet()}
+function ncName(v){NCS.name=String(v||'').slice(0,NAMEMAX);ncFlag()}
+function ncDice(){let n=NCS.name;for(let i=0;i<6&&n===NCS.name;i++)n=ncRand(NCNAMES);NCS.name=n;const e=$('ncsName');if(e)e.value=n;ncFlag()}
+function ncSet(k,v){if(k==='c1'&&v===NCS.c2)NCS.c2=NCS.c1;else if(k==='c2'&&v===NCS.c1)NCS.c1=NCS.c2;NCS[k]=v;ncDraw()}
+function ncShuffle(){const ks=Object.keys(BANNERC);NCS.c1=ncRand(ks);do{NCS.c2=ncRand(ks)}while(NCS.c2===NCS.c1);NCS.emblem=ncRand(Object.keys(EMBLEMS));ncDraw()}
+function ncFlag(){const f=$('ncsFlag');if(!f)return;const b={name:NCS.name,c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem};
+ f.innerHTML=`${bannerHTML(b,128,'ncs-big')}<div class="ncs-cap"><b>${htmlEsc(cleanName(NCS.name))}</b><small>${BANNERC[NCS.c2].n} ${EMBLEMS[NCS.emblem].n.toLowerCase()} on ${BANNERC[NCS.c1].n.toLowerCase()}</small></div>`;
+ const g=$('ncsGoSub');if(g)g.textContent=`${WORLDSZ[NCS.wsize].name} world, ${WORLDSZ[NCS.wsize].towns} towns`}
+function ncDraw(){const o=$('ncsOpts');if(!o)return;const st=o.scrollTop;
+ const sw=(k,c)=>`<button class="ncs-sw${NCS[k]===c?' on':''}" role="radio" aria-checked="${NCS[k]===c}" title="${BANNERC[c].n}" aria-label="${BANNERC[c].n}" onclick="ncSet('${k}','${c}')"><i style="background:linear-gradient(180deg,${PAL[BANNERC[c].r[2]]} 0 25%,${PAL[BANNERC[c].r[1]]} 25% 75%,${PAL[BANNERC[c].r[0]]} 75%)"></i></button>`;
+ o.innerHTML=`<div class="ncs-sec"><b>Land</b><small>${WORLDSZ[NCS.wsize].note}</small></div><div class="ncs-sizes" role="radiogroup" aria-label="World size">${Object.keys(WORLDSZ).map(k=>{const z=WORLDSZ[k];return`<button class="ncs-size${NCS.wsize===k?' on':''}" role="radio" aria-checked="${NCS.wsize===k}" onclick="ncSet('wsize','${k}')"><b>${z.name}</b><small>${z.n}×${z.n} · ${z.towns} towns</small></button>`}).join('')}</div>
+ <div class="ncs-sec"><b>Field</b><small>${BANNERC[NCS.c1].n}</small><button class="pxb sm ncs-rnd" onclick="ncShuffle()" title="Roll a banner">${pnIcon('dice','',16)}<span>Roll</span></button></div><div class="ncs-sws" role="radiogroup" aria-label="Field colour">${Object.keys(BANNERC).map(c=>sw('c1',c)).join('')}</div>
+ <div class="ncs-sec"><b>Charge</b><small>${BANNERC[NCS.c2].n}: the border and the emblem</small></div><div class="ncs-sws" role="radiogroup" aria-label="Charge colour">${Object.keys(BANNERC).map(c=>sw('c2',c)).join('')}</div>
+ <div class="ncs-sec"><b>Emblem</b><small>${EMBLEMS[NCS.emblem].n}</small></div><div class="ncs-ems" role="radiogroup" aria-label="Emblem">${Object.keys(EMBLEMS).map(e=>`<button class="ncs-em${NCS.emblem===e?' on':''}" role="radio" aria-checked="${NCS.emblem===e}" title="${EMBLEMS[e].n}" aria-label="${EMBLEMS[e].n}" onclick="ncSet('emblem','${e}')">${emblemHTML(e,NCS.c2,NCS.c1,32)}</button>`).join('')}</div>`;
+ o.scrollTop=st;ncFlag()}
+function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:{c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem}})}
+
+/* ---- how to play, credits ---- */
+function howSheet(){const r=(ic,svg,t,d)=>`<div class="how-r">${ic==='map'?'<i class="pxi pxi-map s32" aria-hidden="true"></i>':pic(ic,32,svg)}<div><b>${t}</b><p>${d}</p></div></div>`;
+ sheet(`<div class="row sp seth"><h2>How to play</h2><button class="pri" onclick="${mode==='title'?'closeSheet(true)':'menuSheet()'}">Done</button></div><div class="how">
+ <h3>On the march</h3>${r('map','flag','March','Tap the land to march there; time passes only while you move. Roads are quick, rivers slow except at a bridge. <kbd>M</kbd> opens the map to plan a route of several stops.')}
+ ${r('contract','scroll','Towns and contracts','Tap a town to enter. Take a contract from the notice board, hire at the tavern, buy at the market, dye your colours at the tailor, rest at the inn, heal at the temple.')}
+ ${r('camp','camp','Wages and food','Every sword eats a ration and draws a wage each day. Camp to rest; tools mend armor at camp and at inns.')}
+ <h3>In battle</h3>${r('swords','sword','Move, then strike','Tap a lit tile once to plan the move (path, AP left, what you could still do), tap it again to go. Tap a foe to see the odds, again to attack, or pick an ability first.')}
+ ${r('endturn','play','Turns','Each sword has action points (AP) and fatigue. End the turn when done. High ground helps you hit; shields and cover help you live.')}
+ ${r('info','sun','Keys','<kbd>Space</kbd> end turn · <kbd>1</kbd>–<kbd>9</kbd> abilities · <kbd>Esc</kbd> cancel · <kbd>B</kbd> ally bars · drag to pan the field.')}
+ <h3>The four gifts</h3>${r('mana','gem','Mana, Aura, Qi, Chi','Some swords carry a gift. Spend a perk in its tree to awaken it: spells, blessings, inner strength or the land\'s own power.')}</div>`)}
+function creditsSheet(){sheet(`<div class="row sp seth"><h2>Credits</h2><button class="pri" onclick="closeSheet(true)">Done</button></div>
+ <div class="cred">${typeof bannerHTML==='function'?bannerHTML({c1:'5',c2:'c',emblem:'tower'},64):''}<div><p><b>Wyrdmarch</b> is a free company chronicle: tactics, travel and the four gifts.</p>
+ <p>Every picture in the game, from the towns to the smallest icon, is pixel art painted in code from one fixed palette. No images are fetched.</p>
+ <p class="dim">Type: Jersey 15 and Alegreya Sans (SIL Open Font License). Made with care for small screens and steady hands.</p></div></div>`)}
 /* ---- title: a pixel dusk drawn at low resolution in PAL colours and shown at an integer scale ---- */
 function thash(x,y){let h=Math.imul(x|0,374761393)+Math.imul(y|0,668265263)|0;h=Math.imul(h^h>>>13,1274126177);return((h^h>>>16)>>>0)/4294967296}   // visual only, never the game stream
 const TMAN=['....p','....j','.00.j','.00.j','0000j','0000j','.00.j','.0.0.','.0.0.'],
  TBAN=['c........','jgggggg..','jghgggg..','jggggg...','jgggggg..','j........','j.00.....','j.00.....','j0000....','j0000....','j.00.....','..0.0....','..0.0....'];
-function paintTitle(g,w,h){const dot=(x,y,k)=>{g.fillStyle=PAL[k];g.fillRect(x,y,1,1)},box=(x,y,a,b,k)=>{g.fillStyle=PAL[k];g.fillRect(x,y,a,b)};
+function paintTitle(g,w,h){const th=typeof themePalKey==='function'?SET.theme:'verdigris',C=k=>PAL[th==='verdigris'?k:themePalKey(k,th)],dot=(x,y,k)=>{g.fillStyle=C(k);g.fillRect(x,y,1,1)},box=(x,y,a,b,k)=>{g.fillStyle=C(k);g.fillRect(x,y,a,b)};
  const hz=Math.round(h*.72),bands=[[0,'0'],[.13,'1'],[.27,'2'],[.4,'3'],[.52,'4'],[.64,'n'],[.76,'m'],[.9,'d']];
  for(let y=0;y<hz;y++){let i=0;while(i+1<bands.length&&y>=Math.round(bands[i+1][0]*hz))i++;const k=bands[i][1],nx=bands[i+1],d=nx?Math.round(nx[0]*hz)-y:99;box(0,y,w,1,k);
   if(nx&&d<=3)for(let x=0;x<w;x++){const on=d===1?((x+y)&1)||!((x+2*y)&3):d===2?(x+y)&1:!((x+2*y)&3);if(on)dot(x,y,nx[1])}}
@@ -139,25 +210,32 @@ function paintTitle(g,w,h){const dot=(x,y,k)=>{g.fillStyle=PAL[k];g.fillRect(x,y
  const hill=[];for(let x=0;x<w;x++){const u=x/w;hill.push(Math.round(hz+h*.075-h*.05*Math.sin(u*3.3+.4)-h*.035*Math.exp(-Math.pow((u-.66)/.2,2))+(u<.3?(.3-u)*h*.1:0)))}
  fill(hill,'2','3');
  const mx=Math.round(w*.57);for(let i=0;i<7;i++){const x=mx+i*7+(thash(i,7)*2|0);pxDraw(g,'tman',TMAN,x,hill[Math.min(w-1,x+2)]-9,1)}
- {const x=mx+7*7+2;pxDraw(g,'tban',TBAN,x,hill[Math.min(w-1,x+3)]-13,1)}
+ {const x=mx+7*7+2,b=_titleBn&&typeof BANNERC!=='undefined'?_titleBn.b:null,R=b&&BANNERC[b.c1]?BANNERC[b.c1].r:null,mp=R?{g:R[1],h:R[2]}:null;pxDraw(g,'tban'+(R?R.join(''):''),TBAN,x,hill[Math.min(w-1,x+3)]-13,1,mp)}
  const pine=(cx,by,ph,k,k2)=>{for(let i=0;i<ph;i++){const hw=Math.round((i%5)*.7+i*.24);box(cx-hw,by-ph+i,hw*2+1,1,k);if(k2&&hw>0)dot(cx-hw,by-ph+i,k2)}box(cx,by,1,2,k)};
  for(let x=-2;x<w+4;x+=4+(thash(x,3)*5|0)){const y=Math.min(h-1,hill[clamp(x,0,w-1)]+Math.round(h*.06)+(thash(x,5)*5|0));pine(x,y,7+(thash(x,9)*6|0),'1','2')}
  const fg=[];for(let x=0;x<w;x++){const u=x/w;fg.push(Math.round(h*.9-h*.03*Math.sin(u*4.2+1)+(thash(x>>2,11)-.5)*2))}fill(fg,'1','2');
  for(let x=-4;x<w+8;x+=8+(thash(x,13)*10|0)){const u=x/w,big=u<.12||u>.9;pine(x,Math.min(h+6,fg[clamp(x,0,w-1)]+6+(thash(x,17)*6|0)),(big?30:16)+(thash(x,19)*12|0),'0',big?'1':null)}}
-function drawTitleArt(){try{const host=$('titleArt');if(!host||typeof document==='undefined')return;const W=window.innerWidth,H=window.innerHeight;if(!(W>0&&H>0))return;
-  const s=Math.max(2,Math.ceil(H/150)),w=Math.ceil(W/s),h=Math.ceil(H/s),k=w+'x'+h+'@'+s;let c=host._cv;if(c&&c._k===k)return;
+function drawTitleArt(force){try{const host=$('titleArt');if(!host||typeof document==='undefined')return;const W=window.innerWidth,H=window.innerHeight;if(!(W>0&&H>0))return;
+  const s=Math.max(2,Math.ceil(H/150)),w=Math.ceil(W/s),h=Math.ceil(H/s),k=w+'x'+h+'@'+s;let c=host._cv;if(c&&c._k===k&&!force)return;
   if(!c){c=document.createElement('canvas');if(!c||!c.getContext)return;c.className='tart';host.innerHTML='';host.appendChild(c);host._cv=c}
   c._k=k;c.width=w;c.height=h;c.style.width=w*s+'px';c.style.height=h*s+'px';const g=c.getContext('2d');if(!g||!g.fillRect)return;g.imageSmoothingEnabled=false;paintTitle(g,w,h)}catch(e){}}
-function renderTitle(){drawTitleArt();
- const s=loadSave(),has=!!(s&&s.roster),fs=canFullscreen();
- $('titleBox').innerHTML=`<p class="over">A free company chronicle</p><h1>Wyrdmarch</h1><div class="rule" aria-hidden="true"><i></i></div>
+/* ---- the main menu: the title block on the left with the save card and the menu under it, the pixel dusk behind ---- */
+function titleIcon(){if(typeof gameIconCanvas!=='function')return'';try{const c=gameIconCanvas(48);if(c&&c.toDataURL){const u=c.toDataURL();if(u&&u.slice(0,5)==='data:')return`<img class="ticon" src="${u}" width="48" height="48" alt="">`}}catch(e){}return''}
+let _titleBn=null;
+function renderTitle(){
+ const st=saveStatus(),s=st.state==='ok'?st:null,bk=s&&s.banner?s.banner.c1+s.banner.c2:'';if(bk!==(_titleBn&&_titleBn.k)){_titleBn=s&&s.banner?{k:bk,b:s.banner}:null;drawTitleArt(true)}else drawTitleArt();
+ const has=!!s,fs=canFullscreen(),icon=titleIcon();
+ const tb=(on,ic,label,cls)=>`<button class="tm ${cls||''}" onclick="${on}">${ic}<span>${label}</span></button>`;
+ const card=has?`<button class="pri big tcont" onclick="continueGame()">${typeof bannerHTML==='function'?bannerHTML(s.banner,44,'tbn'):''}<span class="tcm"><b>Continue</b><span class="tcn">${htmlEsc(s.name||BANNERDEF.name)}</span><small>Day ${s.day||1} · ${s.swords} sword${s.swords===1?'':'s'} · ${s.crowns||0} crowns${s.wsize&&WORLDSZ[s.wsize]?' · '+WORLDSZ[s.wsize].name+' world':''}</small></span></button>`
+  :st.state==='newer'||st.state==='corrupt'?`<button class="big tcont warn" onclick="saveNotice(saveStatus())"><span class="tcm"><b>${st.state==='newer'?'A newer save':'A damaged save'}</b><small>It cannot be opened here. Tap for more</small></span></button>`:'';
+ $('titleBox').innerHTML=`<p class="over">${icon}A free company chronicle</p><h1>Wyrdmarch</h1><div class="rule" aria-hidden="true"><i></i></div>
 <p class="lede">Lead a free company across a wild land. Take contracts, bury friends, and learn what the four gifts are worth.</p>
 <div class="gifts" aria-hidden="true">${RESK.map(k=>`<span style="--gc:${RESC[k]}">${RESN[k]}</span>`).join('')}</div>
-<div class="tbtns">${has?`<button class="pri big" onclick="continueGame()"><b>Continue</b><small>Day ${s.day||1} · ${s.roster.length} sword${s.roster.length===1?'':'s'} · ${s.crowns||0} crowns</small></button>`:''}
-<button class="${has?'':'pri '}big" onclick="${has?'confirmNew()':'newGame()'}"><b>${has?'New company':'Raise a company'}</b><small>${has?'Abandon the old banner':'Four swords and a banner'}</small></button></div>`;
+<nav class="tmenu" aria-label="Main menu">${card}${has?'':`<button class="pri big tcont" onclick="newCompanySetup()"><span class="tcm"><b>Raise a company</b><small>Name it, choose the land and the banner</small></span></button>`}
+<div class="tgrid">${has?tb('confirmNew()',pic('banner',16,'banner'),'New company'):''}${tb('settingsSheet()',pic('settings',16,'sun'),'Settings')}${tb('howSheet()',pic('info',16,'scroll'),'How to play')}${tb('creditsSheet()',pic('star',16,'gem'),'Credits')}</div></nav>`;
  const T=$('title');let tc=T.querySelector('.tcorner');
- if(!tc){tc=document.createElement('div');tc.className='tcorner';T.appendChild(tc);
-  tc.innerHTML=(fs?'<button class="ghost fsb" onclick="toggleFullscreen()">'+pic('fullscreen',16,'full')+'<span>Fullscreen</span></button>':'')+'<button class="ghost fsb setb" onclick="settingsSheet()">'+pic('settings',16,'sun')+'<span>Settings</span></button>'}}
+ if(!tc){tc=document.createElement('div');tc.className='tcorner';T.appendChild(tc)}
+ tc.innerHTML=fs?'<button class="ghost fsb" onclick="toggleFullscreen()">'+pic('fullscreen',16,'full')+'<span>Fullscreen</span></button>':''}
 
 function boot(){loadSettings();wirePress();if(typeof initBattleHud==='function')initBattleHud();resize();mode='title';setUI();
  const lay=()=>{Layout.update();if(mode==='title')drawTitleArt()};window.addEventListener('resize',lay);window.addEventListener('orientationchange',()=>{lay();setTimeout(lay,250)});

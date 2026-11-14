@@ -43,16 +43,17 @@ function rollTrees(bg,r){const pool=(BG[bg]&&BG[bg].pool||MUNDANE).filter(k=>MAS
    highest open tier that suits its style, gear and weapons; abilities it could not use with its gear are passed over.
    Deterministic (no randomness). Returns the ids learned. */
 function mercTags(m){const t=new Set([mercStyle(m)]),w=ITEMS[m.eq&&m.eq.w],a=ITEMS[m.eq&&m.eq.a];
- if(w&&w.wt==='bow'){t.add('bow');t.add('ranged')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&m.eq.s)t.add('shield');if(!a||a.fat<=10)t.add('light');
+ if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&m.eq.s&&!(w&&w.two))t.add('shield');if(!a||a.fat<=10)t.add('light');
  if(m.gift&&MAST[m.gift])t.add(MAST[m.gift].style);return t}
-function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,bow=wt==='bow',two=!!(w&&w.two),sh=!!(m.eq&&m.eq.s);
+function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,rngd=isRangedW(w),bow=wt==='bow',two=!!(w&&w.two),
+  sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
  let s=o.tier*10;if(o.kind==='gift')s+=giftAwake(m)?18:60;
- if(o.kind==='weapon')s+=T.wt===wt?14:T.wt===swt?4:-25;
+ if(o.kind==='weapon')s+=T.wt==='shield'?(up?14:swUp?4:-25):T.wt===wt?14:T.wt===swt?4:-25;
  if((T.aff||[]).some(a=>tags.has(a)))s+=12;
- const a=p.ab&&AB[p.ab];if(a){s+=3;if(a.needs&&a.needs!==wt)s-=a.needs===swt?12:45;if(a.two&&!two)s-=45;if(a.shield&&!sh)s-=45;if(a.noBow&&bow)s-=20;if(a.tgt==='ally'||a.party)s+=tags.has('support')?6:0}
- const md=p.mod||{};if((md.shieldDef||md.shieldHp||md.guard)&&!sh)s-=35;if((md.duelHit||md.duelDmg)&&(sh||two))s-=30;if(md.twoDmg&&!(two&&!bow))s-=30;
- if((md.dmgRanged||md.coverIgn||md.longShot||md.rngB||p.flag==='eagle'||p.flag==='noLock')&&!bow)s-=30;if(md.spellB&&!tags.has('caster'))s-=20;if(md.dmgMelee&&bow)s-=20;
- if(p.st){if(bow&&p.st.ms)s-=8;if(!bow&&p.st.rs&&!p.st.ms)s-=12}
+ const a=p.ab&&AB[p.ab];if(a){s+=3;if(a.needs&&a.needs!==wt)s-=a.needs===swt?12:45;if(a.two&&!two)s-=45;if(a.shield&&!up)s-=swUp?12:45;if(a.noBow&&rngd)s-=20;if(a.tgt==='ally'||a.party)s+=tags.has('support')?6:0}
+ const md=p.mod||{};if((md.shieldDef||md.shieldHp||md.guard||md.deflect||md.shieldDr)&&!sh)s-=35;if((md.duelHit||md.duelDmg)&&(sh||two||rngd))s-=30;if(md.twoDmg&&!(two&&!rngd))s-=30;
+ if((md.dmgRanged||md.coverIgn||md.longShot||p.flag==='noLock')&&!rngd)s-=30;if((md.rngB||p.flag==='eagle')&&!bow)s-=30;if(md.spellB&&!tags.has('caster'))s-=20;if(md.dmgMelee&&rngd)s-=20;
+ if(p.st){if(rngd&&p.st.ms)s-=8;if(!rngd&&p.st.rs&&!p.st.ms)s-=12}
  return s}
 function autoLearn(m){const got=[];if(!m||!Array.isArray(m.perks))return got;const tags=mercTags(m);let g=0;
  while(m.pp>0&&g++<40){let best=null,bs=-1e9;for(const o of perkOptions(m)){if(o.owned||!o.unlocked)continue;const s=perkFit(m,o,tags);if(s>bs){bs=s;best=o}}
