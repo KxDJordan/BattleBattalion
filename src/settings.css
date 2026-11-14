@@ -1,0 +1,38 @@
+/* ================= SETTINGS DIALOG, TRANSITIONS, PRESS FEEDBACK, TITLE ART ================= */
+/* ---- settings rows ---- */
+.setl{display:flex;flex-direction:column;gap:6px;margin:10px 0 8px}
+.seth{flex-wrap:nowrap}.seth button{flex:none;min-width:96px;min-height:44px}
+.setn{margin:0;font-size:.8rem}
+@media (max-height:400px){.setl{gap:4px;margin-top:6px}.setr{min-height:50px!important;padding-top:2px!important;padding-bottom:2px!important}}
+.setr{display:flex;align-items:center;gap:10px;min-height:56px;padding:5px 6px 5px 10px;background:#101d1c;border:2px solid #0b1514;box-shadow:inset 2px 2px 0 #0b1514,inset -2px -2px 0 #213a36}
+.seti{flex:none;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#d1a94e}
+.seti .pxi{image-rendering:pixelated}.seti .ic{width:24px;height:24px}
+.sett{flex:1 1 150px;min-width:0}
+.sett b{display:block;font-family:'Jersey 15',serif;font-size:1.05rem;font-weight:600;line-height:1.15;color:#e9e0c9}
+.sett small{display:block;font-size:.78rem;line-height:1.2;color:#9fb0a4}
+.seg{flex:none;display:flex;margin-left:auto}
+.seg button{min-width:84px;min-height:44px;margin:0;padding:4px 10px;font-family:'Jersey 15',serif;font-size:.95rem;font-weight:600}
+.seg button+button{margin-left:-2px}
+#app.nopxb .seg button{border-radius:0;background:#213a36;border:2px solid #0b1514;color:#b9ad8f;text-shadow:none;box-shadow:inset 2px 2px 0 #35554f,inset -2px -2px 0 #101d1c;filter:none;transition:none}
+#app.nopxb .seg button.on{position:relative;background:#d1a94e;color:#0b1514;box-shadow:inset 2px 2px 0 #fff4c8,inset -2px -2px 0 #8a6a2a}
+@media (max-width:560px){.setr{flex-wrap:wrap}.seg button{min-width:72px}}
+/* ---- transition canvas: drawn in code (Wipe), never takes input ---- */
+#wipe{position:absolute;left:0;top:0;z-index:60;display:none;pointer-events:none;image-rendering:pixelated}
+/* ---- dialogs open in hard steps ---- */
+#app:not(.rm) #sheet.swin{animation:sw-veil .16s steps(4,end)}
+#app:not(.rm) #sheet.swin #sheetBody{animation:sw-pop .16s steps(4,end)}
+#app:not(.rm) #sheet.swap #sheetBody{animation:sw-swap .09s steps(2,end)}
+@keyframes sw-veil{from{opacity:0}to{opacity:1}}
+@keyframes sw-pop{from{transform:translateY(16px)}to{transform:none}}
+@keyframes sw-swap{from{opacity:.4}to{opacity:1}}
+/* ---- press feedback on every button (class set for a few frames by wirePress) ---- */
+#app:not(.rm) button.prs:not(:disabled):not(#fcw){transform:translateY(2px);filter:brightness(1.25)}
+/* ---- reduced motion (device setting or SET.motion): #app.rm switches off every CSS animation and transition ---- */
+#app.rm *,#app.rm *::before,#app.rm *::after{animation-duration:.001s!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001s!important;scroll-behavior:auto!important}
+@media (prefers-reduced-motion:reduce){#sheet.swin,#sheet.swin #sheetBody,#sheet.swap #sheetBody{animation:none!important}}
+/* ---- title ---- */
+#titleArt canvas.tart{position:absolute;right:0;bottom:0;display:block;image-rendering:pixelated}
+#title .tcorner{position:absolute;z-index:3;top:calc(var(--sat) + 16px);right:calc(var(--sar) + 16px);display:flex;gap:8px}
+#title .tcorner .fsb{position:static;top:auto;right:auto}
+#title .tcorner .pxi{image-rendering:pixelated}
+.setr .pxi,.menu .mi .pxi,#title .tcorner .pxi{display:block;flex:none;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated}
