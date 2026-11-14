@@ -30,7 +30,8 @@ function eaPagoda(P,cx,yb,n,night){let y=yb;const RF=['4','3','2'];for(let k=0;k
 function eaCherry(P,cx,yb,s){const R=waRng(500+(s|0));for(let j=0;j<5;j++)P.p(cx+(j>2?(j&1):0),yb-j,j<2?'i':'j');P.p(cx-1,yb-3,'i');P.p(cx+1,yb-4,'i');
  P.ell(cx,yb-8,6,4.4,(x,y,a,b)=>{const e=a*a+b*b,h=R();return e>.85&&h<.35?null:h<.18?'r':(b<-.2||a<-.3)?(h<.6?'h':'l'):h<.3?'g':'h'});for(let i=0;i<3;i++)P.p(cx-5+Math.floor(R()*11),yb-1+Math.floor(R()*2),'h')}
 function eaPine(P,cx,yb,s){const R=waRng(600+(s|0)),lean=R()<.5?-1:1;for(let j=0;j<8;j++)P.p(cx+Math.round(lean*j*j/24),yb-j,j<4?'i':'a');
- const pads=[[0,-3,6],[lean*3,-6,5],[-lean*2,-9,4],[lean,-11,3]];for(const [dx,dy,w] of pads){const px=cx+dx+Math.round(lean*(-dy)*(-dy)/24);for(let i=-w;i<=w;i++){const e=Math.abs(i)/w;P.p(px+i,yb+dy,e>.8?'3':i<0?'B':'7');if(e<.7)P.p(px+i,yb+dy-1,i<0?'A':'B')}}}
+ const pads=[[0,-3,6,2],[lean*3,-7,5,1.8],[-lean*2,-10,4,1.5],[lean,-12,2.6,1.2]];for(const [dx,dy,w,hh] of pads){const px=cx+dx+Math.round(lean*(-dy)*(-dy)/24);
+  P.ell(px,yb+dy,w,hh,(x,y,a,b)=>b<-.25?(a<.2?'A':'B'):a>.5||b>.45?'3':R()<.25?'B':'7')}}
 function eaTerrace(P,s){const fl=P.flat;P.flat=true;const W=P.w,H=P.h;for(let r=0;r<4;r++){const y=H-3-r*3,x0=1+r*2,x1=W-2-r;for(let x=x0;x<=x1;x++){P.p(x,y,'4');P.p(x,y-1,((x+r+(s|0))%5===0)?'v':r&1?'x':'v');P.p(x,y-2,r&1?'F':'A')}P.p(x0,y-1,'B');P.p(x1,y-1,'B')}P.flat=fl}
 function eaShrine(P,cx,yb){P.r(cx-3,yb-3,7,4,'j');P.r(cx+2,yb-3,1,4,'i');P.p(cx,yb-1,'a');P.p(cx,yb-2,'c');eaRoof(P,cx,yb-4,5,3,['4','3','2'],'c');P.p(cx-6,yb,'p');P.p(cx-6,yb-1,'q');P.p(cx+6,yb,'p');P.p(cx+6,yb-1,'q')}
 /* ---- towns ---- */
@@ -62,9 +63,9 @@ function eaBand(P,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,u
  const L=k>=3?[[cx+9,B-2,1],[cx-9,B,0],[cx+1,B+2,0]]:k===2?[[cx+6,B-1,1],[cx-6,B+1,0]]:[[cx,B,1]];
  L.forEach((e,i)=>{const sam=e[2],F=sam?EAFIGS:EAFIG,b=waFigure(P,F,e[0],e[1],st(i),up(i));const px=b.x0-1,py=b.y;
   // the sashimono: pole up the back, a small flag with the red sun
-  for(let j=-5;j<6;j++)P.p(px,py+j,'j');const fl=sam?'G':'l';for(let j=0;j<4;j++)for(let a=1;a<=2;a++)P.p(px-a,py-5+j+(a===2&&moving&&(f&1)?1:0),fl);P.p(px-1,py-4,sam?'c':'g');P.p(px-2,py-3,sam?'c':'g');
+  for(let j=-7;j<6;j++)P.p(px,py+j,'j');const fl=sam?'G':'l';for(let a=0;a<=3;a++)P.p(px-a,py-6,'i');for(let j=0;j<5;j++)for(let a=1;a<=3;a++)P.p(px-a,py-5+j+(a===3&&moving&&(f&1)?1:0),a===3&&j===4?'m':fl);P.p(px-2,py-3,sam?'c':'g');P.p(px-2,py-4,sam?'c':'g');
   // a yari over the shoulder, or the general's katana
-  if(!sam){for(let j=0;j<11;j++)P.p(b.x0+b.w+((j>>2)),py+7-j,j>8?'q':'k')}else{P.p(b.x0+b.w,py+6,'q');P.p(b.x0+b.w+1,py+5,'q');P.p(b.x0+b.w+2,py+4,'r')}});
+  if(!sam){const yx=b.x0+b.w;for(let j=0;j<13;j++)P.p(yx,py+8-j,j>10?(j>11?'r':'q'):'k');P.p(yx,py+5,'s')}else{P.p(b.x0+b.w,py+6,'q');P.p(b.x0+b.w+1,py+5,'q');P.p(b.x0+b.w+2,py+4,'r')}});
  // the nobori: a tall white war banner with the mon, carried at the head of the host
  const nx=L[0][0]+5,ny=L[0][1]-22;for(let j=0;j<20;j++)P.p(nx,ny+j,'i');P.p(nx,ny-1,'c');for(let j=0;j<9;j++)for(let a=1;a<=3;a++)P.p(nx+a,ny+1+j+(a===3&&moving&&((f>>1)&1)?1:0),a===3?'m':'l');
  P.p(nx+2,ny+4,'g');P.p(nx+1,ny+4,'g');P.p(nx+2,ny+5,'g');P.p(nx+1,ny+5,'f');for(let a=1;a<=3;a++)P.p(nx+a,ny+1,'G');

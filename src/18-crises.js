@@ -1,6 +1,7 @@
 /* ================= CRISES (phase 8, crises agent; CONTRACT.md "Crises") =================
    One crisis a run, chosen from the seed at new game (G.crisisKind; old saves with a crisis under way: 'sunder').
-   CRISES[k] = {n, d, icon, f (its faction), start(G), day(G,news) -> doom gained today, ended(G) -> won?, win(G), lose(G), after(G,news),
+   CRISES[k] = {n, d, icon, f (its faction), start(G), day(G,news) -> doom gained today, ended(G) -> won?, win(G) / lose(G) (pure tests: won? lost?),
+                onWin(G,late) / onLose(G) (the ending applied to the world), after(G,news),
                 marks() -> [{x,y,kind,label,f?}], sheet() -> html (the body of the crisis sheet), line() -> one short status line}
    keys: sunder deadmarch horde barbarian.
    G.crisis = {k, day (started), ended, won, lost, late, fin (the ending has been applied), doom 0..100, str (escalation), closed, total, ...state}
@@ -62,10 +63,10 @@ Object.assign(SITS,{
 });
 // the victory trophies: legendary-tier placeholders (round B gives them their powers). Kind 't': carried, sold, never on a stall.
 Object.assign(ITEMS,{
- crshard:{k:'t',n:'Shard of the Sealed Sky',d:'A splinter of the last rift, cold as starlight. A trophy of the Sundering.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crshard'},
- crbonecrown:{k:'t',n:'Crown of the Bone Throne',d:'Black iron grown through bone. The Dead March ended when it fell.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crbonecrown'},
- crwartusk:{k:'t',n:'The Warchief\'s Tusk',d:'A great tusk carved with a hundred tallies, torn from the warchief of the Great Horde.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crwartusk'},
- crempcrown:{k:'t',n:'The Ice Crown',d:'The circlet of the Barbarian Emperor: rough gold set with blue northern ice that never melts.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crempcrown'}
+ crshard:{k:'t',n:'Shard of the Sealed Sky',d:'A splinter of the last rift, cold as starlight. A trophy of the Sundering.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crshard',look:'crshard'},
+ crbonecrown:{k:'t',n:'Crown of the Bone Throne',d:'Black iron grown through bone. The Dead March ended when it fell.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crbonecrown',look:'crbonecrown'},
+ crwartusk:{k:'t',n:'The Warchief\'s Tusk',d:'A great tusk carved with a hundred tallies, torn from the warchief of the Great Horde.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crwartusk',look:'crwartusk'},
+ crempcrown:{k:'t',n:'The Ice Crown',d:'The circlet of the Barbarian Emperor: rough gold set with blue northern ice that never melts.',price:2500,uniq:1,tier:5,trophy:1,icon:'it-crempcrown',look:'crempcrown'}
 });
 
 /* ---- choosing and starting ---- */
@@ -103,7 +104,7 @@ function crisisDay(news){if(!G)return;news=news||[];crisisInit(G);const c=G.cris
 // ends the crisis: a victory (rewards, the title, the trophy) or a defeat (the scar). A late victory after a defeat heals the scar.
 function crisisEnd(won){const c=G.crisis;if(!c)return;const C=CRISES[c.k];const late=!!c.lost&&won;
  c.ended=true;c.fin=1;if(won){c.won=true;c.late=late;c.wonDay=G.day}else{c.lost=true;c.lostDay=G.day}
- try{won?C.win(G,late):C.lose(G)}catch(e){if(typeof console!=='undefined')console.warn('crisis end failed',e)}
+ try{won?C.onWin(G,late):C.onLose(G)}catch(e){if(typeof console!=='undefined')console.warn('crisis end failed',e)}
  if(won){const rk=late?.5:1,rn=Math.round(CRK.renown*rk),cr=Math.round(CRK.crowns*rk*(typeof diffK==='function'?crDiff('pay'):1));G.renown+=rn;G.crowns+=cr;c.reward={renown:rn,crowns:cr,item:CRTROPHY[c.k],title:late?null:CRTITLE[c.k]};
   if(ITEMS[CRTROPHY[c.k]])G.stash.push(CRTROPHY[c.k]);if(!late){if(!Array.isArray(G.titles))G.titles=[];if(!G.titles.includes(CRTITLE[c.k]))G.titles.push(CRTITLE[c.k])}
   if(Array.isArray(G.houses))for(const h of G.houses)if(typeof repGain==='function')repGain(h.id,late?6:12,'Ended '+C.n);
@@ -274,7 +275,7 @@ sunder:{n:'The Sundering',f:'void',icon:'mana',d:'The sky splits. Rifts tear ope
   if(age>0&&age%12===0&&n<5){addPortal();const w='A new rift tears open in the sky';worldNews(w);news.push(w)}
   return .45*Math.max(1,G.portals.length)},
  ended(G){const c=G.crisis;return c.closed>=c.total},
- win(G){},lose(G){},
+ onWin(G){},onLose(G){},
  after(G,news){const c=G.crisis;if(G.day%6===0&&G.portals.length<(c.lost&&!c.won?3:2))addPortal()},
  onBeat(){},
  marks(){return G.portals.filter(p=>seenAt(Math.floor(p.x/TS),Math.floor(p.y/TS))).map(p=>({x:p.x,y:p.y,kind:'rift',label:'A rift to '+(BIO[p.realm]?BIO[p.realm].n:'elsewhere'),f:'void'}))},
@@ -304,8 +305,8 @@ deadmarch:{n:'The Dead March',f:'dead',icon:'skull',d:'The graveyards empty. Ris
   if(!c.throne.known&&(c.clues>=4||c.doom>=70))crThroneReveal(news);
   return .5+.25*G.towns.filter((t,i)=>crTownHeld(i)==='dead').length},
  ended(G){return !!G.crisis.throneDown},
- win(G){crDisband('dead');crDropSite('grave');crDropSite('throne');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='dead')crFree(i,'end')})},
- lose(G){crThroneReveal()},
+ onWin(G){crDisband('dead');crDropSite('grave');crDropSite('throne');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='dead')crFree(i,'end')})},
+ onLose(G){crThroneReveal()},
  after(G,news){const c=G.crisis;if(c.won)return;if(G.day%3===0&&crHosts('dead').length<4){const g=G.sites.filter(s=>s.kind==='grave');if(g.length)crRaise(g[G.day%g.length].x,g[G.day%g.length].y,.9)}},
  onBeat(G,p){const c=G.crisis;c.clues=(c.clues|0)+(p.cr==='lt'?2:1);if(p.cr==='lt'&&c.lts[p.lt]&&c.lts[p.lt].alive){const L=c.lts[p.lt];L.alive=false;c.closed++;if(!c.fin)c.doom=clamp(c.doom+CRK.ltDoom,0,CRK.doomLose);worldNews(`${L.n} is destroyed`);
    if(typeof toast==='function')toast(`${L.n} is destroyed. ${c.closed>=2&&!c.throne.known?'Her papers name a hill of bones.':''}`)}
@@ -339,8 +340,8 @@ horde:{n:'The Great Horde',f:'horde',icon:'swords',d:'Orc and goblin tribes gath
   G.towns.forEach((t,i)=>{if(n>=cap||crTownHeld(i)!=='horde'||rnd()>=.12)return;const L=crTownsNear(t.x,t.y,2,j=>crTargeted(j));if(L.length&&crHost('horde',t.x,t.y+TS,L[0],{cr:'band',spd:8}))n++});
   return .5+.25*G.towns.filter((t,i)=>crTownHeld(i)==='horde').length},
  ended(G){return !!(G.crisis.chief&&!G.crisis.chief.alive)},
- win(G){crDisband('horde');crDropSite('hcamp');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='horde'&&rnd()<.5)crFree(i,'end')})},
- lose(G){},
+ onWin(G){crDisband('horde');crDropSite('hcamp');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='horde'&&rnd()<.5)crFree(i,'end')})},
+ onLose(G){},
  after(G,news){const c=G.crisis;if(c.won)return;if(G.day%5===0&&crHosts('horde').length<3){const L=crTownsNear(c.camp.x,c.camp.y,3,i=>crTargeted(i));if(L.length)crHost('horde',c.camp.x,c.camp.y,L[0],{cr:'band',spd:8})}},
  stages(G,i){const c=G.crisis,m=Math.round(clamp((.95+c.camp.str/400)*c.str,.9,2.6)*100)/100,bk=crBiomeAt(c.camp.x,c.camp.y);
   if(i===0)return crBattle('horde','camp',{f:'horde',mult:m,obj:{k:'siege'},biome:bk});
@@ -375,8 +376,8 @@ barbarian:{n:'The Barbarian War',f:'barb',icon:'swords',d:'A Barbarian Emperor h
     if(r){wsAdd({x:A.x,y:A.y,f:h.id,goal:'patrol',from:a,to:a,cr:'hhost',spd:8,mult:1,pts:r,legs:2});const w=`${h.n} sends a host north against the Emperor`;worldNews(w);news.push(w)}}}
   return dm+.3*G.towns.filter((t,i)=>crTownHeld(i)==='barb').length},
  ended(G){return !!(G.crisis.emp&&!G.crisis.emp.alive)},
- win(G){crDisband('barb');crDropSite('ecamp');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='barb')crFree(i,'end')})},
- lose(G){},
+ onWin(G){crDisband('barb');crDropSite('ecamp');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='barb')crFree(i,'end')})},
+ onLose(G){},
  after(G,news){const c=G.crisis;if(c.won)return;if(G.day>=c.next){crRaid(news);c.next=G.day+6}crRaidStep(news)},
  stages(G,i){const c=G.crisis,m=Math.round(clamp((.9+c.camp.str/300)*c.str,.9,2.8)*100)/100,bk=crBiomeAt(c.camp.x,c.camp.y);
   if(i===0)return crBattle('barbarian','palisade',{f:'barb',mult:m,obj:{k:'siege'},biome:bk});
@@ -395,7 +396,8 @@ barbarian:{n:'The Barbarian War',f:'barb',icon:'swords',d:'A Barbarian Emperor h
   <p class="dim">Catch the raiders on the road, before they reach the walls or carry their plunder home. The houses send hosts north that wear down the camp's defenses. The war ends when the camp is broken and the Emperor slain: three fights, his champions first.</p>
   ${c?`<p>The camp's defenses: <b>${Math.round(c.camp.str)} of 100</b>. Towns sacked: <b>${sk}</b>.</p>`:''}`}}
 };
-for(const k of CRKEYS)CRISES[k].key=k;
+// win(G) / lose(G): pure tests (the run summary polls them): has this crisis been won / lost (and not won since)?
+for(const k of CRKEYS){const C=CRISES[k];C.key=k;C.win=g=>{const c=(g||G)&&(g||G).crisis;return !!(c&&(c.k||'sunder')===k&&c.won)};C.lose=g=>{const c=(g||G)&&(g||G).crisis;return !!(c&&(c.k||'sunder')===k&&c.lost&&!c.won)}}
 
 /* ---- the Dead March helpers ---- */
 function crRaise(x,y,k,from,o){const c=G.crisis,L=crTownsNear(x,y,3,i=>crTargeted(i)&&rnd()<.6);if(!L.length)return null;const to=L[ri(0,Math.min(1,L.length-1))];
