@@ -42,7 +42,7 @@ function pnIcon(k,cls,size){const n=PNPX[k]||k,c='pn-i px'+(cls?' '+cls:'');size
  if(!PICON[k])return typeof pxIcon==='function'?pxIcon(n,size,c):'';
  return`<svg class="pn-i${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${PICON[k]||''}</svg>`}
 function itemIconName(id){let it=ITEMS[id];if(!it)return'fist';if(it.famed&&it.base&&ITEMS[it.base]){id=it.base;it=ITEMS[id]}if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
-if(it.k==='s')return'shield';if(it.k==='h')return'helmet';if(it.k==='a')return it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy';return it.wt||'sword'}
+if(it.k==='t')return typeof tgIcon==='function'?tgIcon(id):'stash';if(it.k==='s')return'shield';if(it.k==='h')return'helmet';if(it.k==='a')return it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy';return it.wt||'sword'}
 function pnItemIcon(id,size){const n=itemIconName(id);return pnFamedWrap(id,pnHasPx(n)||PNOWN[n]?pnIcon(n,'',size):pnIcon(n.indexOf('armor')===0?'armor':({mace:'axe',dagger:'sword',fist:'sword'})[n]||n,'',size))}
 /* ---- famed items in every list: a gold glow around the icon (.famed wrapper), a gold name, a Famed tag, the improvements ---- */
 const TIERN=['','I','II','III','IV','V'];
@@ -72,17 +72,22 @@ function pnFacts(rows){rows=rows.filter(Boolean);return`<div class="pn-facts${ro
 function pnEmpty(t){return`<div class="pn-empty">${t}</div>`}
 /* signed comparison chips between an item and what a slot holds now */
 function itemDeltas(id,cur){const a=ITEMS[id],b=cur?ITEMS[cur]:null,out=[],add=(v,u)=>{if(v)out.push({v,u})};
+ if(a&&a.k==='t')return out;
  if(a.k==='w'){const c=b||FIST;add(Math.round((a.d[0]+a.d[1]-c.d[0]-c.d[1])/2),'dmg');add((c.ap||4)-(a.ap||4),'AP');add((a.hit||0)-(c.hit||0),'to hit');add(Math.round(((a.ign||0)-(c.ign||0))*100),'% pierce');add((a.rng||1)-(c.rng||1),'range')}
  else if(a.k==='s'){add(a.md-(b?b.md:0),'melee def');add(a.rd-(b?b.rd:0),'ranged def');add((b?b.fat:0)-a.fat,'fatigue')}
  else{add(a.arm-(b?b.arm:0),a.k==='h'?'head armor':'armor');add((a.md||0)-(b&&b.md||0),'melee def');add((a.rd||0)-(b&&b.rd||0),'ranged def');add((b?b.fat||0:0)-(a.fat||0),'fatigue')}return out}
-function pnDeltaChips(id,cur){if(id===cur)return'<span class="pn-d same">Same</span>';const d=itemDeltas(id,cur);if(!d.length)return'<span class="pn-d same">No change</span>';
+function pnDeltaChips(id,cur){if(id===cur)return'<span class="pn-d same">Same</span>';if(ITEMS[id]&&ITEMS[id].k==='t')return'<span class="pn-d tg">Trade good · '+pnTgWorth(ITEMS[id])+' crowns</span>';const d=itemDeltas(id,cur);if(!d.length)return'<span class="pn-d same">No change</span>';
  return d.map(x=>`<span class="pn-d ${x.v>0?'up':'dn'}">${x.v>0?'+':'−'}${Math.abs(x.v)} ${x.u}</span>`).join('')}
-function itemFacts(id){const i=ITEMS[id],rg=typeof isRangedW==='function'&&isRangedW(i),sg=v=>(v<0?'−':'+')+Math.abs(v),df=x=>x.md||x.rd?[x.md?['Melee defense',sg(x.md)]:null,x.rd?['Ranged defense',sg(x.rd)]:null]:[];
+/* trade goods (ITEMS kind 't'): worth, where they are made, where they sell best */
+function pnTgWorth(i){const v=+(i.v!=null?i.v:i.price!=null?i.price:i.val!=null?i.val:i.cost)||0;return Math.round(v)}
+function pnTgFacts(id){const i=ITEMS[id],G0=typeof GOODS==='object'&&GOODS&&i.good?GOODS[i.good]:null,made=G0&&typeof G!=='undefined'&&G&&Array.isArray(G.towns)?G.towns.filter(t=>t&&(t.good===i.good||(Array.isArray(t.goods)&&t.goods.includes(i.good)))).map(t=>t.name):[];
+ return[['Worth',pnTgWorth(i)+' crowns'],G0?['Trade good',G0.n]:null,made.length?['Made in',made.slice(0,3).join(', ')+(made.length>3?' and '+(made.length-3)+' more':'')]:null,['Sells best','Where it is not made'],['Weight','Rides in the wagons']]}
+function itemFacts(id){if(ITEMS[id]&&ITEMS[id].k==='t')return pnTgFacts(id);const i=ITEMS[id],rg=typeof isRangedW==='function'&&isRangedW(i),sg=v=>(v<0?'−':'+')+Math.abs(v),df=x=>x.md||x.rd?[x.md?['Melee defense',sg(x.md)]:null,x.rd?['Ranged defense',sg(x.rd)]:null]:[];
  if(i.k==='w')return[['Damage',`${i.d[0]}–${i.d[1]}`],['AP a swing',i.ap],['Fatigue a swing',i.fat],[rg?'Range':'Reach',i.rng>1?i.rng+' tiles':'Adjacent'],['Ignores armor',Math.round(i.ign*100)+'%'],i.hit?['To hit',sg(i.hit)]:null,i.reload?['Reload',i.reload.ap+' AP']:null,i.crush?['Crushes armor','+'+Math.round(i.crush*100)+'%']:null,i.stun?['Stun chance',Math.round(i.stun*100)+'%']:null,i.spell?['Spell damage','+'+Math.round(i.spell*100)+'%']:null,['Grip',i.two?'Two-handed':'One-handed']];
  if(i.k==='s')return[['Melee defense','+'+i.md],['Ranged defense','+'+i.rd],['Shield hitpoints',i.hp||48],['Fatigue','−'+i.fat],i.guard?['Covers allies','−'+i.guard+' to be shot']:null,i.wallB?['Shield wall','+'+i.wallB]:null,i.spike?['Spiked bash',i.spike[0]+'–'+i.spike[1]]:null];
  if(i.k==='h')return[['Head armor',i.arm],['Fatigue','−'+(i.fat||0)],...df(i),['Guards','Blows to the head']];return[['Armor',i.arm],['Fatigue','−'+i.fat],...df(i)]}
 const ITKIND={dagger:'Dagger',mace:'Mace',sword:'Sword',axe:'Axe',spear:'Spear',bow:'Bow',staff:'Staff',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Firearm'};
-function itemKind(id){const i=ITEMS[id],k=i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.famed?'Famed '+k.toLowerCase():k}
+function itemKind(id){const i=ITEMS[id],k=i.k==='t'?'Trade good':i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.famed?'Famed '+k.toLowerCase():k}
 
 function pnSheetUp(){const s=$('sheet');return!!(s&&!s.classList.contains('hidden')&&s.getClientRects().length)}
 function pnAssert(){if(!PN.id)return;sheetOpen=true;if(G&&PN.town)G.townOpen=true}
@@ -143,7 +148,13 @@ function pnParts(e,P){const T=pnTpl();if(!T||pnFocusIn(e)){e.innerHTML=P.join(''
  if(kept&&typeof e.getAnimations==='function'){try{for(const a of e.getAnimations({subtree:true}))if(a.effect&&a.effect.target!==e&&typeof CSSAnimation!=='undefined'&&a instanceof CSSAnimation)a.currentTime=0}catch(x){}}}
 function pnField(x){const t=x.nodeType===1&&x.tagName;return t==='INPUT'||t==='TEXTAREA'||t==='SELECT'||(t&&x.querySelector&&!!x.querySelector('input,textarea,select'))}
 function pnSameAttrs(a,b){const A=a.attributes,B=b.attributes;if(A.length!==B.length)return false;for(let i=0;i<A.length;i++){const x=A[i];if(b.getAttribute(x.name)!==x.value)return false}return true}
-function showPanel(o){const r=panelRoot(),fresh=!PN.id,L=$('pnList'),D=$('pnDetail');
+/* the market's inventory: one button sells every trade good in the stash (world agent's sellTrade / tradePrice), with the total stated */
+function pnTradeBar(o){if(o.id!=='town'||typeof townTab==='undefined'||townTab!=='market'||typeof sellTrade!=='function'||!G||!Array.isArray(G.stash)||typeof o.list!=='string'||o.list.indexOf('sellTrade(')>=0)return;
+ let n=0,v=0;for(const id of G.stash){const it=ITEMS[id];if(!it||it.k!=='t')continue;n++;let q=null;if(typeof tradePrice==='function'){try{q=tradePrice(id,G.town)}catch(e){}}v+=q&&q.v!=null?+q.v:typeof q==='number'?q:pnTgWorth(it)}
+ if(!n)return;const at=o.list.indexOf('<div class="pn-sec"><span>Spare in the stash');if(at<0)return;
+ const bar=`<div class="mk-trade"><span>${pnIcon('tg','',32)}<span><b>${n} trade good${n===1?'':'s'}</b><small>Sell for ${Math.round(v)} crowns here</small></span></span><button type="button" class="pn-btn pri" onclick="sellTrade()">Sell all</button></div>`;
+ o.list=o.list.slice(0,at)+bar+o.list.slice(at)}
+function showPanel(o){try{pnTradeBar(o)}catch(e){}const r=panelRoot(),fresh=!PN.id,L=$('pnList'),D=$('pnDetail');
  if(fresh&&pnSheetUp()&&typeof closeSheet==='function')closeSheet(true);
  const l0=L.scrollTop,d0=D.scrollTop;
  if(PN.lkey)PN.scroll[PN.lkey]=l0;

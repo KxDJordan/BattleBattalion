@@ -343,7 +343,10 @@ function tvPaint(t,ti,W,H,tod,bio){const P=tvPainter(W,H),hs=tvHash(t.name||'tow
   const slots=[[4,-34],[14,-35],[25,-34],[5,-23],[16,-22],[26,-23]];
   for(let i=0;i<nP+1&&i<6;i++){const [sx,sy]=slots[i],px0=x+sx,py0=by+sy,old=i>=nP;
    P.r(px0,py0,8,9,old?'m':'l');P.r(px0+7,py0,1,9,old?'n':'m');P.r(px0,py0+8,8,1,old?'n':'m');P.p(px0+3,py0,old?'b':'g');P.p(px0+4,py0,old?'b':'g');
-   for(let j=2;j<7;j+=2)P.r(px0+1,py0+j,j===6?3:5,1,old?'n':'o');if(!old&&i%2===0){P.r(px0+5,py0+6,2,2,'g');P.p(px0+5,py0+6,'h')}if(old)P.p(px0+7,py0+8,'k')}
+   for(let j=2;j<7;j+=2)P.r(px0+1,py0+j,j===6?3:5,1,old?'n':'o');if(!old&&i%2===0){P.r(px0+5,py0+6,2,2,'g');P.p(px0+5,py0+6,'h')}if(old)P.p(px0+7,py0+8,'k');
+   const tc=!old&&t.contracts[i],tr=tc&&tc.rtook!=null&&typeof lkRival==='function'?lkRival(tc.rival):null;   // taken by a rival company: struck through, their pennant pinned over it
+   if(tr){const A=typeof BANNERC==='object'&&BANNERC[tr.c1]?BANNERC[tr.c1].r:['f','g','h'],C=typeof BANNERC==='object'&&BANNERC[tr.c2]?BANNERC[tr.c2].r:['m','l','r'];
+    for(let k=0;k<7;k++){P.p(px0+k,py0+1+k,'f');P.p(px0+1+k,py0+1+k,'g')}P.r(px0+3,py0-2,6,8,'0');P.r(px0+4,py0-1,4,6,A[1]);P.r(px0+4,py0-1,4,1,A[2]);P.r(px0+4,py0+1,4,1,C[1]);P.r(px0+7,py0,1,5,A[0]);P.r(px0+5,py0+4,2,1,'0');P.r(px0+5,py0+5,2,1,'k');P.p(px0+5,py0-2,'p')}}
   P.d(x+1,by,36,1,GR.rs,0);P.id=0;an.box.board={x:x-3,y:by-47,w:46,h:49}};
  const DRAW={tavern,inn,market,board};['tavern','inn','market','board'].forEach(k=>DRAW[k](X[k]));
  /* -- street props -- */
@@ -443,12 +446,12 @@ function tvRoot(){if(TV.root)return TV.root;const r=document.createElement('div'
  window.addEventListener('resize',()=>{if(TV.shown){tvLayout();TV.dirty=true}});
  TV.root=r;TV.cv=r.querySelector('canvas');TV.g=TV.cv.getContext('2d');return r}
 function tvBadges(t){const hurt=G.roster.filter(m=>m.hp<calc(m).hp).length,c=G.contract;
- return{contracts:TV.paid?{t:'Paid',c:'ok'}:c?{t:'In hand',c:'dim'}:t.contracts.length?{t:t.contracts.length,c:''}:null,
+ return{contracts:TV.paid?{t:'Paid',c:'ok'}:c?{t:'In hand',c:'dim'}:(n=>n?{t:n,c:''}:t.contracts.length?{t:'Taken',c:'dim'}:null)(t.contracts.filter(x=>x&&x.rtook==null).length),
   tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:lkHostile(G.town)?{t:'Closed',c:'bad'}:null,tailor:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpInjured==='function'?cpInjured().length:0)}}
 function tvRect(e){try{return e.getBoundingClientRect()}catch(_){return null}}
 function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=r.clientWidth||window.innerWidth,vh=r.clientHeight||window.innerHeight;
  const s=Math.max(2,Math.floor(Math.min(vw/300,vh/170))),W=Math.ceil(vw/s),H=Math.ceil(vh/s),tod=tvTod(),bio=tvBiome(t);
- const key=[G.town,t.name,W,H,tod,bio,t.contracts.length,(t.bld||[]).join(',')].join('|');
+ const key=[G.town,t.name,W,H,tod,bio,t.contracts.length,t.contracts.map(x=>x&&x.rtook!=null?x.rival:'').join(','),(t.bld||[]).join(',')].join('|');
  if(key!==TV.key){TV.key=key;TV.s=s;TV.W=W;TV.H=H;const o=tvPaint(t,G.town,W,H,tod,bio);TV.an=o.an;TV.pic=tvCompose(o.P,tod,o.an.lights);TV.out=tvOutlines(o.P);tvInitAnim(o.an,W,H);delete o.an.P;
   TV.cv.width=W;TV.cv.height=H;TV.cv.style.width=W*s+'px';TV.cv.style.height=H*s+'px';TV.g.imageSmoothingEnabled=false;r.style.setProperty('--s',s);r.dataset.tod=tod;r.dataset.bio=bio}
  const B=tvBadges(t),box=TV.an.box,P=$('tvPlaces');

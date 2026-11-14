@@ -79,8 +79,8 @@ function usFinOf(k){let f=null;try{let t=typeof finishRamp==='function'?finishRa
   if(Array.isArray(t)&&t.length>=3&&t.every(x=>PAL[x])){const a=t.slice(0,3);if(t.length>=4&&PAL[t[3]])a.push(t[3]);else a.push(US_HI[a[2]]||a[2]);f=[a.join(''),a[0]+a.slice(0,3).join('')]}}catch(e){}
  return f||US_FIN[k]||null}
 function usFin(k){if(!k||k==='steel')return null;let r=US_RC.get('f'+k);if(r!==undefined)return r;const f=usFinOf(k);r=f?{steel:usRamp(f[0],1),plate:usRamp(f[0],2),iron:usRamp(f[1],1),fin:k}:null;US_RC.set('f'+k,r);return r}
-function usColSig(m){const c=m&&m.colors;return c&&typeof c==='object'?(c.cloth||'')+'/'+(c.accent||'')+'/'+(c.metal||''):''}
-function usLivery(S,m){const col=m&&m.colors;if(!col||typeof col!=='object')return;const cr=usDye(col.cloth),ar=usDye(col.accent),mf=usFin(col.metal);
+function usColSig(m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;return c&&typeof c==='object'?(c.cloth||'')+'/'+(c.accent||'')+'/'+(c.metal||''):''}
+function usLivery(S,m){const col=typeof mercLook==='function'?mercLook(m):m&&m.colors;if(!col||typeof col!=='object')return;const cr=usDye(col.cloth),ar=usDye(col.accent),mf=usFin(col.metal);
  if(cr){S.clothR=cr;S.legR=usRamp(cr.t,0);if(S.hat==='hood')S.hatR=cr}
  if(ar){S.accR=ar;S.shR=ar;S.tabR=ar;S.sashR=ar;S.trim=ar;if(S.hat==='band'||S.hat==='feather')S.hatR=ar}
  if(mf)S.MR=Object.assign({},USR,mf)}
@@ -1020,7 +1020,7 @@ function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;re
  if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a)+':'+usLd(u);return'x:?'}
 /* what the shield in hand looks like now: 0 whole, 1 cracked (half its hitpoints gone), 2 split (gone); 3 a merc whose shield the foes smashed */
 function usShs(u){if(!u)return 0;if(u.shpMax>0)return!(u.shield||(u.slung&&u.shp>0))?2:u.shp<=u.shpMax*.5?1:0;return u.sund?2:0}
-function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=usHand(u),hw=H.w,ha=H.a,cs=m?m.colors:null,ld=usLd(u);
+function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=usHand(u),hw=H.w,ha=H.a,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null,ld=usLd(u);
  if(c&&c.shs===shs&&c.hw===hw&&c.ha===ha&&c.cs===cs&&c.ld===ld&&(!cs||c.sig===usColSig(m))&&(!e||(c.s===e.s&&c.a===e.a&&c.h===e.h)))return c.L;
  const key=usLookKey(u);let L=US.looks.get(key);
  if(!L){let S=null;try{S=u.m&&u.m.eq?usMercSpec(u.m,{w:hw,a:ha}):usEnemySpec(usEnKey(u.def)||u.eid,u)}catch(er){S=null}

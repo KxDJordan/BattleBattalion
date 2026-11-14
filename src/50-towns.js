@@ -42,7 +42,8 @@ function stockTown(t){t.ref=G.day;t.recruits=[];const D=typeof renownDef==='func
  for(let i=0;i<nR;i++){const m=newMerc(typeof recruitBG==='function'?recruitBG(t):wpickBG());if(D&&D.vet>0&&rnd()<D.vet)makeVeteran(m,ri(D.lv[0],D.lv[1]));t.recruits.push(m)}
  const maxT=marketTier(t.size,G.day),ids=marketPool(maxT);t.stock=[];const nS=Math.max(3,9+twCountStep(typeof townStockK==='function'?townStockK(G.towns.indexOf(t)):1,2));for(let i=0;i<nS;i++)t.stock.push(stockPick(ids,maxT));
  {const hs=ids.filter(k=>ITEMS[k].k==='h');if(hs.length&&t.stock.length&&!t.stock.some(id=>ITEMS[id].k==='h')){const lo=hs.filter(k=>(ITEMS[k].tier||1)<=Math.min(maxT,3));t.stock[t.stock.length-1]=pick(lo.length?lo:hs)}}   // every market has a helmet on the stalls
- t.contracts=[];const nC=townBoardN(t);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}}
+ const keep=typeof rvKeepTaken==='function'?rvKeepTaken(t):[];   // notices a rival company holds stay up, marked as taken
+ t.contracts=[];const nC=Math.max(0,townBoardN(t)-keep.length);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}t.contracts=keep.concat(t.contracts)}
 /* how many notices a board posts: 3, +1 in a city, +1 when the owner is friendly or allied, -1 when cold; none when the town is hostile.
    SITS[k].contracts as a number adds or removes notices. */
 /* the world's recruit and stock factors (situations, prosperity) as a step on the usual count: a small drift keeps it, a famine or a boom moves it */
@@ -57,7 +58,11 @@ function twHostile(ti){if(ti==null)ti=G.town;if(typeof townHostile!=='function'|
 function twPriceWhyHTML(kind,ti){if(ti==null)ti=G.town;if(typeof townPriceWhy!=='function'||ti==null)return'';let L=[];try{L=townPriceWhy(ti,kind)||[]}catch(e){L=[]}if(!L.length)return'';const k=twK(kind,ti);
  return`<p class="pn-hint tw-why">${twIcon('coin',16)}<span><b>${kind==='sell'?'They pay':'Prices'} ×${k.toFixed(2)}</b> ${L.map(x=>htmlEsc(String(x.why))+' ×'+(+x.k).toFixed(2)).join(', ')}</span></p>`}
 function mkBuyPrice(id,ti){const it=ITEMS[id];return it?Math.max(1,Math.round((it.price||0)*twK('buy',ti,id))):0}
-function mkSellPrice(id,ti){return Math.max(0,Math.floor(sellPrice(id)*twK('sell',ti,id)))}
+function mkSellPrice(id,ti){const it=ITEMS[id];if(it&&it.k==='t')return tradePrice(id,ti).v;return Math.max(0,Math.floor(sellPrice(id)*twK('sell',ti,id)))}
+/* trade goods (ITEMS kind 't', 10-data.js): the full price where the good is not made, half where it is, times the town's sell factor
+   (reputation, situations, prosperity, specialties). tradePrice(id, ti) -> {v, made (the town makes it), k (the sell factor), why} */
+function tradePrice(id,ti){const it=ITEMS[id];if(!it)return{v:0,made:false,k:1,why:''};if(ti==null)ti=G.town;const t=G&&G.towns&&ti!=null?G.towns[ti]:null,made=!!(t&&Array.isArray(t.spec)&&t.spec.includes(it.good)),k=twK('sell',ti,id);
+ return{v:Math.max(0,Math.floor((it.price||0)*(made?.5:1)*k)),made,k,why:made?`${t.name} makes ${GOODS[it.good]?GOODS[it.good].n.toLowerCase():'this'} itself: half price`:t?`Not made here: full price`:''}}
 function mkFoodPrice(ti){return Math.max(5,Math.round(30*twK('food',ti)))}
 function twShut(){if(!twHostile())return false;toast('The market is closed to the company');return true}
 /* the company walks into town i (the world's arrival): a town event (17-events.js eventTick) may come first, and opens the town when it
@@ -90,7 +95,7 @@ function twPortrait(m,sz){if(typeof portraitHTML==='function'){try{const h=portr
 function twSkulls(n,of){if(typeof pxIcon!=='function')return pnSkulls(n,of);let h='';for(let i=0;i<(of||n);i++)h+=`<span class="${i<n?'':'off'}">${pxIcon('skull',16)}</span>`;return`<span class="tw-skulls" aria-label="Danger ${n} of ${of||n}">${h}</span>`}
 function twStat(ic,v,fb){return`<span class="tw-s">${twIcon(ic,16)}${fb&&typeof pxIcon!=='function'?fb+' ':''}${v}</span>`}
 function twItemStats(id){const i=ITEMS[id];return(i&&i.famed?'<span class="tw-t fmd-tag">Famed</span>':'')+(typeof pxIcon==='function'?twItemStats0(id):itemDesc(id))}
-function twItemStats0(id){const i=ITEMS[id];
+function twItemStats0(id){const i=ITEMS[id];if(i.k==='t')return`<span class="tw-t">Trade good</span>`+twStat('coin',G.town!=null?tradePrice(id).v:i.price);
  if(i.k==='w')return twStat(i.rng>2?'ranged':'melee',`${i.d[0]}–${i.d[1]}`)+twStat('ap',i.ap)+`<span class="tw-t">${i.two?'2H':'1H'}</span>`+(i.rng>1?`<span class="tw-t">reach ${i.rng}</span>`:'')+(i.spell?`<span class="tw-t">+${Math.round(i.spell*100)}% spell</span>`:'');
  if(i.k==='s')return twStat('mdef','+'+i.md)+twStat('rdef','+'+i.rd)+twStat('fatigue','−'+i.fat);if(i.k==='h')return twStat('helmet',i.arm)+twStat('fatigue','−'+(i.fat||0))+'<span class="tw-t">head</span>';return twStat('armor',i.arm)+twStat('fatigue','−'+i.fat)}
 /* faction emblems: a heater shield in the faction's colours with its mark (16x16, drawn here) */
@@ -130,7 +135,7 @@ function statGrid(m,s){const c=(ic,v,n)=>`<div><b>${v}</b>${twIcon(ic,16)}<span>
 function marketCompare(id){const k=ITEMS[id].k;return G.roster.map(m=>{const cur=m.eq[k],w=ITEMS[m.eq.w];let x='';
   if(k==='s'&&!tlEquipRule(m,'s',id).ok)x='<span class="pn-d same">Hands full</span>';else{x=pnDeltaChips(id,cur);if(k==='w'&&id!==cur&&tlDropsShield(m,'w',id))x+='<span class="pn-d same">drops shield</span>';if(k==='s'&&tlSlung(m))x+='<span class="pn-d same">slung</span>'}
   return`<div class="pn-cmp${m.field?'':' res'}">${twPortrait(m,32)}<span class="pn-cn"><b>${htmlEsc(m.name)}</b><small>${cur?pnItemName(cur):k==='w'?'Unarmed':'None'}</small></span><span class="pn-cd">${x}</span></div>`}).join('')}
-function itemDetail(id){const it=ITEMS[id];return`${twHead(twItemIcon(id,48),itemKind(id)+(it.tier?' · tier '+it.tier:''),pnItemName(id,1))}${pnFamedBlock(id)}${pnFacts(pnFamedFacts(id))}${pnHead('Against what the company carries')}<div class="pn-cmps">${marketCompare(id)}</div>`}
+function itemDetail(id){const it=ITEMS[id];if(it.k==='t')return tradeDetail(id);return`${twHead(twItemIcon(id,48),itemKind(id)+(it.tier?' · tier '+it.tier:''),pnItemName(id,1))}${pnFamedBlock(id)}${pnFacts(pnFamedFacts(id))}${pnHead('Against what the company carries')}<div class="pn-cmps">${marketCompare(id)}</div>`}
 function twRecruitLine(m){const b=BG[m.bg];return`${m.eq.w?twItemIcon(m.eq.w,16):twIcon('fist',16)}${m.eq.b?twItemIcon(m.eq.b,16):''}${m.eq.s?twItemIcon(m.eq.s,16):''}${m.eq.a?twItemIcon(m.eq.a,16):''}<span class="tw-t0">${RACE[m.race].n} ${b.n.toLowerCase()}</span>`}
 /* the recruit's build at a glance: style trees, the gift in its colour with its variant, the weapon families */
 function twRecruitTrees(m){const g=tlGift(m);return`${typeof coTreeStrip==='function'?coTreeStrip(m):''}${g?`<span class="tw-gv g-${tlGiftRes(g)}">${MAST[g].n}</span>`:''}`}
@@ -232,21 +237,21 @@ function acceptContract(i){const t=G.towns[G.town];if(G.contract)return false;co
  toast(c.adv?`Contract accepted: ${c.adv} crowns up front`:'Contract accepted');renderTown();save();return true}
 /* the notice board: a line and a detail page for any contract type, read through the ctr* hooks (16-contracts.js) */
 const TW_DIFFN=['Light','Serious','Grave','Deadly','Dire'];
-function twCtrSub(c){const T=typeof CTYPES==='object'&&CTYPES[c.type],f=c.f&&FACT[c.f]?', '+FACT[c.f].n.toLowerCase():'';return(T?T.n:c.type==='deliver'?'Delivery':'Hunt')+(c.type==='deliver'?'':f)+(c.due!=null?` · by day ${c.due}`:'')}
+function twCtrSub(c){const T=typeof CTYPES==='object'&&CTYPES[c.type],f=c.f&&FACT[c.f]?', '+FACT[c.f].n.toLowerCase():'',tk=typeof ctrRivalTook==='function'?ctrRivalTook(c):'';return(T?T.n:c.type==='deliver'?'Delivery':'Hunt')+(c.type==='deliver'?'':f)+(c.due!=null?` · by day ${c.due}`:'')+(tk?` · <span class="tw-t warn">${c.rtook!=null&&typeof rivalMiniHTML==='function'?rivalMiniHTML(c.rival,16):''}${htmlEsc(tk)}</span>`:'')}
 function twCtrWhere(c,t){const L=[];for(const s of c.stages||[]){if(s.k==='go'){const d=leagues(s,t);L.push(`${s.label}: about ${d} league${d===1?'':'s'} ${compass(s.x-t.x,s.y-t.y)} of ${t.name}${s.fight?'':' (no fight expected)'}.`)}
   else{const o=G.towns[s.ti];if(o)L.push(o===t?`${s.label} here in ${t.name}.`:`${s.label} in ${o.name}, ${leagues(o,t)} leagues ${compass(o.x-t.x,o.y-t.y)}.`)}}
  if(!L.length){const o=c.type==='hunt'?c:G.towns[c.to];if(o)L.push(`About ${leagues(o,t)} leagues ${compass(o.x-t.x,o.y-t.y)} of ${t.name}.`)}return L}
 function twCtrObj(c){const s=(c.stages||[]).find(x=>x.k==='go'&&x.fight&&(x.fight.obj||x.fight.boss));if(!s)return'';const F=s.fight,o=F.obj;
  if(F.boss)return`The target is <b>${F.boss.name}</b>${F.boss.title?', '+F.boss.title:''}: stronger than the rest of its kind.`;
  if(o&&o.k==='escort')return'The caravan wagon fights at your back and cannot move: if it is destroyed, the contract is lost.';if(o&&o.k==='hold')return`Hold for ${o.rounds} rounds or rout them.`;if(o&&o.k==='siege')return'The foe fights from behind stakes, fortified for its first turns. Kill its leader and the rest break.';return''}
-function twCtrDetail(c,t){const T=typeof CTYPES==='object'&&CTYPES[c.type],mood=typeof ctrMood==='function'?ctrMood(c):null,neg=c.neg||{},ob=twCtrObj(c);
+function twCtrDetail(c,t){const tk=typeof ctrTakenBy==='function'?ctrTakenBy(c):null,T=typeof CTYPES==='object'&&CTYPES[c.type],mood=typeof ctrMood==='function'?ctrMood(c):null,neg=c.neg||{},ob=twCtrObj(c);
  const facts=[['Employer',typeof ctrEmpName==='function'?ctrEmpName(c):t.name]];if(c.f&&FACT[c.f]&&c.type!=='deliver')facts.push(['Foe',FACT[c.f].n]);
  facts.push(['Danger',twSkulls(c.diff,Math.max(3,c.diff))+' '+(typeof DIFFN!=='undefined'?DIFFN:TW_DIFFN)[c.diff-1]],['Pay',twIcon('coin',16)+c.pay+' crowns'+(c.adv?` <small>(${c.adv} up front)</small>`:'')],['Renown',twIcon('renown',16)+'+'+8*c.diff]);
  if(c.due!=null)facts.push(['Deadline',twIcon('day',16)+'Day '+c.due+` <small>(${Math.max(0,c.due-G.day)} days)</small>`]);
  if(mood)facts.push(['Employer’s mood',`<span class="tw-mood ${mood.n}">${mood.n}</span> <small>${mood.why}</small>`]);
  const detail=`${twHead(twEmblem(c,48),T?T.n:'Contract',c.title)}<p class="pn-p">${T?T.d:''}</p>${twCtrWhere(c,t).map(x=>`<p class="pn-p dim">${x}</p>`).join('')}${ob?`<p class="pn-p">${ob}</p>`:''}
-  ${pnFacts(facts)}${neg.msg?`<p class="pn-p ${neg.ok?'good':'warn'}">${neg.msg}</p>`:''}${G.contract?'<p class="pn-p warn">You already hold a contract. Finish or abandon it before taking another.</p>':''}`;
- const ix=t.contracts.indexOf(c),can=!G.contract&&!neg.gone,hag=typeof ctrNegotiate==='function'&&can&&(neg.r||0)<3,b=c.pay0||c.pay;
+  ${pnFacts(facts)}${tk?`<p class="pn-p warn">${htmlEsc(ctrRivalTook(c))} on day ${c.rtook}. The notice stays up until the board is renewed, but the work is theirs.</p>`:''}${neg.msg?`<p class="pn-p ${neg.ok?'good':'warn'}">${neg.msg}</p>`:''}${G.contract?'<p class="pn-p warn">You already hold a contract. Finish or abandon it before taking another.</p>':''}`;
+ const ix=t.contracts.indexOf(c),can=!G.contract&&!neg.gone&&!tk,hag=typeof ctrNegotiate==='function'&&can&&(neg.r||0)<3,b=c.pay0||c.pay;
  const foot=`<span class="pn-fl">${pnCoin(c.pay,'big')}<small>crowns on completion</small></span>${hag?`<button type="button" class="pn-btn" onclick="twHaggle(${ix},'pay')">Ask ${Math.round(b*1.15/10)*10}</button><button type="button" class="pn-btn" onclick="twHaggle(${ix},'adv')">Ask ${Math.round(c.pay*.3/10)*10} up front</button>`:''}${neg.counter?`<button type="button" class="pn-btn" onclick="twHaggle(${ix},'counter')">Take their offer</button>`:''}<button type="button" class="pn-btn pri" ${can?'':'disabled'} onclick="acceptContract(${ix})">Accept contract</button>`;
  return{detail,foot}}
 // haggling from the board: 'pay' asks 15% over the posted pay, 'adv' a third up front, 'counter' takes the employer's last offer
@@ -263,6 +268,12 @@ function buyTools(n){if(twShut())return false;n=Math.max(1,Math.round(+n||TOOLLO
 /* temple: treat injury id of roster[i] for crowns */
 function templeTreat(i,id){const m=G.roster[i];if(!m)return false;const j=cpInj(m).find(x=>x.id===id);if(!j)return false;const r=cpTreat(m,id);if(!r.ok){toast(r.why);return false}
  toast(`${m.name}: ${j.n.toLowerCase()} treated`);renderTown(`<p class="good">The healers see to ${htmlEsc(m.name)}. ${j.n} is mended for ${r.cost} crowns.</p>`);save();return true}
+/* a trade good's page in the market: what it is, what this town pays, where it is made */
+function tradeDetail(id){const it=ITEMS[id],q=tradePrice(id),made=G.towns.filter(t=>Array.isArray(t.spec)&&t.spec.includes(it.good)).map(t=>t.name);
+ return`${twHead(twItemIcon(id,48),'Trade good',htmlEsc(it.n))}<p class="pn-p">${htmlEsc(it.d||'')}</p>${pnFacts([['Worth',twIcon('coin',16)+it.price+' crowns'],['Here',twIcon('coin',16)+q.v+' crowns <small>('+htmlEsc(q.why)+')</small>'],['Made in',made.length?htmlEsc(made.join(', ')):'No town in this land']])}<p class="pn-p dim">Trade goods sell for their full worth in any town that does not make them, and for half where they are made.</p>`}
+// sells every trade good in the stash at this market; returns the crowns made (0 when there were none or the market is closed)
+function sellTrade(){if(twShut())return 0;let n=0,c=0;for(let j=G.stash.length-1;j>=0;j--){const it=ITEMS[G.stash[j]];if(!it||it.k!=='t')continue;c+=mkSellPrice(G.stash[j]);G.stash.splice(j,1);n++}
+ G.crowns+=c;if(n&&typeof toast==='function')toast(`Sold ${n} trade good${n===1?'':'s'} for ${c} crowns`);if(n)renderTown();return c}
 function sellItem(i){if(twShut())return false;const id=G.stash.splice(i,1)[0];if(!id)return false;G.crowns+=mkSellPrice(id);renderTown();return true}
 function innRest(){const cost=G.roster.length*10;if(G.crowns<cost){toast('Not enough crowns');return}G.crowns-=cost;G.roster.forEach(m=>m.hp=calc(m).hp);const d0=G.day;advanceTime(8);G.roster.forEach(m=>m.hp=calc(m).hp);const rep=cpRepair(),rt=cpRepairText(rep);let note=rt?`<p class="${rep.pts?'good':'bad'}">${rt}.</p>`:'';
  if(G.day!==d0){let msg='';try{const e=$('toast');msg=e&&typeof e.textContent==='string'?e.textContent:''}catch(e){}   // newDay() only toasts its report; the next toast would replace it
@@ -270,7 +281,7 @@ function innRest(){const cost=G.roster.length*10;if(G.crowns<cost){toast('Not en
  toast(rep.pts?`The company is rested. ${rep.pts} armor mended`:'The company is rested');renderTown(note);save();return rep}
 function contractSheet(){const c=G.contract;let h='<h2>Contract</h2>';
  if(!c)h+='<p class="dim">You hold no contract. Towns post work on their notice boards.</p>';
- else{const t=G.towns[c.town];h+=`<div class="card"><b>${c.title}</b><p class="dim">${typeof ctrStatus==='function'?ctrStatus(c)+'.':c.type==='deliver'?'Deliver to '+G.towns[c.to].name+'.':c.done?'Done. Return to '+t.name+' for your pay.':'Marked on the map with a red skull. Posted in '+t.name+'.'}</p><span class="coin">${c.pay} crowns</span></div><button class="warn" onclick="if(typeof ctrAbandon==='function')ctrAbandon();else{G.contract=null;G.renown=Math.max(0,G.renown-5)}closeSheet();toast('Contract abandoned')">Abandon contract</button> `}
+ else{const t=G.towns[c.town];h+=`<div class="card"><b>${c.title}</b><p class="dim">${typeof ctrStatus==='function'?ctrStatus(c)+'.':c.type==='deliver'?'Deliver to '+G.towns[c.to].name+'.':c.done?'Done. Return to '+t.name+' for your pay.':'Marked on the map with a red skull. Posted in '+t.name+'.'}</p>${(()=>{const r=typeof ctrRace==='function'?ctrRace(c):null;return r&&r.text?`<p class="warn">${typeof rivalMiniHTML==='function'?rivalMiniHTML(r.r&&r.r.id||c.rival,16):''}${htmlEsc(r.text)}</p>`:''})()}<span class="coin">${c.pay} crowns</span></div><button class="warn" onclick="if(typeof ctrAbandon==='function')ctrAbandon();else{G.contract=null;G.renown=Math.max(0,G.renown-5)}closeSheet();toast('Contract abandoned')">Abandon contract</button> `}
  sheet(h+'<button onclick="closeSheet()">Close</button>')}
 /* ---- the tavern's two pages: recruits looking for work, and the retinue (followers hired for good, slots by renown) ---- */
 function tavTabs(cur){const nR=G.towns[G.town].recruits.length,nF=(G.retinue||[]).length,sl=typeof followerSlots==='function'?followerSlots():1,b=(k,n,ic,c)=>`<button type="button" role="tab" class="mk-tab${cur===k?' on':''}" id="tavTab-${k}" aria-selected="${cur===k}" onclick="tavTab('${k}')">${twIcon(ic,16)}<span>${n}</span><i>${c}</i></button>`;

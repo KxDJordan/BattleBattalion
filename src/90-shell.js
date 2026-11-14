@@ -127,6 +127,7 @@ function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
  {const e=$('hCo'),k=G.name+'|'+JSON.stringify(G.banner);if(e&&k!==_hudCo&&typeof bannerHTML==='function'){_hudCo=k;e.innerHTML=bannerHTML(G.banner,24,'hbn')+`<b>${htmlEsc(companyName())}</b>`;e.title=companyName()}}
  hudCompany();
  if(cb){const c=G.contract;cb.classList.toggle('has',!!c);cb.classList.toggle('done',!!(c&&(c.done||c.type==='deliver')))}
+ hudRace(cb);
  const zb=$('wbZoom');if(zb)zb.classList.toggle('on',G.zoom!==1&&G.zoom!=null);
  if(typeof drawMinimap!=='function'&&W&&W.img){const m=$('mini');if(!m)return;const x=m.getContext('2d'),k=m.width/WS;x.imageSmoothingEnabled=true;x.drawImage(W.img,0,0,m.width,m.height);
   x.fillStyle='#101d1c';for(const t of G.towns||[])x.fillRect(t.x*k-4,t.y*k-4,8,8);x.fillStyle='#e9e0c9';for(const t of G.towns||[])x.fillRect(t.x*k-2.5,t.y*k-2.5,5,5);
@@ -169,9 +170,19 @@ function costPopRender(force){const e=CP.el;if(!e||e.hidden)return;const k=costP
 function costPopPlace(){const e=CP.el,b=CP.from;if(!e||e.hidden)return;const hud=$('hud'),hr=hud?hud.getBoundingClientRect():{bottom:40},vw=innerWidth,br=b&&b.getBoundingClientRect?b.getBoundingClientRect():{left:12};
  const rail=$('wbar'),rx=rail&&!rail.classList.contains('hidden')&&rail.getBoundingClientRect().width?rail.getBoundingClientRect().left:vw,w=e.offsetWidth,left=clamp(Math.round(br.left-8),6,Math.max(6,rx-w-6));e.style.left=left+'px';e.style.top=Math.round(hr.bottom+4)+'px';e.style.maxHeight=Math.max(160,innerHeight-hr.bottom-12)+'px'}
 function costPopClose(refocus){const e=CP.el;if(!e||e.hidden)return;e.hidden=true;document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded','false'));if(refocus&&CP.from&&CP.from.focus)try{CP.from.focus({preventScroll:true})}catch(er){}CP.from=null}
-function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world')worldChrome()
+function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world'){worldChrome();rivalWonCheck()}
  if(CP.el&&!CP.el.hidden){if(mode!=='world'||sheetOpen)costPopClose(false);else costPopRender(false)}}
 
+/* ---- a rival racing the company for its contract's target (16-contracts.js ctrRace): the Contract button wears their pennant and says so ---- */
+let _hudRace='';
+function hudRace(cb){if(!cb)return;let R=null;if(G.contract&&typeof ctrRace==='function'){try{R=ctrRace(G.contract)}catch(e){R=null}}const k=R?R.r.id+'|'+R.text:'';if(k===_hudRace)return;_hudRace=k;
+ cb.classList.toggle('race',!!R);let b=cb.querySelector('.wb-race');if(R){if(!b){b=document.createElement('span');b.className='wb-race';cb.appendChild(b)}b.innerHTML=typeof rivalMiniHTML==='function'?rivalMiniHTML(R.r,16):'';cb.title=R.text;cb.setAttribute('aria-label','Contract. '+R.text)}
+ else{if(b)b.remove();cb.removeAttribute('title');cb.removeAttribute('aria-label')}}
+/* ---- a race lost to a rival company (16-contracts.js ctrRivalFail sets G.ctrLast.rival): one notice with their banner, once ---- */
+function rivalWonCheck(){const L=G&&G.ctrLast;if(!L||!L.rival||L.shown||sheetOpen||typeof sheet!=='function'||typeof lkRival!=='function')return;const r=lkRival(L.rival);L.shown=1;if(!r)return;
+ sheet(`<div class="rv-hd">${rivalBannerHTML(r,64)}<div><div class="pn-kick">${typeof lkIc==='function'?lkIc('contract',16):''}Contract lost</div><h2>${htmlEsc(r.n)} got there first</h2><p class="rv-job">${htmlEsc(L.title||'The contract')}</p></div></div>
+ <p class="pn-p">${htmlEsc(String(L.why||'A rival company reached the target first and claimed the work').replace(/\.?$/,'.'))}</p><p class="pn-p dim">No standing is lost with the employer: the company did nothing wrong. ${htmlEsc(r.short||r.n)} take the pay and the renown.</p>
+ <div class="row"><button onclick="closeSheet();factionsSheet('${r.id}')">${typeof lkIc==='function'?lkIc('rival',16):''}About ${htmlEsc(r.short||r.n)}</button><button class="pri" onclick="closeSheet()">On the road again</button></div>`,'rv')}
 /* ---- menu (in the field) ---- */
 function mbtn(icon,label,sub,on,cls,svg){return`<button class="mi ${cls||''}" onclick="${on}">${pic(icon,32,svg)}<span><b>${label}</b><small>${sub}</small></span></button>`}
 function menuSheet(){const b=G&&typeof bannerHTML==='function'?bannerHTML(G.banner,40,'mhb'):'';

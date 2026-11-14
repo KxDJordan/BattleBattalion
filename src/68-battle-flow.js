@@ -36,12 +36,14 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    row.inj=unitNewInj(u,snap).map(j=>({id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}));row.inj.forEach(j=>res.injuries.push({name:m.name,id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}))}
   rows.set(m,row);res.men.push(row)}
  G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
- if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=e.def&&e.def.xp||0);const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
+ if(b.rival)rivalResolve(b,res,win);   // the rival company's dead, wounded and fled; its purse, gear and a beaten sword who asks to join
+ if(win)res.cargo=caravanCargo(b.opts.src);
+ if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=e.def&&e.def.xp||(e.m?rivalXP(e.m):0));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
   surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
-  res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
+  res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
   {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq&&!ITEMS[k].famed);
-   if(H.length&&L.length&&!L.some(id=>ITEMS[id]&&ITEMS[id].k==='h')){const top=Math.max(...L.map(id=>ITEMS[id]?ITEMS[id].price||0:0)),ok=H.filter(k=>(ITEMS[k].price||0)<=top);
+   if(!b.rival&&H.length&&L.length&&!L.some(id=>ITEMS[id]&&ITEMS[id].k==='h')){const top=Math.max(...L.map(id=>ITEMS[id]?ITEMS[id].price||0:0)),ok=H.filter(k=>(ITEMS[k].price||0)<=top);
     if(ok.length)en.forEach(()=>{if(rnd()<.07)res.loot.push(pick(ok))})}}
   res.famed=battleFamed(b,en);res.famed.forEach(id=>res.loot.push(id));
   res.loot.forEach(id=>G.stash.push(id));
@@ -53,6 +55,47 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
  if(typeof ambEvent==='function')ambEvent('battle',res);
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
  b.result=res;return res}
+/* ---- rival companies (CONTRACT.md) ----
+   rivalResolve(b,res,win) writes res.rival = {id, n, dead:[names], down:[names], fled:[names], ok:[names], routed, purse, renown,
+   loot:[{id,k,worn:[left,max]|null}], joiner:{id,name,lvl,bg,bgN,room,taken,declined}|null, wiped} and applies it:
+     the killed leave the rival's roster (m.dead is set); everyone else keeps what the battle left them: hitpoints (1 for the struck
+     down), armor and helmet condition (setArmorCond), a split shield is gone, injuries stay (inflicted on m during the fight);
+     a won battle: each item of the killed drops with chance RIVAL.loot (armor and helmets keep the wear they died in, in res.rival.loot;
+     one beaten to nothing, or a split shield, does not drop), and one struck-down sword may ask to join (RIVAL.join[pers]; rivalJoin(res) takes him on).
+   The rival's war chest, renown both ways, standing, news and a wipe-out are the world's (worldBattleEnd -> rvBattleEnd in settleBattle,
+   which hands back {crowns, renown, rival}); rr.purse / rr.renown are filled from that report there, for the toast.
+   Order of the seeded draws: per killed merc in unit order, per item w b s a h; then the joiner rolls, struck-down in unit order. */
+const RIVAL={loot:.45,join:{honour:.3,cutthroat:.55,greedy:.5,glory:.35},xp:[70,22]};
+const rivalXP=m=>RIVAL.xp[0]+RIVAL.xp[1]*(m.lvl||1);
+function rivalResolve(b,res,win){const r=typeof battleRival==='function'?battleRival(b.rival):null,rr={id:b.rival,n:r?rivalName(r):'The rivals',dead:[],down:[],fled:[],ok:[],loot:[],purse:0,renown:0,joiner:null,routed:!!(b.rout&&b.rout[1]),wiped:false};
+ res.rival=rr;if(!r)return rr;const num=v=>typeof v==='number'&&isFinite(v),gone=[],downU=[];
+ for(const u of b.units){if(u.side!==1||!u.m)continue;const m=u.m,st=u.alive?'ok':u.gone?'fled':u.down?'down':'dead';rr[st].push(m.name);
+  if(st==='dead'){gone.push(u);continue}if(st==='down')downU.push(u);
+  m.hp=st==='down'?1:Math.max(1,Math.min(num(u.hp)?Math.round(u.hp):1,calc(m).hp));
+  const c=armorCond(m);if(typeof setArmorCond==='function')setArmorCond(m,num(u.arm)?u.arm:c.a,num(u.helm)?u.helm:c.h);
+  if(u.shpMax>0&&!u.shield&&!u.slung&&m.eq.s)m.eq.s=null}                                  // a split shield does not march on
+ for(const u of gone){const m=u.m;if(win){const c=armorCond(m),a=num(u.arm)?clamp(Math.round(u.arm),0,c.aMax):c.a,h=num(u.helm)?clamp(Math.round(u.helm),0,c.hMax):c.h;   // the wear it died in
+   for(const k of ['w','b','s','a','h']){const id=m.eq[k];if(!id||!ITEMS[id])continue;if(k==='s'&&u.shpMax>0&&!u.shield&&!u.slung)continue;const worn=k==='a'?[a,c.aMax]:k==='h'?[h,c.hMax]:null;   // a split shield is firewood
+    if(worn&&worn[1]>0&&worn[0]<=0)continue;if(rnd()<RIVAL.loot)rr.loot.push({id,k,worn:worn&&worn[0]<worn[1]?worn:null})}}m.dead=true}
+ r.roster=r.roster.filter(m=>!gone.some(u=>u.m===m));
+ if(win){rr.loot.forEach(x=>res.loot.push(x.id));
+  const jc=RIVAL.join[r.pers]!=null?RIVAL.join[r.pers]:.4;
+  for(const u of downU.slice().sort((x,y)=>(y.m.lvl||1)-(x.m.lvl||1)||x.id-y.id)){if(rnd()<jc){const m=u.m;rr.joiner={id:m.id,name:m.name,lvl:m.lvl,bg:m.bg,bgN:BG[m.bg]?BG[m.bg].n:m.bg,room:G.roster.length<MAXROSTER,taken:false,declined:false};break}}}
+ if(!r.roster.length)rr.wiped=true;   // the world wipes it out (worldBattleEnd -> rvBattleEnd)
+ return rr}
+/* rivalJoin(res?): the struck-down rival sword of res.rival.joiner (default B.result) leaves the rival's roster for the company's,
+   as he is (1 hitpoint, injuries, gear). Refused when the roster holds MAXROSTER. Returns the merc, or null. No randomness. */
+function rivalJoin(res){res=res||(typeof B!=='undefined'&&B&&B.result)||null;const rr=res&&res.rival,j=rr&&rr.joiner;if(!j||j.taken||j.declined)return null;
+ if(G.roster.length>=MAXROSTER){j.room=false;return null}const r=battleRival(rr.id),i=r?r.roster.findIndex(m=>m.id===j.id):-1;if(i<0)return null;
+ const m=r.roster.splice(i,1)[0];if(G.roster.some(x=>x.id===m.id)||!Number.isInteger(m.id))m.id=G.nid++;delete m.rv;delete m.dead;m.slot=null;m.hp=Math.max(1,m.hp);
+ m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);j.taken=true;j.id=m.id;if(!r.roster.length){rr.wiped=true;if(!(typeof B!=='undefined'&&B)&&typeof rvWipe==='function')rvWipe(r,'when its last sword joined '+(G.name||'the company'))}return m}   // before settleBattle the world wipes it itself
+// The cargo of the caravan a won battle was against, for the results sheet: {good, text} (cargoText, 40-world.js), or null.
+// It is the world's to hand over (cargoTake, from worldBattleEnd in settleBattle); this only reads it.
+function caravanCargo(s){if(!s||s.type!=='party'||!G||!Array.isArray(G.parties))return null;const p=G.parties.find(q=>q.id===s.id);if(!p||p.goal!=='caravan'||!p.cargo)return null;
+ let text='';if(typeof cargoText==='function'){try{text=String(cargoText(p.cargo)||'')}catch(e){text=''}}if(!text&&p.cargo.crowns>0)text=Math.round(p.cargo.crowns)+' crowns';return{good:p.cargo.good||null,text}}
+// What cargoTake reported through worldBattleEnd, as one line (a string, or {text|t|lines}).
+function cargoLine(w){const c=w&&(w.cargo||w.took||w.loot);if(!c)return'';if(typeof c==='string')return c;if(Array.isArray(c))return c.map(x=>typeof x==='string'?x:x&&(x.t||x.text||x.n)||'').filter(Boolean).join(', ');
+ if(typeof c==='object')return String(c.text||c.t||(Array.isArray(c.lines)?c.lines.join(', '):'')||'');return''}
 /* famed drops of a won battle (12-famed.js famedPlan): guaranteed from end-game kills, else a chance late in the campaign
    that grows with the foes' rank and the day. Draws game randomness only when a drop is possible. Returns the new item ids. */
 function enKeyOf(){const m=new Map();if(typeof EN==='object'&&EN)for(const k in EN)m.set(EN[k],k);return m}
@@ -81,11 +124,27 @@ function brMan(r){const u=B&&B.units?B.units.find(u=>u.side===0&&u.m&&u.m.id===r
  if(r.arm||r.helm)bits.push(`<span class="br-w">${r.arm?brIcon('armor')+'−'+r.arm:''}${r.helm?brIcon('helmet')+'−'+r.helm:''}</span>`);
  const inj=r.inj.map(j=>`<span class="br-inj">${typeof cpInjIcon==='function'?cpInjIcon(j.id):''}<b>${j.n}</b> ${j.d}${j.perm?', for good':j.days>0?', '+j.days+' day'+(j.days===1?'':'s'):''}</span>`).join('');
  return`<div class="br-man ${r.state}">${por}<div><span class="br-nm"><b>${r.name}</b>${tag?`<em class="${tag[0]}">${tag[1]}</em>`:''}${r.lvl?`<em class="up">Level ${r.lvl}</em>`:''}</span>${bits.length?`<span class="br-bits">${bits.join(' ')}</span>`:''}${r.lvl?brOpens(r.from!=null?r.from:r.lvl-1,r.lvl).map(t=>`<span class="br-tier">${brIcon(/Weapon/.test(t)?'swords':'level')}${t}</span>`).join(''):''}${inj}</div></div>`}
+// The rival company's part of the results sheet: who fell, the purse, worn gear, the sword who asks to join.
+function brRival(res){const rr=res.rival;if(!rr)return'';const r=typeof battleRival==='function'?battleRival(rr.id):null,bn=r&&typeof rivalBannerHTML==='function'?rivalBannerHTML(r,32):'',L=(a,w)=>a.length?`${a.length} ${w} (${a.join(', ')})`:'';
+ const parts=[L(rr.dead,'dead'),L(rr.down,'struck down'),L(rr.fled,rr.routed?'routed':'fled')].filter(Boolean);
+ let h=`<div class="br-rv" style="display:flex;gap:8px;align-items:center">${bn}<p><b>${rr.n}</b>${res.win?rr.wiped?' are wiped out.':rr.routed?' break and run.':' are beaten.':' hold the field.'}${parts.length?' '+parts.join('; ')+'.':''}</p></div>`;
+ if(res.win)h+=`<p class="br-rvp dim">Their war chest and the renown of beating them are yours as you march on.</p>`;
+ const worn=rr.loot.filter(x=>x.worn);if(res.win&&worn.length)h+=`<p class="dim br-worn">Worn: ${worn.map(x=>`${ITEMS[x.id].n} (${x.worn[0]}/${x.worn[1]})`).join(', ')}.</p>`;
+ const j=rr.joiner;if(res.win&&j){const m=r?r.roster.find(x=>x.id===j.id):null,mm=m||(G.roster.find(x=>x.id===j.id)),por=mm&&typeof portraitHTML==='function'?portraitHTML(mm,32):'';
+  if(j.taken)h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p class="good"><b>${j.name}</b> joins the company, at 1 hitpoint, wounds and all.</p></div>`;
+  else if(j.declined)h+=`<p class="dim br-join">${j.name} is left where they fell.</p>`;
+  else h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p><b>${j.name}</b>, a level ${j.lvl} ${String(j.bgN).toLowerCase()}, was struck down but lives, and asks to join you.${j.room?'':` <span class="bad">No room: the roster holds ${MAXROSTER}.</span>`}</p><div class="row">${j.room?`<button class="pri" onclick="brJoin(1)">Take ${j.name} on</button>`:''}<button onclick="brJoin(0)">Leave them</button></div></div>`}
+ return h}
+// The joiner's answer from the results sheet (UI: no randomness). Redraws the sheet.
+function brJoin(yes){const res=B&&B.result;if(!res||!res.rival||!res.rival.joiner)return;const j=res.rival.joiner;if(yes){if(!rivalJoin(res)&&typeof toast==='function')toast(j.room?'He cannot join now':'The roster is full')}else j.declined=true;
+ if(typeof sheet==='function')sheet(battleResultHTML(res))}
 function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'||r.inj.length||r.arm||r.helm||r.lvl||r.shield),fine=(res.men||[]).length-men.length;let h;
  if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
  h+=brObjLine(res);
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
+ h+=brRival(res);
+ if(res.win&&res.cargo){const grid=typeof lkCargoLinesHTML==='function'&&res.cargo.lines?lkCargoLinesHTML(res.cargo.lines):'';h+=`<p class="br-cargo">${brIcon(['cargo','stash'])}<span>The caravan's cargo is yours${!grid&&res.cargo.text?': '+res.cargo.text:''}.</span></p>`+grid}
  if(res.win&&res.parts&&res.parts.length)h+=`<div class="br-parts"><span class="br-ph">${brIcon(['parts','stash'])}Monster parts${typeof followerHas==='function'&&followerHas('herbalist')?' <small>(herbalist)</small>':''}</span>${res.parts.map(x=>{const P=typeof PARTS!=='undefined'&&PARTS[x.key]||{};return`<span class="br-pt">${typeof pxIcon==='function'?pxIcon(P.icon||'part-'+x.key,16):''}<b>${P.n||x.key}</b><i>x${x.n}</i></span>`}).join('')}</div>`;
  if(res.win&&res.xpK>1)h+=`<p class="dim br-drill">${brIcon('xp')}The drillmaster drives them on: +${Math.round((res.xpK-1)*100)}% experience.</p>`;
  if(res.win&&res.famed&&res.famed.length)h+=res.famed.map(id=>{const L=typeof famedLines==='function'?famedLines(id):[];return`<p class="br-fm"><b class="fmd-n">${ITEMS[id].n}</b>: a famed ${ITEMS[ITEMS[id].base].n.toLowerCase()}. ${L.map(x=>x.t).join(', ')}.</p>`}).join('');
@@ -106,7 +165,9 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
  if(!G.roster.length){clearSave();return{kind:'wiped',days:G.day}}
  G.grace=3;const out={kind:'world',toast:null};
  // the world's consequences first (caravan loot, reputation, sieges broken, nests cleared: 40-world.js), while the beaten party is still on the map
- if(typeof worldBattleEnd==='function'){try{out.world=worldBattleEnd(s,win)}catch(e){out.world=null}}
+ if(typeof worldBattleEnd==='function'){try{out.world=worldBattleEnd(s,win,B0res)}catch(e){out.world=null}}   // (the result record rides along: res.rival, res.cargo)
+ out.cargo=cargoLine(out.world);
+ if(B0res&&B0res.rival&&out.world){const rr=B0res.rival;rr.purse=Math.max(0,Math.round(+out.world.crowns||0));rr.renown=Math.max(0,Math.round(+out.world.renown||0));out.rival=rr}
  if(s.type==='nest'&&win){const c=G.contract;if(c&&!c.failed&&c.type==='nest'&&c.nest===s.id&&typeof ctrBattleEnd==='function'){const st=ctrStage(c);if(st&&st.k==='go'&&st.fight)out.toast=ctrBattleEnd(c,true,B0res)}else if(typeof nestClear==='function'&&Array.isArray(G.nests)&&G.nests.some(n=>n.id===s.id))nestClear(s.id)}
  if(s.type==='party'){if(win){G.parties=G.parties.filter(p=>p.id!==s.id);G.renown+=3}}
  else if(s.type==='lair'&&typeof ctrBattleEnd==='function'){const c=G.contract;if(c&&!c.failed&&(s.id==null||s.id===c.id)){out.toast=ctrBattleEnd(c,win,B0res)||null}}
@@ -129,6 +190,8 @@ function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=
   if(out.ended)msg+=`<p class="good">The last of the three rifts is closed. The Sundering is over, though lesser rifts may still open.</p>`;
   sheet(msg+`<button class="pri" onclick="closeSheet()">Return to the world</button>`)}
  else if(out.toast)toast(out.toast);
+ if(out.kind==='world'&&out.cargo&&typeof toast==='function')toast('Taken from the caravan: '+out.cargo);
+ if(out.kind==='world'&&win&&out.rival&&(out.rival.purse||out.rival.renown)&&typeof toast==='function')toast(`${out.rival.n}' war chest: ${out.rival.purse} crowns${out.rival.renown?`, +${out.rival.renown} renown`:''}`);
  save();if(typeof ambNotify==='function'&&!sheetOpen)ambNotify();
  if(win&&out.kind==='world'&&typeof eventTick==='function'&&!sheetOpen){try{eventTick('after',{win:true,f:f0})}catch(e){}}   // a battle-aftermath event (17-events.js)
  return out}

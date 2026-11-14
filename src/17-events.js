@@ -360,7 +360,7 @@ brawl:{n:'A brawl in camp',kind:['camp'],art:'camp',cd:6,who:m=>evTr(m,'cocky')|
   {t:'Dock their pay',d:c=>`+20 crowns. ${evPlain(c.m)}: 35% becomes Greedy.`,go:c=>{evCrowns(20);if(evRoll(.35))evTrait(c.m,'greedy');return'<p>The money goes in the chest, and the grudge goes on.</p>'}}]},
 drunkraid:{n:'The cask is dry',kind:['camp','travel'],art:'wagon',cd:8,who:m=>evTr(m,'drunkard'),when:c=>2,
  text:c=>evP(`Somebody has been at the cargo. A cask of ale is empty, a crate of salt pork broken open, and ${evNm(c.m)} sleeps on top of it, smiling.`),
- opts:[{t:'Flog him',d:c=>`${evPlain(c.m)} −12 hitpoints. 50%: he gives up drink (loses Drunkard). 30%: he turns Craven instead.`,go:c=>{evHurt(c.m,12);const x=rnd();if(x<.5)evUntrait(c.m,'drunkard');else if(x<.8)evTrait(c.m,'craven');return'<p>The company watches in silence.</p>'}},
+ opts:[{t:'Flog the drunkard',d:c=>`${evPlain(c.m)} −12 hitpoints. 50%: gives up drink (loses Drunkard). 30%: turns Craven instead.`,go:c=>{evHurt(c.m,12);const x=rnd();if(x<.5)evUntrait(c.m,'drunkard');else if(x<.8)evTrait(c.m,'craven');return'<p>The company watches in silence.</p>'}},
   {t:'Talk him dry',badge:'Loyal',req:c=>!!evFind(m=>evTr(m,'loyal')||evBg(m,'monk','acolyte'),[c.m]),d:c=>`${evPlain(c.m)} loses Drunkard (75%).`,go:c=>{if(evRoll(.75)){evUntrait(c.m,'drunkard');return'<p>A long talk by the fire, and a promise kept.</p>'}return'<p>He means it. For a week.</p>'}},
   {t:'Let it go',d:'−8 food.',go:c=>{evFood(-8);return'<p>"He fights better drunk anyway."</p>'}}]},
 nightthief:{n:'A thief in the night',kind:['camp'],art:'camp',cd:9,when:c=>G.crowns>=100?1:.4,

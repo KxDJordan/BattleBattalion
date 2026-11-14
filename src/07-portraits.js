@@ -510,8 +510,8 @@ const PT_NEWW={hammer:1,polearm:1,greatsword:1,crossbow:1,flintlock:1};
 const PT_WPNOF={warhammer:'hammer',pickhammer:'pick',maul:'maul',warmaul:'maul',bill:'bill',halberd:'halberd',glaive:'glaive',greatsword:'gsword',zweihander:'zwei',runegreat:'rgsword',xbow:'xbow',arbalest:'xbow',pistol:'pistol',musket:'musket'};
 function ptDye(k){if(!k)return null;let a=null;try{if(typeof dyeRamp==='function')a=dyeRamp(k)}catch(e){}if(!Array.isArray(a)&&typeof US_DYE==='object')a=US_DYE[k]||null;return Array.isArray(a)&&a.length>=3&&a.every(x=>PAL[x])?a.slice(0,3):null}
 function ptFin(k){if(!k||k==='steel'||typeof usFinOf!=='function')return null;const f=usFinOf(k);if(!f)return null;const t=f[0].split('');t.push(f[1][0]);return t}
-function ptColSig(m){const c=m&&m.colors;return c&&typeof c==='object'?(c.cloth||'')+'/'+(c.accent||'')+'/'+(c.metal||''):''}
-function ptLivery(P,m){const c=m&&m.colors;if(!c||typeof c!=='object')return;const cl=ptDye(c.cloth),ac=ptDye(c.accent),mt=ptFin(c.metal);if(!cl&&!ac&&!mt)return;
+function ptColSig(m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;return c&&typeof c==='object'?(c.cloth||'')+'/'+(c.accent||'')+'/'+(c.metal||''):''}
+function ptLivery(P,m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;if(!c||typeof c!=='object')return;const cl=ptDye(c.cloth),ac=ptDye(c.accent),mt=ptFin(c.metal);if(!cl&&!ac&&!mt)return;
  P.liv={cl,ac,mt};if(cl){P.ragC=cl;P.robeC=cl;P.clothC=cl;if(P.hat==='hood')P.hatC=cl}if(ac){P.shC=ac;if(P.hat==='band'||P.hat==='feather')P.hatC=ac}}
 function ptPick(R,a){return a[R(a.length)]}
 function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
@@ -724,5 +724,5 @@ function portraitCanvas(x){const M=ptMon(x);if(M)return M;try{const r=portraitRo
 function portraitURL(x){const M=ptMon(x);if(M){const k='mon:'+ptMonKey(x);let u=PTC.url.get(k);if(u===undefined){u='';try{u=M.toDataURL()||''}catch(e){}PTC.url.set(k,u)}return u}try{const r=portraitRows(x),k=r.key;let u=PTC.url.get(k);if(u===undefined){u='';try{u=_pxPNG(r,null,1)||''}catch(e){u=''}   // canvas-free PNG, same pixels (05-pixel.js)
   if(!u){const c=portraitCanvas(x);try{if(c&&c.toDataURL)u=c.toDataURL();if(typeof u!=='string')u=''}catch(e){u=''}}PTC.url.set(k,u)}return u}catch(e){return''}}
 function portraitHTML(x,size,cls){size=Math.max(16,Math.round(+size||32));let u='';try{u=portraitURL(x)}catch(e){}
- const side=x&&(x.def||typeof x==='string')&&!(x.m)?' foe':'';
+ const side=x&&(((x.def||typeof x==='string')&&!(x.m))||(x.m&&x.side===1))?' foe':'';
  return`<span class="ptr${side}${cls?' '+cls:''}" style="display:inline-block;flex:none;width:${size}px;height:${size}px;line-height:0;vertical-align:middle;background:${PAL[side?'f':'3']}">${u?`<img src="${u}" width="${size}" height="${size}" alt="" draggable="false" style="display:block;width:${size}px;height:${size}px;image-rendering:pixelated;image-rendering:crisp-edges;image-rendering:pixelated">`:''}</span>`}

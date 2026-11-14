@@ -350,6 +350,10 @@ function wvMark(x,y,kind){const o={kind,frame:WV.fs};if(WVA.mark){try{drawMarker
 const WSG={a:[],b:[],n:0,pn:-1,at:-1e9,live:false,ok:false};
 function wsg(v){WSG.a[WSG.n++]=v}
 function wsgSame(){const a=WSG.a,b=WSG.b,n=WSG.n;if(n!==WSG.pn)return false;for(let i=0;i<n;i++)if(a[i]!==b[i])return false;return true}
+/* a rival company's art on the world map: its banner and sword count, cached per rival (a new object only when they change) */
+const WVRV=new Map(),WVRV0={sig:'-',bn:null,n:4};
+function wvRivalArt(id){const r=typeof lkRival==='function'?lkRival(id):null;if(!r)return WVRV0;const n=typeof lkRivalSwords==='function'?lkRivalSwords(r):4;let a=WVRV.get(id);
+ if(a&&a.c1===r.c1&&a.c2===r.c2&&a.em===r.emblem&&a.n===n)return a;a={c1:r.c1,c2:r.c2,em:r.emblem,n,sig:r.c1+'.'+r.c2+'.'+r.emblem,bn:{name:r.n,c1:r.c1,c2:r.c2,emblem:r.emblem}};WVRV.set(id,a);return a}
 function wvCovered(){return(typeof TV!=='undefined'&&!!TV&&TV.shown&&!!TV.root&&TV.root.classList.contains('on'))||(typeof MP!=='undefined'&&!!MP&&MP.open&&!!MP.root&&MP.root.classList.contains('on'))}
 // worldVisible for one pass (a frame's list, a minimap paint): the company's sight radius cannot change inside it, so it is taken once
 function wvVisFn(){if(typeof visibleWithin!=='function'||typeof visibleAt!=='function'||typeof visionRadius!=='function')return worldVisible;const r=visionRadius();return(x,y)=>visibleWithin(Math.floor(x/TS),Math.floor(y/TS),r)}
@@ -375,6 +379,8 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  for(const o of G.parties){const x=o.x/WVU,y=o.y/WVU;let b=WV.bd.get(o.id);if(!b){if(WV.bd.size>200)WV.bd.clear();b={x:o.x,dir:(o.tx||0)<o.x?-1:1,t:-1e9};WV.bd.set(o.id,b)}
   if(Math.abs(o.x-b.x)>.02){b.dir=o.x<b.x?-1:1;b.t=now}else if(o.x!==b.x||Math.abs((o.y-(b.y||0)))>.02)b.t=now;b.x=o.x;b.y=o.y;
   if(!inV(x,y)||!vis(o.x,o.y))continue;const mv=now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
+  if(o.goal==='merc'){const rv=wvRivalArt(o.f),sz=rv.n>8?'L':'s';   // a rival company under its own banner (41-worldart.js waMercPaint); the banner's colours are part of the key
+   wvPush(y,wvSprite('Bm'+rv.sig+str+sz+b.dir+(mv?'m':'s')+f,'Bm'+rv.sig+str+sz+b.dir,'band',{f:o.f,str,n:rv.n,frame:f,dir:b.dir,moving:mv,goal:'merc',house:rv.bn}),x,true);continue}
   const hf=o.f==='free'||!!lkHouse(o.f),gl=o.goal==='caravan'||o.goal==='patrol'||o.goal==='raid'?o.goal:hf?'patrol':'',hs=gl==='patrol'||gl==='caravan'?lkHouse(o.f):null;
   wvPush(y,wvSprite('B'+gl+o.f+str+b.dir+(mv?'m':'s')+f,'B'+gl+o.f+str+b.dir,'band',{f:o.f,str,frame:f,dir:b.dir,moving:mv,goal:gl,house:hs}),x,true)}
  {if(Math.abs(p.x-WV.lx)>.02){WV.dir=p.x<WV.lx?-1:1}WV.lx=p.x;const mv=!!G.moving&&!sheetOpen,f=fs%12,n=G.roster.length;wvPush(p.y/WVU+.01,wvSprite('C'+n+WV.dir+(mv?'m':'s')+f,'C'+n+WV.dir,'co',{n,frame:f,dir:WV.dir,moving:mv}),p.x/WVU,true)}
@@ -455,7 +461,7 @@ function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el
  if(G.moving&&G.path.length){q.fillStyle=PAL.l;for(const s of G.path)q.fillRect(ox+tile(s.x)+((k-th)>>1),oy+tile(s.y)+((k-th)>>1),th,th)}
  if(G.sites){q.fillStyle=PAL.m;for(const o of G.sites)if(worldSeen(o.x,o.y))q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}
  for(const o of G.towns)box(ox+tile(o.x),oy+tile(o.y),((o.size||2)>2?th:0),'0',worldSeen(o.x,o.y)?'c':'m');
- for(const o of G.parties)if(vsb(o.x,o.y)){q.fillStyle=PAL['0'];q.fillRect(ox+tile(o.x)-th,oy+tile(o.y)-th,k+2*th,k+2*th);q.fillStyle=PAL.g;q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}
+ for(const o of G.parties)if(vsb(o.x,o.y)){if(o.goal==='merc'){const a=wvRivalArt(o.f),c1=PAL[a.c1]?a.c1:'g',c2=PAL[a.c2]?a.c2:'l';box(ox+tile(o.x),oy+tile(o.y),th,c2,c1);continue}q.fillStyle=PAL['0'];q.fillRect(ox+tile(o.x)-th,oy+tile(o.y)-th,k+2*th,k+2*th);q.fillStyle=PAL.g;q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}
  for(const o of G.portals)if(vsb(o.x,o.y))box(ox+tile(o.x),oy+tile(o.y),pulse?th:0,'D','C');
  if(G.route&&G.route.length>1)for(let i=1;i<G.route.length;i++)box(ox+tile(G.route[i].x),oy+tile(G.route[i].y),0,'0','5');
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&worldSeen(n.x,n.y))box(ox+tile(n.x),oy+tile(n.y),0,'0','f');
@@ -530,7 +536,7 @@ function rotStep(){const A=VIEW.anim;if(!A)return 1;const i=Math.floor((now-A.t0
  if(i>=6||i<0){const q=A.q;VIEW.anim=null;if(q){const d=q<0?-1:1;VIEW.anim={t0:now,dir:d,q:q-d,sw:false};return ROTK[0]}return 1}return ROTK[i]}
 function applyRot(dir){const cam=B.cam,k0=VIEW.rot,a=cam.x/HW,b=cam.y/HH,vc=(a+b)/2,vr=(b-a)/2;let c,r;   // the ground point at the view centre stays there
  if(k0===0){c=vc;r=vr}else if(k0===1){c=vr;r=BH-1-vc}else if(k0===2){c=BW-1-vc;r=BH-1-vr}else{c=BW-1-vr;r=vc}
- VIEW.rot=(k0+dir+4)&3;viewEnsure();V=RV[VIEW.rot];setBB();const p=tpos(c,r,0);cam.x=cam.tx=p.x;cam.y=cam.ty=p.y;cam.ut=now;clampCam(cam);cam.ltx=cam.tx;cam.lty=cam.ty;
+ VIEW.rot=(k0+dir+4)&3;viewEnsure();V=RVW[VIEW.rot];setBB();const p=tpos(c,r,0);cam.x=cam.tx=p.x;cam.y=cam.ty=p.y;cam.ut=now;clampCam(cam);cam.ltx=cam.tx;cam.lty=cam.ty;
  reseatUnits();HOV.k=-1;HOV.pk=-2;OV.sig=null;OV.targets=0;HC.t=0;if(typeof fxReset==='function')fxReset();if(typeof Inspect!=='undefined'&&Inspect.visible)Inspect.hide();
  if(typeof FC!=='undefined'&&FC.t&&typeof fcPlace==='function')fcPlace()}
 function reseatUnits(){if(!B||!B.units)return;for(let i=0;i<B.units.length;i++){const u=B.units[i];if(u.c==null)continue;const p=ufoot(u),v=VIS.get(u);u.sx=p.x;u.sy=p.y;
@@ -542,7 +548,7 @@ function toggleHeights(){VIEW.heights=!VIEW.heights;OV.sig=null;if(B&&typeof upd
 function mkRV(rot){const R={rot,tiles:null,ax:new Int16Array(NT),ay:new Int16Array(NT),dp:new Uint8Array(NT),vc:new Uint8Array(NT),vr:new Uint8Array(NT),dl:new Uint8Array(NT),dr:new Uint8Array(NT),sl:new Uint8Array(NT),sr:new Uint8Array(NT),
   ord:new Int16Array(NT),ds:new Int16Array(ND+1),x0:new Int16Array(ND),y0:new Int16Array(ND),w:new Int16Array(ND),h:new Int16Array(ND),built:new Uint8Array(ND),nb:0,cv:[],ov:[],ovOn:new Uint8Array(ND),props:[],anim:[]};
  for(let d=0;d<ND;d++)R.props.push([]);return R}
-const RV=[mkRV(0),mkRV(1),mkRV(2),mkRV(3)];let V=RV[0];
+const RVW=[mkRV(0),mkRV(1),mkRV(2),mkRV(3)];let V=RVW[0];
 const TL={hazAll:[],scale:1,k:1};           // TL.hazAll: keys of hazard tiles (read by the effects)
 function viewTables(R){const k=R.rot,tl=B.tiles,vw=k&1?BH:BW,vh=k&1?BW:BH;let n=0;R.tiles=tl;
  const hn=(a,b)=>{const j=vKey(a,b,k);return j<0?-1:tl[j].h};
@@ -552,10 +558,10 @@ function viewTables(R){const k=R.rot,tl=B.tiles,vw=k&1?BH:BW,vh=k&1?BW:BH;let n=
    xa=Math.min(xa,x-18);xb=Math.max(xb,x+18);ya=Math.min(ya,y-24);yb=Math.max(yb,y+10+Math.max(R.dl[q],R.dr[q])*8)}
   R.x0[d]=xa;R.y0[d]=ya;R.w[d]=xb-xa;R.h[d]=yb-ya;R.built[d]=0;R.ovOn[d]=0}
  R.ds[ND]=n;R.nb=0;R.anim.length=0}
-function viewBuild(){if(!B||!B.tiles)return;if(!HAVE.init)haveInit();TL.k=HAVE.tile?1:2;for(let i=0;i<4;i++)viewTables(RV[i]);V=RV[VIEW.rot];PROPC.clear();PANIM.length=0;ANI.R=null;OV.sig=null;OV.targets=0;
+function viewBuild(){if(!B||!B.tiles)return;if(!HAVE.init)haveInit();TL.k=HAVE.tile?1:2;for(let i=0;i<4;i++)viewTables(RVW[i]);V=RVW[VIEW.rot];PROPC.clear();PANIM.length=0;ANI.R=null;OV.sig=null;OV.targets=0;
  TL.hazAll.length=0;for(let i=0;i<NT;i++)if(B.tiles[i].t==='haz')TL.hazAll.push(i);tintRefresh();TN.at=now}
-function viewInvalidate(){RV[0].tiles=null}
-function viewEnsure(){if(RV[0].tiles!==B.tiles)viewBuild();return V}
+function viewInvalidate(){RVW[0].tiles=null}
+function viewEnsure(){if(RVW[0].tiles!==B.tiles)viewBuild();return V}
 
 /* ---- lighting tint, baked into every cached canvas (never applied per frame, never over the HUD) ---- */
 const TN={k:'',on:false,mul:'#ffffff',add:'#000000',a:0,sc:null,at:0};
@@ -581,7 +587,7 @@ function buildStrip(R,d){const K=TL.k,c=R.cv[d]||(R.cv[d]=mkCanvas(1,1));c.width
  for(let i=R.ds[d];i<R.ds[d+1];i++){const k=R.ord[i];if(drawTile(q,R,k,f)&&R.tiles)R.anim.push(k)}
  tintCanvas(c);R.built[d]=1;R.nb++}
 function stripsEnsure(R){if(R.nb<ND){for(let d=0;d<ND;d++)if(!R.built[d]&&R.tiles)buildStrip(R,d);return}
- for(let i=1;i<4;i++){const O=RV[(R.rot+i)&3];if(O.nb<ND&&O.tiles){for(let d=0;d<ND;d++)if(!O.built[d]){buildStrip(O,d);return}}}}   // other rotations fill in one strip a frame
+ for(let i=1;i<4;i++){const O=RVW[(R.rot+i)&3];if(O.nb<ND&&O.tiles){for(let d=0;d<ND;d++)if(!O.built[d]){buildStrip(O,d);return}}}}   // other rotations fill in one strip a frame
 // Animated tiles and props repaint at the 6 Hz tile clock, spread over the frames in between.
 const ANI={R:null,f:-1,i:0},ASC={cv:null};
 function redrawTile(R,k,f){const d=R.dp[k],K=TL.k;

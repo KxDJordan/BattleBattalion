@@ -299,28 +299,32 @@ function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();l
    other's nearest town; a siege that runs its course may hand the town to the besieger. Peace comes with weariness.
    Public: worldDay() wsKeepBands() partyHostile(p) partyBattle(p) partyLabel(p) attackParty(id) worldBattleEnd(src, win)
            nestBattle(id) nestClear(id) townSiegeEnd(i, how) wsRoute(a,b) wsSpawnCaravan(a,b) wsSpawnPatrol(h) wsSpawnRaid(f,x,y,to) worldNews(t) */
-const WSIM={live:30,car:9,pat:10,raid:12,hunt:14,nestMax:3.2,nestGrow:.07,warAt:-45,peaceAt:-15,cap:300,news:24};
-const WSROUTE={caravan:1,patrol:1,raid:1};
+const WSIM={live:30,car:9,pat:10,raid:12,merc:10,hunt:14,nestMax:3.2,nestGrow:.07,warAt:-45,peaceAt:-15,cap:300,news:24};
+const WSROUTE={caravan:1,patrol:1,raid:1,merc:1};
 function worldNews(t){if(!Array.isArray(G.news))G.news=[];G.news.push({day:G.day,t});if(G.news.length>WSIM.news)G.news.splice(0,G.news.length-WSIM.news);return t}
-function partyHostile(p){if(!p)return false;if(p.goal==='caravan')return false;if(!humanFact(p.f))return true;return !!p.hunt||repTier(p.f).k==='hostile'}
-function partyBattle(p){return{f:FACT[p.f]?p.f:'bandit',mult:p.mult,src:{type:'party',id:p.id,goal:p.goal||'roam',pf:p.f}}}
+function partyHostile(p){if(!p)return false;if(p.goal==='caravan')return false;if(p.goal==='merc')return rivalHostile(rivalById(p.f),p);if(!humanFact(p.f))return true;return !!p.hunt||repTier(p.f).k==='hostile'}
+function partyBattle(p){if(p&&p.goal==='merc'){const r=rivalById(p.f);if(r)return{f:p.f,rival:p.f,mult:rvMult(r),src:{type:'party',id:p.id,goal:'merc',pf:p.f}}}return{f:FACT[p.f]?p.f:'bandit',mult:p.mult,src:{type:'party',id:p.id,goal:p.goal||'roam',pf:p.f}}}
 function partyLabel(p){const f=factName(p.f),T=n=>G.towns[n]?G.towns[n].name:'';switch(p.goal){
+  case 'merc':return rivalLabel(rivalById(p.f))||f;
   case 'caravan':return`Caravan of ${f==='Free towns'?T(p.from):f}, bound for ${T(p.to)}`;
   case 'patrol':return p.siege!=null?`The host of ${f} besieging ${T(p.siege)}`:p.hunt?`${f} riders hunting the company`:`Patrol of ${f}`;
   case 'raid':return`${f} raiders, bound for ${T(p.to)}`;
   case 'nest':return`${f} from a nest`;default:return f}}
 // The player attacks a party that would not attack it: costs standing with its owner (caravans more). Returns the battle options used.
 function attackParty(id){const p=G.parties.find(q=>q.id===id);if(!p)return null;
+ if(p.goal==='merc'){const r=rivalParleyDo(p,'attack');if(!r.fight)return null;G.moving=false;G.route=[];engage(r.fight);return r.fight}   // a rival company: as the parley's 'attack' (rivalParleyDo)
  if(humanFact(p.f)&&!partyHostile(p)){repGain(p.f,p.goal==='caravan'?-18:-12,p.goal==='caravan'?'Attacked a caravan':'Attacked a patrol');if(p.f!=='free')for(const h of G.houses)if(h.id!==p.f&&atWar(h.id,p.f))repGain(h.id,3,'Struck at their enemy')}
  const o=partyBattle(p);G.moving=false;G.route=[];engage(o);return o}
 /* worldBattleEnd(src, win): the world's side of a battle's outcome. Call from settleBattle (68-battle-flow.js) BEFORE the party is removed.
    Removes a beaten party itself (idempotent). Returns {crowns, rep:[{f,n}]} of what it did. */
-function worldBattleEnd(s,win){const out={crowns:0,rep:[]};if(!s||!G)return out;const add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
+function worldBattleEnd(s,win,res){const out={crowns:0,rep:[]};if(!s||!G)return out;const add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
  if(s.type==='nest'){if(win)nestClear(s.id,out);return out}
- if(s.type!=='party')return out;const p=G.parties.find(q=>q.id===s.id);if(!p||!win)return out;
+ if(s.type!=='party')return out;const p=G.parties.find(q=>q.id===s.id);
+ if(s.goal==='merc'||(p&&p.goal==='merc')){const r=rivalById(s.pf||(p&&p.f));out.src=s;rvBattleEnd(r,p,win,out,res);delete out.src;return out}
+ if(!p||!win)return out;
  const ti=nearestTown(p.x,p.y),own=G.towns[ti]&&G.towns[ti].own;
  if(!humanFact(p.f)){if(own)add(own,p.goal==='raid'?6:2,p.goal==='raid'?'Stopped raiders bound for '+(G.towns[p.to]||G.towns[ti]).name:'Cleared a band near '+G.towns[ti].name)}
- else{if(p.goal==='caravan'&&p.cargo){out.crowns=Math.round(svNum(p.cargo.crowns,0));G.crowns+=out.crowns}
+ else{if(p.goal==='caravan'&&p.cargo){const c=cargoFix(p.cargo,p.id,G.seed)||{crowns:0};const t=cargoTake(c);out.crowns=t.crowns;out.cargo=t}   // the wagons' whole load (cargoTake), not only the purse
   if(!p.hunt&&p.goal!=='caravan')add(p.f,-6,'Cut down a patrol');
   if(p.f!=='free')for(const h of G.houses)if(h.id!==p.f&&atWar(h.id,p.f))add(h.id,5,'Defeated their enemy');
   if(p.siege!=null)townSiegeEnd(p.siege,'broken')}
@@ -334,7 +338,7 @@ function wsPathTo(x,y,tx,ty){const P=findPath(Math.floor(x/TS),Math.floor(y/TS),
 function wsAdd(o){const p=Object.assign({id:G.nid++,tx:o.x,ty:o.y,pi:0,ch:0},o);if(Array.isArray(p.pts)&&p.pts.length){p.tx=p.pts[0].x;p.ty=p.pts[0].y}G.parties.push(p);return p}
 function wsCopy(r){return r?r.map(q=>({x:q.x,y:q.y})):null}
 function wsSpawnCaravan(a,b){const A=G.towns[a],r=wsRoute(a,b);if(!A||!r)return null;const good=A.spec&&A.spec.length?A.spec[0]:'ale';
- return wsAdd({x:A.x,y:A.y,f:A.own||'free',goal:'caravan',from:a,to:b,mult:Math.round((.55+rnd()*.3)*100)/100,cargo:{good,crowns:ri(12,30)*10},pts:wsCopy(r)})}
+ return wsAdd({x:A.x,y:A.y,f:A.own||'free',goal:'caravan',from:a,to:b,mult:Math.round((.55+rnd()*.3)*100)/100,cargo:cargoRoll(good),pts:wsCopy(r)})}
 function wsSpawnPatrol(h,hunt){const L=houseTowns(h.id);if(!L.length)return null;let a=h.seat,b=L[ri(0,L.length-1)];if(hunt){a=L.reduce((m,i)=>Math.hypot(G.towns[i].x-G.p.x,G.towns[i].y-G.p.y)<Math.hypot(G.towns[m].x-G.p.x,G.towns[m].y-G.p.y)?i:m,L[0])}
  if(G.towns[a].own!==h.id)a=L[0];const A=G.towns[a],r=!hunt&&a!==b?wsRoute(a,b):null;
  return wsAdd({x:A.x,y:A.y+(okAt(A.x,A.y+TS)?TS:0),f:h.id,goal:'patrol',from:a,to:hunt?undefined:b,hunt:hunt?1:undefined,legs:0,mult:Math.round((hunt?.95:.8+(HPERS[h.pers].patrols?.15:0))*100+rnd()*30)/100,pts:r?wsCopy(r):null})}
@@ -345,18 +349,19 @@ function wsArrive(p){const T0=G.towns[p.to];
  if(p.goal==='raid'){if(T0){const i=p.to;if(!townSit(i,'siege')){townSitAdd(i,'raided',ri(SITS.raided.dur[0],SITS.raided.dur[1]));T0.pros=clamp(svNum(T0.pros,50)-10,0,100);
     worldNews(`${factName(p.f)} raided ${T0.name}`)}}
   p.goal=p.home!=null?'nest':'roam';p.pts=null;p.pi=0;p.life=4;setPatrol(p);return false}
+ if(p.goal==='merc'){p.pts=[{x:Math.round(p.x),y:Math.round(p.y)}];p.pi=0;p.idle=1;return false}   // a rival company stands at its goal until its next plan (rvDay)
  if(p.goal==='patrol'){p.legs=(p.legs|0)+1;if(p.legs>=3||!Array.isArray(p.pts)){p.gone=1;return true}const t=p.from;p.from=p.to;p.to=t;p.pts.reverse();p.pi=0;return false}
  p.gone=1;return true}
 /* ---- the daily step for one far party: along its route a day's march, or (hunters) toward the company ---- */
 function wsStep(p){if(p.siege!=null)return;
  if(p.hunt){const dx=G.p.x-p.x,dy=G.p.y-p.y,d=Math.hypot(dx,dy)||1,s=Math.min(d-WSIM.live*.6*TS,WSIM.hunt*TS);if(s>0){const nx=p.x+dx/d*s,ny=p.y+dy/d*s;if(okAt(nx,ny)){p.x=nx;p.y=ny;p.tx=nx;p.ty=ny}}return}
- if(!WSROUTE[p.goal]||!Array.isArray(p.pts)||!p.pts.length)return;const tiles=p.goal==='caravan'?WSIM.car:p.goal==='raid'?WSIM.raid:WSIM.pat;
+ if(p.idle||!WSROUTE[p.goal]||!Array.isArray(p.pts)||!p.pts.length)return;const tiles=p.goal==='caravan'?WSIM.car:p.goal==='raid'?WSIM.raid:p.goal==='merc'?WSIM.merc:WSIM.pat;
  p.pi+=Math.max(1,Math.round(tiles/3));if(p.pi>=p.pts.length){const q=p.pts[p.pts.length-1];p.x=q.x;p.y=q.y;wsArrive(p);return}const q=p.pts[p.pi];p.x=q.x;p.y=q.y;p.tx=q.x;p.ty=q.y}
 
 /* ---- nests ---- */
 function nestBattle(id){const n=G.nests&&G.nests.find(q=>q.id===id);if(!n)return null;return{f:n.f,mult:Math.round((.7+n.str*.3)*100)/100,src:{type:'nest',id}}}
 function nestClear(id,out){const n=G.nests&&G.nests.find(q=>q.id===id);if(!n)return false;G.nests=G.nests.filter(q=>q.id!==id);
- for(const p of G.parties)if(p.home===id&&p.goal==='nest')p.home=null;const ti=nearestTown(n.x,n.y),own=G.towns[ti].own,d=repGain(own,Math.round(5+n.str*3),'Cleared a nest near '+G.towns[ti].name);
+ for(const p of G.parties)if(p.home===id&&p.goal==='nest'){p.home=null;p.goal='roam'}const ti=nearestTown(n.x,n.y),own=G.towns[ti].own,d=repGain(own,Math.round(5+n.str*3),'Cleared a nest near '+G.towns[ti].name);
  if(out&&d)out.rep.push({f:own,n:d});G.renown+=Math.round(4+n.str*4);worldNews(`A ${FACT[n.f].n.toLowerCase()} nest near ${G.towns[ti].name} was cleared`);return true}
 function wsNestSpot(){const F=worldFields();if(!F)return null;for(let a=0;a<80;a++){const x=ri(3,WN-4),y=ri(3,WN-4),i=y*WN+x;if(!W.ok[i]||F.td[i]<6)continue;const px=(x+.5)*TS,py=(y+.5)*TS;
   if(G.nests.some(q=>Math.hypot(q.x-px,q.y-py)<9*TS)||Math.hypot(px-G.p.x,py-G.p.y)<8*TS)continue;return{x:px,y:py}}return null}
@@ -414,7 +419,7 @@ function wsRaiders(news){if(rnd()>=.1)return;const ti=ri(0,G.towns.length-1),t=G
 
 /* worldDay(): one day of the world, once per G.day (newDay calls it). Returns headline lines for the day's toast. */
 function worldDay(){const news=[];worldEnsure();if(G.wsim.day>=G.day)return news;G.wsim.day=G.day;
- wsTowns(news);wsHouses(news);wsNests(news);wsTrade();wsRaiders(news);
+ wsTowns(news);wsHouses(news);wsNests(news);wsTrade();wsRaiders(news);rvDay(news);
  const live=WSIM.live*TS;for(const p of G.parties){if(p.gone)continue;if(svFin(p.life)&&--p.life<=0){p.gone=1;continue}if(Math.hypot(p.x-G.p.x,p.y-G.p.y)>live)wsStep(p)}
  // reputation fades slowly toward neutral (a point a week)
  if(G.day%7===0)for(const f in G.rep){const v=G.rep[f];if(v>0)G.rep[f]=v-1;else if(v<0)G.rep[f]=v+1}
@@ -457,6 +462,7 @@ function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.li
   const hostile=partyHostile(p),route=WSROUTE[p.goal]&&Array.isArray(p.pts)&&p.pts.length>0&&!p.siege;
   if(hostile&&G.grace<=0&&(dp<(p.ch?sight*1.35:sight)||p.hunt)){p.ch=1;tx=G.p.x;ty=G.p.y}
   else if(p.siege){p.ch=0;tx=p.tx;ty=p.ty}
+  else if(p.goal==='merc'&&(p.idle||!route)){p.ch=0;continue}   // a rival company between plans stands where it is
   else if(route){p.ch=0;const q=p.pts[Math.min(p.pi,p.pts.length-1)];if(Math.hypot(q.x-p.x,q.y-p.y)<5){p.pi++;if(p.pi>=p.pts.length){if(wsArrive(p))gone=1;continue}}const q2=p.pts[p.pi];tx=p.tx=q2.x;ty=p.ty=q2.y}
   else{if(p.ch||!Array.isArray(p.pts)||!p.pts.length){p.ch=0;setPatrol(p)}
    else if(Math.hypot(p.tx-p.x,p.ty-p.y)<5){p.pi=(p.pi+1)%p.pts.length;const q=p.pts[p.pi];if(p.pts.length<2||!lineClear(p.x,p.y,q.x,q.y))setPatrol(p);else{p.tx=q.x;p.ty=q.y}}
@@ -496,3 +502,244 @@ function renderWorldImg(){if(typeof document==='undefined'||!W||typeof worldArtS
 
 /* Every battle the player walks into goes through engage(): a pre-battle screen may take over when deployBattle() exists. */
 function engage(o){return typeof deployBattle==='function'?deployBattle(o):startBattle(o)}
+
+/* ================= CARAVAN CARGO (world agent) =================
+   p.cargo = {good, crowns, items:[itemIds], food, tools, salves, parts:{partKey:n}, trade:[{id, n, v}]} rolled from GOODS[good].cargo when
+   the caravan sets out (10-data.js). Public:
+     cargoRoll(good, r?, day?)  -> a cargo (r: a 0..1 generator, default the game's rnd; old saves use a stream seeded by the caravan's id)
+     cargoFix(c, id, seed)      -> a valid cargo from a saved one (an old {good, crowns} is filled from its good, deterministically)
+     cargoList(c)               -> [{k:'crowns'|'food'|'tools'|'salves'|'part'|'item'|'trade', id?, n, t, icon}] one entry a line, for the UI
+     cargoText(c)               -> "Chest of spices x2, 30 rations, 140 crowns" (short, readable)
+     cargoValue(c)              -> what it is worth in crowns, roughly (trade goods at full price, gear at its resale)
+     cargoTake(c)               acting: puts it all into the company (crowns, food, tools, salves, parts, gear and trade goods to the stash);
+                                -> {crowns, food, tools, salves, parts, items, trade:[ids], lines (cargoList), text} */
+function cgRange(a,r){return Array.isArray(a)&&a.length===2?a[0]+Math.floor(r()*(a[1]-a[0]+1)):0}
+function cgPool(S,maxT){const L=[];for(const id in ITEMS){const it=ITEMS[id];if(!it||it.uniq||it.famed||it.craft||it.k==='t'||(it.tier||1)>maxT)continue;
+  let ok=false;if(S.spell&&it.spell)ok=true;else if(S.wt&&it.k==='w'&&S.wt.includes(it.wt))ok=true;else if(S.k&&S.k.includes(it.k))ok=S.heavy?(it.arm||0)>=150:S.light?(it.arm||0)<=95:true;if(ok)L.push(id)}return L}
+function cargoRoll(good,r,day){r=r||rnd;const key=GOODS[good]?good:'ale',C=GOODS[key].cargo||{crowns:[12,30]},d=svFin(day)?day:(G?G.day:1);
+ const o={good:key,crowns:cgRange(C.crowns,r)*10,items:[],food:cgRange(C.food,r),tools:cgRange(C.tools,r),salves:cgRange(C.salves,r),parts:{},trade:[]};
+ if(C.parts)for(const k in C.parts){if(typeof PARTS!=='undefined'&&!PARTS[k])continue;const n=cgRange(C.parts[k],r);if(n>0)o.parts[k]=n}
+ if(C.items){const maxT=clamp((typeof marketTier==='function'?marketTier(2,d):2)+(C.items.tier||0),1,5),pool=cgPool(C.items,maxT),n=cgRange(C.items.n||[1,1],r);for(let i=0;i<n&&pool.length;i++)o.items.push(pool[Math.floor(r()*pool.length)])}
+ if(C.trade)for(const [id,a,b] of C.trade){if(!ITEMS[id])continue;const n=cgRange([a,b],r);for(let i=0;i<n;i++)o.trade.push({id,n:ITEMS[id].n,v:ITEMS[id].price})}
+ return o}
+function cargoFix(c,id,seed){if(!svObj(c))return null;const good=GOODS[c.good]?c.good:'ale',crowns=Math.max(0,Math.round(svNum(c.crowns,0)));
+ if(!('items' in c)&&!('trade' in c)&&!('food' in c)){const o=cargoRoll(good,mulberry((((seed|0)^0x6ca7)+Math.imul(svNum(id,0)|0,2654435761))>>>0),1);o.crowns=crowns;return o}   // a cargo saved before v11: filled from its good
+ const n=x=>Math.max(0,Math.floor(svNum(x,0))),P={};if(svObj(c.parts))for(const k in c.parts)if((typeof PARTS==='undefined'||PARTS[k])&&n(c.parts[k])>0)P[k]=n(c.parts[k]);
+ return{good,crowns,items:Array.isArray(c.items)?c.items.filter(i=>typeof i==='string'&&ITEMS[i]&&!ITEMS[i].famed).slice(0,8):[],food:n(c.food),tools:n(c.tools),salves:n(c.salves),parts:P,
+  trade:Array.isArray(c.trade)?c.trade.filter(t=>svObj(t)&&ITEMS[t.id]&&ITEMS[t.id].k==='t').map(t=>({id:t.id,n:ITEMS[t.id].n,v:ITEMS[t.id].price})).slice(0,8):[]}}
+function cargoList(c){const L=[];if(!svObj(c))return L;const cnt={};
+ for(const t of c.trade||[])cnt[t.id]=(cnt[t.id]||0)+1;for(const id in cnt){const it=ITEMS[id];if(it)L.push({k:'trade',id,n:cnt[id],t:it.n+(cnt[id]>1?' ×'+cnt[id]:''),icon:it.icon||'coin',v:it.price*cnt[id]})}
+ const ic={};for(const id of c.items||[])ic[id]=(ic[id]||0)+1;for(const id in ic){const it=ITEMS[id];if(it)L.push({k:'item',id,n:ic[id],t:it.n+(ic[id]>1?' ×'+ic[id]:''),icon:id})}
+ if(c.food)L.push({k:'food',n:c.food,t:c.food+' rations',icon:'food'});if(c.tools)L.push({k:'tools',n:c.tools,t:c.tools+' tools',icon:'tools'});
+ if(c.salves)L.push({k:'salves',n:c.salves,t:c.salves+' salve'+(c.salves===1?'':'s'),icon:'salve'});
+ for(const k in c.parts||{}){const P=typeof PARTS!=='undefined'&&PARTS[k];L.push({k:'part',id:k,n:c.parts[k],t:c.parts[k]+' × '+(P?P.n.toLowerCase():k),icon:'part-'+k})}
+ if(c.crowns)L.push({k:'crowns',n:c.crowns,t:c.crowns+' crowns',icon:'coin'});return L}
+function cargoText(c){const L=cargoList(c);return L.length?L.map(x=>x.t).join(', '):'Nothing of value'}
+function cargoValue(c){if(!svObj(c))return 0;let v=c.crowns||0;for(const t of c.trade||[])v+=t.v||0;for(const id of c.items||[])v+=typeof sellPrice==='function'?sellPrice(id):Math.floor((ITEMS[id]?ITEMS[id].price:0)*.4);
+ v+=(c.food||0)*3+(c.tools||0)*3+(c.salves||0)*25;for(const k in c.parts||{})v+=c.parts[k]*12;return Math.round(v)}
+function cargoTake(c){const out={crowns:0,food:0,tools:0,salves:0,parts:{},items:[],trade:[],lines:[],text:''};if(!svObj(c)||!G)return out;
+ out.lines=cargoList(c);out.crowns=Math.max(0,Math.round(c.crowns||0));G.crowns=(G.crowns||0)+out.crowns;
+ out.food=c.food|0;G.food=(G.food||0)+out.food;out.tools=c.tools|0;G.tools=(G.tools||0)+out.tools;out.salves=c.salves|0;G.salve=(G.salve|0)+out.salves;
+ if(!svObj(G.parts))G.parts={};for(const k in c.parts||{}){const n=c.parts[k]|0;if(n>0){G.parts[k]=(G.parts[k]||0)+n;out.parts[k]=n}}
+ if(!Array.isArray(G.stash))G.stash=[];for(const id of c.items||[])if(ITEMS[id]){G.stash.push(id);out.items.push(id)}for(const t of c.trade||[])if(ITEMS[t.id]){G.stash.push(t.id);out.trade.push(t.id)}
+ out.text=out.lines.length?out.lines.map(x=>x.t).join(', '):'nothing of value';return out}
+
+/* ================= RIVAL MERCENARY COMPANIES (world agent) =================
+   G.rivals (CONTRACT.md "Shared design") and their own fields:
+     ctr   null | {cid?, race? (the company's contract id they race), nest?, ti, x, y, type, f, diff, pay, title, due, eta, day}  the work in hand
+     hired null | {by: house id, until: day}   paid by a house hostile to the company to hunt it down (never the honourable)
+     rest  days before it takes the road again (after a battle);   x, y where it stands when it has no party;  talk: day of the last parley news
+     calm  day until which it leaves the company alone (bought off);   lost: the company's men it has killed (for the deeds)
+   World party: {goal:'merc', f: rival id, mult, pts?, idle?, hunt?}. One a company, re-formed at its last place after a rest.
+   The daily step (rvDay, from worldDay): upkeep, recruits and gear as crowns allow, a job from a nearby board or a race for the company's
+   own target, nests burned out, the abstract fight when it reaches its target (rvFight), houses hiring hunters, wipe-outs, new companies.
+   Generation (rivalsInit) runs on a private stream seeded by G.seed (rvWith), so a new world and the v11 save migration give the same rivals.
+   Public: rivalsInit(g) rivalRepair(g) (20-state.js) isRival rivalById (15-factions.js) rivalLabel(r) rivalStr(r) rivalPower(r) rivalTier(r)
+           rivalParty(r) rivalHostile(r,p?) rivalParley(p) rivalParleyDo(p,k) rivalAlive() rivalJob(r) and through partyBattle /
+           worldBattleEnd / partyHostile / partyLabel for the parties. */
+const RV={min:2,max:3,upkeep:4,speed:10,take:.4,race:.22,nest:.07,hire:.12,form:.06,deeds:12,cap:14};
+function rivalAlive(){return Array.isArray(G&&G.rivals)?G.rivals.filter(r=>r&&r.alive):[]}
+function rivalParty(r){if(!r||!G||!Array.isArray(G.parties))return null;for(const p of G.parties)if(p.goal==='merc'&&p.f===r.id&&!p.gone)return p;return null}
+function rivalPower(r){return r&&Array.isArray(r.roster)?companyPower(r.roster.slice(0,MAXFIELD)):0}
+function rivalTier(r){return typeof renownTier==='function'?renownTier(r?r.renown:0):1}
+function rvMult(r){const cp=Math.max(6,typeof fielded==='function'&&G&&G.roster&&G.roster.length?companyPower():6);return Math.round(clamp(rivalPower(r)/cp,.3,3)*100)/100}
+function rivalStr(r){const m=rvMult(r);return m<.8?1:m<1?2:3}
+// how much the company knows of a rival's swords for the deployment screen (67-deploy.js): 2 names and all after news traded this week, a sword hired from them or with the scout; else 1
+function rivalIntel(r){if(!r)return 0;if((svFin(r.talk)&&G.day-r.talk<=7)||(typeof followerHas==='function'&&followerHas('scout')))return 2;return 1}
+function rvDeed(r,t){if(!Array.isArray(r.deeds))r.deeds=[];r.deeds.push({day:G?G.day:1,t:String(t).slice(0,120)});if(r.deeds.length>RV.deeds)r.deeds.splice(0,r.deeds.length-RV.deeds)}
+function rvTown(i){return G&&G.towns&&G.towns[i]?G.towns[i].name:'the road'}
+function rivalJob(r){if(!r||!r.alive)return'Wiped out';if(r.hired)return`Hired by ${factName(r.hired.by)} to hunt the company`;const c=r.ctr;
+ if(c)return c.race!=null?`Racing the company to ${c.title}`:c.nest!=null&&c.cid==null?`Out to burn a ${FACT[c.f]?FACT[c.f].n.toLowerCase():'monster'} nest`:`On contract: ${c.title}`;return r.rest>0?'Licking its wounds':'Looking for work'}
+function rivalLabel(r){return r?`${r.n}: ${rivalJob(r).charAt(0).toLowerCase()+rivalJob(r).slice(1)}`:''}
+// is rival r (its party p) out to fight the company? hired hunters and open feuds; cutthroats fall on a weaker company; the honourable never ambush
+function rivalHostile(r,p){if(!r||!r.alive)return false;if(svFin(r.calm)&&r.calm>=G.day)return false;if(r.hired||(p&&p.hunt))return true;const t=repTier(r.id).k;if(t==='hostile')return true;
+ const P=RVPERS[r.pers]||{},m=p&&svFin(p.mult)?p.mult:svFin(r.mult)?r.mult:rvMult(r);return!!P.ambush&&t!=='friendly'&&t!=='allied'&&m>=1}   // the cached strength (set daily): no work per frame
+/* generation: rvWith(g, seed, fn) runs fn with G = g on a private stream (rnd/ri/pick/shuffle as everywhere), then puts both back */
+function rvWith(g,seed,fn){const s0=rngState(),G0=G;G=g;seedRng(seed>>>0);try{return fn()}finally{setRngState(s0);G=G0}}
+function rvPickBG(){let tot=0;for(const k in RVBG)if(BG[k])tot+=RVBG[k];let x=rnd()*tot;for(const k in RVBG){if(!BG[k])continue;x-=RVBG[k];if(x<=0)return k}return'sellsword'}
+function rvGearTier(renown,day){return clamp(1+Math.floor(renown/160)+Math.floor(day/22),1,5)}
+function rvLvl(renown,day){return clamp(1+Math.floor(renown/70)+Math.floor(day/9),1,11)}
+// better gear for a rival merc, up to tier T: the same weapon family and grip, armor of the same weight class, a helmet and shield if it has one
+function rvGear(m,T){const up=(slot,f)=>{const cur=ITEMS[m.eq[slot]],ct=cur?cur.tier||1:0,L=[];for(const id in ITEMS){const it=ITEMS[id];if(it.uniq||it.famed||it.craft||it.k==='t'||(it.tier||1)>T||(it.tier||1)<=ct||!f(it,cur))continue;L.push(id)}
+  if(!L.length)return false;const top=Math.max(...L.map(id=>ITEMS[id].tier||1)),B=L.filter(id=>(ITEMS[id].tier||1)>=top-1);m.eq[slot]=pick(B);return true};
+ let n=0;if(m.eq.w&&rnd()<.75&&up('w',(it,c)=>it.k==='w'&&c&&it.wt===c.wt&&!!it.two===!!c.two&&!!it.spell===!!c.spell))n++;
+ if(rnd()<.7&&up('a',(it,c)=>it.k==='a'&&(!c||(c.arm<=60?it.arm<=95:it.arm>60))&&!!(it.robe||/robe/.test(it.look||''))===!!(c&&(c.robe||/robe/.test(c.look||'')))))n++;
+ if(rnd()<.6&&up('h',it=>it.k==='h'))n++;if(m.eq.s&&rnd()<.5&&up('s',it=>it.k==='s'))n++;
+ if(typeof fixHands==='function')fixHands(m);if(typeof syncMast==='function')syncMast(m);m.hp=calc(m).hp;return n}
+function rvNewMerc(r,day){const m=newMerc(rvPickBG()),L=clamp(rvLvl(r.renown,day)+ri(-1,1),1,12);if(L>1)makeVeteran(m,L);delete m.vet;rvGear(m,rvGearTier(r.renown,day));
+ m.field=r.roster.filter(x=>x.field).length<MAXFIELD;m.slot=null;m.hp=calc(m).hp;return m}
+function rvMake(g,nm,pers,c1,c2,home,renown){const id='r'+(g.rvn=(g.rvn|0)+1,g.rvn-1),T=g.towns[home]||g.towns[0],day=Math.max(1,Math.floor(svNum(g.day,1)));
+ const r={id,n:'The '+nm[0],short:nm[0],c1,c2,emblem:typeof EMBLEMS==='object'&&EMBLEMS[nm[1]]?nm[1]:'swords',pers,renown,crowns:250+renown*2,home,roster:[],stance:pers==='honour'?5:pers==='cutthroat'?-12:0,
+  alive:true,day,deeds:[],ctr:null,hired:null,rest:0,x:T.x,y:T.y};
+ const n=clamp(5+Math.floor(renown/60)+ri(0,2),5,12);for(let i=0;i<n;i++)r.roster.push(rvNewMerc(r,day));r.roster.sort((a,b)=>b.lvl-a.lvl||a.id-b.id);r.roster.forEach((m,i)=>m.field=i<MAXFIELD);return r}
+function rvColours(g){const used=new Set((g.houses||[]).map(h=>h.c1).concat((g.rivals||[]).filter(r=>r.alive).map(r=>r.c1),[g.banner&&g.banner.c1||'5']));const ks=Object.keys(typeof BANNERC==='object'?BANNERC:{g:1,x:1});
+ const free=ks.filter(k=>!used.has(k)),c1=free.length?pick(free):pick(ks),c2s=ks.filter(k=>k!==c1);return[c1,pick(c2s)]}
+function rvNameFree(g){const have=new Set((g.rivals||[]).map(r=>r.short));const L=RVNAMES.filter(n=>!have.has(n[0]));return L.length?pick(L):[pick(RVNAMES)[0]+' '+ri(2,9),'swords']}
+function rvHome(g){const used=new Set((g.rivals||[]).filter(r=>r.alive).map(r=>r.home)),L=g.towns.map((t,i)=>i).filter(i=>i>0&&!used.has(i));return L.length?pick(L):ri(0,g.towns.length-1)}
+// rivalsInit(g): 2 rival companies in the small world, 3 in larger ones, from the seed alone. Fills only when g.rivals is missing.
+function rivalsInit(g){g=g||G;if(!g||!Array.isArray(g.towns)||g.towns.length<2||Array.isArray(g.rivals))return g;const n=WN<=64?2:3,day=Math.max(1,Math.floor(svNum(g.day,1)));
+ {let nid=Math.floor(svNum(g.nid,1));const see=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=Math.floor(x.id)+1};(g.roster||[]).forEach(see);(g.parties||[]).forEach(see);(g.towns||[]).forEach(t=>(t.recruits||[]).forEach(see));g.nid=nid}
+ g.rivals=[];g.rvn=0;
+ rvWith(g,((g.seed|0)^0x2a17c0de)>>>0,()=>{const pers=shuffle(Object.keys(RVPERS));
+  for(let k=0;k<n;k++){const [c1,c2]=rvColours(g),nm=rvNameFree(g),home=rvHome(g),renown=ri(20,110)+day*3;g.rivals.push(rvMake(g,nm,pers[k%pers.length],c1,c2,home,renown))}});
+ if(typeof rivalFactReg==='function')rivalFactReg(g);return g}
+// a new company forms (a wiped-out one leaves room): modest renown, in a town nobody calls home. Draws on the game stream.
+function rvForm(news){const [c1,c2]=rvColours(G),nm=rvNameFree(G),home=rvHome(G),r=rvMake(G,nm,pick(Object.keys(RVPERS)),c1,c2,home,ri(10,40)+G.day);G.rivals.push(r);rivalFactReg(G);
+ rvDeed(r,`Raised its banner in ${rvTown(home)}`);news.push(worldNews(`A new company, ${r.n}, raises its banner in ${rvTown(home)}`));return r}
+function rvWipe(r,how,news){if(!r||!r.alive)return;r.alive=false;r.roster=[];r.ctr=null;r.hired=null;const p=rivalParty(r);if(p)p.gone=1;
+ if(G.contract&&G.contract.rival===r.id)delete G.contract.rival;rvDeed(r,'Wiped out'+(how?' '+how:''));const t=worldNews(`${r.n} ${how?'were wiped out '+how:'are no more'}`);if(news)news.unshift(t)}
+
+/* ---- the abstract fight off-screen: power against the work's strength. -> {win, dead:[names]} (game rnd) ---- */
+function rvFoeK(diff,f){return(4+G.day*.3)*CTR_PAYK[clamp(diff|0,1,5)-1]*((typeof CTR_TIERK==='object'&&FACT[f]&&CTR_TIERK[FACT[f].tier])||1)}
+function rvFight(r,diff,f){const P=rivalPower(r),E=rvFoeK(diff,f),q=P/Math.max(1,E),win=rnd()<clamp(.5+(q-1)*.7,.1,.92),dead=[];
+ const die=win?clamp(.06/q,.02,.15):clamp(.28/q,.12,.45);r.roster=r.roster.filter(m=>{if(r.roster.length-dead.length>1&&rnd()<die){dead.push(m.name);return false}return true});
+ if(!win&&r.roster.length>1&&!dead.length){dead.push(r.roster[r.roster.length-1].name);r.roster.pop()}
+ for(const m of r.roster)if(rnd()<.15&&typeof rollInjury==='function')rollInjury(m,rnd()<.3,false);
+ if(win)for(let k=0;k<2;k++){const m=pick(r.roster);if(m&&m.lvl<rvLvl(r.renown+60,G.day)+1&&rnd()<.55){makeVeteran(m,m.lvl+1);delete m.vet}}
+ r.roster.forEach((m,i)=>m.field=i<MAXFIELD);return{win,dead}}
+/* ---- a rival reaches its target ---- */
+function rvResolve(r,news){const c=r.ctr;r.ctr=null;if(!c)return;const ti=c.ti!=null?c.ti:nearestTown(c.x,c.y),R=rvFight(r,c.diff,c.f),pc=G.contract,mine=pc&&!pc.failed&&c.race!=null&&pc.id===c.race;
+ const lost=R.dead.length?` (${R.dead.length===1?R.dead[0]+' fell':R.dead.length+' fell'})`:'';
+ if(R.win){r.crowns+=c.pay||0;r.renown+=Math.round(6*c.diff*(RVPERS[r.pers]&&RVPERS[r.pers].glory>1?1.25:1));rvDeed(r,`${c.title}: done${lost}`);
+  if(c.nest!=null&&Array.isArray(G.nests)&&G.nests.some(n=>n.id===c.nest)){G.nests=G.nests.filter(n=>n.id!==c.nest);for(const p of G.parties)if(p.home===c.nest&&p.goal==='nest'){p.home=null;p.goal='roam'}
+   if(pc&&!pc.failed&&pc.type==='nest'&&pc.nest===c.nest&&!mine)rvTookFail(pc,r,news)}
+  if(mine)rvTookFail(pc,r,news);else news.push(worldNews(`${r.n} ${c.nest!=null&&c.cid==null?'burned out a nest near '+rvTown(ti):'finished the work of '+rvTown(ti)+': '+c.title.charAt(0).toLowerCase()+c.title.slice(1)}`))}
+ else{r.renown=Math.max(0,r.renown-4);r.rest=2;rvDeed(r,`${c.title}: beaten back${lost}`);news.push(worldNews(`${r.n} were beaten back near ${rvTown(ti)}${lost}`))}
+ if(!r.roster.length)rvWipe(r,'near '+rvTown(ti),news)}
+function rvTookFail(pc,r,news){const why=`${r.n} reached ${pc.stages&&pc.stages[pc.stage]&&pc.stages[pc.stage].label||'the target'} first`;pc.rivalWon=r.id;
+ if(typeof ctrRivalFail==='function')ctrRivalFail(pc,r,why);else{pc.failed=true;if(G.contract===pc)G.contract=null}
+ const t=`Contract lost: ${why} and claimed ${pc.title.charAt(0).toLowerCase()+pc.title.slice(1)}`;news.unshift(worldNews(t));if(typeof toast==='function')toast(t)}
+/* ---- choosing work: the company's own racing target, a board nearby, a nest ---- */
+const RV_RACE=['hunt','beast','bounty','nest'],RV_TAKE=['hunt','beast','bounty','nest','patrol','relic','defend'];
+function rvGoStage(c){if(!c||!Array.isArray(c.stages))return null;for(let i=c.stage|0;i<c.stages.length;i++){const s=c.stages[i];if(s&&s.k==='go'&&s.fight)return s}return null}
+function rvDist(r,x,y){return Math.hypot(r.x-x,r.y-y)/TS}
+function rvJobFrom(c,s,ti){const eta=Math.ceil(Math.hypot(s.x-(G.towns[ti]||s).x,s.y-(G.towns[ti]||s).y)/TS/RV.speed)+1;return{ti,x:s.x,y:s.y,type:c.type,f:s.fight.f,diff:clamp(c.diff|0,1,5),pay:Math.round((c.pay||0)*.9),title:c.title,due:Math.max(svFin(c.due)?c.due:0,G.day+eta+6),day:G.day,nest:c.nest!=null?c.nest:undefined}}
+function rvSeek(r,news){const P=RVPERS[r.pers]||RVPERS.greedy,pc=G.contract;
+ // race the company to its own target (another employer posted the same head)
+ if(pc&&!pc.failed&&!pc.rival&&RV_RACE.includes(pc.type)&&G.day>=3&&(pc.day==null||G.day>pc.day)){const s=rvGoStage(pc);
+  if(s&&(pc.stages[pc.stage|0]===s)&&rvDist(r,s.x,s.y)<34&&!rivalAlive().some(o=>o.ctr&&o.ctr.race===pc.id)&&rnd()<RV.race*P.glory){
+   const j=rvJobFrom(pc,s,pc.town);j.race=pc.id;j.eta=Math.ceil(rvDist(r,s.x,s.y)/RV.speed)+1;r.ctr=j;pc.rival=r.id;rvDeed(r,`Went after ${pc.title.charAt(0).toLowerCase()+pc.title.slice(1)}`);
+   const t=`${r.n} are after the same quarry: ${pc.title.charAt(0).toLowerCase()+pc.title.slice(1)}. Get there first.`;news.unshift(worldNews(t));if(typeof toast==='function')toast(t);return true}}
+ // work from a board within reach
+ if(rnd()<RV.take){const L=[];let st=-1,sd=1e9;G.towns.forEach((t,ti)=>{const d=rvDist(r,t.x,t.y);if(d<=26&&d<sd&&G.day-Math.max(svNum(t.ref,-99),svNum(t.cref,-99))>=3){sd=d;st=ti}});if(st>=0)rvBoard(G.towns[st]);   // one stale board a day is read afresh (the nearest)
+  G.towns.forEach((t,ti)=>{if(!Array.isArray(t.contracts)||rvDist(r,t.x,t.y)>26)return;for(const c of t.contracts){if(!c||c.rtook||!RV_TAKE.includes(c.type)||(svFin(c.due)&&c.due<G.day+2))continue;const s=rvGoStage(c);if(s)L.push({c,s,ti,w:(c.type==='beast'||c.type==='bounty'?P.glory:1)*(c.diff<=rivalTier(r)+1?1:.3)})}});
+  if(L.length){let tot=0;for(const x of L)tot+=x.w;let v=rnd()*tot,e=L[L.length-1];for(const x of L){v-=x.w;if(v<=0){e=x;break}}
+   const j=rvJobFrom(e.c,e.s,e.ti);j.cid=e.c.id;j.eta=Math.ceil(rvDist(r,e.s.x,e.s.y)/RV.speed)+1;r.ctr=j;e.c.rtook=G.day;e.c.rival=r.id;
+   rvDeed(r,`Took the work of ${rvTown(e.ti)}: ${e.c.title}`);const t=worldNews(`${r.n} took the work posted in ${rvTown(e.ti)}: ${e.c.title.charAt(0).toLowerCase()+e.c.title.slice(1)}`);if(G.town===e.ti||rvDist(r,G.p.x,G.p.y)<WSIM.live)news.push(t);return true}}
+ // a nest nearby
+ if(Array.isArray(G.nests)&&G.nests.length&&rnd()<RV.nest*P.glory){const n=G.nests.filter(q=>rvDist(r,q.x,q.y)<16&&!rivalAlive().some(o=>o.ctr&&o.ctr.nest===q.id)).sort((a,b)=>rvDist(r,a.x,a.y)-rvDist(r,b.x,b.y)||a.id-b.id)[0];
+  if(n){r.ctr={nest:n.id,ti:nearestTown(n.x,n.y),x:n.x,y:n.y,type:'nest',f:n.f,diff:clamp(Math.round(n.str*1.5),1,5),pay:0,title:`the ${FACT[n.f].n.toLowerCase()} nest near ${rvTown(nearestTown(n.x,n.y))}`,due:G.day+10,day:G.day,eta:Math.ceil(rvDist(r,n.x,n.y)/RV.speed)+1};return true}}
+ return false}
+// a board nobody has read for three days gets fresh notices when a rival comes looking (the ones rivals hold stay up)
+function rvBoard(t){if(G.day-Math.max(svNum(t.ref,-99),svNum(t.cref,-99))<3||typeof ctrBoard!=='function'||typeof townBoardN!=='function')return;t.cref=G.day;const keep=rvKeepTaken(t);t.contracts=keep.concat(ctrBoard(t,Math.max(0,townBoardN(t)-keep.length)))}
+// the notices of a board that rivals took and still work on (stockTown keeps them up, marked as taken)
+function rvKeepTaken(t){return(Array.isArray(t.contracts)?t.contracts:[]).filter(c=>c&&c.rtook!=null&&rivalAlive().some(r=>r.ctr&&r.ctr.cid===c.id))}
+/* ---- the party on the map: where it walks ---- */
+function rvPlan(r,p){const here=()=>[{x:Math.round(p.x),y:Math.round(p.y)}];if(r.hired){p.hunt=1;p.idle=0;p.pts=here();p.pi=0;return}delete p.hunt;let tx,ty,key;
+ if(r.ctr){tx=r.ctr.x;ty=r.ctr.y;key='c'+(r.ctr.cid||r.ctr.race||r.ctr.nest||0)}
+ else{if(!p.idle&&p.tgt&&p.tgt[0]==='t')return;const L=G.towns.map((t,i)=>i).filter(i=>{const d=rvDist(r,G.towns[i].x,G.towns[i].y);return d>3&&d<30});const i=L.length?pick(L):r.home;tx=G.towns[i].x;ty=G.towns[i].y+(okAt(G.towns[i].x,G.towns[i].y+TS)?TS:0);key='t'+i}
+ if(p.tgt===key&&!p.idle)return;p.tgt=key;const pts=wsPathTo(p.x,p.y,tx,ty);if(pts&&pts.length){p.pts=pts;p.pi=0;p.tx=pts[0].x;p.ty=pts[0].y;p.idle=0}else{p.pts=here();p.pi=0;p.idle=1}}
+function rvSpawn(r){const pos=okAt(r.x,r.y)?{x:r.x,y:r.y}:randOk(r.x,r.y,0,2);const p=wsAdd({x:pos.x,y:pos.y,f:r.id,goal:'merc',mult:rvMult(r),idle:1,pts:[{x:Math.round(pos.x),y:Math.round(pos.y)}]});return p}
+/* rvDay(news): one day of every rival company (worldDay). Game randomness; a handful of draws a company. */
+function rvDay(news){if(!Array.isArray(G.rivals))return;const pc=G.contract;
+ for(const r of G.rivals){if(!r.alive)continue;
+  if(!r.roster.length){rvWipe(r,'',news);continue}
+  r.rest=Math.max(0,(r.rest|0)-1);for(const m of r.roster){if(Array.isArray(m.inj))m.inj=m.inj.filter(j=>j.days<0||--j.days>0);m.hp=calc(m).hp}
+  r.crowns-=r.roster.length*RV.upkeep;if(r.crowns<0){r.crowns=0;if(r.roster.length>3&&rnd()<.25){const m=r.roster.pop();rvDeed(r,`${m.name} deserted for want of pay`)}}
+  if(r.hired&&(G.day>r.hired.until||!isHouse(r.hired.by)||!REPK[repTier(r.hired.by).k].hunt)){rvDeed(r,`Gave up the hunt for ${factName(r.hired.by)}`);r.hired=null}
+  // the race is lost when the company has finished the fight first (or let the contract go)
+  if(r.ctr&&r.ctr.race!=null){const c=G.contract;if(!c||c.id!==r.ctr.race||c.failed||rvGoStage(c)!==c.stages[c.stage|0]||c.stages[c.stage|0].x!==r.ctr.x){
+   if(c&&c.id===r.ctr.race&&!c.failed)delete c.rival;const won=G.ctrLast&&G.ctrLast.id===r.ctr.race?G.ctrLast.ok:c&&c.id===r.ctr.race&&!c.failed;
+   if(won!==false){rvDeed(r,`Beaten to ${r.ctr.title.charAt(0).toLowerCase()+r.ctr.title.slice(1)} by ${G.name||'the company'}`);repGain(r.id,-3,'Beat them to the prize');news.push(worldNews(`${G.name||'The company'} beat ${r.n} to the prize`))}
+   r.ctr=null}}
+  if(r.ctr&&G.day>r.ctr.due+2){rvDeed(r,`Let ${r.ctr.title.charAt(0).toLowerCase()+r.ctr.title.slice(1)} slip`);r.renown=Math.max(0,r.renown-3);r.ctr=null}
+  let p=rivalParty(r);if(p){r.x=p.x;r.y=p.y}
+  // at the target: the party walked there, or (when it stands within the company's sight, where the day step does not move it) its days ran out
+  if(r.ctr){const d=rvDist(r,r.ctr.x,r.ctr.y);r.ctr.eta=svNum(r.ctr.eta,1)-1;if(d<1.3||r.ctr.eta<=0||G.day-svNum(r.ctr.day,G.day)>16){if(p&&d>=1.3&&okAt(r.ctr.x,r.ctr.y)){p.x=r.x=r.ctr.x;p.y=r.y=r.ctr.y;p.tx=p.x;p.ty=p.y}rvResolve(r,news)}if(!r.alive)continue}
+  else if(!r.hired&&!r.rest)rvSeek(r,news);
+  if(!r.ctr&&!r.hired)r.crowns+=r.roster.length*ri(2,5);   // guard work and small jobs between contracts
+  // drill: now and then a sword below what the company's renown and the season call for gains a level
+  if(G.day%5===0)for(const m of r.roster)if(m.lvl<rvLvl(r.renown,G.day)-1&&rnd()<.5){makeVeteran(m,m.lvl+1);delete m.vet}
+  // grow: recruits while there is coin and room, now and then better gear
+  const cap=clamp(6+Math.floor(r.renown/45),6,RV.cap),cost=150+rvLvl(r.renown,G.day)*60;
+  if(r.roster.length<cap&&r.crowns>=cost+100&&rnd()<.3){const m=rvNewMerc(r,G.day);r.roster.push(m);r.crowns-=cost;r.roster.sort((a,b)=>b.lvl-a.lvl||a.id-b.id);r.roster.forEach((x,i)=>x.field=i<MAXFIELD)}
+  if(r.crowns>700&&rnd()<.12){const m=pick(r.roster);if(m&&rvGear(m,rvGearTier(r.renown,G.day)))r.crowns-=180}
+  if(G.day%7===0&&r.stance)r.stance+=r.stance>0?-1:1;
+  // the party: formed after a rest, walked toward the work
+  r.mult=rvMult(r);if(!p&&!r.rest)p=rvSpawn(r);if(p){p.mult=r.mult;rvPlan(r,p)}}
+ // a hostile house hires a company to hunt the company
+ for(const h of G.houses||[]){if(!REPK[repTier(h.id).k].hunt||G.rivals.some(r=>r.alive&&r.hired&&r.hired.by===h.id)||rnd()>=RV.hire)continue;
+  const L=rivalAlive().filter(r=>RVPERS[r.pers]&&RVPERS[r.pers].hunt&&!r.hired&&repOf(r.id)<15&&r.roster.length>=4&&!(svFin(r.calm)&&r.calm>=G.day));if(!L.length)continue;
+  const r=pick(L);if(r.ctr&&r.ctr.race!=null&&G.contract&&G.contract.id===r.ctr.race)delete G.contract.rival;r.ctr=null;r.hired={by:h.id,until:G.day+ri(8,14)};r.crowns+=250;rvDeed(r,`Took ${h.n}'s coin to hunt ${G.name||'the company'}`);
+  const t=`${h.n} pays ${r.n} to hunt the company`;news.unshift(worldNews(t));const p=rivalParty(r);if(p)rvPlan(r,p)}
+ // new companies form when the land has room for them
+ const n=rivalAlive().length,mx=WN<=64?RV.max-1:RV.max;if(n<mx&&G.towns.length>2&&rnd()<(n<RV.min?RV.form*2.5:RV.form*.5))rvForm(news)}
+
+/* ---- meeting a rival on the road: rivalParley(p) -> {r, title, text, opts:[{k, n, d, cost, ok, why?}]}; rivalParleyDo(p, k) -> {text, fight?}
+   k: 'news' trade news (their work, the nearest nest shown on the map; +2 standing, once a day), 'hire' one of their swords for a fee,
+      'buyoff' pay them to leave the company alone (hunters break their contract), 'challenge' an open fight (no cost with the towns),
+      'attack' fall on them unawares (the honourable cannot be surprised; costs standing with the nearest town's owner unless they are hostile),
+      'leave' part ways. Uses no game randomness except what the fight itself draws. ---- */
+function rvHireCand(r){if(!r||r.roster.length<=4)return null;const L=r.roster.slice().sort((a,b)=>b.lvl-a.lvl||a.id-b.id);return L[Math.min(L.length-1,1+Math.floor(L.length/3))]||null}
+function rvGreed(r){return(RVPERS[r.pers]||RVPERS.greedy).greed}
+function rvHireFee(r,m){return Math.round((typeof recruitCost==='function'?recruitCost(m):300)*1.6*rvGreed(r)/10)*10}
+function rvBuyFee(r){return Math.round((150+rivalPower(r)*12+(r.hired?250:0))*rvGreed(r)/10)*10}
+function rivalParley(p){const r=p&&rivalById(p.f);if(!r||!r.alive)return null;const hostile=partyHostile(p),T=repTier(r.id),P=RVPERS[r.pers]||RVPERS.greedy,opts=[],st=['','weaker than the company','an even match','stronger than the company'][rivalStr(r)];
+ const ti=nearestTown(p.x,p.y),own=G.towns[ti]&&G.towns[ti].own;
+ const talk=r.talk===G.day;opts.push({k:'news',n:'Trade news',d:talk?'You have already traded news today.':'Swap road talk: what they are about and the nearest nest. +2 standing.',cost:0,ok:!hostile&&!talk,why:hostile?'They are not here to talk':talk?'Already traded news today':''});
+ const m=rvHireCand(r),fee=m?rvHireFee(r,m):0,full=G.roster.length>=MAXROSTER;
+ opts.push({k:'hire',n:m?`Hire ${m.name}`:'Hire a sword',d:m?`Level ${m.lvl} ${BG[m.bg].n.toLowerCase()} joins the company for ${fee} crowns. +3 standing.`:'They cannot spare anyone.',cost:fee,m:m?m.id:null,
+  ok:!!m&&!hostile&&T.min>=-10&&!full&&G.crowns>=fee,why:!m?'Too few to spare a sword':hostile?'They are not here to talk':T.min<-10?`Their standing is ${T.n.toLowerCase()}`:full?'The roster is full':G.crowns<fee?'Not enough crowns':''});
+ if(hostile){const bf=rvBuyFee(r);opts.push({k:'buyoff',n:'Buy them off',d:`${bf} crowns and they leave the company alone for three days${r.hired?`, breaking their contract with ${factName(r.hired.by)}`:''}.`,cost:bf,ok:G.crowns>=bf,why:G.crowns<bf?'Not enough crowns':''})}
+ opts.push({k:'challenge',n:'Challenge them',d:`An open fight, banner against banner. No town minds. ${P.honour?'They accept with honour: +50% renown if you win.':''} −10 standing.`.replace('  ',' '),cost:0,ok:true});
+ const repCost=!hostile&&own?`−8 standing with ${factName(own)}, `:'';
+ opts.push({k:'attack',n:'Fall on them',d:P.honour?'The honourable keep a watch: they cannot be taken unawares.':`Strike first, before they form up. ${repCost}−25 standing.`,cost:0,ok:!P.honour,why:P.honour?'They keep a watch':''});
+ opts.push({k:'leave',n:hostile?'Stand your ground':'Part ways',d:hostile?'They mean to fight.':'Each company goes its own way.',cost:0,ok:!hostile});
+ const text=`${r.n}: ${r.roster.length} swords under a ${typeof BANNERC==='object'&&BANNERC[r.c1]?BANNERC[r.c1].n.toLowerCase():''} banner, ${P.n.toLowerCase()}, ${renownDef(rivalTier(r)).n.toLowerCase()}. They look ${st}. Standing: ${T.n.toLowerCase()}. ${rivalJob(r)}.`;
+ return{r,id:r.id,title:r.n,text,hostile,str:rivalStr(r),stance:repOf(r.id),tier:T,opts}}
+function rivalParleyDo(p,k){const P0=rivalParley(p);if(!P0)return{text:'They are gone.'};const r=P0.r,o=P0.opts.find(x=>x.k===k);if(!o)return{text:'Nothing comes of it.'};if(!o.ok)return{text:o.why||'Not now.'};
+ const fight=extra=>{const b=partyBattle(p);Object.assign(b,extra||{});b.src=Object.assign({},b.src,extra||{});return b};
+ if(k==='news'){r.talk=G.day;repGain(r.id,2,'Traded news on the road');const L=[`${r.n} say they are ${rivalJob(r).charAt(0).toLowerCase()+rivalJob(r).slice(1)}.`];
+  const n=(G.nests||[]).slice().sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id-b.id)[0];
+  if(n){fogRevealAt(n.x,n.y,2.5*TS);const ti=nearestTown(n.x,n.y);L.push(`A ${FACT[n.f].n.toLowerCase()} nest lies ${typeof compass==='function'?compass(n.x-G.towns[ti].x,n.y-G.towns[ti].y)+' of':'near'} ${rvTown(ti)}. It is marked on your map.`)}
+  const o2=rivalAlive().find(x=>x!==r);if(o2)L.push(`Of ${o2.n}: ${rivalJob(o2).charAt(0).toLowerCase()+rivalJob(o2).slice(1)}.`);const hh=G.houses&&G.houses.find(h=>REPK[repTier(h.id).k].hunt);if(hh)L.push(`They warn you: ${hh.n} has a price on your banner.`);
+  return{text:L.join(' ')}}
+ if(k==='hire'){const m=r.roster.find(x=>x.id===o.m);if(!m)return{text:'The sword changed their mind.'};G.crowns-=o.cost;r.crowns+=o.cost;r.roster=r.roster.filter(x=>x!==m);r.roster.forEach((x,i)=>x.field=i<MAXFIELD);
+  m.field=G.roster.filter(x=>x.field).length<MAXFIELD;m.slot=null;delete m.vet;m.hp=Math.min(m.hp,calc(m).hp);G.roster.push(m);r.mult=p.mult=rvMult(r);r.talk=G.day;repGain(r.id,3,'Hired one of their swords');rvDeed(r,`${m.name} left to join ${G.name||'the company'}`);return{text:`${m.name} shakes hands all round and walks over to your wagons. ${o.cost} crowns well spent.`,m}}
+ if(k==='buyoff'){G.crowns-=o.cost;r.crowns+=o.cost;const by=r.hired&&r.hired.by;r.hired=null;r.calm=G.day+3;delete p.hunt;p.ch=0;G.grace=Math.max(G.grace||0,3);if(repOf(r.id)<-39)r.stance=-35;rvPlan(r,p);
+  rvDeed(r,`Took ${G.name||'the company'}'s coin to look the other way`);return{text:`${r.n} count the coin and turn aside${by?`. ${factName(by)} will not get what it paid for`:''}.`}}
+ if(k==='challenge'){repGain(r.id,-10,'Challenged them');return{text:`${r.n} form up across the road. Banner against banner.`,fight:fight({duel:1})}}
+ if(k==='attack'){const ti=nearestTown(p.x,p.y),own=G.towns[ti]&&G.towns[ti].own;if(!P0.hostile&&own)repGain(own,-8,'Ambushed a mercenary company');repGain(r.id,-25,'Fell on them unawares');return{text:'The company falls on them before they can form up.',fight:fight({ambush:1})}}
+ return{text:P0.hostile?'They will not let you pass.':`${r.n} raise a hand and go their way.`}}
+/* worldBattleEnd's half for a rival company (s.goal 'merc'). The battle agent removes the rival's dead from its roster (from the battle's
+   results); this keeps the rest: standing, renown, crowns, news, a hunt that ends, a company wiped out. */
+// declined before the first blow (fleeEncounter passes no result record): no battle, the party stays on the road
+function rvBattleEnd(r,p,win,out,res){if(!r)return out;
+ if(!win&&res===null){rvDeed(r,`${G.name||'The company'} slipped away from them`);out.rival={id:r.id,win:false,fled:true,wiped:false};return out}const ti=nearestTown(p?p.x:r.x,p?p.y:r.y),where='near '+rvTown(ti),duel=!!(out.src&&out.src.duel);
+ if(win){const was=rivalHostile(r,p);repGain(r.id,was?-5:-15,'Beaten in battle');const loot=Math.round(r.crowns*.35);r.crowns-=loot;G.crowns+=loot;out.crowns+=loot;
+  const rn=Math.round((6+rivalTier(r)*3)*(duel&&RVPERS[r.pers]&&RVPERS[r.pers].honour?1.5:1));G.renown+=rn;out.renown=rn;r.renown=Math.max(0,r.renown-12);
+  if(r.hired)rvDeed(r,`Failed ${factName(r.hired.by)}'s hunt`);r.hired=null;if(r.ctr&&r.ctr.race!=null&&G.contract&&G.contract.id===r.ctr.race)delete G.contract.rival;r.ctr=null;r.rest=3;
+  const H=G.towns[r.home]||G.towns[ti];r.x=H.x;r.y=H.y;rvDeed(r,`Broken by ${G.name||'the company'} ${where}`);worldNews(`${G.name||'The company'} broke ${r.n} ${where}`);
+  if(!r.roster.length)rvWipe(r,'by '+(G.name||'the company')+' '+where)}
+ else{r.renown+=10;if(r.hired){r.crowns+=200;rvDeed(r,`Collected ${factName(r.hired.by)}'s price`);r.hired=null}r.rest=1;r.calm=G.day+2;rvDeed(r,`Beat ${G.name||'the company'} ${where}`);worldNews(`${r.n} beat ${G.name||'the company'} ${where}`)}
+ out.rival={id:r.id,win:!!win,wiped:!r.alive};if(p)G.parties=G.parties.filter(q=>q.id!==p.id);return out}

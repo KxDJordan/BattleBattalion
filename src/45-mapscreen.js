@@ -37,13 +37,13 @@ function lkCtype(c){const T=typeof CTYPES==='object'&&CTYPES&&c?CTYPES[c.type]:n
 function lkCtrIcon(c){const T=lkCtype(c),n=T&&T.icon;if(n&&typeof icHas==='function'&&icHas(n))return n;const k='ct-'+(c&&c.type||'deliver');return typeof icHas==='function'&&icHas(k)?k:'contract'}
 /* houses, ownership, situations */
 function lkHouse(id){if(!G||!Array.isArray(G.houses))return null;for(const h of G.houses)if(h&&h.id===id)return h;return null}
-function lkFacName(f){const h=lkHouse(f);if(h)return h.n||h.short||f;if(f==='free')return'Free towns';const F=typeof FACT==='object'&&FACT&&FACT[f];return F?F.n||f:String(f||'')}
+function lkFacName(f){const h=lkHouse(f);if(h)return h.n||h.short||f;if(typeof lkRival==='function'){const r=lkRival(f);if(r&&typeof f==='string')return r.n||f}if(f==='free')return'Free towns';const F=typeof FACT==='object'&&FACT&&FACT[f];return F?F.n||f:String(f||'')}
 function lkSits(t){return t&&Array.isArray(t.sit)?t.sit.filter(s=>s&&(s.k||typeof s==='string')):[]}
 function lkSitDef(k){const S=typeof SITS==='object'&&SITS?SITS[k]:null;return S||{n:k?k[0].toUpperCase()+k.slice(1):'',d:''}}
 function lkSitIcon(k){const S=lkSitDef(k);if(S&&S.icon&&typeof icHas==='function'&&icHas(S.icon))return S.icon;return typeof icHas==='function'&&icHas('sit-'+k)?'sit-'+k:'info'}
-function lkRepTier(f){if(typeof repTier==='function'){try{const r=repTier(f);if(r&&r.k)return r}catch(e){}}const v=G&&G.rep&&typeof G.rep[f]==='number'?G.rep[f]:0;
+function lkRepTier(f){if(typeof repTier==='function'){try{const r=repTier(f);if(r&&r.k)return r}catch(e){}}const v=lkRep(f);
  return v<=-60?{k:'hostile',n:'Hostile',min:-100}:v<=-20?{k:'cold',n:'Cold',min:-59}:v<20?{k:'neutral',n:'Neutral',min:-19}:v<60?{k:'friendly',n:'Friendly',min:20}:{k:'allied',n:'Allied',min:60}}
-function lkRep(f){return G&&G.rep&&typeof G.rep[f]==='number'?G.rep[f]:0}
+function lkRep(f){if(G&&G.rep&&typeof G.rep[f]==='number')return G.rep[f];if(typeof lkRival==='function'){const r=lkRival(f);if(r&&typeof f==='string'&&typeof r.stance==='number')return r.stance}return 0}
 function lkHostile(i){if(typeof townHostile==='function'){try{return!!townHostile(i)}catch(e){}}return false}
 function lkPriceK(i,kind){if(typeof townPriceK==='function'){try{const k=+townPriceK(i,kind);if(k>0&&isFinite(k))return k}catch(e){}}return 1}
 
@@ -116,6 +116,8 @@ const MPS={
  'sit-boom':['.0000..','0dddc0.','0cccb00','0dddcA0','0cccbA0','0dddcB0','.00000.'],
  'sit-siege':['0.....0','00...00','.0q.q0.','..0q0..','.0q.q0.','0o0.0o0','00...00']
 };
+function mpRivalRows(r){const A=typeof BANNERC==='object'&&BANNERC[r.c1]?BANNERC[r.c1].r:['f','g','h'],C=typeof BANNERC==='object'&&BANNERC[r.c2]?BANNERC[r.c2].r:['m','l','r'],m={a:A[0],b:A[1],c:A[2],x:C[0],y:C[1],z:C[2]};
+ return['.d.......','0j0000000','0jzyyyyy0','0jycbbby0','0jybbbby0','0jybbbay0','0jyyyyyx0','0j0yx0yx0','0j0.0.0.0','0j0......','0j0......','.0.......'].map(s=>s.split('').map(k=>m[k]||k).join(''))}
 const MPS_CO=MPS.company.slice();
 function mpHalo(r){return(function(r){const w=r[0].length,p=['.'.repeat(w+2)].concat(r.map(x=>'.'+x+'.'),['.'.repeat(w+2)]),h=p.length,on=(x,y)=>y>=0&&y<h&&x>=0&&x<w+2&&p[y][x]!=='.';
  return p.map((row,y)=>{let o='';for(let x=0;x<w+2;x++)o+=on(x,y)?row[x]:(on(x-1,y)||on(x+1,y)||on(x,y-1)||on(x,y+1))?'e':'.';return o})})(r)}
@@ -370,6 +372,8 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  q.save();q.beginPath();q.rect(I.x,I.y,I.w,I.h);q.clip();
  for(const p of mpKnownPortals())mpAt(q,fr&1?'portal2':'portal',fr&1?MPS.portal2:MPS.portal,X(p.x),Y(p.y),'c');
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)){const sx=X(n.x),sy=Y(n.y),ti=typeof waNestTier==='function'?waNestTier(n):1;mpAt(q,'nest',MPS.nest,sx,sy,'c');for(let i=0;i<ti;i++){mpFill(q,'0',sx-4*us+i*3*us,sy+4*us,3*us,3*us);mpFill(q,'g',sx-3*us+i*3*us,sy+5*us,us,us)}}
+ /* rival companies in sight: a pennant in their colours (field c1, border c2) */
+ for(const o of G.parties)if(o&&o.goal==='merc'&&typeof worldVisible==='function'&&worldVisible(o.x,o.y)){const r=typeof lkRival==='function'?lkRival(o.f):null;if(r)mpAt(q,'rv'+r.c1+r.c2,mpRivalRows(r),X(o.x),Y(o.y),'b')}
  G.towns.forEach(t=>{const s=mpTownSize(t);mpAt(q,s===1?'hamlet':s===3?'city':'town',mpTownRows(t),X(t.x),Y(t.y),'c')});
  G.towns.forEach(t=>{const sx=X(t.x),sy=Y(t.y),hw=Math.floor(mpTownRows(t)[0].length/2),h=t.own&&t.own!=='free'?lkHouse(t.own):null;
   if(h&&typeof BANNERC==='object')mpSpr(q,'own'+h.id+h.c1,mpOwnRows(h),sx-(hw+6)*us,sy-(hw+6)*us);
