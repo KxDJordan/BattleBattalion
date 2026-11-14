@@ -36,7 +36,7 @@ function tutStart(g){if(!g||!Array.isArray(g.towns)||!g.towns.length||typeof ctr
  g.contract=c;if(typeof ctrSync==='function')ctrSync(c);g.tut={step:'go',cid:c.id,t0:0,done:false};return c}
 function tutSkip(){if(G&&G.tut)G.tut.done=true;storeSet(TUTKEY,'1');tutHide();if(typeof toast==='function')toast('Tutorial skipped: the contract is still yours to finish')}
 function tutFinish(){if(G&&G.tut)G.tut.done=true;storeSet(TUTKEY,'1');tutHide();if(typeof sheet==='function')sheet(`<h2>${runIc('laurel',32)} The trade is learned</h2><p>March, fight, heal, get paid. The rest is choices: which work to take, who to hire, when to run. Contracts wait on the board in every town.</p><p class="dim">Hints are off from now on. How to play (in the menu) has the controls.</p><button class="pri" onclick="closeSheet()">March on</button>`)}
-function tutNext(){const t=G.tut,i=TUTSTEPS.indexOf(t.step);t.step=TUTSTEPS[i+1]||'pay';TUT.snap=null}
+function tutNext(){const t=G.tut,i=TUTSTEPS.indexOf(t.step);t.step=TUTSTEPS[i+1]||'pay'}
 /* the step logic, run from the shell's tick (4 times a second). Reads B / G / FC / townTab; changes only G.tut. */
 const TUT={el:null,key:'',snap:null,hp:null};
 function tutTick(){if(!tutOn()){tutHide();return}const t=G.tut,c=G.contract;
@@ -47,7 +47,7 @@ function tutTick(){if(!tutOn()){tutHide();return}const t=G.tut,c=G.contract;
   const moved=S.map(u=>u.c+','+u.r).join('|')!==TUT.snap.pos,hit=E.reduce((n,u)=>n+(u.alive?u.hp:0),0)<TUT.snap.hp;
   if(t.step==='move'&&moved)tutNext();
   if(t.step==='forecast'&&(typeof FC==='object'&&FC&&FC.t))tutNext();
-  if((t.step==='forecast'||t.step==='attack')&&hit){t.step='end';TUT.snap=null}
+  if((t.step==='forecast'||t.step==='attack')&&hit)t.step='end'
   if(t.step==='end'){if(TUT.snap.endAt==null)TUT.snap.endAt=B.turns;else if(B.turns>TUT.snap.endAt)tutNext()}
  }else if(mode==='world'){if(['move','forecast','attack','end','win'].includes(t.step)){if(c&&c.id===t.cid&&c.stage>0)t.step='heal';else if(c&&c.id===t.cid)t.step='go'}
   if(t.step==='heal'&&G.town!=null&&G.townOpen&&typeof townTab==='string'&&(townTab==='inn'||townTab==='temple'))t.step='pay';

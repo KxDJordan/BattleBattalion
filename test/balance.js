@@ -124,7 +124,7 @@ async function battle(X,W,job,i){const P=PROFILES.concat(SOLO).find(p=>p.id===jo
  X.seedRng((hash(job.f+'|'+P.id)^Math.imul(i+1,2654435761)^SEED)>>>0);
  const o={f:job.f,mult:1,biome:BIOMES[i%BIOMES.length],pilot:job.pilot,src:{type:'test'},turnCap:TURNCAP};if(job.plan)o.plan=job.plan;
  if(job.f==='rival'){const R=X.clone(W.comp[P.id][(i+3)%KCOMP]);R.forEach((m,k)=>{m.id=900000+k;m.field=true});   // an equal rival: another company of the same profile
-  G.rivals=[{id:'rB',n:'The Grey Company',short:'Greys',c1:'k',c2:'w',emblem:'wolf',pers:job.pers||'honour',renown:G.renown||0,crowns:0,home:0,roster:R,stance:0,alive:true,day:G.day,deeds:[]}];o.f='rB';o.rival='rB'}if(job.fixed)o.fixed=job.fixed;if(job.foes)o.foes=job.foes;
+  G.rivals=[{id:'rB',n:'The Grey Company',short:'Greys',c1:'k',c2:'w',emblem:'wolf',pers:job.pers||'honour',renown:G.renown||0,crowns:0,home:0,roster:R,stance:0,alive:true,day:G.day,deeds:[]}];o.f='rB';o.rival='rB'}if(job.fixed)o.fixed=job.fixed;if(job.fab){G.fabled={};o.fabled=job.fab.ids.slice();o.mult=job.fab.mult;if(job.fab.boss)o.boss={fabled:job.fab.ids[0]}}if(job.foes)o.foes=job.foes;
  const n0=G.roster.length,res=await X.autoBattle(o);if(!res)throw new Error('battle did not start');
  if(X.FX.err)throw X.FX.err;
  const b=X.B,foes=b?b.units.filter(u=>u.side===1&&!u.spawned).length:0;
@@ -142,7 +142,7 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  process.on('message',m=>{if(m==='quit')process.exit(0);q.push(m);pump()});return}
 /* ---------- main ---------- */
 (async()=>{const QUICK=has('--quick'),N=+arg('--n',QUICK?40:200),NA=+arg('--na',Math.max(20,Math.round(N/2))),J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length)));
- const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'&&f!=='solo'):FACS.concat(MONF),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
+ const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'&&f!=='solo'&&f!=='fabled'):FACS.concat(MONF),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
  const X0=makeContext(),PLAN=JSON.parse(JSON.stringify(X0.AI_PLAN)),FACT=X0.FACT;
  /* The tactics the sensible pilot is run without, one at a time: name -> what to strip from a plan. */
  const TACTICS={
@@ -176,8 +176,12 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const SPROF=arg('--sprof',null),SFAC=arg('--sfac',null),SOLOP=SOLO.filter(P=>!SPROF||SPROF.split(',').includes(P.id)),SOLOFF=SOLOF.filter(f=>!SFAC||SFAC.split(',').includes(f));   // (tuning: --sprof S3,S9 --sfac ogre)
  if(SOLOON)for(const f of SOLOFF)for(const P of SOLOP)for(const pilot of has('--sens-only')?['sensible']:['naive','sensible'])add('solo',f,P.id,pilot,SOLON);
  if(has('--boss'))for(const pr of ['L8x9','L12x12'])for(const pilot of ['naive','sensible'])add('boss','void',pr,pilot,NA,null,null,['tyrant']);
+ // Fabled update: a band led by a fabled warrior (o.fabled; the band at FABM of an even budget), and fabled bosses with their phases. Reported, not judged.
+ const FABM=.75,FABS=[['orc','L8x9','korvak',0],['bandit','L8x9','aldric',0],['bandit','L12x12','hakon',1],[FACT.east?'east':'bandit','L12x12','nobusada',1],['undead','L12x12','ulfgar',1]].filter(x=>FACT[x[0]]&&X0.FABLED&&X0.FABLED[x[2]]);
+ const FABON=!has('--no-fabled')&&(!only||only.split(',').includes('fabled'));
+ if(FABON)for(const [f,pr,id,boss] of FABS)for(const pilot of ['naive','sensible']){const j=add('fab',f,pr,pilot,NA);j.fab={ids:[id],boss,mult:FABM}}
  // identical jobs (same battles) are run once
- const sig=j=>[j.f,j.prof,j.pilot,j.n,JSON.stringify(j.plan&&JSON.stringify(j.plan)!==JSON.stringify(PLAN[j.f])?j.plan:null),JSON.stringify(j.fixed),JSON.stringify(j.foes)].join('|'),uniq=new Map();
+ const sig=j=>[j.f,j.prof,j.pilot,j.n,JSON.stringify(j.fab||null),JSON.stringify(j.plan&&JSON.stringify(j.plan)!==JSON.stringify(PLAN[j.f])?j.plan:null),JSON.stringify(j.fixed),JSON.stringify(j.foes)].join('|'),uniq=new Map();
  for(const j of jobs){const s=sig(j);if(!uniq.has(s))uniq.set(s,{job:j,res:null})}
  const PIX=id=>{const i=PROFILES.findIndex(p=>p.id===id);return i>=0?i:1},todo=[...uniq.values()].sort((a,b)=>b.job.n*PIX(b.job.prof)-a.job.n*PIX(a.job.prof));
  console.log(`balance: ${todo.length} cells, ${todo.reduce((s,t)=>s+t.job.n,0)} battles, ${J} workers, seed ${SEED}, BUDGETK ${X0.BUDGETK}`);
@@ -234,6 +238,11 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
   for(const f of SOLOFF)for(const P of SOLOP){const jn=jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='naive'),b=R(jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='sensible')),a=jn?R(jn):b;stuck+=a.stuck+b.stuck;
    console.log(pad(FACT[f].n,16)+pad(P.id,8)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1(196*Math.sqrt(b.wins/b.n*(1-b.wins/b.n)/b.n)),7)+lp(f1((a.rounds+b.rounds)/(a.n+b.n)),8)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9))}
   console.log('(reported, not judged: the overall criteria above are the company profiles only)')}
+ if(jobs.some(j=>j.kind==='fab')){console.log(`\n== fabled: a band (${FABM} of an even budget) led by a fabled warrior; * = a boss with its phases (${NA} battles each) ==`);
+  console.log(pad('faction',16)+pad('profile',8)+pad('fabled',12)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('rounds',8)+lp('lost(s)',9));
+  for(const [f,pr,id,boss] of FABS){const a=R(jobs.find(j=>j.kind==='fab'&&j.f===f&&j.prof===pr&&j.fab.ids[0]===id&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='fab'&&j.f===f&&j.prof===pr&&j.fab.ids[0]===id&&j.pilot==='sensible'));stuck+=a.stuck+b.stuck;
+   console.log(pad(FACT[f].n,16)+pad(pr,8)+pad(id+(boss?'*':''),12)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1((a.rounds+b.rounds)/(a.n+b.n)),8)+lp((b.dead/b.n).toFixed(2),9))}
+  console.log('(reported, not judged)')}
  if(jobs.some(j=>j.kind==='boss')){console.log('\n== rift tyrant (dungeon boss fight, fixed tyrant + even budget) ==');for(const pr of ['L8x9','L12x12']){const a=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='sensible'));
    console.log(pad(pr,10)+`naive ${f1(pct(a))}%  sensible ${f1(pct(b))}%  rounds ${f1((a.rounds+b.rounds)/(a.n+b.n))}`)}}
  console.log(`\nAI decision cost: ${(ai.ms/Math.max(1,ai.n)).toFixed(3)} ms per unit turn (mean over ${ai.n} turns), worst single decision ${ai.max.toFixed(1)} ms.   Wall time ${((Date.now()-T0)/1000).toFixed(0)} s.`);

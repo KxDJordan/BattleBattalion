@@ -211,7 +211,8 @@ function clearSave(slot){return storeDel(slotKey(slot))}
 function backupUnreadableSave(){const st=readSave().state;if(st!=='newer'&&st!=='corrupt')return false;const raw=storeGet(slotKey(SLOT));return raw!=null&&storeSet(slotKey(SLOT)+'_bak',raw)}
 
 /* ---- phase 7 world fields (validated in place; anything unreadable is rebuilt from the seed by factionsInit) ---- */
-function worldRepair(g){const nT=g.towns.length,okF=f=>f==='free'||(Array.isArray(g.houses)&&g.houses.some(h=>h.id===f));
+function worldRepair(g){const nT=g.towns.length,okF=f=>f==='free'||(f==='east'&&svObj(g.east))||(Array.isArray(g.houses)&&g.houses.some(h=>h.id===f))||(typeof f==='string'&&typeof ownerOk==='function'&&!!ownerOk(f,g));   // owners: free towns, houses, the East (19-east.js), crisis owners (ownerOk, 18-crises.js)
+
  if(Array.isArray(g.houses)){const seen={};g.houses=g.houses.filter(h=>svObj(h)&&typeof h.id==='string'&&/^h[0-9]$/.test(h.id)&&!seen[h.id]&&(seen[h.id]=1)&&Number.isInteger(h.seat)&&h.seat>=0&&h.seat<nT);
   for(const h of g.houses){if(typeof h.n!=='string'||!h.n)h.n='House '+h.id;h.n=h.n.slice(0,40);if(typeof h.short!=='string')h.short=h.n.replace(/^House /,'');if(!HPERS[h.pers])h.pers='proud';
    const b=typeof bannerFix==='function'?bannerFix({c1:h.c1,c2:h.c2,emblem:h.emblem},h.n):h;h.c1=b.c1;h.c2=b.c2;h.emblem=b.emblem}

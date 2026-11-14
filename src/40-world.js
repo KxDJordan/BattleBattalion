@@ -358,7 +358,7 @@ function wsArrive(p){if(p.cr&&typeof crArrive==='function'&&crArrive(p))return !
  if(p.goal==='patrol'){p.legs=(p.legs|0)+1;if(p.legs>=3||!Array.isArray(p.pts)){p.gone=1;return true}const t=p.from;p.from=p.to;p.to=t;p.pts.reverse();p.pi=0;return false}
  p.gone=1;return true}
 /* ---- the daily step for one far party: along its route a day's march, or (hunters) toward the company ---- */
-function wsStep(p){if(p.siege!=null)return;
+function wsStep(p){if(p.siege!=null||p.siegeT!=null)return;
  if(p.hunt){const dx=G.p.x-p.x,dy=G.p.y-p.y,d=Math.hypot(dx,dy)||1,s=Math.min(d-WSIM.live*.6*TS,WSIM.hunt*TS);if(s>0){const nx=p.x+dx/d*s,ny=p.y+dy/d*s;if(okAt(nx,ny)){p.x=nx;p.y=ny;p.tx=nx;p.ty=ny}}return}
  if(p.idle||!WSROUTE[p.goal]||!Array.isArray(p.pts)||!p.pts.length)return;const tiles=p.spd>0?p.spd:p.goal==='caravan'?WSIM.car:p.goal==='raid'?WSIM.raid:p.goal==='merc'?WSIM.merc:WSIM.pat;
  p.pi+=Math.max(1,Math.round(tiles/3));if(p.pi>=p.pts.length){const q=p.pts[p.pts.length-1];p.x=q.x;p.y=q.y;wsArrive(p);return}const q=p.pts[p.pi];p.x=q.x;p.y=q.y;p.tx=q.x;p.ty=q.y}
@@ -465,9 +465,9 @@ function nearestTown(x,y){let b=0,bd=1e18;for(let i=0;i<G.towns.length;i++){cons
 // their loop. Only parties that are hostile to the company (partyHostile) turn on it, and hunting patrols (p.hunt) seek it out.
 // Parties further than WSIM.live tiles from the company are not moved here: worldDay() advances them a day at a time.
 function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.live*TS;let gone=0;for(const p of G.parties){const dp=Math.hypot(G.p.x-p.x,G.p.y-p.y);if(dp>live)continue;let tx,ty;
-  const hostile=partyHostile(p),route=WSROUTE[p.goal]&&Array.isArray(p.pts)&&p.pts.length>0&&!p.siege;
+  const hostile=partyHostile(p),route=WSROUTE[p.goal]&&Array.isArray(p.pts)&&p.pts.length>0&&!p.siege&&p.siegeT==null;
   if(hostile&&G.grace<=0&&(dp<(p.ch?sight*1.35:sight)||p.hunt)){p.ch=1;tx=G.p.x;ty=G.p.y}
-  else if(p.siege){p.ch=0;tx=p.tx;ty=p.ty}
+  else if(p.siege||p.siegeT!=null){p.ch=0;tx=p.tx;ty=p.ty}   // a besieging host (a house's, or a crisis host: p.siegeT) stays in its lines
   else if(p.goal==='merc'&&(p.idle||!route)){p.ch=0;continue}   // a rival company between plans stands where it is
   else if(route){p.ch=0;const q=p.pts[Math.min(p.pi,p.pts.length-1)];if(Math.hypot(q.x-p.x,q.y-p.y)<5){p.pi++;if(p.pi>=p.pts.length){if(wsArrive(p))gone=1;continue}}const q2=p.pts[p.pi];tx=p.tx=q2.x;ty=p.ty=q2.y}
   else{if(p.ch||!Array.isArray(p.pts)||!p.pts.length){p.ch=0;setPatrol(p)}
