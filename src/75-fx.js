@@ -88,8 +88,10 @@ function fxText(q,s,X,Y,sty,ap){const A=fxAtlas(sty);if(!A)return;for(let i=0;i<
 
 /* ---- unit positions (board space) ---- */
 const FUP={x:0,y:0,h:58};
-function fxUP(u){const p=tpos(u.c,u.r,anTileH(u.c,u.r));FUP.x=p.x;FUP.y=p.y;FUP.h=u.def&&u.def.big?90:58;return FUP}                 // tile centre under the unit
-function fxUB(u){const p=tpos(u.c,u.r,anTileH(u.c,u.r)),P=unitPose(u);FUP.x=p.x+P.ox;FUP.y=p.y+P.oy;FUP.h=u.def&&u.def.big?90:58;return FUP}   // where the body is drawn now
+function fxFoot(u){const s=u.sz||(u.def&&u.def.size>1?u.def.size:1),h=typeof anUH==='function'?anUH(u,u.c,u.r):anTileH(u.c,u.r);return s>1?tpos(u.c+(s-1)/2,u.r+(s-1)/2,h):tpos(u.c,u.r,h)}   // the middle of a footprint
+function fxH(u){const mi=typeof umon==='function'&&u.def?umon(u):null;return mi&&mi.kind?Math.round(mi.top*1.8):u.def&&u.def.big?90:58}
+function fxUP(u){const p=fxFoot(u);FUP.x=p.x;FUP.y=p.y;FUP.h=fxH(u);return FUP}                 // tile centre under the unit
+function fxUB(u){const p=fxFoot(u),P=unitPose(u);FUP.x=p.x+P.ox;FUP.y=p.y+P.oy;FUP.h=fxH(u);return FUP}   // where the body is drawn now
 function fxSDir(dc,dr){if(typeof screenDir==='function')try{return screenDir(dc,dr)}catch(e){}return dc>0?0:dr>0?1:dc<0?2:3}
 function fxUnitSpr(u){if(typeof unitSpritePx!=='function')return null;try{const P=unitPose(u);return unitSpritePx(u,fxSDir(P.dc,P.dr),P.state,P.frame)}catch(e){return null}}
 function fxResR(u){const k=u&&u.res?(u.res.mana?'mana':u.res.aura?'aura':u.res.qi?'qi':u.res.chi?'chi':''):'';return k==='mana'?R_MANA:k==='aura'?R_AURA:k==='qi'?R_QI:k==='chi'?R_CHI:R_GOLD}
@@ -138,6 +140,7 @@ function fxImpact(e){e.on=false;const t=e.t;if(!t)return;e.t=null;const u=e.u;e.
   case S_HAZ:for(let i=0;i<fxN(18);i++)spawn(K_SQ,R_FIRE,x+rr(-16,16),fy+rr(-5,5),rr(-12,12),rr(-190,-70),rr(.3,.65),i&1?2:1,-40,1.6,rr(0,.12));ringFx(x,fy,4,18,260,R_EMBER,0,.5);break;
   case S_FALL:puff(x,fy,9);ringFx(x,fy,4,16,240,R_DUST,0,.5);break;
   default:if(sty>=S_BLEED)fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp)}
+ if((sty===S_FIRE||sty===S_BLAST||sty===S_FLAME||sty===S_BURN||sty===S_HAZ)&&t.def&&t.def.fireWeak)fxFireWeak(t,x,fy,h,sp);
  if(e.dead)fxDeathNow(t)}
 function fxDeathNow(t){const p=fxUB(t),x=p.x,y=p.y,h=p.h,big=t.def&&t.def.big,f=t.side===1?t.f:'';
  if(f==='undead'){for(let i=0;i<fxN(12);i++)spawn(K_SQ,R_BONE,x+rr(-7,7),y-rr(4,h*.7),rr(-90,90),rr(-200,-60),rr(.5,.9),i%3?1:2,640,.5)}
@@ -201,7 +204,7 @@ function fxOnDeath(t){if(!t)return;fxU(t).dead=true;let e=null;for(let i=0;i<IMP
 function fxOnCast(u,t,ab,k){if(!u||!ab)return;if(ab.id==='swap'||ab.swap){FXS.cu=null;return}   // staged by fxSwap when the figure changes hands
 const id=ab.id==='spell'?(/hex/i.test(ab.n)?'hex':/grave/i.test(ab.n)?'grave':/void/i.test(ab.n)?'void':u.f==='void'?'void':u.f==='undead'?'grave':'hex'):fxKey(ab);
  FXS.cu=u;FXS.cid=id;FXS.cn=0;FXS.clast=null;FXS.cab=ab;FXS.rmp=fxTintR(ab);FXS.bR=ab.foe?R_VOID:R_MANA;FXS.dS=ab.foe?'g':'y';FXS.dR=ab.foe?R_DUST:R_AURA;
- FXS.multi=id==='fireball'||id==='chain'||id==='thunder'||ab.tgt==='aoe'||!!ab.aoe||!!ab.chain||!!ab.hits||!!ab.through||!!ab.party||id==='nova'||id==='chant'||id==='warcry'||id==='rally';const p=fxUP(u),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),R=ab.cost?(ab.cost[0]==='mana'?R_MANA:ab.cost[0]==='aura'?R_AURA:ab.cost[0]==='qi'?R_QI:R_CHI):id==='hex'?R_HEX:id==='grave'?R_GRAVE:id==='void'?R_VOID:R_GOLD;
+ FXS.multi=(id==='m:quake'||id==='m:dland'||id==='m:buffet'||id==='m:sweep')||id==='fireball'||id==='chain'||id==='thunder'||ab.tgt==='aoe'||!!ab.aoe||!!ab.chain||!!ab.hits||!!ab.through||!!ab.party||id==='nova'||id==='chant'||id==='warcry'||id==='rally';const p=fxUP(u),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),R=ab.cost?(ab.cost[0]==='mana'?R_MANA:ab.cost[0]==='aura'?R_AURA:ab.cost[0]==='qi'?R_QI:R_CHI):id==='hex'?R_HEX:id==='grave'?R_GRAVE:id==='void'?R_VOID:R_GOLD;
  switch(id){
   case 'bolt':case 'fireball':case 'chain':case 'hex':case 'grave':case 'void':ringFx(x,y,4,15,300*sp,id==='fireball'?R_FIRE:R,0,.5);break;
   case 'blink':for(let i=0;i<fxN(16);i++){const yy=y-rr(0,h);spawn(K_SQ,FXS.bR,x+rr(-12,12),yy,0,rr(-30,-90),rr(.25,.5),i%3?1:2,0,0,rr(0,.06))}{const o=fxo(T_COL,x,y,0,190*sp,FXS.bR);o.a=h;o.b=0}break;
@@ -227,7 +230,7 @@ function fxOnBuff(t){if(!t)return;const id=FXS.cu&&FXS.cid?FXS.cid:'',p=fxUP(t),
   case 'adren':{ringFx(x,y-h*.5,3,15,260*sp,R_RED,0,1);ringFx(x,y-h*.5,3,15,260*sp,R_RED,150*sp,1);glyphFx('heart',x,y-h-4,8,520*sp,0,null);
    for(let i=0;i<fxN(12);i++){const a=i/12*6.283;spawn(K_TRAIL,R_RED,x+Math.cos(a)*8,y-h*.5+Math.sin(a)*8,Math.cos(a)*200,Math.sin(a)*200,.2,1,0,3,.05)}break}
   default:{const R=t.side===0?R_GOLD:R_RED;ringFx(x,y,3,14,300*sp,R,0,.5);for(let i=0;i<fxN(10);i++)spawn(K_TRAIL,R,x+rr(-10,10),y-rr(0,10),0,rr(-220,-110),rr(.25,.45),1,0,1.2,rr(0,.12))}}}
-function fxOnHeal(t){if(!t)return;const p=fxUP(t),x=p.x,y=p.y,sp=Math.max(.6,fxSp());ringFx(x,y,3,16,340*sp,R_CHI,0,.5,2);emitFx(3,t,0,0,38,520*sp,0,R_CHI);glowFx(x,y-p.h*.4,40,'A',.35,260)}
+function fxOnHeal(t){if(!t)return;if(t.def&&t.def.regen)fxRegrow(t);const p=fxUP(t),x=p.x,y=p.y,sp=Math.max(.6,fxSp());ringFx(x,y,3,16,340*sp,R_CHI,0,.5,2);emitFx(3,t,0,0,38,520*sp,0,R_CHI);glowFx(x,y-p.h*.4,40,'A',.35,260)}
 function fxOnTurn(u){if(!u)return;FXS.turnU=u;FXS.turnBurn=!!(u.st&&u.st.burn);FXS.cu=null;if(!u.alive)return;const p=fxUP(u);ringFx(p.x,p.y,5,17,260,u.side===0?R_GOLD:R_RED,0,.5);
  if(fxTail(u,/^Chilled$/))for(let i=0;i<fxN(10);i++)spawn(K_SQ,R_ICE,p.x+rr(-12,12),p.y-rr(p.h*.3,p.h),rr(-6,6),rr(20,50),rr(.5,.9),1,0,.5,rr(0,.2))}
 function fxEvent(type,d){if(!d||typeof B==='undefined'||!B||mode!=='battle')return;
@@ -257,7 +260,7 @@ const FX_WORD=[[/ripost|parry|guard|brace|wall/,'guard'],[/split|sunder|smash/,'
  [/cry|roar|howl|shout/,'warcry'],[/rally|inspire/,'rally'],[/ward|barrier|aegis/,'ward'],[/summon|conjure|veil/,'summon'],[/raise|reanim/,'raise'],[/nova|cataclysm/,'nova'],[/gather|channel/,'gather'],[/blink|phase|rift step/,'blink'],[/withdraw|flee/,'withdraw']];
 const FX_TINTR={mana:R_MANA,aura:R_AURA,qi:R_QI,chi:R_CHI,steel:R_STEEL,foe:R_RED,void:R_VOID,fire:R_FIRE,ice:R_ICE,green:R_HEX,gold:R_GOLD,bone:R_BONE,verd:R_QI};
 function fxTintR(ab){let t='gold';try{if(typeof abTint==='function')t=abTint(ab)}catch(e){}const r=FX_TINTR[t];return r===undefined?R_GOLD:r}
-function fxKey(ab){const id=ab.id||'';if(FX_OLD[id]&&!ab.foe)return id;if(FX_ID[id]&&!ab.foe)return FX_ID[id];{const h2=ab.fx&&FX_HINT2[ab.fx];if(h2){const k2=h2(ab);if(k2)return k2}}const h=ab.fx&&FX_HINT[ab.fx];
+function fxKey(ab){const id=ab.id||'';{const m=fxKeyM(ab);if(m)return m}if(FX_OLD[id]&&!ab.foe)return id;if(FX_ID[id]&&!ab.foe)return FX_ID[id];{const h2=ab.fx&&FX_HINT2[ab.fx];if(h2){const k2=h2(ab);if(k2)return k2}}const h=ab.fx&&FX_HINT[ab.fx];
  if(h){if(h==='sweep'&&/reap|scyth/i.test(id+' '+(ab.n||'')))return'reap';if(h==='bolt')return ab.foe?(/void/i.test(ab.n||'')?'void':'grave'):'bolt';return h}
  const s=(id+' '+(ab.n||'')).toLowerCase();for(let i=0;i<FX_WORD.length;i++)if(FX_WORD[i][0].test(s))return FX_WORD[i][1];
  FXS.cat=typeof abCategory==='function'?abCategory(ab,id):'melee';return'gen'}
@@ -269,6 +272,7 @@ function fxOrb(r){let a=FXORB[r];if(a)return a;const m=r===R_AURA?':xyFe':r===R_
 let FXWEBS=null;
 function fxWebs(){return FXWEBS||(FXWEBS=[fxSpr('webb'),fxSpr('webb')])}
 function fxStrikeX(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const ab=FXS.cab||FXO_NIL,R=FXS.rmp|0;let o,fly,ld;
+ if(id&&id.charCodeAt(0)===109&&id[1]===':'){const n=fxStrikeM(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}
  {const n=fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}
  {const n=fxStrikeN(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}
  switch(id){
@@ -295,7 +299,7 @@ function fxStrikeX(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const a
    if(d>1){fly=Math.max(70,L/1.15)*ss;o=fxArrow(ax,ay,bx,by,fly,Math.min(28,L*.13),R,40*sp);o.c=miss?1:0;FXS.sty=S_GEN;return 40*sp+fly}
    ld=fxMelee(u,t,R,fxWpnKind(u),sp);FXS.sty=S_GEN;return ld}}
  return -1}
-function fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){const R=e.rmp|0;if(sty>=S_N0){fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp);return}
+function fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){const R=e.rmp|0;if(sty>=S_M0){fxImpactM(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp);return}if(sty>=S_N0){fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp);return}
  switch(sty){
   case S_BLEED:if(dmg>0){for(let i=0;i<fxN(7);i++)spawn(K_SQ,R_BLOOD,x+rr(-6,6),y+rr(-4,6),rr(-10,10),rr(10,60),rr(.5,.9),i&1?2:1,420,.4,rr(.05,.4));cone(K_TRAIL,R_BLOOD,x,y,dx,dy*.4-.3,8,90,250,.36,1,300,2,.5)}break;
   case S_SPLIT:{cone(K_SQ,R_ROOT,x,y,dx,dy*.5-.5,12,70,240,.5,2,620,1,1.1);cone(K_TRAIL,R_DUST,x,y,dx,dy*.5-.3,8,110,280,.3,1,300,2,.8);const o=fxo(T_CRACK,x-6,y+4,0,420,0);o.a=0;fxShake(3);
@@ -315,7 +319,7 @@ function fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){const R=e.rmp|0;if(sty>=
   case S_RIP:burst(K_TRAIL,R_GOLD,x,y,8,100,260,.24,1,0,4);glyphFx('glint:rd',x,y,0,140,0);fxFloat(t,u&&fxFree(u,t)==='spearwall'?'SPEAR WALL':'RIPOSTE',FS_GOLD);break;
   case S_GEN:burst(K_TRAIL,R,x,y,11,80,240,.3,1,0,4);ringFx(x,y,2,13,240,R,0,1);cone(K_SQ,R,x,y,dx,dy*.5-.4,6,50,170,.4,1,260,2,1);break}}
 /* what the caster does before the blow, for the keys that have a wind-up of their own */
-function fxCastX(u,t,ab,id,k,x,y,h,sp){const R=FXS.rmp|0;if(fxCastN(u,t,ab,id,k,x,y,h,sp))return;
+function fxCastX(u,t,ab,id,k,x,y,h,sp){const R=FXS.rmp|0;if(id&&id.charCodeAt(0)===109&&id[1]===':'&&fxCastM(u,t,ab,id,k,x,y,h,sp))return;if(fxCastN(u,t,ab,id,k,x,y,h,sp))return;
  switch(id){
   case'round':{const o=fxo(T_SPIN,x,y-h*.42,40*sp,340*sp,R_WHITE);o.a=17;o.b=6.6;o.c=-2.4;puff(x,y,7);for(let i=0;i<fxN(12);i++){const a=i/12*6.283;spawn(K_TRAIL,R_WHITE,x+Math.cos(a)*26,y-h*.42+Math.sin(a)*13,-Math.sin(a)*170,Math.cos(a)*85,.22,1,0,3,(.04+i*.018)*sp)}fxShake(2);break}
   case'reap':{const o=fxo(T_SPIN,x,y-h*.42,40*sp,400*sp,R_VOID);o.a=21;o.b=6.9;o.c=-2.4;o.d=1;glowFx(x,y-h*.4,80,'C',.5,340);for(let i=0;i<fxN(18);i++){const a=i/18*6.283;spawn(K_TRAIL,R_VOID,x+Math.cos(a)*32,y-h*.42+Math.sin(a)*16,-Math.sin(a)*190,Math.cos(a)*95,.26,1,0,3,(.04+i*.016)*sp)}fxShake(2.5);break}
@@ -339,7 +343,7 @@ function fxCastX(u,t,ab,id,k,x,y,h,sp){const R=FXS.rmp|0;if(fxCastN(u,t,ab,id,k,
    else if(cat==='summon'){const o=fxo(T_PORTAL,x,y,0,800*sp,R);o.a=20;emitFx(1,null,x,y-h*.4,80,480*sp,0,R)}break}
   default:break}}
 /* a buff landing on t while the cast that gave it is live; true when it was drawn here */
-function fxBuffX(t,id,x,y,h,sp){const ab=FXS.cab||FXO_NIL,R=FXS.rmp|0;if(fxBuffN(t,id,x,y,h,sp))return true;
+function fxBuffX(t,id,x,y,h,sp){const ab=FXS.cab||FXO_NIL,R=FXS.rmp|0;if(id&&id.charCodeAt(0)===109&&id[1]===':'&&fxBuffM(t,id,x,y,h,sp))return true;if(fxBuffN(t,id,x,y,h,sp))return true;
  switch(id){
   case'reinforce':case'indom':case'empower':case'swift':case'adren':return false;
   case'guard':{const key=ab.buff&&ab.buff.key||ab.id||'';
@@ -413,11 +417,11 @@ function fxOnBlocked(d){const u=d.u,t=d.t;if(!u||!t)return;const a=fxUP(u),ax=a.
 function fxOnFF(d){const t=d.t;if(!t)return;const p=fxUP(t),sp=Math.max(.6,fxSp()),ff=FXS.ffShot,at=ff&&ff.v===t?Math.max(0,ff.at-now):0;
  fxFloat(t,'FRIENDLY FIRE',FS_HP,at+40);glyphFx('ic:friendly-fire',p.x,p.y-p.h-12,10,760*sp,at,null);glyphFx('bang',p.x+12,p.y-p.h-10,4,520*sp,at+60,null);ringFx(p.x,p.y-p.h*.5,3,15,260*sp,R_RED,at,1,2)}
 /* ---- watchers: what a status looks like while it lasts ---- */
-function fxWatchX(u,v){const st=u.st;
+function fxWatchX(u,v){const st=u.st;fxWatchM(u,v);
  if((st.web||st.webbed)&&!v.web){v.web=true;const o=fxo(T_WEB,0,0,60,9000,R_BONE);o.u=u;o.s=v}
  if(st.ward&&!v.ward){v.ward=true;const o=fxo(T_WARD,0,0,0,9000,R_VOID);o.u=u;o.s=v;o.a=u.def&&u.def.big?90:58}
  if((st.daze||u.dazed)&&!v.swirl&&!v.stars){v.swirl=true;const o=fxo(T_SWIRL,0,0,140,6000,R_ICE);o.u=u;o.s=v}}
-function fxDripX(u,dt){const st=u.st,m=u.mor;if(!(st.bleed||st.poison||st.nova||st.enrage||m===0||st.panic||st.winded||st.hex))return;const r=Math.random(),p=fxUB(u),x=p.x,y=p.y,h=p.h;
+function fxDripX(u,dt){const st=u.st,m=u.mor;fxDripM(u,dt);if(!(st.bleed||st.poison||st.nova||st.enrage||m===0||st.panic||st.winded||st.hex))return;const r=Math.random(),p=fxUB(u),x=p.x,y=p.y,h=p.h;
  if(st.bleed&&r<dt*9)spawn(K_SQ,R_BLOOD,x+rr(-7,7),y-rr(h*.3,h*.7),0,rr(20,50),rr(.4,.7),Math.random()<.4?2:1,300,.3);
  if(st.poison&&r<dt*7)spawn(K_PLUS,R_HEX,x+rr(-9,9),y-rr(h*.3,h*.9),rr(-4,4),rr(-50,-24),rr(.5,.9),1,-10,.4);
  if(st.hex&&r<dt*5)spawn(K_SQ,R_VOID,x+rr(-10,10),y-rr(h*.5,h+6),rr(-4,4),rr(14,34),rr(.5,.8),1,0,.3);
@@ -427,7 +431,7 @@ function fxDripX(u,dt){const st=u.st,m=u.mor;if(!(st.bleed||st.poison||st.nova||
  if(st.nova){if(r<dt*40){const a=Math.random()*6.283,rd=rr(40,76);spawn(K_TRAIL,R_VOID,x+Math.cos(a)*rd,y-h*.4+Math.sin(a)*rd*.5,-Math.cos(a)*rd*3,-Math.sin(a)*rd*1.5,.3,Math.random()<.3?2:1,0,0)}
   if(r<dt*1.6)ringFx(x,y-h*.4,60,8,460,R_VOID,0,.6,2)}}
 /* ---- shapes ---- */
-function fxDrawShapeX(o,t,dt,p,cx,cy,Rm,tick){const q=DQ;
+function fxDrawShapeX(o,t,dt,p,cx,cy,Rm,tick){const q=DQ;if(o.ty>=T_M0){fxDrawShapeM(o,t,dt,p,cx,cy,Rm,tick);return}
  switch(o.ty){
   case T_SPIN:{const R=o.a,e=Math.min(1,p/.62),ee=1-(1-e)*(1-e),hd=o.c+o.b*ee,tl=o.c+o.b*Math.max(0,(p-.3)/.7);aArc(cx,cy,R,tl,hd,o.r,.5,p<.7?3:2);if(o.d)aArc(cx,cy,R-6,tl,hd,o.r,.5,1);
    const hx=cx+Math.round(Math.cos(hd)*R),hy=cy+Math.round(Math.sin(hd)*R*.5);if(p<.62){q.fillStyle=Rm[0];A(hx-1,hy-1,3,3)}break}
@@ -451,7 +455,7 @@ function fxDrawShapeX(o,t,dt,p,cx,cy,Rm,tick){const q=DQ;
    o.acc+=dt;if(o.acc>.09&&!reduced){o.acc=0;spawn(K_SQ,R_DUST,x+rr(-5,5),y+rr(-2,2),rr(-14,14),rr(-26,-8),rr(.2,.35),1,40,2)}break}}}
 
 /* ---- hooks from the animation controller ---- */
-function fxAnimMove(u,kind,oc,or,dist){if(typeof document==='undefined'||!(SPEEDF>0)||!B||typeof now!=='number')return;const sp=Math.max(.5,fxSp()),o0=tpos(oc,or,anTileH(oc,or)),x0=o0.x,y0=o0.y,p=fxUP(u),x1=p.x,y1=p.y,h=p.h;
+function fxAnimMove(u,kind,oc,or,dist){if(typeof document==='undefined'||!(SPEEDF>0)||!B||typeof now!=='number')return;if(fxMoveM(u,kind,oc,or,dist))return;const sp=Math.max(.5,fxSp()),o0=tpos(oc,or,anTileH(oc,or)),x0=o0.x,y0=o0.y,p=fxUP(u),x1=p.x,y1=p.y,h=p.h;
  if(kind===AN_WALK){if(!reduced)for(let i=0;i<2;i++)spawn(K_SQ,R_DUST,x0+rr(-6,6),y0+rr(-2,2),rr(-14,14),rr(-26,-8),rr(.2,.35),1,40,2)}
  else if(kind===AN_KB){puff(x0,y0,5);const dx=x1-x0,dy=y1-y0;for(let i=0;i<fxN(5);i++)spawn(K_TRAIL,R_DUST,x0+dx*rr(.1,.6)+rr(-5,5),y0+dy*rr(.1,.6)+rr(-2,2),-dx*1.2,-dy*1.2-20,rr(.18,.3),1,0,3,rr(0,.08))}
  else if(kind===AN_LEAP){puff(x0,y0,6,R_WIND);ringFx(x0,y0,3,16,240*sp,R_WIND,0,.5);emitFx(4,u,x1-x0,y1-y0,110,200*sp,0,R_WIND)}
@@ -460,7 +464,7 @@ function fxAnimMove(u,kind,oc,or,dist){if(typeof document==='undefined'||!(SPEED
  else if(kind===AN_DASH){puff(x0,y0,6);const S=fxUnitSpr(u);for(let i=0;i<4;i++){const f=i/4,o=fxo(T_GHOST,x0+(x1-x0)*f,y0+(y1-y0)*f,f*150*fxSp(),230*sp,0);o.s=FXS.dS||'y';if(S){o.cv=S.cv;o.a=S.ax;o.b=S.ay}else o.a=h}
   const dx=x1-x0,dy=y1-y0;for(let i=0;i<fxN(14);i++){const f=Math.random();spawn(K_TRAIL,FXS.dR||R_AURA,x0+dx*f+rr(-4,4),y0+dy*f-rr(4,h*.8),-dx*.9,-dy*.9,rr(.18,.32),1,0,2,f*.15*fxSp())}if(FXS.cid==='charge'){for(let i=0;i<5;i++)puff(x0+dx*i/5,y0+dy*i/5,3);fxShake(1.5)}}
  else if(kind===AN_STEP){puff(x0,y0,4);const dx=x1-x0,dy=y1-y0;for(let i=0;i<fxN(4);i++)spawn(K_TRAIL,R_WHITE,x0+dx*.3+rr(-4,4),y0+dy*.3-i*7-2,-dx*2.4,-dy*2.4,.16,1,0,3,i*.02)}}
-function fxAnimLand(u,kind,drop){if(typeof document==='undefined'||!(SPEEDF>0)||!B||typeof now!=='number')return;const p=fxUP(u);
+function fxAnimLand(u,kind,drop){if(typeof document==='undefined'||!(SPEEDF>0)||!B||typeof now!=='number')return;const p=fxUP(u);if(kind===AN_DIVE){fxQuake(p.x,p.y,1.2,0);return}
  if(kind===AN_LEAP){puff(p.x,p.y,7,R_WIND);ringFx(p.x,p.y,3,15,220,R_WIND,0,.5)}else if(kind===AN_DASH||kind===AN_STEP)puff(p.x,p.y,4);else if(kind===AN_KB&&drop>.5)puff(p.x,p.y,7)}
 
 /* ---- per-unit watcher: statuses, deaths without events ---- */
@@ -873,3 +877,110 @@ function fxDrawSmoke(o,t,p,cx,cy){const q=DQ,age=(t-o.t0)/1000,X=Math.floor((o.x
  const L=[[0,0,R0],[Math.round(R0*.7),Math.round(R0*.3),Math.round(R0*.75)],[-Math.round(R0*.6),Math.round(R0*.35),Math.round(R0*.7)]];
  for(let n=0;n<3;n++){const [ox,oy,r]=L[n];for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const d=i*i+j*j;if(d>r*r)continue;if(p>.55&&((i+j+tick)&1))continue;if(p>.8&&((i+tick)&2))continue;
    const lt=(i+j)<-r*.4&&d>r*r*.3;q.fillStyle=PAL[p<.3?(lt?'q':'p'):p<.65?(lt?'p':'o'):(lt?'o':'4')];A(X+ox+i,Y+oy+j,1,1)}}}
+
+/* ================= Monsters (monsterart): serpents, ents, ogres, wyverns =================
+   fxKeyM(ab) picks a choreography from the ability's fx hint (66-monsters.js): venom bites and spit, coils that wrap and crush,
+   roots that erupt, bark that closes, regrowth, ogre sweeps and slams (screen shake, shockwaves), the wyvern's sting, bite,
+   wing buffet, take-off and dive. Fire on ents (fire-weak) burns bigger. Strike choreographies return ms until the blow lands. */
+const T_M0=50,T_MCOIL=50,T_MROOT=51,T_MJAW=52,T_MGUST=53,T_MSHAD=54,T_MWHIP=55,T_MFALL=56;
+const S_M0=100,S_MVEN=100,S_MSPIT=101,S_MCOIL=102,S_MCRUSH=103,S_MLASH=104,S_MSMASH=105,S_MSWEEP=106,S_MSTING=107,S_MJAW=108,S_MBUF=109,S_MDIVE=110,S_MQUAKE=111;
+const R_VENOM=fxRamp('eAABwC'),R_SCALE=fxRamp('dcbHa'),R_BARK=fxRamp('kjjia'),R_LEAF=fxRamp('eAvwB'),R_WYV=fxRamp('hgKf1');
+const FXM_HINT={spit:'m:spit',coil:'m:coil',crush:'m:crush',lash:'m:lash',roots:'m:roots',bark:'m:bark',quake:'m:quake',sting:'m:sting',buffet:'m:buffet',dive:'m:dive','dive-land':'m:dland'};
+function fxKeyM(ab){if(!ab||!ab.foe)return null;const f=ab.fx||'',id=ab.id||'';if(FXM_HINT[f])return FXM_HINT[f];
+ if(f==='bite')return/^w/.test(id)?'m:jaw':ab.status&&(ab.status.poison||ab.status.venom)?'m:vbite':null;
+ if(f==='smash')return ab.kb?'m:hurl':'m:smash';if(f==='sweep'&&ab.kb)return'm:sweep';return null}
+function fxIsMon(u){return!!(u&&u.def&&typeof monsterKind==='function'&&monsterKind(u))}
+/* a heavy landing / ground slam: crack, shockwave rings, dust plumes, shake. s: size (1 a slam, 2 the wyvern's dive) */
+function fxQuake(x,y,s,delay){const o=fxo(T_CRACK,x,y,delay,1100,0);o.a=1;ringFx(x,y,6,36*s,380,R_DUST,delay,.5,2);ringFx(x,y,4,26*s,320,R_WHITE,delay+40,.5,1);ringFx(x,y,8,52*s,520,R_DUST,delay+90,.5,1);
+ glowFx(x,y,70*s,'y',.45,220,delay);for(let i=0;i<fxN(18*s);i++){const a=Math.random()*6.283,r=rr(6,30*s);spawn(K_SQ,i%4?R_DUST:R_BARK,x+Math.cos(a)*r,y+Math.sin(a)*r*.5,Math.cos(a)*rr(30,90),-rr(120,280),rr(.45,.8),i&1?2:1,720,.6,delay/1000)}
+ if(delay>0)setTimeout(()=>fxShake(3+2.5*s),delay);else fxShake(3+2.5*s)}
+function fxFireWeak(t,x,fy,h,sp){for(let i=0;i<fxN(26);i++)spawn(K_SQ,R_FIRE,x+rr(-14,14),fy-rr(0,h*.8),rr(-18,18),rr(-200,-90),rr(.35,.7),i%3?2:1,-80,1.4,rr(0,.15));
+ emitFx(0,t,0,0,40,1300,0,R_FIRE);glowFx(x,fy-h*.4,80,'E',.6,320);ringFx(x,fy,5,24,320,R_EMBER,0,.5,2);for(let i=0;i<fxN(8);i++)spawn(K_SQ,R_SMOKE,x+rr(-12,12),fy-h*rr(.6,1),rr(-10,10),rr(-60,-30),rr(.8,1.3),2,0,.5,rr(.1,.4))}
+function fxRegrow(t){const p=fxUP(t),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp());for(let i=0;i<fxN(16);i++){const a=i/16*6.283;spawn(K_SQ,R_LEAF,x+Math.cos(a)*18,y-h*.2+Math.sin(a)*8,-Math.cos(a)*20,rr(-90,-40),rr(.6,1),i%3?2:1,-10,.6,i*.03)}
+ ringFx(x,y,4,22,420*sp,R_LEAF,0,.5,2);glowFx(x,y-h*.4,50,'A',.4,300);glyphFx('ic:st-regrow',x,y-h-6,10,700*sp,60,null)}
+function fxStrikeM(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){let o,ld;const big=u.def&&(u.def.big||u.sz>1);
+ switch(id){
+  case'm:vbite':ld=fxMelee(u,t,R_WHITE,S_CLAW,sp);if(!miss){o=fxo(T_MJAW,bx,by,ld*.6,240*ss,R_WHITE);o.a=6;o.b=ux<0?-1:1}FXS.sty=S_MVEN;return ld;
+  case'm:jaw':{const P=fxUB(u);ld=240*sp*AN_HIT_AT;o=fxo(T_MJAW,bx,by,ld*.5,300*ss,R_WHITE);o.a=13;o.b=ux<0?-1:1;fxShake(2);FXS.sty=S_MJAW;return ld}
+  case'm:spit':{const hx=ax+ux*10,hy=ay-10,fly=Math.max(90,L/1.3)*ss;o=fxArrow(hx,hy,bx,by,fly,Math.min(30,L*.18),R_VENOM,60*sp);o.c=miss?1:0;
+   for(let i=0;i<fxN(8);i++)spawn(K_SQ,R_VENOM,hx+ux*4,hy,ux*rr(60,150)+rr(-20,20),uy*rr(60,150)-rr(10,50),rr(.2,.4),1,200,1,.06*sp);FXS.sty=S_MSPIT;return 60*sp+fly}
+  case'm:coil':{ld=fxMelee(u,t,R_WHITE,S_BLUNT,sp);if(!miss){o=fxo(T_MCOIL,0,0,ld,900*ss,R_SCALE);o.u=t;o.a=0}FXS.sty=S_MCOIL;return ld}
+  case'm:crush':{ld=200*sp;o=fxo(T_MCOIL,0,0,0,700*ss,R_SCALE);o.u=t;o.a=1;FXS.sty=S_MCRUSH;return ld+260*sp}
+  case'm:lash':{ld=240*sp*AN_HIT_AT;o=fxo(T_MWHIP,ax+ux*8,ay-6,ld*.3,260*ss,R_BARK);o.x2=bx;o.y2=by;FXS.sty=S_MLASH;return ld}
+  case'm:smash':case'm:hurl':{ld=Math.max(120,300*sp*AN_HIT_AT);o=fxo(T_BLUNT,bx,by,ld,240*ss,R_WHITE);o.a=16;FXS.sty=id==='m:hurl'?S_MSWEEP:S_MSMASH;return ld}
+  case'm:sweep':{ld=240*sp*AN_HIT_AT;if(k===0){const P=fxUP(u);o=fxo(T_SPIN,P.x,P.y-P.h*.35,30*sp,360*ss,R_WHITE);o.a=big?34:20;o.b=5.4;o.c=Math.atan2(uy,ux)-2.6;o.d=1;puff(P.x,P.y,10)}
+   FXS.sty=S_MSWEEP;return ld+k*40*sp}
+  case'm:quake':{FXS.sty=S_MQUAKE;return 260*sp+k*30*sp}
+  case'm:sting':{const P=fxUB(u),sx=P.x-ux*20*(big?1.4:.6),sy=P.y-P.h*(big?.9:.7);ld=Math.max(90,200*sp);o=fxo(T_PIERCE,sx,sy,ld*.35,ld*.75,R_STEEL);o.x2=bx+ux*8;o.y2=by;
+   for(let i=0;i<fxN(6);i++)spawn(K_TRAIL,R_WHITE,sx+rr(-4,4),sy+rr(-4,4),(bx-sx)*1.8,(by-sy)*1.8,.14,1,0,3,ld*.35/1000);FXS.sty=S_MSTING;return ld}
+  case'm:buffet':{ld=200*sp+k*25*sp;FXS.sty=S_MBUF;return ld}
+  case'm:dland':{ld=Math.max(100,230*sp)+k*30*sp;FXS.sty=S_MDIVE;return ld}}
+ return -1}
+function fxCastM(u,t,ab,id,k,x,y,h,sp){const P=fxUB(u),bx=P.x,by=P.y,big=u.def&&(u.def.big||u.sz>1);
+ switch(id){
+  case'm:roots':{const T=t||null;if(T){const q=fxUP(T);for(let i=0;i<fxN(10);i++)spawn(K_SQ,R_BARK,q.x+rr(-14,14),q.y+rr(-4,4),rr(-30,30),-rr(80,200),rr(.4,.7),i&1?2:1,600,.6,.12);const o=fxo(T_MROOT,q.x,q.y,100*sp,900*sp,R_BARK);o.a=1;{const c=fxo(T_CRACK,q.x,q.y,80*sp,800,0);c.a=1}fxShake(2)}
+   for(let i=0;i<fxN(8);i++){const a=Math.random()*6.283;spawn(K_SQ,R_LEAF,bx+Math.cos(a)*16,by+Math.sin(a)*6,0,rr(-40,-10),rr(.4,.8),1,40,.6)}ringFx(bx,by,6,26,360*sp,R_LEAF,0,.5,2);glowFx(bx,by-h*.7,40,'A',.5,260);return true}
+  case'm:quake':{fxQuake(bx,by,1.4,220*sp);return true}
+  case'm:buffet':{for(let s2=-1;s2<=1;s2+=2){const o=fxo(T_MGUST,bx,by-h*.4,60*sp,520*sp,R_WIND);o.a=s2}ringFx(bx,by,10,64,420*sp,R_WIND,60*sp,.5,2);ringFx(bx,by,8,48,360*sp,R_WHITE,120*sp,.5,1);
+   for(let i=0;i<fxN(24);i++){const a=Math.random()*6.283;spawn(K_STREAK,R_WIND,bx+Math.cos(a)*20,by+Math.sin(a)*10-rr(0,h*.4),Math.cos(a)*rr(260,420),Math.sin(a)*rr(120,200),rr(.2,.34),1,0,1.5,.06*sp)}
+   for(let i=0;i<fxN(14);i++)spawn(K_SQ,R_DUST,bx+rr(-40,40),by+rr(-10,10),rr(-90,90),-rr(30,90),rr(.4,.7),2,120,1.2,.1*sp);fxShake(2.5);return true}
+  case'm:dive':{for(let i=0;i<fxN(20);i++)spawn(K_SQ,R_DUST,bx+rr(-36,36),by+rr(-8,8),rr(-120,120),-rr(20,70),rr(.4,.8),i&1?2:1,80,1.4);ringFx(bx,by,10,58,420*sp,R_WIND,0,.5,2);
+   for(let i=0;i<fxN(14);i++)spawn(K_STREAK,R_WIND,bx+rr(-30,30),by-rr(0,h),0,rr(-420,-260),rr(.2,.35),1,0,1,rr(0,.2));glyphFx('ic:st-diving',bx,by-h-10,14,800*sp,120*sp,null);fxShake(1.5);return true}
+  case'm:dland':{const z=u.dive;if(z){const q=tpos(z.c+((u.sz||1)-1)/2,z.r+((u.sz||1)-1)/2,anUH(u,z.c,z.r)),o=fxo(T_MFALL,q.x,q.y,0,Math.max(120,240*sp),R_WYV);o.u=u;o.x2=bx;o.y2=by-60;fxQuake(q.x,q.y,2,Math.max(120,240*sp))}return true}
+  case'm:sweep':case'm:smash':case'm:hurl':{if(big)puff(bx,by,6);return true}
+  case'm:spit':{for(let i=0;i<fxN(4);i++)spawn(K_SQ,R_VENOM,bx+rr(4,10),by-h*.6,rr(10,40),rr(-30,0),rr(.2,.4),1,100,1);return true}
+  case'm:coil':case'm:crush':case'm:vbite':case'm:jaw':case'm:sting':case'm:lash':return true}
+ return false}
+function fxBuffM(t,id,x,y,h,sp){if(id!=='m:bark')return false;
+ for(let i=0;i<fxN(18);i++){const a=i/18*6.283,r=rr(26,38);spawn(K_SQ,R_BARK,x+Math.cos(a)*r,y-h*.45+Math.sin(a)*r*.7,-Math.cos(a)*r*3.2,-Math.sin(a)*r*2.2,.3,2,0,0,i*.012)}
+ ringFx(x,y-h*.45,30,6,320*sp,R_BARK,0,.9,2);glyphFx('ic:st-bark',x,y-h-6,8,700*sp,200*sp,null);puff(x,y,6);fxShake(1);return true}
+function fxImpactM(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
+ switch(sty){
+  case S_MVEN:burst(K_SQ,R_VENOM,x,y,10,40,140,.5,1,240,2);ringFx(x,y,2,10,220,R_VENOM,0,1);break;
+  case S_MSPIT:for(let i=0;i<fxN(14);i++)spawn(K_SQ,R_VENOM,x+rr(-6,6),y+rr(-6,4),rr(-70,70),rr(-120,-20),rr(.4,.8),i&1?2:1,420,.8);ringFx(x,y,3,14,260,R_VENOM,0,1);emitFx(0,t,0,0,14,500,0,R_VENOM);break;
+  case S_MCOIL:case S_MCRUSH:{cone(K_SQ,R_DUST,x,fy,0,-1,8,40,120,.4,1,300,1,1.4);if(sty===S_MCRUSH){glyphFx('star',x,y-6,8,260,0);ringFx(x,y,14,4,240,R_SCALE,0,.9,2);fxShake(3.5)}break}
+  case S_MLASH:for(let i=0;i<fxN(10);i++)spawn(K_SQ,i&1?R_LEAF:R_BARK,x+rr(-6,6),y+rr(-6,6),dx*rr(40,120)+rr(-30,30),rr(-90,-20),rr(.3,.6),1,300,1);break;
+  case S_MSMASH:{const o=fxo(T_CRACK,x,fy,0,900,0);o.a=1;ringFx(x,fy,4,24,320,R_DUST,0,.5,2);puff(x,fy,10);glyphFx('star',x,y-h*.3,8,280,0);fxShake(4.5);break}
+  case S_MSWEEP:{ringFx(x,fy,3,18,260,R_DUST,0,.5,2);for(let i=-2;i<=2;i++)spawn(K_STREAK,R_WHITE,x-dx*6-dy*i*6,y-dy*6+dx*i*6,dx*rr(260,360),dy*rr(260,360),.2,1,0,3);puff(x,fy,8);fxShake(3.5);break}
+  case S_MSTING:burst(K_TRAIL,R_VENOM,x,y,12,80,220,.32,1,0,4);ringFx(x,y,2,12,240,R_VENOM,0,1);glyphFx('ic:st-venom',x,y-h*.5,10,520,80,null);emitFx(0,t,0,0,18,600,0,R_VENOM);break;
+  case S_MJAW:cone(K_SQ,fxBloodR(t),x,y,dx,-.6,10,60,200,.5,2,500,1.2,1);fxShake(3);break;
+  case S_MBUF:for(let i=0;i<fxN(10);i++)spawn(K_STREAK,R_WIND,x-dx*10+rr(-6,6),y+rr(-10,6),dx*rr(280,420),dy*rr(200,320),rr(.15,.25),1,0,2);puff(x,fy,8,R_WIND);break;
+  case S_MDIVE:puff(x,fy,10);ringFx(x,fy,4,20,300,R_DUST,0,.5,2);break;
+  case S_MQUAKE:{puff(x,fy,8);ringFx(x,fy,3,16,240,R_DUST,0,.5,2);break}}}
+/* fliers: wing gusts as they move; heavy monsters thud along */
+function fxMoveM(u,kind,oc,or,dist){if(!u.def)return false;const mi=typeof umon==='function'?umon(u):null;if(!mi||!mi.kind)return false;
+ const o0=tpos(oc,or,anUH(u,oc,or)),s=u.sz||1,x0=o0.x+(s>1?0:0),y0=o0.y+(s>1?16:0),p=fxUP(u);
+ if(kind===AN_WALK&&mi.fly){if(!reduced){for(let i=0;i<(s>1?4:2);i++)spawn(K_SQ,R_DUST,x0+rr(-12,12)*s,y0+rr(-3,3),rr(-40,40),rr(-20,-6),rr(.25,.45),1,30,2);if(s>1)ringFx(x0,y0,6,30,260,R_WIND,0,.5)}return true}
+ if(kind===AN_WALK&&(mi.size>1||u.def.big)&&!mi.fly){if(!reduced)puff(x0,y0,4);if(mi.kind==='ent'||mi.kind==='elder'||mi.kind==='aogre')fxShake(.8);return true}
+ return false}
+/* standing effects: coils that hold, roots that entangle, burning ents, regrowth, venom */
+function fxWatchM(u,v){const st=u.st;if(!st)return;
+ if(st.coiled>0&&!v.coil){v.coil=true;const o=fxo(T_MCOIL,0,0,80,60000,R_SCALE);o.u=u;o.s=v;o.a=2}
+ if(st.entangled>0&&!v.ent){v.ent=true;const o=fxo(T_MROOT,0,0,40,60000,R_BARK);o.u=u;o.s=v;o.a=2}}
+function fxDripM(u,dt){const st=u.st,r=Math.random();if(!st)return;const fw=u.def&&u.def.fireWeak;
+ if(fw&&st.burn&&r<dt*26){const p=fxUB(u);spawn(K_SQ,R_FIRE,p.x+rr(-12,12),p.y-rr(p.h*.2,p.h*.9),rr(-10,10),rr(-160,-80),rr(.3,.6),Math.random()<.5?2:1,-60,1.2);if(r<dt*4)spawn(K_SQ,R_SMOKE,p.x+rr(-8,8),p.y-p.h,rr(-8,8),rr(-50,-30),rr(.8,1.2),2,0,.5)}
+ if(st.venom&&r<dt*8){const p=fxUB(u);spawn(K_PLUS,R_VENOM,p.x+rr(-9,9),p.y-rr(p.h*.3,p.h*.9),rr(-4,4),rr(-50,-24),rr(.5,.9),1,-10,.4)}
+ if(st.regrow&&!st.burn&&r<dt*3){const p=fxUB(u);spawn(K_SQ,R_LEAF,p.x+rr(-14,14),p.y-rr(p.h*.5,p.h),rr(-6,6),rr(10,30),rr(.8,1.4),1,20,.4)}
+ if(st.bark&&r<dt*2){const p=fxUB(u);glyphFx('glint',p.x+rr(-10,10),p.y-rr(p.h*.3,p.h*.8),0,160,0)}}
+/* ---- shapes ---- */
+function fxDrawShapeM(o,t,dt,p,cx,cy,Rm,tick){const q=DQ;
+ switch(o.ty){
+  case T_MCOIL:{const u=o.u,v=o.s;if(!u||!u.alive||(o.a===2&&p>.002&&!(u.st&&u.st.coiled>0))){o.on=false;if(v)v.coil=false;o.u=null;o.s=null;break}
+   const b=fxUB(u),fx=Math.floor(b.x/2),fy=Math.floor(b.y/2),hh=Math.floor(b.h/2),e=o.a===2?1:Math.min(1,p/.3),sq=o.a===1?Math.sin(Math.min(1,p*2)*Math.PI)*2:o.a===2?((t/400|0)&1):0;
+   for(let j=0;j<3;j++){const yy=fy-Math.round(hh*(.2+j*.22)),rx=Math.round((9-j-sq)*e)+1,ry=Math.max(1,Math.round(rx*.38));
+    for(let i=0;i<24;i++){const a=i/24*6.283,fr=Math.sin(a)>0;if(!fr&&e<1)continue;const X=fx+Math.round(Math.cos(a)*rx),Y=yy+Math.round(Math.sin(a)*ry);q.fillStyle=PAL['0'];A(X-1,Y-1,3,3);q.fillStyle=PAL[(i+j)%5===0?'a':fr?'c':'b'];A(X,Y,1,2)}}break}
+  case T_MROOT:{const u=o.u,v=o.s;let fx=cx,fy=cy;if(u){if(!u.alive||(o.a===2&&p>.002&&!(u.st&&u.st.entangled>0))){o.on=false;if(v)v.ent=false;o.u=null;o.s=null;break}const b=fxUB(u);fx=Math.floor(b.x/2);fy=Math.floor(b.y/2)}
+   const gr=o.a===2?1:Math.min(1,p/.25),fade=o.a===2?0:Math.max(0,(p-.7)/.3);if(fade>0&&(tick&1)&&fade>.5)break;
+   for(let i=0;i<9;i++){const a=.2+i*.7,X=fx+Math.round(Math.cos(a)*11),Y=fy+Math.round(Math.sin(a)*5),H=Math.round((6+fxHash(o.seed,i)*9)*gr*(1-fade)),sg=Math.cos(a)<0?1:-1;
+    for(let k2=0;k2<H;k2++){const xx=X+Math.round(sg*Math.sin(k2/H*2.2)*2.5),yy=Y-k2;q.fillStyle=PAL['0'];A(xx-1,yy,3,1);q.fillStyle=PAL[k2<2?'i':k2&1?'j':'k'];A(xx,yy,1,1)}
+    if(H>5){q.fillStyle=PAL.v;A(X+sg*2,Y-H+1,1,1);q.fillStyle=PAL.l;A(X-sg,Y-(H>>1),1,1)}}break}
+  case T_MJAW:{const n=o.a||6,sg=o.b||1,e=Math.min(1,p/.45),gap=Math.round(n*(1-e)),fade=p>.7&&(tick&1);if(fade)break;
+   for(const s2 of[-1,1]){const yy=cy+s2*(gap+2);for(let i=-n;i<=n;i++){const X=cx+i,Y=yy-s2*Math.round(Math.abs(i)*.3);q.fillStyle=PAL['0'];A(X,Y-1,1,3);q.fillStyle=PAL[(i&3)===0?'r':'l'];A(X,Y,1,1);if((i&3)===0){q.fillStyle=PAL.r;A(X,Y+s2,1,1)}}}break}
+  case T_MGUST:{const sg=o.a||1,e=1-(1-p)*(1-p);for(let j=0;j<5;j++){const R=12+e*44+j*5,y0=cy-8+j*4;for(let i=0;i<10;i++){const a=(i/10-.5)*1.4,X=cx+sg*Math.round(Math.cos(a)*R),Y=y0+Math.round(Math.sin(a)*R*.35);if((i+j+tick)%3===0)continue;q.fillStyle=PAL[j<2?'r':'q'];A(X,Y,1,1)}}break}
+  case T_MFALL:{const u=o.u;const e=p*p,x=o.x2+(o.x-o.x2)*e,y=o.y2+(o.y-o.y2)*e,X=Math.floor(x/2),Y=Math.floor(y/2);const S=u?fxUnitSpr(u):null;
+   if(S&&S.cv){q.globalAlpha=.55*(1-p*.4);const c=fxSil(S.cv,'K');if(c)aSpr(c,X-S.ax,Y-S.ay);q.globalAlpha=1}
+   for(let i=0;i<6;i++){q.fillStyle=PAL[i&1?'r':'q'];A(X-12+i*5,Y-30-Math.round((1-e)*20)-i*3,1,6)}break}
+  case T_MWHIP:{const x2=Math.floor(o.x2/2),y2=Math.floor(o.y2/2),e=Math.min(1,p/.5),n=16;let px_=cx,py=cy;for(let i=1;i<=n*e;i++){const f=i/n,X=Math.round(cx+(x2-cx)*f),Y=Math.round(cy+(y2-cy)*f-Math.sin(f*Math.PI)*10);
+    q.fillStyle=PAL['0'];A(X-1,Y-1,3,3);q.fillStyle=PAL[i%3?'j':'B'];A(X,Y,1,1);if(i%4===0){q.fillStyle=PAL.m;A(X,Y-2,1,1)}px_=X;py=Y}break}}}
+/* the board asks: a dive's shadow on its landing tiles (drawn by 70-render.js under the figures) */
+function fxDiveShadow(u){return u&&u.dive&&u.alive?u.dive:null}

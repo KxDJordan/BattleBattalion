@@ -9,12 +9,30 @@ const DEPLOY={p:{front:BH-2,back:BH-1,dir:-1},e:{front:1,back:0,dir:1}};  // mel
 const MAXFOES=16;
 function centerOut(n){const m=(n-1)/2,a=[];for(let i=0;i<n;i++)a.push(i);return a.sort((x,y)=>Math.abs(x-m)-Math.abs(y-m)||x-y)}
 const COLS=centerOut(BW);                                                // deployment order across a row, from the middle outward
-const key=(c,r)=>r*BW+c,T=u=>B.tiles[key(u.c,u.r)],mdist=(a,b)=>Math.abs(a.c-b.c)+Math.abs(a.r-b.r);
+const key=(c,r)=>r*BW+c;
+/* ---- Footprints (multi-tile units) ----
+   u.sz: the side of the unit's square footprint in tiles (1, or 2 for def.size 2). A size-2 unit at (c,r) stands on (c,r) (c+1,r) (c,r+1)
+   (c+1,r+1); (c,r) is its anchor (the top-left tile, the one key(u.c,u.r) names). Every rule measures footprints:
+     unitTiles(u) [[c,r],...]   occupies(u,c,r)   unitAt(c,r) (any tile of a footprint)   mdist(a,b) (tiles between footprints; 1 = adjacent)
+     tdist(c,r,u) (from a tile to u's footprint)   fdist(c,r,s,t) (a size-s footprint anchored at (c,r) to t's footprint)
+     footFree(c,r,s,self?) (a size-s footprint at (c,r) lies on the board, on no obstacle and on no other living unit)
+     unitCenter(u) {c,r} (fractional: the middle of the footprint, for drawing)   T(u) (the tile under the unit: the highest of its footprint)
+   A size-2 unit is never knocked back or dragged. Units with u.fly (def.fly) move over height steps and props (they cannot stop on a prop). */
+const usz=u=>u&&u.sz||1;
+const gap1=(a,sa,b,sb)=>a>b?Math.max(0,a-b-sb+1):Math.max(0,b-a-sa+1);
+const mdist=(a,b)=>{const sa=a.sz||1,sb=b.sz||1;if(sa===1&&sb===1)return Math.abs(a.c-b.c)+Math.abs(a.r-b.r);return gap1(a.c,sa,b.c,sb)+gap1(a.r,sa,b.r,sb)};
+const tdist=(c,r,u)=>{const s=u.sz||1;if(s===1)return Math.abs(c-u.c)+Math.abs(r-u.r);return gap1(c,1,u.c,s)+gap1(r,1,u.r,s)};
+const fdist=(c,r,s,t)=>{const st=t.sz||1;return gap1(c,s,t.c,st)+gap1(r,s,t.r,st)};
+function unitTiles(u){const s=usz(u);if(s===1)return[[u.c,u.r]];const o=[];for(let y=0;y<s;y++)for(let x=0;x<s;x++)o.push([u.c+x,u.r+y]);return o}
+const occupies=(u,c,r)=>{const s=u.sz||1;return c>=u.c&&c<u.c+s&&r>=u.r&&r<u.r+s};
+function unitCenter(u){const h=(usz(u)-1)/2;return{c:u.c+h,r:u.r+h}}
+function T(u){const s=u.sz||1;if(s===1)return B.tiles[key(u.c,u.r)];let best=null;for(let y=0;y<s;y++)for(let x=0;x<s;x++){const c=u.c+x,r=u.r+y;if(!inb(c,r))continue;const t=B.tiles[key(c,r)];if(!best||t.h>best.h)best=t}return best||B.tiles[key(clamp(u.c,0,BW-1),clamp(u.r,0,BH-1))]}
+function footFree(c,r,s,self,tiles){const tl=tiles||B.tiles;for(let y=0;y<s;y++)for(let x=0;x<s;x++){const cc=c+x,rr=r+y;if(!inb(cc,rr)||tl[key(cc,rr)].t==='block')return false;if(B&&B.units){const o=unitAt(cc,rr);if(o&&o!==self)return false}}return true}
 const inb=(c,r)=>c>=0&&r>=0&&c<BW&&r<BH;
 const spawnRow=r=>r<SPAWN_E||r>BH-1-SPAWN_P;
 function tpos(c,r,h){return{x:(c-r)*HW,y:(c+r)*HH-h*HL}}
 function boardCenter(){return tpos((BW-1)/2,(BH-1)/2,0)}
-function unitAt(c,r){return B.units.find(u=>u.alive&&u.c===c&&u.r===r)}
+function unitAt(c,r){const U=B.units;for(let i=0;i<U.length;i++){const u=U[i];if(!u.alive)continue;const s=u.sz||1;if(s===1?u.c===c&&u.r===r:c>=u.c&&c<u.c+s&&r>=u.r&&r<u.r+s)return u}return undefined}
 function buffSum(u,k){let s=0;for(const b of u.buffs)s+=b[k]||0;return s}
 const eff=(u,k)=>u[k]+buffSum(u,k);
 /* FX: the only bridge from rules to presentation.
@@ -62,7 +80,7 @@ function openBattleMap(tiles){const N=BW*BH,start=key(COLS[0],BH-1);
   const prev=new Int32Array(N).fill(-1),vis=seen.slice(),bq=q.slice();let hit=-1;
   for(let i=0;i<bq.length&&hit<0;i++){const c=bq[i]%BW,r=(bq[i]/BW)|0;for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=key(nc,nr);if(vis[nk])continue;vis[nk]=1;prev[nk]=bq[i];if(tiles[nk].t!=='block'){hit=nk;break}bq.push(nk)}}
   if(hit<0)return;for(let k=prev[hit];k>=0&&!seen[k];k=prev[k])tiles[k].t='ground'}}
-function buildEnemies(f,budget,fixed){const list=(fixed||[]).slice(),U=FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
+function buildEnemies(f,budget,fixed,mult){if(typeof FACT[f].build==='function'&&!(fixed&&fixed.length))return FACT[f].build(budget,mult==null?1:mult).slice(0,MAXFOES);const list=(fixed||[]).slice(),U=FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
  while(list.length<MAXFOES&&budget>=minC&&g++<200){const u=pick(U.filter(u=>u[1]<=budget));list.push(u[0]);budget-=u[1]}while(list.length<2)list.push(U[0][0]);return list}
 /* ---- Units ----
    A battle unit (both sides): side, name, lvl, hp/hpMax, arm/armMax (body armor), helm/helmMax (head armor), ap/apMax, fat/fatMax,
@@ -85,7 +103,7 @@ const FREEAB={id:'aoo',n:'aoo',wpn:1,mult:1,melee:1};                   // the f
 function initUnit(u){const d=(k,v)=>{if(u[k]===undefined||u[k]===null)u[k]=v};
  d('lvl',1);d('hp',1);d('hpMax',u.hp);d('arm',0);d('armMax',u.arm);d('helm',0);d('helmMax',u.helm);d('apMax',9);d('ap',u.apMax);d('fat',0);d('fatMax',9999);
  d('init',100);d('ms',50);d('rs',0);d('md',0);d('rd',0);d('brv',50);d('mor',3);d('fearless',false);d('wpn',FIST);d('abs',[]);d('res',{});d('flags',{});d('dmgB',0);
- d('buffs',[]);d('st',{});d('alive',true);d('shield',false);d('shp',0);d('shpMax',u.shp);d('name','Unit');return u}
+ d('buffs',[]);d('st',{});d('alive',true);d('sz',1);d('shield',false);d('shp',0);d('shpMax',u.shp);d('name','Unit');return u}
 function mkPlayerUnit(m){const s=calc(m),res={},c=armorCond(m),sh=s.shield;for(const k in s.res)res[k]={cur:s.res[k].max,max:s.res[k].max,regen:s.res[k].regen};
  const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m));
  return initLoad(initUnit({side:0,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init,ms:s.ms,rs:s.rs,md:s.md,rd:s.rd,brv:s.brv,
@@ -102,16 +120,19 @@ function mkEnemy(id,f){const d=EN[id],sh=d.shield?typeof d.shield==='object'?d.s
  return initLoad(initUnit({side:1,def:d,f,name:d.n,lvl:1,hp:d.hp,hpMax:d.hp,arm:d.arm,armMax:d.arm,helm:d.helm!=null?d.helm:Math.round(d.arm*.6),apMax:d.ap||9,ap:9,fat:0,fatMax:9999,init:d.init,ms:d.ms,rs:d.rs||0,md:d.md,rd:d.rd,
   brv:d.brv!=null?d.brv:clamp(Math.round(30+d.xp/10),30,85),fearless:d.fearless!=null?!!d.fearless:!!(d.boss||(f==='undead'&&!d.spell)),noHead:!!d.noHead,
   wpn:enemyWpn(d),abs:[],res:{},flags:{},dmgB:0,buffs:[],st:{},alive:true,shield:!!sh,shp:sh?sh.hp:0,shb:sh?{md:sh.md||0,rd:sh.rd||0}:null,
-  spell:d.spell,kbN:d.kb||0,kbCh:d.kbCh||0,onhit:d.onhit,back:!!(d.rng||d.spell||(d.w&&isRangedW(ITEMS[d.w]))),wid:null,alt:null,wpnAlt:enemySide(d)}))}
+  spell:d.spell,kbN:d.kb||0,kbCh:d.kbCh||0,onhit:d.onhit,sz:d.size>1?d.size:1,fly:!!d.fly,fw:d.fireWeak||0,back:!!(d.rng||d.spell||(d.w&&isRangedW(ITEMS[d.w]))),wid:null,alt:null,wpnAlt:enemySide(d)}))}
 // An enemy's sidearm (def.side: an item id, or {n, wt?, d:[min,max], ap?, rng?, ign?, hit?, stun?, two?}) as a weapon object, or null.
 function enemySide(d){const x=d&&d.side;if(!x)return null;const it=typeof x==='string'?ITEMS[x]:x;if(!it||!Array.isArray(it.d))return null;
  return{n:it.n||'',wt:it.wt||'dagger',d:it.d.slice(),ap:it.ap||4,fat:typeof x==='string'?it.fat||0:it.fat||0,rng:it.rng||1,ign:it.ign!=null?it.ign:.25,hit:it.hit||0,stun:it.stun||0,two:it.two?1:0,id:typeof x==='string'?x:null}}
 // Deploys units on free, walkable tiles: melee from row `front`, ranged from row `back`, overflowing along dir
 // (then the other way). `used` is shared between both sides. Returns the units that found a tile.
-function place(units,front,back,dir,tiles,used){used=used||new Set();const free=(c,r)=>inb(c,r)&&!used.has(key(c,r))&&!(tiles&&tiles[key(c,r)].t==='block');
- const put=(u,r0)=>{for(const d of [dir,-dir])for(let r=clamp(r0,0,BH-1);r>=0&&r<BH;r+=d)for(const c of COLS)if(free(c,r)){used.add(key(c,r));u.c=c;u.r=r;return true}return false};
- const ok=new Set();units.forEach(u=>{const s=u.slot;if(s&&free(s.c,s.r)){used.add(key(s.c,s.r));u.c=s.c;u.r=s.r;ok.add(u)}});   // formation: a unit with a slot stands there
- units.filter(u=>!u.back&&!ok.has(u)).forEach(u=>{if(put(u,front))ok.add(u)});units.filter(u=>u.back&&!ok.has(u)).forEach(u=>{if(put(u,back))ok.add(u)});return units.filter(u=>ok.has(u))}
+// A size-2 unit takes a free 2x2 square: on the enemy side its footprint reaches from row `front` toward the middle (dir), never off the board.
+function place(units,front,back,dir,tiles,used){used=used||new Set();const free1=(c,r)=>inb(c,r)&&!used.has(key(c,r))&&!(tiles&&tiles[key(c,r)].t==='block');
+ const free=(c,r,s)=>{for(let y=0;y<s;y++)for(let x=0;x<s;x++)if(!free1(c+x,r+y))return false;return true},take=(u,c,r,s)=>{for(let y=0;y<s;y++)for(let x=0;x<s;x++)used.add(key(c+x,r+y));u.c=c;u.r=r};
+ const put=(u,r0)=>{const s=u.sz||1,a0=s>1&&dir<0?r0-s+1:r0;for(const d of [dir,-dir])for(let r=clamp(a0,0,BH-s);r>=0&&r<=BH-s;r+=d)for(const c of COLS)if(c<=BW-s&&free(c,r,s)){take(u,c,r,s);return true}return false};
+ const ok=new Set();units.forEach(u=>{const s=u.slot;if(s&&free(s.c,s.r,u.sz||1)){take(u,s.c,s.r,u.sz||1);ok.add(u)}});   // formation: a unit with a slot stands there
+ const order=L=>L.filter(u=>(u.sz||1)>1).concat(L.filter(u=>!((u.sz||1)>1)));                                          // the large first, while there is room
+ order(units.filter(u=>!u.back&&!ok.has(u))).forEach(u=>{if(put(u,front))ok.add(u)});order(units.filter(u=>u.back&&!ok.has(u))).forEach(u=>{if(put(u,back))ok.add(u)});return units.filter(u=>ok.has(u))}
 // Who takes the field: o.deploy (the deployment screen's choice, at most MAXFIELD known mercs) or the company's fielded mercs.
 function battleField(o){let f=fielded();if(o&&Array.isArray(o.deploy)&&o.deploy.length){const list=[];for(const d of o.deploy){const m=d&&G.roster.find(m=>m.id===d.id);if(m&&!list.includes(m)&&list.length<MAXFIELD)list.push(m)}if(list.length)f=list}return f}
 const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the company's deployment zone: the SPAWN_P rows at its edge
@@ -121,7 +142,7 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 function battleBudget(o){let budget=0;battleField(o).forEach(m=>budget+=12+m.lvl*5);return budget*(o&&o.mult||1)*(1+G.day*.008)*(typeof BUDGETK==='number'?BUDGETK:1)}
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
-function previewEnemies(o){const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed))
+function previewEnemies(o){const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
 function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',budget=battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);
@@ -145,7 +166,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
 /* spawnUnit(u): adds a unit mid-battle (reserves, summons, the raised dead). u needs side and its stats (mkEnemy(id,f) and
    mkPlayerUnit(m) make complete ones); u.c/u.r is where it should appear: the nearest free walkable tile is used when that
    one is taken, blocked or missing. It joins the turn order from the next round. Returns u, or null when the board is full. */
-function spawnUnit(u){const b=B;if(!b||!u)return null;initUnit(u);const free=k=>b.tiles[k].t!=='block'&&!unitAt(k%BW,(k/BW)|0);
+function spawnUnit(u){const b=B;if(!b||!u)return null;initUnit(u);const sz=u.sz||1,free=k=>sz>1?footFree(k%BW,(k/BW)|0,sz,u):b.tiles[k].t!=='block'&&!unitAt(k%BW,(k/BW)|0);
  const c0=Number.isInteger(u.c)?clamp(u.c,0,BW-1):COLS[0],r0=Number.isInteger(u.r)?clamp(u.r,0,BH-1):EDGE[u.side?1:0],seen=new Uint8Array(BW*BH),q=[key(c0,r0)];seen[q[0]]=1;let at=-1;
  for(let i=0;i<q.length&&at<0;i++){const k=q[i];if(free(k)){at=k;break}for(const [x,y] of DIRS){const nc=k%BW+x,nr=((k/BW)|0)+y;if(inb(nc,nr)&&!seen[key(nc,nr)]){seen[key(nc,nr)]=1;q.push(key(nc,nr))}}}
  if(at<0)return null;u.c=at%BW;u.r=(at/BW)|0;u.alive=true;u.gone=null;u.id=b.units.length;if(u.side===1&&!u.f)u.f=b.opts.f;b.units.push(u);const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y;auraScan();FX.emit('spawn',{u});return u}
@@ -186,7 +207,7 @@ function moraleTurn(u){if(u.fearless){u.mor=Math.max(u.mor,3);return false}
  return u.mor===0}
 // A fleeing unit's whole turn: it runs for its own edge and leaves the field when it gets there. Nobody controls it.
 async function fleeTurn(u){const b=B,er=EDGE[u.side];if(u.r===er){leaveField(u,'fled');return}if(u.rooted||u.ap<2){await sleep(160);return}
- const D=dijkstra(u,u.ap);let best=-1,bd=Math.abs(u.r-er),bc=0;D.forEach((v,k)=>{const d=Math.abs(((k/BW)|0)-er);if(d<bd||(d===bd&&best>=0&&v.cost<bc)){bd=d;bc=v.cost;best=k}});
+ const D=dijkstra(u,u.ap);let best=-1,bd=Math.abs(u.r-er),bc=0;D.forEach((v,k)=>{if(v.air)return;const d=Math.abs(((k/BW)|0)-er);if(d<bd||(d===bd&&best>=0&&v.cost<bc)){bd=d;bc=v.cost;best=k}});
  const k0=key(u.c,u.r);if(best>=0){await walkPath(u,pathTo(D,best));if(B!==b||!u.alive)return}
  if(u.r===er){leaveField(u,'fled');return}
  if(key(u.c,u.r)===k0){u.stuckN=(u.stuckN||0)+1;if(u.stuckN>=3)leaveField(u,'fled')}else u.stuckN=0;await sleep(120)}   // boxed in for three turns: it slips away where it stands
@@ -242,7 +263,7 @@ function abilityInfo(u,id){const w=u.wpn,fl=u.flags||{},bowR=w.rng+(w.wt==='bow'
 function isRangedAtk(u,a){return!!a&&!a.magic&&(RANGEDWT.includes(a.needs)||(!!a.wpn&&isRangedW(u.wpn)))}
 // False when a would fire a reload weapon that is not loaded.
 const canFire=(u,a)=>!(u.wpn&&u.wpn.reload&&u.loaded===false&&isRangedAtk(u,a));
-function rangedLocked(u){if(!B||!u||!u.alive||(u.flags&&u.flags.noLock))return false;for(const e of B.units)if(e.alive&&e.side!==u.side&&e.mor!==0&&!(e.st&&e.st.stun)&&Math.abs(e.c-u.c)+Math.abs(e.r-u.r)===1)return true;return false}
+function rangedLocked(u){if(!B||!u||!u.alive||(u.flags&&u.flags.noLock))return false;for(const e of B.units)if(e.alive&&e.side!==u.side&&e.mor!==0&&!(e.st&&e.st.stun)&&mdist(e,u)===1)return true;return false}
 // The other weapon as a weapon object (what u would hold after a swap), or null when it has nothing to swap to.
 function altWeapon(u){if(!canSwap(u))return null;return u.m?calc(u.m,{hand:u.hand==='b'?'w':'b'}).wpn:u.wpnAlt}
 // Mercs swap only with a sidearm equipped (m.eq.b; the main hand may be empty: fists); enemies with def.side.
@@ -291,11 +312,16 @@ function setLoaded(u,v){u.loaded=!!v;u.ld=Object.assign({},u.ld);u.ld[wkey(u.wpn
    of them with chance FFCH, for FFDMG of its damage (every shot: bows, crossbows, firearms, gift arrows, spells, aura waves).
    A reach weapon (polearm, greatsword, pike: kind 1) strikes over the tile between, ally or empty, but not through a wall. */
 function shotKind(u,t,a){const d=mdist(u,t);if(d<=1||(a&&(a.melee||a.dash)))return 0;return a&&a.wpn&&!a.magic&&!isRangedW(u.wpn)&&u.wpn.rng>=d?1:2}
-function losInfo(u,t,a){const out={blocked:false,cover:0,ff:[]},kind=shotKind(u,t,a);if(!kind||!B)return out;
- let p=u,q=t;if(key(t.c,t.r)<key(u.c,u.r)){p=t;q=u}
- const dc=q.c-p.c,dr=q.r-p.r,n=Math.max(Math.abs(dc),Math.abs(dr)),top=Math.max(T(u).h,T(t).h)+1;let cov=0;
- for(let i=1;i<n;i++){const c=Math.round(p.c+dc*i/n),r=Math.round(p.r+dr*i/n),tl=B.tiles[key(c,r)];if(tl.t==='block'||tl.h>top){out.blocked=true;continue}
-  const x=unitAt(c,r);if(x&&x!==u&&x!==t){cov++;if(x.side===u.side)out.ff.push(x)}}
+// Footprints: the line runs from a tile of the shooter's footprint to a tile of the target's; of all the pairs the clearest one counts
+// (not blocked, then the least cover, then the shortest, then the first in tile order). A unit in the line counts once, whatever its size.
+function losInfo(u,t,a){const kind=shotKind(u,t,a);if(!kind||!B)return{blocked:false,cover:0,ff:[]};
+ if((u.sz||1)===1&&(t.sz||1)===1)return losLine(u,t,u.c,u.r,t.c,t.r,kind);let best=null,bd=0;
+ for(const [uc,ur] of unitTiles(u))for(const [tc,tr] of unitTiles(t)){const L=losLine(u,t,uc,ur,tc,tr,kind),d=Math.abs(uc-tc)+Math.abs(ur-tr);
+  if(!best||(best.blocked&&!L.blocked)||(best.blocked===L.blocked&&(L.cover<best.cover||(L.cover===best.cover&&d<bd)))){best=L;bd=d}}return best}
+function losLine(u,t,uc,ur,tc,tr,kind){const out={blocked:false,cover:0,ff:[]};let pc=uc,pr=ur,qc=tc,qr=tr;if(key(tc,tr)<key(uc,ur)){pc=tc;pr=tr;qc=uc;qr=ur}
+ const dc=qc-pc,dr=qr-pr,n=Math.max(Math.abs(dc),Math.abs(dr)),top=Math.max(T(u).h,T(t).h)+1;let cov=0,seen=null;
+ for(let i=1;i<n;i++){const c=Math.round(pc+dc*i/n),r=Math.round(pr+dr*i/n),tl=B.tiles[key(c,r)];if(tl.t==='block'||tl.h>top){out.blocked=true;continue}
+  const x=unitAt(c,r);if(x&&x!==u&&x!==t){if((x.sz||1)>1){if(seen&&seen.includes(x))continue;(seen||(seen=[])).push(x)}cov++;if(x.side===u.side)out.ff.push(x)}}
  if(kind===1){out.ff=[];return out}if(T(u).h>T(t).h)cov--;out.cover=clamp(cov,0,2);return out}
 const morOf=u=>MORFX[u.mor==null?3:u.mor]||MORFX[3];
 // Chance in percent that u's ability a hits t: 100 for abilities that cannot miss, else 5..95.
@@ -304,8 +330,8 @@ const morOf=u=>MORFX[u.mor==null?3:u.mor]||MORFX[3];
    raised); cmd: the best Battle orders of an ally next to the attacker; guard: the best Cover of an ally next to the target, against
    shots and spells; coverIgn steps of cover ignored; longShot: no distance penalty. */
 const STBONUS={marked:15},WEAKDMG=.25;
-function hasAdj(x,side,not){for(const o of B.units)if(o.alive&&o!==x&&o!==not&&o.side===side&&Math.abs(o.c-x.c)+Math.abs(o.r-x.r)===1)return true;return false}
-function bestAdj(x,k){let v=0;for(const o of B.units)if(o.alive&&o!==x&&o.side===x.side&&o.flags&&o.flags[k]>v&&Math.abs(o.c-x.c)+Math.abs(o.r-x.r)===1)v=o.flags[k];return v}
+function hasAdj(x,side,not){for(const o of B.units)if(o.alive&&o!==x&&o!==not&&o.side===side&&mdist(o,x)===1)return true;return false}
+function bestAdj(x,k){let v=0;for(const o of B.units)if(o.alive&&o!==x&&o.side===x.side&&o.flags&&o.flags[k]>v&&mdist(o,x)===1)v=o.flags[k];return v}
 const isDuel=(u,a)=>!a.magic&&!u.wpn.two&&!isRangedW(u.wpn)&&!u.shield;
 function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
  if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(isRangedAtk(u,a)?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd')}
@@ -329,8 +355,13 @@ function drOf(u,t,a){let dr=buffSum(t,'dr');const f=t.flags||{};if(f.forged&&t.a
  if(f.drRanged||f.drMelee){if(shotKind(u,t,a)===2)dr+=f.drRanged||0;else dr+=f.drMelee||0}
  if(t.shield){if(f.shieldDr)dr+=f.shieldDr;if(f.deflect&&shotKind(u,t,a)===2)dr+=f.deflect}return dr}
 function dmgAfter(u,t,a,dmg,o){const f=u.flags||{};dmg*=1+buffSum(u,'dmg')+(u.dmgB||0)+dmgBonus(u,t,a);
- const hb=(f.exec?.25:0)+(f.vsHurt||0)+(a.vsHurt||0);if(hb&&t.hp<t.hpMax/2)dmg*=1+hb;if(o&&o.splash)dmg*=o.splash;if(T(u).h>T(t).h)dmg*=1.1;
+ const hb=(f.exec?.25:0)+(f.vsHurt||0)+(a.vsHurt||0);if(hb&&t.hp<t.hpMax/2)dmg*=1+hb;if(o&&o.splash)dmg*=o.splash;if(T(u).h>T(t).h)dmg*=1.1;if(t.fw&&fireAb(a))dmg*=1+t.fw;
  return Math.round(dmg*Math.max(.2,1-drOf(u,t,a)))}
+// Fire: an ability that sets the target burning (or carries fire:1). Foes with def.fireWeak (ents) take that much more from it, and from burning.
+const fireAb=a=>!!(a&&(a.fire||(a.status&&a.status.burn>0)));
+const burnDmg=u=>Math.round(8*(1+(u.fw||0)));
+// Cannot be knocked back or dragged: size-2 units, def.kbImm, Indomitable and the like.
+const kbImmune=t=>(t.sz||1)>1||!!(t.def&&t.def.kbImm)||buffSum(t,'indom')>0;
 const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0?u.lvl*.03:0));
 const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)+(u.flags&&u.flags.ignB||0);
 // The damage roll of a weapon ability (a Spiked bash rolls the shield's spike), and the armor crushing of the blow (hammers).
@@ -342,11 +373,13 @@ const splitMult=(u,a)=>(a.smult||1)*(1+(u.flags&&u.flags.splitB||0));
 // Undying: a killing blow leaves t at 1 hitpoint, once per battle.
 const canUndy=t=>!!(t.flags&&t.flags.undying&&!t.undy);
 // Where an Aura dash would land: the free tile next to t that is closest to u (null if none).
-function dashSpot(u,t){let best=null,bd=1e9;for(const [x,y] of DIRS){const nc=t.c+x,nr=t.r+y;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr))continue;const d=Math.abs(nc-u.c)+Math.abs(nr-u.r);if(d<bd){bd=d;best=[nc,nr]}}return best}
+function dashSpot(u,t){let best=null,bd=1e9;const s=u.sz||1,st=t.sz||1;
+ if(s>1||st>1){for(let r=t.r-s;r<=t.r+st;r++)for(let c=t.c-s;c<=t.c+st;c++){if(fdist(c,r,s,t)!==1||!footFree(c,r,s,u))continue;const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(d<bd){bd=d;best=[c,r]}}return best}
+ for(const [x,y] of DIRS){const nc=t.c+x,nr=t.r+y;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr))continue;const d=Math.abs(nc-u.c)+Math.abs(nr-u.r);if(d<bd){bd=d;best=[nc,nr]}}return best}
 function validTargets(u,a){const out=new Set();if(isRangedAtk(u,a)&&rangedLocked(u)||!canFire(u,a))return out;
- if(a.tgt==='enemy')B.units.forEach(t=>{if(t.alive&&t.side!==u.side&&mdist(u,t)<=a.rng&&!(a.dash&&mdist(u,t)>1&&u.wpn.rng<mdist(u,t)&&!dashSpot(u,t))&&!(a.needShieldT&&!t.shield)&&!losInfo(u,t,a).blocked)out.add(key(t.c,t.r))});
+ if(a.tgt==='enemy')B.units.forEach(t=>{if(t.alive&&t.side!==u.side&&mdist(u,t)<=a.rng&&!(a.dash&&mdist(u,t)>1&&u.wpn.rng<mdist(u,t)&&!dashSpot(u,t))&&!(a.needShieldT&&!t.shield)&&!losInfo(u,t,a).blocked)for(const [c,r] of unitTiles(t))out.add(key(c,r))});   // any tile of a footprint picks the unit
  else if(a.tgt==='ally')B.units.forEach(t=>{if(t.alive&&t.side===u.side&&mdist(u,t)<=a.rng&&!(a.noSelf&&t===u))out.add(key(t.c,t.r))});
- else if(a.tgt==='move')for(let r=0;r<BH;r++)for(let c=0;c<BW;c++){const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(!d||d>a.rng)continue;const t=B.tiles[key(c,r)];if(t.t==='block'||unitAt(c,r))continue;if(!a.leap&&t.h-T(u).h>1)continue;out.add(key(c,r))}
+ else if(a.tgt==='move')for(let r=0;r<BH;r++)for(let c=0;c<BW;c++){const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(!d||d>a.rng)continue;const t=B.tiles[key(c,r)];if((u.sz||1)>1){if(!footFree(c,r,u.sz,u))continue}else if(t.t==='block'||unitAt(c,r))continue;if(!a.leap&&t.h-T(u).h>1)continue;out.add(key(c,r))}
  return out}
 /* ---- Damage ---- */
 const heavyHit=t=>Math.max(8,Math.ceil(t.hpMax*HEAVYHIT));              // hitpoints lost in one blow that shake a unit (and may injure a merc)
@@ -378,8 +411,13 @@ function damageShield(t,n,src){if(!t.shield)return 0;const s0=t.shp,d=Math.min(s
 // What a kill gives the killer through its talents: hitpoints (killHeal), its gift resource (killRes).
 function onKill(u){const f=u.flags||{};if(f.killHeal&&u.hp<u.hpMax){const h0=u.hp;u.hp=Math.min(u.hpMax,u.hp+f.killHeal);float(u,'+'+(u.hp-h0),'#9bd96f');FX.emit('heal',{t:u,n:u.hp-h0})}
  if(f.killRes){const k=Object.keys(u.res)[0],R=k&&u.res[k];if(R&&R.cur<R.max){R.cur=Math.min(R.max,R.cur+f.killRes);float(u,'+'+f.killRes+' '+(RESN[k]||k),RESC[k]||'#fff')}}}
-async function knockback(u,t,n){let dc=t.c-u.c,dr=t.r-u.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc)||1;dr=0}else{dr=Math.sign(dr);dc=0}
- for(let i=0;i<n&&t.alive;i++){const nc=t.c+dc,nr=t.r+dr,cur=T(t);if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr)||B.tiles[key(nc,nr)].h>cur.h+1){float(t,'Slam','#ffd27a');hurt(t,8,1);break}
+/* knockback(u,t,n,crash): t is driven up to n tiles straight away from u (from the middle of u's footprint, along the longer axis).
+   Something in the way stops it: t takes 8 (a slam), or `crash` when it is thrown into another unit, which takes `crash` too (ogres).
+   Size-2 units, def.kbImm and Indomitable never move (kbImmune). */
+function kbDir(u,t){const m=unitCenter(u);let dc=t.c-m.c,dr=t.r-m.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc)||1;dr=0}else{dr=Math.sign(dr);dc=0}return[dc,dr]}
+async function knockback(u,t,n,crash){if(kbImmune(t))return;const [dc,dr]=kbDir(u,t);
+ for(let i=0;i<n&&t.alive;i++){const nc=t.c+dc,nr=t.r+dr,cur=T(t),x=inb(nc,nr)?unitAt(nc,nr):null;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||x||B.tiles[key(nc,nr)].h>cur.h+1){
+   if(x&&crash>0){float(t,'Crash','#ffd27a');hurt(t,crash,1);if(x.alive){float(x,'Crash','#ffd27a');hurt(x,crash,1)}FX.emit('kb',{t,crash:x})}else{float(t,'Slam','#ffd27a');hurt(t,8,1)}break}
   const drop=cur.h-B.tiles[key(nc,nr)].h;t.c=nc;t.r=nr;FX.emit('kb',{t});await sleep(120);if(drop>=1)hurt(t,6*drop,1);if(t.alive&&T(t).t==='haz')hurt(t,12,1)}}
 /* strike(u,t,a,o): one attack of u on t with ability a. Returns true on a hit.
    o: splash (damage factor of a secondary hit), auto (cannot miss: arcs, stray shots), free (a free attack: it provokes neither
@@ -405,18 +443,37 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
  let hpd=0;if(dmg>0){const head=rnd()*100<headChance(u,t,a);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1,crush:crushOf(u,a)})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
  if(t.alive){const st=Object.assign({},a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);
   for(const k in st)addStatus(t,k,st[k]);
-  const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!buffSum(t,'indom'))await knockback(u,t,kb);
-  if(a.pull&&t.alive&&u.alive&&!buffSum(t,'indom'))await pullUnit(u,t,a.pull);
+  const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t))await knockback(u,t,kb,a.crash||u.crashD||0);
+  if(a.pull&&t.alive&&u.alive&&!kbImmune(t))await pullUnit(u,t,a.pull);
   if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1)}
  else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(!t.gone&&u.alive)onKill(u)}
  await sleep(240);return true}
 // A hook: t is dragged up to n tiles toward u, along the longer axis, while the next tile is free, walkable and at most 1 step up.
-async function pullUnit(u,t,n){for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){let dc=u.c-t.c,dr=u.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
+async function pullUnit(u,t,n){for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){const m=unitCenter(u);let dc=m.c-t.c,dr=m.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
   const nc=t.c+dc,nr=t.r+dr;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr)||B.tiles[key(nc,nr)].h>T(t).h+1)break;
   t.c=nc;t.r=nr;float(t,'Hooked','#ffd27a');FX.emit('kb',{t,pull:1});await sleep(120);if(t.alive&&T(t).t==='haz')hurt(t,12,1)}}
 /* ---- Movement ---- */
-function stepCost(u,fk,tk){const a=B.tiles[fk],b=B.tiles[tk];let c=2;if(!u.flags.path){if(b.h>a.h)c++;if(b.t==='rough')c++}return c}
-function dijkstra(u,max){const D=new Map(),st=key(u.c,u.r),occ=new Uint8Array(BW*BH);for(const x of B.units)if(x.alive)occ[key(x.c,x.r)]=1;D.set(st,{cost:0,prev:-1});const open=[st];
+/* Flying (u.fly, unless Grounded): every step costs 2 whatever the ground, height steps do not matter, and props and other units can be
+   flown over (a footprint on a prop or a unit is "air": passed through, never stopped on; foes it leaves still get their free attacks,
+   but a hit does not bring it down over them). A size-2 walker climbs by the highest tile of its footprint. */
+const canFly=u=>!!u.fly&&!(u.st&&u.st.grounded>0);
+function footInfo(c,r,s){let h=-1,blk=false,rough=false;for(let y=0;y<s;y++)for(let x=0;x<s;x++){const t=B.tiles[key(c+x,r+y)];if(!t){blk=true;continue}if(t.t==='block')blk=true;else if(t.t==='rough')rough=true;if(t.h>h)h=t.h}return{h,blk,rough}}
+const airAt=u=>canFly(u)&&(footInfo(u.c,u.r,u.sz||1).blk||!!footUnit(u.c,u.r,u.sz||1,u));
+function stepCost(u,fk,tk){if(canFly(u))return 2;const s=u.sz||1;if(s>1){const a=footInfo(fk%BW,(fk/BW)|0,s),b=footInfo(tk%BW,(tk/BW)|0,s);let c=2;if(b.h>a.h)c++;if(b.rough)c++;return c}
+ const a=B.tiles[fk],b=B.tiles[tk];let c=2;if(!u.flags.path){if(b.h>a.h)c++;if(b.t==='rough')c++}return c}
+// A unit (other than self) on any tile of a size-s footprint at (c,r), or null.
+function footUnit(c,r,s,self){for(let y=0;y<s;y++)for(let x=0;x<s;x++){const o=inb(c+x,r+y)?unitAt(c+x,r+y):null;if(o&&o!==self)return o}return null}
+// Reach of a size-2 unit or a flier: keys are anchors; entries over props carry air:1 (pass only).
+function dijkstraN(u,max){const s=u.sz||1,fly=canFly(u),D=new Map(),st=key(u.c,u.r),occ=new Uint8Array(BW*BH);
+ for(const x of B.units)if(x.alive&&x!==u)for(const [c,r] of unitTiles(x))if(inb(c,r))occ[key(c,r)]=1;
+ const onb=(c,r)=>c>=0&&r>=0&&c<=BW-s&&r<=BH-s,taken=(c,r)=>{for(let y=0;y<s;y++)for(let x=0;x<s;x++)if(occ[key(c+x,r+y)])return true;return false};
+ D.set(st,{cost:0,prev:-1,h:footInfo(u.c,u.r,s).h});const open=[st];
+ while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(D.get(open[i]).cost<D.get(open[bi]).cost)bi=i;const k=open.splice(bi,1)[0],cur=D.get(k);if(cur.done)continue;cur.done=1;const c=k%BW,r=(k/BW)|0;
+  for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!onb(nc,nr))continue;const nk=key(nc,nr),F=footInfo(nc,nr,s),tk=taken(nc,nr);
+   let v=cur.cost+2;if(!fly){if(tk||F.blk||F.h-cur.h>1)continue;if(F.h>cur.h)v++;if(F.rough)v++}if(v>max)continue;
+   const o=D.get(nk);if(!o||v<o.cost){const e={cost:v,prev:k,h:F.h};if(fly&&(F.blk||tk))e.air=1;D.set(nk,e);open.push(nk)}}}
+ return D}
+function dijkstra(u,max){if((u.sz||1)>1||canFly(u))return dijkstraN(u,max);const D=new Map(),st=key(u.c,u.r),occ=new Uint8Array(BW*BH);for(const x of B.units)if(x.alive){if((x.sz||1)>1){for(const [c,r] of unitTiles(x))if(inb(c,r))occ[key(c,r)]=1}else occ[key(x.c,x.r)]=1}D.set(st,{cost:0,prev:-1});const open=[st];
  while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(D.get(open[i]).cost<D.get(open[bi]).cost)bi=i;const k=open.splice(bi,1)[0],cur=D.get(k);if(cur.done)continue;cur.done=1;const c=k%BW,r=(k/BW)|0;
   for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=key(nc,nr),t=B.tiles[nk];if(t.t==='block'||occ[nk]||t.h-B.tiles[k].h>1)continue;
    const v=cur.cost+stepCost(u,k,nk);if(v>max)continue;const o=D.get(nk);if(!o||v<o.cost){D.set(nk,{cost:v,prev:k});open.push(nk)}}}return D}
@@ -424,14 +481,17 @@ function pathTo(D,k){const p=[];for(let x=k;D.get(x)&&D.get(x).prev>=0;x=D.get(x
 /* Walks u along path, one tile at a time. Free attacks are settled here and nowhere else:
    leaving a tile next to a foe draws that foe's free attack (one per foe and round; a hit halts u where it stands);
    stepping next to a foe in spear wall draws its thrust before the step (a hit stops u short; a miss lets it in and drops the wall). */
-async function walkPath(u,path){const b=B;for(const k of path){if(B!==b||!u.alive)return;const fk=key(u.c,u.r),c=stepCost(u,fk,k);if(u.ap<c||u.fat+2>u.fatMax)break;if(unitAt(k%BW,(k/BW)|0))break;
+// (A flier over a prop is not halted there: it flies on to where it can land. A size-2 unit needs its whole footprint clear.)
+async function walkPath(u,path){const b=B;if(!u.fly)return walkPath0(u,path);const land=[u.c,u.r];await walkPath0(u,path,land);
+ if(B===b&&u.alive&&airAt(u)){u.c=land[0];u.r=land[1];FX.emit('move',{u});await sleep(105)}}            // a flier never ends over a prop or a unit
+async function walkPath0(u,path,land){const b=B,sz=u.sz||1;for(const k of path){if(B!==b||!u.alive)return;const fk=key(u.c,u.r),c=stepCost(u,fk,k);if(u.ap<c||u.fat+2>u.fatMax)break;if(!canFly(u)&&(sz>1?footUnit(k%BW,(k/BW)|0,sz,u):unitAt(k%BW,(k/BW)|0)))break;
   const foe=zocFoe(u);
-  if(foe){foe.aoo=1;const hit=await freeAttack(foe,u,'zoc');if(B!==b||!u.alive)return;if(hit){float(u,'Halted','#ffd27a');break}}
+  if(foe){foe.aoo=1;const hit=await freeAttack(foe,u,'zoc');if(B!==b||!u.alive)return;if(hit&&!airAt(u)){float(u,'Halted','#ffd27a');break}}
   let stop=false;const nc=k%BW,nr=(k/BW)|0;
-  for(const s of b.units.filter(s=>s.alive&&s.side!==u.side&&buffSum(s,'sw')&&mdist(s,u)>1&&Math.abs(s.c-nc)+Math.abs(s.r-nr)===1)){if(!canFree(s))continue;
-   const hit=await freeAttack(s,u,'spearwall');if(B!==b||!u.alive)return;if(hit){float(u,'Halted','#ffd27a');stop=true;break}dropBuff(s,'spearwall')}
+  for(const s of b.units.filter(s=>s.alive&&s.side!==u.side&&buffSum(s,'sw')&&mdist(s,u)>1&&fdist(nc,nr,sz,s)===1)){if(!canFree(s))continue;
+   const hit=await freeAttack(s,u,'spearwall');if(B!==b||!u.alive)return;if(hit&&!airAt(u)){float(u,'Halted','#ffd27a');stop=true;break}dropBuff(s,'spearwall')}
   if(stop){u.ap=Math.max(0,u.ap-c);break}
-  u.ap-=c;u.fat+=2;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
+  u.ap-=c;u.fat+=2;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(land&&!airAt(u)){land[0]=nc;land[1]=nr}if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
 /* ---- Ability effects on allies (heal, buff, rally, cleanse, AP) ---- */
 const healRoll=(u,a)=>{const h=ri(a.heal[0],a.heal[1]);return Math.round(h*(1+(u.flags&&u.flags.healB||0)))};
 function healUnit(t,h){const h0=t.hp;t.hp=Math.min(t.hpMax,t.hp+h);float(t,'+'+h,'#9bd96f');FX.emit('heal',{t,n:t.hp-h0})}
@@ -443,7 +503,7 @@ function allyEffect(u,t,a){if(!t.alive)return;if(a.heal)healUnit(t,healRoll(u,a)
 function partyOf(u,a){return[u].concat(B.units.filter(o=>o.alive&&o!==u&&o.side===u.side&&o.mor!==0&&mdist(o,u)<=a.party).sort((x,y)=>mdist(x,u)-mdist(y,u)||x.id-y.id))}
 // Foes in the line from u through t beyond t (for `through`): up to n of them, stopping at an obstacle or the board's edge.
 function lineBeyond(u,t,n){const out=[],dc=t.c-u.c,dr=t.r-u.r,L=Math.max(Math.abs(dc),Math.abs(dr));if(!L||!(n>0))return out;
- for(let i=L+1;i<=L+BW+BH&&out.length<n;i++){const c=Math.round(u.c+dc*i/L),r=Math.round(u.r+dr*i/L);if(!inb(c,r)||B.tiles[key(c,r)].t==='block')break;const x=unitAt(c,r);if(x&&x.side!==u.side)out.push(x)}return out}
+ for(let i=L+1;i<=L+BW+BH&&out.length<n;i++){const c=Math.round(u.c+dc*i/L),r=Math.round(u.r+dr*i/L);if(!inb(c,r)||B.tiles[key(c,r)].t==='block')break;const x=unitAt(c,r);if(x&&x!==t&&x.side!==u.side&&!out.includes(x))out.push(x)}return out}
 const THROUGH=.75;
 async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null;b.reach=null;payFor(u,a);if(a.id!=='attack')say(`${u.name} uses ${a.n}.`);FX.ui();const c=k%BW,r=(k/BW)|0;
  if(a.id!=='attack')FX.emit('cast',{u,t:a.tgt==='self'?u:a.tgt==='ally'||a.tgt==='enemy'?unitAt(c,r)||null:null,ab:a});
@@ -483,10 +543,10 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
  u.dazed=false;if(u.st.daze){u.dazed=true;u.st.daze--}u.weakened=false;if(u.st.weak){u.weakened=true;u.st.weak--}if(u.st.marked)u.st.marked--;
  b.cam.tx=u.sx;b.cam.ty=u.sy-10;FX.emit('turn',{u});FX.ui();
  if(u.st.bleed){u.st.bleed--;hurt(u,BLEEDDMG,1,null,{pierce:1});await sleep(200);if(B!==b)return}
- if(u.alive&&u.st.burn){u.st.burn--;hurt(u,8,1);await sleep(260);if(B!==b)return}if(u.alive&&T(u).t==='haz'){hurt(u,12,1);await sleep(200);if(B!==b)return}
+ if(u.alive&&u.st.burn){u.st.burn--;hurt(u,burnDmg(u),1);await sleep(260);if(B!==b)return}if(u.alive&&T(u).t==='haz'){hurt(u,12,1);await sleep(200);if(B!==b)return}
  if(!u.alive)return nextTurn();
  { const rg=(u.flags&&u.flags.regenHP||0)+bestAdj(u,'medAura');if(rg>0&&u.hp<u.hpMax){const h0=u.hp;u.hp=Math.min(u.hpMax,u.hp+rg);float(u,'+'+(u.hp-h0),'#9bd96f');FX.emit('heal',{t:u,n:u.hp-h0})} }
- if(u.st.stun){u.st.stun=0;float(u,'Stunned','#ffd27a');await sleep(420);if(B!==b)return;return nextTurn()}
+ if(u.st.stun){u.st.stun=0;if(typeof monStunned==='function')monStunned(u);float(u,'Stunned','#ffd27a');await sleep(420);if(B!==b)return;return nextTurn()}
  if(moraleTurn(u)){await sleep(u.side===1?200:60);if(B!==b)return;await fleeTurn(u);if(B!==b||b.over)return;return nextTurn()}
  if(u.side===1||b.auto){await sleep(u.side===1?260:60);if(B!==b)return;await aiTurn(u);if(B!==b||b.over)return;return nextTurn()}
  b.busy=false;computeReach();FX.ui()}
@@ -503,5 +563,5 @@ async function aiTurn(u){if(typeof aiTurn2==='function')return aiTurn2(u);const 
   if(near.length&&!told){told=true;FX.emit('blocked',{u,t:near[0]})}                    // foes in range but none in sight: close in until one is
   const want=near.length?1:Math.max(atk.rng,u.spell?u.spell.rng:0),D=dijkstra(u,99),st=key(u.c,u.r);let best=st,bs=1e9;
   const nf=foes.length,fc=foes.map(f=>f.c),fr=foes.map(f=>f.r),bw=BW,tl=b.tiles;
-  D.forEach((v,k)=>{const c=k%bw,r=(k/bw)|0;let dm=99;for(let i=0;i<nf;i++){let d=fc[i]-c,e=fr[i]-r;if(d<0)d=-d;if(e<0)e=-e;if(d+e<dm)dm=d+e}const t=tl[k],sc=(dm>want?dm-want:0)*10+v.cost*.1+(t.t==='haz'?30:0)-(want>1?t.h*2:0);if(sc<bs){bs=sc;best=k}});
+  D.forEach((v,k)=>{if(v.air)return;const c=k%bw,r=(k/bw)|0;let dm=99;for(let i=0;i<nf;i++){const d=fdist(c,r,u.sz||1,foes[i]);if(d<dm)dm=d}const t=tl[k],sc=(dm>want?dm-want:0)*10+v.cost*.1+(t.t==='haz'?30:0)-(want>1?t.h*2:0);if(sc<bs){bs=sc;best=k}});
   if(best===st)return;await walkPath(u,pathTo(D,best));if(B!==b||key(u.c,u.r)===st)return;if(checkEnd())return}}

@@ -1,11 +1,39 @@
 /* ================= TOWNS & CONTRACTS ================= */
+/* ---- hunts: the factions on offer come from the rules' factionPool(ctx) (40-world.js: tiers, biomes, how far out each lives),
+   with the old list as the fallback. The lair is set on one of the faction's own biomes at the distance the pool gives;
+   tougher factions pay more (CTR_TIERK). ---- */
+const CTR_TIERK={early:1,mid:1.35,late:1.7,end:2.6,crisis:1.5};
+function ctrPool(t,ti){let L=null;
+ if(typeof factionPool==='function'){try{L=factionPool({x:t.x,y:t.y,town:t,ti,day:G.day,purpose:'contract',contract:true})}catch(e){L=null}}
+ if(L&&!Array.isArray(L)&&typeof L==='object')L=Array.isArray(L.list)?L.list:Array.isArray(L.pool)?L.pool:Object.keys(L).map(f=>Object.assign({f},typeof L[f]==='object'?L[f]:{w:+L[f]||1}));
+ const out=[];if(Array.isArray(L))for(const e of L){const o=typeof e==='string'?{f:e}:e&&typeof e==='object'?e:null;if(!o)continue;const f=o.f||o.id||o.k||o.fact;if(!FACT[f])continue;
+  const dr=Array.isArray(o.d)?o.d:Array.isArray(o.dist)?o.dist:null,lo=svNum(o.dmin,svNum(o.min,dr?dr[0]:4)),hi=svNum(o.dmax,svNum(o.max,dr?dr[1]:lo+6));
+  out.push({f,w:Math.max(0,svNum(o.w,svNum(o.weight,1))),lo:Math.max(2,lo),hi:Math.max(lo+1,hi)})}
+ if(out.some(x=>x.w>0))return out.filter(x=>x.w>0);
+ const fs=['gob','bandit','beast','undead'];if(G.day>5)fs.push('orc');if(G.crisis)fs.push('void');const out2=fs.map(f=>({f,w:1,lo:4,hi:10}));
+ // the new factions by tier, further out (the rules' factionPool refines this with company strength)
+ for(const [f,day,w,lo,hi] of [['serpent',6,1,6,12],['ent',10,.8,7,13],['ogre',10,.8,7,13],['wyvern',30,.35,Math.max(8,18-Math.floor((G.day-30)/6)),20]])if(FACT[f]&&G.day>=day)out2.push({f,w,lo,hi:Math.max(lo+2,hi)});
+ return out2}
+// is world position (x,y) on one of faction f's biomes? ('mountains' = within 2 tiles of a peak). No biomes listed: anywhere.
+function ctrBiomeOk(f,x,y){const B=FACT[f]&&FACT[f].biomes;if(!Array.isArray(B)||!B.length||typeof tileAt!=='function'||!W)return true;const t=tileAt(x,y);
+ if(B.includes(BIOKEY[t]))return true;if(B.includes('mountains')){const cx=Math.floor(x/TS),cy=Math.floor(y/TS);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(tileAt((cx+dx+.5)*TS,(cy+dy+.5)*TS)===4)return true}return false}
+function ctrLairAt(t,f,lo,hi){let pos=null;for(let k=0;k<40;k++){const p=randOk(t.x,t.y,lo,hi);if(!pos)pos=p;if(ctrBiomeOk(f,p.x,p.y))return p}return pos}
+function ctrTitle(f,t){return String(FACT[f].lair||'Hunt').replace('{place}',t.name)}
 function genContract(t){const ti=G.towns.indexOf(t),rep=1+G.renown/300;
  if(rnd()<.25){let to;do{to=ri(0,G.towns.length-1)}while(to===ti);const o=G.towns[to],d=Math.hypot(o.x-t.x,o.y-t.y)/TS;return{type:'deliver',to,diff:1,pay:Math.round((60+d*10)*rep/10)*10,title:'Carry sealed cargo to '+o.name}}
- const fs=['gob','bandit','beast','undead'];if(G.day>5)fs.push('orc');if(G.crisis)fs.push('void');const f=pick(fs),diff=pick([1,1,2,2,3]),pos=randOk(t.x,t.y,4,10);
- return{type:'hunt',f,diff,x:pos.x,y:pos.y,pay:Math.round((200+G.day*8+fielded().length*25)*[1,1.6,2.5][diff-1]*rep/10)*10,title:FACT[f].lair}}
+ const P=ctrPool(t,ti);let tot=0;P.forEach(x=>tot+=x.w);let r=rnd()*tot,e=P[P.length-1];for(const x of P){r-=x.w;if(r<=0){e=x;break}}
+ const f=e.f,diff=pick([1,1,2,2,3]),pos=ctrLairAt(t,f,e.lo,e.hi),tk=CTR_TIERK[FACT[f].tier]||1;
+ return{type:'hunt',f,diff,x:pos.x,y:pos.y,pay:Math.round((200+G.day*8+fielded().length*25)*[1,1.6,2.5][diff-1]*tk*rep/10)*10,title:ctrTitle(f,t)}}
+/* ---- markets stock by tier: hamlets tier 1-2, towns tier 3 from day 8, cities tier 3 from day 6, 4 from day 16, 5 from day 30 ----
+   Famed and unique items are never on the stalls. */
+function marketTier(size,day){size=size||1;day=day||1;if(size>=3)return day>=30?5:day>=16?4:day>=6?3:2;if(size===2)return day>=8?3:2;return day>=20?3:2}
+function marketPool(maxT){return Object.keys(ITEMS).filter(k=>{const i=ITEMS[k];return!i.uniq&&!i.famed&&(i.tier||1)<=maxT})}
+function stockPick(ids,maxT){const by={};for(const k of ids)(by[ITEMS[k].tier||1]||(by[ITEMS[k].tier||1]=[])).push(k);
+ const T=Object.keys(by).map(Number).sort((a,b)=>a-b),w=T.map(t=>t===maxT?1.2:t===maxT-1?2:1.6);let tot=0;w.forEach(x=>tot+=x);let x=rnd()*tot,j=0;for(;j<T.length-1;j++){x-=w[j];if(x<=0)break}
+ return pick(by[T[j]])}
 function stockTown(t){t.ref=G.day;t.recruits=[];for(let i=0;i<4;i++)t.recruits.push(newMerc(wpickBG()));
- const ids=Object.keys(ITEMS).filter(k=>!ITEMS[k].uniq);t.stock=[];for(let i=0;i<9;i++){const a=pick(ids),b=pick(ids);t.stock.push(rnd()<.6?(ITEMS[a].price<ITEMS[b].price?a:b):a)}
- {const hs=ids.filter(k=>ITEMS[k].k==='h');if(hs.length&&t.stock.length&&!t.stock.some(id=>ITEMS[id].k==='h')){const lo=hs.filter(k=>ITEMS[k].price<=600);t.stock[t.stock.length-1]=pick(lo.length?lo:hs)}}   // every market has a helmet on the stalls
+ const maxT=marketTier(t.size,G.day),ids=marketPool(maxT);t.stock=[];for(let i=0;i<9;i++)t.stock.push(stockPick(ids,maxT));
+ {const hs=ids.filter(k=>ITEMS[k].k==='h');if(hs.length&&t.stock.length&&!t.stock.some(id=>ITEMS[id].k==='h')){const lo=hs.filter(k=>(ITEMS[k].tier||1)<=Math.min(maxT,3));t.stock[t.stock.length-1]=pick(lo.length?lo:hs)}}   // every market has a helmet on the stalls
  t.contracts=[];for(let i=0;i<3;i++)t.contracts.push(genContract(t))}
 function openTown(i){G.town=i;const t=G.towns[i];if(G.day-t.ref>=3)stockTown(t);let note='';const c=G.contract;
  if(c&&((c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i))){G.crowns+=c.pay;G.renown+=8*c.diff;note=`<p class="good">Contract fulfilled. You are paid ${c.pay} crowns.</p>`;G.contract=null}
@@ -27,11 +55,12 @@ function compass(dx,dy){return['east','south-east','south','south-west','west','
 function leagues(a,b){return Math.max(1,Math.round(Math.hypot(a.x-b.x,a.y-b.y)/TS))}
 /* ---- pixel helpers for the town panel (art's pxIcon / company's portraitHTML, with fallbacks until they exist) ---- */
 function twIcon(n,sz,fb){if(typeof pxIcon==='function'){try{if(typeof iconRows!=='function'||iconRows(n))return pxIcon(n,sz||16);if(PNOWN[n])return pnIcon(n,'',sz||16);return pxIcon(n,sz||16)}catch(e){}}return fb?pnIcon(fb):''}
-function twItemIcon(id,sz){const it=ITEMS[id];if(typeof pxIcon!=='function'||!it)return pnItemIcon(id);if(it.k==='h')return twIcon('helmet',sz||32);return pxIcon(it.k==='s'?'shield':it.k==='a'?(it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy'):it.wt||'sword',sz||32)}
+function twItemIcon(id,sz){const it=ITEMS[id];if(typeof pxIcon!=='function'||!it||pnHasPx(itemIconName(id)))return pnItemIcon(id,sz||32);let h;if(it.k==='h')h=twIcon('helmet',sz||32);else h=pxIcon(it.k==='s'?'shield':it.k==='a'?(it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy'):it.wt||'sword',sz||32);return pnFamedWrap(id,h)}
 function twPortrait(m,sz){if(typeof portraitHTML==='function'){try{const h=portraitHTML(m,sz||32);if(h)return`<span class="tw-por">${h}</span>`}catch(e){}}const r=tlRes(m);return`<span class="tw-por none" style="width:${sz||32}px;height:${sz||32}px"><span class="pn-pip${r?' g-'+r:''}"></span></span>`}
 function twSkulls(n,of){if(typeof pxIcon!=='function')return pnSkulls(n,of);let h='';for(let i=0;i<(of||n);i++)h+=`<span class="${i<n?'':'off'}">${pxIcon('skull',16)}</span>`;return`<span class="tw-skulls" aria-label="Danger ${n} of ${of||n}">${h}</span>`}
 function twStat(ic,v,fb){return`<span class="tw-s">${twIcon(ic,16)}${fb&&typeof pxIcon!=='function'?fb+' ':''}${v}</span>`}
-function twItemStats(id){const i=ITEMS[id];if(typeof pxIcon!=='function')return itemDesc(id);
+function twItemStats(id){const i=ITEMS[id];return(i&&i.famed?'<span class="tw-t fmd-tag">Famed</span>':'')+(typeof pxIcon==='function'?twItemStats0(id):itemDesc(id))}
+function twItemStats0(id){const i=ITEMS[id];
  if(i.k==='w')return twStat(i.rng>2?'ranged':'melee',`${i.d[0]}–${i.d[1]}`)+twStat('ap',i.ap)+`<span class="tw-t">${i.two?'2H':'1H'}</span>`+(i.rng>1?`<span class="tw-t">reach ${i.rng}</span>`:'')+(i.spell?`<span class="tw-t">+${Math.round(i.spell*100)}% spell</span>`:'');
  if(i.k==='s')return twStat('mdef','+'+i.md)+twStat('rdef','+'+i.rd)+twStat('fatigue','−'+i.fat);if(i.k==='h')return twStat('helmet',i.arm)+twStat('fatigue','−'+(i.fat||0))+'<span class="tw-t">head</span>';return twStat('armor',i.arm)+twStat('fatigue','−'+i.fat)}
 /* faction emblems: a heater shield in the faction's colours with its mark (16x16, drawn here) */
@@ -42,7 +71,11 @@ const TWMARK={
  beast:{f:'jki',m:['..l..l..','.ll..ll.','.ll..ll.','........','..llll..','.llllll.','.llllll.','..l..l..']},
  orc:{f:'753',m:['qq.kk.qq','qqqkkqqq','qpqkkqpq','qq.kk.qq','...kk...','...kk...','...kk...','...jj...']},
  bandit:{f:'ghf',m:['...qq...','...qq...','...qp...','...qp...','.cccccc.','...jj...','...jj...','...cc...']},
- void:{f:'DCG',m:['...ee...','..eCCe..','.eCxxCe.','eCx00xCe','.eCxxCe.','..eCCe..','...ee...','........']}};
+ void:{f:'DCG',m:['...ee...','..eCCe..','.eCxxCe.','eCx00xCe','.eCxxCe.','..eCCe..','...ee...','........']},
+ serpent:{f:'wv3',m:['..yyyy0g','.yy.....','.yy.....','..yyyy..','.....yy.','.....yy.','.yyyyy..','yy......']},
+ ent:{f:'ija',m:['..AAAA..','.AABAAA.','AABAABAA','.AAAAAA.','...kk...','...kk...','..kkkk..','.k.kk.k.']},
+ ogre:{f:'nmo',m:['..tttt..','.tttttt.','t00tt00t','tttttttt','ttuuuutt','tlu..ult','.tuuuut.','..tttt..']},
+ wyvern:{f:'fga',m:['d......d','dd....dd','ddd..ddd','.dddddd.','..dccd..','...dd...','...cd...','..d..c..']}};
 const TWCARGO=['................','................','..000000000000..','.0kkkkkckkkkkk0.','.0kjjjjbjjjjji0.','.0kjjjjbjjjjji0.','.0cbbbghgbbbbb0.','.0kjjjgggjjjji0.','.0kjjjfgfjjjji0.','.0kjjjjbjjjjji0.','.0kjjjjbjjjjji0.','.0jiiiibiiiiii0.','..000000000000..','................','................','................'];
 function twEmblemRows(c){if(c.type!=='hunt'||!TWMARK[c.f])return TWCARGO;const M=TWMARK[c.f];return TWSHIELD.map((r,y)=>{let o='';for(let x=0;x<16;x++){const k=r[x],mk=y>=3&&y<11&&x>=4&&x<12?M.m[y-3][x-4]:'.';o+=mk!=='.'?mk:k==='#'?M.f[0]:k==='+'?M.f[1]:k==='-'?M.f[2]:k}return o})}
 function twEmblem(c,sz){const key=c.type==='hunt'?c.f:'cargo',u=typeof pxURL==='function'?pxURL('twem-'+key,twEmblemRows(c),1):'';
@@ -58,13 +91,13 @@ function twTreeList(m){const T=tlTrees(m),wl=tlTierLv('weapon',1),abN=x=>[].conc
   :`<p class="pn-p dim">No weapon trees${(tlWtAllowed(m).length?'':' for this background')}.</p>`;
  const no=(RACE[m.race]&&RACE[m.race].noWt)||[],lost=no.filter(w=>(BG[m.bg].wt||[]).includes(w));if(lost.length)h+=`<p class="pn-p dim">A ${RACE[m.race].n.toLowerCase()} never learns the ${lost.map(w=>(TL_WTN[w]||w).toLowerCase()).join(' or ')} tree.</p>`;
  return h}
-function gearRows(m){return[['w','Weapon']].concat(m.eq&&m.eq.b?[['b','Backup']]:[],[['s','Shield'],['a','Armor'],['h','Helmet']]).map(([k,n])=>{const id=m.eq[k];return`<div class="pn-gear${id?'':' none'}">${id?twItemIcon(id,32):twIcon(k==='w'?'fist':k==='s'?'shield':k==='h'?'helmet':'armor-light',32,k==='w'?'sword':k==='s'?'shield':'armor')}<span class="pn-rmain"><span class="pn-rt">${id?ITEMS[id].n:k==='w'?'Unarmed':'No '+n.toLowerCase()}</span>${id?`<span class="pn-rs tw-line">${twItemStats(id)}</span>`:''}</span><span class="pn-slot">${n}</span></div>`}).join('')}
+function gearRows(m){return[['w','Weapon']].concat(m.eq&&m.eq.b?[['b','Backup']]:[],[['s','Shield'],['a','Armor'],['h','Helmet']]).map(([k,n])=>{const id=m.eq[k];return`<div class="pn-gear${id?'':' none'}">${id?twItemIcon(id,32):twIcon(k==='w'?'fist':k==='s'?'shield':k==='h'?'helmet':'armor-light',32,k==='w'?'sword':k==='s'?'shield':'armor')}<span class="pn-rmain"><span class="pn-rt">${id?pnItemName(id):k==='w'?'Unarmed':'No '+n.toLowerCase()}</span>${id?`<span class="pn-rs tw-line">${twItemStats(id)}</span>`:''}</span><span class="pn-slot">${n}</span></div>`}).join('')}
 function statGrid(m,s){const c=(ic,v,n)=>`<div><b>${v}</b>${twIcon(ic,16)}<span>${n}</span></div>`;
  return`<div class="pn-stats tw-stats${typeof s.brv==='number'?' five':''}">${c('hp',m.hp<s.hp?m.hp+'<small>/'+s.hp+'</small>':s.hp,'HP')}${c('armor',s.arm,'Armor')}${c('fatigue',s.fat,'Fatigue')}${c('init',s.init,'Init')}${c('melee',s.ms,'Melee')}${c('ranged',s.rs,'Ranged')}${c('mdef',s.md,'M def')}${c('rdef',s.rd,'R def')}${typeof s.helm==='number'?c('helmet',s.helm,'Helmet'):''}${typeof s.brv==='number'?c('resolve',s.brv,'Resolve'):''}</div>`}
 function marketCompare(id){const k=ITEMS[id].k;return G.roster.map(m=>{const cur=m.eq[k],w=ITEMS[m.eq.w];let x='';
   if(k==='s'&&!tlEquipRule(m,'s',id).ok)x='<span class="pn-d same">Hands full</span>';else{x=pnDeltaChips(id,cur);if(k==='w'&&id!==cur&&tlDropsShield(m,'w',id))x+='<span class="pn-d same">drops shield</span>';if(k==='s'&&tlSlung(m))x+='<span class="pn-d same">slung</span>'}
-  return`<div class="pn-cmp${m.field?'':' res'}">${twPortrait(m,32)}<span class="pn-cn"><b>${m.name}</b><small>${cur?ITEMS[cur].n:k==='w'?'Unarmed':'None'}</small></span><span class="pn-cd">${x}</span></div>`}).join('')}
-function itemDetail(id){return`${twHead(twItemIcon(id,48),itemKind(id),ITEMS[id].n)}${pnFacts(itemFacts(id))}${pnHead('Against what the company carries')}<div class="pn-cmps">${marketCompare(id)}</div>`}
+  return`<div class="pn-cmp${m.field?'':' res'}">${twPortrait(m,32)}<span class="pn-cn"><b>${m.name}</b><small>${cur?pnItemName(cur):k==='w'?'Unarmed':'None'}</small></span><span class="pn-cd">${x}</span></div>`}).join('')}
+function itemDetail(id){const it=ITEMS[id];return`${twHead(twItemIcon(id,48),itemKind(id)+(it.tier?' · tier '+it.tier:''),pnItemName(id,1))}${pnFamedBlock(id)}${pnFacts(pnFamedFacts(id))}${pnHead('Against what the company carries')}<div class="pn-cmps">${marketCompare(id)}</div>`}
 function twRecruitLine(m){const b=BG[m.bg];return`${m.eq.w?twItemIcon(m.eq.w,16):twIcon('fist',16)}${m.eq.b?twItemIcon(m.eq.b,16):''}${m.eq.s?twItemIcon(m.eq.s,16):''}${m.eq.a?twItemIcon(m.eq.a,16):''}<span class="tw-t0">${RACE[m.race].n} ${b.n.toLowerCase()}</span>`}
 /* the recruit's build at a glance: style trees, the gift in its colour with its variant, the weapon families */
 function twRecruitTrees(m){const g=tlGift(m);return`${typeof coTreeStrip==='function'?coTreeStrip(m):''}${g?`<span class="tw-gv g-${tlGiftRes(g)}">${MAST[g].n}</span>`:''}`}
@@ -96,9 +129,9 @@ function townView(t){let list='',detail='',foot='',key=townTab;
   list+=pnRow({on:`townPick('food')`,sel:kind==='f',cls:'tw-row',lead:twIcon('food',32,'food'),title:'Provisions',sub:'10 days for one man',right:pnCoin(30,G.crowns<30?'short':'')});
   list+=pnRow({on:`townPick('tools')`,sel:kind==='t',cls:'tw-row',lead:twIcon('tools',32,'armor'),title:'Tools',sub:`Each mends ${cpToolPts()} armor`+(needT>cpTools()?` <span class="tw-t warn">need ${needT}</span>`:''),right:pnCoin(tp,G.crowns<tp?'short':'')});
   list+=pnSec('For sale',t.stock.length);if(!t.stock.length)list+=pnEmpty('The stalls are bare. Fresh goods arrive every three days.');
-  t.stock.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('b${j}')`,sel:kind==='b'&&j===i,cls:'tw-row',lead:twItemIcon(id,32),title:it.n,sub:`<span class="tw-line">${twItemStats(id)}</span>`,right:pnCoin(it.price,G.crowns<it.price?'short':'')})});
+  t.stock.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('b${j}')`,sel:kind==='b'&&j===i,cls:'tw-row',lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${it.tier?`<span class="pn-tier t${it.tier}" title="Tier ${it.tier}">${TIERN[it.tier]}</span>`:''}${twItemStats(id)}</span>`,right:pnCoin(it.price,G.crowns<it.price?'short':'')})});
   list+=pnSec('Your stash',G.stash.length);if(!G.stash.length)list+=pnEmpty('Empty. Loot from battles lands here.');
-  G.stash.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('s${j}')`,sel:kind==='s'&&j===i,cls:'own tw-row',lead:twItemIcon(id,32),title:it.n,sub:`<span class="tw-line">${twItemStats(id)}</span>`,right:pnCoin(Math.floor(it.price*.4),'sell')})});
+  G.stash.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('s${j}')`,sel:kind==='s'&&j===i,cls:'own tw-row'+(it.famed?' fmd-row':''),lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${twItemStats(id)}</span>`,right:pnCoin(sellPrice(id),'sell')})});
   if(kind==='f'){const men=G.roster.length;detail=`${twHead(twIcon('food',48,'food'),'Provisions','Salt pork and hard bread')}<p class="pn-p">10 days for one man. Every sword eats one ration a day, and a starving company bleeds.</p>${pnFacts([['In the wagons',twIcon('food',16)+G.food+' rations'],['Mouths to feed',twIcon('swords',16)+men],['Lasts the company',twIcon('day',16)+Math.floor(G.food/Math.max(1,men))+' days']])}`;
    foot=`<span class="pn-fl">${pnCoin(30,'big'+(G.crowns<30?' short':''))}<small>${G.crowns<30?'<em>Not enough crowns</em>':'for 10 rations'}</small></span><button type="button" class="pn-btn pri${G.crowns<30?' off':''}" onclick="buyFood()">Buy for 30</button>`}
   else if(kind==='t'){const have=cpTools(),more=Math.max(0,needT-have),mp=toolPrice(more);
@@ -109,7 +142,7 @@ function townView(t){let list='',detail='',foot='',key=townTab;
   else if(kind==='b'){const id=t.stock[i],it=ITEMS[id],own=G.stash.filter(x=>x===id).length;detail=itemDetail(id);
    foot=`<span class="pn-fl">${pnCoin(it.price,'big'+(G.crowns<it.price?' short':''))}<small>${G.crowns<it.price?'<em>Not enough crowns</em>':own?own+' in the stash':'to the stash'}</small></span><button type="button" class="pn-btn pri${G.crowns<it.price?' off':''}" onclick="buyItem(${i})">Buy for ${it.price}</button>`}
   else{const id=G.stash[i],it=ITEMS[id];detail=itemDetail(id);
-   foot=`<span class="pn-fl">${pnCoin(Math.floor(it.price*.4),'big')}<small>worth ${it.price} new</small></span><button type="button" class="pn-btn" onclick="sellItem(${i})">Sell for ${Math.floor(it.price*.4)}</button>`}}
+   foot=`<span class="pn-fl">${pnCoin(sellPrice(id),'big')}<small>${it.famed?'a famed piece: the dealers pay well':'worth '+it.price+' new'}</small></span><button type="button" class="pn-btn${it.famed?' warn':''}" onclick="sellItem(${i})">Sell for ${sellPrice(id)}</button>`}}
  else if(townTab==='tailor'&&typeof tailorView==='function'){const v=tailorView(t);list=v.list;detail=v.detail;foot=v.foot;key=v.key}
  else if(townTab==='temple'){const L=[];G.roster.forEach((m,mi)=>cpInj(m).forEach(j=>L.push({m,mi,j,cost:cpInjCost(m,j.id)})));const n=L.length,i=clamp(+townSel.temple||0,0,n-1);townSel.temple=i;key+=':'+i+':'+n;
   list+=pnSec('The injured',n?n+' wound'+(n===1?'':'s'):'None');
@@ -146,7 +179,7 @@ function buyTools(n){n=Math.max(1,Math.round(+n||TOOLLOT));const c=toolPrice(n);
 /* temple: treat injury id of roster[i] for crowns */
 function templeTreat(i,id){const m=G.roster[i];if(!m)return false;const j=cpInj(m).find(x=>x.id===id);if(!j)return false;const r=cpTreat(m,id);if(!r.ok){toast(r.why);return false}
  toast(`${m.name}: ${j.n.toLowerCase()} treated`);renderTown(`<p class="good">The healers see to ${m.name}. ${j.n} is mended for ${r.cost} crowns.</p>`);save();return true}
-function sellItem(i){const id=G.stash.splice(i,1)[0];G.crowns+=Math.floor(ITEMS[id].price*.4);renderTown()}
+function sellItem(i){const id=G.stash.splice(i,1)[0];if(!id)return;G.crowns+=sellPrice(id);renderTown()}
 function innRest(){const cost=G.roster.length*10;if(G.crowns<cost){toast('Not enough crowns');return}G.crowns-=cost;G.roster.forEach(m=>m.hp=calc(m).hp);const d0=G.day;advanceTime(8);G.roster.forEach(m=>m.hp=calc(m).hp);const rep=cpRepair(),rt=cpRepairText(rep);let note=rt?`<p class="${rep.pts?'good':'bad'}">${rt}.</p>`:'';
  if(G.day!==d0){let msg='';try{const e=$('toast');msg=e&&typeof e.textContent==='string'?e.textContent:''}catch(e){}   // newDay() only toasts its report; the next toast would replace it
   if(msg.indexOf('Day '+G.day)===0)note=`<p class="${/desert|cannot|starves/.test(msg)?'bad':'dim'}">${msg}.</p>`+note;if(G.note==='crisis')note+='<p class="bad">Something is wrong with the sky. Word of it will meet you at the gate.</p>'}

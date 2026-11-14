@@ -29,7 +29,7 @@ const aiRngW=w=>typeof isRangedW==='function'?isRangedW(w):!!(w&&w.wt==='bow'); 
 const aiUnloaded=u=>!!(u.wpn&&u.wpn.reload&&u.loaded===false);                  // a spent crossbow or firearm in hand
 function aiLocked(u){if(typeof rangedLocked==='function')return !!rangedLocked(u);if(!aiRngW(u.wpn))return false;for(const e of B.units)if(e.side!==u.side&&aiAble(e)&&mdist(e,u)===1)return true;return false}
 let AI_LM=null,AI_LMU=null;   // per decision: tiles beside an able foe of AI_LMU (set by aiScan)
-function aiLockAt(u,k){if(u===AI_LMU&&AI_LM)return AI_LM[k]===1;const c=k%BW,r=(k/BW)|0;for(const e of B.units)if(e!==u&&e.side!==u.side&&aiAble(e)&&Math.abs(e.c-c)+Math.abs(e.r-r)===1)return true;return false}
+function aiLockAt(u,k){if(u===AI_LMU&&AI_LM)return AI_LM[k]===1;const c=k%BW,r=(k/BW)|0;for(const e of B.units)if(e!==u&&e.side!==u.side&&aiAble(e)&&fdist(c,r,u.sz||1,e)===1)return true;return false}
 // canUse as if u stood clear of every foe: a locked archer may still step away and shoot.
 // The weapon u does not hold (its sidearm, or the main weapon while the sidearm is out), as a weapon object, or null.
 function aiAltW(u){if(u.wpnAlt)return u.wpnAlt;if(u.m&&u.alt&&typeof ITEMS==='object'&&ITEMS[u.alt]&&ITEMS[u.alt].k==='w')return ITEMS[u.alt];return null}
@@ -80,19 +80,26 @@ const AI_ROLE={
      volley   archers and casters shoot the enemy's shooters first
      dodge    leave telegraphed tiles
      screen   melee stays near the back line to catch blinkers and raiders
-     lock     how much a fighter wants to stand beside a foe archer (its bow is useless while it is engaged); default .35 */
+     lock     how much a fighter wants to stand beside a foe archer (its bow is useless while it is engaged); default .35
+   Monsters update:
+     burn     fire on the fire-weak (ents): fire abilities are worth that much more against them (burning also stops their regrowth)
+     ground   roots and stuns on fliers (the wyvern): a rooted flier is Grounded and a stun breaks its dive */
 const AI_PLAN={
  gob:{hunt:{gobsham:3.5}},
  undead:{hunt:{necro:3},press:1},
  beast:{hold:1,holdR:3,tight:.2},
  orc:{outlast:1,holdR:3},
  bandit:{hunt:{blead:1.6},lock:.8,hold:1,holdR:2},
- void:{spread:1,dodge:1,hunt:{vmage:1.6}}
+ void:{spread:1,dodge:1,hunt:{vmage:1.6}},
+ serpent:{hunt:{gserp:1.5,viper:1.3},lock:.8},
+ ent:{burn:1.5,hunt:{elder:1.4}},
+ ogre:{spread:1},
+ wyvern:{dodge:1,spread:1,ground:1.5}
 };
 function aiPlan(u){const b=B;if(u.side!==0)return null;if(b.opts.plan)return b.opts.plan;return AI_PLAN[b.opts.f]||{}}
 function aiProfile(u){let role=u.role;
  if(!role){role='line';if(aiHasBow(u))role='sniper';else if(u.abs.some(id=>{const a=AB[id];return a&&a.magic&&a.rng>1&&a.cost&&u.res[a.cost[0]]&&u.res[a.cost[0]].cur>=a.cost[1]}))role='caster'}
- const P=Object.assign({role},AI_ROLE[role]||AI_ROLE.line);if(u.def&&u.def.dive)P.back=1.8;
+ const P=Object.assign({role},AI_ROLE[role]||AI_ROLE.line);if(u.def&&u.def.dive)P.back=1.8;if(u.fly&&u.side===1)P.back=Math.max(P.back,1.7);   // fliers go over the line for the casters and archers
  if(u.def&&u.def.flee&&u.hp<u.hpMax*u.def.flee)P.care*=2.5;            // the skittish hang back when hurt, but they keep fighting
  if(B.round>AI_LATE){P.care*=.3;P.shy=0}                                // a long battle: everyone presses, so it ends
  return P}
@@ -113,7 +120,7 @@ async function AI_NAIVE(u){const b=B;let sw=0;for(let n=0;n<6&&u.alive&&B===b&&!
   if(inr.length||u.rooted||u.ap<2)return;
   const want=foes.some(f=>mdist(u,f)<=atk.rng)?1:atk.rng;              // foes in range but none in sight: close in until one is
   const D=dijkstra(u,99),st=key(u.c,u.r),tl=b.tiles;let best=st,bs=1e9;
-  D.forEach((v,k)=>{const c=k%BW,r=(k/BW)|0;let dm=99;for(const f of foes){const d=Math.abs(f.c-c)+Math.abs(f.r-r);if(d<dm)dm=d}const sc=(dm>want?dm-want:0)*10+v.cost*.1+(tl[k].t==='haz'?30:0);if(sc<bs){bs=sc;best=k}});
+  D.forEach((v,k)=>{if(v.air)return;const c=k%BW,r=(k/BW)|0;let dm=99;for(const f of foes){const d=fdist(c,r,u.sz||1,f);if(d<dm)dm=d}const sc=(dm>want?dm-want:0)*10+v.cost*.1+(tl[k].t==='haz'?30:0);if(sc<bs){bs=sc;best=k}});
   if(best===st)return;await walkPath(u,pathTo(D,best));if(B!==b||!u.alive||key(u.c,u.r)===st)return;if(checkEnd())return}}
 /* Uses an ability the way the rules do. Abilities with a mechanic of their own go through foeUse(); everything
    else through useAbility(), with its hand-back to the player (afterAction) held off: the AI's turn is not over. */
@@ -129,9 +136,9 @@ function aiNoop(){}
 function aiScan(u,P,plan,S){const b=B,N=BW*BH,X=S.X||(S.X={thr:new Float32Array(N),sw:new Float32Array(N),goal:new Uint8Array(N),pv:new Float32Array(N),ps:new Int32Array(N)});
  X.u=u;X.P=P;X.plan=plan;X.at=key(u.c,u.r);X.foes=[];X.allies=[];X.adj=[];X.S=S;S.stamp=(S.stamp||0)+1;
  const lm=X.lm||(X.lm=new Uint8Array(N));lm.fill(0);AI_LM=lm;AI_LMU=u;
- for(const o of b.units){if(!o.alive)continue;if(o.side!==u.side){X.foes.push(o);if(mdist(o,u)===1)X.adj.push(o);if(o.mor!==0&&!o.st.stun)for(const [x,y] of DIRS)if(inb(o.c+x,o.r+y))lm[(o.r+y)*BW+o.c+x]=1}else if(o!==u)X.allies.push(o)}
+ for(const o of b.units){if(!o.alive)continue;if(o.side!==u.side){X.foes.push(o);if(mdist(o,u)===1)X.adj.push(o);if(o.mor!==0&&!o.st.stun)for(const [tc,tr] of unitTiles(o))for(const [x,y] of DIRS)if(inb(tc+x,tr+y)&&!occupies(o,tc+x,tr+y))lm[(tr+y)*BW+tc+x]=1}else if(o!==u)X.allies.push(o)}
  X.near=o=>{let m=99;for(const f of X.foes){const d=mdist(f,o);if(d<m)m=d}return m};
- X.nearTile=(c,r)=>{let m=99;for(const f of X.foes){const d=Math.abs(f.c-c)+Math.abs(f.r-r);if(d<m)m=d}return m};
+ const us=u.sz||1;X.nearTile=(c,r)=>{let m=99;for(const f of X.foes){const d=us===1&&(f.sz||1)===1?Math.abs(f.c-c)+Math.abs(f.r-r):fdist(c,r,us,f);if(d<m)m=d}return m};   // u standing at (c,r)
  X.frail=1+(1-u.hp/u.hpMax)*1.5;
  aiThreat(u,X);
  X.D=dijkstra(u,u.rooted?0:u.ap);
@@ -166,22 +173,23 @@ function aiThreat(u,X){const th=X.thr,sw=X.sw;th.fill(0);sw.fill(0);const armK=u
   if(e.st.stun||e.mor===0)continue;
   if(buffSum(e,'sw')&&mdist(e,u)>1)for(const [x,y] of DIRS)if(inb(e.c+x,e.r+y))sw[(e.r+y)*bw+e.c+x]+=dm*hit*armK+5;
   const d=dm*hit*armK,mv=e.rooted||e.st.root?0:Math.floor((e.apMax-(e.wpn.ap||4))/2.4),R=reach?rng+mv:rng>1?rng:1+mv,rr=reach?rng:1;
-  const r0=Math.max(0,e.r-R),r1=Math.min(bh-1,e.r+R),c0=Math.max(0,e.c-R),c1=Math.min(bw-1,e.c+R);
-  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){const m=(c>e.c?c-e.c:e.c-c)+(r>e.r?r-e.r:e.r-r);if(m>R||!m)continue;
+  const es=(e.sz||1)-1,r0=Math.max(0,e.r-R),r1=Math.min(bh-1,e.r+es+R),c0=Math.max(0,e.c-R),c1=Math.min(bw-1,e.c+es+R);
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){const m=es?tdist(c,r,e):(c>e.c?c-e.c:e.c-c)+(r>e.r?r-e.r:e.r-r);if(m>R||!m)continue;
    th[r*bw+c]+=rng>1&&!reach?d*n*.3:m<=rr?d*n:m<=rr+mv/2?d:d*.6}}}
 // Path distance (ignoring units) from every tile to the nearest foe; foes the plan hunts count as closer.
 function aiGoal(u,X){const g=X.goal,tl=B.tiles,bk=[],hunt=X.plan&&X.plan.press&&X.plan.hunt,melee=X.want<=2;g.fill(99);let any=false;
  if(hunt&&melee)for(const f of X.foes)if(hunt[f.eid]>=1.5){any=true;break}
- for(const f of X.foes){const o=any&&!(hunt[f.eid]>=1.5)?3:0;(bk[o]||(bk[o]=[])).push(key(f.c,f.r))}
+ for(const f of X.foes){const o=any&&!(hunt[f.eid]>=1.5)?3:0;for(const [c,r] of unitTiles(f))if(inb(c,r))(bk[o]||(bk[o]=[])).push(key(c,r))}
  for(let d=0;d<bk.length&&d<64;d++){const q=bk[d];if(!q)continue;for(let i=0;i<q.length;i++){const k=q[i];if(g[k]<=d)continue;g[k]=d;const c=k%BW,r=(k/BW)|0,h=tl[k].h;
    for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=nr*BW+nc;if(g[nk]<=d+1||tl[nk].t==='block'||h-tl[nk].h>1)continue;(bk[d+1]||(bk[d+1]=[])).push(nk)}}}}
 // Worth of ending on tile k (higher is better). Cached per decision.
 function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan=X.plan,t=B.tiles[k],c=k%BW,r=(k/BW)|0;
  let v=-P.care*X.thr[k]*X.frail+P.high*t.h-(t.t==='haz'?60:0);if(X.hand)v+=aiHandV(X,k);
- const g=X.goal[k]>X.want?X.goal[k]-X.want:0;
+ const sz=u.sz||1;let gk=X.goal[k];if(sz>1)for(let y=0;y<sz;y++)for(let x=0;x<sz;x++)if(inb(c+x,r+y))gk=Math.min(gk,X.goal[key(c+x,r+y)]);   // a footprint is as close as its nearest tile
+ const g=gk>X.want?gk-X.want:0;
  if(X.hold===2){const front=DEPLOY.p.front;v-=(r<front-1?(front-1-r)*7:0)}else{v-=P.adv*g;if(X.hold===1){const front=DEPLOY.p.front;if(r<front-2)v-=(front-2-r)*5}}
- if(P.shy&&X.goal[k]<=2)v-=6*(3-X.goal[k]);
- if(X.reach&&X.goal[k]===2)v+=2.5;                                      // a reach weapon likes the second rank: in reach, out of arm's length
+ if(P.shy&&gk<=2)v-=6*(3-gk);
+ if(X.reach&&gk===2)v+=2.5;                                      // a reach weapon likes the second rank: in reach, out of arm's length
  if(X.lead>=0&&r>X.lead)v-=5*(r-X.lead);
 
  let al=0,open=0,blk=0;
@@ -190,13 +198,13 @@ function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan
  let form=P.form;if(plan){if(plan.tight&&!P.shy)form+=1.6*plan.tight;if(plan.spread)form=-2.5}
  v+=form*al;if(plan&&plan.tight&&!P.shy&&open>1)v-=2.5*plan.tight*(open-1);
  if(P.shy&&blk)v+=1.2;
- if(X.tele&&X.tele.has(k))v-=90;
+ if(X.tele){if(sz>1){for(let y=0;y<sz;y++)for(let x=0;x<sz;x++)if(X.tele.has(key(c+x,r+y)))v-=90}else if(X.tele.has(k))v-=90}
  if(P.ward||(plan&&plan.screen&&!P.shy)){let m=99;for(const o of X.allies)if(o.back||o.role==='caster'||o.role==='sniper'){const d=Math.abs(o.c-c)+Math.abs(o.r-r);if(d<m)m=d}if(m<99&&m>2)v-=(P.ward?2:1.2)*(m-2)}
  X.ps[k]=X.S.stamp;return X.pv[k]=v}
 function aiStatusVal(k,n,t){const W=t.aiW||10;let v;
- if(k==='stun')v=W*1.1;else if(k==='root'||k==='webbed')v=t.wpn.rng>1||t.back?2:W*.35*Math.min(2,n);else if(k==='daze')v=W*.12;else if(k==='bleed')v=5*n;else if(k==='chill')v=W*.3;else if(k==='burn')v=6*n;else if(k==='poison')v=5*n;else if(k==='hex')v=W*.3;
+ if(k==='stun')v=W*1.1+(t.dive?W*.8:0);else if(k==='root'||k==='webbed')v=t.fly&&k==='root'?W*.5*Math.min(2,n)+(t.dive?W*.6:0):t.wpn.rng>1||t.back?2:W*.35*Math.min(2,n);else if(k==='daze')v=W*.12;else if(k==='bleed')v=5*n;else if(k==='chill')v=W*.3;else if(k==='burn')v=(6+(t.fw?8*t.fw*1.5:0)+(t.def&&t.def.regen&&!(t.st.burn>0)?t.hpMax*t.def.regen*.6:0))*n;else if(k==='poison')v=5*n;else if(k==='hex')v=W*.3;
  else if(k==='marked')v=W*.12*Math.min(2,n);else if(k==='weak')v=W*.2*Math.min(2,n)/2+2;
- else if(k==='web'||k==='grab')v=4;else v=3;
+ else if(k==='venom')v=10*n;else if(k==='web'||k==='grab'||k==='coiled'||k==='entangled')v=4;else v=3;
  return t.st[k]>0?v*.2:v}
 // What a hit with a on t is worth, from forecast(). Cached for the unit's turn.
 function aiHit(u,a,t,S){const id=a.id+'|'+t.id+'|'+t.hp+'|'+t.arm+'|'+(t.helm||0)+'|'+(t.shp||0),C=S.fc;let v=C.get(id);if(v)return v;
@@ -216,7 +224,15 @@ function aiHit(u,a,t,S){const id=a.id+'|'+t.id+'|'+t.hp+'|'+t.arm+'|'+(t.helm||0
  const kn=a.kb||u.kbN||0;if(kn&&!buffSum(t,'indom'))sv+=1.5*(a.kb?1:u.kbCh||0);
  if(a.pull&&!buffSum(t,'indom'))sv+=t.back||aiRngW(t.wpn)?W*.25:1.5;                   // a hook drags an archer or caster into reach
  if(a.scare&&!t.fearless&&t.mor>0)sv+=W*.12;
- v={v:hp+arm*.5+(1-kill)*sv,kill,kv:16+W*.7};C.set(id,v);return v}
+ const pl=S.X&&S.X.plan;let mul=1;if(pl){if(pl.burn&&t.fw&&fireAb(a))mul+=pl.burn*.5;if(pl.ground&&t.fly&&a.status&&(a.status.root||a.status.stun))sv*=1+pl.ground}   // the plan: burn the ents, ground the wyvern
+ v={v:(hp+arm*.5)*mul+(1-kill)*sv,kill,kv:16+W*.7};C.set(id,v);return v}
+/* Where a knockback from u standing at (sc,sr) would throw t, and what that is worth: thrown into one of t's friends (crash damage to
+   both), off a height (6 a step), into a hazard (12), against a wall (8). A thrown friend of u costs. Cheap: walks at most a.kb tiles. */
+function aiKbV(u,a,t,sc,sr,X){if(kbImmune(t))return 0;const s=u.sz||1,mc=sc+(s-1)/2,mr=sr+(s-1)/2;let dc=t.c-mc,dr=t.r-mr;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc)||1;dr=0}else{dr=Math.sign(dr);dc=0}
+ let c=t.c,r=t.r,v=0;const cr=a.crash||0;
+ for(let i=0;i<a.kb;i++){const nc=c+dc,nr=r+dr;if(!inb(nc,nr)){v+=4;break}const tl=B.tiles[key(nc,nr)],h=B.tiles[key(c,r)].h;if(tl.t==='block'||tl.h>h+1){v+=4;break}
+  const x=unitAt(nc,nr);if(x&&x!==u){if(x!==t)v+=cr?(x.side!==u.side?cr*1.6+4:-cr):4;break}if(h>tl.h)v+=6*(h-tl.h)*1.2+3;if(tl.t==='haz')v+=12;c=nc;r=nr}
+ return v}
 function aiPrio(X,t){const u=X.u,P=X.P,plan=X.plan;let p=1;const fo=B.aiFoc&&B.aiFoc[u.side];
  if(u.def&&u.def.pack){let n=0;for(const o of X.allies)if(o.def&&o.def.pack&&mdist(o,t)===1)n++;p+=.35*Math.min(2,n);if(t.st.harried)p+=.3;       // the pack goes for whoever a wolf already has by the leg,
   else if(!n){let s=0;for(const o of X.foes)if(o!==t&&mdist(o,t)===1)s++;if(s<2)p+=.3}}                                                         // and for prey that stands alone
@@ -250,7 +266,7 @@ function aiReloadV(u,X,a,atk){const cur=X.at,lock=!(u.flags&&u.flags.noLock)&&ai
  try{for(const t of X.foes){if(mdist(u,t)>atk.rng+2)continue;const p=aiChance(u,atk,t,cur);if(p<=0)continue;const h=aiHit(u,atk,t,X.S),w=p*(h.v+h.kill*h.kv)*aiPrio(X,t)*(mdist(u,t)<=atk.rng?1:.5);if(w>bv)bv=w}}finally{u.loaded=false}
  return lock?Math.max(3,bv*.3):now?Math.max(6,bv*.95):Math.max(6,bv*.55)}
 function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.atk,foes=X.foes;
- const tiles=[];D.forEach((v,k)=>{if(k===cur||!unitAt(k%BW,(k/BW)|0))tiles.push({k,cost:v.cost,pos:aiPos(X,k)})});
+ const tiles=[],usz1=u.sz||1;D.forEach((v,k)=>{if(v.air)return;if(k===cur||!unitAt(k%BW,(k/BW)|0))tiles.push({k,cost:v.cost,pos:aiPos(X,k)})});
  if(!tiles.some(t=>t.k===cur))tiles.push({k:cur,cost:0,pos:aiPos(X,cur)});
  tiles.sort((a,b)=>b.pos-a.pos||a.k-b.k);
  const pos0=aiPos(X,cur);let aoo=0;
@@ -276,14 +292,14 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
     const bh=a===atk?h:aiHit(u,atk,t,S);
     if(dash){if(!vt.has(key(t.c,t.r)))continue;const p=aiChance(u,a,t,cur),sp=d0>1?dashSpot(u,t):null,end=sp?key(sp[0],sp[1]):cur;
      take(p*(hv(p)+extra)-AI_RISK+follow(u.ap-a.ap,bh.v*pr*(1-p*h.kill)*.6)+aiPos(X,end)-(end!==cur?aoo*.5:0)-tax,cur,a,key(t.c,t.r));continue}
-    let cnt=0;for(const tl of tiles){const s=tl.k,sc=s%BW,sr=(s/BW)|0,dc=sc-t.c,dr=sr-t.r,m=(dc<0?-dc:dc)+(dr<0?-dr:dr);if(m>a.rng||!m)continue;
+    let cnt=0;for(const tl of tiles){const s=tl.k,sc=s%BW,sr=(s/BW)|0,dc=sc-t.c,dr=sr-t.r,m=usz1===1&&(t.sz||1)===1?(dc<0?-dc:dc)+(dr<0?-dr:dr):fdist(sc,sr,usz1,t);if(m>a.rng||!m)continue;
      if(tl.cost+a.ap>u.ap||(s!==cur&&!canWalk))continue;if(!melee&&s!==cur&&++cnt>5)continue;
-     const p=aiChance(u,a,t,s);if(p<=0)continue;const risk=AI_RISK;let ex=extra;
+     const p=aiChance(u,a,t,s);if(p<=0)continue;const risk=AI_RISK;let ex=extra;if(a.kb)ex+=aiKbV(u,a,t,sc,sr,X);
      // through: the shot flies on into foes standing behind the target, seen from s
      if(a.through){let n=0;for(const o of foes){if(o===t||n>=a.through)continue;const e=mdist(o,t);if(e<=a.through&&Math.abs(o.c-sc)+Math.abs(o.r-sr)===m+e){ex+=aiHit(u,a,o,S).v*.75*.6*aiPrio(X,o);n++}}}
      take(p*(hv(p)+ex)-risk+follow(u.ap-tl.cost-a.ap,bh.v*pr*(1-p*h.kill)*(m<=atk.rng?p:0))+tl.pos-(s!==cur?aoo+X.sw[s]:0)-tax,s,a,key(t.c,t.r))}}}
   else if(a.tgt==='aoe'){for(const tl of tiles){const s=tl.k;if(tl.cost+a.ap>u.ap||(s!==cur&&!canWalk))continue;const c=s%BW,r=(s/BW)|0;let v=0,n=0;
-    for(const t of foes){if(Math.abs(t.c-c)+Math.abs(t.r-r)!==1)continue;const h=aiHit(u,a,t,S);v+=aiChance(u,a,t,s)*(h.v+h.kill*h.kv)*aiPrio(X,t);n++}
+    for(const t of foes){if(fdist(c,r,usz1,t)!==1)continue;const h=aiHit(u,a,t,S);v+=aiChance(u,a,t,s)*((h.v+h.kill*h.kv)*aiPrio(X,t)+(a.kb?aiKbV(u,a,t,c,r,X)*(1-h.kill):0));n++}
     if(n>=2||(n&&a.foe&&s===cur&&u.ap<a.ap+atk.ap))take(v+tl.pos-(s!==cur?aoo:0)-tax,s,a,s)}}
   else if(a.tgt==='self'){let v=0;const th=X.thr[cur],own=aiOwn(u,X,atk);
    if(a.gainAP){if(X.adj.length&&u.ap<atk.ap&&u.fat+a.fat+atk.fat<=u.fatMax)v=10}
@@ -308,12 +324,13 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
    for(const k of vt){if(B.tiles[k].t==='haz')continue;let v=aiPos(X,k)-1.5-tax;if(a.buff)v+=aiBuffVal(u,a.buff,a.dur,X.thr[k],0,X,0);cand.push({k,v})}
    // a locked archer (or anyone whose weapon reaches) slips clear without free attacks and still has a shot: look one action ahead from the best few spots
    if(!AI_DBG.nomovef&&cand.length&&u.ap-a.ap>=atk.ap){cand.sort((x,y)=>y.v-x.v||x.k-y.k);for(let i=0;i<cand.length&&i<6;i++){const k=cand[i].k;let fb=0;
-     for(const t of foes){if(Math.abs(t.c-k%BW)+Math.abs(t.r-((k/BW)|0))>atk.rng)continue;const p=aiChance(u,atk,t,k);if(p>0){const h=aiHit(u,atk,t,S),w=p*(h.v+h.kill*h.kv)*aiPrio(X,t);if(w>fb)fb=w}}
+     for(const t of foes){if(fdist(k%BW,(k/BW)|0,usz1,t)>atk.rng)continue;const p=aiChance(u,atk,t,k);if(p>0){const h=aiHit(u,atk,t,S),w=p*(h.v+h.kill*h.kv)*aiPrio(X,t);if(w>fb)fb=w}}
      cand[i].v+=fb*.8}}
    for(const c of cand)take(c.v,cur,a,c.k)}}
  best.idle=!(best.a||best.s!==cur);return best}
 async function aiRun(u,P,plan){const b=B,S={fc:new Map(),X:null,stamp:0,swN:0,justSw:0};let walks=0;
  if(u.nova&&AB.tnovab){await foeUse(u,abilityInfo(u,'tnovab'),key(u.c,u.r));if(B!==b)return;b.busy=true;if(checkEnd()||!u.alive)return}
+ if(u.dive&&AB.wdiveb){await foeUse(u,abilityInfo(u,'wdiveb'),key(u.c,u.r));if(B!==b)return;b.busy=true;if(checkEnd()||!u.alive)return}   // a telegraphed dive lands first
  for(let n=0;n<AI_CAP&&u.alive&&B===b&&!b.over;n++){
   const t0=AI_CLOCK?AI_CLOCK():0;
   if(n&&u.side===0&&!u.role)P=aiProfile(u);

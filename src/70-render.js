@@ -478,8 +478,8 @@ function applyRot(dir){const cam=B.cam,k0=VIEW.rot,a=cam.x/HW,b=cam.y/HH,vc=(a+b
  VIEW.rot=(k0+dir+4)&3;viewEnsure();V=RV[VIEW.rot];setBB();const p=tpos(c,r,0);cam.x=cam.tx=p.x;cam.y=cam.ty=p.y;cam.ut=now;clampCam(cam);cam.ltx=cam.tx;cam.lty=cam.ty;
  reseatUnits();HOV.k=-1;HOV.pk=-2;OV.sig=null;OV.targets=0;HC.t=0;if(typeof fxReset==='function')fxReset();if(typeof Inspect!=='undefined'&&Inspect.visible)Inspect.hide();
  if(typeof FC!=='undefined'&&FC.t&&typeof fcPlace==='function')fcPlace()}
-function reseatUnits(){if(!B||!B.units)return;for(let i=0;i<B.units.length;i++){const u=B.units[i];if(u.c==null)continue;const p=tpos(u.c,u.r,T(u).h),v=VIS.get(u);u.sx=p.x;u.sy=p.y;
-  if(v){v.c=u.c;v.r=u.r;v.fx=v.tx=p.x;v.fy=v.ty=p.y;v.mv=false;v.lift=0;v.kx=v.ky=0;v.depth=v.pd=V.dp[key(u.c,u.r)]}}
+function reseatUnits(){if(!B||!B.units)return;for(let i=0;i<B.units.length;i++){const u=B.units[i];if(u.c==null)continue;const p=ufoot(u),v=VIS.get(u);u.sx=p.x;u.sy=p.y;
+  if(v){v.c=u.c;v.r=u.r;v.fx=v.tx=p.x;v.fy=v.ty=p.y;v.mv=false;v.lift=0;v.kx=v.ky=0;v.depth=v.pd=udepth(u,V)}}
  if(B.floats)for(const f of B.floats)if(f.u){f.x=f.u.sx;f.y=f.u.sy-52}if(B.shots)B.shots.length=0}
 function toggleHeights(){VIEW.heights=!VIEW.heights;OV.sig=null;if(B&&typeof updateBUI==='function')updateBUI()}
 
@@ -570,7 +570,7 @@ function propPaint(p,f){const q=p.cv.getContext('2d'),K=p.K;let an=false;q.setTr
  tintCanvas(p.cv);return an}
 function propFade(R,dt){const us=B.units,hk=HOV.k>=0?HOV.k:insK,st=reduced?1:dt*7;
  for(let d=0;d<ND;d++){const L=R.props[d];for(let i=0;i<L.length;i++){const k=L[i],p=propOf(k),x0=R.ax[k]-p.w/2+3,x1=R.ax[k]+p.w/2-3,y0=R.ay[k]-p.h+3,y1=R.ay[k]+2;let hid=false;
-   for(let j=0;j<us.length&&!hid;j++){const u=us[j];if(!u.alive)continue;const v=VIS.get(u);if(!v||v.depth>=d)continue;const x=u.sx/2,y=u.sy/2,top=u.def&&u.def.big?40:25;hid=x+5>x0&&x-5<x1&&y-4>y0&&y-top<y1}
+   for(let j=0;j<us.length&&!hid;j++){const u=us[j];if(!u.alive)continue;const v=VIS.get(u);if(!v||v.depth>=d)continue;const x=u.sx/2,y=u.sy/2,top=umon(u).kind?umon(u).top-6:u.def&&u.def.big?40:25;hid=x+5>x0&&x-5<x1&&y-4>y0&&y-top<y1}
    if(!hid&&hk>=0&&R.dp[hk]<d){const x=R.ax[hk],y=R.ay[hk];hid=x+8>x0&&x-8<x1&&y+3>y0&&y-3<y1}
    const ta=hid?.4:1;p.a=p.a<ta?Math.min(ta,p.a+st):Math.max(ta,p.a-st)}}}
 function drawProps(R,d){const L=R.props[d];for(let i=0;i<L.length;i++){const k=L[i],p=propOf(k);g.globalAlpha=p.a;g.drawImage(p.cv,R.ax[k]-p.ox,R.ay[k]-p.oy,p.cw,p.ch)}g.globalAlpha=1}
@@ -605,17 +605,26 @@ function pillsFlush(sc){if(!PILLQ.n)return;const P0=Math.max(1,Math.round(dpr*1.
  for(let i=0;i<PILLQ.n;i++){const c=PILLQ.c[i],P=PILLQ.s[i]?P1:P0,w=c.width*P,h=c.height*P;g.drawImage(c,Math.round(btx+PILLQ.x[i]*sc*BKX-w/2),Math.round(bty+PILLQ.y[i]*sc-h),w,h)}PILLQ.n=0}
 
 /* ---- units ---- */
+/* Footprints: a size-2 unit (u.sz 2) stands on 4 tiles; it is drawn on the middle of its footprint (ufoot), at the depth of its
+   front tile (udepth) and before the props and figures of that diagonal, so whatever stands in front of any of its tiles covers it.
+   Monsters (76-monsters.js) say how tall they are, how wide their shadow is and whether they fly (monsterInfo). */
+const usize=u=>u&&u.sz||(u&&u.def&&u.def.size>1?u.def.size:1);
+function ufoot(u){const s=usize(u);if(s===1)return tpos(u.c,u.r,T(u).h);const h=(s-1)/2;return tpos(u.c+h,u.r+h,T(u).h)}
+function udepth(u,R){const s=usize(u);if(s===1)return R.dp[key(u.c,u.r)];let d=0;for(let y=0;y<s;y++)for(let x=0;x<s;x++){const c=u.c+x,r=u.r+y;if(inb(c,r)&&R.dp[key(c,r)]>d)d=R.dp[key(c,r)]}return d}
+const UMI=new WeakMap();
+function umon(u){let m=UMI.get(u.def||u);if(m)return m;m=null;if(u.def&&typeof monsterInfo==='function'){try{const i=monsterInfo(u);if(i&&(i.kind||i.size>1||i.fly))m=i}catch(e){}}
+ if(!m)m={kind:null,size:usize(u),fly:!!(u.def&&u.def.fly),lift:u.def&&u.def.fly?8:0,top:u.def&&u.def.big?48:32,wide:u.def&&u.def.big?14:8};UMI.set(u.def||u,m);return m}
 const VIS=new WeakMap(),SOX=27,SOY=50,SPW=56,SPH=57;
-function visOf(u){let v=VIS.get(u);if(!v){const p=tpos(u.c,u.r,T(u).h),d=viewEnsure().dp[key(u.c,u.r)];v={c:u.c,r:u.r,fx:p.x,fy:p.y,tx:p.x,ty:p.y,t0:-1e9,dur:1,hop:0,lift:0,depth:d,pd:d,hp:u.hp,arm:u.arm,hpLag:u.hp,lagT:0,alive:u.alive,deadT:0,flashT:-1e9,kx:0,ky:0,
+function visOf(u){let v=VIS.get(u);if(!v){const p=ufoot(u),d=udepth(u,viewEnsure());v={c:u.c,r:u.r,fx:p.x,fy:p.y,tx:p.x,ty:p.y,t0:-1e9,dur:1,hop:0,lift:0,depth:d,pd:d,hp:u.hp,arm:u.arm,hpLag:u.hp,lagT:0,alive:u.alive,deadT:0,flashT:-1e9,kx:0,ky:0,
   burn:u.st.burn||0,chill:u.st.chill||0,stun:u.st.stun||0,root:u.st.root||0,buffs:u.buffs.length,spr:null,sil:null,sprS:0,face:u.side===0?1:-1,hitAt:0,hitDmg:0,hitArm:false,hx:0,hy:0,
   fdc:0,fdr:u.side===0?-1:1,pS:'idle',pF:0,pX:0,pY:0,pL:0,pT:null,pA:1,pFl:0,pSh:1,pD:0,show:true,gone:false,ox:0,oy:0,drawn:false};VIS.set(u,v)}return v}
 function stepUnit(u,v,dt){
- if(u.c!==v.c||u.r!==v.r){const p=tpos(u.c,u.r,T(u).h),dist=Math.abs(u.c-v.c)+Math.abs(u.r-v.r),dh=T(u).h-B.tiles[key(v.c,v.r)].h,kb=B.cur!==u,nd=V.dp[key(u.c,u.r)];
+ if(u.c!==v.c||u.r!==v.r){const p=ufoot(u),dist=Math.abs(u.c-v.c)+Math.abs(u.r-v.r),dh=T(u).h-B.tiles[key(v.c,v.r)].h,kb=B.cur!==u,nd=udepth(u,V);
   v.fx=u.sx;v.fy=u.sy;v.tx=p.x;v.ty=p.y;v.t0=now;if(HAVE.pose){u.sx=p.x;u.sy=p.y}   // with 74-anim the pose carries the slide: the unit sits on its tile at once
 v.dur=reduced?1:Math.max(45,(dist>1?230:kb?140:118)*SPEEDF);v.hop=reduced||HAVE.pose?0:kb?2:dist>1?18+dist*5:4+Math.abs(dh)*10;v.big=dist>1||Math.abs(dh)>0;
-  v.pd=Math.max(V.dp[key(v.c,v.r)],nd);if(!kb){const dc=u.c-v.c,dr=u.r-v.r;if(Math.abs(dc)>=Math.abs(dr)){v.fdc=dc<0?-1:1;v.fdr=0}else{v.fdc=0;v.fdr=dr<0?-1:1}if(p.x!==v.fx)v.face=p.x>v.fx?1:-1}
+  v.pd=Math.max(V.dp[key(v.c,v.r)]+(usize(u)-1)*2,nd);if(!kb){const dc=u.c-v.c,dr=u.r-v.r;if(Math.abs(dc)>=Math.abs(dr)){v.fdc=dc<0?-1:1;v.fdr=0}else{v.fdc=0;v.fdr=dr<0?-1:1}if(p.x!==v.fx)v.face=p.x>v.fx?1:-1}
   v.c=u.c;v.r=u.r;v.mv=true;if(typeof fxStep==='function')fxStep(u,v,kb,dist)}
- if(v.mv){const a=(now-v.t0)/v.dur;if(a>=1){u.sx=v.tx;u.sy=v.ty;v.lift=0;v.mv=false;v.depth=V.dp[key(u.c,u.r)];if(v.big&&typeof fxLand==='function')fxLand(u)}
+ if(v.mv){const a=(now-v.t0)/v.dur;if(a>=1){u.sx=v.tx;u.sy=v.ty;v.lift=0;v.mv=false;v.depth=udepth(u,V);if(v.big&&typeof fxLand==='function')fxLand(u)}
   else if(HAVE.pose)v.depth=v.pd;
   else{const e=v.hop>12?a*a*(3-2*a):a;u.sx=v.fx+(v.tx-v.fx)*e;u.sy=v.fy+(v.ty-v.fy)*e;v.lift=Math.sin(Math.PI*a)*v.hop;v.depth=v.pd}}
  if(now-v.lagT>260)v.hpLag+=(u.hp-v.hpLag)*Math.min(1,dt*5);if(v.hpLag<u.hp)v.hpLag=u.hp;
@@ -630,21 +639,25 @@ function poseTo(u,v){let p=null;if(HAVE.pose){try{p=unitPose(u)}catch(e){artFail
 const ELL={ok:false,sh:null,shB:null,r0:null,r1:null,r0B:null,r1B:null};
 function ellInit(){ELL.ok=true;ELL.sh=ellSpr(16,7,'0');ELL.shB=ellSpr(28,12,'0');ELL.r0=ellSpr(20,9,'5',1);ELL.r1=ellSpr(20,9,'g',1);ELL.r0B=ellSpr(32,14,'5',1);ELL.r1B=ellSpr(32,14,'g',1);
  const mix=(sh,rg)=>{const c=mkCanvas(rg.width,rg.height),q=c.getContext('2d');q.globalAlpha=.42;q.drawImage(sh,(rg.width-sh.width)>>1,(rg.height-sh.height)>>1);q.globalAlpha=.85;q.drawImage(rg,0,0);return c};   // shadow + side ring in one blit for a unit standing still
- ELL.c0=mix(ELL.sh,ELL.r0);ELL.c1=mix(ELL.sh,ELL.r1);ELL.c0B=mix(ELL.shB,ELL.r0B);ELL.c1B=mix(ELL.shB,ELL.r1B);return ELL}
-function unitTop(u){if(typeof unitSpriteBox==='function'){try{const b=unitSpriteBox(u);if(b&&b.h>0)return b.h}catch(e){}}return u.def&&u.def.big?48:32}
+ ELL.c0=mix(ELL.sh,ELL.r0);ELL.c1=mix(ELL.sh,ELL.r1);ELL.c0B=mix(ELL.shB,ELL.r0B);ELL.c1B=mix(ELL.shB,ELL.r1B);
+ ELL.shW=ellSpr(54,24,'0');ELL.r0W=ellSpr(62,28,'5',1);ELL.r1W=ellSpr(62,28,'g',1);ELL.c0W=mix(ELL.shW,ELL.r0W);ELL.c1W=mix(ELL.shW,ELL.r1W);return ELL}
+function unitTop(u){const mi=umon(u);if(mi.kind)return mi.top;if(typeof unitSpriteBox==='function'){try{const b=unitSpriteBox(u);if(b&&b.h>0)return b.h}catch(e){}}return u.def&&u.def.big?48:32}
 // Sprites are built on first use; warming one unit a frame at the start of a battle keeps that off the action frames.
 const WARM={b:null,i:0};
 const WARMF=[0];
 function warmSprites(){if(typeof unitSpriteWarm!=='function'||!HAVE.sprite)return;if(WARM.b!==B){WARM.b=B;WARM.i=0}if(WARM.i>=B.units.length*4)return;   // one unit, one facing a frame
- try{WARMF[0]=WARM.i&3;unitSpriteWarm(B.units[WARM.i>>2],WARMF);WARM.i++}catch(e){WARM.i=1e9}}
-function drawUnitPx(u,v){let s=null;try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}if(!s||!s.cv||!s.cv.width)return false;
- const big=u.def&&u.def.big,x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=big?E.shB:E.sh;
- if(u.alive&&v.pA>.99&&v.pSh>.99){const c=big?(u.side?E.c1B:E.c0B):u.side?E.c1:E.c0;g.drawImage(c,x-(c.width>>1),gy-(c.height>>1))}
+ try{WARMF[0]=WARM.i&3;const wu=B.units[WARM.i>>2];if(!(typeof monsterSpriteWarm==='function'&&wu.def&&monsterSpriteWarm(wu,WARMF)>=0&&umon(wu).kind))unitSpriteWarm(wu,WARMF);WARM.i++}catch(e){WARM.i=1e9}}
+function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.def){try{s=monsterSpritePx(u,v.pD,v.pS,v.pF)}catch(e){s=null}}
+ if(!s){try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}}if(!s||!s.cv||!s.cv.width)return false;
+ const mi=umon(u),wide=mi.size>1,big=!wide&&u.def&&u.def.big,x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=wide?E.shW:big?E.shB:E.sh;
+ if(mi.fly&&u.alive&&v.pL>0){const k=Math.max(.45,1-v.pL/140);g.globalAlpha=v.pA*.42;const w=Math.round(sh.width*k),h=Math.round(sh.height*k);g.drawImage(sh,x-(w>>1),gy-(h>>1),w,h);   // a flier: its shadow shrinks with height, the side ring stays on the ground
+  if(u.alive){const rg=wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
+ else if(u.alive&&v.pA>.99&&v.pSh>.99){const c=wide?(u.side?E.c1W:E.c0W):big?(u.side?E.c1B:E.c0B):u.side?E.c1:E.c0;g.drawImage(c,x-(c.width>>1),gy-(c.height>>1))}
  else{g.globalAlpha=v.pA*v.pSh*.42;g.drawImage(sh,x-(sh.width>>1),gy-(sh.height>>1));
-  if(u.alive){const rg=big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
+  if(u.alive){const rg=wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
  g.globalAlpha=v.pA;g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay)}
  if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);g.drawImage(silOf(s.cv,'r'),x-s.ax,y-s.ay)}
- g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));return true}
+ g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
 /* fallback figure (no 73-units.js): the old vector stand-in, cached at device resolution */
 function drawUnitArt(q,u){const d=u.def||{},F=u.side===1?FACT[u.f]:null,body=u.side===0?'#2f7868':F.col,skin=u.side===0?'#e3bf9c':F.skin;q.strokeStyle='#0b1514';q.lineWidth=1.5;q.lineJoin='round';
  if(d.quad){q.fillStyle=body;q.beginPath();q.ellipse(0,-9,15,9,0,0,7);q.fill();q.stroke();q.fillStyle='rgba(255,255,255,.14)';q.beginPath();q.ellipse(-3,-12,9,4,0,0,7);q.fill();q.fillStyle=skin;q.beginPath();q.arc(12,-16,6,0,7);q.fill();q.stroke()}
@@ -669,7 +682,7 @@ function drawUnitOld(u,v){const sc=(u.def&&u.def.big?1.35:1)/2,x=(u.sx+v.pX)/2,y
  g.globalAlpha=1;v.ox=Math.round(x);v.oy=Math.round(y-46*sc)}
 function drawUnit(u,v){v.drawn=true;if(HAVE.sprite&&drawUnitPx(u,v))return;drawUnitOld(u,v)}
 /* fallback overlay (no 74-anim.js): armor over health as pixel bars, status pips, a marker over the acting unit */
-const OO={cur:false,big:false,tgt:false,bars:true};
+const OO={cur:false,big:false,tgt:false,bars:true,wide:false,top:0};
 function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBarsOn();let ty=y-(u.armMax?7:5);if(bars){g.fillStyle=PAL['0'];g.fillRect(bx-1,ty-1,w+2,u.armMax?7:4);
  if(u.armMax){g.fillStyle=PAL.o;g.fillRect(bx,ty,w,2);g.fillStyle=PAL.q;g.fillRect(bx,ty,Math.ceil(w*u.arm/u.armMax),2);ty+=3}
  g.fillStyle=PAL.f;g.fillRect(bx,ty,w,2);if(v.hpLag>u.hp){g.fillStyle=PAL.e;g.fillRect(bx,ty,Math.ceil(w*Math.min(1,v.hpLag/u.hpMax)),2)}g.fillStyle=PAL[u.side?'g':'A'];g.fillRect(bx,ty,Math.ceil(w*u.hp/u.hpMax),2)}
@@ -679,7 +692,7 @@ function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBars
 // SET.allyBars false (the HUD's toggle, B): the company's HP/armor bars stay hidden; o.bars carries it to the art's overlay too
 function allyBarsOn(){return!(typeof SET==='object'&&SET&&SET.allyBars===false)&&(typeof shAllyBars!=='function'||shAllyBars())}
 function drawUnitOverlays(){const us=B.units,ab=allyBarsOn();for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;const cur=u===B.cur;
-  if(HAVE.over){OO.cur=cur;OO.big=!!(u.def&&u.def.big);OO.tgt=!!(B.targets&&B.targets.has(key(u.c,u.r)));OO.bars=ab||u.side!==0;try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
+  if(HAVE.over){OO.cur=cur;const mi=umon(u);OO.big=!!(u.def&&u.def.big)||mi.size>1;OO.wide=mi.size>1;OO.top=mi.kind?mi.top:0;OO.tgt=!!(B.targets&&unitTiles(u).some(q=>B.targets.has(key(q[0],q[1]))));OO.bars=ab||u.side!==0;try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
   drawOverlayOld(u,v,v.ox,v.oy,cur)}g.globalAlpha=1}
 
 /* ---- picking: exact against the drawn columns (tops and exposed cliff faces), front to back ---- */
@@ -687,11 +700,13 @@ function tileAtBoard(bx,by){if(!B||!B.tiles)return -1;const R=viewEnsure(),k=R.r
  for(let d=ND-1;d>=0;d--){const u=(d+u0)&1?u0+1:u0,q=vKey((d+u)>>1,(d-u)>>1,k);if(q<0)continue;const dx=x-R.ax[q],dy=y-R.ay[q]-.5,ax=dx<0?-dx:dx;if(ax>16)continue;
   if(ax/16+(dy<0?-dy:dy)/8<1)return q;if(dy>0&&dy<=8*(1-ax/16)+(dx<0?R.dl[q]:R.dr[q])*8)return q}return -1}   // upper edges are open, lower edges closed: a shared corner goes to the tile below it
 function unitAtBoard(bx,by){if(!B)return null;const R=viewEnsure(),us=B.units,x=bx/2,y=by/2;let best=null,bd=-1;
- for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const big=u.def&&u.def.big,ux=u.sx/2,uy=u.sy/2,d=R.dp[key(u.c,u.r)];if(Math.abs(x-ux)<=(big?14:8)&&y<=uy+3&&y>=uy-(big?44:28)&&d>bd){best=u;bd=d}}return best}
+ for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const mi=umon(u),v=VIS.get(u),big=u.def&&u.def.big,ux=u.sx/2,uy=u.sy/2-(v&&mi.fly?Math.round(v.pL/2):0),d=udepth(u,R),hw=mi.kind?mi.wide:big?14:8,top=mi.kind?mi.top-4:big?44:28;
+  if(Math.abs(x-ux)<=hw&&y<=uy+3+(mi.size>1?8:0)&&y>=uy-top&&d>bd){best=u;bd=d}}return best}
 // What a tap means: the unit whose figure is under the point, else the tile. A tile the acting unit could act on wins
 // over a figure standing in front of it when the point is on the figure's upper half and that figure is not a target.
 function pickAtBoard(bx,by){const k=tileAtBoard(bx,by),u=unitAtBoard(bx,by);if(!u)return k;const uk=key(u.c,u.r);if(k<0||k===uk)return uk;
- if(unitAt(k%BW,(k/BW)|0))return V.dp[k]>V.dp[uk]?k:uk;
+ if(usize(u)>1&&occupies(u,k%BW,(k/BW)|0))return k;                                                            // any tile of a big unit's footprint picks it
+ if(unitAt(k%BW,(k/BW)|0))return V.dp[k]>udepth(u,V)?k:uk;
  const act=B.sel?!!(B.targets&&B.targets.has(k)):!!(B.reach&&B.reach.has(k)&&!B.busy),uact=B.sel?!!(B.targets&&B.targets.has(uk)):u.side===1;
  return act&&!uact&&by/2<u.sy/2-12?k:uk}
 
@@ -724,6 +739,7 @@ function drawOverlays(R,d){if(R.ovOn[d])g.drawImage(R.ov[d],R.x0[d],R.y0[d]);
  const Tg=OV.Tg[d];if(Tg.length){const C=TGC[B.selKind]||TGC.move,f=ovSpr('fill',C[0]),b=ovSpr('brk',C[1]),pu=reduced?.5:(now/140|0)%6/5;g.globalAlpha=.34+(pu>.5?1-pu:pu)*.3;
   for(let i=0;i<Tg.length;i++)g.drawImage(f,R.ax[Tg[i]]-16,R.ay[Tg[i]]-8);g.globalAlpha=1;for(let i=0;i<Tg.length;i++)g.drawImage(b,R.ax[Tg[i]]-16,R.ay[Tg[i]]-8)}
  const hk=HOV.k;if(hk>=0&&R.dp[hk]===d&&hk!==HOV.dest){g.globalAlpha=.75;g.drawImage(ovSpr('brk','r'),R.ax[hk]-16,R.ay[hk]-8);g.globalAlpha=1}
+ if(hk>=0){const w=unitAt(hk%BW,(hk/BW)|0);if(w&&usize(w)>1){g.globalAlpha=.6;for(const [c,r] of unitTiles(w)){if(!inb(c,r))continue;const q=key(c,r);if(q!==hk&&R.dp[q]===d)g.drawImage(ovSpr('brk','r'),R.ax[q]-16,R.ay[q]-8)}g.globalAlpha=1}}   // hovering a big unit marks its whole footprint
  if(HOV.dest>=0&&R.dp[HOV.dest]===d){const x=R.ax[HOV.dest]-16,y=R.ay[HOV.dest]-8;g.globalAlpha=.3;g.drawImage(ovSpr('fill',HOV.hz?'E':'d'),x,y);g.globalAlpha=1;g.drawImage(ovSpr('ring2',HOV.hz?'E':'d'),x,y)}
  if(PL.k>=0&&R.dp[PL.k]===d){const x=R.ax[PL.k]-16,y=R.ay[PL.k]-8,pu=reduced?.5:(now/120|0)%8/7,a=pu>.5?1-pu:pu;g.globalAlpha=.34+a*.3;g.drawImage(ovSpr('fill',PL.hz?'E':'d'),x,y);g.globalAlpha=1;
   g.drawImage(ovSpr('ring2','0'),x,y+1);g.drawImage(ovSpr('ring2',PL.hz?'E':'d'),x,y);g.drawImage(ovSpr('ring','e'),x,y)}
@@ -762,13 +778,13 @@ function drawHitChances(){const u=B.cur;if(!u||u.side!==0||B.busy||B.auto||!u.al
                     shot can hit), the obstacle that blocks it is crossed out
      telegraphs     B.tele = [{u,n,keys}]: the tiles an attack will hit on that unit's next turn pulse in warning orange
      corpses        B.corpses = [{c,r}]: a small heap of bones, so it shows what a necromancer can raise */
-const BM={t:-1e9,R:null,los:false,blocked:false,cover:0,ff:0,n:0,k:new Int16Array(40),ty:new Uint8Array(40),u:null,tg:null,stop:-1,teleN:0,tele:[],corN:0,cor:[],spr:null};
+const BM={dv:[],dvN:0,t:-1e9,R:null,los:false,blocked:false,cover:0,ff:0,n:0,k:new Int16Array(40),ty:new Uint8Array(40),u:null,tg:null,stop:-1,teleN:0,tele:[],corN:0,cor:[],spr:null};
 for(let d=0;d<ND;d++){BM.tele.push([]);BM.cor.push([])}
 const BM_BONES=['..l....ll..','.lml..lrrl.','..lmllll0l.','.llmmlllll.','lm..lm..ml.'];
 function bmPrep(R){if(now-BM.t<140&&BM.R===R)return;BM.t=now;BM.R=R;let n=0;
  for(let d=0;d<ND;d++){BM.tele[d].length=0;BM.cor[d].length=0}
  const T=B.tele;if(T&&T.length)for(let i=0;i<T.length;i++){const x=T[i],ks=x&&x.keys;if(!ks||(x.u&&!x.u.alive))continue;for(let j=0;j<ks.length;j++){const k=ks[j];if(k>=0&&k<NT){BM.tele[R.dp[k]].push(k);n++}}}
- BM.teleN=n;n=0;
+ BM.teleN=n;n=0;BM.dvN=0;if(T&&T.length&&typeof fxDiveShadow==='function')for(let i=0;i<T.length;i++){const x=T[i],z=x&&x.u&&fxDiveShadow(x.u);if(!z)continue;const s=usize(x.u),hc=(s-1)/2;let h=0,dd=0;for(let y=0;y<s;y++)for(let c=0;c<s;c++){if(!inb(z.c+c,z.r+y))continue;const q=key(z.c+c,z.r+y);h=Math.max(h,B.tiles[q].h);dd=Math.max(dd,R.dp[q])}const p=tpos(z.c+hc,z.r+hc,h);BM.dv[BM.dvN++]={x:p.x/2,y:p.y/2,d:dd,s}}
  const C=B.corpses;if(C&&C.length)for(let i=0;i<C.length;i++){const c=C[i];if(!c||!inb(c.c,c.r))continue;const k=key(c.c,c.r);BM.cor[R.dp[k]].push(k);n++}
  BM.corN=n;BM.los=false;BM.n=0;BM.stop=-1;
  let u=null,t=null,a=null;
@@ -785,7 +801,9 @@ function bmPrep(R){if(now-BM.t<140&&BM.R===R)return;BM.t=now;BM.R=R;let n=0;
  if(BM.blocked){let bd=1e9;for(let i=0;i<BM.n;i++)if(BM.ty[i]===3){const k=BM.k[i],d=Math.abs(k%BW-u.c)+Math.abs(((k/BW)|0)-u.r);if(d<bd){bd=d;BM.stop=k}}}}
 const T_=u=>B.tiles[key(u.c,u.r)];
 function bmSpr(){if(BM.spr)return BM.spr;const S=BM.spr={bones:px(BM_BONES),x:null};const c=mkCanvas(9,9),q=c.getContext('2d');q.fillStyle=PAL['0'];for(let i=0;i<9;i++){q.fillRect(i-1,i-1,3,3);q.fillRect(7-i,i-1,3,3)}q.fillStyle=PAL.h;for(let i=1;i<8;i++){q.fillRect(i,i,1,1);q.fillRect(8-i,i,1,1)}S.x=c;return S}
-function bmDraw(R,d){const C=BM.cor[d];if(C.length){const b=bmSpr().bones;if(b)for(let i=0;i<C.length;i++)g.drawImage(b,R.ax[C[i]]-5,R.ay[C[i]]-2)}
+function bmDraw(R,d){for(let i=0;i<BM.dvN;i++){const D=BM.dv[i];if(D.d!==d)continue;const E=ELL.ok?ELL:ellInit(),pu=reduced?.5:(Math.sin(now/180)+1)/2,sh=D.s>1?E.shW:E.shB,k=.7+pu*.35;   // a dive's shadow grows and pulses on its landing tiles
+  g.globalAlpha=.32+pu*.22;const w=Math.round(sh.width*k*1.15),h=Math.round(sh.height*k*1.15);g.drawImage(sh,Math.round(D.x-w/2),Math.round(D.y-h/2),w,h);g.globalAlpha=.5;g.drawImage(sh,Math.round(D.x-sh.width*.3),Math.round(D.y-sh.height*.3),Math.round(sh.width*.6),Math.round(sh.height*.6));g.globalAlpha=1}
+ const C=BM.cor[d];if(C.length){const b=bmSpr().bones;if(b)for(let i=0;i<C.length;i++)g.drawImage(b,R.ax[C[i]]-5,R.ay[C[i]]-2)}
  const Tl=BM.tele[d];if(Tl.length){const f=ovSpr('fill','E'),b=ovSpr('dash','y'),b2=ovSpr('ring','K'),ph=reduced?2:(now/110|0)%8,pu=ph<4?ph:8-ph;g.globalAlpha=.2+pu*.085;
   for(let i=0;i<Tl.length;i++)g.drawImage(f,R.ax[Tl[i]]-16,R.ay[Tl[i]]-8);g.globalAlpha=1;for(let i=0;i<Tl.length;i++){g.drawImage(b2,R.ax[Tl[i]]-16,R.ay[Tl[i]]-8);g.drawImage(b,R.ax[Tl[i]]-16,R.ay[Tl[i]]-8-(pu>2?1:0))}}
  if(BM.los)for(let i=0;i<BM.n;i++){const k=BM.k[i];if(R.dp[k]!==d)continue;const ty=BM.ty[i],x=R.ax[k]-16,y=R.ay[k]-8,col=ty===3?'g':ty===2?'h':'y';g.globalAlpha=.3;g.drawImage(ovSpr('fill',col),x,y);g.globalAlpha=1;g.drawImage(ovSpr('ring2',col),x,y)}}
@@ -821,13 +839,14 @@ function drawBattle(dt){dt=dt||0;const cam=B.cam;if(!HAVE.init)haveInit();let R=
  if(now-TN.at>1000){TN.at=now;if(tintRefresh()){viewBuild();R=V}}
  updateBattleCam(dt);g.imageSmoothingEnabled=false;drawSky();stripsEnsure(R);animTick(R);warmSprites();planPrep();buildOverlays(R);pathPrep(R);bmPrep(R);
  for(let d=0;d<ND;d++)DU[d].length=0;
- for(let i=0;i<B.units.length;i++){const u=B.units[i],v=visOf(u);v.drawn=false;if(u.alive)stepUnit(u,v,dt);else if(!v.deadT)v.deadT=now;poseTo(u,v);if(v.show)DU[clamp(u.alive?v.depth:R.dp[key(u.c,u.r)],0,ND-1)].push(u)}
+ for(let i=0;i<B.units.length;i++){const u=B.units[i],v=visOf(u);v.drawn=false;if(u.alive)stepUnit(u,v,dt);else if(!v.deadT)v.deadT=now;poseTo(u,v);if(v.show){const L=DU[clamp(u.alive?v.depth:udepth(u,R),0,ND-1)];if(usize(u)>1)L.unshift(u);else L.push(u)}}
  if(typeof fxScan==='function')fxScan(dt);
  const sc=cam.z===cam.zt?cam.s:cam.z*2*dpr,sx=typeof fxShakeX==='function'?fxShakeX():0,sy=typeof fxShakeY==='function'?fxShakeY():0;
  const btx0=Math.round(dpr*(VC.x+sx)-cam.x*sc/2);bty=Math.round(dpr*(VC.y+sy)-cam.y*sc/2);btx=BKX!==1?Math.round(dpr*VC.x*(1-BKX)+btx0*BKX):btx0;
  tfArt();propFade(R,dt);const vy0=-bty/sc-2,vy1=(cv.height-bty)/sc+2;
  for(let d=0;d<ND;d++){if(R.y0[d]<vy1&&R.y0[d]+R.h[d]>vy0){g.drawImage(R.cv[d],R.x0[d],R.y0[d],R.w[d],R.h[d]);drawOverlays(R,d)}
-  if(R.props[d].length)drawProps(R,d);const L=DU[d];for(let i=0;i<L.length;i++)drawUnit(L[i],VIS.get(L[i]))}
+  const L=DU[d];let i=0;for(;i<L.length&&usize(L[i])>1;i++)drawUnit(L[i],VIS.get(L[i]));   // a big unit first: props and figures in front of its tiles cover it
+  if(R.props[d].length)drawProps(R,d);for(;i<L.length;i++)drawUnit(L[i],VIS.get(L[i]))}
  drawUnitOverlays();drawPlan(R);drawPathPreview(R);bmLine(R);drawHitChances();pillsFlush(sc);
  btx=btx0;g.setTransform(sc/2,0,0,sc/2,btx,bty);g.imageSmoothingEnabled=true;if(typeof fxDraw==='function')fxDraw(dt);   // effects: board space (1 unit = half an art pixel), never squashed
  g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';if(typeof fxAmbient==='function')fxAmbient(B.bk,dt);drawVignette(.8)}

@@ -290,8 +290,8 @@ function waBlob(P,lobes,fn){const fl=P.flat;for(let y=0;y<P.h;y++)for(let x=0;x<
   const lx=-(x-L[0])/L[2]*.55-(y-L[1])/(L[3]||L[2])*.8;const k=fn(x,y,lx);if(k)P.p(x,y,k)}P.flat=fl}
 function waGround(P,cx,cy,rx,ry,k,k2){const fl=P.flat;P.flat=true;P.ell(cx,cy,rx,ry,(x,y,a,b)=>{const e=a*a+b*b,h=waHash(x,y,77);return e<.55||h<(1-e)*1.6?(k2&&h>.8?k2:k):null});P.flat=fl}
 
-const WASITE={town1:{w:34,h:24},town2:{w:44,h:36},town3:{w:56,h:48},lair:{w:36,h:30},ruin:{w:34,h:28},portal:{w:30,h:40}};
-function waSiteDim(o){return o.kind==='town'?WASITE['town'+clamp(o.size|0||1,1,3)]:WASITE[o.kind]||WASITE.ruin}
+const WASITE={town1:{w:34,h:24},town2:{w:44,h:36},town3:{w:56,h:48},lair:{w:36,h:30},eyrie:{w:40,h:52},ruin:{w:34,h:28},portal:{w:30,h:40}};
+function waSiteDim(o){if(o.kind==='lair'&&o.f==='wyvern')return WASITE.eyrie;return o.kind==='town'?WASITE['town'+clamp(o.size|0||1,1,3)]:WASITE[o.kind]||WASITE.ruin}
 function siteBoxPx(o){const d=waSiteDim(o||{});return{w:d.w,h:d.h}}
 function waTown(P,size,night,f){const W=P.w,B=P.h-3,o=(a)=>Object.assign({night},a),R=WARAMP,WL=WAWALL;
  if(size<=1){waGround(P,17,B-2,15,5,'k','j');
@@ -358,6 +358,31 @@ function waLair(P,fk,night,f){const B=P.h-3,R=WARAMP;
   waTent(P,9,B-1,6,9,['l','m','n']);P.s(28,B-3,['kjk','jij','kjk']);P.s(31,B-4,['.jj.','jkji','jkji','.ii.']);P.s(14,B-2,['.jj.','jkji','.ii.']);
   for(let x=1;x<5;x++){P.r(x,B-4-(x&1),1,5+(x&1),x&1?'j':'k')}
   waFire(P,17,B,f);P.outline()}
+
+ else if(fk==='serpent'){waGround(P,18,B-1,17,5,'k','j');
+  P.ell(18,B-2,10,4.2,(x,y,a,b)=>{const e=a*a+b*b;return e>.72?(waHash(x,y,5)<.5?'p':'o'):e>.4?'1':'0'});
+  for(const r of [[7,B-2],[29,B-3],[11,B+1],[25,B+1]])P.s(r[0]-1,r[1]-1,['.pq','opp','.o.']);
+  P.s(12,B-9,['..jj.','.jkk0','.j...','.jk..','..jk.']);P.s(20,B-11,['..bb.','.bccE','.b...','.bc..','.bc..','..bc.']);
+  P.s(1,B-8,['.w.v','.wvw','w.wv','.ww.','.w..','.w..','.w..']);P.s(31,B-9,['v.w.','wvw.','vw.w','.ww.','..w.','..w.','..w.','..w.']);
+  P.s(26,B-1,['lll','l0l']);P.outline();const fl=P.flat;P.flat=true;if(night||(f&4)){P.p(15,B-8,'g');P.p(23,B-10,'E')}P.flat=fl}
+ else if(fk==='ent'){waGround(P,18,B-1,17,5,'B','w');
+  const tree=(cx,by,r,ry,face)=>{P.r(cx-1,by-8,3,9,'i');P.p(cx-2,by,'i');P.p(cx+2,by,'i');P.p(cx+1,by-6,'j');
+   P.ell(cx,by-9-ry,r,ry,(x,y,a,b)=>{const l=-a*.6-b*.8+(waHash(x,y,7)-.5)*.5;return l>.6?'v':l>.1?'w':'B'});if(face){P.p(cx-1,by-5,night||(f&4)?'y':'0');P.p(cx+1,by-5,night||(f&4)?'y':'0');P.p(cx,by-3,'0')}};
+  tree(8,B-1,6,5,0);tree(28,B-1,6,5,0);tree(18,B+1,8,7,1);
+  P.s(4,B,['.g.','glg','.l.']);P.s(30,B+1,['.g.','gmg','.m.']);P.s(13,B+1,['jj.','.jj']);P.outline();
+  const fl=P.flat;P.flat=true;for(let i=0;i<4;i++){const ph=(f+i*2)&7;P.p(6+i*8+(ph&1),B-12-ph,ph<5?'A':'B')}P.flat=fl}
+ else if(fk==='ogre'){waGround(P,18,B-1,17,5,'j','i');
+  waTent(P,12,B-1,9,12,WARAMP.hide);P.r(10,B-5,4,5,'0');
+  P.r(29,B-16,1,16,'i');P.s(27,B-20,['.lll.','ll0ll','.l0l.','..l..']);P.s(25,B-12,['l...l','.l.l.']);
+  P.ell(23,B-3,3.5,3,(x,y,a,b)=>b<-.4?'o':'G');P.p(21,B-6,'o');P.p(25,B-6,'o');waFire(P,23,B+1,f);
+  P.s(2,B,['ll.lll','.lmll.']);P.s(31,B+1,['kjk','jij']);P.outline();const fl=P.flat;P.flat=true;waSmoke(P,23,B-8,f,'q');P.flat=fl}
+ else if(fk==='wyvern'){waGround(P,20,B-1,18,5,'p','o');
+  const cr=[[20,B-34,5],[19,B-28,7],[20,B-20,9],[20,B-12,11],[20,B-5,13]];   // the crag: a rock spire, lit from the left
+  for(let y=B-36;y<=B;y++){const t=(y-(B-36))/36,hw=Math.round(3+t*11+(waHash(y,1,51)-.5)*2),xo=Math.round(Math.sin(y*.4)*1.2);for(let x=-hw;x<=hw;x++){const k=x<-hw*.4?'q':x>hw*.4?'o':'p';P.p(20+x+xo,y,waHash(x,y,52)<.12?'o':k)}}
+  for(let i=0;i<6;i++)P.p(14+i*2,B-26+(i&1)*7,'n');
+  P.r(15,B-37,11,2,'j');P.r(14,B-36,13,1,'k');P.p(18,B-38,'l');P.p(20,B-38,'l');P.p(19,B-39,'m');   // the nest, eggs in it
+  const up=(f>>1)&1;P.s(19,B-46-up,up?['f......','Kf.....','KKf....','KKKggg0','.ggggg.','g..g.g.']:['.......','.......','fffKgg0','KKKgggg','.KKgg..','g..g.g.']);
+  P.s(5,B-1,['l.l','lll']);P.s(30,B,['ll.l','.lll']);P.outline()}
  else{waGround(P,18,B-1,17,5,'D','G');const a=f&3;
   waBlob(P,[[18,B-8,9,8],[9,B-4,6,5],[27,B-4,6,5]],(x,y,l)=>{if(y>B)return null;const h=waHash(x,y,21);l+=(h-.5)*.4;return l>.85?'C':l>.2?'D':'G'});
   for(const s of [[14,B-15,5,-1],[19,B-16,8,0],[24,B-13,5,1],[7,B-8,4,-1],[29,B-8,4,1]])for(let j=0;j<s[2];j++){const x=s[0]+Math.round(s[3]*j*.4);P.p(x,s[1]-j,j===s[2]-1?'r':'C');if(j<s[2]-2)P.p(x+1,s[1]-j,'D')}
@@ -420,10 +445,36 @@ function waBandPaint(P,fk,k,f,moving,co){const B=P.h-4,cx=P.w>>1,F=WAFIG[fk];
   const wp=co?['spear','sword','bow','shield'][i]:(i===bi&&n>1?null:F.wpn);if(wp&&!(i===bi&&n===1&&co))waWeapon(P,wp,bx);
   if(co&&i===0){P.p(bx.x0+3,bx.y-1,'6');P.p(bx.x0+2,bx.y-2,'6');P.p(bx.x0+1,bx.y-2,'5')}});
  P.outline()}
+
+/* ---- the monster factions (monsterart): serpents, ents, ogres, wyverns. Bands are drawn here; their figures face right ---- */
+const WAMON={
+ adder:{b:['......HH.','.....HjkH','.H..Hj...','HjHHj....'],la:[],lb:[]},
+ adder2:{b:['.......HH.','......Hjk0','..HH.Hj...','HjjjHj....'],la:[],lb:[]},
+ gserp:{b:['...bbb..','..bccbE.','..bc.b..','..bc....','...bc...','....bc..','.bbbbcb.','bcccdcb.','.bbbbbb.'],la:[],lb:[]},
+ ent:{b:['...BvvB....','.BvvAvvvB..','BvAvvvvAvB.','.BvvvBvvB..','...jjjj....','..jkyjyj...','.j.jkjj.j..','j..jkjj..j.','...jkjj....'],la:['...jj.jj...','..jj...jj..'],lb:['...jjjj....','...jj.jj...']},
+ elder:{b:['..ddcddcd...','.dcddcddcd..','dcdcddcdcdc.','.ddcdddcd...','...oooo.....','..onzozo....','.o.onoo.o...','o..onoo..o..','...onmmo....','...onmmo....'],la:['...oo.oo....','..oo...oo...'],lb:['...oooo.....','...oo.oo....']},
+ thorn:{b:['.vAv.','vvgvv','.vjv.','..j..','.jkj.'],la:['.j.j.'],lb:['..jj.']},
+ ogre:{b:['....ttt....','...tt0t0...','...ttttt...','..utttttu..','.uttttttu..','.ut.ttt.tu.','.u..jjj..u.','....jij....'],la:['....t.t....','...uu.uu...'],lb:['...t...t...','..uu...uu..']},
+ aogre:{b:['..l.....l..','...lpppl...','...prrpp...','..oppppqo..','.oppqqqppo.','.op.ppp.po.','.o..jjj..o.','....jij....'],la:['....o.o....','...GG.GG...'],lb:['...o...o...','..GG...GG..']}};
+const WAWYV=[['..f.............f..','..fK...........Kf..','...fK.........Kf...','...fKK.......KKf...','....fKK.....KKf....','....fKKg...gKKf....','.....fKggggggKf.hh.','..gg..ggggggggggge0','.g..gggggg.........','g....l..l..........'],
+ ['...................','...................','...................','................hh.','......ggggggggggge0','..gg.gggggggggg....','.g..fKKgggggKKf....','g..fKKK.l.l.KKKf...','..fKK.........KKf..','..f.............f..']];
+function waMonFig(P,F,x,by,step,up,flip){const n=F.b[0].length,h=F.b.length+F.la.length,y=by-h+1-up,x0=x-(n>>1);P.s(x0,y,F.b,flip);if(F.la.length)P.s(x0,y+F.b.length,step?F.lb:F.la,flip);return{x0,y,w:n}}
+function waClub(P,B,iron){const x=B.x0+B.w,y=B.y+3;for(let j=0;j<6;j++)P.p(x-(j>>2),y+j,'j');P.p(x,y-1,iron?'p':'k');P.p(x+1,y-1,iron?'p':'k');P.p(x,y-2,iron?'q':'k');P.p(x+1,y-2,iron?'p':'j');P.p(x+1,y,iron?'o':'j')}
+function waMonBand(P,fk,k,f,moving){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,up=i=>moving&&((f+i)&3)===1?1:0;
+ if(fk==='serpent'){const L=k>=3?[['gserp',cx+2,B-1],['adder',cx-10,B+1],['adder2',cx+12,B+2]]:k===2?[['adder',cx-6,B],['adder2',cx+5,B+2]]:[['adder2',cx,B+1]];
+  L.forEach((e,i)=>{const F=WAMON[e[0]];waMonFig(P,F,e[1]+(moving&&(f+i)&1?1:0),e[2],0,0)})}
+ else if(fk==='ent'){const L=k>=3?[['elder',cx+1,B],['thorn',cx-11,B+1],['thorn',cx+12,B+2]]:k===2?[['ent',cx-4,B],['thorn',cx+8,B+2]]:[['ent',cx,B]];
+  L.forEach((e,i)=>waMonFig(P,WAMON[e[0]],e[1],e[2],st(i),0))}
+ else if(fk==='ogre'){const L=k>=3?[['aogre',cx+2,B],['ogre',cx-9,B+1],['gob',cx+13,B+2]]:k===2?[['ogre',cx-5,B],['ogre',cx+7,B+2]]:[['ogre',cx,B]];
+  L.forEach((e,i)=>{if(e[0]==='gob'){const b=waFigure(P,WAFIG.gob,e[1],e[2],st(i),up(i));waWeapon(P,'spear',b);return}const b=waMonFig(P,WAMON[e[0]],e[1],e[2],st(i),up(i));waClub(P,b,e[0]==='aogre')})}
+ else if(fk==='wyvern'){const fl=f&1,hv=(f>>1)&1,W=WAWYV[fl];const fl2=P.flat;P.flat=true;P.ell(cx,B,9,2,()=>'0');P.flat=fl2;   // its shadow on the ground, then the wyvern on the wing above it
+  P.s(cx-10,B-18-hv,W,false);if(k>=2){const h2=WAWYV[1-fl].map(r=>r.slice(10));P.s(cx-14,B-8+hv,['.gg.','gKKg','.ggg']);if(k>=3)P.s(cx+9,B-6-hv,['.gg.','gKKg','.ggg'])}}
+ P.outline()}
 function waBandSprite(fk,k,f,dir,moving,co){const key='band'+fk+'|'+(co?co.k+'.'+co.fs+(co.bn?'.'+co.bn.sig:''):k)+'|'+(f&3)+'|'+(dir<0?0:1)+'|'+(moving?1:0),w=co?48:40,h=co?38:30;
- return waSprite(key,w,h,w>>1,h-3,P=>{waBandPaint(P,fk,k,f&3,moving,co);if(dir<0)P.mirror()})}
-function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const fk=WAFIG[o.f]||o.f==='beast'?o.f:'bandit',k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,s=waBandSprite(fk,k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),null);
- waShadow(q,x,y,fk==='beast'?12+k*5:8+k*7,5);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
+ return waSprite(key,w,h,w>>1,h-3,P=>{if(WAMONF[fk])waMonBand(P,fk,k,f&3,moving);else waBandPaint(P,fk,k,f&3,moving,co);if(dir<0)P.mirror()})}
+const WAMONF={serpent:1,ent:1,ogre:1,wyvern:1};
+function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const fk=WAFIG[o.f]||o.f==='beast'||WAMONF[o.f]?o.f:'bandit',k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,s=waBandSprite(fk,k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),null);
+ if(fk!=='wyvern')waShadow(q,x,y,fk==='beast'||fk==='serpent'?12+k*5:fk==='ogre'||fk==='ent'?11+k*7:8+k*7,5);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
 /* the company banner (G.banner {c1,c2,emblem}, 46-banner.js): a waving flag in the field colour c1, a c2 border and the emblem shrunk to fit.
    Absent (old saves, no banner module): the brass and verdigris pennant as before. Recomputed only when the banner changes. */
 const WABN={sig:null,v:null};

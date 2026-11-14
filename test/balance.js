@@ -8,11 +8,15 @@
 // Prints: the balance table, the tactic ablation table (each faction's answer removed from the sensible pilot),
 // the plan-against-faction matrix, and the AI's measured decision cost. Exits non-zero when
 //   overall naive >= 50% or overall sensible <= 80%, or any faction has naive > 65% or sensible < 65%.
+// Monsters update: the mid-game monster factions (MONF) are fought only at the profiles where the game lets them roam (factionPool at the
+// profile's companyPower and day) and must also average naive < 50% and sensible > 80% there; mean battle length must stay under 12.5
+// rounds. The wyvern (end-game) is a table of its own: a lone wyvern at L8x9 and L12x12 (--no-wyvern skips it); a sensible L12x12
+// company must win 45..80% and a naive one at most 30%.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
 const SRC=ARGV.includes('--srcdir')?path.resolve(ARGV[ARGV.indexOf('--srcdir')+1]):path.join(__dirname,'..','src'),SEED=+arg('--seed',20261113),TURNCAP=4000;
-const FACS=['gob','undead','beast','orc','bandit','void'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8;
+const FACS=['gob','undead','beast','orc','bandit','void'],MONF=['serpent','ent','ogre'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8;
 /* ---------- company profiles ---------- */
 // role -> level-up stat picks and gear by tier [L4, L8, L12] (b: the sidearm). Perks are spent by the game's own autoLearn(m)
 // on the trees the merc rolled from its background pool, after the gear is on (autoLearn reads the weapons and the shield).
@@ -96,7 +100,7 @@ function buildCompany(X,P,seed){X.seedRng(seed);X.newGame(true);closeAll(X);cons
 const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
 async function battle(X,W,job,i){const P=PROFILES.find(p=>p.id===job.prof),G=X.G;G.roster=X.clone(W.comp[P.id][i%KCOMP]);G.stash=[];G.day=P.day;X.B=null;X.mode='world';
  X.seedRng((hash(job.f+'|'+P.id)^Math.imul(i+1,2654435761)^SEED)>>>0);
- const o={f:job.f,mult:1,biome:BIOMES[i%BIOMES.length],pilot:job.pilot,src:{type:'test'},turnCap:TURNCAP};if(job.plan)o.plan=job.plan;if(job.fixed)o.fixed=job.fixed;
+ const o={f:job.f,mult:1,biome:BIOMES[i%BIOMES.length],pilot:job.pilot,src:{type:'test'},turnCap:TURNCAP};if(job.plan)o.plan=job.plan;if(job.fixed)o.fixed=job.fixed;if(job.foes)o.foes=job.foes;
  const n0=G.roster.length,res=await X.autoBattle(o);if(!res)throw new Error('battle did not start');
  if(X.FX.err)throw X.FX.err;
  const b=X.B,foes=b?b.units.filter(u=>u.side===1&&!u.spawned).length:0;
@@ -114,7 +118,7 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  process.on('message',m=>{if(m==='quit')process.exit(0);q.push(m);pump()});return}
 /* ---------- main ---------- */
 (async()=>{const QUICK=has('--quick'),N=+arg('--n',QUICK?40:200),NA=+arg('--na',Math.max(20,Math.round(N/2))),J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length)));
- const only=arg('--only',null),facs=only?only.split(','):FACS,profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
+ const only=arg('--only',null),facs=only?only.split(',').filter(f=>f!=='wyvern'):FACS.concat(MONF),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
  const X0=makeContext(),PLAN=JSON.parse(JSON.stringify(X0.AI_PLAN)),FACT=X0.FACT;
  /* The tactics the sensible pilot is run without, one at a time: name -> what to strip from a plan. */
  const TACTICS={
@@ -125,16 +129,27 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
   'kill the chief':p=>{if(p.hunt)delete p.hunt.blead},
   'spread out':p=>{delete p.spread},
   'hunt the weavers':p=>{if(p.hunt)delete p.hunt.vmage},
-  'engage the archers':p=>{if(p.lock!=null)p.lock=0}
+  'engage the archers':p=>{if(p.lock!=null)p.lock=0},
+  'kill the great serpent':p=>{if(p.hunt){delete p.hunt.gserp;delete p.hunt.viper}},
+  'burn the ents':p=>{delete p.burn},
+  'dodge the dive':p=>{delete p.dodge},
+  'pin its wings':p=>{delete p.ground}
  };
- const jobs=[];let jid=0;const add=(kind,f,prof,pilot,n,plan,tag,fixed)=>{const j={id:jid++,kind,f,prof,pilot,n,plan:plan||null,tag:tag||null,fixed:fixed||null};jobs.push(j);return j};
- for(const f of facs)for(const p of profs)for(const pilot of ['naive','sensible'])add('main',f,p,pilot,N);
+ // where the game lets each monster faction roam: the profiles whose company power and day put it in factionPool
+ const roams={};{const Xp=X0;for(const P of PROFILES){const ros=buildCompany(Xp,P,SEED+hash(P.id)%9973),pw=Xp.companyPower(ros),pool=Xp.factionPool({power:pw,day:P.day,crisis:false});P.power=pw;for(const e of pool)(roams[e.f]||(roams[e.f]=[])).push(P.id)}}
+ const profOf=f=>MONF.includes(f)||f==='wyvern'?profs.filter(p=>(roams[f]||[]).includes(p)):profs;
+ const jobs=[];let jid=0;const add=(kind,f,prof,pilot,n,plan,tag,fixed,foes)=>{const j={id:jid++,kind,f,prof,pilot,n,plan:plan||null,tag:tag||null,fixed:fixed||null,foes:foes||null};jobs.push(j);return j};
+ for(const f of facs)for(const p of profOf(f))for(const pilot of ['naive','sensible'])add('main',f,p,pilot,N);
  const AP=arg('--aprof','L4x6,L8x9,L12x12').split(',').filter(p=>profs.includes(p)||arg('--prof',null)==null);
- if(!has('--no-abl'))for(const t in TACTICS)for(const f of facs){const p=JSON.parse(JSON.stringify(PLAN[f]||{})),before=JSON.stringify(p);TACTICS[t](p);if(JSON.stringify(p)===before)continue;for(const pr of AP){add('abl',f,pr,'sensible',NA,p,t);add('ablbase',f,pr,'sensible',NA,null,t)}}
- if(!has('--no-cross'))for(const f of facs)for(const g of FACS){for(const pr of AP)add('cross',f,pr,'sensible',NA,PLAN[g],g)}
+ if(!has('--no-abl'))for(const t in TACTICS)for(const f of facs){const p=JSON.parse(JSON.stringify(PLAN[f]||{})),before=JSON.stringify(p);TACTICS[t](p);if(JSON.stringify(p)===before)continue;for(const pr of AP.filter(x=>profOf(f).includes(x))){add('abl',f,pr,'sensible',NA,p,t);add('ablbase',f,pr,'sensible',NA,null,t)}}
+ const CROSS=FACS.concat(MONF);if(!has('--no-cross'))for(const f of facs)for(const g of (MONF.includes(f)?CROSS:FACS)){for(const pr of AP.filter(x=>profOf(f).includes(x)))add('cross',f,pr,'sensible',NA,PLAN[g],g)}
+ const WYV=has('--no-wyvern')||(only&&!only.split(',').includes('wyvern'))?[]:['L8x9','L12x12'].filter(p=>PROFILES.some(q=>q.id===p));
+ const NW=+arg('--nw',Math.max(40,Math.round(N/2))),WABL={'dodge the dive':'dodge','pin its wings':'ground','spread out':'spread','no plan at all':'*'};
+ for(const pr of WYV)for(const pilot of ['naive','sensible'])add('wyv','wyvern',pr,pilot,NW,null,null,null,['wyvern']);
+ if(!has('--no-abl')&&WYV.includes('L12x12'))for(const t in WABL){const p=JSON.parse(JSON.stringify(PLAN.wyvern||{}));if(WABL[t]==='*')for(const k in p)delete p[k];else delete p[WABL[t]];add('wyvabl','wyvern','L12x12','sensible',NW,p,t,null,['wyvern'])}
  if(has('--boss'))for(const pr of ['L8x9','L12x12'])for(const pilot of ['naive','sensible'])add('boss','void',pr,pilot,NA,null,null,['tyrant']);
  // identical jobs (same battles) are run once
- const sig=j=>[j.f,j.prof,j.pilot,j.n,JSON.stringify(j.plan&&JSON.stringify(j.plan)!==JSON.stringify(PLAN[j.f])?j.plan:null),JSON.stringify(j.fixed)].join('|'),uniq=new Map();
+ const sig=j=>[j.f,j.prof,j.pilot,j.n,JSON.stringify(j.plan&&JSON.stringify(j.plan)!==JSON.stringify(PLAN[j.f])?j.plan:null),JSON.stringify(j.fixed),JSON.stringify(j.foes)].join('|'),uniq=new Map();
  for(const j of jobs){const s=sig(j);if(!uniq.has(s))uniq.set(s,{job:j,res:null})}
  const todo=[...uniq.values()].sort((a,b)=>b.job.n*PROFILES.findIndex(p=>p.id===b.job.prof)-a.job.n*PROFILES.findIndex(p=>p.id===a.job.prof));
  console.log(`balance: ${todo.length} cells, ${todo.reduce((s,t)=>s+t.job.n,0)} battles, ${J} workers, seed ${SEED}, BUDGETK ${X0.BUDGETK}`);
@@ -150,16 +165,17 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  console.log('\n== even fights: faction x company profile ==');
  console.log(pad('faction',16)+pad('profile',8)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('rounds',8)+lp('lost(n)',9)+lp('lost(s)',9)+lp('down(s)',9));
  const tot={n:0,s:0,c:0,rounds:0},byF={};let stuck=0,ai={n:0,ms:0,max:0},bad=[];
- for(const f of facs){byF[f]={n:0,s:0,c:0};for(const p of profs){const a=R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='sensible'));
+ for(const f of facs){byF[f]={n:0,s:0,c:0};for(const p of profOf(f)){const a=R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='sensible'));
    stuck+=a.stuck+b.stuck;const rounds=(a.rounds+b.rounds)/(a.n+b.n);
    console.log(pad(FACT[f].n,16)+pad(p,8)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1(rounds),8)+lp((a.dead/a.n).toFixed(2),9)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9));
    byF[f].n+=pct(a);byF[f].s+=pct(b);byF[f].c++;tot.n+=pct(a);tot.s+=pct(b);tot.c++;tot.rounds+=rounds}}
  for(const t of uniq.values())if(t.res){ai.n+=t.res.ai.n;ai.ms+=t.res.ai.ms;ai.max=Math.max(ai.max,t.res.ai.max)}
  console.log('\n== by faction ==');
- for(const f of facs){const n=byF[f].n/byF[f].c,s=byF[f].s/byF[f].c;console.log(pad(FACT[f].n,16)+lp('naive '+f1(n)+'%',14)+lp('sensible '+f1(s)+'%',18)+(n>65?'   NAIVE TOO HIGH':'')+(s<65?'   SENSIBLE TOO LOW':''));if(n>65)bad.push(FACT[f].n+': naive '+f1(n)+'% > 65%');if(s<65)bad.push(FACT[f].n+': sensible '+f1(s)+'% < 65%')}
+ for(const f of facs){if(!byF[f].c){console.log(pad(FACT[f].n,16)+'   (roams at none of these profiles)');continue}const n=byF[f].n/byF[f].c,s=byF[f].s/byF[f].c,mon=MONF.includes(f);console.log(pad(FACT[f].n,16)+lp('naive '+f1(n)+'%',14)+lp('sensible '+f1(s)+'%',18)+(mon?'   ('+profOf(f).join(' ')+')':'')+(n>65?'   NAIVE TOO HIGH':'')+(s<65?'   SENSIBLE TOO LOW':''));if(n>65)bad.push(FACT[f].n+': naive '+f1(n)+'% > 65%');if(s<65)bad.push(FACT[f].n+': sensible '+f1(s)+'% < 65%');
+  if(mon&&n>=50)bad.push(FACT[f].n+': naive '+f1(n)+'% >= 50% where it roams');if(mon&&s<=80)bad.push(FACT[f].n+': sensible '+f1(s)+'% <= 80% where it roams')}
  const on=tot.n/tot.c,os_=tot.s/tot.c;
  console.log(`\nOVERALL  naive ${f1(on)}%   sensible ${f1(os_)}%   mean rounds ${f1(tot.rounds/tot.c)}   (${N} battles per cell and pilot)`);
- if(on>=50)bad.push('overall naive '+f1(on)+'% >= 50%');if(os_<=80)bad.push('overall sensible '+f1(os_)+'% <= 80%');if(stuck)bad.push(stuck+' battles hit the turn cap');
+ if(on>=50)bad.push('overall naive '+f1(on)+'% >= 50%');if(os_<=80)bad.push('overall sensible '+f1(os_)+'% <= 80%');if(tot.rounds/tot.c>12.5)bad.push('mean battle length '+f1(tot.rounds/tot.c)+' rounds > 12.5');if(stuck)bad.push(stuck+' battles hit the turn cap');
  /* ---- ablation ---- */
  if(jobs.some(j=>j.kind==='abl')){console.log(`\n== tactic ablation: sensible win % with the tactic removed, change against the full plan (${AP.join('+')}, ${NA} battles each) ==`);
   console.log(pad('tactic removed',24)+facs.map(f=>lp(FACT[f].n.slice(0,12),14)).join(''));
@@ -169,6 +185,13 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  if(jobs.some(j=>j.kind==='cross')){console.log(`\n== plan against faction: sensible win % when it fights the row faction with the column faction's plan (${AP.join('+')}) ==`);
   console.log(pad('fighting \\ plan for',24)+FACS.map(f=>lp(FACT[f].n.slice(0,10),12)).join(''));
   for(const f of facs){let line=pad(FACT[f].n,24),own=0,bestOther=0;for(const g of FACS){const js=jobs.filter(j=>j.kind==='cross'&&j.f===f&&j.tag===g),w=js.reduce((s,j)=>s+pct(R(j)),0)/js.length;if(g===f)own=w;else bestOther=Math.max(bestOther,w);line+=lp((g===f?'[':' ')+f1(w)+(g===f?']':' '),12)}console.log(line)}}
+ if(jobs.some(j=>j.kind==='wyv')){let wst=0;console.log('\n== wyvern (end-game): a lone wyvern against the whole company ==');console.log(pad('profile',10)+lp('power',7)+lp('naive%',8)+lp('sens%',8)+lp('rounds',8)+lp('lost(n)',9)+lp('lost(s)',9)+lp('down(s)',9));
+  for(const pr of WYV){const a=R(jobs.find(j=>j.kind==='wyv'&&j.prof===pr&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='wyv'&&j.prof===pr&&j.pilot==='sensible')),P=PROFILES.find(p=>p.id===pr);wst+=a.stuck+b.stuck;
+   console.log(pad(pr,10)+lp(f1(P.power||0),7)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1((a.rounds+b.rounds)/(a.n+b.n)),8)+lp((a.dead/a.n).toFixed(2),9)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9));
+   if(pr==='L12x12'){if(pct(b)<45||pct(b)>80)bad.push('wyvern L12x12 sensible '+f1(pct(b))+'% outside 45..80%');if(pct(a)>30)bad.push('wyvern L12x12 naive '+f1(pct(a))+'% > 30%')}}
+  if(jobs.some(j=>j.kind==='wyvabl')){const base=pct(R(jobs.find(j=>j.kind==='wyv'&&j.prof==='L12x12'&&j.pilot==='sensible')));console.log('sensible L12x12 with a tactic removed:');
+   for(const j of jobs.filter(j=>j.kind==='wyvabl')){const w=pct(R(j));console.log('  '+pad(j.tag,18)+lp(f1(w)+'%',7)+'  ('+(w-base>=0?'+':'')+f1(w-base)+')')}}
+  if(wst)bad.push(wst+' wyvern battles hit the turn cap')}
  if(jobs.some(j=>j.kind==='boss')){console.log('\n== rift tyrant (dungeon boss fight, fixed tyrant + even budget) ==');for(const pr of ['L8x9','L12x12']){const a=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='sensible'));
    console.log(pad(pr,10)+`naive ${f1(pct(a))}%  sensible ${f1(pct(b))}%  rounds ${f1((a.rounds+b.rounds)/(a.n+b.n))}`)}}
  console.log(`\nAI decision cost: ${(ai.ms/Math.max(1,ai.n)).toFixed(3)} ms per unit turn (mean over ${ai.n} turns), worst single decision ${ai.max.toFixed(1)} ms.   Wall time ${((Date.now()-T0)/1000).toFixed(0)} s.`);

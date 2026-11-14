@@ -80,6 +80,100 @@ Object.assign(ITEMS,{
  steeltower:{k:'s',n:'Steel tower shield',md:18,rd:34,fat:20,guard:10,wallB:10,price:1450,look:'tower'}
 });
 ITEMS.buckler.look='buckler';ITEMS.kite.look='kite';ITEMS.heater.look='heater';
+/* ---- Gear variety: every family across five tiers (tier 1 hamlet stalls .. tier 5 city armouries and the best loot) ----
+   Each item has tier (1..5) and look: a key unique to the item (its own id unless set) so the art draws every one apart.
+   Shield looks start with their shape family (buckler round kite heater tower spiked targe pavise). */
+ITEMS.ironround.look='round2';ITEMS.warspiked.look='spiked2';ITEMS.steeltower.look='tower2';ITEMS.lightxbow.look='lightxbow';ITEMS.duelpistol.look='duelpistol';ITEMS.warmaul.look='warmaul';
+Object.assign(ITEMS,{
+ // daggers: 3 AP stabs; the good ones slip through armor
+ dirk:{k:'w',n:'Dirk',wt:'dagger',d:[18,28],ap:3,fat:5,rng:1,ign:.25,hit:5,price:90},
+ seax:{k:'w',n:'Seax',wt:'dagger',d:[22,34],ap:3,fat:7,rng:1,ign:.25,price:200},
+ stiletto:{k:'w',n:'Stiletto',wt:'dagger',d:[24,36],ap:3,fat:4,rng:1,ign:.6,hit:10,price:900},
+ kris:{k:'w',n:'Serpent kris',wt:'dagger',d:[30,46],ap:3,fat:5,rng:1,ign:.5,hit:5,price:1900},
+ // maces: stuns
+ spikedclub:{k:'w',n:'Spiked club',wt:'mace',d:[22,34],ap:4,fat:11,rng:1,ign:.3,stun:.1,price:95},
+ ironmace:{k:'w',n:'Iron mace',wt:'mace',d:[26,40],ap:4,fat:11,rng:1,ign:.35,stun:.2,price:240},
+ morningstar:{k:'w',n:'Morning star',wt:'mace',d:[40,58],ap:4,fat:14,rng:1,ign:.4,stun:.2,hit:-5,price:1150},
+ flail:{k:'w',n:'Knight\'s flail',wt:'mace',d:[34,52],ap:4,fat:13,rng:1,ign:.45,stun:.3,hit:10,price:1400},
+ bellmace:{k:'w',n:'Cathedral mace',wt:'mace',d:[46,66],ap:4,fat:14,rng:1,ign:.5,stun:.35,price:2600},
+ // swords: accurate
+ oldsword:{k:'w',n:'Notched blade',wt:'sword',d:[20,30],ap:4,fat:8,rng:1,ign:.2,hit:5,price:70},
+ falchion:{k:'w',n:'Falchion',wt:'sword',d:[30,44],ap:4,fat:9,rng:1,ign:.25,price:260},
+ estoc:{k:'w',n:'Estoc',wt:'sword',d:[38,52],ap:4,fat:10,rng:1,ign:.55,hit:10,price:1150},
+ // axes: heavy cuts that split shields
+ hatchet:{k:'w',n:'Hatchet',wt:'axe',d:[22,34],ap:4,fat:9,rng:1,ign:.25,price:70},
+ beardaxe:{k:'w',n:'Bearded axe',wt:'axe',d:[34,52],ap:4,fat:12,rng:1,ign:.3,hit:5,price:420},
+ dwarfaxe:{k:'w',n:'Dwarven war axe',wt:'axe',d:[52,74],ap:4,fat:14,rng:1,ign:.4,price:2100},
+ bardiche:{k:'w',n:'Bardiche',wt:'axe',two:1,d:[70,104],ap:6,fat:20,rng:1,ign:.45,price:2800},
+ // spears: the surest hands
+ boarspear:{k:'w',n:'Boar spear',wt:'spear',d:[28,38],ap:4,fat:10,rng:1,ign:.25,hit:15,price:260},
+ wingspear:{k:'w',n:'Winged spear',wt:'spear',d:[38,50],ap:4,fat:11,rng:1,ign:.3,hit:20,price:1200},
+ runespear:{k:'w',n:'Runed spear',wt:'spear',d:[44,58],ap:4,fat:11,rng:1,ign:.35,hit:25,price:2400},
+ // bows
+ huntbow:{k:'w',n:'Hunting bow',wt:'bow',two:1,d:[20,34],ap:4,fat:8,rng:5,ign:.2,price:70,shot:'arrow'},
+ recurve:{k:'w',n:'Horn recurve',wt:'bow',two:1,d:[32,48],ap:4,fat:10,rng:6,ign:.25,hit:10,price:460,shot:'arrow'},
+ longbow:{k:'w',n:'Yew longbow',wt:'bow',two:1,d:[38,56],ap:5,fat:14,rng:8,ign:.3,price:640,shot:'arrow'},
+ greatbow:{k:'w',n:'Elven greatbow',wt:'bow',two:1,d:[50,74],ap:5,fat:13,rng:8,ign:.35,hit:10,price:2400,shot:'arrow'},
+ // staves: the casters' focus
+ pilgrim:{k:'w',n:'Pilgrim\'s staff',wt:'staff',two:1,d:[22,36],ap:4,fat:8,rng:1,ign:.25,spell:.15,price:220},
+ ironstaff:{k:'w',n:'Iron-shod staff',wt:'staff',two:1,d:[30,46],ap:4,fat:10,rng:1,ign:.3,spell:.1,price:380},
+ witchstave:{k:'w',n:'Witchwood stave',wt:'staff',two:1,d:[22,36],ap:4,fat:7,rng:1,ign:.25,spell:.22,price:520},
+ archstaff:{k:'w',n:'Archmage\'s staff',wt:'staff',two:1,d:[26,42],ap:4,fat:8,rng:1,ign:.25,spell:.45,price:2400},
+ // hammers: crush armor
+ horsepick:{k:'w',n:'Horseman\'s pick',wt:'hammer',d:[22,34],ap:4,fat:11,rng:1,ign:.45,crush:.4,price:300},
+ knighthammer:{k:'w',n:'Knightly war hammer',wt:'hammer',d:[34,48],ap:4,fat:13,rng:1,ign:.55,crush:.7,hit:5,price:1300},
+ // polearms: reach 2
+ pitchfork:{k:'w',n:'Pitchfork',wt:'polearm',two:1,d:[22,34],ap:5,fat:12,rng:2,ign:.2,hit:5,price:70},
+ voulge:{k:'w',n:'Voulge',wt:'polearm',two:1,d:[42,60],ap:6,fat:15,rng:2,ign:.35,price:520},
+ lucerne:{k:'w',n:'Lucerne hammer',wt:'polearm',two:1,d:[44,62],ap:6,fat:16,rng:2,ign:.5,crush:.5,price:1400},
+ // greatswords: reach 2, wide cuts
+ waster:{k:'w',n:'Notched greatsword',wt:'greatsword',two:1,d:[32,48],ap:6,fat:15,rng:2,ign:.2,price:150},
+ bastard:{k:'w',n:'Hand-and-a-half sword',wt:'greatsword',two:1,d:[38,56],ap:6,fat:15,rng:2,ign:.25,hit:5,price:380},
+ flamberge:{k:'w',n:'Flamberge',wt:'greatsword',two:1,d:[60,86],ap:6,fat:19,rng:2,ign:.3,price:1450},
+ // crossbows: aim and pierce, then reload
+ huntxbow:{k:'w',n:'Hunting crossbow',wt:'crossbow',two:1,d:[24,38],ap:4,fat:7,rng:5,ign:.35,hit:10,reload:{ap:3,fat:6},price:150,shot:'bolt'},
+ repeater:{k:'w',n:'Repeating crossbow',wt:'crossbow',two:1,d:[28,40],ap:4,fat:8,rng:5,ign:.35,hit:5,reload:{ap:2,fat:6},price:760,shot:'bolt'},
+ windlass:{k:'w',n:'Dwarven windlass',wt:'crossbow',two:1,d:[64,92],ap:4,fat:12,rng:8,ign:.6,hit:10,reload:{ap:6,fat:18},price:3200,shot:'bolt'},
+ // firearms: the deepest bite through armor, slow to load
+ handgonne:{k:'w',n:'Hand cannon',wt:'flintlock',two:1,d:[30,50],ap:5,fat:6,rng:3,ign:.6,hit:-15,reload:{ap:5,fat:12},price:140,shot:'ball',fx:'smoke'},
+ arquebus:{k:'w',n:'Arquebus',wt:'flintlock',two:1,d:[48,72],ap:5,fat:9,rng:6,ign:.7,hit:-10,reload:{ap:6,fat:14},price:420,shot:'ball',fx:'smoke'},
+ blunder:{k:'w',n:'Blunderbuss',wt:'flintlock',two:1,d:[52,80],ap:5,fat:10,rng:3,ign:.6,hit:5,reload:{ap:5,fat:12},price:900,shot:'ball',fx:'smoke'},
+ longrifle:{k:'w',n:'Rifled long gun',wt:'flintlock',two:1,d:[84,118],ap:5,fat:11,rng:9,ign:.85,hit:5,reload:{ap:6,fat:16},price:3000,shot:'ball',fx:'smoke'},
+ // shields
+ targe:{k:'s',n:'Hide targe',md:8,rd:8,fat:3,price:55,look:'targe'},
+ steelbuckler:{k:'s',n:'Steel buckler',md:15,rd:8,fat:5,price:480,look:'buckler2'},
+ pavise:{k:'s',n:'Pavise',md:10,rd:34,fat:16,guard:10,wallB:6,price:820,look:'pavise'},
+ kite2:{k:'s',n:'Knight\'s kite shield',md:20,rd:30,fat:12,price:1250,look:'kite2'},
+ heater2:{k:'s',n:'Blazoned heater',md:28,rd:20,fat:13,price:2300,look:'heater2'},
+ dwarfround:{k:'s',n:'Dwarven roundshield',md:24,rd:24,fat:11,price:2600,look:'round3'},
+ // body armor (casters' robes are light for their protection)
+ jack:{k:'a',n:'Quilted jack',arm:35,fat:2,price:55},
+ hide:{k:'a',n:'Hide jerkin',arm:75,fat:9,price:170},
+ studded:{k:'a',n:'Studded leather',arm:120,fat:13,price:520},
+ brigandine:{k:'a',n:'Brigandine',arm:140,fat:15,price:780},
+ sigilrobe:{k:'a',n:'Sigiled robe',arm:70,fat:3,price:820},
+ lamellar:{k:'a',n:'Lamellar cuirass',arm:180,fat:22,price:1350},
+ mailrobe:{k:'a',n:'Warded mail robe',arm:120,fat:8,price:1700},
+ coatplates:{k:'a',n:'Coat of plates',arm:240,fat:30,price:2300},
+ gothic:{k:'a',n:'Gothic plate',arm:340,fat:38,price:6200},
+ archrobe:{k:'a',n:'Archmage\'s vestments',arm:150,fat:9,price:3400},
+ // helmets
+ armcap:{k:'h',n:'Padded arming cap',arm:30,fat:0,price:45},
+ spangen:{k:'h',n:'Spangenhelm',arm:88,fat:4,price:330},
+ sallet:{k:'h',n:'Sallet',arm:160,fat:8,price:1150},
+ bascinet:{k:'h',n:'Visored bascinet',arm:210,fat:12,price:2000},
+ armet:{k:'h',n:'Armet',arm:270,fat:16,price:3600}
+});
+{const T={knife:1,dirk:1,seax:2,rondel:3,stiletto:4,kris:5, club:1,spikedclub:1,ironmace:2,mace:3,morningstar:4,flail:4,bellmace:5,
+  oldsword:1,shortsword:2,falchion:2,arming:3,estoc:4,runeblade:5,riftedge:5, hatchet:1,handaxe:2,beardaxe:3,waraxe:3,greataxe:4,dwarfaxe:5,bardiche:5,
+  spear:1,boarspear:2,warspear:3,pike:3,wingspear:4,runespear:5, huntbow:1,shortbow:2,recurve:3,longbow:3,warbow:4,greatbow:5,
+  staff:1,pilgrim:2,ironstaff:2,witchstave:3,focus:4,archstaff:5, mallet:1,horsepick:2,warhammer:3,maul:4,knighthammer:4,warmaul:5,
+  pitchfork:1,bill:2,voulge:3,halberd:4,lucerne:4,glaive:5, waster:1,bastard:2,greatsword:3,flamberge:4,zweihander:4,runegreat:5,
+  huntxbow:1,lightxbow:2,repeater:3,crossbow:3,arbalest:4,windlass:5, handgonne:1,arquebus:2,pistol:3,blunder:3,musket:4,duelpistol:4,longrifle:5,
+  targe:1,buckler:1,roundshield:2,kite:2,spiked:2,heater:3,ironround:3,steelbuckler:3,tower:3,pavise:3,warspiked:4,kite2:4,steeltower:4,heater2:5,dwarfround:5,
+  rags:1,jack:1,padded:1,hide:2,robe:2,leather:2,studded:3,brigandine:3,mail:3,sigilrobe:3,lamellar:4,scale:4,mailrobe:4,coatplates:4,plate:5,gothic:5,archrobe:5,
+  hood:1,armcap:1,cap:1,coif:2,spangen:2,kettle:3,nasal:3,sallet:4,barbute:4,bascinet:4,greathelm:5,armet:5};
+ for(const id in ITEMS){const i=ITEMS[id];i.tier=T[id]||(i.price<150?1:i.price<450?2:i.price<1100?3:i.price<2400?4:5);if(!i.look)i.look=id}}
 for(const id of ['shortbow','warbow'])ITEMS[id].shot='arrow';
 const RANGEDWT=['bow','crossbow','flintlock'];
 // A ranged weapon (bow, crossbow, flintlock, or an enemy's ranged attack): it shoots with ranged skill, obeys the ranged lock, takes no free attacks.
@@ -88,6 +182,9 @@ const WSK={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['pu
   hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},
  WSKID={greataxe:['split','round'],pike:['impale'],maul:['batter','hsmash'],warmaul:['batter','hsmash'],bill:['hook']},
  SHIELDHP={buckler:32,kite:64,heater:80,roundshield:50,ironround:66,spiked:56,warspiked:72,tower:110,steeltower:140},SHIELDSK={spiked:['shieldwall','spikebash'],warspiked:['shieldwall','spikebash']};
+// the new items' own skill sets (where one differs from its family's) and shield hitpoints
+Object.assign(WSKID,{falchion:['slash'],estoc:['riposte'],bardiche:['split','round'],pitchfork:['hook'],waster:['gswing'],repeater:['reload'],handgonne:['reload']});
+Object.assign(SHIELDHP,{targe:36,steelbuckler:44,pavise:100,kite2:84,heater2:96,dwarfround:90});
 for(const id in ITEMS){const i=ITEMS[id];if(i.k==='w')i.sk=WSKID[id]||WSK[i.wt]||[];else if(i.k==='s'){i.sk=SHIELDSK[id]||['shieldwall','bash'];i.hp=SHIELDHP[id]||48}}
 function itemDesc(id){const i=ITEMS[id];
  if(i.k==='w')return`${i.d[0]}–${i.d[1]} dmg, ${i.ap} AP${i.rng>1?(isRangedW(i)?', range ':', reach ')+i.rng:''}${i.two?', two-handed':''}${i.reload?', reload '+i.reload.ap+' AP':''}${i.crush?', crushes armor (+'+Math.round(i.crush*100)+'%)':''}${i.ign>=.5?', '+Math.round(i.ign*100)+'% through armor':''}${i.spell?', +'+Math.round(i.spell*100)+'% spell dmg':''}`;
@@ -183,7 +280,7 @@ Object.assign(AB,{
  holdfast:{n:'Hold fast!',ap:5,fat:20,tgt:'self',party:2,buff:{key:'holdfast',md:10,rd:10,brv:15},dur:2,fx:'rally',d:'You and allies within 2 tiles: +10 melee and ranged defense and +15 resolve for 2 turns.'},
  secwind:{n:'Second wind',ap:3,fat:0,tgt:'self',rest:40,heal:[8,14],once:1,fx:'heal',d:'Once per battle: shed 40 fatigue and recover 8–14 hitpoints.'},
  bandage:{n:'Bandage',ap:4,fat:10,rng:1,tgt:'ally',heal:[10,16],cleanse:['bleed'],fx:'heal',d:'Bind a wound on yourself or an adjacent ally: heal 10–16 hitpoints and stop the bleeding.'},
- triage:{n:'Triage',ap:3,fat:10,rng:1,tgt:'ally',heal:[6,10],cleanse:['bleed','burn','poison','daze','chill','root','weak'],fx:'heal',d:'Quick care for yourself or an adjacent ally: heal 6–10 hitpoints and clear bleeding, burning, poison, daze, chill, roots and weakness.'},
+ triage:{n:'Triage',ap:3,fat:10,rng:1,tgt:'ally',heal:[6,10],cleanse:['bleed','burn','poison','venom','daze','chill','root','weak'],fx:'heal',d:'Quick care for yourself or an adjacent ally: heal 6–10 hitpoints and clear bleeding, burning, poison and venom, daze, chill, roots and weakness.'},
  surge:{n:'Miracle',ap:6,fat:20,tgt:'self',party:2,heal:[14,22],once:1,fx:'heal',d:'Once per battle: you and every ally within 2 tiles heal 14–22 hitpoints.'},
  mark:{n:'Mark target',ap:2,fat:6,rng:7,tgt:'enemy',noDmg:1,sure:1,nostun:1,status:{marked:2},noDmgTxt:'Marked',fx:'mark',d:'Point out a foe within 7 tiles in sight: every attack against it gets +15 to hit until 2 of its turns have passed. Cannot miss.'},
  vanish:{n:'Vanish',ap:4,fat:16,rng:4,tgt:'move',leap:1,buff:{key:'evasive',md:15,rd:15},dur:1,fx:'leap',d:'Slip up to 4 tiles away over anything, drawing no free attacks: +15 melee and ranged defense until your next turn.'},
@@ -513,18 +610,18 @@ const MUNDANE=Object.keys(MAST).filter(k=>MAST[k].kind==='style');
 const GIFTV={mana:{caster:'mana',melee:'mana_m',ranged:'mana_r'},aura:{melee:'aura',ranged:'aura_r'},qi:{melee:'qi',ranged:'qi_r'},chi:{support:'chi',melee:'chi_m',ranged:'chi_r'}};
 /* Backgrounds. st may carry brv (resolve); gear lists one pick per slot, '-' meaning nothing (helmets are k:'h'). */
 const BG={
- farmhand:{n:'Farmhand',cost:90,wage:8,w:5,st:{hp:8,fat:10,ms:-3},m:['vanguard','bulwark'],r:[['chi',.15]],gear:['club|knife|mallet','rags','hood|-']},
- militia:{n:'Militiaman',cost:160,wage:11,w:5,st:{ms:4,md:2,brv:3},m:['vanguard','bulwark'],r:[['aura',.15]],gear:['spear|spear|bill','padded','buckler','cap|hood']},
- hunter:{n:'Hunter',cost:220,wage:13,w:4,st:{rs:12,ms:-4,init:8},m:['marksman','skirmisher'],r:[['qi',.3]],gear:['shortbow|shortbow|lightxbow','rags|padded','hood']},
- thief:{n:'Cutpurse',cost:170,wage:11,w:3,st:{init:14,md:4,hp:-5,brv:-5},m:['skirmisher','vanguard'],r:[['aura',.2]],gear:['knife','rags','hood']},
- sellsword:{n:'Sellsword',cost:420,wage:24,w:3,st:{ms:10,md:4,hp:5,fat:5,brv:5},m:['vanguard','bulwark','skirmisher'],r:[['aura',.5]],gear:['shortsword|handaxe|mallet','leather','buckler|roundshield','cap|coif']},
+ farmhand:{n:'Farmhand',cost:90,wage:8,w:5,st:{hp:8,fat:10,ms:-3},m:['vanguard','bulwark'],r:[['chi',.15]],gear:['club|knife|mallet|pitchfork|hatchet','rags|rags|jack','hood|-|armcap']},
+ militia:{n:'Militiaman',cost:160,wage:11,w:5,st:{ms:4,md:2,brv:3},m:['vanguard','bulwark'],r:[['aura',.15]],gear:['spear|spear|bill|pitchfork','padded|jack','buckler|targe','cap|hood|armcap']},
+ hunter:{n:'Hunter',cost:220,wage:13,w:4,st:{rs:12,ms:-4,init:8},m:['marksman','skirmisher'],r:[['qi',.3]],gear:['shortbow|huntbow|huntbow|lightxbow|huntxbow','rags|padded|jack','hood']},
+ thief:{n:'Cutpurse',cost:170,wage:11,w:3,st:{init:14,md:4,hp:-5,brv:-5},m:['skirmisher','vanguard'],r:[['aura',.2]],gear:['knife|dirk','rags|jack','hood']},
+ sellsword:{n:'Sellsword',cost:420,wage:24,w:3,st:{ms:10,md:4,hp:5,fat:5,brv:5},m:['vanguard','bulwark','skirmisher'],r:[['aura',.5]],gear:['shortsword|handaxe|mallet|falchion|boarspear','leather|hide','buckler|roundshield|targe','cap|coif']},
  squire:{n:'Squire',cost:380,wage:20,w:2,st:{ms:7,md:5,fat:5,brv:6},m:['bulwark','vanguard'],r:[['aura',1]],gear:['shortsword|shortsword|greatsword','padded','kite','coif|cap']},
- hedge:{n:'Hedge mage',cost:480,wage:22,w:2,st:{hp:-8,ms:-8,fat:-5,brv:-3},m:['skirmisher','bulwark'],r:[['mana',1]],gear:['staff','robe','hood']},
- acolyte:{n:'Temple acolyte',cost:330,wage:16,w:2,st:{hp:4,ms:-2,brv:6},m:['bulwark','vanguard'],r:[['chi',1]],gear:['club','padded','hood']},
+ hedge:{n:'Hedge mage',cost:480,wage:22,w:2,st:{hp:-8,ms:-8,fat:-5,brv:-3},m:['skirmisher','bulwark'],r:[['mana',1]],gear:['staff|staff|pilgrim','robe','hood']},
+ acolyte:{n:'Temple acolyte',cost:330,wage:16,w:2,st:{hp:4,ms:-2,brv:6},m:['bulwark','vanguard'],r:[['chi',1]],gear:['club|spikedclub','padded','hood|armcap']},
  monk:{n:'Wandering monk',cost:450,wage:20,w:2,st:{init:8,md:8,ms:5,brv:10},m:['skirmisher','vanguard'],r:[['chi',.6],['qi',.4]],gear:['staff','rags']},
  spellblade:{n:'Academy dropout',cost:540,wage:26,w:2,st:{ms:5},m:['vanguard','skirmisher'],r:[['qi',.6],['mana',.4]],gear:['shortsword','padded','cap|-']},
- wildling:{n:'Wildling',cost:300,wage:16,w:3,st:{hp:10,ms:6,md:-5,fat:10,brv:4},m:['vanguard','skirmisher'],r:[['qi',.4]],gear:['handaxe|handaxe|mallet','rags','-|roundshield']},
- knight:{n:'Disgraced knight',cost:900,wage:38,w:1,st:{ms:14,md:8,hp:10,fat:8,brv:12},m:['vanguard','bulwark'],r:[['aura',1]],gear:['arming|warhammer|greatsword','mail','kite|heater','nasal']}
+ wildling:{n:'Wildling',cost:300,wage:16,w:3,st:{hp:10,ms:6,md:-5,fat:10,brv:4},m:['vanguard','skirmisher'],r:[['qi',.4]],gear:['handaxe|hatchet|mallet|spikedclub','rags|hide','-|roundshield|targe']},
+ knight:{n:'Disgraced knight',cost:900,wage:38,w:1,st:{ms:14,md:8,hp:10,fat:8,brv:12},m:['vanguard','bulwark'],r:[['aura',1]],gear:['arming|warhammer|greatsword|falchion','mail|mail|brigandine','kite|heater','nasal|spangen']}
 };
 const RACE={human:{n:'Human',st:{}},elf:{n:'Elf',st:{rs:5,init:8,hp:-5}},dwarf:{n:'Dwarf',st:{hp:8,fat:8,init:-10,brv:5}},halforc:{n:'Half-orc',st:{hp:6,ms:3,rd:-3,brv:3}}};
 /* Talents per background: style (melee ranged caster support: picks the gift variant), pool (the style trees a recruit draws 4 of),
@@ -606,3 +703,44 @@ const BIO={
  glass:{n:'The Glass Wastes',top:'#86adb5',side:'#476a73',rough:'#74999f',amp:2.5,block:.12,rgh:.05,haz:.03,obj:'crystal',sky:'#16303a'}
 };
 const REALMS=['ashen','hollow','glass'];
+/* ---- Monsters update: serpents, ents, ogres, wyverns (their abilities live in 66-monsters.js) ----
+   New EN fields: size (2 = the unit stands on 2x2 tiles: (c,r) (c+1,r) (c,r+1) (c+1,r+1); see unitTiles() in 60-battle-core.js),
+   fly (moves ignore height steps and pass over props: trees, rocks), fireWeak (fire hits and burning do that much more: .5 = +50%),
+   regen (share of max hitpoints regained at the start of each turn, never while burning), endgame (end-game monster: a famed item drops
+   for certain), kbImm (cannot be knocked back; every size-2 unit is immune anyway).
+   FACT[f].tier 'early' | 'mid' | 'late' | 'end' | 'crisis', FACT[f].biomes: world terrain names (plains forest hills mountains swamp desert snow;
+   'mountains' means ground within 2 tiles of a peak), FACT[f].spawn {d0, d1, gate, w0, w1}: overrides of the tier's spawn curve
+   (see factionPool in 40-world.js). FACT[f].build(budget, mult): the faction picks its own warband (the wyvern and its brood). */
+Object.assign(EN,{
+ adder:{n:'Marsh adder',hp:48,arm:10,helm:5,ms:58,md:14,rd:22,init:145,d:[14,22],ap:10,xp:85,role:'flanker',brv:40,flee:.3,serp:1,abs:['vbite','slither']},
+ viper:{n:'Spitting viper',hp:38,arm:10,helm:5,ms:44,rs:56,md:8,rd:18,init:125,d:[12,20],rng:4,xp:100,role:'sniper',brv:35,flee:.35,serp:1,abs:['vspit'],side:{n:'Fangs',wt:'dagger',d:[10,16],ap:4,rng:1,ign:.3}},
+ gserp:{n:'Great serpent',hp:210,arm:60,helm:45,ms:66,md:10,rd:12,init:110,d:[34,52],big:1,kbImm:1,xp:420,role:'beast',brv:85,max:1,sub:'adder',serp:1,abs:['coil','constrict','vbite']},
+ thorn:{n:'Thornling',hp:52,arm:35,helm:20,ms:54,md:6,rd:16,init:100,d:[16,26],xp:95,role:'flanker',brv:99,fearless:1,fireWeak:.5,abs:['bramble']},
+ ent:{n:'Ent',hp:200,arm:125,helm:80,ms:60,md:-5,rd:25,init:55,ap:8,d:[42,62],big:1,kbImm:1,xp:420,role:'line',brv:99,fearless:1,fireWeak:.5,regen:.05,abs:['entangle','limbcrush','barkskin']},
+ elder:{n:'Elder ent',hp:300,arm:180,helm:120,ms:68,md:0,rd:30,init:65,ap:8,d:[54,78],big:1,kbImm:1,xp:700,role:'boss',brv:99,fearless:1,lead:1,max:1,sub:'ent',fireWeak:.5,regen:.06,abs:['groots','limbcrush','barkskin','grove']},
+ ogre:{n:'Ogre',hp:185,arm:60,helm:35,ms:62,md:0,rd:0,init:85,d:[50,76],w:'maul',wap:5,big:1,kb:1,kbCh:.3,xp:380,role:'line',brv:70,abs:['ohurl','osweep']},
+ aogre:{n:'Armored ogre',hp:200,arm:200,helm:150,ms:64,md:4,rd:6,init:75,d:[54,80],w:'warmaul',wap:5,big:1,kb:1,kbCh:.3,xp:520,role:'line',brv:80,abs:['oslam','ohurl']},
+ wyvern:{n:'Wyvern',size:2,fly:1,hp:6000,arm:260,helm:200,ms:85,md:14,rd:10,init:120,ap:14,d:[165,220],ign:.45,xp:2400,role:'boss',boss:1,endgame:1,brv:99,fearless:1,abs:['wbite','wsting','wbuffet','wdive']},
+ whatch:{n:'Wyvern hatchling',fly:1,hp:85,arm:30,helm:20,ms:62,md:16,rd:16,init:135,ap:10,d:[22,34],xp:200,role:'flanker',brv:70,abs:['hsting']}
+});
+Object.assign(FACT,{
+ serpent:{n:'Serpents',g:'S',col:'#5d7a3a',skin:'#a7b85a',tier:'mid',biomes:['swamp','desert'],spawn:{d0:7,d1:2,gate:.04},lair:'Clear a serpent nest',units:[['adder',14],['adder',14],['viper',17],['gserp',62]],rank:[.56,1.4,.3],loot:['dirk','seax','stiletto','rondel','shortbow','padded','leather','cap'].filter(id=>ITEMS[id])},
+ ent:{n:'Ents',g:'E',col:'#4d5f2e',skin:'#7f6a45',tier:'mid',biomes:['forest'],lair:'Burn out a blighted grove',units:[['thorn',18],['thorn',18],['ent',80],['elder',130]],rank:[.4,1.2,.25,19],loot:['witchstave','sigilrobe','longbow','recurve','staff','focus','robe','warbow'].filter(id=>ITEMS[id])},
+ ogre:{n:'Ogres',g:'T',col:'#7a6a4a',skin:'#b59a72',tier:'mid',biomes:['hills','mountains','plains'],lair:'Break an ogre camp',units:[['ogre',76],['ogre',76],['aogre',96],['gob',10]],rank:[.42,1.25,.25,19],loot:['spikedclub','morningstar','bellmace','knighthammer','lamellar','sallet','maul','warmaul','scale'].filter(id=>ITEMS[id])},
+ wyvern:{n:'Wyverns',g:'W',col:'#6b4a3a',skin:'#a8604a',tier:'end',biomes:['mountains','snow','hills'],lair:'Slay the wyvern of {place}',units:[['wyvern',400],['whatch',40]],rank:[.4,1,.2],loot:['gothic','armet','greatbow','windlass','heater2','plate','arbalest','runegreat'].filter(id=>ITEMS[id]),
+  build(budget,mult){const n=mult>=1.15?2:mult>=.9?1:0,L=['wyvern'];for(let i=0;i<n;i++)L.push('whatch');return L}}
+});
+FACT.gob.tier='early';FACT.bandit.tier='early';FACT.beast.tier='early';FACT.undead.tier='mid';FACT.orc.tier='mid';FACT.void.tier='crisis';
+FACT.gob.biomes=['plains','forest','hills','swamp','desert','snow'];FACT.bandit.biomes=FACT.gob.biomes;FACT.beast.biomes=['plains','forest','hills','snow','swamp'];
+FACT.undead.biomes=['plains','forest','hills','swamp','desert','snow'];FACT.undead.spawn={d0:4,d1:0,gate:0,w0:.6};
+FACT.orc.biomes=['plains','hills','desert','snow','forest','mountains'];FACT.orc.spawn={d0:6,d1:2,gate:.06};FACT.void.biomes=FACT.gob.biomes;
+Object.assign(STATUS,{
+ venom:{n:'Wyvern venom',d:'Loses 14 hitpoints at the start of each of its turns, through armor.',icon:'venom',good:0},
+ coiled:{n:'Coiled',d:'Crushed in a serpent\'s coils: cannot move, −15 melee defense, −10 melee skill. Ends when the serpent dies or lets go.',icon:'coiled',good:0},
+ entangled:{n:'Entangled',d:'Roots hold it fast: cannot move, −10 melee and ranged defense.',icon:'entangled',good:0},
+ bark:{n:'Barkskin',d:'Bark thickens over it: takes 30% less damage.',icon:'bark',good:1},
+ regrow:{n:'Regrowth',d:'Regains hitpoints at the start of each turn. Fire stops it.',icon:'regrow',good:1},
+ diving:{n:'Taking wing',d:'Climbing to dive: on its next turn it falls on the marked tiles. Get clear, or stun it to break the dive.',icon:'diving',good:0},
+ grounded:{n:'Grounded',d:'A wing or leg is crippled: it cannot fly or dive.',icon:'grounded',good:0},
+ slammed:{n:'Off balance',d:'Thrown off its feet: −10 melee and ranged defense until its next turn.',icon:'slammed',good:0}
+});

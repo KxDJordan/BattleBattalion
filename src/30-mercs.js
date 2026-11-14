@@ -42,7 +42,7 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
  if(sh){const sd=s.flags.shieldDef||0;s.fat-=sh.fat;s.shield={id:eq.s,look:sh.look||'heater',hp:Math.round((sh.hp||48)*(1+(s.flags.shieldHp||0)+shHpOff)),md:sh.md+sd,rd:sh.rd+sd,raised,
    guard:sh.guard||0,wallB:sh.wallB||0,spike:sh.spike?sh.spike.slice():null};
   if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd;if(sh.guard){s.flags.guard=(s.flags.guard||0)+sh.guard;s.flags.shGuard=sh.guard}}}
- if(a){s.arm=a.arm;s.fat-=a.fat}if(h){s.helm=h.arm;s.fat-=h.fat}
+ if(a){s.arm=a.arm;s.fat-=a.fat;s.md+=a.md||0;s.rd+=a.rd||0}if(h){s.helm=h.arm;s.fat-=h.fat;s.md+=h.md||0;s.rd+=h.rd||0}   // armor and helmets may carry defence (famed rolls)
  for(const id of (wpn.sk||[]).concat(raised&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
  if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}

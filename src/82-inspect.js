@@ -38,6 +38,13 @@ function insTraits(u){const d=u.def||{},L=[],S=k=>typeof STATUS==='object'&&STAT
  if(d.kb||u.kbN)L.push(['ab-shove','Brute','Its blows can knock a foe back '+(d.kb||u.kbN)+(d.kbCh?' ('+Math.round(d.kbCh*100)+'%)':'')+'.']);
  if(u.onhit&&u.onhit.root)L.push(['root','Entangles','A hit may root its prey ('+Math.round(u.onhit.ch*100)+'%).']);
  if(u.noHead)L.push(['helmet','No head to hit','Every blow lands on the body.']);
+ if(d.size>1||u.sz>1)L.push(['ab-wbuffet','Huge','Stands on 2×2 tiles: reach it from any side of its footprint. It cannot be knocked back or dragged.']);
+ else if(d.kbImm)L.push(['ab-oslam','Immovable','Too heavy to knock back or drag.']);
+ if(d.fly||u.fly)L.push(['st-diving','Flies','Moves over height steps, trees and rocks. A root grounds it for 2 turns: no flight, no dive.'+(u.st&&u.st.grounded>0?' <b class="ins-bad">Grounded now.</b>':'')]);
+ if(d.fireWeak)L.push(['burn','Weak to fire','Fire and burning do +'+Math.round(d.fireWeak*100)+'% damage to it'+(d.regen?', and burning stops its regrowth':'')+'.']);
+ if(d.regen)L.push(['st-regrow','Regrows','Regains '+Math.round(d.regen*100)+'% of its hitpoints at the start of each of its turns, unless it is burning.']);
+ if(d.serp)L.push(['st-venom','Venomous','Its bites poison: hitpoints lost each turn, through armor.']);
+ if(d.endgame)L.push(['star','Legendary','A famed item lies in its hoard: it drops for certain.']);
  if(u.flags&&u.flags.berserk)L.push(['enraged','Berserk','Regains 4 AP on a kill, once a turn.']);
  return L.map(x=>`<div class="ins-ab">${insIc(x[0])}<div><b>${x[1]}</b><span>${x[2]}</span></div></div>`).join('')}
 /* ---- arms and talents (mercs): weapon in hand and backup, shield raised or slung, gift variant, trees, learned perks ---- */
@@ -70,7 +77,7 @@ function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&M
  return h}
 function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor=typeof shMor==='function'?shMor(u):-1,brv=typeof shBrv==='function'?shBrv(u):null;
  let h=`<div class="ins-h"><b class="ins-n">${u.name}</b><span class="ins-tag ${pl?'ally':'foe'}">${pl?'Level '+u.lvl:FACT[u.f]?FACT[u.f].n:'Foe'}</span></div>`;
- h+=`<div class="ins-sub">${pl&&m?RACE[m.race].n+' '+BG[m.bg].n.toLowerCase():(d.boss?'Tyrant':INS_ROLE[u.role||d.role]||(d.big?'Huge':d.quad?'Beast':u.spell?'Caster':u.wpn.rng>1?'Ranged':'Melee'))+(d.big&&!d.boss?' · huge':'')}${u===cur?' · acting now':''}</div>`;
+ h+=`<div class="ins-sub">${pl&&m?RACE[m.race].n+' '+BG[m.bg].n.toLowerCase():(d.boss?(d.endgame?'Apex beast':'Tyrant'):INS_ROLE[u.role||d.role]||(d.big?'Huge':d.quad?'Beast':u.spell?'Caster':u.wpn.rng>1?'Ranged':'Melee'))+(d.size>1||u.sz>1?' · huge, 2×2':d.big&&!d.boss?' · huge':'')}${u===cur?' · acting now':''}</div>`;
  h+=insBar('hp',u.hp,u.hpMax,'HP');if(u.helmMax>0)h+=insBar('arm hd',u.helm,u.helmMax,'Head armor');if(u.armMax>0)h+=insBar('arm',u.arm,u.armMax,'Body armor');
  if(u.shpMax>0)h+=u.shield||u.slung?insBar('arm sh',u.shp,u.shpMax,u.slung?'Shield (slung)':'Shield'):`<div class="ins-bar arm sh"><span class="ins-bad">Shield split</span></div>`;
  for(const k in u.res)h+=`<div class="ins-bar res"><i style="width:${u.res[k].cur/u.res[k].max*100}%;background:${RESC[k]}"></i><span>${RESN[k]} ${u.res[k].cur}/${u.res[k].max}</span></div>`;

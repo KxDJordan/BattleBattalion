@@ -41,9 +41,22 @@ function pnIcon(k,cls,size){const n=PNPX[k]||k,c='pn-i px'+(cls?' '+cls:'');size
  if(PNOWN[k]){const u=pxURL('pn:'+k,PNOWN[k],1);if(u)return`<i class="${c}" style="width:${size}px;height:${size}px;background-image:url(${u})" aria-hidden="true"></i>`}
  if(!PICON[k])return typeof pxIcon==='function'?pxIcon(n,size,c):'';
  return`<svg class="pn-i${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${PICON[k]||''}</svg>`}
-function itemIconName(id){const it=ITEMS[id];if(!it)return'fist';if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
+function itemIconName(id){let it=ITEMS[id];if(!it)return'fist';if(it.famed&&it.base&&ITEMS[it.base]){id=it.base;it=ITEMS[id]}if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
 if(it.k==='s')return'shield';if(it.k==='h')return'helmet';if(it.k==='a')return it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy';return it.wt||'sword'}
-function pnItemIcon(id,size){const n=itemIconName(id);return pnHasPx(n)||PNOWN[n]?pnIcon(n,'',size):pnIcon(n.indexOf('armor')===0?'armor':({mace:'axe',dagger:'sword',fist:'sword'})[n]||n,'',size)}
+function pnItemIcon(id,size){const n=itemIconName(id);return pnFamedWrap(id,pnHasPx(n)||PNOWN[n]?pnIcon(n,'',size):pnIcon(n.indexOf('armor')===0?'armor':({mace:'axe',dagger:'sword',fist:'sword'})[n]||n,'',size))}
+/* ---- famed items in every list: a gold glow around the icon (.famed wrapper), a gold name, a Famed tag, the improvements ---- */
+const TIERN=['','I','II','III','IV','V'];
+function pnFamedWrap(id,html){const it=ITEMS[id];return it&&it.famed?`<span class="famed" title="Famed">${html}</span>`:html}
+// the item's name for a list or a heading: famed names in gold (big: with the base item's name under it)
+function pnItemName(id,big){const it=ITEMS[id];if(!it)return'';if(!it.famed)return it.n;const B=ITEMS[it.base];
+ return`<span class="fmd-n">${it.n}</span>${big&&B?`<small class="fmd-of">${B.n}</small>`:''}`}
+function pnFamedTag(id){return ITEMS[id]&&ITEMS[id].famed?'<span class="fmd-tag">Famed</span>':''}
+// the detail block of a famed item: the tag, its flavour, the improvements over the base
+function pnFamedBlock(id){const it=ITEMS[id];if(!it||!it.famed)return'';const L=typeof famedLines==='function'?famedLines(id):[];
+ return`<div class="fmd-box">${pnFamedTag(id)}<p class="pn-p dim">${typeof famedFlavour==='function'?famedFlavour(id):''}</p>${L.length?`<ul class="fmd-lines">${L.map(x=>`<li data-fm="${x.k}">${x.t}</li>`).join('')}</ul>`:''}</div>`}
+// itemFacts with the rows a famed item improves over its base marked (class fmd-up)
+function pnFamedFacts(id){const it=ITEMS[id],F=itemFacts(id);if(!it||!it.famed||!ITEMS[it.base])return F;const B={};itemFacts(it.base).filter(Boolean).forEach(([k,v])=>B[k]=String(v));
+ return F.map(r=>r&&B[r[0]]!==undefined&&B[r[0]]!==String(r[1])?[r[0],`<span class="fmd-up">${r[1]}</span>`]:r&&B[r[0]]===undefined?[r[0],`<span class="fmd-up">${r[1]}</span>`]:r)}
 function pnSkulls(n,of){let h='';for(let i=0;i<(of||n);i++)h+=pnIcon('skull',i<n?'':'off');return`<span class="pn-skulls" aria-label="Danger ${n} of ${of||n}">${h}</span>`}
 function pnStars(n){let h='';for(let i=0;i<n;i++)h+=pnIcon('star');return n?`<span class="pn-stars" aria-label="${n} talent star${n===1?'':'s'}">${h}</span>`:''}
 /* the purse shown in panel headers: crowns, rations, tools */
@@ -59,14 +72,17 @@ function pnFacts(rows){rows=rows.filter(Boolean);return`<div class="pn-facts${ro
 function pnEmpty(t){return`<div class="pn-empty">${t}</div>`}
 /* signed comparison chips between an item and what a slot holds now */
 function itemDeltas(id,cur){const a=ITEMS[id],b=cur?ITEMS[cur]:null,out=[],add=(v,u)=>{if(v)out.push({v,u})};
- if(a.k==='w'){const c=b||FIST;add(Math.round((a.d[0]+a.d[1]-c.d[0]-c.d[1])/2),'dmg');add((a.hit||0)-(c.hit||0),'to hit');add((a.rng||1)-(c.rng||1),'range')}
+ if(a.k==='w'){const c=b||FIST;add(Math.round((a.d[0]+a.d[1]-c.d[0]-c.d[1])/2),'dmg');add((c.ap||4)-(a.ap||4),'AP');add((a.hit||0)-(c.hit||0),'to hit');add(Math.round(((a.ign||0)-(c.ign||0))*100),'% pierce');add((a.rng||1)-(c.rng||1),'range')}
  else if(a.k==='s'){add(a.md-(b?b.md:0),'melee def');add(a.rd-(b?b.rd:0),'ranged def');add((b?b.fat:0)-a.fat,'fatigue')}
- else{add(a.arm-(b?b.arm:0),a.k==='h'?'head armor':'armor');add((b?b.fat||0:0)-(a.fat||0),'fatigue')}return out}
+ else{add(a.arm-(b?b.arm:0),a.k==='h'?'head armor':'armor');add((a.md||0)-(b&&b.md||0),'melee def');add((a.rd||0)-(b&&b.rd||0),'ranged def');add((b?b.fat||0:0)-(a.fat||0),'fatigue')}return out}
 function pnDeltaChips(id,cur){if(id===cur)return'<span class="pn-d same">Same</span>';const d=itemDeltas(id,cur);if(!d.length)return'<span class="pn-d same">No change</span>';
  return d.map(x=>`<span class="pn-d ${x.v>0?'up':'dn'}">${x.v>0?'+':'−'}${Math.abs(x.v)} ${x.u}</span>`).join('')}
-function itemFacts(id){const i=ITEMS[id];if(i.k==='w')return[['Damage',`${i.d[0]}–${i.d[1]}`],['AP a swing',i.ap],['Fatigue a swing',i.fat],['Reach',i.rng>1?i.rng+' tiles':'Adjacent'],['Ignores armor',Math.round(i.ign*100)+'%'],i.hit?['To hit','+'+i.hit]:null,i.stun?['Stun chance',Math.round(i.stun*100)+'%']:null,i.spell?['Spell damage','+'+Math.round(i.spell*100)+'%']:null,['Grip',i.two?'Two-handed':'One-handed']];
- if(i.k==='s')return[['Melee defense','+'+i.md],['Ranged defense','+'+i.rd],['Fatigue','−'+i.fat]];if(i.k==='h')return[['Head armor',i.arm],['Fatigue','−'+(i.fat||0)],['Guards','Blows to the head']];return[['Armor',i.arm],['Fatigue','−'+i.fat]]}
-function itemKind(id){const i=ITEMS[id];return i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':({dagger:'Dagger',mace:'Mace',sword:'Sword',axe:'Axe',spear:'Spear',bow:'Bow',staff:'Staff'})[i.wt]||'Weapon'}
+function itemFacts(id){const i=ITEMS[id],rg=typeof isRangedW==='function'&&isRangedW(i),sg=v=>(v<0?'−':'+')+Math.abs(v),df=x=>x.md||x.rd?[x.md?['Melee defense',sg(x.md)]:null,x.rd?['Ranged defense',sg(x.rd)]:null]:[];
+ if(i.k==='w')return[['Damage',`${i.d[0]}–${i.d[1]}`],['AP a swing',i.ap],['Fatigue a swing',i.fat],[rg?'Range':'Reach',i.rng>1?i.rng+' tiles':'Adjacent'],['Ignores armor',Math.round(i.ign*100)+'%'],i.hit?['To hit',sg(i.hit)]:null,i.reload?['Reload',i.reload.ap+' AP']:null,i.crush?['Crushes armor','+'+Math.round(i.crush*100)+'%']:null,i.stun?['Stun chance',Math.round(i.stun*100)+'%']:null,i.spell?['Spell damage','+'+Math.round(i.spell*100)+'%']:null,['Grip',i.two?'Two-handed':'One-handed']];
+ if(i.k==='s')return[['Melee defense','+'+i.md],['Ranged defense','+'+i.rd],['Shield hitpoints',i.hp||48],['Fatigue','−'+i.fat],i.guard?['Covers allies','−'+i.guard+' to be shot']:null,i.wallB?['Shield wall','+'+i.wallB]:null,i.spike?['Spiked bash',i.spike[0]+'–'+i.spike[1]]:null];
+ if(i.k==='h')return[['Head armor',i.arm],['Fatigue','−'+(i.fat||0)],...df(i),['Guards','Blows to the head']];return[['Armor',i.arm],['Fatigue','−'+i.fat],...df(i)]}
+const ITKIND={dagger:'Dagger',mace:'Mace',sword:'Sword',axe:'Axe',spear:'Spear',bow:'Bow',staff:'Staff',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Firearm'};
+function itemKind(id){const i=ITEMS[id],k=i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.famed?'Famed '+k.toLowerCase():k}
 
 function pnSheetUp(){const s=$('sheet');return!!(s&&!s.classList.contains('hidden')&&s.getClientRects().length)}
 function pnAssert(){if(!PN.id)return;sheetOpen=true;if(G&&PN.town)G.townOpen=true}

@@ -180,7 +180,8 @@ function pic(name,size,svg){size=size||16;if(typeof pxIcon==='function'){try{ret
  return ico(svg||name)}
 function uInit(n){const w=String(n).trim().split(/\s+/);return(w.length>1?w[0][0]+w[1][0]:w[0].slice(0,2)).replace(/^./,c=>c.toUpperCase())}
 const _portC=typeof WeakMap==='function'?new WeakMap():null;
-function port(u,size){size=size||32;if(typeof portraitHTML==='function'){try{const c=_portC&&_portC.get(u);if(c&&c[size])return c[size];const h=portraitHTML(u,size);if(h){if(_portC){const o=c||{};o[size]=h;_portC.set(u,o)}return h}}catch(e){}}
+function port(u,size){size=size||32;if(u&&u.def&&typeof monsterPortraitURL==='function'){let m='';try{m=monsterPortraitURL(u)}catch(e){}if(m)return'<span class="ptr foe" style="display:inline-block;flex:none;width:'+size+'px;height:'+size+'px;line-height:0;vertical-align:middle;background:'+PAL.f+'"><img src="'+m+'" width="'+size+'" height="'+size+'" alt="" draggable="false" style="display:block;width:'+size+'px;height:'+size+'px;image-rendering:pixelated"></span>'}   // monsters (76-monsters.js) draw their own
+ if(typeof portraitHTML==='function'){try{const c=_portC&&_portC.get(u);if(c&&c[size])return c[size];const h=portraitHTML(u,size);if(h){if(_portC){const o=c||{};o[size]=h;_portC.set(u,o)}return h}}catch(e){}}
  return'<span class="pfb s'+u.side+'" style="width:'+size+'px;height:'+size+'px">'+esc(uInit(u.name))+'</span>'}
 function setHTML(id,h){const e=$(id);if(!e||e._h===h)return false;const st=e.scrollTop,sl=e.scrollLeft;e.innerHTML=h;e._h=h;e.scrollTop=st;e.scrollLeft=sl;return true}
 function focusUnit(id){if(!B)return;const u=B.units[id];if(!u||!u.alive)return;B.cam.tx=u.sx;B.cam.ty=u.sy-10;say(unitLine(u)+'.')}
@@ -322,6 +323,7 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
   if(ig>=.35&&(t.armMax>0||t.helmMax>0))st+='<span class="sd" style="--sc:#f3d98b" title="Armor pierce: '+Math.round(ig*100)+'% of the damage goes past armor">'+pic('ab-puncture',16,'a-burst')+'<b>'+Math.round(ig*100)+'%</b></span>'}
  if(a.wpn&&shBowAb(u,a)&&shLoaded(u)===true){const rc=shReloadCost(u);st+='<span class="sd" style="--sc:#b9ad8f" title="Fires, then must be reloaded'+(rc?' ('+rc.ap+' AP)':'')+'">'+pic('ab-reload',16,'a-burst')+'<b>'+(rc?rc.ap:'')+'</b></span>'}
  const ov=fcOver(u,t,a);if(ov)st+=ov;
+ st+=fcMon(u,t,a);
  if(f.kill)st+='<span class="fck'+(f.sure?' sure':'')+'" title="'+(f.sure?'A hit kills':'A strong hit kills')+'">'+pic('skull',16,'skull')+'<b>'+(f.sure?'Kills':'Lethal')+'</b></span>';
  for(const s of f.statuses||[])st+=stIcon(s.k,s.n,s.ch<1?Math.round(s.ch*100)+'%':s.n>1?s.n:'');
  if(f.kb&&f.kb.ch>0)st+='<span class="sd" style="--sc:#ecc64f" title="Knocked back '+f.kb.n+'">'+pic('ab-shove',16,'a-shove')+'<b>'+(f.kb.ch<1?Math.round(f.kb.ch*100)+'%':f.kb.n)+'</b></span>';
@@ -333,9 +335,17 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  +(blocked?'<span class="fcr"><span class="fch lo blk" title="Something stands in the way: this cannot be ordered">'+pic('los-blocked',16,'a-burst')+'<b>No line of fire</b></span></span>'
   :'<span class="fcr"><span class="fch'+(f.hit>=75?' hi':f.hit<45?' lo':'')+'" title="Chance to hit">'+abIcon(u,a.id,16)+'<b>'+f.hit+'%</b></span>'+mods+'</span>'+rows
   +(st?'<span class="fcs">'+st+'</span>':'')+ff)+'</span>'}
+/* monsters: fire on a fire-weak foe (already counted in the figures), a huge foe, a flier a root would ground, a dive being gathered */
+function fcMon(u,t,a){let h='';const d=t&&t.def;if(!d)return h;const fire=typeof fireAb==='function'?fireAb(a):!!(a&&a.status&&a.status.burn);
+ if(d.fireWeak&&fire)h+='<span class="sd fw" style="--sc:#ff8a3c" title="Weak to fire: +'+Math.round(d.fireWeak*100)+'% damage from fire and burning (already counted)">'+pic('burn',16,'a-flame')+'<b>+'+Math.round(d.fireWeak*100)+'%</b></span>';
+ else if(d.fireWeak)h+='<span class="sd" style="--sc:#b9ad8f" title="Weak to fire: fire and burning do +'+Math.round(d.fireWeak*100)+'% damage to it">'+pic('burn',16,'a-flame')+'</span>';
+ if((t.sz||d.size||1)>1)h+='<span class="sd" style="--sc:#c8d0d8" title="Huge: stands on 2x2 tiles and cannot be knocked back">'+pic('ab-wbuffet',16,'a-burst')+'<b>2×2</b></span>';
+ if(t.fly&&a&&a.status&&a.status.root&&!(t.st&&t.st.grounded>0))h+='<span class="sd" style="--sc:#ecc64f" title="A root grounds the flier: no flight, no dive">'+pic('st-grounded',16,'a-pin')+'</span>';
+ if(t.st&&t.st.diving>0)h+='<span class="sd" style="--sc:#ef8a78" title="Gathering a dive: a stun or a root breaks it">'+pic('st-diving',16,'a-burst')+'</span>';
+ return h}
 /* a reach weapon striking 2 tiles away: who (or what) stands in between, struck over */
 function fcOver(u,t,a){if(!a||a.magic||shBowAb(u,a)||mdist(u,t)!==2)return'';const L=[];
- for(const [dc,dr] of DIRS){const c=u.c+dc,r=u.r+dr;if(!inb(c,r)||Math.abs(c-t.c)+Math.abs(r-t.r)!==1)continue;const x=unitAt(c,r);if(x&&x!==t)L.push(x)}
+ for(const [uc,ur] of (typeof unitTiles==='function'?unitTiles(u):[[u.c,u.r]]))for(const [dc,dr] of DIRS){const c=uc+dc,r=ur+dr;if(!inb(c,r)||(typeof tdist==='function'?tdist(c,r,t):Math.abs(c-t.c)+Math.abs(r-t.r))!==1)continue;const x=unitAt(c,r);if(x&&x!==t&&x!==u&&!L.includes(x))L.push(x)}
  if(!L.length)return'';const al=L.filter(x=>x.side===u.side),x=al[0]||L[0];
  return'<span class="fcov'+(al.length?' al':'')+'" title="Strikes over '+esc(x.name)+(al.length?' (a comrade: the blow passes over)':'')+'">'+pic(shWIcon(shHand(u)),16,'sword')+'<i>over</i><span class="fcfa">'+port(x,16)+'</span></span>'}
 function fcShow(aim,armed){const e=fcEl();FC.u=aim.u;FC.t=aim.t;FC.a=aim.a;FC.k=aim.k;FC.id=aim.a.id;FC.armed=!!armed;FC.sel=B.sel;if(!e)return;

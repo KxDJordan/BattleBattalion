@@ -65,6 +65,11 @@ function ptTorso(P){const L=ptL(),W=PT_TORSO[P.build||'normal'],sk=P.skin,T=y=>{
    if(y===28||y===31)return x<16?'o':'G';if(x<16)return d===0?'r':d===1||y===29?'q':x<=T(y)[0]+1?'q':'p';return d===0?'q':x>=T(y)[1]-1?'o':y===29?'p':d<3?'p':'o'});
   ptH(L,11,20,22,'q');ptH(L,11,20,23,'p');ptH(L,11,20,24,'p');ptH(L,11,20,25,'o');ptH(L,11,14,22,'r');ptS(L,20,22,'p');ptS(L,20,23,'o');ptS(L,20,24,'o');ptS(L,11,23,'q');ptS(L,12,23,'q');
   ptS(L,8,30,'c');ptS(L,23,30,'b');ptS(L,5,26,'c');ptS(L,26,26,'b');ptS(L,13,27,'c');ptS(L,18,27,'b');ptH(L,12,14,28,'q');ptH(L,12,13,29,'q')}
+ else if(a==='brig'){const r=P.clothC||PT_CLOTH.red;fill(r);neck(22);ptH(L,12,19,23,'o');ptH(L,12,19,24,'p');ptS(L,12,24,'q');
+  for(let y=25;y<32;y+=2)for(let x=2;x<30;x+=2){const xx=x+((y>>1)&1);if(inT(xx,y)&&(xx<14||xx>17))ptS(L,xx,y,xx<16?'d':'c')}ptV(L,15,25,31,r[0]);ptV(L,16,25,31,r[0])}
+ else if(a==='lamellar'){const r=PT_CLOTH.steel;neck(22);fill(r,(x,y,t)=>y%3===0?'o':((x>>1)&1)?r[t]:r[Math.min(2,t+1)]);for(let y=24;y<32;y+=3)for(let x=1;x<31;x+=4)if(inT(x,y))ptS(L,x,y,'g');ptH(L,12,19,23,'f');ptH(L,13,18,22,'g')}
+ else if(a==='coat'){const r=P.clothC||PT_CLOTH.night,st=PT_CLOTH.steel;fill(r,(x,y,t)=>(y===24||y===25||y===27||y===28||y===30||y===31)&&(x<15||x>16)?(y%3===0?st[2]:st[t]):r[t]);neck(22);
+  for(const y of[24,27,30])for(let x=3;x<29;x+=4)if(inT(x,y)&&(x<15||x>16))ptS(L,x,y,'r');ptH(L,12,19,23,'o')}
  else if(a==='bare'){fill([sk[2],sk[1],sk[0]]);neck(23);ptH(L,11,14,26,sk[2]);ptH(L,17,20,26,sk[2]);ptV(L,15,27,31,sk[2])}
  else if(a==='fur'){const r=PT_CLOTH.brown;fill(r,(x,y,t)=>((x*7+y*5)%6<2)?r[Math.min(2,t+1)]:((x*3+y*7)%5===0?r[0]:r[t]));neck(23);vneck(3,r[2]);ptS(L,15,29,'l');ptS(L,16,30,'m');ptS(L,15,30,'l')}
  else if(a==='bone'){fill(['G','o','p'],(x,y,t)=>['G','o','p'][t]);neck(23);for(let y=25;y<32;y+=2){ptH(L,10,21,y,'l');ptS(L,21,y,'m');ptS(L,20,y,'m')}ptV(L,15,24,31,'l');ptV(L,16,24,31,'m')}
@@ -72,9 +77,22 @@ function ptTorso(P){const L=ptL(),W=PT_TORSO[P.build||'normal'],sk=P.skin,T=y=>{
   for(const s of [0,1]){for(let i=0;i<6;i++){const x=s?26+ (i>>1):5-(i>>1),y=24-i;ptS(L,x,y,i<2?'D':'G');ptS(L,s?x-1:x+1,y,s?'D':'C')}}
   ptS(L,15,27,'C');ptS(L,16,27,'D');ptS(L,15,28,'D');ptS(L,16,28,'C');ptS(L,15,29,'C');ptS(L,16,29,'D')}
  else{const r=PT_CLOTH[P.shirtC||'white'];fill(P.clothC||['4','n','m']);neck(24);vneck(3,'4')}
+ ptTorsoV(L,P,inT,top);
  if(P.beads){const c=P.beads,pts=[[11,24],[11,25],[12,26],[13,27],[14,28],[15,29],[16,29],[17,28],[18,27],[19,26],[20,25],[20,24]];pts.forEach(([x,y],i)=>ptS(L,x,y,i%2?c[0]:c[1]));ptR(L,15,30,16,31,c[2]||'c');ptS(L,15,30,c[3]||'d')}
  return ptOut(L)}
 
+/* per-look details over a torso kind (the item's own drawing: jack, hide, studded, sigils, gothic fluting...) */
+function ptTorsoV(L,P,inT,top){const V=P.av;if(!V)return;const a=P.armor,res=P.gem&&PT_RESK[P.gem]?PT_RESK[P.gem]:['x','X'];
+ if(V.gold){for(let x=0;x<32;x++){const y=top(x);if(y<32&&(x<12||x>19))ptS(L,x,y,x<16?'d':'c')}for(let x=11;x<=20;x++)ptS(L,x,30,x<16?'d':'b');ptS(L,15,30,'e');ptS(L,7,26,'e');ptS(L,24,27,'d')}
+ if(V.tex==='diamond')for(let y=23;y<32;y++)for(let x=0;x<32;x++)if(inT(x,y)&&(((x+y)&3)===0||((x-y)&3)===0)&&(x<14||x>17))ptS(L,x,y,(P.clothC||PT_CLOTH.tan)[0]);
+ if(V.collar){ptH(L,11,20,22,'k');ptH(L,11,20,21,'j');ptS(L,11,21,'k');ptS(L,20,22,'i');ptS(L,20,21,'i')}
+ if(V.tex==='hide')for(let y=23;y<32;y++)for(let x=0;x<32;x++)if(inT(x,y)&&(x*5+y*3)%11===0)ptS(L,x,y,'a');
+ if(V.tex==='studs')for(let y=25;y<32;y+=2)for(let x=1+((y>>1)&1)*2;x<31;x+=4)if(inT(x,y)&&ptG(L,x,y)!=='.')ptS(L,x,y,'q');
+ if(V.mantle){const r=a==='robe'?PT_CLOTH.purple:PT_CLOTH.brown;for(let x=0;x<32;x++){const y=top(x);if(y>=32)continue;for(let j=0;j<3;j++)if(inT(x,y+j)&&!(j===2&&(x&1)))ptS(L,x,y+j,j===0?r[2]:(x*7+j)%5===0?r[0]:r[1])}if(a==='robe'){ptS(L,15,24,'d');ptS(L,16,24,'c');ptS(L,15,25,'b')}}
+ if(V.mailtop)for(let y=22;y<=26;y++)for(let x=0;x<32;x++)if(inT(x,y)&&(x<13||x>18||y>25))ptS(L,x,y,(x+y)&1?'p':'o');
+ if(V.sig){const g=res;for(const [x,y] of (V.sig===2?[[7,26],[24,26],[6,29],[25,29]]:[[8,27],[23,27]])){ptS(L,x,y,g[0]);ptS(L,x+1,y,g[1]);ptS(L,x,y+1,g[1]);ptS(L,x,y-1,'r')}}
+ if(V.trim==='gold')for(let y=24;y<32;y++){ptS(L,11,y,'d');ptS(L,20,y,'b')}else if(V.trim==='white')for(let y=24;y<32;y++){ptS(L,12,y,'l');ptS(L,19,y,'m')}else if(V.trim==='steel')for(let y=24;y<32;y++){ptS(L,12,y,'q');ptS(L,19,y,'o')}
+ if(V.tex==='flute'){for(let y=25;y<32;y++)for(let x=3;x<29;x+=4)if(inT(x,y)&&inT(x+1,y)&&x!==15&&x!==16){ptS(L,x,y,x<16?'r':'q');ptS(L,x+1,y,'o')}for(const x of[4,27]){const y=top(x);if(y<32){ptS(L,x,y-1,'q');ptS(L,x,y-2,'r')}}}}
 /* ---- head: skin, ears, face ---- */
 function ptHead(P,R){const L=ptL(),E=ptExt(P),sk=P.skin,h=P.head,n=h.w.length,ey=P.ey||14,f=P.face||{};
  for(let i=0;i<n;i++){const y=h.y+i,x0=E.X0(y),x1=E.X1(y);ptH(L,x0,x1,y,sk[0]);ptS(L,x1,y,sk[1]);ptS(L,x1-1,y,sk[1]);if(i>n/2-1)ptS(L,x1,y,sk[2]);if(i>=n-3){ptS(L,x1-2,y,sk[1]);ptS(L,x1-1,y,sk[2])}if(i===n-1){ptH(L,x0+1,x1,y,sk[1]);ptH(L,x1-2,x1,y,sk[2])}}
@@ -189,7 +207,8 @@ function ptBeard(L,P,E){const b=P.beard;if(!b)return;const c=P.beardC||P.hairC,e
  if(b!=='stache'&&b!=='chops'&&b!=='goatee'){ptH(L,14,17,my,sk[3]==='0'?'0':'f');if(b==='dwarf'||b==='fork')ptH(L,14,17,my,c[0])}}
 /* ---- headgear (drawn over hair) ---- */
 function ptHat(L,P,E){const t=P.hat;if(!t)return;const sk=P.skin,ey=P.ey||14,c=t==='coif'?PT_CLOTH.steel:ptCl(P.hatC)||PT_CLOTH.brown;
- if(t==='great'||t==='barbute'){ptFullHelm(L,P,E,t);return}
+ if(t==='great'||t==='barbute'||t==='armet'||t==='bascinet'){ptFullHelm(L,P,E,t);return}
+ if(t==='spangen'||t==='sallet'||t==='armcap'){ptHelm2(L,P,E,t);return}
  if(t==='hood'||t==='coif'){const peak=E.y0-3,out=y=>{const d=y-peak;return d<=0?3:d===1?5:d===2?7:d===3?8:Math.max(9,P.head.w[clamp(y-E.y0,0,P.head.w.length-1)]+2)};
   for(let y=peak;y<=23;y++){const hw=y>E.y1?out(E.y1)-(y-E.y1>1?1:0):out(y);for(let x=16-hw;x<=15+hw;x++){
     const open=y>=ey-4&&y<=E.y1+1&&x>=E.X0(Math.min(y,E.y1))+(y<ey-2?2:y<ey+4?0:0)&&x<=E.X1(Math.min(y,E.y1))-(y<ey-2?2:0)&&!(y===ey-4&&(x<13||x>18));
@@ -224,16 +243,29 @@ function ptHat(L,P,E){const t=P.hat;if(!t)return;const sk=P.skin,ey=P.ey||14,c=t
  else if(t==='mask'){for(let y=ey+2;y<=E.y1;y++)for(let x=E.X0(y);x<=E.X1(y);x++)ptS(L,x,y,x>=E.X1(y)-1?c[0]:x<=E.X0(y)+2&&y<ey+5?c[2]:c[1]);ptH(L,E.X0(ey+2),E.X1(ey+2),ey+2,c[2]);ptS(L,E.X1(ey+2),ey+2,c[0]);ptS(L,15,ey+4,c[0]);ptS(L,16,ey+5,c[0]);ptS(L,14,ey+6,c[0])}}
 
 /* closed helmets: the barbute leaves a T of face, the great helm only a slit; both carry the light on the left like every bust */
-function ptFullHelm(L,P,E,t){const r=PT_CLOTH.steel,ey=P.ey||14,gr=t==='great',y0=E.y0-(gr?2:3),y1=E.y1+(gr?1:0),hw0=P.head.w[3]+1;
- for(let y=y0;y<=y1;y++){const d=y-y0,hw=gr?(d===0?hw0-1:hw0):(d===0?hw0-4:d===1?hw0-2:d===2?hw0-1:y>y1-2?hw0-1:hw0);
+function ptFullHelm(L,P,E,t){const r=PT_CLOTH.steel,ey=P.ey||14,ar=t==='armet'||t==='bascinet',gr=t==='great'||ar,y0=E.y0-(gr?2:3)-(t==='bascinet'?2:0),y1=E.y1+(gr?1:0),hw0=P.head.w[3]+1;
+ for(let y=y0;y<=y1;y++){const d=y-y0,hw=t==='bascinet'?(d===0?0:d===1?2:d===2?hw0-3:d===3?hw0-1:hw0):t==='armet'?(d===0?hw0-3:d===1?hw0-1:y>y1-2?hw0-1:hw0):gr?(d===0?hw0-1:hw0):(d===0?hw0-4:d===1?hw0-2:d===2?hw0-1:y>y1-2?hw0-1:hw0);
   for(let x=16-hw;x<=15+hw;x++){const open=!gr&&((y>=ey-1&&y<=ey+1&&x>=16-hw+3&&x<=15+hw-3)||(y>ey+1&&x>=14&&x<=17));if(open)continue;
    ptS(L,x,y,x>=15+hw-1?r[0]:x<=16-hw+1&&y>y0?r[2]:(d===1&&x<15)?r[2]:r[1])}}
  ptS(L,12,y0+1,'r');ptS(L,11,y0+2,'r');
+ if(t==='armet'){ptH(L,16-hw0+2,15+hw0-1,ey,'0');ptH(L,16-hw0+2,15+hw0-1,ey+1,'q');ptH(L,16-hw0+1,15+hw0,ey+3,'o');ptV(L,15,y0+1,ey-1,'q');ptV(L,16,y0+1,ey-1,'o');for(let x=18;x<=20;x+=2)ptS(L,x,ey+5,'0');ptR(L,16-hw0-1,ey+2,16-hw0,ey+3,'c');ptS(L,16-hw0-1,ey+2,'d');return}
+ if(t==='bascinet'){ptH(L,16-hw0+1,13,ey,'0');ptH(L,18,15+hw0-1,ey,'0');for(let y=ey-2;y<=ey+5;y++){const w=y<ey+1?1+(y-ey+2):Math.max(1,4-(y-ey-1));ptH(L,16-w,15+w,y,y<ey+2?'q':'p');ptS(L,15+w,y,'o');ptS(L,16-w,y,'r')}
+  for(const [x,y] of[[14,ey+2],[17,ey+2],[15,ey+3],[16,ey+4]])ptS(L,x,y,'0');ptH(L,16-hw0,15+hw0,y1,'o');for(let x=16-hw0-1;x<=15+hw0+1;x++)ptS(L,x,y1+1,(x&1)?'p':'o');return}
  if(gr){ptH(L,16-hw0,15+hw0,y0,r[2]);ptH(L,16-hw0+1,15+hw0-1,ey,'0');ptH(L,16-hw0+1,15+hw0-1,ey-2,'c');ptH(L,16-hw0+1,13,ey-2,'d');ptV(L,15,ey-2,y1,'c');ptV(L,16,ey-2,y1,'b');ptS(L,15,ey,'0');ptS(L,16,ey,'0');
   for(let y=ey+3;y<=y1-1;y+=2){ptS(L,12,y,'0');ptS(L,19,y,'0');ptS(L,13,y+1,'0');ptS(L,18,y+1,'0')}
   ptSt(L,['.gh.','gghf','.gf.'],18,y0-3)}                                                                  // a red plume
  else{for(let y=ey-1;y<=ey+1;y++){ptS(L,16-hw0+2,y,r[0]);ptS(L,15+hw0-2,y,r[0])}ptV(L,13,ey+2,y1,r[0]);ptV(L,18,ey+2,y1,r[0]);ptH(L,16-hw0+3,15+hw0-3,ey-2,r[0]);ptH(L,13,18,y0,r[2])}}
 
+/* spangenhelm (conical, brass bands, mail aventail), sallet (low dome, slit, swept tail), arming cap (quilted, ear flaps) */
+function ptHelm2(L,P,E,t){const ey=P.ey||14,sk=P.skin,hw0=P.head.w[3]+1,st=PT_CLOTH.steel;
+ if(t==='spangen'){const y0=E.y0-5;for(let y=E.y0-1;y<=23;y++){if(y<ey-3)continue;const hw=hw0+1;for(let x=16-hw;x<=15+hw;x++){if(E.inF(x,y)&&!(x<16-hw+2||x>15+hw-2)&&y<=E.y1)continue;if(y>E.y1+1&&x>=14&&x<=17)continue;ptS(L,x,y,(x+y)&1?(x>=16?'o':'p'):(x>=16?'G':'o'))}}
+  for(let y=y0;y<=ey-4;y++){const d=y-y0,hw=Math.min(hw0+1,1+d*2);for(let x=16-hw;x<=15+hw;x++)ptS(L,x,y,x>=15+hw-1?st[0]:x<=16-hw+1?st[2]:st[1])}
+  for(const x of[11,15,20])for(let y=y0+2;y<=ey-4;y++)if(ptG(L,x,y)!=='.')ptS(L,x,y,x<16?'d':'b');ptS(L,15,y0,'d');ptH(L,16-hw0-1,15+hw0+1,ey-4,'c');ptH(L,16-hw0-1,13,ey-4,'d');ptS(L,15+hw0+1,ey-4,'b');return}
+ if(t==='sallet'){const y0=E.y0-2;for(let y=y0;y<=ey-1;y++){const d=y-y0,hw=d===0?hw0-3:d===1?hw0-1:hw0+(y>=ey-3?1:0);for(let x=16-hw;x<=15+hw;x++)ptS(L,x,y,x>=15+hw-1?st[0]:(x<=16-hw+1||(d===1&&x<15))?st[2]:st[1])}
+  ptH(L,16-hw0+1,15+hw0-1,ey-2,'0');ptS(L,13,ey-2,'o');ptS(L,18,ey-2,'o');ptH(L,16-hw0,15+hw0,ey-3,st[2]);ptS(L,12,y0+1,'r');ptS(L,11,y0+2,'r');
+  for(let i=0;i<4;i++){ptS(L,16-hw0-1-i,ey-1+i,st[2]);ptS(L,16-hw0-i,ey-1+i,st[1]);ptS(L,15+hw0+1+i,ey-1+i,st[0]);ptS(L,15+hw0+i,ey-1+i,st[0])}return}
+ const r=P.hatC&&ptCl(P.hatC)||PT_CLOTH.white,y0=E.y0-2;for(let y=y0;y<=ey+3;y++){const d=y-y0,hw=d===0?hw0-4:d===1?hw0-2:d===2?hw0-1:hw0;for(let x=16-hw;x<=15+hw;x++){if(y>ey-4&&x>16-hw+1&&x<15+hw-1)continue;ptS(L,x,y,x>=15+hw-1?r[0]:(x<=16-hw+1)?r[2]:(x%3===1?r[0]:r[1]))}}
+ ptH(L,16-hw0,15+hw0,ey-4,r[0]);for(let x=16-hw0+2;x<=15+hw0-2;x+=3)ptV(L,x,y0+1,ey-5,r[0]);ptS(L,16-hw0+1,ey+4,'i');ptS(L,15+hw0-1,ey+4,'i');ptH(L,14,17,E.y1+1,'i')}
 /* ---- gear behind the shoulders ---- */
 const PT_WPN={
  sword:{x:24,y:10,r:['..cb..','..cb..','..ji..','..ji..','..ji..','..ji..','dccccb','.bbbba','..qp..','..qp..','..qp..','..qp..','..qp..','..qp..']},
@@ -261,9 +293,10 @@ const PT_WPN={
  pistol:{x:24,y:9,r:['..cb.','..po.','..po.','..po.','..po.','..po.','.qcb.','.kjpo','.kj..','kji..','kji..','.c...']},
  musket:{x:24,y:0,r:['..cb.','..po.','..po.','..po.','..pok','..pok','..cb.','..pok','..pok','..pok','..pok','..cb.','.qpok','.cpok','..kji','..kji','..kji','..kji','.kkji','.kkji','.kkji','.kkji','.kkji','.kkji']},
  quiver:{x:23,y:6,r:['g.l.g..','gflfg..','.f.f...','.jkji..','.jkji..','.jkjii.','..jkji.','..jkji.','..jkjii','...jkji','...jkji','...jkji','...jkji','...jkji','...jkji','...jkji','...jkji']}};
-function ptWeapon(P){const L=ptL(),id=P.wpn;if(!id||!PT_WPN[id])return null;const w=PT_WPN[id];ptSt(L,w.r,w.x+(P.wx||0),w.y+(P.wy||0));return ptOut(L)}
+function ptRowsL(rows,dx,dy){const L=ptL();rows.forEach((r,y)=>{for(let x=0;x<r.length;x++)if(r[x]!=='.')ptS(L,x+(dx|0),y+(dy|0),r[x])});return L}
+function ptWeapon(P){if(P.wrows)return ptRowsL(P.wrows,P.wx,P.wy);const L=ptL(),id=P.wpn;if(!id||!PT_WPN[id])return null;const w=PT_WPN[id];ptSt(L,w.r,w.x+(P.wx||0),w.y+(P.wy||0));return ptOut(L)}
 function ptCl(x){return Array.isArray(x)?x:PT_CLOTH[x]}
-function ptShield(P){const s=P.shield;if(!s)return null;const L=ptL(),c=ptCl(P.shC||'red')||PT_CLOTH.red;
+function ptShield(P){const s=P.shield;if(!s)return null;if(P.shRows)return ptRowsL(P.shRows);const L=ptL(),c=ptCl(P.shC||'red')||PT_CLOTH.red;
  if(s==='round'||s==='spiked'){const cx=4.5,cy=22.5,R=6.6,rim=s==='spiked'?['o','p','q']:['i','j','k'];for(let y=14;y<32;y++)for(let x=0;x<=11;x++){const dx=x-cx,dy=y-cy,d=Math.sqrt(dx*dx+dy*dy);if(d>R)continue;
    ptS(L,x,y,d>R-1.3?(dx+dy<-2?rim[2]:dx+dy>3?rim[0]:rim[1]):d<1.6?(dx+dy<0?'r':'q'):d<2.5?(dx+dy<0?'q':'o'):(dx+dy<-3?c[2]:dx+dy>4?c[0]:c[1]))}
   if(s==='round'){ptS(L,2,20,'l');ptS(L,7,26,'l')}else{ptS(L,4,15,'q');ptS(L,4,14,'r');ptS(L,10,22,'q');ptS(L,11,22,'p')}}
@@ -280,7 +313,7 @@ const PT_RESK={mana:['x','X'],aura:['y','Y'],qi:['z','Z'],chi:['A','B']};
 /* ---- livery (tailor): cloth and accent as dye ramps [dark,mid,light], metal finish remaps the steel tones ---- */
 const PT_STEEL='opqrG';
 function ptLivMap(mt){if(!mt)return null;return{o:mt[0],p:mt[1],q:mt[2],r:mt[3],G:mt[4]||mt[0]}}
-function ptLivTorso(T,P){const v=P.liv,a=P.armor,mm=(a==='mail'||a==='scale'||a==='plate')?ptLivMap(v.mt):null,ac=v.ac;
+function ptLivTorso(T,P){const v=P.liv,a=P.armor,mm=(a==='mail'||a==='scale'||a==='plate'||a==='lamellar'||a==='coat')?ptLivMap(v.mt):null,ac=v.ac;
  const out=T.map(r=>r.slice());
  if(mm)for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=out[y][x];if(mm[k]&&!(y>=19&&y<=24&&x>=13&&x<=18&&a!=='plate'&&ptG(T,x,y)===P.skin[1]))out[y][x]=mm[k]}
  if(ac){if(a==='robe')for(let y=22;y<32;y++)for(let x=0;x<32;x++){const k=out[y][x];if(k==='c')out[y][x]=ac[1];else if(k==='b')out[y][x]=ac[0];else if(k==='d')out[y][x]=ac[2]}
@@ -293,14 +326,14 @@ function ptBust(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38+((x^y)&1?0:0)||y>=29)C[y][x]=bg[1];
  if(bg[2])for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y<16)C[y][x]=bg[2];
  if(P.under)P.under(C);
- const sh=ptShield(P);if(sh)ptOver(C,sh);const wp=ptWeapon(P);if(wp)ptOver(C,wp);
- ptOver(C,P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P));
+ const sh=ptShield(P),shF=!!P.shRows;if(sh&&!shF)ptOver(C,sh);const wp=ptWeapon(P);if(wp)ptOver(C,wp);
+ ptOver(C,P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P));if(sh&&shF)ptOver(C,sh);                             // an item's shield is held up in front of the shoulder
  const hd=ptHead(P,R),L=hd.L,E=hd.E;
  if(P.hairBack)P.hairBack(L,E);
  ptHair(L,P,E,R);if((P.ears==='elf'&&P.hat!=='hood')||P.ears==='gob')ptEars(L,P,E);ptBeard(L,P,E);
- if(P.liv&&(P.liv.mt||P.liv.ac)&&P.hat){const B=L.map(r=>r.slice());ptHat(L,P,E);const mm=/coif|kettle|nasal|great|barbute/.test(P.hat)?ptLivMap(P.liv.mt):null,ac=P.liv.ac,pm=ac&&P.hat==='great'?{f:ac[0],g:ac[1],h:ac[2]}:null;
+ if(P.liv&&(P.liv.mt||P.liv.ac)&&P.hat){const B=L.map(r=>r.slice());ptHat(L,P,E);const mm=/coif|kettle|nasal|great|barbute|spangen|sallet|bascinet|armet/.test(P.hat)?ptLivMap(P.liv.mt):null,ac=P.liv.ac,pm=ac&&P.hat==='great'?{f:ac[0],g:ac[1],h:ac[2]}:null;
   for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=L[y][x];if(k===B[y][x])continue;if(mm&&mm[k])L[y][x]=mm[k];else if(pm&&pm[k])L[y][x]=pm[k]}}
- else ptHat(L,P,E);if(P.over)P.over(L,E);
+ else ptHat(L,P,E);if(P.famH&&P.hat){const ey=P.ey||14;for(let y=ey-3;y>=E.y0-6;y--){let n=0;for(let x=8;x<24;x++){const k=L[y]&&L[y][x];if(k&&k!=='.'&&k!==P.skin[0]&&k!==P.skin[1]&&k!==P.skin[2]&&!(P.hairC&&P.hairC.includes(k))){n++}}if(n>=8){for(let x=8;x<24;x++){const k=L[y][x];if(k!=='.'&&k!==P.skin[0]&&k!==P.skin[1])L[y][x]=x<16?'d':'c'}L[y][11]='e';break}}}if(P.over)P.over(L,E);
  ptOver(C,ptOut(L));if(P.top)P.top(C,E);
  if(P.gem){const g=PT_RESK[P.gem];if(g)ptSt(C,PT_GEM,0,0,{a:g[0],b:g[1]})}
  return C.map(r=>r.join(''))}
@@ -361,15 +394,16 @@ function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed
  if(P.hat==='hood'&&P.hair==='tail')P.hair='short';
  // the helmet actually worn (eq.h) replaces whatever the background put on the head; no helmet means no steel on it
  const hid=ITEMS[eq.h]&&ITEMS[eq.h].k==='h'?eq.h:null;
- if(hid){const tr=typeof helmTier==='function'?helmTier(hid):3;P.hat=hid==='hood'?'hood':hid==='coif'?'coif':hid==='kettle'?'kettle':hid==='nasal'?'nasal':hid==='barbute'?'barbute':hid==='greathelm'?'great':['cap','cap','coif','kettle','barbute','great'][tr]||'cap';
-  if(P.hat==='hood'&&!P.hatC)P.hatC='brown';if(P.hair==='mohawk'||P.hair==='bun'||P.hair==='curly'||P.hair==='mane'||P.hair==='shaggy'||P.hair==='swept')P.hair=fem?'long':'short';if(P.hat!=='cap'&&P.hat!=='kettle'&&P.hair==='tail')P.hair='short'}
+ if(hid){P.hat=typeof usHelmHat==='function'?usHelmHat(hid):'cap';P.hatC=null;P.famH=!!ITEMS[hid].famed;
+  if(P.hat==='hood'&&!P.hatC)P.hatC='brown';if(P.hair==='mohawk'||P.hair==='bun'||P.hair==='curly'||P.hair==='mane'||P.hair==='shaggy'||P.hair==='swept')P.hair=fem?'long':'short';if(P.hat!=='cap'&&P.hat!=='kettle'&&P.hat!=='armcap'&&P.hair==='tail')P.hair='short'}
  else if(ptHelmsExist()&&(P.hat==='kettle'||P.hat==='cap'||P.hat==='nasal'))P.hat=null;
  // gear
- const a=ITEMS[eq.a]?eq.a:null;P.armor=a||'none';if(a==='plate'||a==='scale')P.build=race==='elf'?'normal':'broad';
+ const a=ITEMS[eq.a]&&ITEMS[eq.a].k==='a'?eq.a:null,av=a&&typeof usArmorV==='function'?usArmorV(a):null;P.armor=av?av.k:a||'none';P.av=av;if(av&&av.body&&PT_CLOTH[av.body])P.clothC=PT_CLOTH[av.body];if(P.armor==='plate'||P.armor==='scale'||P.armor==='lamellar')P.build=race==='elf'?'normal':'broad';
  P.ragC=ptPick(R,['tan','brown','tan','green']);P.robeC=bg==='monk'||bg==='acolyte'?'red':ptPick(R,['blue','blue','purple']);
- const w=ITEMS[eq.w];if(w){const nw=typeof usWpnOf==='function'&&PT_NEWW[w.wt]?PT_WPNOF[usWpnOf(eq.w)]:null;P.wpn=nw||(eq.w==='riftedge'?'rift':eq.w==='focus'?'focus':eq.w==='pike'?'pike':eq.w==='greataxe'?'axe':eq.w==='club'?'club':w.wt==='axe'?'axe1':w.wt)}
+ const w=ITEMS[eq.w];if(w&&typeof usWeaponPtRows==='function'){try{P.wrows=usWeaponPtRows(usWpnOf(eq.w))}catch(e){P.wrows=null}}
+ if(w&&!P.wrows){const nw=typeof usWpnOf==='function'&&PT_NEWW[w.wt]?PT_WPNOF[usWpnOf(eq.w)]:null;P.wpn=nw||(eq.w==='riftedge'?'rift':eq.w==='focus'?'focus':eq.w==='pike'?'pike':eq.w==='greataxe'?'axe':eq.w==='club'?'club':w.wt==='axe'?'axe1':w.wt)}
  if(ITEMS[eq.s]){P.shield=typeof usShLook==='function'?usShLook(eq.s):eq.s;P.shC=ptPick(R,['red','blue','green','purple','white'])}
- ptLivery(P,m);
+ ptLivery(P,m);if(P.shield&&typeof usShieldPtRows==='function'){const c=ptCl(P.shC)||PT_CLOTH.red;try{P.shRows=usShieldPtRows(P.shield,usRamp(c.join(''),1))}catch(e){P.shRows=null}}
  if(race==='dwarf'){P.wy=3}
  P.gem=typeof mercRes==='function'?mercRes(m):null;
  return P}
@@ -515,8 +549,11 @@ function ptKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?'e:'+x:n
 function portraitRows(x){let key=null;try{key=ptKey(x)}catch(e){}if(!key)key='e:?';let r=PTC.rows.get(key);if(r)return r;
  try{if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;r=ptBust(ptMercSpec(m))}else r=ptEnemyRows(key.slice(2),x&&x.f)}catch(e){r=null}
  if(!r)r=ptL('2').map(a=>a.join(''));if(PTC.rows.size>PTC.max){PTC.rows.clear();PTC.cv.clear();PTC.url.clear()}PTC.rows.set(key,r);r.key=key;return r}
-function portraitCanvas(x){try{const r=portraitRows(x),k=r.key;let c=PTC.cv.get(k);if(c===undefined){c=px(r)||null;PTC.cv.set(k,c)}return c}catch(e){return null}}
-function portraitURL(x){try{const r=portraitRows(x),k=r.key;let u=PTC.url.get(k);if(u===undefined){const c=portraitCanvas(x);u='';try{if(c&&c.toDataURL)u=c.toDataURL();if(typeof u!=='string')u=''}catch(e){u=''}PTC.url.set(k,u)}return u}catch(e){return''}}
+/* monster art (76-monsters.js) paints its own enemies' portraits: monsterPortrait(typeId) -> 32x32 canvas or null */
+function ptMonKey(x){if(!x||x.m||typeof monsterPortrait!=='function')return null;if(x.base&&x.eq)return null;if(typeof x==='string')return x;if(x.def){if(x.eid&&EN[x.eid]===x.def)return x.eid;for(const k in EN)if(EN[k]===x.def)return k;return x.eid||null}return null}
+function ptMon(x){const k=ptMonKey(x);if(!k)return null;let c=PTC.cv.get('mon:'+k);if(c!==undefined)return c;try{c=monsterPortrait(k)||null}catch(e){c=null}PTC.cv.set('mon:'+k,c);return c}
+function portraitCanvas(x){const M=ptMon(x);if(M)return M;try{const r=portraitRows(x),k=r.key;let c=PTC.cv.get(k);if(c===undefined){c=px(r)||null;PTC.cv.set(k,c)}return c}catch(e){return null}}
+function portraitURL(x){const M=ptMon(x);if(M){const k='mon:'+ptMonKey(x);let u=PTC.url.get(k);if(u===undefined){u='';try{u=M.toDataURL()||''}catch(e){}PTC.url.set(k,u)}return u}try{const r=portraitRows(x),k=r.key;let u=PTC.url.get(k);if(u===undefined){const c=portraitCanvas(x);u='';try{if(c&&c.toDataURL)u=c.toDataURL();if(typeof u!=='string')u=''}catch(e){u=''}PTC.url.set(k,u)}return u}catch(e){return''}}
 function portraitHTML(x,size,cls){size=Math.max(16,Math.round(+size||32));let u='';try{u=portraitURL(x)}catch(e){}
  const side=x&&(x.def||typeof x==='string')&&!(x.m)?' foe':'';
  return`<span class="ptr${side}${cls?' '+cls:''}" style="display:inline-block;flex:none;width:${size}px;height:${size}px;line-height:0;vertical-align:middle;background:${PAL[side?'f':'3']}">${u?`<img src="${u}" width="${size}" height="${size}" alt="" draggable="false" style="display:block;width:${size}px;height:${size}px;image-rendering:pixelated;image-rendering:crisp-edges;image-rendering:pixelated">`:''}</span>`}

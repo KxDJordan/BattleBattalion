@@ -9,19 +9,21 @@
    Extra, optional pose fields beyond the contract: `lift` (board units of oy that are height above the ground, so the
    shadow can stay on the floor) and `tint` (a PAL key while a status colours the unit, else null). */
 const AN_FR={idle:4,walk:4,attack:4,cast:4,hit:2,death:4},AN_FPS={idle:3,walk:10,attack:14,cast:11,hit:10,death:8};
-const AN_WALK=0,AN_KB=1,AN_LEAP=2,AN_BLINK=3,AN_DASH=4,AN_STEP=5;
+const AN_WALK=0,AN_KB=1,AN_LEAP=2,AN_BLINK=3,AN_DASH=4,AN_STEP=5,AN_DIVE=6;
 const AN_HIT_AT=.38;                       // share of a melee attack spent winding up before the blow lands
 const ANIM=new WeakMap();
 const POSE={state:'idle',frame:0,dc:0,dr:1,ox:0,oy:0,alpha:1,flash:0,shadow:1,lift:0,tint:null};
 const ANB={t:-1e9,rot:-9,cx:32,cy:16,rx:-32,ry:16,hy:-16};   // board-space basis of +c, +r, +h under the current view
 function anNow(){return typeof now==='number'&&now>0?now:typeof performance!=='undefined'?performance.now():0}
 function anSp(){return(typeof reduced!=='undefined'&&reduced)||!(SPEEDF>0)?0:SPEEDF}
-function anN(st){const F=typeof UNIT_FRAMES!=='undefined'&&UNIT_FRAMES?UNIT_FRAMES:null,n=F&&F[st]>0?F[st]:AN_FR[st];return n>0?n|0:1}
+function anN(st,u){if(u&&typeof monsterFrames==='function'){const m=monsterFrames(u,st);if(m>0)return m}const F=typeof UNIT_FRAMES!=='undefined'&&UNIT_FRAMES?UNIT_FRAMES:null,n=F&&F[st]>0?F[st]:AN_FR[st];return n>0?n|0:1}
 function anFps(st){const F=typeof UNIT_FPS!=='undefined'&&UNIT_FPS?UNIT_FPS:null;return F&&F[st]>0?F[st]:AN_FPS[st]}
 function anBasis(t){const rot=typeof VIEW!=='undefined'&&VIEW?VIEW.rot|0:0;if(rot===ANB.rot&&t-ANB.t<400)return;ANB.rot=rot;ANB.t=t;
  try{const o=tpos(0,0,0),a=tpos(1,0,0),b=tpos(0,1,0),h=tpos(0,0,1);ANB.cx=a.x-o.x;ANB.cy=a.y-o.y;ANB.rx=b.x-o.x;ANB.ry=b.y-o.y;ANB.hy=h.y-o.y}catch(e){}}
+/* the height a unit stands at: the highest tile of its footprint (size-2 units stand on 4 tiles) */
+function anUH(u,c,r){const sz=u&&(u.sz||(u.def&&u.def.size>1?u.def.size:1))||1;if(sz<2)return anTileH(c,r);let h=0;for(let y=0;y<sz;y++)for(let x=0;x<sz;x++){if(c+x<BW&&r+y<BH){const v=anTileH(c+x,r+y);if(v>h)h=v}}return h}
 function anTileH(c,r){const b=typeof B!=='undefined'?B:null;if(!b||!b.tiles)return 0;const tl=b.tiles[r*BW+c];return tl?tl.h:0}
-function anOf(u){let s=ANIM.get(u);if(s)return s;const h=anTileH(u.c,u.r);
+function anOf(u){let s=ANIM.get(u);if(s)return s;const h=anUH(u,u.c,u.r);
  s={c:u.c,r:u.r,h,fc:u.c,fr:u.r,fh:h,vc:u.c,vr:u.r,vh:h,lift:0,va:1,mv:false,mt0:-1e9,mdur:1,mk:0,hop:0,wt0:-1e9,mend:-1e9,next:-1,
   dc:0,dr:u.side===0?-1:1,act:0,at0:-1e9,adur:1,lc:0,lr:0,hold:false,
   hitT:-1e9,hdur:1,hc:0,hr:0,dgT:-1e9,dead:!u.alive,deadT:-1e9,
@@ -39,22 +41,23 @@ function anVis(u,s,t){if(!s.mv){s.vc=s.c;s.vr=s.r;s.vh=s.h;s.lift=0;s.va=1;retur
  else if(k===AN_LEAP){e=a*a*(3-2*a);ev=e}
  else if(k===AN_DASH){e=1-(1-a)*(1-a)*(1-a);ev=e}
  else if(k===AN_STEP){e=1-(1-a)*(1-a);ev=e}
+ else if(k===AN_DIVE){e=a*a;ev=e}
  else if(k===AN_BLINK){e=a<.5?0:1;ev=e;s.va=a<.38?1-a/.38:a>.62?(a-.62)/.38:0}
  s.vc=s.fc+(s.c-s.fc)*e;s.vr=s.fr+(s.r-s.fr)*e;s.vh=s.fh+(s.h-s.fh)*ev;s.lift=s.hop?Math.sin(Math.PI*a)*s.hop:0}
-function anMove(u,s,kind){const t=anNow(),sp=anSp(),nh=anTileH(u.c,u.r),oc=s.c,or=s.r,dc=u.c-oc,dr=u.r-or,dist=Math.abs(dc)+Math.abs(dr);
+function anMove(u,s,kind){const t=anNow(),sp=anSp(),nh=anUH(u,u.c,u.r),oc=s.c,or=s.r,dc=u.c-oc,dr=u.r-or,dist=Math.abs(dc)+Math.abs(dr);
  anVis(u,s,t);if(kind<0)kind=s.next>=0?s.next:dist>1?AN_LEAP:AN_WALK;s.next=-1;
  s.fc=s.vc;s.fr=s.vr;s.fh=s.vh;s.c=u.c;s.r=u.r;s.h=nh;if(kind!==AN_KB)anFace(s,dc,dr);
  if(!sp){s.mv=false;s.vc=s.c;s.vr=s.r;s.vh=nh;s.lift=0;s.va=1;return}
  const dh=nh-s.fh,ah=Math.abs(dh);
- s.mdur=Math.max(30,(kind===AN_WALK?105:kind===AN_KB?120:kind===AN_STEP?170:200)*sp);s.mt0=kind===AN_KB&&s.hitT>t?s.hitT:t;s.mk=kind;
- s.hop=kind===AN_WALK?(ah>.05?8+ah*6:0):kind===AN_LEAP?26+dist*8:kind===AN_STEP?8:kind===AN_KB?(dh>.05?10:4):0;
+ s.mdur=Math.max(30,(kind===AN_WALK?105:kind===AN_KB?120:kind===AN_STEP?170:kind===AN_DIVE?260:200)*sp);s.mt0=kind===AN_KB&&s.hitT>t?s.hitT:t;s.mk=kind;
+ s.hop=kind===AN_DIVE?0:s.fly&&kind===AN_WALK?0:kind===AN_WALK?(ah>.05?8+ah*6:0):kind===AN_LEAP?26+dist*8:kind===AN_STEP?8:kind===AN_KB?(dh>.05?10:4):0;
  if(kind===AN_WALK&&(!s.mv&&t-s.mend>90))s.wt0=t;
  s.mv=true;if(typeof fxAnimMove==='function')try{fxAnimMove(u,kind,oc,or,dist)}catch(e){}}
 function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
  if(type==='move'){if(d.u)anMove(d.u,anOf(d.u),-1)}
  else if(type==='kb'){if(d.t)anMove(d.t,anOf(d.t),AN_KB)}
  else if(type==='cast'){const u=d.u;if(!u)return;const s=anOf(u),ab=d.ab||{};if(ab.id==='swap'||ab.swap){anSwapPoll(u,s,anNow(),anSp());return}
-  const fx=ab.fx||'';s.next=ab.id==='blink'||fx==='blink'?AN_BLINK:ab.id==='gale'?AN_LEAP:ab.id==='footwork'||fx==='dash'?AN_STEP:ab.dash||fx==='charge'?AN_DASH:ab.tgt==='move'&&ab.leap?AN_LEAP:-1;s.hold=false;
+  const fx=ab.fx||'';s.va=AN_VAR[fx]||'';s.vaT=t;s.next=fx==='dive-land'?AN_DIVE:ab.id==='blink'||fx==='blink'?AN_BLINK:ab.id==='gale'?AN_LEAP:ab.id==='footwork'||fx==='dash'?AN_STEP:ab.dash||fx==='charge'?AN_DASH:ab.tgt==='move'&&ab.leap?AN_LEAP:-1;s.hold=false;
   if(d.t&&d.t!==u)anFace(s,d.t.c-u.c,d.t.r-u.r);else if(d.k>=0&&ab.tgt==='tile')anFace(s,d.k%BW-u.c,((d.k/BW)|0)-u.r);
   if(ab.reloadW||ab.id==='reload'){anAct(s,3,t,Math.max(1,560*sp),0,0);return}
   if(ab.tgt==='aoe')anAct(s,1,t,260*sp,0,0);else if(!(ab.wpn||ab.id==='shove'||fx==='shove'||ab.tgt==='move'||ab.withdraw)){anAct(s,2,t,380*sp,0,0);s.hold=true}}
@@ -68,7 +71,12 @@ function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
   if(s.hold&&s.act===2){s.adur=Math.max(s.adur,t-s.at0+240*sp)}else anAct(s,1,t,240*sp,ln?s.dc:0,ln?s.dr:0)}
  else if(type==='ff'){if(d.u)anOf(d.u).ffT=t}
  else if(type==='death'){const tg=d.t;if(!tg)return;const s=anOf(tg);if(!s.dead){s.dead=true;s.deadT=SPEEDF>0?Math.max(t,s.hitT):-1e9}}
- else if(type==='turn'){if(d.u)anOf(d.u).hold=false}}
+ else if(type==='turn'){if(d.u){const s=anOf(d.u);s.hold=false;s.va=''}}
+ else if(type==='heal'){const tg=d.t;if(tg&&tg.def&&tg.def.regen){const s=anOf(tg);s.va='regen';s.vaT=t;anAct(s,2,t,520*sp,0,0)}}}
+/* which variant of its attack / cast a monster shows (its sprite has poses per variant: a wyvern's sting, buffet or dive, an ogre's
+   overhead slam, an ent's roots or bark): from the ability's fx hint, for 2.5 s after it was used */
+const AN_VAR={sting:'sting',buffet:'buffet','dive-land':'dive',dive:'takeoff',smash:'slam',quake:'slam',crush:'coil',coil:'coil',spit:'spit',roots:'roots',bark:'bark',summon:'roots',lash:'',bite:''};
+function anVariant(u){const s=ANIM.get(u);if(!s||!s.va)return'';return anNow()-s.vaT<2500?s.va:''}
 /* called by the effects when a blow will visibly land on `tg` at time `at` (ms, same clock as `now`) */
 function animImpact(tg,u,at,miss){if(!tg)return;const s=anOf(tg),sp=anSp();
  if(u&&u!==tg)anFace(s,u.c-tg.c,u.r-tg.r);
@@ -92,31 +100,38 @@ function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
  {const k=(t-s.lagT-300)/260;s.lag=k<=0?s.lag0:k>=1?s.hp:s.lag0+(s.hp-s.lag0)*k;if(s.lag<s.hp)s.lag=s.lag0=s.hp}
  let gx=s.vc-u.c,gy=s.vr-u.r,lift=s.lift,state='idle',frame=0,alpha=s.va,flash=0,n;
  const dt=t-s.deadT,hb=(t-s.hitT)/s.hdur;
- if(s.dead&&dt>=0){n=anN('death');const C=sp?Math.max(210,420*sp):1,hold=sp?150:60,fade=sp?320:220;state='death';
+ if(s.dead&&dt>=0){n=anN('death',u);const C=sp?Math.max(210,420*sp):1,hold=sp?150:60,fade=sp?320:220;state='death';
   frame=n<2?0:dt>=C?n-1:Math.min(n-2,(dt/C*(n-1))|0);alpha=dt<C+hold?1:Math.max(0,1-(dt-C-hold)/fade);if(dt<90)flash=1-dt/90;
   if(hb>=0&&hb<1){const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}}
  else{
-  if(hb>=0&&hb<1){n=anN('hit');state='hit';frame=Math.min(n-1,(hb*n)|0);flash=hb<.42?1-hb/.42:0;const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}
+  if(hb>=0&&hb<1){n=anN('hit',u);state='hit';frame=Math.min(n-1,(hb*n)|0);flash=hb<.42?1-hb/.42:0;const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}
   else if(s.mv&&t>=s.mt0){const k=s.mk;
-   if(k===AN_BLINK){n=anN('cast');state='cast';frame=Math.min(n-1,n>>1)}
-   else if(k===AN_KB){n=anN('hit');state='hit';frame=n-1}
+   if(k===AN_BLINK){n=anN('cast',u);state='cast';frame=Math.min(n-1,n>>1)}
+   else if(k===AN_KB){n=anN('hit',u);state='hit';frame=n-1}
    else if(k===AN_DASH){state='attack';frame=0}
-   else{n=anN('walk');state='walk';frame=(((t-s.wt0)*anFps('walk')/1000/Math.max(sp,.5))|0)%n;if(frame<0)frame=0}}
-  else if(t-s.swT<s.swD){const a=(t-s.swT)/s.swD;state='swap';frame=a<.34?0:a<.67?1:2;if(anN('swap')<3)state='idle',frame=0}
+   else{n=anN('walk',u);state='walk';frame=(((t-s.wt0)*anFps('walk')/1000/Math.max(sp,.5))|0)%n;if(frame<0)frame=0}}
+  else if(t-s.swT<s.swD){const a=(t-s.swT)/s.swD;state='swap';frame=a<.34?0:a<.67?1:2;if(anN('swap',u)<3)state='idle',frame=0}
   else if(s.act&&t-s.at0<s.adur){const a=(t-s.at0)/s.adur;
-   if(s.act===1){n=anN('attack');state='attack';frame=Math.min(n-1,(a*n)|0);if(s.lc||s.lr){const L=anLunge(a);gx+=s.lc*L;gy+=s.lr*L}}
-   else if(s.act===3){n=anN('reload');state=n>1?'reload':'cast';frame=Math.min(n-1,((t-s.at0)*anFps('reload')/1000/Math.max(sp,.45))|0)%n}
-   else{n=anN('cast');state='cast';frame=Math.min(n-1,((t-s.at0)*anFps('cast')/1000/Math.max(sp,.45))|0)}}
-  else if(sp&&s.gath){n=anN('cast');state='cast';frame=Math.min(n-1,1);lift+=((t/120)|0)&1?2:0}                       // gathering a telegraphed attack: arms raised, trembling
-  else if(sp&&s.run){n=anN('walk');state='walk';frame=((t*14/1000+s.ph*n)|0)%n;gx+=(((t/90)|0)&1?.03:-.03)}               // fleeing: runs on the spot, shaking, until its turn takes it away
-  else if(sp){n=anN('idle');frame=((t*anFps('idle')/1000+s.ph*n)|0)%n}
+   if(s.act===1){n=anN('attack',u);state='attack';frame=Math.min(n-1,(a*n)|0);if(s.lc||s.lr){const L=anLunge(a);gx+=s.lc*L;gy+=s.lr*L}}
+   else if(s.act===3){n=anN('reload',u);state=n>1?'reload':'cast';frame=Math.min(n-1,((t-s.at0)*anFps('reload')/1000/Math.max(sp,.45))|0)%n}
+   else{n=anN('cast',u);state='cast';frame=Math.min(n-1,((t-s.at0)*anFps('cast')/1000/Math.max(sp,.45))|0)}}
+  else if(sp&&s.gath){n=anN('cast',u);state='cast';frame=Math.min(n-1,1);lift+=((t/120)|0)&1?2:0}                       // gathering a telegraphed attack: arms raised, trembling
+  else if(sp&&s.run){n=anN('walk',u);state='walk';frame=((t*14/1000+s.ph*n)|0)%n;gx+=(((t/90)|0)&1?.03:-.03)}               // fleeing: runs on the spot, shaking, until its turn takes it away
+  else if(sp){n=anN('idle',u);frame=((t*anFps('idle')/1000+s.ph*n)|0)%n}
   const db=sp?(t-s.dgT)/(210*sp):-1;if(db>=0&&db<1){const k=.17*Math.sin(Math.PI*db);gx+=s.dr*k-s.dc*k*.5;gy+=s.dc*k-s.dr*k*.5}}
  lift=Math.round(lift/2)*2;
  P.state=state;P.frame=frame;P.dc=s.dc;P.dr=s.dr;
  P.ox=Math.round((gx*ANB.cx+gy*ANB.rx)/2)*2;P.oy=Math.round((gx*ANB.cy+gy*ANB.ry+(s.vh-s.h)*ANB.hy)/2)*2-lift;
   let rise=0;if(s.wd)alpha=0;                                                                                         // a unit that left the field is drawn by the effect that walks it off
  else if(t-s.spT<s.spD){const a=Math.max(0,(t-s.spT)/s.spD);if(s.spK===1){rise=Math.round((1-a)*9)*2;alpha*=a<.15?0:((t/60)|0)&1&&a<.5?.55:1}else if(s.spK===2)alpha*=a<.3?0:a<.6?(((t/50)|0)&1?.9:.3):1;else alpha*=Math.min(1,a*2.5)}
+ const hv=anHover(u,s,t,sp);if(hv){lift+=hv;P.oy-=hv}
  P.alpha=alpha;P.flash=flash;P.lift=lift;P.shadow=alpha*(1-Math.min(.6,lift/70));P.oy+=rise;P.tint=!s.dead&&t>=s.hitT?(s.gath&&((t/160)|0)&1?'C':s.tint):null;return P}
+/* fliers hover over the ground (the board draws their shadow on it): higher while gathering a dive, falling when killed,
+   down on the ground while grounded. Eased, in board units. */
+function anHover(u,s,t,sp){const mi=typeof umon==='function'?umon(u):null;if(!mi||!mi.fly){s.fly=false;return 0}s.fly=true;
+ const gr=u.st&&u.st.grounded>0,dv=u.st&&u.st.diving>0,tg=s.dead||gr||!u.alive?0:mi.lift*2+(dv?64:0),dt=Math.min(100,t-(s.hvT||t));s.hvT=t;
+ if(s.hv==null||!sp)s.hv=tg;else{const k=1-Math.exp(-dt/(tg<s.hv?(s.dead?120:150):260));s.hv+=(tg-s.hv)*k;if(Math.abs(tg-s.hv)<.5)s.hv=tg}
+ const bob=sp&&!s.dead&&!gr&&tg>0?Math.round(Math.sin(t/260+s.ph*6.28)*1.5)*2:0;return Math.round((s.hv+bob)/2)*2}
 /* true while the unit is still worth drawing after death (collapse + fade) */
 function unitVisible(u){if(u.alive)return true;const s=anOf(u);return anNow()-s.deadT<1100}
 
@@ -142,10 +157,10 @@ function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic;let n=0,tint=nu
     const c=anSprite('st-'+k);if(!c)continue;let dup=false;for(let j=0;j<n;j++)if(ic[j]===c)dup=true;if(!dup)ic[n++]=c}
   for(let i=0;i<L.length;i++){const k=L[i].key,pr=AN_PRI[k]!=null?AN_PRI[k]:6;if(AN_TINT[k]&&pr<tp){tp=pr;tint=AN_TINT[k]}}}
  s.icn=n;s.tint=tint}
-function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;const s=anOf(u),t=anNow(),big=!!o.big,w=big?22:16,rm=typeof reduced!=='undefined'&&reduced,
+function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;const s=anOf(u),t=anNow(),big=!!o.big,wide=!!o.wide,w=wide?30:big?22:16,rm=typeof reduced!=='undefined'&&reduced,
   noBars=u.side===0&&(o.bars===false||(typeof SET!=='undefined'&&SET&&SET.allyBars===false));
  x=Math.round(x);y=Math.round(y);const arm=u.armMax>0,helm=u.helmMax>0,bh=4+(arm?2:0)+(helm?2:0),x0=x-(w>>1)-1,top=y-2-bh,foe=u.side!==0;
- if(o.tgt){const hw=big?20:12,hh=big?46:30,p=rm?0:((t/170)|0)&1,l=x-hw-1-p,r=x+hw+p,a=y+1-p,b=y+hh-1+p,L=big?6:4;
+ if(o.tgt){const hw=wide?32:big?20:12,hh=o.top?o.top+(wide?4:0):big?46:30,p=rm?0:((t/170)|0)&1,l=x-hw-1-p,r=x+hw+p,a=y+1-p,b=y+hh-1+p,L=wide?8:big?6:4;
   q.fillStyle=PAL['0'];q.fillRect(l-1,a-1,L+2,3);q.fillRect(l-1,a-1,3,L+2);q.fillRect(r-L,a-1,L+2,3);q.fillRect(r-1,a-1,3,L+2);
   q.fillRect(l-1,b-1,L+2,3);q.fillRect(l-1,b-L,3,L+2);q.fillRect(r-L,b-1,L+2,3);q.fillRect(r-1,b-L,3,L+2);
   q.fillStyle=PAL[p?'e':'h'];q.fillRect(l,a,L,1);q.fillRect(l,a,1,L);q.fillRect(r-L+1,a,L,1);q.fillRect(r,a,1,L);

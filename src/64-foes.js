@@ -33,12 +33,12 @@ const FOE_ST={
  nova:{n:'Gathering the void',d:'Unleashes a void nova on everything within 2 tiles at the start of its next turn. Get clear.',icon:'st-nova',good:0}
 };
 const FOE_MOD={hex:{ms:-15,rs:-15,brv:-15},chant:{ms:20,rs:20,dmg:.5,brv:10},grab:{md:-10},webbed:{md:-5,rd:-10},winded:{ms:-15,md:-15,rd:-8,dmg:-.2},spent:{ms:-10,md:-10},banner:{brv:60,ms:8,md:8},
- enrage:{dmg:.3,md:-10},warcry:{ms:10,brv:20},ward:{dr:.4}};
+ enrage:{dmg:.3,md:-10},warcry:{ms:10,brv:20},ward:{dr:.4},coiled:{md:-15,ms:-10},entangled:{md:-10,rd:-10},bark:{dr:.3},slammed:{md:-10,rd:-10}};
 const FOE_KEYS=['ms','rs','md','rd','dmg','dr','brv'];
 for(const k in FOE_ST)if(!STATUS[k])STATUS[k]=FOE_ST[k];
 
 /* ---- small helpers ---- */
-const foeAdj=(a,b)=>Math.abs(a.c-b.c)+Math.abs(a.r-b.r)===1;
+const foeAdj=(a,b)=>mdist(a,b)===1;
 function foeFree(c,r){return inb(c,r)&&B.tiles[key(c,r)].t!=='block'&&!unitAt(c,r)}
 // Applies a status from an ability with a mechanic of its own (plain abilities do it through strike()).
 function foeStatus(t,k,n){if(!t.alive)return;if(typeof addStatus==='function')addStatus(t,k,n);else{t.st[k]=Math.max(t.st[k]||0,n);FX.emit('status',{t,key:k,n})}foeAuras()}
@@ -86,7 +86,7 @@ function foeAuras(){const b=B;if(!b||!b.units)return;const U=b.units,n=U.length;
  for(let i=0;i<n;i++){const u=U[i];if(!u.alive)continue;let fb=u.fb;if(!fb)fb=u.fb={dur:1e9,foe:1};
   let ms=0,rs=0,md=0,rd=0,dmg=0,dr=0,brv=0;const st=u.st,d=u.def;
   let wolves=0,pack=0,wall=0,chief=0,side=0;
-  for(let j=0;j<n;j++){const o=U[j];if(o===u||!o.alive)continue;const dc=o.c-u.c,dR=o.r-u.r,m=(dc<0?-dc:dc)+(dR<0?-dR:dR);if(m>6)continue;const od=o.def;
+  for(let j=0;j<n;j++){const o=U[j];if(o===u||!o.alive)continue;const m=mdist(o,u);if(m>6)continue;const od=o.def;
    if(m>2){if(od&&od.banner&&o.side===u.side&&d&&d.banner!==1&&o.f===u.f)chief=1;continue}
    if(od&&od.banner&&o.side===u.side&&d&&d.banner!==1&&o.f===u.f)chief=1;
    if(o.side!==u.side){if(m===1&&od&&od.pack)wolves++}
@@ -111,11 +111,12 @@ function foeTurn(u){const b=B;if(!u||!u.alive)return;
  if(u.cds)for(const k in u.cds)if(u.cds[k]>0)u.cds[k]--;
  if(u.st.fury>0&&--u.st.fury<=0){delete u.st.fury;u.st.spent=1;float(u,'Spent','#c8d0d8')}
  const st=u.st;if(st.poison>0){float(u,'Poison','#9bd96f');foeBleed(u,b.venom||6)}
+ if(typeof monTurn==='function'&&u.alive)monTurn(u);
  if(FOE_TICK)for(const k in st)if(FOE_ST[k]&&FOE_ST[k].t&&st[k]>0){if(--st[k]<=0)delete st[k]}
 }
 function foeDeath(t){const b=B;if(!t)return;
  if(!(t.def&&t.def.noCorpse)&&!b.corpses.some(c=>c.c===t.c&&c.r===t.r))b.corpses.push({c:t.c,r:t.r,n:t.name,risen:t.risen?1:0});
- if(b.tele)b.tele=b.tele.filter(x=>x.u!==t);
+ if(b.tele)b.tele=b.tele.filter(x=>x.u!==t);if(typeof monDeath==='function')monDeath(t);
  if(t.side!==1)return;const mates=b.units.filter(u=>u.alive&&u.side===1&&u.f===t.f);
  if(t.eid==='gobsham'&&!mates.some(u=>u.eid==='gobsham')){mates.forEach(u=>{delete u.st.chant;foeMor(u,-4)});if(mates.length)say('The shaman is dead. The goblins break and run.')}
  else if(t.eid==='necro'&&!mates.some(u=>u.eid==='necro')){const risen=mates.filter(u=>u.risen);if(risen.length)say('The necromancer is dead. What he raised falls apart.');risen.forEach(u=>{if(u.alive){float(u,'Unbound','#c9a8ff');foeBleed(u,u.hp+999)}})}
@@ -125,7 +126,7 @@ function foeEvent(type,d){const b=B;if(!b||!b.units||!b.units.length)return;
  if(!b.corpses){b.corpses=[];b.tele=[];
   // a goblin band with no shaman to drive it starts the fight already wavering
   if(b.opts.f==='gob'&&!b.units.some(u=>u.side===1&&u.eid==='gobsham'))for(const u of b.units)if(u.side===1&&!u.fearless&&u.mor>2)u.mor=2}
- if(type==='turn')foeTurn(d&&d.u);else if(type==='death')foeDeath(d&&d.t);
+ if(type==='turn')foeTurn(d&&d.u);else if(type==='death')foeDeath(d&&d.t);else if(type==='status'&&typeof monStatus==='function')monStatus(d);
  if(type==='turn'||type==='death'||type==='move'||type==='kb'||type==='hit'||type==='spawn'||type==='withdraw')foeAuras()}
 if(typeof FX==='object'&&FX&&!FX.foeHook){const e0=FX.emit;FX.foeHook=1;FX.emit=function(type,data){try{foeEvent(type,data)}catch(e){if(!FX.err){FX.err=e;if(typeof console!=='undefined')console.warn('foeEvent('+type+') failed: '+(e&&e.stack||e))}}return e0.call(FX,type,data)}}
 
@@ -133,7 +134,8 @@ if(typeof FX==='object'&&FX&&!FX.foeHook){const e0=FX.emit;FX.foeHook=1;FX.emit=
 function foeReq(u,a,t){if(!a.req)return true;
  if(a.req==='flank')return B.units.some(o=>o.alive&&o.side===u.side&&o!==u&&foeAdj(o,t));
  if(a.req==='shield')return !!t.shield;
- if(a.req==='held')return !!(t.st.webbed||t.st.root||t.rooted||t.st.stun);
+ if(a.req==='held')return !!(t.st.webbed||t.st.root||t.rooted||t.st.stun||t.st.coiled||t.st.entangled);
+ if(a.req==='coiled')return !!(t.st.coiled&&t.coilBy===u);
  return true}
 // free: as if no foe stood beside u (the AI asks whether a locked archer could shoot after stepping clear)
 function foeReady(u,a,free){if(a.cd&&u.cds&&u.cds[a.id]>0)return false;if(a.uses&&u.usedN&&(u.usedN[a.id]||0)>=a.uses)return false;if(a.hpBelow&&u.hp>u.hpMax*a.hpBelow)return false;return free&&typeof aiCanUseFree==='function'?aiCanUseFree(u,a):canUse(u,a)}

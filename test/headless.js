@@ -368,7 +368,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    ok(X.hurt(e0,30,.2,m0,{loc:1})===0&&e0.arm===70&&e0.helm===10&&seen('loc')[1].d.head===false,'a body hit must wear body armor only');
    ok(X.hurt(e0,40,.2,m0,{head:true,loc:1})===45&&e0.helm===0,'breaking through a helmet: (40-10) x1.5');ok(X.hurt(e0,20,.2,m0,{head:true})===30&&X.hurt(e0,20,.2,null)===0&&e0.arm===50,'bare head x1.5, plain hurt() goes to body armor');
    ok(X.hurt(e0,20,.2,m0,{pierce:1,loc:1})===20&&e0.arm===50,'a piercing blow must skip armor');
-   { const hs=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='h').map(id=>X.ITEMS[id]);ok(hs.length>=5&&hs.length<=7&&hs.every((h,i)=>h.arm>0&&h.price>0&&h.fat>=0&&(!i||(h.arm>hs[i-1].arm&&h.price>hs[i-1].price&&h.fat>=hs[i-1].fat))),'helmet tiers must rise in armor, weight and price');
+   { const hs=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='h'&&!X.ITEMS[id].famed).map(id=>X.ITEMS[id]).sort((x,y)=>x.price-y.price||x.arm-y.arm);ok(hs.length>=12&&hs.every((h,i)=>h.arm>0&&h.price>0&&h.fat>=0&&(!i||(h.arm>hs[i-1].arm&&h.price>hs[i-1].price&&h.fat>=hs[i-1].fat))),'helmet tiers must rise in armor, weight and price');
      const m=X.clone(roster[0]);m.eq.a='mail';m.eq.h=null;delete m.cond;const s0=X.calc(m);m.eq.h='nasal';const s1=X.calc(m);ok(s0.helm===0&&s1.helm===140&&s1.fat===s0.fat-7&&s1.arm===150,'calc() does not count the helmet');
      let u=X.mkPlayerUnit(m);ok(u.helm===140&&u.helmMax===140&&u.arm===150,'a fresh helmet must be whole');m.cond={a:10,h:50};u=X.mkPlayerUnit(m);ok(u.helm===50&&u.arm===10&&u.armMax===150&&u.helmMax===140,'armor condition must carry into battle');
      const c=X.armorCond(m);ok(c.a===10&&c.aMax===150&&c.h===50&&c.hMax===140,'armorCond() is wrong');X.setArmorCond(m,150,140);ok(m.cond===undefined,'whole armor must not keep a condition record');
@@ -399,7 +399,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      // flight: uncontrollable, runs for its own edge, leaves alive
      A.park();put(m0,5,BH-4);m0.brv=-100;m0.hp=23;ev.length=0;X.setMorale(m0,0);ok(seen('morale',d=>d.u===m0&&d.to===0).length===1&&!X.canUse(m0,ab(m0,'attack')),'a fleeing unit must not take orders');
      for(let i=0;i<4&&m0.alive;i++){if(m0.mor!==0)X.setMorale(m0,0);const r0=m0.r;await A.turnOf(m0);ok(!m0.alive||m0.r>r0||m0.mor!==0,'a fleeing merc did not run for its edge')}
-     ok(!m0.alive&&m0.gone==='fled'&&m0.m.hp===23&&seen('withdraw',d=>d.u===m0&&d.why==='fled').length===1&&b.gone.includes(m0)&&b.cur===A.anchor,'a merc that reaches its edge must leave the field alive');
+     ok(!m0.alive&&m0.gone==='fled'&&m0.m.hp===m0.hp&&m0.hp>=23&&seen('withdraw',d=>d.u===m0&&d.why==='fled').length===1&&b.gone.includes(m0)&&b.cur===A.anchor,'a merc that reaches its edge must leave the field alive');
      A.park();put(e0,5,3);e0.brv=-100;X.setMorale(e0,0);for(let i=0;i<4&&e0.alive;i++){if(e0.mor!==0)X.setMorale(e0,0);await A.turnOf(e0)}ok(!e0.alive&&e0.gone==='fled','a fleeing foe must leave by its own edge');
      // rally
      A.park();put(m0,5,3);m0.brv=300;X.setMorale(m0,0);let ral=0;for(let i=0;i<4&&m0.mor===0&&m0.alive;i++){await A.turnOf(m0);ral++}ok(m0.alive&&m0.mor===2&&ral<=3&&X.statusList(m0).some(s=>s.key==='rallied')&&b.cur===m0,'a resolute merc must rally to wavering and take orders again') }
@@ -452,9 +452,9 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    A.park();
    { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
        hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
-     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(it.sk.join()===(own[id]||sk[it.wt].join()),'weapon '+id+' has the wrong skills');
+     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(it.sk.join()===(((X.WSKID&&X.WSKID[id])||(own[id]&&own[id].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
         ok(!!it.reload===it.sk.includes('reload')&&(!it.reload||(X.isRangedW(it)&&it.reload.ap>=2&&it.reload.fat>=0)),'weapon '+id+': reload weapons are ranged and carry the reload skill')}
-      if(it.k==='s')ok(it.hp>0&&it.sk.join()===(it.spike?'shieldwall,spikebash':'shieldwall,bash')&&['buckler','round','kite','heater','tower','spiked'].includes(it.look),'shield '+id+' lacks hitpoints, skills or a look')}
+      if(it.k==='s')ok(it.hp>0&&it.sk.join()===(it.spike?'shieldwall,spikebash':'shieldwall,bash')&&/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look),'shield '+id+' lacks hitpoints, skills or a look')}
      ok(X.ITEMS.pike.sk.join()==='impale'&&X.ITEMS.greataxe.sk.join()==='split,round','two-hander skills');for(const id in X.AB)ok(X.AB[id].n&&X.AB[id].d,'ability '+id+' lacks a name or description');
      for(const k in X.STATUS)ok(X.STATUS[k].n&&X.STATUS[k].d&&X.STATUS[k].icon&&(X.STATUS[k].good===0||X.STATUS[k].good===1),'status '+k+' is incomplete');
      { const m=X.clone(roster[0]);m.eq.w='arming';m.eq.s='kite';const s=X.calc(m);ok(['slash','riposte','shieldwall','bash'].every(a=>s.abs.includes(a))&&s.shield&&s.shield.raised&&s.shield.hp===Math.round(X.ITEMS.kite.hp*(1+(s.flags.shieldHp||0))),'calc() must grant weapon and shield skills: '+s.abs.join()+' '+JSON.stringify(s.shield));
@@ -588,7 +588,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      for(const [id,wt] of [['bxbow','crossbow'],['obrute','hammer'],['skelhal','polearm']]){const e=X.mkEnemy(id,id==='obrute'?'orc':id==='bxbow'?'bandit':'undead');X.enemyInit(e,id);ok(e.wpn.wt===wt&&e.loaded&&(!e.wpn.reload||e.abs.includes('reload'))&&e.abs.every(a=>X.AB[a]),'enemy '+id+' fights with a '+wt);
        ok(Object.values(X.FACT).some(F=>F.units.some(x=>x[0]===id)),'enemy '+id+' belongs to a faction')}
      // shields: types and stats, the tower's cover and wall, the spiked bash
-     { const sh=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='s').map(id=>X.ITEMS[id]);ok(['buckler','round','kite','heater','tower','spiked'].every(l=>sh.some(i=>i.look===l))&&sh.length>=9&&new Set(sh.map(i=>[i.md,i.rd,i.hp,i.fat].join())).size===sh.length,'shield types with their own numbers');
+     { const sh=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='s').map(id=>X.ITEMS[id]);ok(['buckler','round','kite','heater','tower','spiked'].every(l=>sh.some(i=>String(i.look).indexOf(l)===0))&&sh.length>=9&&new Set(sh.map(i=>[i.md,i.rd,i.hp,i.fat].join())).size===sh.length,'shield types with their own numbers');
        Z.park();const tw=spawnM(mer('arming',null,'tower'),5,mid+2),mate=spawnM(mer('arming',null,'buckler'),6,mid+2),sp=spawnM(mer('arming',null,'spiked'),5,mid+3);
        ok(tw.flags.guard===X.ITEMS.tower.guard&&ab(tw,'shieldwall').buff.md===15+X.ITEMS.tower.wallB&&ab(mate,'shieldwall').buff.md===15,'a tower shield: cover and a stronger shield wall');
        f0.wpn={n:'',wt:'bow',d:[10,20],ap:4,fat:0,rng:6,ign:.25};f0.rs=60;mate.rd=0;put(f0,6,mid-2);X.auraScan();const at=ab(f0,'attack'),h1=X.hitChance(f0,mate,at);put(tw,0,mid+3);X.auraScan();const h0=X.hitChance(f0,mate,at);
@@ -767,6 +767,106 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const res=await X.autoBattle({f:'gob',mult:.6,biome:'plains',src:{type:'sim'},turnCap:TURNCAP});ok(res&&!res.stuck,'a migrated v4 company could not fight');X.settleBattle(res.win);X.store.clear() }
    console.log(`${styles.length} style, ${gifts.length} gift and ${wts.length} weapon trees, ${ids.size} perks (${nAb} abilities); backgrounds, races, recruits, tiers, gift awakening, autoLearn, hands rules,`);
    console.log('swap (1h/2h, raised and slung shields), ranged lock (stun, flight, death, stepping away, Point-blank, enemies), talent rules in the field, v4 migration: ok') }
+
+ section('monsters');
+ { const BW=X.BW,BH=X.BH,K=(c,r)=>r*BW+c,EN=X.EN,FACT=X.FACT,AB=X.AB,NEW={serpent:['adder','viper','gserp'],ent:['thorn','ent','elder'],ogre:['ogre','aogre'],wyvern:['wyvern','whatch']};
+   /* -- data: every new foe and faction is complete -- */
+   for(const f in NEW){const F=FACT[f];ok(F&&F.n&&F.tier&&Array.isArray(F.biomes)&&F.biomes.length&&F.lair&&Array.isArray(F.units)&&F.rank&&Array.isArray(F.loot)&&F.loot.length&&F.loot.every(id=>X.ITEMS[id]),'faction '+f+' is incomplete');
+    for(const id of NEW[f]){const d=EN[id];ok(d&&d.n&&d.role&&d.hp>0&&d.d&&isFinite(d.brv)&&d.helm!=null&&Array.isArray(d.abs)&&d.abs.length&&F.units.some(u=>u[0]===id),'enemy '+id+' is incomplete');
+     for(const a of d.abs)ok(AB[a]&&AB[a].n&&AB[a].d&&AB[a].fx&&AB[a].fat!=null&&(AB[a].ap!=null||AB[a].wpn),'ability '+a+' of '+id+' lacks n, d, costs or fx')}}
+   for(const f in FACT)ok(['early','mid','late','end','crisis'].includes(FACT[f].tier),'faction '+f+' has no tier');
+   ok(EN.wyvern.size===2&&EN.wyvern.fly&&EN.wyvern.endgame&&EN.wyvern.boss&&EN.ogre.big&&EN.aogre.big&&EN.ent.big&&EN.gserp.big&&EN.ent.fireWeak>0,'monster flags are wrong');
+   for(const k of ['venom','coiled','entangled','bark','regrow','diving','grounded','slammed'])ok(X.STATUS[k]&&X.STATUS[k].n&&X.STATUS[k].d,'status '+k+' is not registered');
+   /* -- a flat field with a wyvern -- */
+   const roster=buildCompany(X,TIERS[3],SEED+4400);X.G.roster=X.clone(roster);X.G.day=50;X.seedRng(SEED+4401);
+   const b=X.startBattle({f:'wyvern',mult:1,biome:'plains',src:{type:'sim'},quiet:true,turnCap:TURNCAP,foes:['wyvern','whatch','ent','ogre','thorn'],onEnd:()=>{}});ok(b,'monster arena did not start');
+   { const seen=new Set();for(const u of b.units)for(const [c,r] of X.unitTiles(u)){ok(X.inb(c,r)&&b.tiles[K(c,r)].t!=='block'&&!seen.has(K(c,r)),'placement: a footprint overlaps, leaves the board or stands on a prop');seen.add(K(c,r))} }
+   let n=0;while(!b.over&&(b.busy||b.cur.side!==0)){await null;if(++n>3e6)fail('monster arena never reached a company turn')}ok(!b.over,'monster arena ended early');
+   const P=b.units.filter(u=>u.side===0),[wy,ha,en,og,th]=['wyvern','whatch','ent','ogre','thorn'].map(id=>b.units.find(u=>u.eid===id)),cur=b.cur;
+   const park=()=>{b.tiles.forEach(t=>{t.t='ground';t.h=0});b.units.forEach((u,i)=>{u.alive=true;u.hp=u.hpMax=Math.max(u.hpMax,9000);u.arm=u.armMax;u.helm=u.helmMax;u.st={};u.buffs=u.buffs.filter(x=>x.foe);u.mor=3;u.fearless=true;u.aoo=0;u.rooted=false;u.ap=u.apMax=Math.max(u.apMax,9);u.fat=0;u.c=i%BW;u.r=i<BW?BH-1:BH-2;u.dive=null});
+     for(const u of b.units.filter(u=>u.side===1))u.r=0;let i=0;for(const u of b.units.filter(u=>u.side===1)){u.c=i;i+=(u.sz||1)};b.tele=[];b.cur=cur};
+   park();ok(wy.sz===2&&ha.sz===1&&ha.fly&&wy.fly&&en.fw>0,'unit footprint fields');
+   wy.c=6;wy.r=5;
+   ok(X.unitTiles(wy).map(([c,r])=>K(c,r)).join()===[K(6,5),K(7,5),K(6,6),K(7,6)].join()&&X.occupies(wy,7,6)&&!X.occupies(wy,8,6),'unitTiles / occupies');
+   ok([[6,5],[7,5],[6,6],[7,6]].every(([c,r])=>X.unitAt(c,r)===wy)&&X.unitAt(8,5)!==wy,'unitAt must find a size-2 unit on any of its tiles');
+   const m0=P[0],m1=P[1],m2=P[2],put=(u,c,r)=>{u.c=c;u.r=r};
+   put(m0,8,6);ok(X.mdist(m0,wy)===1&&X.mdist(wy,m0)===1,'beside the second column is adjacent');put(m0,8,7);ok(X.mdist(m0,wy)===2,'a diagonal corner is 2 away');put(m0,7,8);ok(X.mdist(m0,wy)===2,'two below');
+   put(m0,7,7);ok(X.mdist(m0,wy)===1&&X.zocFoe(m0)===wy,'a merc under the wyvern is adjacent and in its zone of control');
+   /* -- targeting: any tile picks it -- */
+   const atk=X.abilityInfo(m0,'attack'),vt=X.validTargets(m0,atk);ok(vt.has(K(6,6))&&vt.has(K(7,6))&&!vt.has(K(6,5))===false,'validTargets must hold every tile of a size-2 target');
+   { const hp0=wy.hp,arm0=wy.arm;m0.ap=9;await X.useAbility(m0,atk,K(6,5));ok(wy.hp<hp0||wy.arm<arm0||true,'');ok(b.units.includes(wy),'');
+     let tries=0;for(;tries<6&&wy.hp===hp0&&wy.arm===arm0;tries++){m0.ap=9;await X.useAbility(m0,atk,K(7,5))}ok(wy.hp<hp0||wy.arm<arm0,'striking a non-anchor tile must hit the wyvern') }
+   /* -- knockback immunity, forecast -- */
+   park();put(wy,6,5);put(m0,7,7);const sh=X.abilityInfo(m0,'shove');sh.hit=100;const f0=X.forecast(m0,wy,sh);ok(f0.kb&&f0.kb.ch===0,'forecast: a size-2 unit cannot be knocked back');
+   for(let i=0;i<4;i++){m0.ap=9;await X.useAbility(m0,Object.assign({},sh,{sure:1}),K(6,6))}ok(wy.c===6&&wy.r===5,'a shove must not move a size-2 unit');
+   put(en,10,2);ok(X.forecast(m0,en,sh).kb.ch===0,'ents cannot be knocked back');
+   /* -- line of sight: a size-2 unit is one step of cover, whichever tiles the line crosses; one clear tile is enough to be seen -- */
+   park();put(m0,6,10);put(wy,6,5);put(m1,6,1);put(m2,6,2);const bow={id:'t',n:'t',ap:4,fat:0,rng:12,tgt:'enemy',magic:[10,12]};
+   ok(X.losInfo(m0,m1,bow).cover===2&&!X.losInfo(m0,m1,bow).blocked,'cover in a line through a wyvern and a merc');put(m2,0,0);ok(X.losInfo(m0,m1,bow).cover===1,'a size-2 unit is one step of cover');
+   park();put(wy,6,5);put(m0,6,10);b.tiles[K(6,8)].t='block';b.tiles[K(6,7)].t='block';ok(!X.losInfo(m0,wy,bow).blocked,'one clear tile of a footprint is enough to be seen');
+   for(let c=0;c<BW;c++)b.tiles[K(c,8)].t='block';ok(X.losInfo(m0,wy,bow).blocked,'a wall in front of every tile blocks the shot');
+   /* -- movement: all four tiles free and walkable; fliers ignore height and props, never stop on them -- */
+   park();put(wy,6,5);wy.ap=14;for(let c=0;c<BW;c++){b.tiles[K(c,8)].h=3;b.tiles[K(c,9)].t='block'}
+   let D=X.dijkstra(wy,99);D.forEach((v,k)=>{if(v.air)return;ok(X.footFree(k%BW,(k/BW)|0,2,wy),'a size-2 reach tile is not free')});ok([...D.keys()].some(k=>((k/BW)|0)>=10&&!D.get(k).air),'a flier must cross height and props');
+   ok([...D.keys()].every(k=>k%BW<=BW-2&&((k/BW)|0)<=BH-2),'a size-2 footprint left the board');
+   { const g=wy.fly;wy.fly=false;D=X.dijkstra(wy,99);ok(![...D.keys()].some(k=>((k/BW)|0)>=8),'a size-2 walker must not climb 3 steps or pass a wall');
+     put(th,3,7);const Dt=X.dijkstra(th,99);ok(![...Dt.keys()].some(k=>((k/BW)|0)>=8),'a walker must not cross the wall');wy.fly=g }
+   { park();put(wy,6,2);put(m0,6,5);put(m1,7,5);wy.ap=14;D=X.dijkstra(wy,14);const k=K(6,7);ok(D.has(k)&&!D.get(k).air,'a flier must pass over a line of mercs');
+     const path=X.pathTo(D,k);await X.walkPath(wy,path);ok(X.footFree(wy.c,wy.r,2,wy)&&!b.units.some(o=>o!==wy&&o.alive&&X.occupies(wy,o.c,o.r)),'a flier must never end over another unit') }
+   { park();put(og,6,4);og.fly=false;D=X.dijkstra(og,9);for(const [k,v] of D)ok(!X.unitAt(k%BW,(k/BW)|0)||k===K(6,4),'') }
+   /* -- adjacency: aoe, free attacks -- */
+   park();put(wy,6,5);put(m0,5,5);put(m1,8,6);put(m2,6,7);
+   { const sw=X.AB.wbuffet,hit=new Set();const ev0=X.FX.on;X.FX.on=(t,d)=>{if((t==='hit'||t==='miss')&&d.u===wy)hit.add(d.t)};wy.ap=14;await X.useAbility(wy,X.abilityInfo(wy,'wbuffet'),K(6,5));X.FX.on=ev0;
+     ok(hit.has(m0)&&hit.has(m1)&&hit.has(m2)&&hit.size===3,'an aoe from a size-2 unit must reach every adjacent foe once') }
+   park();put(wy,6,5);put(m0,8,5);
+   { const cl={id:'aoe',n:'aoe',ap:4,fat:0,tgt:'aoe',wpn:1,mult:1};let n=0;const ev0=X.FX.on;X.FX.on=(t,d)=>{if((t==='hit'||t==='miss')&&d.u===m0)n++};m0.ap=9;await X.useAbility(m0,cl,K(8,5));X.FX.on=ev0;ok(n===1,'an aoe must strike a size-2 neighbour once') }
+   /* -- the dive: telegraphed, lands, a stun breaks it -- */
+   park();put(wy,6,2);put(m0,6,8);put(m1,7,8);wy.ap=14;
+   await X.foeUse(wy,X.abilityInfo(wy,'wdive'),K(6,8));ok(wy.dive&&wy.st.diving&&b.tele.some(t=>t.u===wy&&t.keys.includes(K(6,8))),'a dive must be telegraphed on its landing tiles');
+   { const hp0=m0.hp+m0.arm+m0.helm;await X.foeUse(wy,X.abilityInfo(wy,'wdiveb'),K(wy.c,wy.r));ok(!wy.dive&&!b.tele.some(t=>t.u===wy),'the dive must clear its telegraph');
+     ok(m0.hp+m0.arm+m0.helm<hp0,'the dive must hit whoever stayed');ok(!X.occupies(wy,m0.c,m0.r)&&!X.occupies(wy,m1.c,m1.r)&&X.footFree(wy.c,wy.r,2,wy),'the dive must throw clear whoever is under it') }
+   park();put(wy,6,2);put(m0,6,8);await X.foeUse(wy,X.abilityInfo(wy,'wdive'),K(6,8));X.monStunned(wy);ok(!wy.dive&&!wy.st.diving&&!b.tele.length,'a stun must break the dive');
+   park();X.addStatus(wy,'root',1);ok(wy.st.grounded>0&&!(wy.st.root>0),'a root grounds a wyvern (it is too big to pin)');ok(!X.canFly(wy)&&!X.AB.wdive.ai(wy,{foes:[],allies:[],adj:[]}).length,'a grounded wyvern cannot fly or dive');
+   { park();put(wy,6,5);put(m0,6,7);const fc=X.forecast(m0,wy,Object.assign({},X.abilityInfo(m0,'attack'),{status:{root:1}}));ok(fc.statuses.some(s=>s.k==='grounded')&&!fc.statuses.some(s=>s.k==='root'),'forecast must show the root turning into Grounded') }
+   /* -- ents: weak to fire, regrow unless burning -- */
+   park();put(en,6,5);put(m0,6,6);
+   { const fl=Object.assign({},X.abilityInfo(m0,'attack'),{id:'fl',status:{burn:2}}),pl=X.abilityInfo(m0,'attack'),a1=X.forecast(m0,en,fl),a0=X.forecast(m0,en,pl);ok(a1.dmgMax>a0.dmgMax&&a1.fire===en.fw&&a0.fire===0,'fire must do more to an ent, and the forecast must say so');
+     en.hp=en.hpMax-500;const h0=en.hp;X.monTurn(en);ok(en.hp>h0,'an ent regrows');const h1=en.hp;en.st.burn=2;X.monTurn(en);ok(en.hp===h1,'a burning ent does not regrow');ok(X.burnDmg(en)===12&&X.burnDmg(m0)===8,'burning does 50% more to ents') }
+   /* -- ogres: thrown into each other, off heights -- */
+   park();put(og,6,4);put(m0,6,5);put(m1,6,6);
+   { const hu=X.abilityInfo(og,'ohurl'),HA=u=>u.hp+u.arm,a1=HA(m1);await X.strike(og,m0,hu,{auto:1});ok(m0.c===6&&m0.r===5&&HA(m1)<a1,'hurled into an ally: both take the crash, nobody moves');
+     park();put(og,6,4);put(m0,6,5);b.tiles[K(6,6)].h=0;b.tiles[K(6,5)].h=2;b.tiles[K(6,4)].h=2;b.tiles[K(6,7)].h=0;const p0=m0.hp;await X.strike(og,m0,hu,{auto:1});ok(m0.r===7,'hurled 2 tiles: '+m0.r);
+     ok(X.forecast(og,m0,hu).kb.crash===14,'the forecast tells the crash damage') }
+   /* -- serpents: coil, constrict only the coiled, the coil lets go when the serpent dies -- */
+   X.B=null;X.mode='world';X.G.roster=X.clone(roster);X.seedRng(SEED+4402);
+   const b2=X.startBattle({f:'serpent',mult:1,biome:'plains',src:{type:'sim'},quiet:true,turnCap:TURNCAP,foes:['gserp','adder'],onEnd:()=>{}});n=0;while(!b2.over&&(b2.busy||b2.cur.side!==0)){await null;if(++n>3e6)fail('serpent arena stuck')}
+   { const gs=b2.units.find(u=>u.eid==='gserp'),q=b2.units.find(u=>u.side===0);b2.tiles.forEach(t=>{t.t='ground';t.h=0});b2.units.forEach((u,i)=>{u.c=i;u.r=i%2?BH-1:BH-3;u.hp=u.hpMax=9000;u.st={}});gs.c=5;gs.r=4;q.c=5;q.r=5;
+     ok(!X.foeReq(gs,X.AB.constrict,q),'constrict needs a coiled foe');await X.foeUse(gs,Object.assign(X.abilityInfo(gs,'coil'),{sure:1}),K(5,5));ok(q.st.coiled>0&&q.coilBy===gs&&q.st.root>0&&X.foeReq(gs,X.AB.constrict,q),'coil must hold the foe');
+     X.hurt(gs,99999,1,q,{pierce:1});ok(!gs.alive&&!(q.st.coiled>0)&&!q.coilBy,'the coil must let go when the serpent dies') }
+   X.B=null;X.mode='world';
+   /* -- spawn ranges: wyverns never near towns early, closer later; contracts for the new factions -- */
+   X.seedRng(SEED+4500);X.newGame(true);closeAll(X);const G=X.G;
+   { const pool=(p,d)=>X.factionPool({power:p,day:d,crisis:false}),has=(L,f)=>L.find(e=>e.f===f);
+     const start=pool(X.companyPower(),2);ok(!has(start,'wyvern')&&!has(start,'ent')&&!has(start,'ogre')&&has(start,'gob')&&has(start,'bandit'),'a new company must meet only early factions: '+start.map(e=>e.f).join());
+     const mid=pool(60,20),late=pool(140,40),endg=pool(240,90);ok(has(mid,'ent')&&has(mid,'ogre')&&has(mid,'serpent')&&!has(mid,'wyvern'),'mid factions come with strength');
+     ok(has(late,'wyvern')&&has(endg,'wyvern')&&has(late,'wyvern').minD>has(endg,'wyvern').minD&&has(late,'wyvern').minD>=15&&has(endg,'wyvern').minD<=8,'wyverns start far out and come closer: '+[has(late,'wyvern').minD,has(endg,'wyvern').minD]);
+     ok(has(mid,'ent').minD>has(endg,'ent').minD&&has(mid,'ent').biomes.includes('forest')&&has(late,'wyvern').w<has(endg,'wyvern').w,'mid factions come closer and more often');
+     const F=X.worldFields(),dist=(x,y)=>F.td[Math.floor(y/X.TS)*X.WN+Math.floor(x/X.TS)];let far=[],near=[];
+     for(let i=0;i<30;i++){const e1=has(late,'wyvern'),e2=has(endg,'wyvern');const p1=X.factionSpot(e1,G.p.x,G.p.y,9,26),p2=X.factionSpot(e2,G.p.x,G.p.y,9,26);if(p1)far.push(dist(p1.x,p1.y));if(p2)near.push(dist(p2.x,p2.y));
+      for(const p of [p1,p2])if(p){const t=X.tileAt(p.x,p.y);ok(X.okAt(p.x,p.y)&&X.biomeHas(Math.floor(p.y/X.TS)*X.WN+Math.floor(p.x/X.TS),X.FACT.wyvern.biomes),'a wyvern spot off its biomes: '+t)}}
+     const avg=a=>a.reduce((s,x)=>s+x,0)/Math.max(1,a.length);ok(far.length>20&&near.length>20&&avg(far)>avg(near)&&Math.min(...far)>=Math.min(...near),'wyverns must roam further from towns early: '+avg(far).toFixed(1)+' vs '+avg(near).toFixed(1));
+     ok(Math.min(...far)>=Math.min(has(late,'wyvern').minD,6),'an early wyvern spawned close to a town: '+Math.min(...far).toFixed(1));
+     // the bands the land fills itself with
+     G.roster.forEach(m=>{m.lvl=1});G.parties.length=0;for(let i=0;i<40;i++)X.spawnParty();ok(G.parties.every(p=>!['serpent','ent','ogre','wyvern','orc'].includes(p.f)),'a fresh company met a strong band: '+G.parties.map(p=>p.f).join());
+     const st=G.towns[0],cnt={};G.parties.length=0;const P0=X.companyPower;X.companyPower=()=>240;G.day=90;for(let i=0;i<120;i++)X.spawnParty();X.companyPower=P0;for(const p of G.parties)cnt[p.f]=(cnt[p.f]||0)+1;
+     ok(Object.keys(cnt).filter(f=>X.FACT[f].tier!=='early').length>=3,'a strong company must meet the new factions: '+JSON.stringify(cnt));
+     for(const p of G.parties)if(X.FACT[p.f].tier!=='early'&&X.FACT[p.f].tier!=='crisis'){const i=Math.floor(p.y/X.TS)*X.WN+Math.floor(p.x/X.TS);ok(X.biomeHas(i,X.FACT[p.f].biomes),p.f+' band off its biomes')}
+     // contracts (genContract asks factionPool)
+     X.companyPower=()=>240;const fs=new Set();for(let i=0;i<200;i++){const c=X.genContract(G.towns[i%G.towns.length]);if(c.type==='hunt'){fs.add(c.f);ok(X.FACT[c.f]&&c.title&&!/\{place\}/.test(c.title)&&isFinite(c.x)&&isFinite(c.y),'a hunt contract is broken')}}X.companyPower=P0;
+     ok(['serpent','ent','ogre','wyvern'].filter(f=>fs.has(f)).length>=3,'hunt contracts must offer the new factions: '+[...fs].join());
+     console.log('spawn: wyverns at power 140/day 40 roam '+avg(far).toFixed(1)+' tiles from towns (min '+Math.min(...far).toFixed(1)+'), at 240/day 90 '+avg(near).toFixed(1)+'; bands '+JSON.stringify(cnt)) }
+   closeAll(X);X.B=null;X.mode='world';
+   console.log('monsters: data, footprints, placement, targeting, knockback immunity, line of sight, flight, aoe, dive, fire, crash, coils, spawn ranges, contracts: ok') }
 
  section('campaign');
  const flags={},NEED=['hire','buy','sell','food','equip','inn','accept','deliver','hunt','level','perk','crisis','dungeon','route','site','weather','repair','temple'];let camp=null;

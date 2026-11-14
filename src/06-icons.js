@@ -5014,19 +5014,38 @@ function icPerk(id){let r=null;try{r=typeof perkById==='function'?perkById(id):n
  return icStamp(ICONS[main],_icMap(IC_PIP,{L:k.d,M:k.c,N:k.b}),'tl')}
 /* each name resolves once: the slow path (keyword scan, composition) used to rerun on every call */
 const IC_MEMO=new Map();
-function icResolve(name){name=String(name);if(icHas(name))return name;const hit=IC_MEMO.get(name);if(hit!==undefined)return hit;const r=icResolveRaw(name);IC_MEMO.set(name,r);return r}
+function icResolve(name){name=String(name);if(icHas(name))return name;const hit=IC_MEMO.get(name);if(hit!==undefined)return hit;IC_MEMO.set(name,'none');const r=icResolveRaw(name);IC_MEMO.set(name,r);return r}
 /* it-<item id>: the icon of that very item: a new-family weapon by its drawn tier (w-<sprite>), a shield by its look, else the family / kind */
 function icItem(id){const I=typeof ITEMS==='object'&&ITEMS&&ITEMS[id];if(!I)return null;
  if(I.k==='w'){let v=null;try{v=typeof usWpnOf==='function'?usWpnOf(id):null}catch(e){}if(v&&icHas('w-'+v))return'w-'+v;return I.wt&&icResolve0(I.wt)!=='none'?I.wt:'sword'}
  if(I.k==='s'){let l=I.look||id;try{if(typeof usShLook==='function')l=usShLook(id)}catch(e){}return icHas('shield-'+l)?'shield-'+l:'shield'}
  if(I.k==='h')return helmIcon(id);if(I.k==='a')return I.arm<=60?'armor-light':I.arm<=150?'armor-medium':'armor-heavy';return null}
-function icResolveRaw(name){let rows=null;if(name.slice(0,3)==='it-'){const n=icItem(name.slice(3));return n?icResolve(n):'none'}
+/* it-<id>: every item draws its own icon from the same cells / painters as its battle sprite (73-units.js);
+   a famed item ('f:'+n) is its base item's icon (gilded fittings) in a gold frame with sparkle pixels */
+/* crossbows and pistols keep the hand-drawn silhouettes (they read better upright than any generated angle), recoloured per look:
+   [base icon, {key:key} recolour, rows y0..y1 it applies to, extra pixels [x,y,key]] */
+const IC_HANDW={lightxbow:['w-xbow'],crossbow:['w-xbow',{k:'q',j:'p',i:'o'},3,6,[[7,0,'p'],[6,1,'o'],[8,1,'o']]],huntxbow:['w-xbow',{k:'l',j:'m',i:'n'},3,6,[[7,14,'i']]],
+ repeater:['w-xbow',null,0,0,[[9,8,'k'],[10,8,'j'],[9,9,'j'],[10,9,'i'],[9,10,'j'],[10,10,'i'],[8,7,'j']]],arbalest:['w-arbalest'],windlass:['w-arbalest',{q:'d',p:'c',o:'b'},3,6,[[4,12,'c'],[3,12,'d'],[3,13,'b']]],
+ pistol:['w-pistol'],duelpistol:['w-pistol',{r:'e',q:'d',p:'c'},4,5,[[13,4,'d']]]};
+function icHandW(look){const H=IC_HANDW[look];if(!H||!icHas(H[0]))return null;let raw=ICONS[H[0]].map(r=>r.replace(/0/g,'.').split(''));
+ if(H[1])for(let y=H[2];y<=H[3];y++)raw[y]=raw[y].map(k=>H[1][k]||k);if(H[4])for(const [x,y,k] of H[4])raw[y][x]=k;return _icOutline(raw.map(r=>r.join('')))}
+function icItemRows(id){const I=typeof ITEMS==='object'&&ITEMS&&ITEMS[id];if(!I||typeof usWeaponIconRows!=='function')return null;
+ if(I.k==='w'&&typeof usLookOf==='function'){const h=icHandW(usLookOf(id));if(h)return usFamedBase(id)?icFamedFrame(h):h}
+ if(I.famed&&I.base&&ITEMS[I.base]&&I.base!==id){const k=ITEMS[I.base].k,b=k==='w'?usWeaponIconRows(usWpnOf(id)):k==='s'?usShieldIconRows(id):k==='a'?usArmorIconRows(id):k==='h'?usHelmIconRows(id):icItemRows(I.base);return b?icFamedFrame(b):null}
+ if(I.k==='w')return usWeaponIconRows(usWpnOf(id));if(I.k==='s')return usShieldIconRows(id);if(I.k==='a')return usArmorIconRows(id);if(I.k==='h')return usHelmIconRows(id);return null}
+function icFamedFrame(rows){const o=rows.map(r=>r.split(''));const S=(x,y,k)=>{if(o[y]&&o[y][x]!==undefined)o[y][x]=k};
+ for(let i=0;i<16;i++){const c=i<3||i>12?'d':(i&1)?'c':'b';if(o[0][i]==='.'||o[0][i]==='0')S(i,0,c);if(o[15][i]==='.'||o[15][i]==='0')S(i,15,i<8?'b':'a');if(o[i][0]==='.'||o[i][0]==='0')S(0,i,c);if(o[i][15]==='.'||o[i][15]==='0')S(15,i,i<8?'b':'a')}
+ S(0,0,'e');S(15,0,'d');S(0,15,'c');S(15,15,'b');
+ for(const [x,y] of [[2,2],[13,3],[3,12]])if(o[y][x]==='.'){S(x,y,'e');if(o[y][x+1]==='.')S(x+1,y,'d');if(o[y+1][x]==='.')S(x,y+1,'d')}
+ if(o[1][1]==='.')S(1,1,'d');if(o[14][14]==='.')S(14,14,'b');return o.map(r=>r.join(''))}
+function icResolveRaw(name){let rows=null;if(name.slice(0,3)==='it-'){let r=null;try{r=icItemRows(name.slice(3))}catch(e){r=null}
+  if(r){ICONS[name]=r;IC_MADE[name]='item';icCss(name);return name}const n=icItem(name.slice(3));return n?icResolve(n):'none'}
  try{const c=IC_COMP[name]||(name.slice(0,3)==='st-'?IC_COMP[name.slice(3)]:null);
   if(c)rows=c.length===1?(icResolve0(c[0])!=='none'?ICONS[icResolve0(c[0])]:null):icCompose(c[0],c[1],c[2],c[3]);
   else if(name.slice(0,2)==='m-')rows=icMast(name.slice(2));
   else if(name.slice(0,5)==='perk-')rows=icPerk(name.slice(5));
   else if(name.slice(0,3)==='st-'||(typeof STATUS==='object'&&STATUS&&STATUS[name])){const key=name.slice(0,3)==='st-'?name.slice(3):name,S=typeof STATUS==='object'&&STATUS[key];
-   if(icHas('ab-'+key))return'ab-'+key;if(S&&S.icon&&S.icon!==key){const n2=icResolve(S.icon);if(n2!=='none'&&icHas(n2))return n2;if(IC_COMP[S.icon]){rows=icCompose(...IC_COMP[S.icon]);}}if(!rows&&IC_COMP['ab-'+key]){const n3=icResolve('ab-'+key);if(n3!=='none')return n3}}}catch(e){rows=null}
+   if(icHas('ab-'+key))return'ab-'+key;if(S&&S.icon&&S.icon!==key&&S.icon!==name&&S.icon!=='st-'+key){const n2=icResolve(S.icon);if(n2!=='none'&&icHas(n2))return n2;if(IC_COMP[S.icon]){rows=icCompose(...IC_COMP[S.icon]);}}if(!rows&&IC_COMP['ab-'+key]){const n3=icResolve('ab-'+key);if(n3!=='none')return n3}}}catch(e){rows=null}
  if(rows){ICONS[name]=rows;IC_MADE[name]=name.slice(0,2)==='m-'?'medallion':name.slice(0,5)==='perk-'?'perk':'composed';icCss(name);return name}return icResolve0(name)}
 const IC_MADE={};
 

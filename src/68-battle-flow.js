@@ -19,7 +19,7 @@ function unitNewInj(u,snap){const m=u.m,all=typeof cpInj==='function'?cpInj(m):[
 // res.men lists every sword that was fielded: {id,name,state:'ok'|'down'|'dead'|'withdrew'|'fled',hp,hpMax,arm,helm,inj:[{id,n,d,days,perm}],lvl}
 // (arm / helm = armor points lost in this battle; shield = its shield was destroyed; lvl = the new level when one was gained, else 0).
 function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSync();const pu=b.units.filter(u=>u.side===0&&u.m),dead=[],snap=b.opts&&b.opts.inj0||null,
-  res={win:!!win,fled:!!b.fled,stuck:false,f:b.opts.f,rounds:b.round,turns:b.turns,foes:b.units.filter(u=>u.side===1).length,down:[],dead:[],levels:[],xp:0,share:0,crowns:0,loot:[],
+  res={win:!!win,fled:!!b.fled,stuck:false,famed:[],f:b.opts.f,rounds:b.round,turns:b.turns,foes:b.units.filter(u=>u.side===1).length,down:[],dead:[],levels:[],xp:0,share:0,crowns:0,loot:[],
    withdrew:[],routed:[],injuries:[],men:[],armorLost:0,helmLost:0,repair:0,toolsNeed:0,tools:0};
  const num=v=>typeof v==='number'&&isFinite(v),rows=new Map();
  for(const u of pu){const m=u.m,left=unitLeft(u),c0=typeof cpCond==='function'?cpCond(m):{a:0,aM:0,h:0,hM:0},row={id:m.id,name:m.name,state:'ok',hp:0,hpMax:u.hpMax,arm:0,helm:0,shield:u.shpMax>0&&!u.shield,inj:[],lvl:0};
@@ -35,14 +35,22 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
  G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
  if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=e.def&&e.def.xp||0);const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.share=Math.round(res.xp/Math.max(1,surv.length));
   surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
-  res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]?FACT[e.f].loot:[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
+  res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
-  {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq);
+  {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq&&!ITEMS[k].famed);
    if(H.length&&L.length&&!L.some(id=>ITEMS[id]&&ITEMS[id].k==='h')){const top=Math.max(...L.map(id=>ITEMS[id]?ITEMS[id].price||0:0)),ok=H.filter(k=>(ITEMS[k].price||0)<=top);
     if(ok.length)en.forEach(()=>{if(rnd()<.07)res.loot.push(pick(ok))})}}
+  res.famed=battleFamed(b,en);res.famed.forEach(id=>res.loot.push(id));
   res.loot.forEach(id=>G.stash.push(id))}
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
  b.result=res;return res}
+/* famed drops of a won battle (12-famed.js famedPlan): guaranteed from end-game kills, else a chance late in the campaign
+   that grows with the foes' rank and the day. Draws game randomness only when a drop is possible. Returns the new item ids. */
+function battleFamed(b,en){if(typeof famedPlan!=='function'||typeof makeFamed!=='function')return[];
+ const rank=b.frank&&b.frank.x>1?Math.log2(b.frank.x):0,plan=famedPlan(en,{day:G.day,rank,f:b.opts.f}),out=[];
+ for(const s of plan.sure){const id=makeFamed(famedBasePick(s.power,b.opts.f),s.power,{from:s.from,day:G.day});if(id)out.push(id)}
+ if(!out.length&&plan.p>0&&rnd()<plan.p){const id=makeFamed(famedBasePick(plan.power,b.opts.f),plan.power,{from:'a '+(FACT[b.opts.f]?FACT[b.opts.f].n.toLowerCase().replace(/s$/,''):'foe')+' band',day:G.day});if(id)out.push(id)}
+ return out}
 /* what a level-up from level a to level b opens: ['New tier unlocked', 'Weapon trees open', ...] (tierLevel from the rules, else t / 3t) */
 function brTierLv(kind,t){if(typeof tlTierLv==='function')return tlTierLv(kind,t);if(typeof tierLevel==='function'){try{const v=tierLevel(kind,t);if(typeof v==='number')return v}catch(e){}}return kind==='weapon'?3*t:t}
 function brOpens(a,b){const out=[],R=['I','II','III','IV','V','VI','VII','VIII','IX'];if(!(b>a))return out;
@@ -51,7 +59,7 @@ function brOpens(a,b){const out=[],R=['I','II','III','IV','V','VI','VII','VIII',
  return out}
 /* the results dialog: outcome, spoils, then one line per sword that has something to report */
 function brIcon(n,sz){return typeof cpIcon==='function'?cpIcon(n,sz||16):''}
-function brItem(id){const it=ITEMS[id];if(!it)return'';return`<span class="br-it">${typeof pnItemIcon==='function'?pnItemIcon(id,32):''}<b>${it.n}</b></span>`}
+function brItem(id){const it=ITEMS[id];if(!it)return'';return`<span class="br-it${it.famed?' fmd':''}">${typeof pnItemIcon==='function'?pnItemIcon(id,32):''}<b>${typeof pnItemName==='function'?pnItemName(id):it.n}</b>${it.famed?`<small class="fmd-tag">Famed</small>`:''}</span>`}
 function brMan(r){const u=B&&B.units?B.units.find(u=>u.side===0&&u.m&&u.m.id===r.id):null,por=u&&typeof portraitHTML==='function'?portraitHTML(u.m,32):'';
  const tag={down:['bad','Struck down'],dead:['dead','Dead'],withdrew:['dim','Withdrew'],fled:['warn','Fled']}[r.state],bits=[];
  if(r.state==='down')bits.push('Lives, at 1 hitpoint');
@@ -63,6 +71,7 @@ function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'|
  if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
+ if(res.win&&res.famed&&res.famed.length)h+=res.famed.map(id=>{const L=typeof famedLines==='function'?famedLines(id):[];return`<p class="br-fm"><b class="fmd-n">${ITEMS[id].n}</b>: a famed ${ITEMS[ITEMS[id].base].n.toLowerCase()}. ${L.map(x=>x.t).join(', ')}.</p>`}).join('');
  // the plain lines stay (and stay first) for anyone reading the dialog as text
  const lines=res.down.map(n=>`${n} was struck down but lives.`).concat(res.dead.map(n=>`<span class="bad">${n} is dead.</span>`),res.levels.map(l=>`<span class="coin">${l.name} reached level ${l.lvl}${(l.opens||[]).length?'. '+l.opens.join('. '):''}.</span>`),
   (res.withdrew||[]).map(n=>`${n} withdrew from the field.`),(res.routed||[]).map(n=>`<span class="bad">${n} broke and fled.</span>`),(res.injuries||[]).map(j=>`<span class="bad">${j.name}: ${j.n.toLowerCase()} (${j.d}).</span>`));

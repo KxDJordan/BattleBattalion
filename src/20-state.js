@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=6;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=7;
 const MIGRATE={
  1:g=>{if(typeof g.rng!=='number')g.rng=((g.seed|0)^0x9e3779b9)+(g.day|0)*7919>>>0;return g},   // v2: seeded RNG state lives in the save
  /* v3: the 64x64 world with rivers, roads, sites, fog and weather. The 44x44 world of a v2 save cannot be rebuilt, so the
@@ -48,7 +48,10 @@ const MIGRATE={
   if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});return g},
  /* v6: the company's identity. Every older save is the small (64x64) world; the company gets the default name and the brass and
     verdigris banner it always flew. Mercs keep their plain colours (m.colors absent). */
- 5:g=>{g.wsize='small';if(typeof g.name!=='string'||!g.name.trim())g.name=BANNERDEF.name;g.banner=bannerFix(null,g.name);return g}
+ 5:g=>{g.wsize='small';if(typeof g.name!=='string'||!g.name.trim())g.name=BANNERDEF.name;g.banner=bannerFix(null,g.name);return g},
+ /* v7: famed items. G.famed {id: {base, n, mods, price, pw, from?, day?}} holds every famed item the company has found
+    (see 12-famed.js); older companies have found none. */
+ 6:g=>{g.famed={};return g}
 };
 // One merc of a version 4 save to talents (v5). Draws no game randomness: the top-up trees come from a stream seeded by the merc's id.
 function migrateMerc(m){if(Array.isArray(m.trees)&&Array.isArray(m.perks)){if(svObj(m.eq)&&m.eq.b===undefined)m.eq.b=null;return m}   // already in the new shape
@@ -90,6 +93,7 @@ function repairContract(c,nTowns){if(!svObj(c))return false;c.diff=clamp(Math.fl
  if(c.type==='hunt')return !!FACT[c.f]&&svFin(c.x)&&svFin(c.y);return false}
 // Fills defaults in place. Returns '' when the save is usable, 'empty' for a company with nobody left, else what is wrong.
 function repairSave(g){if(!svFin(g.seed))return 'no world seed';
+ g.famed=typeof registerFamed==='function'?registerFamed(svObj(g.famed)?g.famed:{}):{};   // famed items go into ITEMS before anything below checks an item id
  g.wsize=WORLDSZ[g.wsize]?g.wsize:'small';g.name=cleanName(g.name);g.banner=bannerFix(g.banner,g.name);
  if(!Array.isArray(g.towns))return 'no towns';g.towns=g.towns.filter(t=>svObj(t)&&svFin(t.x)&&svFin(t.y));if(g.towns.length<2)return 'no towns';
  if(!Array.isArray(g.roster))return 'no roster';if(!g.roster.length)return 'empty';
@@ -101,7 +105,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.renown=Math.max(0,svNum(g.renown,0));g.crisisDay=svNum(g.crisisDay,18);g.grace=svNum(g.grace,0);g.healAcc=clamp(svNum(g.healAcc,0),0,48);g.zoom=svFin(g.zoom)&&g.zoom>0?clamp(g.zoom,.05,20):1;
  g.stash=Array.isArray(g.stash)?g.stash.filter(id=>!!ITEMS[id]):[];
  g.towns.forEach((t,i)=>{if(typeof t.name!=='string'||!t.name)t.name=TOWNN[i%TOWNN.length];t.ref=svNum(t.ref,-99);t.size=clamp(Math.round(svNum(t.size,1)),1,3);
-  t.recruits=Array.isArray(t.recruits)?t.recruits.filter(repairMerc):[];t.stock=Array.isArray(t.stock)?t.stock.filter(id=>!!ITEMS[id]):[];
+  t.recruits=Array.isArray(t.recruits)?t.recruits.filter(repairMerc):[];t.stock=Array.isArray(t.stock)?t.stock.filter(id=>!!ITEMS[id]&&!ITEMS[id].famed):[];
   t.contracts=Array.isArray(t.contracts)?t.contracts.filter(c=>repairContract(c,g.towns.length)):[]});
  g.parties=Array.isArray(g.parties)?g.parties.filter(p=>svObj(p)&&FACT[p.f]&&svFin(p.x)&&svFin(p.y)&&svFin(p.tx)&&svFin(p.ty)&&svFin(p.mult)&&svFin(p.id)):[];
  g.parties.forEach(p=>{if(!Array.isArray(p.pts)||!p.pts.length||!p.pts.every(q=>svObj(q)&&svFin(q.x)&&svFin(q.y))){delete p.pts;p.pi=0}else p.pi=clamp(Math.floor(svNum(p.pi,0)),0,p.pts.length-1);p.ch=p.ch?1:0});
@@ -125,7 +129,8 @@ function readSave(){const raw=storeGet(SAVEKEY);if(raw==null||raw==='')return{st
  return{state:'ok',g,v}}
 function loadSave(){const r=readSave();return r.state==='ok'?r.g:null}          // a loadable campaign, or null
 function saveStatus(){const r=readSave(),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns;s.name=r.g.name;s.banner=r.g.banner;s.wsize=r.g.wsize;s.renown=r.g.renown}return s}
-function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length)return false;G.v=SAVEVER;G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(SAVEKEY,s)}
+// save(): the running company's famed items are registered again first, whatever readSave() put into ITEMS meanwhile.
+function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length)return false;G.v=SAVEVER;if(svObj(G.famed)&&typeof registerFamed==='function')registerFamed(G.famed);G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(SAVEKEY,s)}
 function clearSave(){return storeDel(SAVEKEY)}
 // Keeps a copy of a save this version cannot read before a new company replaces it.
 function backupUnreadableSave(){const st=readSave().state;if(st!=='newer'&&st!=='corrupt')return false;const raw=storeGet(SAVEKEY);return raw!=null&&storeSet(SAVEKEY+'_bak',raw)}

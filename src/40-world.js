@@ -11,7 +11,8 @@
      seen   Uint8Array         fog of war memory (1 = seen at some time); W.fogRev counts changes
    Everything in W comes from the seed alone through mulberry(seed); the game stream rnd() is never used here.
    Public: genWorld tileAt okAt speedAt lineClear randOk placeTowns findPath routeTo goTo setRoute clearRoute
-           seenAt visibleAt visionRadius bandSight fogReveal fogPack fogLoad weatherFx partyStrength siteSheet */
+           seenAt visibleAt visionRadius bandSight fogReveal fogPack fogLoad weatherFx partyStrength siteSheet
+           companyPower spawnProg factionPool factionSpot rollFaction lairTitle (spawn ranges, below spawnParty's comment) */
 /* more town names for the larger worlds (the small world draws from TOWNN alone, as it always did) */
 const TOWNX=['Kestrel Ford','Bramblecote','Oxenhold','Wyvernhythe','Fallowmere','Corvid Hill','Saltmarsh Quay','Duskwater','Hearthlow','Ironbridge','Mossgate','Wendlebury','Gallows Reach','Cinderfold','Larkspur','Redcliffe','Hollinbrook','Tarnwick','Briarholt','Coldharbour','Sheepwash'];
 const WCO=48,WBAND=35.2,WHRS=.8;                       // company / band speed in world units per second at factor 1; hours per second of march
@@ -213,8 +214,58 @@ function patrolPts(x,y){const bio=tileAt(x,y),pts=[{x:Math.round(x),y:Math.round
  return pts}
 function patrolHop(p){const n=randOk(p.x,p.y,1,4);p.pts=[{x:Math.round(n.x),y:Math.round(n.y)}];p.pi=0;p.tx=p.pts[0].x;p.ty=p.pts[0].y}
 function setPatrol(p){p.pts=patrolPts(p.x,p.y);if(p.pts.length<2){patrolHop(p);return}p.pi=1;p.tx=p.pts[1].x;p.ty=p.pts[1].y}
-function spawnParty(f){const pos=randOk(G.p.x,G.p.y,9,26);const fs=['gob','bandit','beast','undead'];if(G.day>5)fs.push('orc');if(G.crisis)fs.push('void','void');
- const p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f:f||pick(fs),mult:.65+rnd()*.5};setPatrol(p);G.parties.push(p)}
+/* ---- spawn ranges: who roams where (CONTRACT.md "Spawn ranges") ----
+   companyPower(): sum over the fielded mercs of level + gear (log2(1 + price of what they carry / 150) x 1.1, at most 9).
+     A new company is ~6, L4x6 ~45, L8x9 ~120, L12x12 ~220.
+   spawnProg(power, day) in 0..1 = .65 x clamp((power - 8) / 210) + .35 x clamp(day / 90): how far the land has turned against you.
+   Each faction's tier (FACT[f].tier, overridden by FACT[f].spawn) gives the curve SPAWNT[tier] = {gate, d0, d1, w0, w1}:
+     it roams only once prog >= gate; then, with t = (prog - gate) / (1 - gate), at least minD = d0 + (d1 - d0) t tiles from the nearest
+     town, with weight w0 + (w1 - w0) t; mid/late/end factions only on their own biomes (FACT[f].biomes) and, before prog .6, never within
+     startD = 16 (1 - prog / .6) tiles of the starting town. Early factions roam anywhere. Riftspawn keep their crisis logic.
+   When the world has no ground that far from its towns (the small world), the farthest tenth of the faction's ground is used instead. */
+const SPAWNT={early:{gate:0,d0:0,d1:0,w0:1,w1:.55},mid:{gate:.08,d0:10,d1:3,w0:.35,w1:.9},late:{gate:.2,d0:14,d1:5,w0:.2,w1:.8},end:{gate:.4,d0:18,d1:8,w0:.06,w1:.4}};
+const TERRN=['water','plains','forest','hills','mountains','swamp','desert','snow'];
+function gearPower(m){let p=0;const eq=m&&m.eq||{};for(const k of ['w','b','s','a','h']){const it=eq[k]&&ITEMS[eq[k]];if(it)p+=it.price||0}return Math.min(9,Math.log2(1+p/150)*1.1)}
+function companyPower(list){const L=list||(typeof fielded==='function'&&G?fielded():[]);let p=0;for(const m of L)p+=(m.lvl||1)+gearPower(m);return Math.round(p*10)/10}
+function spawnProg(power,day){return clamp(.65*clamp((power-8)/210,0,1)+.35*clamp(day/90,0,1),0,1)}
+/* factionPool(ctx): the factions that may appear now, [{f, w (weight), minD (tiles from the nearest town), dmin..dmax (tiles from the
+   contract's town for a lair), startD, tier, biomes}].
+   ctx (all optional): {power, day, crisis (include riftspawn: default G.crisis), prog}. Used by spawnParty and by genContract. */
+function factionPool(ctx){ctx=ctx||{};const power=ctx.power!=null?ctx.power:companyPower(),day=ctx.day!=null?ctx.day:(G?G.day:1),prog=ctx.prog!=null?ctx.prog:spawnProg(power,day),out=[];
+ for(const f in FACT){const F=FACT[f],tier=F.tier||'early';if(tier==='crisis'){if(ctx.crisis!=null?ctx.crisis:G&&G.crisis)out.push({f,w:.5,minD:0,startD:0,tier,biomes:null});continue}
+  const S=Object.assign({},SPAWNT[tier]||SPAWNT.early,F.spawn||{});if(prog<S.gate)continue;const t=S.gate<1?(prog-S.gate)/(1-S.gate):1;
+  const minD=Math.round(S.d0+(S.d1-S.d0)*t);out.push({f,w:Math.round((S.w0+(S.w1-S.w0)*t)*1000)/1000,minD,dmin:Math.max(4,minD),dmax:Math.max(4,minD)+(tier==='end'?8:6),startD:tier==='early'?0:Math.max(0,Math.round(16*(1-prog/.6))),tier,biomes:tier==='early'?null:F.biomes||null})}
+ return out}
+// Distance in tiles from every world tile to the nearest town, and to the nearest peak (cached per world and town list).
+function worldFields(){if(!W||!G)return null;const sig=W.seed+'|'+WN+'|'+G.towns.length;if(W.fld&&W.fld.sig===sig)return W.fld;const N=WN*WN,td=new Float32Array(N),T=G.towns.map(t=>[t.x/TS-.5,t.y/TS-.5]);
+ for(let i=0;i<N;i++){const x=i%WN,y=(i/WN)|0;let m=1e9;for(const [a,b] of T){const d=Math.hypot(x-a,y-b);if(d<m)m=d}td[i]=m}
+ const md=wgBfs(i=>W.tiles[i]===4);W.fld={sig,td,md};return W.fld}
+// Does world tile i belong to one of the biome names?
+function biomeHas(i,biomes){if(!biomes)return true;const t=W.tiles[i],n=TERRN[t];if(biomes.includes(n))return true;if(biomes.includes('mountains')){const F=worldFields();return !!F&&F.md[i]<=2}return false}
+/* factionSpot(e, x, y, minT, maxT): a point for pool entry e (from factionPool) between minT and maxT tiles of (x,y), on the company's
+   mainland, on its biomes, minD from every town and startD from the starting town; null when the land has no such place. Seeded (rnd). */
+function factionSpot(e,x,y,minT,maxT){const F=worldFields();if(!F)return null;const st=G.towns[0],ok=(px,py)=>{if(!okAt(px,py))return false;const tx=Math.floor(px/TS),ty=Math.floor(py/TS),i=ty*WN+tx;
+  if(F.td[i]<Math.max(2.5,e.minD)||!biomeHas(i,e.biomes))return false;return !(st&&e.startD&&Math.hypot(st.x-px,st.y-py)<e.startD*TS)};
+ if(!e.biomes&&!e.minD&&!e.startD)return randOk(x,y,minT,maxT);
+ for(let i=0;i<200;i++){const a=rnd()*6.283,d=(minT+rnd()*(maxT-minT))*TS,px=x+Math.cos(a)*d,py=y+Math.sin(a)*d;if(ok(px,py))return{x:px,y:py}}
+ // nothing in the ring: any tile of the faction's ground within reach that is far enough, else the farthest tenth of its ground
+ const cand=[],far=[],R=maxT*1.6;for(let i=0;i<WN*WN;i++){if(!W.ok[i]||!biomeHas(i,e.biomes))continue;const px=(i%WN+.5)*TS,py=(((i/WN)|0)+.5)*TS;if(Math.hypot(px-x,py-y)>R*TS||F.td[i]<2.5)continue;far.push(i);if(ok(px,py))cand.push(i)}
+ let L=cand;if(!L.length&&far.length){far.sort((a,b)=>F.td[b]-F.td[a]||a-b);L=far.slice(0,Math.max(1,Math.ceil(far.length/10)))}if(!L.length)return null;
+ const i=L[Math.floor(rnd()*L.length)];return{x:(i%WN+.5)*TS,y:(((i/WN)|0)+.5)*TS}}
+/* rollFaction(ctx): picks a faction from factionPool(ctx) by weight and a place for it near (ctx.x, ctx.y) (ctx.minT..ctx.maxT tiles;
+   ctx.near: the place must also lie within maxT + minD of it). Returns {f, x, y, minD, tier} or null. Seeded. */
+function rollFaction(ctx){ctx=ctx||{};let pool=factionPool(ctx).filter(e=>!ctx.only||ctx.only.includes(e.f));const x=ctx.x!=null?ctx.x:G.p.x,y=ctx.y!=null?ctx.y:G.p.y;
+ for(let g=0;g<12&&pool.length;g++){let tot=0;for(const e of pool)tot+=e.w;let v=rnd()*tot,e=pool[pool.length-1];for(const q of pool){if(v<q.w){e=q;break}v-=q.w}
+  const maxT=Math.max(ctx.maxT||26,(ctx.minT||9)+2+(ctx.grow?e.minD:0)),pos=factionSpot(e,x,y,ctx.minT||9,maxT);if(pos)return{f:e.f,x:pos.x,y:pos.y,minD:e.minD,tier:e.tier};pool=pool.filter(q=>q!==e)}
+ return null}
+// The contract title for a hunt of faction f at (x,y): FACT[f].lair, with {place} filled from the land around it (no rnd draw).
+const PEAKN=['Greyspire','the Cold Teeth','Ravenfell','the Black Crag','Hollowpeak','Skarnholt','the Widow\'s Tor','Frostmantle'];
+function lairTitle(f,x,y){const L=FACT[f]&&FACT[f].lair||'Clear a lair';if(!L.includes('{place}'))return L;const h=Math.abs(Math.floor((x||0)/TS)*31+Math.floor((y||0)/TS)*17);return L.replace('{place}',PEAKN[h%PEAKN.length])}
+function spawnParty(f){let pos=null;
+ if(!f&&G.crisis&&rnd()<2/7)f='void';
+ if(!f){const r=rollFaction({x:G.p.x,y:G.p.y,minT:9,maxT:26,crisis:false});if(r){f=r.f;pos={x:r.x,y:r.y}}}
+ if(!f)f=pick(['gob','bandit','beast','undead']);if(!pos)pos=randOk(G.p.x,G.p.y,9,26);
+ const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5};setPatrol(p);G.parties.push(p)}
 function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();let wage=0;G.roster.forEach(m=>wage+=BG[m.bg].wage);G.crowns-=wage;let msg=`Day ${G.day}: paid ${wage} crowns in wages`;
  if(G.crowns<0){G.crowns=0;if(G.roster.length>1&&rnd()<.35){const m=G.roster.splice(ri(0,G.roster.length-1),1)[0];msg=`Day ${G.day}: unpaid, ${m.name} deserted`}else msg=`Day ${G.day}: you cannot pay the men`}
  G.food-=G.roster.length;if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
