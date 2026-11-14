@@ -27,8 +27,8 @@ Wyverns (`wyvern whatch`) are never a quarry. A table `QUARRY[perkKey] = {n, en:
   in the quarry (credit rules like XP kills). Shown on the character sheet.
 - A learned quarry perk grants, against units of that quarry: **+`per`% damage and +`per/2` (rounded down,
   min 1 per 2 kills) to hit, per kill counted, up to `cap` kills**, plus a flat starting bonus of +5%
-  damage the moment it is learned (so it is never empty). `per`/`cap` (each tier tops out at +30% damage / +15 hit on top of the +5%): tiers 1-3: 1% per kill,
-  cap 30; tiers 4-5: 2%, cap 15; tiers 6-7: 3%, cap 10; tiers 8-9: 5%, cap 6. Hit = floor(kills x per / 2).
+  damage the moment it is learned (so it is never empty). `per`/`cap` (each tier tops out at +15% damage / +7 hit on top of the +5%; halved by the owner's tuning request): tiers 1-3: 0.5% per kill,
+  cap 30; tiers 4-5: 1%, cap 15; tiers 6-7: 1.5%, cap 10; tiers 8-9: 2.5%, cap 6. Hit = floor(kills x per / 2).
   Tune if balance needs it, keep the numbers stated exactly in the perk text (`d`), and show the
   current stack ("12 slain: +12% damage, +6 to hit") on the perk and in the forecast/HUD breakdown.
   Exact in `forecast()`.
@@ -73,3 +73,12 @@ otherwise unchanged.
 | --- | --- |
 | rules | `10-data.js`, `20-state.js`, `30-mercs.js`, `60-battle-core.js`, `61-talents.js`, `62-forecast.js`, `63-ai.js`, `68-battle-flow.js`, `14-company.js`, `15-factions.js`, `16-contracts.js`, `17-events.js`, `40-world.js`, `50-towns.js`, `85-game.js`, all `test/*.js` |
 | look | `06-icons.js`, `07-portraits.js`, `73-units.js`, `52-panels.js`, `55-company.js`, `51-townview.js`, `65-battle-ui.js`, `80-input.js`, `82-inspect.js`, `90-shell.js`, `57-factions-ui.js`, `body.html`, all `src/*.css` |
+
+## Solo tuning (owner: "Lower the kill bonus ... Increase base difficulty of the Solo Beast Slayer start slightly. Win rates should start
+roughly around ~70% at level 3 with Ogres being ~40% and increase as levels continue.")
+- Quarry bonuses halved (above). BG.slayer stats hp 14→12, ms 12→10, md 8→6.
+- Solo bands (60-battle-core.js): SOLOBUD = 6 + 7 a level up to level 6, +4 a level after (27/48/60/72 at 3/6/9/12; a company merc 27/42/57/72);
+  FACT.serpent.solo = [46.5, 1.5] and FACT.ogre.solo = [3, 6.2] (their own lines); SOLOMAX 2 foes; a one-foe band brings a second with the
+  chance leftover / cheapest cost (SOLOFLOOR 1); a mid-tier monster band too poor for its lead monster is that monster alone (an ogre).
+- Measured by test/balance.js solo table (KSOLO 40 slayers, open quarry tiers only, half-cap tallies): sensible about beasts 68/78/86,
+  serpents 69/79/84, ogres 40/57/77 at levels 3/6/9. Non-solo play unchanged.

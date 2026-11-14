@@ -55,12 +55,13 @@ const Q=X.QUARRY,M=X.MAST.hunter;
 
 section('the Monster hunter tree');
 { ok(M&&M.kind==='hunter'&&M.tiers.length===9&&M.tiers.every(t=>t.length===1),'MAST.hunter: 9 tiers of one perk');
-  const want=[['hunter.gob','gob gobarch gobsham',1,30],['hunter.spider','spider',1,30],['hunter.wolf','wolf',1,30],['hunter.dead','skel zomb skelhal necro',2,15],
-   ['hunter.serpent','adder viper gserp',2,15],['hunter.bear','bear',3,10],['hunter.rift','imp vknight vmage tyrant',3,10],['hunter.ent','thorn ent elder',5,6],['hunter.ogre','ogre aogre',5,6]];
+  const want=[['hunter.gob','gob gobarch gobsham',.5,30],['hunter.spider','spider',.5,30],['hunter.wolf','wolf',.5,30],['hunter.dead','skel zomb skelhal necro',1,15],
+   ['hunter.serpent','adder viper gserp',1,15],['hunter.bear','bear',1.5,10],['hunter.rift','imp vknight vmage tyrant',1.5,10],['hunter.ent','thorn ent elder',2.5,6],['hunter.ogre','ogre aogre',2.5,6]];
   want.forEach(([k,en,per,cap],i)=>{const p=M.tiers[i][0],q=Q[k];ok(p.id===k&&q&&q.en.join(' ')===en&&q.per===per&&q.cap===cap,'tier '+(i+1)+' is '+k);
    ok(q.en.every(e=>X.EN[e]),k+': every EN id exists');ok(X.tierLevel('hunter',i+1)===i+1,'tier '+(i+1)+' opens at level '+(i+1));
    ok(p.d.includes('+'+per+'% damage')&&p.d.includes('up to '+cap)&&p.d.includes('+'+(X.QUARRYB+per*cap)+'% damage')&&p.d.includes('+'+Math.floor(per*cap/2)+' to hit'),k+': exact numbers in the text: '+p.d);
-   ok(X.QUARRYB+per*cap===35&&Math.floor(per*cap/2)===15,k+': tops out at +30% (plus 5) and +15 to hit');
+   ok(X.QUARRYB+per*cap===20&&Math.floor(per*cap/2)===7,k+': tops out at +15% (plus 5) and +7 to hit');
+   ok(p.d.includes('half that to hit, rounded down'),k+': the to-hit rule in the text');
    ok(X.perkById(k)&&X.perkById(k).kind==='hunter','perkById knows '+k)});
   ok(Object.keys(Q).length===9,'nine quarries');for(const e of ['wyvern','whatch'])ok(!X.QUARRYOF[e]&&X.EN[e],e+' is never a quarry');
   for(const b of ['slayer','hunter','poacher','witchhunter','wildling'])ok(X.BG[b].ht&&X.hunterTrees({bg:b}).join()==='hunter',b+' may learn it');
@@ -81,7 +82,9 @@ section('the bonus and its caps');
     ok(I.dmg===5+q.per*s&&I.hit===Math.floor(s*q.per/2)&&I.stack===s&&I.full===(n>=q.cap),`${k} at ${n} slain: +${I.dmg}% / +${I.hit}`);
     ok(I.text===`${n} slain: +${I.dmg}% damage, +${I.hit} to hit${n>=q.cap?' (full)':''}`,'stack text: '+I.text)}
    m.slain[k]=0}
-  m.slain['hunter.gob']=12;ok(X.quarryInfo(m,'hunter.gob').text.startsWith('12 slain: +17% damage, +6 to hit'),'12 goblins: +17%, +6');
+  m.slain['hunter.gob']=12;ok(X.quarryInfo(m,'hunter.gob').text.startsWith('12 slain: +11% damage, +3 to hit'),'12 goblins: +11%, +3');
+  m.slain['hunter.gob']=15;ok(X.quarryInfo(m,'hunter.gob').text.startsWith('15 slain: +12.5% damage, +3 to hit'),'15 goblins: +12.5%, +3');
+  m.slain['hunter.ogre']=6;ok(X.quarryInfo(m,'hunter.ogre').text==='6 slain: +20% damage, +7 to hit (full)','6 ogres: +20%, +7 (full)');
   console.log('per-kill steps, caps and the +5% base: ok') }
 
 // a battle with the slayer against named foes; returns B
@@ -193,4 +196,13 @@ section('death ends the run; pay and saves');
   X.store.set(X.SAVEKEY,JSON.stringify(raw));const r2=X.readSave();ok(r2.state==='ok'&&r2.g.roster.every(m=>JSON.stringify(m.slain)==='{}')&&r2.g.rivals.every(r=>r.roster.every(m=>m.slain)),'a v11 save loads and plays');
   console.log('death ends the run, solo pay, save round trip and the v11 migration: ok') }
 
+section('solo bands');
+{ const G=fresh(SEED+9,'slayer'),m=G.roster[0];ok(m.lvl===3&&X.isSolo(),'a level 3 solo run');const day0=G.day;G.day=3;
+  const B3=X.battleBudget({f:'beast'}),dk=1+3*.008;ok(Math.abs(B3-(X.SOLOBUD.base+3*X.SOLOBUD.lvl)*dk*X.BUDGETK)<1e-9,'one sword: SOLOBUD at level 3 ('+B3.toFixed(1)+')');
+  ok(Math.abs(X.battleBudget({f:'serpent'})-(X.FACT.serpent.solo[0]+3*X.FACT.serpent.solo[1])*dk*X.BUDGETK)<1e-9,'serpents follow their own solo line');
+  for(let i=0;i<40;i++){X.seedRng(SEED+i);const L=X.buildEnemies('ogre',X.battleBudget({f:'ogre'}),null,1);ok(L.length===1&&L[0]==='ogre','an ogre band against one sword at level 3 is one ogre: '+L.join())
+   X.seedRng(SEED+i);const W=X.buildEnemies('beast',B3,null,1);ok(W.length>=1&&W.length<=X.SOLOMAX,'a beast band of 1..'+X.SOLOMAX+': '+W.join())}
+  G.origin='free';const Bc=X.battleBudget({f:'beast'});ok(Math.abs(Bc-(12+5*3)*dk*X.BUDGETK)<1e-9,'a company keeps 12 + 5 a level');
+  X.seedRng(SEED);const L=X.buildEnemies('ogre',Bc,null,1);ok(!L.includes('ogre'),'a company that poor meets the goblins, as before: '+L.join());
+  G.origin='slayer';G.day=day0;console.log('solo budget lines, the lone ogre, at most '+X.SOLOMAX+' foes; companies unchanged: ok') }
 console.log('\nOK');process.exit(0)})().catch(e=>fail(e&&e.stack||e));

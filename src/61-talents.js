@@ -40,9 +40,9 @@ function weaponTrees(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt
    slainOf(m, k) -> how many of quarry k the merc has slain (m.slain, counted always).  countSlain(u, t): called when u lands the killing
    blow on t: +1 to u.m.slain[quarry] (any merc, a rival's too; never for wyverns or other mercs). Returns the key or null.
    quarryInfo(m, k) -> {key, n (QUARRY name), tag (perk name), one, slain, stack (kills that count, at most cap), per, cap, learned,
-     dmg (whole percent: QUARRYB + per x stack once learned, else 0), hit (floor(stack x per / 2) once learned, else 0), full (stack = cap),
-     text ('12 slain: +17% damage, +6 to hit')}   (UI: perk cards, character sheet)
-   quarryVs(u, t) -> {key, dmg (a fraction: 0.17), hit (+6), n, tag} or {key:null, dmg:0, hit:0}: what u's quarry perk gives against t
+     dmg (percent, may be a half: QUARRYB + per x stack once learned, else 0), hit (floor(stack x per / 2) once learned, else 0), full (stack = cap),
+     text ('12 slain: +11% damage, +3 to hit')}   (UI: perk cards, character sheet)
+   quarryVs(u, t) -> {key, dmg (a fraction: 0.11), hit (+3), n, tag} or {key:null, dmg:0, hit:0}: what u's quarry perk gives against t
      (hitChance and dmgAfter in 60-battle-core.js add it, so forecast() is exact). Uses no randomness. */
 function hunterTrees(m){const b=m&&BG[m.bg];return b&&b.ht&&MAST.hunter?['hunter']:[]}
 let _ENK=null;
