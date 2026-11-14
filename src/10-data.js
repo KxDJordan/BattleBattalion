@@ -166,7 +166,7 @@ const STATUS={
    vsHurt (more damage against a foe below half health), noBow (not with a bow in hand), nostun (the weapon's stun never rides on it),
    noDmgTxt (the float of a no-damage hit), swapW (the weapon swap). fx is a hint for the presentation. */
 Object.assign(AB,{
- swap:{n:'Swap weapons',ap:4,fat:0,tgt:'self',swapW:1,fx:'swap',d:'Exchange the weapon in hand for your other one (4 AP, no fatigue). A shield is raised with a one-handed weapon or none, slung on the back with a two-handed one.'},
+ swap:{n:'Swap weapons',ap:2,fat:0,tgt:'self',swapW:1,fx:'swap',d:'Exchange the weapon in hand for your other one (2 AP, no fatigue). A shield is raised with a one-handed weapon or none, slung on the back with a two-handed one.'},
  decap:{n:'Decapitate',fat:20,tgt:'enemy',wpn:1,mult:1,vsHurt:.6,head:25,noBow:1,fx:'chop',d:'A stroke at the neck: +60% damage against a foe below half health, +25% chance to hit the head.'},
  bastion:{n:'Bastion',ap:4,fat:18,tgt:'self',buff:{key:'bastion',md:20,rd:20,dr:.2,indom:1},dur:1,fx:'guard',d:'Until your next turn: +20 melee and ranged defense, take 20% less damage, cannot be knocked back.'},
  volley:{n:'Volley',ap:6,fat:20,tgt:'enemy',wpn:1,needs:'bow',mult:.8,aoe:1,fx:'volley',d:'Arrows on a foe and everyone beside it: 80% damage to the target, 70% of that to each foe next to it.'},

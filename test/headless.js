@@ -716,13 +716,13 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    ok(W.wid==='greataxe'&&W.alt==='arming'&&W.hand==='w'&&W.slung&&!W.shield&&W.shp===X.calc(war).shield.hp&&!W.abs.includes('bash')&&W.abs.includes('round')&&W.abs.includes('swap'),'a two-hander must start with the shield slung');
    ok(X.statusList(W).some(s=>s.key==='slung')&&!X.statusList(W).some(s=>s.key==='splitshield'),'a slung shield shows as slung, not split');
    { const md0=W.md,ms0=W.ms,sk=X.ITEMS.kite;put(W,5,5);W.ap=9;W.fat=20;W.hp=W.hpMax-11;W.st.bleed=2;X.addBuff(W,{key:'rage',dmg:.25,md:-10},2);const hp0=W.hp,fat0=W.fat;
-     const sw=X.abilityInfo(W,'swap');ok(sw.ap===4&&sw.fat===0&&X.canUse(W,sw),'swap costs 4 AP');b.cur=W;await X.useAbility(W,sw,KU(W));await rest(b);
-     ok(W.ap===5&&W.wid==='arming'&&W.alt==='greataxe'&&W.hand==='b'&&W.wpn.id==='arming'&&W.shield&&!W.slung&&W.md===md0+sk.md&&W.ms===ms0,'the swap must raise the shield and keep the rest: md '+W.md+' vs '+(md0+sk.md));
+     const sw=X.abilityInfo(W,'swap');ok(sw.ap===2&&sw.fat===0&&X.canUse(W,sw),'swap costs 2 AP');b.cur=W;await X.useAbility(W,sw,KU(W));await rest(b);
+     ok(W.ap===7&&W.wid==='arming'&&W.alt==='greataxe'&&W.hand==='b'&&W.wpn.id==='arming'&&W.shield&&!W.slung&&W.md===md0+sk.md&&W.ms===ms0,'the swap must raise the shield and keep the rest: md '+W.md+' vs '+(md0+sk.md));
      ok(W.hp===hp0&&W.fat===fat0&&W.st.bleed===2&&W.buffs.some(x=>x.key==='rage')&&['slash','riposte','shieldwall','bash'].every(id=>W.abs.includes(id))&&!W.abs.includes('round'),'a swap must keep hitpoints, fatigue, statuses and buffs; skills follow the weapon');
      ok(ev.some(e=>e.type==='swap'&&e.d.u===W&&e.d.to===W.wpn)&&ev.some(e=>e.type==='shield'&&e.d.u===W&&e.d.raised),'swap / shield events');
      const fc=X.forecast(e0,W,X.abilityInfo(e0,'attack'));put(e0,6,5);ok(X.forecast(e0,W,X.abilityInfo(e0,'attack')).hit===X.hitChance(e0,W,X.abilityInfo(e0,'attack')),'forecast after a swap');
-     await X.useAbility(W,X.abilityInfo(W,'swap'),KU(W));await rest(b);ok(W.ap===1&&W.wid==='greataxe'&&W.slung&&!W.shield&&W.md===md0&&!W.abs.includes('shieldwall'),'swapping back must sling the shield again');
-     ok(!X.canUse(W,X.abilityInfo(W,'swap')),'no AP, no swap');
+     await X.useAbility(W,X.abilityInfo(W,'swap'),KU(W));await rest(b);ok(W.ap===5&&W.wid==='greataxe'&&W.slung&&!W.shield&&W.md===md0&&!W.abs.includes('shieldwall'),'swapping back must sling the shield again');
+     W.ap=1;ok(!X.canUse(W,X.abilityInfo(W,'swap')),'no AP, no swap');
      X.addInjury(W.m,'cutarm',3);X.applyInjury(W,'cutarm');const ms1=W.ms,rs1=W.rs,md1=W.md;W.ap=9;await X.useAbility(W,X.abilityInfo(W,'swap'),KU(W));await rest(b);await X.useAbility(W,X.abilityInfo(W,'swap'),KU(W));await rest(b);
      ok(W.ms===ms1&&W.rs===rs1&&W.md===md1&&W.wid==='greataxe','an injury taken in battle must not count twice over a swap');W.m.inj=[];put(e0,0,0) }
    // the ranged lock: a foe next to the archer stops its shots; swap to the knife; free first swap with Quick hands
@@ -731,7 +731,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      e1.st.stun=1;ok(!X.rangedLocked(A),'a stunned foe does not lock');e1.st={};e1.mor=0;ok(!X.rangedLocked(A),'a fleeing foe does not lock');e1.mor=3;
      A.flags.noLock=1;ok(!X.rangedLocked(A)&&X.canUse(A,at),'Point-blank lifts the lock');delete A.flags.noLock;
      ok(A.swapFree===false||A.swapFree===undefined||A.swapFree===true,'swapFree');A.swapFree=!!A.flags.freeSwap;ok(A.flags.freeSwap&&X.abilityInfo(A,'swap').ap===0,'Quick hands: the first swap each turn is free');
-     b.cur=A;await X.useAbility(A,X.abilityInfo(A,'swap'),KU(A));await rest(b);ok(A.ap===9&&A.wid==='knife'&&A.wpn.wt==='dagger'&&X.abilityInfo(A,'swap').ap===4,'the free swap costs nothing, the next one 4 AP');
+     b.cur=A;await X.useAbility(A,X.abilityInfo(A,'swap'),KU(A));await rest(b);ok(A.ap===9&&A.wid==='knife'&&A.wpn.wt==='dagger'&&X.abilityInfo(A,'swap').ap===2,'the free swap costs nothing, the next one 4 AP');
      const kn=X.abilityInfo(A,'attack');ok(X.canUse(A,kn)&&X.validTargets(A,kn).has(KU(e1))&&!X.rangedLocked(A)===false,'with the knife the archer fights in melee');
      ok(X.canUse(A,X.abilityInfo(A,'puncture'))&&!X.canUse(A,X.abilityInfo(A,'quick')),'knife skills replace bow skills');
      await X.useAbility(A,X.abilityInfo(A,'swap'),KU(A));await rest(b);ok(A.wid==='shortbow'&&X.rangedLocked(A),'back to the bow, still locked');

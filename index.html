@@ -7553,7 +7553,7 @@ const STATUS={
    vsHurt (more damage against a foe below half health), noBow (not with a bow in hand), nostun (the weapon's stun never rides on it),
    noDmgTxt (the float of a no-damage hit), swapW (the weapon swap). fx is a hint for the presentation. */
 Object.assign(AB,{
- swap:{n:'Swap weapons',ap:4,fat:0,tgt:'self',swapW:1,fx:'swap',d:'Exchange the weapon in hand for your other one (4 AP, no fatigue). A shield is raised with a one-handed weapon or none, slung on the back with a two-handed one.'},
+ swap:{n:'Swap weapons',ap:2,fat:0,tgt:'self',swapW:1,fx:'swap',d:'Exchange the weapon in hand for your other one (2 AP, no fatigue). A shield is raised with a one-handed weapon or none, slung on the back with a two-handed one.'},
  decap:{n:'Decapitate',fat:20,tgt:'enemy',wpn:1,mult:1,vsHurt:.6,head:25,noBow:1,fx:'chop',d:'A stroke at the neck: +60% damage against a foe below half health, +25% chance to hit the head.'},
  bastion:{n:'Bastion',ap:4,fat:18,tgt:'self',buff:{key:'bastion',md:20,rd:20,dr:.2,indom:1},dur:1,fx:'guard',d:'Until your next turn: +20 melee and ranged defense, take 20% less damage, cannot be knocked back.'},
  volley:{n:'Volley',ap:6,fat:20,tgt:'enemy',wpn:1,needs:'bow',mult:.8,aoe:1,fx:'volley',d:'Arrows on a foe and everyone beside it: 80% damage to the target, 70% of that to each foe next to it.'},
@@ -10670,7 +10670,7 @@ function coLvOpens(L){const T=coLvTiers(L);if(!T.length)return'';
 function coSlotView(m,i,k){const cur=m.eq[k],want=k==='b'?'w':k,list=G.stash.map((id,j)=>[id,j]).filter(([id])=>ITEMS[id]&&ITEMS[id].k===want),N={w:'Weapons',b:'Weapons',s:'Shields',a:'Armor',h:'Helmets'};
  let h=`<div class="pn-kick">${m.name}, ${k==='b'?'backup weapon':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
  <div class="pn-gear cur${cur?'':' none'}">${cur?pnItemIcon(cur,32):coIc(coSlotIcon(k),32)}<span class="pn-rmain"><span class="pn-rt">${cur?ITEMS[cur].n:'Nothing equipped'}${cur?coGripTag(cur):''}</span><span class="pn-rs">${cur?coItemDesc(cur)+coWornNote(m,k):k==='w'?'Fighting with bare fists':k==='b'?'No sidearm to swap to':k==='h'?'Bare-headed: a blow to the head lands in full':'Empty '+SLOTN[k].toLowerCase()+' slot'}</span></span><span class="pn-slot">${k==='b'?'At the hip':'In use'}</span></div>`;
- if(k==='b')h+=`<p class="pn-p dim">The backup rides at the hip. In battle, <b>Swap weapons</b> (4 AP) puts it in hand. A bow cannot shoot with a foe standing next to you: an archer wants a dagger or a sword here.</p>`;
+ if(k==='b')h+=`<p class="pn-p dim">The backup rides at the hip. In battle, <b>Swap weapons</b> (2 AP) puts it in hand. A bow cannot shoot with a foe standing next to you: an archer wants a dagger or a sword here.</p>`;
  if(k==='s'&&tlTwo(m.eq.w)&&tlTwo(m.eq.b))h+=`<p class="pn-p warn">${tlEquipRule(m,'s',list.length?list[0][0]:'buckler').why||'Both hands are full: a shield needs a one-handed weapon in one of the two weapon slots'}.</p>`;
  else if(k==='s'&&tlTwo(m.eq.w))h+=`<p class="pn-p dim">A shield is slung while a two-handed weapon is in hand: it gives no defense until the backup is drawn, but its weight still counts.</p>`;
  if(!list.length)h+=`<p class="pn-p dim">Nothing that fits. Buy gear at a market or take it from the fallen.</p>`;else h+=pnHead('Tap to equip');
@@ -12178,7 +12178,11 @@ function cmdHTML(u,mine){const act=mine&&!B.busy&&!B.over,R=shReserves(),rok=act
   +'<button class="tg pxb icon sm" aria-label="Turn the view right" title="Turn right (E)" onclick="rotateView(1)">'+viewIcon('rotr',16)+'</button>'
   +'<button class="tg pxb icon sm '+(VIEW.heights?'on':'')+'" aria-pressed="'+!!VIEW.heights+'" aria-label="Show heights" title="Heights (H)" onclick="toggleHeights()">'+viewIcon('heights',16)+'</button>':'')+'</span>'}
 /* the ability ids on the bar: attack, the unit's own, and Withdraw while it stands on its own edge of the field */
-function barIds(u){const ids=['attack'];if(AB.reload&&(shReloadW(shHand(u))||(u.abs||[]).includes('reload')))ids.push('reload');for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id))ids.push(id);
+/* abilities tied to a weapon or shield the unit is not holding right now stay off the bar (they return after a swap);
+   abilities short of AP, resource, ammunition or blocked by the lock stay visible, greyed, so the player knows they exist */
+function shWrongHand(u,id){if(typeof useBlock!=='function')return false;let r='';try{r=useBlock(u,abilityInfo(u,id))}catch(e){return false}
+ return /^Needs a |^Not with a ranged weapon|^Shield slung|^Nothing to reload/.test(r)}
+function barIds(u){const ids=['attack'];if(AB.reload&&(shReloadW(shHand(u))||(u.abs||[]).includes('reload')))ids.push('reload');for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id)&&!shWrongHand(u,id))ids.push(id);
  if(AB.withdraw&&!ids.includes('withdraw')&&u.r===shEdge(u))ids.push('withdraw');return ids}
 function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side===0&&!B.auto&&u.mor!==0;fcCheck();planOK();
  if(setHTML('order',orderHTML(u))){const o=$('order');if(o)o.scrollLeft=0}

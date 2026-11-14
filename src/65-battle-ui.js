@@ -238,7 +238,11 @@ function cmdHTML(u,mine){const act=mine&&!B.busy&&!B.over,R=shReserves(),rok=act
   +'<button class="tg pxb icon sm" aria-label="Turn the view right" title="Turn right (E)" onclick="rotateView(1)">'+viewIcon('rotr',16)+'</button>'
   +'<button class="tg pxb icon sm '+(VIEW.heights?'on':'')+'" aria-pressed="'+!!VIEW.heights+'" aria-label="Show heights" title="Heights (H)" onclick="toggleHeights()">'+viewIcon('heights',16)+'</button>':'')+'</span>'}
 /* the ability ids on the bar: attack, the unit's own, and Withdraw while it stands on its own edge of the field */
-function barIds(u){const ids=['attack'];if(AB.reload&&(shReloadW(shHand(u))||(u.abs||[]).includes('reload')))ids.push('reload');for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id))ids.push(id);
+/* abilities tied to a weapon or shield the unit is not holding right now stay off the bar (they return after a swap);
+   abilities short of AP, resource, ammunition or blocked by the lock stay visible, greyed, so the player knows they exist */
+function shWrongHand(u,id){if(typeof useBlock!=='function')return false;let r='';try{r=useBlock(u,abilityInfo(u,id))}catch(e){return false}
+ return /^Needs a |^Not with a ranged weapon|^Shield slung|^Nothing to reload/.test(r)}
+function barIds(u){const ids=['attack'];if(AB.reload&&(shReloadW(shHand(u))||(u.abs||[]).includes('reload')))ids.push('reload');for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id)&&!shWrongHand(u,id))ids.push(id);
  if(AB.withdraw&&!ids.includes('withdraw')&&u.r===shEdge(u))ids.push('withdraw');return ids}
 function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side===0&&!B.auto&&u.mor!==0;fcCheck();planOK();
  if(setHTML('order',orderHTML(u))){const o=$('order');if(o)o.scrollLeft=0}
