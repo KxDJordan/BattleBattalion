@@ -16,12 +16,13 @@
 // by the rival AI: aiRun with AI_RIVAL's plan) at every profile (--no-rival skips it; --only rival runs only it). The sensible pilot
 // must win 55..75% overall against an equal rival (they are as good as you), and the naive pilot less than the sensible.
 // Solo update: the Solo (Beast Slayer) origin's one sword at levels 3, 6 and 9 (SOLO) against beasts, serpents and ogres, its quarry perks readied
-// for the faction (QPLAN); a table of its own, reported, not judged (--no-solo skips it; --only solo runs only it; --ns N battles a cell).
+// for the faction (QPLAN, open tiers only) and typical tallies; a table of its own with a 95% interval, reported, not judged (--no-solo skips it;
+// --only solo runs only it; --ns N battles a cell; tuning: --sprof S3,S9 --sfac ogre --sens-only). KSOLO slayers per profile.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
 const SRC=ARGV.includes('--srcdir')?path.resolve(ARGV[ARGV.indexOf('--srcdir')+1]):path.join(__dirname,'..','src'),SEED=+arg('--seed',20261113),TURNCAP=4000;
-const FACS=['gob','undead','beast','orc','bandit','void'],MONF=['serpent','ent','ogre'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8;
+const FACS=['gob','undead','beast','orc','bandit','void'],MONF=['serpent','ent','ogre'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8,KSOLO=40;   // companies per profile; slayers per solo profile (one sword: its rolled stats, traits and trees weigh more)
 /* ---------- company profiles ---------- */
 // role -> level-up stat picks and gear by tier [L4, L8, L12] (b: the sidearm). Perks are spent by the game's own autoLearn(m)
 // on the trees the merc rolled from its background pool, after the gear is on (autoLearn reads the weapons and the shield).
@@ -51,13 +52,15 @@ const PROFILES=[
  {id:'L12x12',lvl:12,day:50,tier:2,team:[S('knight','tank','aura'),S('squire','tower','aura'),S('sellsword','axe'),S('sellsword','hammer'),S('militia','spear'),S('militia','pole'),S('wildling','two','qi'),S('spellblade','gun','qi'),
    S('monk','heal','chi'),S('hunter','bow'),S('hunter','xbow'),S('hedge','mage','mana')]}
 ];
-/* Solo (Beast Slayer) profiles: the Solo origin's one sword at level 3, 6 and 9, in the gear a slayer would have bought by then, perks by
-   autoLearn except the points a sensible hunter keeps for the quarry it is fighting (QPLAN: the Monster hunter perks for that faction, the
-   open ones learned in battle(), each with the tally such a slayer would have: SOLOKILLS[quarry] x level). Reported, not judged. */
-const SOLO=[{id:'S3',lvl:3,day:3,solo:1,gear:{w:'boarspear',b:'huntxbow',a:'leather',h:'cap'}},{id:'S6',lvl:6,day:16,solo:1,gear:{w:'warspear',b:'lightxbow',a:'mail',h:'kettle'}},
+/* Solo (Beast Slayer) profiles: the Solo origin's one sword at level 3 (the kit ORIGINS.slayer.setup gives), 6 and 9 (the gear a slayer would have
+   bought by then), measured as the slayer would really stand at that level: only the quarry tiers open by then (tier t at level t), each
+   with a typical tally (soloKills: half the cap of every open tier, none of the rest). Perks: autoLearn, except the SOLOKEEP points a
+   sensible hunter keeps for the quarry it is fighting (QPLAN: the open Monster hunter perks for that faction, learned in battle()); kept
+   points with no open quarry perk to spend on go to autoLearn as well (on the build it had before the tallies). Reported, not judged. */
+const SOLO=[{id:'S3',lvl:3,day:3,solo:1,gear:null},{id:'S6',lvl:6,day:16,solo:1,gear:{w:'warspear',b:'lightxbow',a:'mail',h:'kettle'}},
  {id:'S9',lvl:9,day:32,solo:1,gear:{w:'wingspear',b:'crossbow',a:'mail',h:'nasal'}}],SOLOF=['beast','serpent','ogre'],
- QPLAN={beast:['hunter.wolf','hunter.bear','hunter.spider'],serpent:['hunter.serpent'],ogre:['hunter.ogre']},SOLOKEEP=2,
- SOLOKILLS={'hunter.wolf':3,'hunter.spider':2,'hunter.bear':1,'hunter.serpent':1.5,'hunter.ogre':.5};
+ QPLAN={beast:['hunter.wolf','hunter.spider','hunter.bear'],serpent:['hunter.serpent'],ogre:['hunter.ogre']},SOLOKEEP=2;
+function soloKills(X,lvl){const o={};Object.keys(X.QUARRY).forEach((k,i)=>{if(i+1<=lvl)o[k]=Math.floor(X.QUARRY[k].cap/2)});return o}
 /* ---------- DOM stubs (as in test/headless.js) ---------- */
 function hole(props){const store=Object.assign(Object.create(null),props||{});
  return new Proxy(function(){},{get(t,k){if(k in store)return store[k];if(k==='then'||k==='toJSON')return undefined;if(k===Symbol.toPrimitive)return h=>h==='number'?0:'';
@@ -105,18 +108,18 @@ function mkMerc(X,spec,P){const R=ROLES[spec.role],m=X.newMerc(spec.bg);m.field=
  while(m.pend>0&&g++<40){for(const k of R.st){const t=m.tal[k]||0;m.base[k]+=X.ri(X.ROLL[k][0]+Math.floor(t/2),X.ROLL[k][1]+Math.ceil(t/2))}m.pend--}
  learnAll(X,m);delete m.cond;m.hp=X.calc(m).hp;return m}
 function buildSolo(X,P,seed){X.seedRng(seed);X.newGame(true,{origin:'slayer'});closeAll(X);const G=X.G,m=G.roster[0];m.field=true;
- Object.assign(m.eq,P.gear);if(typeof X.fixHands==='function')X.fixHands(m);if(P.lvl>m.lvl)X.gainXP(m,X.XPT[P.lvl]-m.xp);let g=0;
+ if(P.gear)Object.assign(m.eq,P.gear);if(typeof X.fixHands==='function')X.fixHands(m);if(P.lvl>m.lvl)X.gainXP(m,X.XPT[P.lvl]-m.xp);let g=0;
  while(m.pend>0&&g++<40){for(const k of ['hp','ms','md']){const t=m.tal[k]||0;m.base[k]+=X.ri(X.ROLL[k][0]+Math.floor(t/2),X.ROLL[k][1]+Math.ceil(t/2))}m.pend--}
  const keep=Math.min(SOLOKEEP,m.pp);m.pp-=keep;learnAll(X,m);m.pp+=keep;delete m.cond;m.hp=X.calc(m).hp;G.stash.length=0;return X.clone(G.roster)}
-// the quarry a sensible slayer readies for the faction it fights (the kept points), then the rest by autoLearn
-function soloPrep(X,m,f,P){m.slain={};for(const k in SOLOKILLS)m.slain[k]=Math.floor(SOLOKILLS[k]*P.lvl);for(const k of QPLAN[f]||[])if(m.pp>0&&X.canLearn(m,k))X.learnPerk(m,k);learnAll(X,m);m.hp=X.calc(m).hp}
+// the quarry a sensible slayer readies for the faction it fights (the kept points), the rest of them by autoLearn as if it had no tally
+function soloPrep(X,m,f,P){m.slain={};for(const k of QPLAN[f]||[])if(m.pp>0&&X.canLearn(m,k))X.learnPerk(m,k);learnAll(X,m);m.slain=soloKills(X,P.lvl);m.hp=X.calc(m).hp}
 function buildCompany(X,P,seed){if(P.solo)return buildSolo(X,P,seed);X.seedRng(seed);X.newGame(true);closeAll(X);const G=X.G;
  if(P.team){G.roster.length=0;for(const s of P.team)G.roster.push(mkMerc(X,s,P))}
  else G.roster.forEach(m=>{m.field=true;learnAll(X,m);m.hp=X.calc(m).hp});
  G.stash.length=0;closeAll(X);return X.clone(G.roster)}
 /* ---------- one battle ---------- */
 const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
-async function battle(X,W,job,i){const P=PROFILES.concat(SOLO).find(p=>p.id===job.prof),G=X.G;G.roster=X.clone(W.comp[P.id][i%KCOMP]);G.stash=[];G.day=P.day;X.B=null;X.mode='world';
+async function battle(X,W,job,i){const P=PROFILES.concat(SOLO).find(p=>p.id===job.prof),G=X.G;G.roster=X.clone(W.comp[P.id][i%W.comp[P.id].length]);G.stash=[];G.day=P.day;X.B=null;X.mode='world';
  if(P.solo){G.origin='slayer';soloPrep(X,G.roster[0],job.f,P)}else G.origin='free';
  X.seedRng((hash(job.f+'|'+P.id)^Math.imul(i+1,2654435761)^SEED)>>>0);
  const o={f:job.f,mult:1,biome:BIOMES[i%BIOMES.length],pilot:job.pilot,src:{type:'test'},turnCap:TURNCAP};if(job.plan)o.plan=job.plan;
@@ -133,7 +136,7 @@ if(has('--lib')){module.exports={makeContext,buildCompany,battle,PROFILES,SEED,h
 /* ---------- worker ---------- */
 if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const pump=async()=>{if(busy)return;busy=true;while(q.length){const job=q.shift();
-   try{if(!X){X=makeContext();const {performance}=require('perf_hooks');X.AI_CLOCK=()=>performance.now();W={comp:{}};for(const P of PROFILES.concat(SOLO)){W.comp[P.id]=[];for(let k=0;k<KCOMP;k++)W.comp[P.id].push(buildCompany(X,P,SEED+hash(P.id)%9973+k*101))}}
+   try{if(!X){X=makeContext();const {performance}=require('perf_hooks');X.AI_CLOCK=()=>performance.now();W={comp:{}};for(const P of PROFILES.concat(SOLO)){W.comp[P.id]=[];for(let k=0;k<(P.solo?KSOLO:KCOMP);k++)W.comp[P.id].push(buildCompany(X,P,SEED+hash(P.id)%9973+k*101))}}
     const r=await runJob(X,W,job);process.send({id:job.id,r})}
    catch(e){process.send({id:job.id,err:String(e&&e.stack||e)})}}busy=false};
  process.on('message',m=>{if(m==='quit')process.exit(0);q.push(m);pump()});return}
@@ -170,7 +173,8 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  for(const pr of WYV)for(const pilot of ['naive','sensible'])add('wyv','wyvern',pr,pilot,NW,null,null,null,['wyvern']);
  if(!has('--no-abl')&&WYV.includes('L12x12'))for(const t in WABL){const p=JSON.parse(JSON.stringify(PLAN.wyvern||{}));if(WABL[t]==='*')for(const k in p)delete p[k];else delete p[WABL[t]];add('wyvabl','wyvern','L12x12','sensible',NW,p,t,null,['wyvern'])}
  const SOLON=+arg('--ns',Math.max(40,Math.round(N/2))),SOLOON=!has('--no-solo')&&(!only||only.split(',').includes('solo'));
- if(SOLOON)for(const f of SOLOF)for(const P of SOLO)for(const pilot of ['naive','sensible'])add('solo',f,P.id,pilot,SOLON);
+ const SPROF=arg('--sprof',null),SFAC=arg('--sfac',null),SOLOP=SOLO.filter(P=>!SPROF||SPROF.split(',').includes(P.id)),SOLOFF=SOLOF.filter(f=>!SFAC||SFAC.split(',').includes(f));   // (tuning: --sprof S3,S9 --sfac ogre)
+ if(SOLOON)for(const f of SOLOFF)for(const P of SOLOP)for(const pilot of has('--sens-only')?['sensible']:['naive','sensible'])add('solo',f,P.id,pilot,SOLON);
  if(has('--boss'))for(const pr of ['L8x9','L12x12'])for(const pilot of ['naive','sensible'])add('boss','void',pr,pilot,NA,null,null,['tyrant']);
  // identical jobs (same battles) are run once
  const sig=j=>[j.f,j.prof,j.pilot,j.n,JSON.stringify(j.plan&&JSON.stringify(j.plan)!==JSON.stringify(PLAN[j.f])?j.plan:null),JSON.stringify(j.fixed),JSON.stringify(j.foes)].join('|'),uniq=new Map();
@@ -225,10 +229,10 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
   if(jobs.some(j=>j.kind==='wyvabl')){const base=pct(R(jobs.find(j=>j.kind==='wyv'&&j.prof==='L12x12'&&j.pilot==='sensible')));console.log('sensible L12x12 with a tactic removed:');
    for(const j of jobs.filter(j=>j.kind==='wyvabl')){const w=pct(R(j));console.log('  '+pad(j.tag,18)+lp(f1(w)+'%',7)+'  ('+(w-base>=0?'+':'')+f1(w-base)+')')}}
   if(wst)bad.push(wst+' wyvern battles hit the turn cap')}
- if(jobs.some(j=>j.kind==='solo')){console.log(`\n== Solo: Beast Slayer (one sword, an even fight for one at mult 1; quarry perks ${JSON.stringify(QPLAN)}, ${SOLON} battles each) ==`);
-  console.log(pad('faction',16)+pad('profile',8)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('rounds',8)+lp('dead(s)',9)+lp('down(s)',9));
-  for(const f of SOLOF)for(const P of SOLO){const a=R(jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='sensible'));stuck+=a.stuck+b.stuck;
-   console.log(pad(FACT[f].n,16)+pad(P.id,8)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1((a.rounds+b.rounds)/(a.n+b.n)),8)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9))}
+ if(jobs.some(j=>j.kind==='solo')){console.log(`\n== Solo: Beast Slayer (one sword, an even fight for one at mult 1; quarry perks ${JSON.stringify(QPLAN)} where open, half-cap tallies of the open tiers, ${SOLON} battles each) ==`);
+  console.log(pad('faction',16)+pad('profile',8)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('±95%',7)+lp('rounds',8)+lp('dead(s)',9)+lp('down(s)',9));
+  for(const f of SOLOFF)for(const P of SOLOP){const jn=jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='naive'),b=R(jobs.find(j=>j.kind==='solo'&&j.f===f&&j.prof===P.id&&j.pilot==='sensible')),a=jn?R(jn):b;stuck+=a.stuck+b.stuck;
+   console.log(pad(FACT[f].n,16)+pad(P.id,8)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1(196*Math.sqrt(b.wins/b.n*(1-b.wins/b.n)/b.n)),7)+lp(f1((a.rounds+b.rounds)/(a.n+b.n)),8)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9))}
   console.log('(reported, not judged: the overall criteria above are the company profiles only)')}
  if(jobs.some(j=>j.kind==='boss')){console.log('\n== rift tyrant (dungeon boss fight, fixed tyrant + even budget) ==');for(const pr of ['L8x9','L12x12']){const a=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='boss'&&j.prof===pr&&j.pilot==='sensible'));
    console.log(pad(pr,10)+`naive ${f1(pct(a))}%  sensible ${f1(pct(b))}%  rounds ${f1((a.rounds+b.rounds)/(a.n+b.n))}`)}}

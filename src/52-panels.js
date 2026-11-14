@@ -355,7 +355,7 @@ function tlQuarryInfo(m,k){const Q=typeof QUARRY==='object'&&QUARRY&&QUARRY[k];i
  const dmg=cpNum(r.dmg)?r.dmg:cpNum(r.dmgPct)?r.dmgPct:learned?base+per*kills:0,hit=cpNum(r.hit)?r.hit:learned?Math.floor(kills*per/2):0;
  return{key:k,n:Q.n,one:Q.one||Q.n,tag:Q.tag||Q.n,slain:cpNum(r.slain)?r.slain:slain,kills,cap,per,base,learned,dmg,hit,max:kills>=cap,
   dmgMax:base+per*cap,hitMax:Math.floor(per*cap/2),dmgIf:base+per*kills,hitIf:Math.floor(kills*per/2)}}
-/* "12 slain: +17% damage, +6 to hit" (what it would give, when not yet learned) */
+/* "12 slain: +11% damage, +3 to hit" (what it would give, when not yet learned) */
 function tlQuarryLine(I,short){if(!I)return'';const d=I.learned?I.dmg:I.dmgIf,h=I.learned?I.hit:I.hitIf,cap=I.max?' (at the cap)':'';
  return`${I.slain} slain${short?'':cap}: +${d}% damage${h?', +'+h+' to hit':''}${I.learned||short?'':' once learned'}`}
 function tlSlainList(m){const s=m&&m.slain&&typeof m.slain==='object'?m.slain:{},out=[];

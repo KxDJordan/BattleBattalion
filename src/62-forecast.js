@@ -44,7 +44,7 @@
      sidestep   the target's Sidestep is ready: a blow over 25% of its max hitpoints is halved (inside hp*)
      soak       hitpoints its Juggernaut takes off each blow that reaches them (inside hp*)
    Monster hunter (61-talents.js quarryVs; already inside hit and the damage figures, here for the HUD):
-     quarry     null, or {key, tag ('Ogre-slayer'), n ('Ogres'), slain, dmg (whole percent), hit, text ('Ogre-slayer: +18% damage, +7 to hit')}
+     quarry     null, or {key, tag ('Ogre-slayer'), n ('Ogres'), slain, dmg (percent, to a tenth: 12.5), hit, text ('Ogre-slayer: +12.5% damage, +3 to hit')}
      kb.ch, pull.ch and a stun's ch are halved by Rolling with it; Unshakable drops the stun and the shake; Immovable makes kb.ch 0.
    o is strike()'s option bag: {splash:.7} for blast/arc secondaries, {auto:1} for arcs and strays that always hit,
    {free:...} for free attacks. */
@@ -59,7 +59,7 @@ function fcSoak(t,dmg,ign,head,pierce,crush){if(!(dmg>0))return{hp:0,arm:0};cons
 // What the rules turn a status into on this target (monStatus in 66-monsters.js): a rooted flier is also Grounded for its root turns + 2;
 // a size-2 flier is too big to pin, so the root itself is dropped and only Grounded stays.
 function statusConv(t,st){const R=st.root;if(!R||!t.fly)return;const n=Math.max(t.st.root||0,R.n)+2;if(!(t.st.grounded>=n))st.grounded={k:'grounded',n,ch:R.ch};if((t.sz||1)>1)delete st.root}
-function fcQuarry(u,t,a,sure){const q=quarryVs(u,t);if(!q.key)return null;const dmg=a.noDmg||a.split?0:Math.round(q.dmg*100),hit=sure?0:q.hit;
+function fcQuarry(u,t,a,sure){const q=quarryVs(u,t);if(!q.key)return null;const dmg=a.noDmg||a.split?0:Math.round(q.dmg*1000)/10,hit=sure?0:q.hit;
  return{key:q.key,tag:q.tag,n:q.n,slain:q.slain,dmg,hit,text:`${q.tag}: +${dmg}% damage${hit?`, +${hit} to hit`:''}`}}
 function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u,t,a),los=losInfo(u,t,a),mu=morOf(u),mt=morOf(t);
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],

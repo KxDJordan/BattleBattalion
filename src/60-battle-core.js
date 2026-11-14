@@ -81,10 +81,22 @@ function openBattleMap(tiles){const N=BW*BH,start=key(COLS[0],BH-1);
   for(let i=0;i<bq.length&&hit<0;i++){const c=bq[i]%BW,r=(bq[i]/BW)|0;for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=key(nc,nr);if(vis[nk])continue;vis[nk]=1;prev[nk]=bq[i];if(tiles[nk].t!=='block'){hit=nk;break}bq.push(nk)}}
   if(hit<0)return;for(let k=prev[hit];k>=0&&!seen[k];k=prev[k])tiles[k].t='ground'}}
 function buildEnemies(f,budget,fixed,mult){if(typeof FACT[f].build==='function'&&!(fixed&&fixed.length))return FACT[f].build(budget,mult==null?1:mult).slice(0,MAXFOES);const list=(fixed||[]).slice(),U=FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
- while(list.length<MAXFOES&&budget>=minC&&g++<200){const u=pick(U.filter(u=>u[1]<=budget));list.push(u[0]);budget-=u[1]}
- const floor=SOLOFLOOR&&typeof isSolo==='function'&&isSolo()&&!(fixed&&fixed.length)&&list.length===1&&budget<minC*SOLOFLOOR?1:2;   // one sword: a band too poor for a second foe brings one
+ const solo=typeof isSolo==='function'&&isSolo()&&!(fixed&&fixed.length);
+ // one sword who hunts a monster band it cannot yet afford meets the monster itself, alone (an ogre, not its goblin hangers-on)
+ if(solo&&FACT[f].tier==='mid'&&!list.length&&U[0][1]>budget){list.push(U[0][0]);budget=0}
+ const most=solo?Math.min(MAXFOES,SOLOMAX):MAXFOES;
+ while(list.length<most&&budget>=minC&&g++<200){const u=pick(U.filter(u=>u[1]<=budget));list.push(u[0]);budget-=u[1]}
+ // one sword: a band too poor for a second foe brings one, or a second with the chance its leftover buys (SOLOFLOOR above)
+ const floor=SOLOFLOOR&&solo&&list.length===1&&budget<minC*SOLOFLOOR?(budget>0&&rnd()<budget/(minC*SOLOFLOOR)?2:1):2;
  while(list.length<floor)list.push(U[0][0]);return list}
-const SOLOFLOOR=.5;   // (solo runs only) the share of the cheapest foe's cost left over below which a one-foe band stays one foe
+/* Solo runs (ORIGINS[k].solo: one sword) fight bands sized for one. Tuned with test/balance.js (the solo table: the slayer at level 3, 6, 9).
+   SOLOBUD: what the one sword adds to the enemy budget, base + lvl a level up to level knee, late a level after it (a company merc adds
+   12 + 5 a level), or the faction's own line FACT[f].solo = [base, a level] where its bands do not follow the common one (a serpent nest
+   is never just two hatchlings; an ogre's strength barely follows the budget at all). SOLOMAX: the most foes such a
+   band brings. SOLOFLOOR: a band that bought one foe brings a second with the chance leftover / (SOLOFLOOR x the cheapest foe's cost).
+   A monster band (tier 'mid') too poor for its lead monster is that monster alone (buildEnemies). */
+let SOLOFLOOR=1,SOLOMAX=2;
+const SOLOBUD={base:6,lvl:7,knee:6,late:4};   // 27 at level 3, 48 at 6, 60 at 9, 72 at 12 (a company merc: 27 42 57 72)
 /* ---- Units ----
    A battle unit (both sides): side, name, lvl, hp/hpMax, arm/armMax (body armor), helm/helmMax (head armor), ap/apMax, fat/fatMax,
    init, ms, rs, md, rd, brv (resolve), mor (morale 0..4), fearless, wpn, abs, res, flags, dmgB, buffs, st (status turns), alive,
@@ -171,7 +183,7 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 /* battlePreview(o): what startBattle(o) would roll, for a deployment screen: {bk, tiles, foes:[enemy ids], budget}.
    It draws from the seeded stream exactly as startBattle does; hand the result back as o.tiles and o.foes and the battle
    is the one previewed (startBattle then rolls neither again). */
-function battleBudget(o){let budget=0;battleField(o).forEach(m=>budget+=12+m.lvl*5);return budget*(o&&o.mult||1)*(1+G.day*.008)*(typeof BUDGETK==='number'?BUDGETK:1)}
+function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=!S?12+m.lvl*5:sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee));return budget*(o&&o.mult||1)*(1+G.day*.008)*(typeof BUDGETK==='number'?BUDGETK:1)}
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
 function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))

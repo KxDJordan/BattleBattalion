@@ -639,18 +639,18 @@ const MAST={
    to hit. Wyverns are never a quarry. Only backgrounds with BG[bg].ht may learn it (hunterTrees). Rules: quarryVs / quarryInfo (61-talents.js). ---- */
 const QUARRYB=5;
 const QUARRY={
- 'hunter.gob':    {n:'Goblins',      one:'goblin',      tag:'Goblin-slayer',  en:['gob','gobarch','gobsham'],        per:1,cap:30},
- 'hunter.spider': {n:'Webspinners',  one:'webspinner',  tag:'Spider-slayer',  en:['spider'],                         per:1,cap:30},
- 'hunter.wolf':   {n:'Direwolves',   one:'direwolf',    tag:'Wolf-slayer',    en:['wolf'],                           per:1,cap:30},
- 'hunter.dead':   {n:'Restless dead',one:'restless dead',tag:'Grave-warden',  en:['skel','zomb','skelhal','necro'],  per:2,cap:15},
- 'hunter.serpent':{n:'Serpents',     one:'serpent',     tag:'Serpent-slayer', en:['adder','viper','gserp'],          per:2,cap:15},
- 'hunter.bear':   {n:'Owlbears',     one:'owlbear',     tag:'Owlbear-slayer', en:['bear'],                           per:3,cap:10},
- 'hunter.rift':   {n:'Riftspawn',    one:'riftspawn',   tag:'Rift-warden',    en:['imp','vknight','vmage','tyrant'], per:3,cap:10},
- 'hunter.ent':    {n:'Ents',         one:'ent',         tag:'Ent-feller',     en:['thorn','ent','elder'],            per:5,cap:6},
- 'hunter.ogre':   {n:'Ogres',        one:'ogre',        tag:'Ogre-slayer',    en:['ogre','aogre'],                   per:5,cap:6}};
+ 'hunter.gob':    {n:'Goblins',      one:'goblin',      tag:'Goblin-slayer',  en:['gob','gobarch','gobsham'],        per:.5,cap:30},
+ 'hunter.spider': {n:'Webspinners',  one:'webspinner',  tag:'Spider-slayer',  en:['spider'],                         per:.5,cap:30},
+ 'hunter.wolf':   {n:'Direwolves',   one:'direwolf',    tag:'Wolf-slayer',    en:['wolf'],                           per:.5,cap:30},
+ 'hunter.dead':   {n:'Restless dead',one:'restless dead',tag:'Grave-warden',  en:['skel','zomb','skelhal','necro'],  per:1,cap:15},
+ 'hunter.serpent':{n:'Serpents',     one:'serpent',     tag:'Serpent-slayer', en:['adder','viper','gserp'],          per:1,cap:15},
+ 'hunter.bear':   {n:'Owlbears',     one:'owlbear',     tag:'Owlbear-slayer', en:['bear'],                           per:1.5,cap:10},
+ 'hunter.rift':   {n:'Riftspawn',    one:'riftspawn',   tag:'Rift-warden',    en:['imp','vknight','vmage','tyrant'], per:1.5,cap:10},
+ 'hunter.ent':    {n:'Ents',         one:'ent',         tag:'Ent-feller',     en:['thorn','ent','elder'],            per:2.5,cap:6},
+ 'hunter.ogre':   {n:'Ogres',        one:'ogre',        tag:'Ogre-slayer',    en:['ogre','aogre'],                   per:2.5,cap:6}};
 const QUARRYOF={};for(const k in QUARRY){QUARRY[k].key=k;for(const e of QUARRY[k].en)QUARRYOF[e]=k}   // EN id -> quarry (perk) key
-function quarryText(k){const Q=QUARRY[k],hit=Q.per%2===0?`+${Q.per/2} to hit for every one`:Q.per===1?'+1 to hit for every two':`+${Q.per} to hit for every two (an odd one adds ${Math.floor(Q.per/2)})`;
- return`Against ${Q.n.toLowerCase()}: +${QUARRYB}% damage once learned, plus +${Q.per}% damage for every one you have slain and ${hit} (kills made before learning it count too; up to ${Q.cap} kills: at most +${QUARRYB+Q.per*Q.cap}% damage, +${Math.floor(Q.per*Q.cap/2)} to hit)`}
+function quarryText(k){const Q=QUARRY[k];
+ return`Against ${Q.n.toLowerCase()}: +${QUARRYB}% damage once learned, plus +${Q.per}% damage for every one you have slain and half that to hit, rounded down (kills made before learning it count too; up to ${Q.cap} kills: at most +${QUARRYB+Q.per*Q.cap}% damage, +${Math.floor(Q.per*Q.cap/2)} to hit)`}
 MAST.hunter={n:'Monster hunter',kind:'hunter',aff:['melee','ranged'],d:'Know your quarry: every kill of a kind makes the next one easier (never wyverns)',
  tiers:Object.keys(QUARRY).map(k=>[perkDef(QUARRY[k].tag,quarryText(k),{id:k,quarry:k})])};
 // Perk ids, the flat list p (read by older UI code) and the tier count n.
@@ -765,7 +765,7 @@ Object.assign(BG,{
   tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}}
 });
 /* The Beast Slayer: the one sword of the Solo origin (ORIGINS.slayer). w 0 and noHire: never in a tavern, a rival roster or an event. */
-BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,ht:1,st:{hp:14,ms:12,rs:8,md:8,rd:4,fat:12,brv:16,init:6},r:[['qi',.2],['aura',.12]],
+BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,ht:1,st:{hp:12,ms:10,rs:8,md:6,rd:4,fat:12,brv:16,init:6},r:[['qi',.2],['aura',.12]],
  gear:['boarspear','leather','cap'],side:'huntxbow',
  style:'melee',pool:['survivor','vanguard','skirmisher','scout','berserker','duelist','brute'],wt:['spear','axe','sword','crossbow','dagger'],at:['medarmor','lightarmor'],
  tr:{beastwise:4,tough:2,brave:2,athletic:2,craven:0,fragile:.3,superstitious:.3},look:{hat:'hood',cloth:'black',accent:'charcoal',trim:'steel',garb:'bandolier',beard:'short'}};
@@ -907,9 +907,9 @@ Object.assign(EN,{
  whatch:{n:'Wyvern hatchling',fly:1,hp:85,arm:30,helm:20,ms:62,md:16,rd:16,init:135,ap:10,d:[22,34],xp:200,role:'flanker',brv:70,abs:['hsting']}
 });
 Object.assign(FACT,{
- serpent:{n:'Serpents',g:'S',col:'#5d7a3a',skin:'#a7b85a',tier:'mid',biomes:['swamp','desert'],spawn:{d0:7,d1:2,gate:.04},lair:'Clear a serpent nest',units:[['adder',14],['adder',14],['viper',17],['gserp',62]],rank:[.56,1.4,.3],loot:['dirk','seax','stiletto','rondel','shortbow','padded','leather','cap'].filter(id=>ITEMS[id])},
+ serpent:{n:'Serpents',g:'S',col:'#5d7a3a',skin:'#a7b85a',tier:'mid',biomes:['swamp','desert'],spawn:{d0:7,d1:2,gate:.04},lair:'Clear a serpent nest',units:[['adder',14],['adder',14],['viper',17],['gserp',62]],rank:[.56,1.4,.3],solo:[46.5,1.5],loot:['dirk','seax','stiletto','rondel','shortbow','padded','leather','cap'].filter(id=>ITEMS[id])},
  ent:{n:'Ents',g:'E',col:'#4d5f2e',skin:'#7f6a45',tier:'mid',biomes:['forest'],lair:'Burn out a blighted grove',units:[['thorn',18],['thorn',18],['ent',80],['elder',130]],rank:[.4,1.2,.25,19],loot:['witchstave','sigilrobe','longbow','recurve','staff','focus','robe','warbow'].filter(id=>ITEMS[id])},
- ogre:{n:'Ogres',g:'T',col:'#7a6a4a',skin:'#b59a72',tier:'mid',biomes:['hills','mountains','plains'],lair:'Break an ogre camp',units:[['ogre',76],['ogre',76],['aogre',96],['gob',10]],rank:[.42,1.25,.25,19],loot:['spikedclub','morningstar','bellmace','knighthammer','lamellar','sallet','maul','warmaul','scale'].filter(id=>ITEMS[id])},
+ ogre:{n:'Ogres',g:'T',col:'#7a6a4a',skin:'#b59a72',tier:'mid',biomes:['hills','mountains','plains'],lair:'Break an ogre camp',units:[['ogre',76],['ogre',76],['aogre',96],['gob',10]],rank:[.42,1.25,.25,19],solo:[3,6.2],loot:['spikedclub','morningstar','bellmace','knighthammer','lamellar','sallet','maul','warmaul','scale'].filter(id=>ITEMS[id])},
  wyvern:{n:'Wyverns',g:'W',col:'#6b4a3a',skin:'#a8604a',tier:'end',biomes:['mountains','snow','hills'],lair:'Slay the wyvern of {place}',units:[['wyvern',400],['whatch',40]],rank:[.4,1,.2],loot:['gothic','armet','greatbow','windlass','heater2','plate','arbalest','runegreat'].filter(id=>ITEMS[id]),
   build(budget,mult){const n=mult>=1.15?2:mult>=.9?1:0,L=['wyvern'];for(let i=0;i<n;i++)L.push('whatch');return L}}
 });
