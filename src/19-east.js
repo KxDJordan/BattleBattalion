@@ -7,7 +7,7 @@
    HOOKS the other owners add (all typeof-guarded; see the east agent's report):
      40-world.js  genWorld: eastGen(w) on the returned world.  worldDay: news.push(...eastDay()) after rvDay.  worldBattleEnd: eastBattleEnd(s,win) at the end.
                   showNote: n==='east'||n==='eastend' -> eastNoteSheet(n).  wsSiegeEnd: s.by==='east' -> return null.
-     15-factions  factionsInit(g): eastInit(g) at the end.  humanFact(f): || (f==='east' && G.east)  (wrapped here until then).
+     15-factions  factionsInit(g): eastInit(g) at the end.  humanFact(f): || (f==='east' && G.east).
      20-state.js  repairSave: eastRepair(g).   50-towns.js stockTown: t.stock=eastStock(t,t.stock,maxT); marketPool keeps east:1 items to eastern towns.
      70-render.js eastern towns / hosts / world props through drawEastPx (77-east-art.js).  60-battle-core: B.east = isEast(G.p.x,G.p.y) at startBattle.
    World:    eastGen(w)        marks the region on a generated world: w.east (Uint8Array WN*WN tile mask), w.eastT [town indices];
@@ -146,9 +146,7 @@ function eastName(){return G&&G.east?G.east.n:FACT.east.n}
 function eastNameL(){return eastName().replace(/^The /,'the ')}
 function eastHouse(){const e=G&&G.east;return e?{id:'east',n:e.n,short:e.short,c1:e.c1,c2:e.c2,emblem:e.emblem,seat:-1,pers:'proud'}:null}
 function eastBanner(){const e=G&&G.east;return e?{name:e.n,c1:e.c1,c2:e.c2,emblem:e.emblem}:{name:FACT.east.n,c1:'l',c2:'g',emblem:'sun'}}
-/* until 15-factions.js names 'east' a human faction itself (repOf / repTier / repGain / partyHostile read humanFact), it is wrapped here */
-if(typeof humanFact==='function'&&!humanFact.eastOk){const hf0=humanFact;humanFact=function(f){return f==='east'?!!(typeof G!=='undefined'&&G&&G.east):hf0(f)};humanFact.eastOk=1}
-{const fn0=typeof factName==='function'?factName:null;if(fn0&&!fn0.eastOk){factName=function(f){if(f==='east'&&typeof G!=='undefined'&&G&&G.east)return G.east.n;return fn0(f)};factName.eastOk=1}}
+/* 15-factions.js: humanFact('east') and factName('east') know the Shogunate (standing like a house) */
 
 /* ---- the Eastern War ---- */
 function eastStrength(){let p=0;try{p=typeof companyPower==='function'?companyPower():0}catch(e){p=0}return Math.round((p+eastNum(G&&G.renown,0)/8)*10)/10}
@@ -161,7 +159,7 @@ function eastLanding(){const w=eastW();if(!w)return null;let best=-1,bv=-1e9;for
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<WN&&ny<WN&&w.tiles[ny*WN+nx]===0)sea++}if(!sea)continue;
   const v=x+((x*7+y*13)%5)*.1;if(v>bv){bv=v;best=i}}
  if(best<0){const L=eastTowns();if(!L.length)return null;const t=G.towns[L[0]];return{x:t.x,y:t.y}}return{x:(best%WN+.5)*TS,y:(((best/WN)|0)+.5)*TS}}
-function eastTargets(x,y){const L=[];G.towns.forEach((t,i)=>{if(t.own==='east'||i===0&&false)return;if(townSit(i,'siege'))return;L.push([i,Math.hypot(t.x-x,t.y-y)])});L.sort((a,b)=>a[1]-b[1]||a[0]-b[0]);return L.map(a=>a[0])}
+function eastTargets(x,y){const L=[];G.towns.forEach((t,i)=>{if(t.own==='east')return;if(townSit(i,'siege'))return;L.push([i,Math.hypot(t.x-x,t.y-y)])});L.sort((a,b)=>a[1]-b[1]||a[0]-b[0]);return L.map(a=>a[0])}
 function eastSpawnHost(x,y,to,mult){if(typeof wsSpawnRaid!=='function')return null;const p=wsSpawnRaid('east',x,y,to,mult);if(!p)return null;p.ew=1;p.host=1;
  if(typeof fabledFor==='function'){try{const v=eastWar(),id=fabledFor({k:'east',f:'east',salt:p.id,exclude:G.parties.filter(q=>q.ew&&q.fab).map(q=>q.fab)});if(id&&(v&&v.wave>=2||rnd()<.35))p.fab=id}catch(e){}}   // a fabled leader rides with some hosts (partyBattle: o.fabled=[p.fab])
  return p}
@@ -170,7 +168,7 @@ function eastStart(){const e=G.east,land=eastLanding();if(!land)return null;
  eastNews(`The fleets of ${eastNameL()} land on the eastern coast. The Eastern War has begun`,true);
  // the houses: unite or not (a seeded draw for each pair at war)
  if(Array.isArray(G.wars)&&G.wars.length){G.wars=G.wars.filter(w=>{if(rnd()<.55){if(G.hrel)G.hrel[hrKey(w.a,w.b)]=Math.max(eastNum(G.hrel[hrKey(w.a,w.b)],0),5);eastNews(`${factName(w.a)} and ${factName(w.b)} set aside their quarrel against the invader`);return false}return true})}
- eastWave();if(!G.note)G.note='east';return e.war}
+ eastWave();if(!G.note){G.note='east';e.war.asked=1}return e.war}
 function eastWave(){const v=eastWar();if(!v||v.wave>=v.waves)return;const k=v.wave,n=EW.hosts[k]||2,m=EW.mult[k]||1.2;v.wave++;v.next=G.day+EW.gap;
  const T=eastTargets(v.land.x,v.land.y);for(let j=0;j<n&&T.length;j++){const to=T[Math.min(j,T.length-1)],pos=typeof randOk==='function'?randOk(v.land.x,v.land.y,0,1.5):v.land,p=eastSpawnHost(pos.x,pos.y,to,Math.round((m+rnd()*.15)*100)/100);if(p)v.hosts.push(p.id)}
  if(k>0)eastNews(`A ${k===v.waves-1?'last ':''}wave of ${eastNameL()} lands on the coast`)}
@@ -179,13 +177,14 @@ function eastHostOf(id){return G.parties.find(p=>p.id===id)||null}
 function eastSiegeOf(i){const v=eastWar();return v?v.sieges.find(s=>s.i===i)||null:null}
 // the daily step of the war
 function eastWarDay(){const v=eastWar();if(!v||v.stage!=='war')return;
+ if(!v.side&&!v.asked&&G.note==null){G.note='east';v.asked=1}   // the side sheet waits for a free moment (another note was showing)
  if(v.wave<v.waves&&G.day>=v.next)eastWave();
  v.hosts=v.hosts.filter(id=>!!eastHostOf(id));
  // hosts that reached their town besiege it
  for(const id of v.hosts){const p=eastHostOf(id);if(!p||p.siege!=null)continue;const t=G.towns[p.to];if(!t||t.own==='east'){const T=eastTargets(p.x,p.y);if(T.length){const r=typeof wsPathTo==='function'?wsPathTo(p.x,p.y,G.towns[T[0]].x,G.towns[T[0]].y):null;if(r){p.to=T[0];p.goal='raid';p.pts=r;p.pi=0;p.life=undefined}}continue}
   const d=Math.hypot(p.x-t.x,p.y-t.y)/TS;if(d<=2.6||p.goal!=='raid'){if(townSit(p.to,'siege')&&!eastSiegeOf(p.to)){p.goal='raid';continue}
    const len=ri(EW.len[0],EW.len[1]);townSitAdd(p.to,'siege',len+2,{by:'east'});p.goal='patrol';p.siege=p.to;p.pts=null;p.life=undefined;const pos=randOk(t.x,t.y,1,1.6);p.x=pos.x;p.y=pos.y;p.tx=pos.x;p.ty=pos.y;
-   v.sieges.push({i:p.to,host:p.id,end:G.day+len});eastNews(`${eastName()} besieges ${t.name}`,true);eastPostSiege(p.to)}}
+   v.sieges.push({i:p.to,host:p.id,end:G.day+len});eastNews(`${eastName()} besieges ${t.name}`,true)}}
  // sieges run their course
  for(const s of v.sieges.slice()){const t=G.towns[s.i],p=eastHostOf(s.host);
   if(!p||p.siege!==s.i){v.sieges=v.sieges.filter(q=>q!==s);townSitDel(s.i,'siege');continue}            // the host was broken on the field
@@ -223,10 +222,9 @@ function eastWarChoose(side){const v=eastWar();if(!v||v.stage!=='war'||v.side)re
  eastNews(side==='houses'?'The company stands with the houses':side==='east'?`The company takes the coin of ${eastNameL()}`:'The company stays out of the Eastern War');
  eastPostWork(true);if(typeof save==='function')try{save()}catch(e){}return true}
 // contracts of the war: a free hand in every town to break an eastern siege (houses / out), or to take a town for the East (east / out)
-function eastPostSiege(i){}
 function eastPostWork(force){const v=eastWar();if(!v||v.stage!=='war'||typeof ctrNew!=='function'||typeof ctrPayBase!=='function')return;const side=v.side||'out';
- const posted=c=>c&&c.ew,has=(t,k,i)=>Array.isArray(t.contracts)&&t.contracts.some(c=>c&&c.ew&&c.ew.k===k&&c.ew.i===i);
- if(side!=='east')for(const s of v.sieges){const at=G.towns[s.i];if(!at)continue;let best=-1,bd=1e18;G.towns.forEach((t,i)=>{if(t.own==='east'||i===s.i&&false)return;const d=Math.hypot(t.x-at.x,t.y-at.y);if(d<bd){bd=d;best=i}});
+ const has=(t,k,i)=>Array.isArray(t.contracts)&&t.contracts.some(c=>c&&c.ew&&c.ew.k===k&&c.ew.i===i);
+ if(side!=='east')for(const s of v.sieges){const at=G.towns[s.i];if(!at)continue;let best=-1,bd=1e18;G.towns.forEach((t,i)=>{if(t.own==='east')return;const d=Math.hypot(t.x-at.x,t.y-at.y);if(d<bd){bd=d;best=i}});
   const t=G.towns[best];if(!t||has(t,'siege',s.i)||!Array.isArray(t.contracts))continue;const p=typeof ctrBeside==='function'?ctrBeside(at):{x:at.x+TS,y:at.y},diff=clamp(2+Math.round((eastNum((eastHostOf(s.host)||{}).mult,1.2)-1)*5),2,5);
   const c=ctrNew('siege',t,best,diff,'Break the eastern siege of '+at.name);c.f='east';c.at=s.i;c.pay=ctrPayBase(diff,1.6);c.ew={k:'siege',i:s.i};
   c.stages=[{k:'go',x:p.x,y:p.y,kind:'siege',label:'Eastern siege lines',fight:{f:'east',k:1.1,obj:{k:'siege'}}},typeof ctrHome==='function'?ctrHome(best):{k:'town',ti:best,kind:'turnin',label:'Collect the pay'}];c.due=s.end;t.contracts.push(c);v.ctr.push(c.id)}

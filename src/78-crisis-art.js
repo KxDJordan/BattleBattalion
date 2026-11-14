@@ -1,6 +1,6 @@
 /* ================= CRISIS ART (crises agent): battle figures of the crisis peoples, the Bone Throne, item and crisis icons =================
    Humanoids (barbarians, the horde's standard-bearer and warchief, grave knights, necromancer lieutenants) draw with the humanoid rig of
-   73-units.js: CR_LOOKS[id](h) -> a spec for usHuman, read through usEnemySpec (wrapped below until 73-units.js asks CR_LOOKS itself).
+   73-units.js: CR_LOOKS[id](h) -> a spec for usHuman, read by usEnemySpec in 73-units.js.
    The war hound is the direwolf rig. The Bone Throne is a monster kind of 76-monsters.js (MSK / MSD / MS_ID 'bthrone').
    Icons: it-<trophy> for the four victory trophies, cr-<crisis key> for the crisis sheets and the map legend. PAL colours only. */
 const CR_LOOKS={
@@ -20,11 +20,7 @@ const CR_LOOKS={
  necrolt:h=>{const S=h.f0('necro');return Object.assign(S,{robeC:'black',hatR:h.C('black'),trim:h.R.gold,cape:h.C('purple'),eye:'6',beads:'6'})},
  barbhound:()=>({kind:'quad',Q:US_WOLF})
 };
-// the humanoid rig reads crisis looks through usEnemySpec; until 73-units.js asks CR_LOOKS itself, it is wrapped here
-if(typeof usEnemySpec==='function'&&!usEnemySpec.crOk){const f0=usEnemySpec;usEnemySpec=function(id,u){const L=CR_LOOKS[id];if(!L)return f0(id,u);
-  const C=usCloth,SK=typeof PT_SKIN!=='undefined'?PT_SKIN:{},HC=typeof PT_HAIRC!=='undefined'?PT_HAIRC:{};
-  const h={B:US_BUILD,R:USR,C,sk:n=>usSkin(SK[n]||['s','t','u','i']),hr:n=>usHairR(HC[n]||['0','G','o']),f0:k=>f0(k,u)};
-  const o=L(h);if(o.kind==='quad')return o;return Object.assign({kind:'hum',seed:id.length*13+7,b:US_BUILD.human,skin:h.sk('fair'),armor:'rags',wd:usWdef('fist')},o)};usEnemySpec.crOk=1}
+// the humanoid rig (73-units.js usEnemySpec) asks CR_LOOKS itself
 
 /* ---- the Bone Throne: a monster figure (76-monsters.js part grid). A crowned skeleton king grown into a throne of bones. ---- */
 const CR_BT={bone:usRamp('nmlr',2),dbone:usRamp('pnml',1),iron:usRamp('0Gop',1),gold:usRamp('bcde',2),robe:usRamp('1GD',1),glow:usRamp('56Z',1)};

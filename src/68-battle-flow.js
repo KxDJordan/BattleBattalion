@@ -187,7 +187,7 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
   if(!win){G.dun=null;out.toast='The rift spits you back out'}
   else if(d.stage<2){d.stage++;G.roster.forEach(m=>{const mx=calc(m).hp;m.hp=Math.min(mx,m.hp+Math.round(mx*.15))});return{kind:'dunNext',stage:d.stage,realm:d.realm}}
   else{const pay=Math.round((800+G.day*20)*(typeof originK==='function'?originK('rift'):1));G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');if(typeof ambEvent==='function')ambEvent('rift');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
-   if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total)G.crisis.ended=ended=true}
+   if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total){ended=true;if(typeof crisisEnd==='function'){try{crisisEnd(true)}catch(e){G.crisis.ended=true}}else G.crisis.ended=true;G.crisis.ended=true}}
    return{kind:'dunDone',pay,ended}}}
  return out}
 // Rules: the company declines a battle it has not yet joined. The same price as sounding the retreat in one: a tenth of the

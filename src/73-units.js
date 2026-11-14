@@ -923,7 +923,11 @@ function usSashi(c,fl,mk,big){if(c.lie)return;const S=c.S,dir=c.v?1:-1,x=c.v?((c
  if(big){usPart();usP(x,top-1,USR.gold,1);usP(x+dir,top-2,USR.gold);usP(x-dir,top-2,USR.gold,1)}
  usPart();for(let j=0;j<7;j++)for(let i=1;i<=3;i++){const y=top+1+j+(i===3?sw:0);usP(x+dir*i,y,fl,i===3?-1:j===0?1:0)}
  usF(x+dir*2,top+3+(sw&0),mk);usF(x+dir*2,top+4,mk);usF(x+dir*1,top+3,mk);if(big)usF(x+dir*3,top+4,mk)}
-function usEnemySpec(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined'?PT_SKIN:{},sk=n=>usSkin(SK[n]||['s','t','u','i']),HC=typeof PT_HAIRC!=='undefined'?PT_HAIRC:{},hr=n=>usHairR(HC[n]||['0','G','o']);
+/* crisis looks (78-crisis-art.js): CR_LOOKS[id](h) -> a spec for usHuman (or {kind:'quad'}); h = {B, R, C, sk, hr, f0 (a stock enemy's spec)} */
+function usEnemySpec(id,u){const L=typeof CR_LOOKS==='object'&&CR_LOOKS?CR_LOOKS[id]:null;if(typeof L!=='function')return usEnemySpec0(id,u);
+ const SK=typeof PT_SKIN!=='undefined'?PT_SKIN:{},HC=typeof PT_HAIRC!=='undefined'?PT_HAIRC:{},h={B:US_BUILD,R:USR,C:usCloth,sk:n=>usSkin(SK[n]||['s','t','u','i']),hr:n=>usHairR(HC[n]||['0','G','o']),f0:k=>usEnemySpec0(k,u)};
+ const o=L(h);if(o&&o.kind==='quad')return o;return Object.assign({kind:'hum',seed:id.length*13+7,b:US_BUILD.human,skin:h.sk('fair'),armor:'rags',wd:usWdef('fist')},o)}
+function usEnemySpec0(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined'?PT_SKIN:{},sk=n=>usSkin(SK[n]||['s','t','u','i']),HC=typeof PT_HAIRC!=='undefined'?PT_HAIRC:{},hr=n=>usHairR(HC[n]||['0','G','o']);
  const B=US_BUILD,S={kind:'hum',seed:7,b:B.human,skin:sk('fair'),armor:'rags',wd:usWdef('fist')},set=o=>Object.assign(S,o);
  switch(id){
   case'gob':return set({b:B.gob,skin:sk('gob'),ears:'gob',nose:1,eye:'y',armor:'rags',ragC:'brown',hat:'cap',hatR:R.leather,wd:usWdef('knife')});

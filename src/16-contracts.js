@@ -92,7 +92,7 @@ const CTYPES={
   w:()=>Array.isArray(G.sites)&&G.sites.length?.7:.35,
   gen(t,ti){const S=(G.sites||[]).filter(s=>s&&s.kind==='ruin'&&ctrDist(s,t)>=3&&ctrDist(s,t)<=22);let x,y,sid=null;
    if(S.length){const s=pick(S);x=s.x;y=s.y;sid=s.id}else{const p=randOk(t.x,t.y,5,12);x=p.x;y=p.y}
-   const f=G.crisis&&rnd()<.4?'void':'undead',diff=clamp(ctrDiff(),2,5),relic=pick(CTR_RELIC),c=ctrNew('relic',t,ti,diff,'Recover '+relic);
+   const cf=typeof crisisFacts==='function'?crisisFacts():(G.crisis?['void']:[]),f=cf.length&&rnd()<.4?cf[0]:'undead',diff=clamp(ctrDiff(),2,5),relic=pick(CTR_RELIC),c=ctrNew('relic',t,ti,diff,'Recover '+relic);
    c.f=f;c.x=x;c.y=y;c.site=sid;c.relic=relic;c.pay=ctrPayBase(diff,1.15);c.stages=[{k:'go',x,y,kind:'site',label:'The ruin',fight:{f,k:.95}},ctrHome(ti,'Hand over the relic')];c.due=ctrDue(t,x,y,6);return c}},
  siege:{n:'Break a siege',d:'A town is besieged. Storm the siege lines: the foe fights from behind stakes and earthworks. Kill the leader and the rest break.',icon:'swords',
   w:(t,ti)=>(ctrRenownT()>=2||G.day>=10?.45:.1)*(ctrSiegeTown(ti)!==ti?3:1),

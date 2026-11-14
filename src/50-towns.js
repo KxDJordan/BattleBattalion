@@ -13,7 +13,7 @@ function ctrPool(t,ti){let L=null;
   const dr=Array.isArray(o.d)?o.d:Array.isArray(o.dist)?o.dist:null,lo=svNum(o.dmin,svNum(o.min,dr?dr[0]:4)),hi=svNum(o.dmax,svNum(o.max,dr?dr[1]:lo+6));
   out.push({f,w:Math.max(0,svNum(o.w,svNum(o.weight,1))),lo:Math.max(2,lo),hi:Math.max(lo+1,hi)})}
  if(out.some(x=>x.w>0))return ctrRenownCap(out.filter(x=>x.w>0));
- const fs=['gob','bandit','beast','undead'];if(G.day>5)fs.push('orc');if(G.crisis)fs.push('void');const out2=fs.map(f=>({f,w:1,lo:4,hi:10}));
+ const fs=['gob','bandit','beast','undead'];if(G.day>5)fs.push('orc');if(typeof crisisFacts==='function')crisisFacts().forEach(f=>{if(FACT[f]&&!fs.includes(f))fs.push(f)});else if(G.crisis)fs.push('void');const out2=fs.map(f=>({f,w:1,lo:4,hi:10}));
  // the new factions by tier, further out (the rules' factionPool refines this with company strength)
  for(const [f,day,w,lo,hi] of [['serpent',6,1,6,12],['ent',10,.8,7,13],['ogre',10,.8,7,13],['wyvern',30,.35,Math.max(8,18-Math.floor((G.day-30)/6)),20]])if(FACT[f]&&G.day>=day)out2.push({f,w,lo,hi:Math.max(lo+2,hi)});
  return ctrRenownCap(out2)}
@@ -178,7 +178,7 @@ function townView(t){let list='',detail='',foot='',key=townTab;
   detail=`${twHead(twIcon('inn',48,'inn'),'Inn','A bed for the night')}<p class="pn-p">A night under a roof heals every wound of the flesh, and the company’s tools go to work on its armor.</p>
   ${pnFacts([['Wounded',twIcon('hp',16)+(hurt?hurt+' of '+G.roster.length:'None')],['Armor to mend',need?twIcon('tools',16)+`${need} points, ${needT} tool${needT===1?'':'s'} <small>(${have} carried)</small>`:twIcon('armor',16)+'None'],['Beds',twIcon('coin',16)+G.roster.length+' at 10 crowns'],['Time',twIcon('day',16)+'8 hours']])}
   ${need&&have<needT?`<p class="pn-p warn">Not enough tools to mend everything. The market sells them.</p>`:''}${inj?`<p class="pn-p dim">${inj===1?'One sword carries':inj+' swords carry'} an injury that sleep will not cure. The temple treats those.</p>`:''}
-  ${pnHead('Common-room talk')}<p class="pn-p dim">${G.crisis?(G.crisis.ended?'Travelers say new rifts still open now and then.':`Rifts closed: ${G.crisis.closed} of ${G.crisis.total}.`):`The innkeeper’s seer mutters about a sundering sky, perhaps ${Math.max(1,G.crisisDay-G.day)} days off.`}</p>`;
+  ${pnHead('Common-room talk')}<p class="pn-p dim">${G.crisis&&typeof crisisLine==='function'?htmlEsc(crisisLine()):G.crisis?(G.crisis.ended?'Travelers say new rifts still open now and then.':`Rifts closed: ${G.crisis.closed} of ${G.crisis.total}.`):`The innkeeper’s seer mutters about dark days ahead, perhaps ${Math.max(1,G.crisisDay-G.day)} days off.`}</p>`;
   foot=`<span class="pn-fl">${pnCoin(cost,'big'+(G.crowns<cost?' short':''))}<small>${G.crowns<cost?'<em>Not enough crowns</em>':'for the whole company'}</small></span><button type="button" class="pn-btn pri${G.crowns<cost?' off':''}" onclick="innRest()">Rest the night</button>`}
  return{list,detail,foot,key}}
 /* ---- market: two tabs. Purchase = the town's stock plus provisions and tools; Inventory = everything the company carries:

@@ -83,3 +83,26 @@ function eastProps(){const w=typeof eastW==='function'?eastW():null;if(!w||!w.ea
   const g=(h*1e4|0)%100,v=near<3.2&&g<30?'terrace':near<4&&g<40?'torii':t===3&&g<22?'pagoda':t===2||t===3?(g<70?'pine':'cherry'):t===5?'pine':g<14?'shrine':g<60?'cherry':'pine';
   L.push({x:px+((h*997)%1-.5)*TS*.5,y:py,v,s:g&3})}
  EA.props=L;EA.sig=sig;return L}
+
+/* ---- portraits of the Shogunate's soldiers (07-portraits.js ptEnemyRows asks eastPortraitSpec(id) for a ptBust spec; null = not eastern).
+   Headgear is painted in `over` on the head layer: the jingasa, the kabuto with its flared shikoro, the hachigane, the general's
+   gilt crest and red menpo; weapons come from the battle sprite's own portrait rows (usWeaponPtRows). ---- */
+function eaPtJingasa(L,E,mon){const y=E.y0;ptH(L,14,17,y-4,'G');ptH(L,11,20,y-3,'G');ptH(L,11,14,y-3,'o');ptH(L,8,23,y-2,'1');ptH(L,8,13,y-2,'G');ptH(L,5,26,y-1,'1');ptH(L,5,10,y-1,'G');ptH(L,3,28,y,'0');ptH(L,4,27,y,'1');ptS(L,15,y-3,mon||'g');ptS(L,16,y-3,mon||'g');ptS(L,15,y-2,mon==='c'?'b':'f');ptS(L,16,y-2,mon==='c'?'b':'f')}
+function eaPtKabuto(L,E,odo,crest,menpo){const y=E.y0,ey=E.ey||14;for(let r=y-3;r<=ey-3;r++){const hw=r<=y-3?4:r<=y-2?7:9;for(let x=16-hw;x<16+hw;x++)ptS(L,x,r,(x-16+hw)%3===0?'o':x<14?'G':'1')}ptH(L,7,24,ey-3,'c');ptH(L,7,24,ey-2,'0');
+ for(let j=0;j<5;j++){const r=ey-1+j,k=j&1?odo:'1';for(let x=4-j;x<=7;x++)ptS(L,x,r,k);for(let x=24;x<=27+j;x++)ptS(L,x,r,k)}ptS(L,7,ey-3,'d');ptS(L,24,ey-3,'d');ptS(L,6,ey-4,'c');ptS(L,25,ey-4,'c');
+ if(crest){const c='c';const t=Math.max(y-4,3);[[15,t],[16,t],[14,t-1],[17,t-1],[13,t-1],[18,t-1],[12,t-2],[19,t-2],[11,t-2],[20,t-2],[10,t-3],[21,t-3]].forEach(([x,r])=>ptS(L,x,r,c));ptS(L,15,t-1,'g');ptS(L,16,t-1,'g');ptS(L,10,t-3,'d');ptS(L,21,t-3,'d')}
+ else{ptS(L,15,y-4,'c');ptS(L,16,y-4,'d')}
+ if(menpo){for(let r=ey+2;r<=ey+7;r++)for(let x=11;x<=20;x++)if(L[r]&&L[r][x]&&L[r][x]!=='.')ptS(L,x,r,r===ey+2?'f':x<14?'h':'g');ptH(L,13,18,ey+4,'l');ptS(L,12,ey+5,'l');ptS(L,19,ey+5,'l');ptH(L,14,17,ey+6,'0');ptH(L,11,20,ey+8,odo);ptH(L,12,19,ey+9,'1')}}
+function eaPtBand(L,E){const ey=E.ey||14;for(let x=7;x<=24;x++)if(L[ey-4]&&L[ey-4][x]!=='.')ptS(L,x,ey-4,x<12?'l':'m');ptH(L,14,17,ey-4,'q');ptS(L,15,ey-4,'r');ptS(L,6,ey-3,'l');ptS(L,5,ey-2,'m')}
+function eastPortraitSpec(id){if(!EN[id]||!EN[id].east||typeof PT_HEAD==='undefined')return null;const sk=PT_SKIN,hc=PT_HAIRC,w=k=>{try{return typeof usWeaponPtRows==='function'?usWeaponPtRows(k):null}catch(e){return null}};
+ const base={head:PT_HEAD.human,skin:sk.fair,build:'normal',hair:'short',hairC:hc.G,face:{iris:'0',brow:2,browC:'0',nose:1,mouth:0,lid:1},bg:['f','1']};
+ const S=o=>Object.assign({},base,o);
+ switch(id){
+  case'ashi':return S({armor:'leather',wrows:w('suyari'),over:(L,E)=>eaPtJingasa(L,E,'g')});
+  case'ashiy':return S({armor:'leather',wrows:w('hankyu'),wpn:'quiver',over:(L,E)=>eaPtJingasa(L,E,'g')});
+  case'shinobi':return S({build:'slim',armor:'leather',hat:'hood',hatC:'night',face:{iris:'0',brow:2,browC:'0',nose:0,mouth:9,lid:1},wrows:w('wakizashi'),over:(L,E)=>{if(typeof ptHat==='function')ptHat(L,{hat:'mask',hatC:'night',skin:sk.fair,ey:14,head:PT_HEAD.human},E)}});
+  case'sohei':return S({build:'broad',skin:sk.tan,armor:'robe',robeC:'white',hat:'hood',hatC:'white',face:{iris:'0',brow:3,browC:'0',nose:2,mouth:3},wrows:w('naginata'),beads:['i','j']});
+  case'onna':return S({build:'slim',skin:sk.pale,hair:'long',face:{iris:'0',brow:1,browC:'0',nose:0,mouth:1,lid:1},armor:'scale',wrows:w('naginata'),over:(L,E)=>eaPtBand(L,E)});
+  case'samurai':return S({build:'broad',armor:'scale',face:{iris:'0',brow:3,browC:'0',nose:1,mouth:3},marks:{scar:1},wrows:w('katana'),over:(L,E)=>eaPtKabuto(L,E,'c',0,0)});
+  case'taisho':return S({build:'broad',armor:'plate',beard:'short',face:{iris:'0',brow:3,browC:'0',nose:1,mouth:3},wrows:w('katana2'),over:(L,E)=>eaPtKabuto(L,E,'g',1,1)})}
+ return null}

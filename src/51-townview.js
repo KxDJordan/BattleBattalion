@@ -548,11 +548,13 @@ function tvGuild(P,k,cx,yB,LH,K){const SG={x:null,y:null};const by=yB-3,top=by-M
  K.an.box[k]={x:x-4,y:top-18,w:w+26,h:58,sx:SG.x,sy:SG.y,ss:18}}
 
 /* ---- the town's header pieces, for the scene and the town panel (50-towns.js may use them: tvTownBanner(ti), tvTownNote(ti), tvTownTabs(t)) ---- */
-function tvTownBanner(ti){const t=G.towns[ti],h=t&&t.own&&t.own!=='free'?lkHouse(t.own):null;return h&&typeof bannerHTML==='function'?bannerHTML({name:h.n,c1:h.c1,c2:h.c2,emblem:h.emblem},32):''}
+// who holds the town now: a crisis faction that took it (townOwner, 18-crises.js), else its owner
+function tvOwner(ti){const t=G.towns[ti];if(!t)return null;if(typeof townOwner==='function'){try{const o=townOwner(ti);if(o)return o}catch(e){}}return t.own||null}
+function tvTownBanner(ti){const t=G.towns[ti],ow=tvOwner(ti);if(ow==='east'&&typeof eastBanner==='function'&&typeof bannerHTML==='function'){const b=eastBanner();return bannerHTML({name:b.name,c1:b.c1,c2:b.c2,emblem:b.emblem},32)}const h=t&&ow&&ow!=='free'?lkHouse(ow):null;return h&&typeof bannerHTML==='function'?bannerHTML({name:h.n,c1:h.c1,c2:h.c2,emblem:h.emblem},32):''}
 function tvPriceLine(ti,kind){if(typeof townPriceWhy!=='function')return'';let L=[];try{L=townPriceWhy(ti,kind)||[]}catch(e){L=[]}if(!L.length)return'';
  return L.map(x=>{const p=Math.round((x.k-1)*100);const good=kind==='sell'?p>0:p<0;return`<span class="tw-pw ${good?'good':'bad'}">${p>0?'+':'−'}${Math.abs(p)}% <small>${htmlEsc(x.why)}</small></span>`}).join('')}
-function tvTownNote(ti){const t=G.towns[ti];if(!t)return'';const own=t.own||null,S=lkSits(t),hostile=lkHostile(ti);let h='';
- if(own){const rt=lkRepTier(own);h+=`<span class="tw-own">${tvTownBanner(ti)?'':''}<b>${htmlEsc(lkFacName(own))}</b><span class="fx-tier t-${rt.k}">${tvIcon('rep-'+rt.k,16)}${htmlEsc(rt.n)}</span></span>`}
+function tvTownNote(ti){const t=G.towns[ti];if(!t)return'';const own=tvOwner(ti),held=!!own&&own!==t.own,S=lkSits(t),hostile=lkHostile(ti);let h='';
+ if(own){const rt=lkRepTier(own);h+=`<span class="tw-own">${held?'Held by ':''}<b>${htmlEsc(lkFacName(own))}</b><span class="fx-tier t-${rt.k}">${tvIcon('rep-'+rt.k,16)}${htmlEsc(rt.n)}</span></span>`}
  for(const x of S){const k=x.k||x,D=lkSitDef(k);h+=`<span class="tw-sit" title="${htmlEsc(D.d||'')}">${tvIcon(lkSitIcon(k),16)}<b>${htmlEsc(D.n)}</b>${x.days?`<small>${x.days}d</small>`:''}</span>`}
  {const pk=[['buy','Goods'],['sell','Selling'],['food','Food'],['hire','Hiring']].map(([k,n])=>{const v=lkPriceK(ti,k),p=Math.round((v-1)*100);if(!p)return'';let why='';if(typeof townPriceWhy==='function'){try{why=townPriceWhy(ti,k).map(x=>x.why+' '+(x.k>1?'+':'−')+Math.abs(Math.round((x.k-1)*100))+'%').join(', ')}catch(e){}}
    const good=k==='sell'?p>0:p<0;return`<span class="tw-pw ${good?'good':'bad'}" title="${htmlEsc(why)}">${n} ${p>0?'+':'−'}${Math.abs(p)}%</span>`}).join('');if(pk&&!hostile)h+=`<span class="tw-prices">${pk}</span>`}

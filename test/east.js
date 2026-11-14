@@ -111,6 +111,9 @@ section('eastern soldiers');
    for(const u of X.B.units)if(u.side===1&&u.eid)seen.add(u.eid);if(res.win)wins++;X.settleBattle(res.win);closeAll(X);keepAlive(G)}
   ok(seen.size>=3,'several kinds of eastern soldier took the field: '+[...seen]);
   for(const id of ['samurai','sohei','onna','shinobi','ashi','ashiy','taisho']){const u=X.mkEnemy(id,'east');const s=X.unitSpritePx?X.unitSpritePx(u,0,'idle',0):null;ok(s!==undefined,'sprite '+id)}
+  for(const [id] of X.FACT.east.units){const o=X.eastPortraitSpec(id);ok(o,'portrait spec '+id);o.seed=7;const r=X.ptBust(o);ok(r.length===32&&r.every(q=>q.length===32),'portrait rows '+id)}
+  { const w=X.W||X.genWorld(G.seed);X.W=w;const a=JSON.stringify(X.eastProps());ok(X.eastProps().length>3,'eastern scenery on the map: '+X.eastProps().length);ok(X.eastProps().every(p=>X.isEast(p.x,p.y)),'scenery stays in the East');ok(JSON.stringify(X.eastProps())===a,'scenery is stable');
+    for(const o of [{k:'town',size:1},{k:'town',size:3,night:1},{k:'band',n:1.4},{k:'prop',v:'torii'}]){const b=X.eastBoxPx(o);ok(b.w>0&&b.h>0&&X.eastSpriteKey(o),'east art box '+o.k)} }
   console.log(`4 eastern battles (${wins} won), soldiers: ${[...seen].join(', ')}: ok`) }
 
 section('the Eastern War');
