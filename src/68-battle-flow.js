@@ -134,6 +134,7 @@ function brRival(res){const rr=res.rival;if(!rr)return'';const r=typeof battleRi
  const j=rr.joiner;if(res.win&&j){const m=r?r.roster.find(x=>x.id===j.id):null,mm=m||(G.roster.find(x=>x.id===j.id)),por=mm&&typeof portraitHTML==='function'?portraitHTML(mm,32):'';
   if(j.taken)h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p class="good"><b>${j.name}</b> joins the company, at 1 hitpoint, wounds and all.</p></div>`;
   else if(j.declined)h+=`<p class="dim br-join">${j.name} is left where they fell.</p>`;
+  else if(j.solo)h+=`<p class="dim br-join"><b>${j.name}</b>, struck down, asks to join, but ${typeof recruitWhy==='function'?recruitWhy().toLowerCase():'you ride alone'}.</p>`;
   else h+=`<div class="br-join" style="display:flex;gap:8px;align-items:flex-start">${por}<p><b>${j.name}</b>, a level ${j.lvl} ${String(j.bgN).toLowerCase()}, was struck down but lives, and asks to join you.${j.solo?` <span class="bad">${typeof recruitWhy==='function'?recruitWhy():'You ride alone'}: nobody joins.</span>`:j.room?'':` <span class="bad">No room: the roster holds ${MAXROSTER}.</span>`}</p><div class="row">${j.room&&!j.solo?`<button class="pri" onclick="brJoin(1)">Take ${j.name} on</button>`:''}<button onclick="brJoin(0)">Leave them</button></div></div>`}
  return h}
 // The joiner's answer from the results sheet (UI: no randomness). Redraws the sheet.

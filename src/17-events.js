@@ -173,7 +173,7 @@ const ORIGINS={
   rule:'Monster parts drop 1.5 times as often. One hunter starts Beast-wise. You start with pelts, meat and two salves more.',roster:['hunter','poacher','wildling','woodcutter'],crowns:1000,k:{parts:1.5,intel:1}},
  pilgrims:{n:'Pilgrims of the Rift',icon:'ab-riftstep',d:'You saw the sky crack in a dream, and walked. The rifts will open sooner for you, and you mean to be there.',
   rule:'The Sundering comes on day 12, not 18. Closing a rift pays 50% more. The free towns shelter pilgrims (+20 with them); the houses distrust zealots (−5).',roster:['flagellant','cultist','acolyte','monk'],crowns:900,k:{rift:1.5}},
- slayer:{n:'Solo: Beast Slayer',icon:'skull',solo:1,d:'One hunter, one spear, a crossbow on the back and a ledger of every beast that ever fell to them. No banner-men, no partners: the bounties are all yours.',
+ slayer:{n:'Solo: Beast Slayer',icon:'or-slayer',solo:1,d:'One hunter, one spear, a crossbow on the back and a ledger of every beast that ever fell to them. No banner-men, no partners: the bounties are all yours.',
   rule:'You ride alone: nobody can join the company, not by hire, parley or event (followers still can). The slayer starts at level 3, Beast-wise, with the Monster hunter tree: every kill of a kind makes the next easier. Contracts pay as for two swords. If the slayer dies, the run ends.',
   roster:['slayer'],crowns:1000,k:{}}
 };

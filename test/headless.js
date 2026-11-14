@@ -654,7 +654,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    for(const r of X.RESK){const vs=gifts.filter(k=>M[k].res===r).map(k=>M[k].style);ok(vs.includes('melee')&&vs.includes('ranged'),r+' needs melee and ranged variants');ok(X.giftKey(r,'melee')&&X.giftKey(r,'ranged')&&M[X.giftKey(r,'ranged')].style==='ranged','giftKey '+r)}
    ok(X.giftKey('mana','caster')==='mana'&&X.giftKey('chi','support')==='chi'&&X.giftKey('aura','caster')==='aura'&&X.giftKey('aura','ranged')==='aura_r'&&X.giftKey('qi','support')==='qi','gift variant mapping');
    for(const k of keys)M[k].tiers.forEach((t,ti)=>t.forEach(p=>{ok(p.id&&!ids.has(p.id)&&p.n&&p.d&&X.perkById(p.id)&&X.perkById(p.id).tier===ti+1&&X.perkById(p.id).key===k,'perk '+p.id+' is malformed or not unique');ids.add(p.id);
-     if(p.ab)ok(X.AB[p.ab]&&X.AB[p.ab].n&&X.AB[p.ab].d,'perk '+p.id+' grants an unknown ability '+p.ab);ok(p.st||p.ab||p.flag||p.mod||p.res||p.wmod,'perk '+p.id+' does nothing')}));
+     if(p.ab)ok(X.AB[p.ab]&&X.AB[p.ab].n&&X.AB[p.ab].d,'perk '+p.id+' grants an unknown ability '+p.ab);ok(p.st||p.ab||p.flag||p.mod||p.res||p.wmod||(p.quarry&&X.QUARRY[p.quarry]),'perk '+p.id+' does nothing')}));
    const nAb=new Set([...ids].map(id=>X.perkById(id).perk.ab).filter(Boolean)).size;
    { const pools=[];for(const bg in X.BG){const b=X.BG[bg];ok(X.TALSTYLE.includes(b.style),bg+' has no style');ok(b.pool.length>=6&&b.pool.length<=9&&b.pool.every(k=>M[k]&&kind(k)==='style')&&new Set(b.pool).size===b.pool.length,bg+': pool of 6-9 style trees');
        ok(b.wt.length>=3&&b.wt.length<=5&&b.wt.every(w=>M[w]&&kind(w)==='weapon')&&new Set(b.wt).size===b.wt.length,bg+': 3-5 weapon trees');pools.push(b.pool.slice().sort().join());
@@ -910,7 +910,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    /* -- backgrounds -- */
    const bks=Object.keys(BGS),OLD=['farmhand','militia','hunter','thief','sellsword','squire','hedge','acolyte','monk','spellblade','wildling','knight'],LK=['hat','cloth','accent','trim'];
    ok(bks.length>=28&&bks.length<=36,'about 30 backgrounds: '+bks.length);ok(OLD.every(k=>BGS[k]),'the twelve first backgrounds keep their keys');
-   for(const k of bks){const b=BGS[k];ok(b.n&&b.cost>0&&b.wage>0&&b.w>0&&b.w<=5&&b.st&&Array.isArray(b.r)&&b.r.every(([r,p])=>X.RESK.includes(r)&&p>0&&p<=1)&&b.r.reduce((s,x)=>s+x[1],0)<=1.0001,'background '+k+': n, cost, wage, rarity, stats, gift odds');
+   for(const k of bks){const b=BGS[k];ok(b.n&&b.cost>0&&b.wage>0&&(b.noHire?b.w===0:b.w>0&&b.w<=5)&&b.st&&Array.isArray(b.r)&&b.r.every(([r,p])=>X.RESK.includes(r)&&p>0&&p<=1)&&b.r.reduce((s,x)=>s+x[1],0)<=1.0001,'background '+k+': n, cost, wage, rarity, stats, gift odds');
     ok(Array.isArray(b.gear)&&b.gear.length>=2&&b.gear.every(gs=>gs.split('|').every(id=>id==='-'||(X.ITEMS[id]&&!X.ITEMS[id].craft&&!X.ITEMS[id].uniq))),'background '+k+': gear from existing items');
     ok(b.gear.some(gs=>gs.split('|').some(id=>X.ITEMS[id]&&X.ITEMS[id].k==='a')),'background '+k+' starts with no armor');
     ok(b.look&&LK.every(q=>typeof b.look[q]==='string'),'background '+k+': look {hat, cloth, accent, trim}');ok(b.tr&&typeof b.tr==='object','background '+k+': trait weights');
@@ -920,7 +920,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    ok(bks.filter(k=>BGS[k].w<=1).length>=4,'some rare backgrounds');
    { X.seedRng(SEED+33);const t={size:1,x:0,y:0},cnt={};for(let i=0;i<3000;i++){const k=X.wpickBG(t);cnt[k]=(cnt[k]||0)+1}
      ok(bks.filter(k=>(BGS[k].town||1)>1).every(k=>!cnt[k])&&Object.keys(cnt).length>=15,'a hamlet hires no city backgrounds');
-     const all={};for(let i=0;i<6000;i++){const k=X.wpickBG();all[k]=(all[k]||0)+1}ok(bks.every(k=>all[k]>0)&&all.knight<all.farmhand,'every background turns up, the rare ones less') }
+     const all={};for(let i=0;i<6000;i++){const k=X.wpickBG();all[k]=(all[k]||0)+1}ok(bks.every(k=>BGS[k].noHire?!all[k]:all[k]>0)&&all.knight<all.farmhand,'every background turns up (never the solo-only ones), the rare ones less') }
    /* -- roster of 20 -- */
    ok(X.MAXROSTER===20&&X.MAXFIELD===12,'roster 20, field 12');
    { X.seedRng(SEED+34);X.newGame(true);closeAll(X);const G=X.G;while(G.roster.length<22){const m=X.newMerc(bks[G.roster.length%bks.length]);m.field=true;G.roster.push(m)}

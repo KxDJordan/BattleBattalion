@@ -768,7 +768,7 @@ Object.assign(BG,{
 BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,ht:1,st:{hp:14,ms:12,rs:8,md:8,rd:4,fat:12,brv:16,init:6},r:[['qi',.2],['aura',.12]],
  gear:['boarspear','leather','cap'],side:'huntxbow',
  style:'melee',pool:['survivor','vanguard','skirmisher','scout','berserker','duelist','brute'],wt:['spear','axe','sword','crossbow','dagger'],at:['medarmor','lightarmor'],
- tr:{beastwise:4,tough:2,brave:2,athletic:2,craven:0,fragile:.3,superstitious:.3},look:{hat:'wide',cloth:'brown',accent:'rust',trim:'steel',garb:'bandolier',beard:'short'}};
+ tr:{beastwise:4,tough:2,brave:2,athletic:2,craven:0,fragile:.3,superstitious:.3},look:{hat:'hood',cloth:'black',accent:'charcoal',trim:'steel',garb:'bandolier',beard:'short'}};
 for(const k of ['hunter','poacher','witchhunter','wildling'])if(BG[k])BG[k].ht=1;   // the backgrounds that may learn the Monster hunter tree
 for(const k in BG)if(!BG[k].m)BG[k].m=BG[k].pool.slice(0,2);
 for(const k in BG){const b=BG[k];if(b.town)b.size=b.town;if(b.bio)b.biomes=b.bio}   // the names 50-towns' recruitBG also reads (size: minimum town size, biomes)                              // the old two-mastery list (read by nothing new; kept for shape)
