@@ -66,18 +66,18 @@ section('factions and towns of a new world');
   for(const h of G.houses){ok(h.n&&h.short&&X.BANNERC[h.c1]&&X.BANNERC[h.c2]&&h.c1!==h.c2&&X.EMBLEMS[h.emblem]&&X.HPERS[h.pers],'house shape '+JSON.stringify(h));
    ok(G.towns[h.seat].own===h.id,'a house owns its seat');ok(X.FACT[h.id]&&X.FACT[h.id].house&&X.FACT[h.id].units.length,'house registered as a fighting faction')}
   ok(new Set(G.houses.map(h=>h.c1)).size===G.houses.length&&new Set(G.houses.map(h=>h.emblem)).size===G.houses.length,'houses look different');
-  const owners=G.towns.map(t=>t.own);ok(owners.every(o=>o==='free'||ids.includes(o)),'every town has an owner key');
+  const owners=G.towns.map(t=>t.own);ok(owners.every(o=>o==='free'||ids.includes(o)||(o==='east'&&!!G.east)),'every town has an owner key');
   ok(owners.filter(o=>o!=='free').length>=G.towns.length*.5,'houses own most towns: '+owners.join(','));
   for(const t of G.towns){ok(['notice','tavern','market','inn'].every(k=>t.bld.includes(k))&&t.bld.every(k=>X.BLD[k]),'buildings of '+t.name+': '+t.bld);
    ok(t.spec.length>=1&&t.spec.every(k=>X.GOODS[k]),'specialties of '+t.name);ok(Array.isArray(t.sit)&&t.pros>=0&&t.pros<=100,'situations and prosperity of '+t.name)}
   for(const k of ['armorer','college','hall','weaponsmith','fletcher'])ok(G.towns.some(t=>t.bld.includes(k)),'some town has a '+k);
-  ok(Object.keys(G.rep).sort().join()==='free,h0,h1'&&Object.values(G.rep).every(v=>v===0),'rep starts neutral: '+JSON.stringify(G.rep));
+  ok(Object.keys(G.rep).filter(k=>k!=='east').sort().join()==='free,h0,h1'&&Object.values(G.rep).every(v=>v===0),'rep starts neutral: '+JSON.stringify(G.rep));
   ok(G.nests.length>=2&&G.nests.every(n=>X.FACT[n.f]&&n.str===1),'a new world has nests');
   ok(!X.factionPool({}).some(e=>X.FACT[e.f].house),'houses never roam as monster bands');
   // the same seed gives the same factions, whatever the game stream did before
   const pic=JSON.stringify([G.houses,G.towns.map(t=>[t.own,t.bld,t.spec,t.pros])]);const G2=fresh(SEED);ok(JSON.stringify([G2.houses,G2.towns.map(t=>[t.own,t.bld,t.spec,t.pros])])===pic,'factions are deterministic');
   for(const s of [SEED+1,SEED+2]){const g=fresh(s);ok(g.houses.length===2,'houses '+s)}
-  X.setWorldSize('medium');X.seedRng(SEED);X.createCampaign({wsize:'medium'});ok(X.G.houses.length===3&&Object.keys(X.G.rep).length===4,'three houses in a larger world');X.setWorldSize('small');
+  X.setWorldSize('medium');X.seedRng(SEED);X.createCampaign({wsize:'medium'});ok(X.G.houses.length===3&&Object.keys(X.G.rep).filter(k=>k!=='east').length===4,'three houses in a larger world');X.setWorldSize('small');
   console.log(G.houses.map(h=>`${h.n} (${h.pers}, ${X.houseTowns(h.id).length} towns)`).join(', ')+`, ${owners.filter(o=>o==='free').length} free towns, ${G.nests.length} nests: ok`) }
 
 section('reputation, prices, closed markets, relations');
@@ -152,7 +152,7 @@ section('save round trip');
 { const G=fresh(SEED);for(let d=0;d<12;d++)day(G);G.towns[1].sit.push({k:'siege',days:3,by:'h0'});X.repGain('h1',-25,'x');
   X.mode='world';ok(X.save(),'save');const r=X.readSave();ok(r.state==='ok','read back: '+r.state+' '+(r.why||''));const g=r.g;
   const pick=o=>JSON.stringify({h:o.houses,rep:o.rep,log:o.repLog,hrel:o.hrel,wars:o.wars,nests:o.nests,news:o.news,wsim:o.wsim,t:o.towns.map(t=>[t.own,t.bld,t.spec,t.sit,t.pros]),p:o.parties.map(p=>[p.id,p.goal,p.f,p.from,p.to,p.home,p.siege,p.hunt,p.cargo,p.pts&&p.pts.length,p.pi])});
-  {const a=pick(g),b=pick(G);if(a!==b){let i=0;while(a[i]===b[i])i++;fail('world fields differ after load near: '+a.slice(Math.max(0,i-120),i+80)+' VS '+b.slice(Math.max(0,i-120),i+80))}}ok(g.v===X.SAVEVER&&X.SAVEVER===12,'save version 12');
+  {const a=pick(g),b=pick(G);if(a!==b){let i=0;while(a[i]===b[i])i++;fail('world fields differ after load near: '+a.slice(Math.max(0,i-120),i+80)+' VS '+b.slice(Math.max(0,i-120),i+80))}}ok(g.v===X.SAVEVER&&X.SAVEVER>=12,'save version 12');
   // a damaged world record is repaired, never fatal
   const bad=X.clone(G);bad.houses[0].pers='nonsense';bad.towns[0].sit=[{k:'nope',days:2},{k:'raided',days:'x'}];bad.towns[1].own='h9';bad.nests.push({id:'x'});bad.parties.push({id:9999,x:100,y:100,tx:100,ty:100,f:'h0',mult:1,goal:'caravan'});bad.rep.h0='x';
   ok(X.repairSave(bad)==='','damaged world fields repaired');ok(bad.houses[0].pers==='proud'&&bad.towns[0].sit.length===0&&typeof bad.towns[1].own==='string'&&bad.nests.every(n=>typeof n.id==='number')&&bad.rep.h0===0,'repairs');

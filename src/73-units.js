@@ -148,8 +148,26 @@ function usWdef(id){let w=US_W[id];if(w)return w;if(id.indexOf('*')>=0)return US
    if(m==='A'){c.push([0,-2,'g',0,1],[-1,-2,'E',1,1],[4,1,S.brass,0,1])}if(m==='L'){c.push([6,1,S.brass,0,1],[12,1,S.brass,0,1],[L-6,-1,S.iron,0,2])}tip=L;two=1;h2=6;cls='gun';break}
   case'pistol':c.push([-1,1,S.wood,0,0],[-1,2,S.wood,-1,0],[-2,2,S.brass,0,0],[0,0,S.wood,0,0],[0,1,S.wood,0,0],[0,-1,S.iron,1,1],[1,-1,S.brass,0,1]);add(1,6,0,0,S.iron,2);c.push([1,1,S.wood,-1,0],[7,0,S.brass,0,2]);tip=7;cls='gun';break;
   case'musket':add(-6,-1,0,1,S.wood,0);c.push([-6,0,S.brass,0,0],[-6,1,S.brass,-1,0],[-2,2,S.wood,-1,0],[0,-1,S.iron,1,1],[1,-1,S.brass,0,1]);add(0,15,0,0,S.iron,2);add(0,11,1,1,S.wood,0);c.push([5,1,S.brass,0,1],[10,1,S.brass,0,1],[16,0,S.brass,0,2]);tip=16;two=1;h2=6;cls='gun';break;
+  /* ---- the East (19-east.js): wrapped hilts (tsuka-ito over ray skin), round tsuba, a brass habaki, curved blades with a bright edge ---- */
+  case'tanto':case'yoroidoshi':{const yd=id==='yoroidoshi';for(let i=-2;i<=0;i++)c.push([i,0,(i&1)?S.blk:S.white,0,0]);c.push([1,0,S.gold,0,1]);if(yd)c.push([1,-1,S.iron,0,1],[1,1,S.iron,0,1]);
+   add(2,yd?6:5,0,0,S.plate,2);if(yd)add(2,4,1,1,S.steel,2,-1);c.push([yd?7:6,0,S.plate,1,2]);tip=yd?7:6;break}
+  case'wakizashi':case'katana':case'katana2':case'katana3':case'nodachi':case'odachi':{const L={wakizashi:8,katana:12,katana2:12,katana3:13,nodachi:16,odachi:18}[id],hl={wakizashi:2,katana:4,katana2:4,katana3:4,nodachi:6,odachi:7}[id],
+    wr=id==='katana2'?S.red:id==='odachi'?S.red:S.blk,ts=id==='katana3'||id==='katana2'?S.gold:id==='odachi'?S.brass:S.iron,bl=id==='katana3'?S.ice:S.plate;
+   c.push([-hl-1,0,ts===S.iron?S.iron:S.gold,0,0]);for(let i=-hl;i<=0;i++)c.push([i,0,(i&1)?wr:S.white,0,0]);
+   add(1,1,-1,1,ts,1);if(L>=12)c.push([1,-2,ts,-1,1],[1,2,ts,1,1]);c.push([2,0,S.gold,0,1]);
+   const bend=Math.round(L*.62);for(let i=3;i<=L+2;i++){const o=i>bend+2?-1:0;c.push([i,o,bl,i===L+2?1:0,2]);if(L>=12&&i<=bend&&(i&1))c.push([i,o+1,S.steel,-1,2])}   // the sori: the upper third of the blade bows back
+   if(id==='katana3')c.push([5,0,'r',1,2],[9,0,'F',1,2]);tip=L+2;if(L>=16){two=1;h2=-hl+1;cls='two'}break}
+  case'naginata':case'naginata2':{const n2=id==='naginata2',pole=n2?S.red:S.blk;add(-9,11,0,0,pole,0);c.push([-9,0,S.gold,0,0],[-4,0,S.gold,0,0],[3,0,S.gold,0,0],[12,0,S.gold,0,1],[12,1,S.iron,0,1],[12,-1,S.iron,0,1]);
+   add(13,17,0,1,S.plate,2);c.push([18,0,S.plate,0,2],[19,-1,S.plate,0,2],[20,-1,S.plate,1,2],[13,1,S.steel,-1,2]);if(n2)c.push([14,0,'d',0,2],[16,1,'r',1,2]);tip=20;two=1;h2=-6;cls='thrust';break}
+  case'suyari':add(-7,10,0,0,S.wood,0);c.push([11,0,S.iron,0,1],[-7,0,S.iron,0,0]);add(12,15,0,0,S.plate,2);c.push([13,-1,S.steel,0,2],[13,1,S.steel,0,2],[16,0,S.plate,1,2]);tip=16;cls='thrust';break;
+  case'jumonji':add(-7,10,0,0,S.blk,0);c.push([11,0,S.gold,0,1],[-7,0,S.gold,0,0],[3,0,S.gold,0,0]);add(12,17,0,0,S.plate,2);c.push([13,-1,S.plate,0,2],[13,1,S.plate,0,2],[13,-2,S.plate,0,2],[13,2,S.plate,0,2],[14,-3,S.plate,1,2],[14,3,S.plate,1,2],[18,0,S.plate,1,2]);tip=18;cls='thrust';break;
+  case'omiyari':add(-10,17,0,0,S.blk,0);c.push([18,0,S.gold,0,1],[-10,0,S.gold,0,0],[4,0,S.gold,0,0],[-3,0,S.gold,0,0]);add(19,23,0,0,S.plate,2);c.push([20,1,S.steel,-1,2],[24,0,S.plate,1,2]);tip=24;cls='thrust';two=1;h2=-5;break;
+  case'hankyu':cls='bow';two=1;tip=6;break;
+  case'yumi':case'daikyu':cls='bow';two=1;tip=9;break;
+  case'bo':add(-8,10,0,0,S.dwood,0);c.push([-8,0,S.iron,0,0],[-7,0,S.iron,-1,0],[10,0,S.iron,1,0],[9,0,S.iron,0,0]);tip=10;cls='staff';two=1;h2=-4;break;
   default:cls='fist';tip=0}
- c.sort((a,b)=>a[4]-b[4]);return US_W[id]={id,c,cls,two,h2,tip,gem,bow:id==='warbow'?7:id==='shortbow'?5:0,reach:cls==='thrust'&&two||/great|zwei/.test(id)}}
+ c.sort((a,b)=>a[4]-b[4]);const EB=US_EBOW[id];return US_W[id]=Object.assign({id,c,cls,two,h2,tip,gem,bow:id==='warbow'?7:id==='shortbow'?5:0,reach:cls==='thrust'&&two||/great|zwei|nodachi|odachi/.test(id)},EB||{})}
+const US_EBOW={hankyu:{bow:6,bowR:'blk',wrap:1,bands:1},yumi:{bow:9,bowR:'blk',asym:2,wrap:1,bands:1},daikyu:{bow:10,bowR:'red',asym:2,wrap:1,bands:1,nock:1}};
 /* ---- item looks: every weapon, armor, helmet and shield id draws its own way ----
    usLookOf(id) -> the art key of an item: its `look` (unique per item), else its id; a famed item ('f:'+n) draws as its base
    item plus gold accents. Weapons: usWpnOf(id) -> a sprite weapon name: a hand-built one (usWdef switch) or 'g:<wt>:<two>:<tier>:<key>',
@@ -164,7 +182,9 @@ function usTierN(id){const I=ITEMS[id];if(I&&I.tier)return clamp(I.tier|0,1,5);c
 const US_WHAND={knife:'knife',rondel:'rondel',club:'club',cudgel:'club',mace:'mace',flanged:'mace',shortsword:'shortsword',arming:'arming',runeblade:'runeblade',runed:'runeblade',handaxe:'handaxe',waraxe:'waraxe',greataxe:'greataxe',
  spear:'spear',warspear:'warspear',pike:'pike',shortbow:'shortbow',warbow:'warbow',staff:'staff',quarterstaff:'staff',focus:'focus',riftedge:'riftedge',
  mallet:'warhammer',hammer:'warhammer',warhammer:'pickhammer',pickhammer:'pickhammer',maul:'maul',warmaul:'warmaul',bill:'bill',billhook:'bill',halberd:'halberd',glaive:'glaive',
- greatsword:'greatsword',zweihander:'zweihander',runegreat:'runegreat',lightxbow:'xbow',crossbow:'xbow:H',xbow:'xbow',arbalest:'arbalest',pistol:'pistol',duelpistol:'pistol:D',musket:'musket'};
+ greatsword:'greatsword',zweihander:'zweihander',runegreat:'runegreat',lightxbow:'xbow',crossbow:'xbow:H',xbow:'xbow',arbalest:'arbalest',pistol:'pistol',duelpistol:'pistol:D',musket:'musket',
+ tanto:'tanto',yoroidoshi:'yoroidoshi',wakizashi:'wakizashi',katana:'katana',katana2:'katana2',katana3:'katana3',nodachi:'nodachi',odachi:'odachi',naginata:'naginata',naginata2:'naginata2',
+ suyari:'suyari',jumonji:'jumonji',omiyari:'omiyari',hankyu:'hankyu',yumi:'yumi',daikyu:'daikyu',bo:'bo'};
 function usH(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function usWpnKey(id){const b=usFamedBase(id);if(b){const k=usWpnKey(b);return k?k+'*':k}const I=ITEMS[id];if(!I||I.k!=='w')return null;const lk=usLookOf(id);if(US_WHAND[lk])return US_WHAND[lk];
  return'g:'+(I.wt||'sword')+':'+(I.two?1:0)+':'+usTierN(id)+':'+lk+(I.n?'|'+String(I.n).toLowerCase():'')}
@@ -264,13 +284,13 @@ function usWeapon(W,gx,gy,d,sc,gemR,clip){const nx=d[0]===0?1:0,ny=d[0]===0?0:1;
  for(const c of W.c){if(c[4]!==g){g=c[4];usPart()}let r=c[2];if(r==='GEM')r=gemR||USR.ice;
   for(let a=0;a<sc;a++)for(let b=0;b<sc;b++){usAx(d,c[0]*sc+a,usT2);const x=gx+usT2[0]+nx*(c[1]*sc+b),y=gy+usT2[1]+ny*(c[1]*sc+b);if(clip&&y>-1)continue;usP(x,y,r,c[3])}}usGl=gl0}
 /* bow: limb curving toward +x, string behind it; st 0 rest, 1 drawn (to px,py), 2 loosed */
-function usBow(n,gx,gy,st,px_,py_,s,W){const war=(W&&W.bow||n)>=7&&!(W&&W.bowR),wr=W&&W.bowR?USR[W.bowR]:war?USR.dwood:USR.wood,rc=W&&W.recurve;usPart();s=s||1;
- const cur=k=>{const a=Math.abs(k);return(a<=n*.45?0:a<n-1?-1:rc?0:-2)*s};
- if(st===1){for(const q of[-1,1]){const x0=gx-2,y0=gy+q*n,dx=px_-x0,dy=py_-y0,m=Math.max(Math.abs(dx),Math.abs(dy));for(let i=1;i<=m;i++)usP(x0+Math.round(dx*i/m),y0+Math.round(dy*i/m),'m')}
+function usBow(n,gx,gy,st,px_,py_,s,W){const war=(W&&W.bow||n)>=7&&!(W&&W.bowR),wr=W&&W.bowR?USR[W.bowR]:war?USR.dwood:USR.wood,rc=W&&W.recurve,as=W&&W.asym||0,top=n+as,bot=n-as;usPart();s=s||1;
+ const cur=k=>{const a=Math.abs(k),L=k<0?top:bot;return(a<=L*.45?0:a<L-1?-1:rc?0:-2)*s};   // W.asym: the yumi's grip sits below the middle (a longer upper limb)
+ if(st===1){for(const q of[-1,1]){const x0=gx-2,y0=gy+(q<0?-top:bot),dx=px_-x0,dy=py_-y0,m=Math.max(Math.abs(dx),Math.abs(dy));for(let i=1;i<=m;i++)usP(x0+Math.round(dx*i/m),y0+Math.round(dy*i/m),'m')}
   for(let x=px_;x<=gx+2;x++)usP(x,py_,x>=gx+2?'q':x===px_?'l':'k')}
- else for(let k=-n+1;k<n;k++)usP(gx-2*s,gy+k,'m');
- usPart();for(let k=-n;k<=n;k++){usP(gx+cur(k),gy+k,wr);if(Math.abs(k)===n&&(war||(W&&W.nock)))usP(gx+cur(k),gy+k,W&&W.nock?USR.gold:USR.brass)}
- if(rc){usP(gx+s,gy-n-1,wr,1);usP(gx+s,gy+n+1,wr,-1)}usP(gx,gy,W&&W.famed?USR.gold:W&&W.wrap?USR.red:USR.leather);if(W&&(W.wrap||W.famed))usP(gx,gy+1,W.wrap?USR.red:USR.gold,-1)}
+ else for(let k=-top+1;k<bot;k++)usP(gx-2*s,gy+k,'m');
+ usPart();for(let k=-top;k<=bot;k++){usP(gx+cur(k),gy+k,wr,W&&W.bands&&k%4===0?1:0);if((k===-top||k===bot)&&(war||(W&&W.nock)))usP(gx+cur(k),gy+k,W&&W.nock?USR.gold:USR.brass)}
+ if(rc){usP(gx+s,gy-top-1,wr,1);usP(gx+s,gy+bot+1,wr,-1)}usP(gx,gy,W&&W.famed?USR.gold:W&&W.wrap?USR.red:USR.leather);if(W&&(W.wrap||W.famed))usP(gx,gy+1,W.wrap?USR.red:USR.gold,-1)}
 /* shields: every look draws its own outline and face at any size. family from the look key (looks start with it: kite2, round3...),
    face device per look. usShield(look,cx,cy,col,inside) on the battle sprite; usShieldAt(look,cx,top,k,col) for portraits and icons. */
 const US_SHF=['buckler','targe','round','spiked','heater','kite','tower','pavise'];
@@ -349,9 +369,9 @@ function usWeaponPtRows(key){let r=US_WI.get('p'+key);if(r)return r;const W=usWd
   usWdraw(pts,cx-Math.round((b.x0+b.x1)/2),b.y1-b.y0<=21?23-b.y1:1-b.y0,W.gem?USR.ice:null)}
  r=usResolveKeys(usG,0);US_WI.set('p'+key,r);return r}
 /* ---- helmets: look -> the shape drawn on the head (sprite, bust, icon) ---- */
-const US_HV={armcap:'armcap',cap:'cap',hood:'hood',coif:'coif',spangen:'spangen',kettle:'kettle',nasal:'nasal',barbute:'barbute',bascinet:'bascinet',sallet:'sallet',armet:'armet',greathelm:'great',great:'great'};
+const US_HV={jingasa:'jingasa',hachigane:'hachigane',kabuto:'kabuto',menpo:'menpo',kawari:'kawari',armcap:'armcap',cap:'cap',hood:'hood',coif:'coif',spangen:'spangen',kettle:'kettle',nasal:'nasal',barbute:'barbute',bascinet:'bascinet',sallet:'sallet',armet:'armet',greathelm:'great',great:'great'};
 function usHelmHat(id){const lk=ITEMS[id]?usLookOf(id):id;if(US_HV[lk])return US_HV[lk];const I=ITEMS[id]||{},s=(lk+' '+(I.n||'')).toLowerCase();
- return/great|pot|bucket/.test(s)?'great':/armet|close|visor/.test(s)?'armet':/bascinet|hounskull/.test(s)?'bascinet':/sallet/.test(s)?'sallet':/barbut/.test(s)?'barbute':/spangen|conical/.test(s)?'spangen':/nasal|norman/.test(s)?'nasal':/kettle|chapel|morion/.test(s)?'kettle':/coif|mail|chain/.test(s)?'coif':/hood|cowl/.test(s)?'hood':/arming|padded|quilt/.test(s)?'armcap':'cap'}
+ return/kabuto|kawari/.test(s)?(/menpo/.test(s)?'menpo':/kawari/.test(s)?'kawari':'kabuto'):/jingasa/.test(s)?'jingasa':/great|pot|bucket/.test(s)?'great':/armet|close|visor/.test(s)?'armet':/bascinet|hounskull/.test(s)?'bascinet':/sallet/.test(s)?'sallet':/barbut/.test(s)?'barbute':/spangen|conical/.test(s)?'spangen':/nasal|norman/.test(s)?'nasal':/kettle|chapel|morion/.test(s)?'kettle':/coif|mail|chain/.test(s)?'coif':/hood|cowl/.test(s)?'hood':/arming|padded|quilt/.test(s)?'armcap':'cap'}
 /* ---- off-figure armor, helmet and shield icons (16x16), from the rig's own painters ---- */
 const US_IB={tw:8,th:8,ll:6,lw:3,aw:2,hw:10,hh:9,er:4,eh:2,jaw:1},US_IA={tw:8,th:8,ll:5,lw:3,aw:2,hw:8,hh:8};
 function usArmorIconRows(id){let r=US_WI.get('a'+id);if(r)return r;const av=usArmorV(id),S={kind:'hum',seed:3,b:US_IA,skin:usSkin(['s','t','u','i']),armor:av.k,av,robeC:'blue',ragC:'tan'};
@@ -397,6 +417,8 @@ function usStowHip(S,v,x0,x1,ty,th){const cl=S.altCls,by=ty+th-(th>=8?2:1),R=USR
 /* body armor looks: k the drawn kind (rig + texture), then per-look details. Unknown looks: kind by keywords, details by hash. */
 const US_AV={rags:{k:'rags'},jack:{k:'padded',body:'straw',tex:'diamond',collar:1},padded:{k:'padded'},hide:{k:'leather',body:'fur',tex:'hide',mantle:1},leather:{k:'leather'},
  studded:{k:'leather',body:'dleather',tex:'studs'},robe:{k:'robe'},sigilrobe:{k:'robe',sig:1,trim:'white'},archrobe:{k:'robe',trim:'gold',mantle:1,sig:2},mailrobe:{k:'robe',mailtop:1,trim:'steel'},
+ kesa:{k:'robe',body:'straw',trim:'gold',kesa:1},tatami:{k:'lamellar',A:{body:'blk',paul:'blk',skB:'blk'},odo:'X'},do:{k:'lamellar',A:{body:'blk',paul:'blk',skB:'blk',shin:'blk'},odo:'g',sode:1},
+ domaru:{k:'lamellar',A:{body:'red',paul:'red',skB:'red',shin:'blk'},odo:'y',sode:1},oyoroi:{k:'lamellar',A:{body:'blk',paul:'red',skB:'blk',shin:'blk',fore:'blk'},odo:'g',sode:2,gild:1},
  brigandine:{k:'brig'},mail:{k:'mail'},lamellar:{k:'lamellar'},scale:{k:'scale'},coatplates:{k:'coat'},plate:{k:'plate'},gothic:{k:'plate',tex:'flute',spikes:1}};
 function usArmorV(id){if(usFamedBase(id)){const lk=usLookOf(id)+'*';return US_AV[lk]||(US_AV[lk]=Object.assign({},usArmorV(usFamedBase(id)),{gold:1}))}const lk=ITEMS[id]?usLookOf(id):id;let v=US_AV[lk];if(v)return v;const I=ITEMS[id]||{},s=(lk+' '+(I.n||'')).toLowerCase(),h=usH(lk);
  const k=/robe|vest|mantle|cassock/.test(s)?'robe':/plate|cuirass|harness/.test(s)&&!/coat/.test(s)?'plate':/coat/.test(s)?'coat':/lamell/.test(s)?'lamellar':/scale/.test(s)?'scale':/brig/.test(s)?'brig':/mail|chain|hauberk|byrnie/.test(s)?'mail':/leather|hide|jerkin/.test(s)?'leather':/pad|gambes|quilt|jack|aketon/.test(s)?'padded':(I.arm||0)>=200?'plate':(I.arm||0)>=130?'mail':(I.arm||0)>=80?'leather':'padded';
@@ -412,6 +434,9 @@ function usArmDet(S,A,v,x0,x1,ty,th,fc){const V=S.av;if(!V)return;const a=S.armo
  if(V.mantle){usPart();const r=a==='robe'?(S.accR||usCloth('purple')):USR.fur;for(let x=x0-1;x<=x1+1;x++){usP(x,ty,r,((x*7)%5===0)?1:0);usP(x,ty+1,r,-1);if(x>x0&&x<x1&&((x+ty)&1))usP(x,ty+2,r,-1)}if(a==='robe'&&v===0){usF(fc,ty+1,'c');usF(fc-1,ty+1,'d')}}
  if(V.mailtop&&v===0){for(let x=x0+1;x<=x1-1;x++)usF(x,y1,'4')}
  if(V.sig&&v===0){const g=S.res?USR[S.res].t[1]:'x',G2=S.res?USR[S.res].t[2]||'r':'F';const ys=V.sig===2?[ty+2,ty+4,ty+6]:[ty+3,ty+5];for(const y of ys){usF(x0+1,y,g);usF(x1-1,y,g)}usF(x0+1,ty+1,G2);if(V.sig===2){usF(x1-1,ty+1,G2);usF(fc+1,ty+2,'d')}}
+ if(V.odo){const ok=V.odo;for(let y=ty+1;y<y1;y+=2)for(let x=x0;x<=x1;x++)if(((x+y)&1)===0)usF(x,y,ok);if(V.gild){for(let x=x0;x<=x1;x++)usF(x,ty,x<fc?'d':'c');usF(fc,ty+2,'e')}
+  if(V.sode&&v===0){usPart();const sw=V.sode>1?3:2;for(let j=0;j<=V.sode+2;j++)for(let i=0;i<sw;i++)usP(x1+1+i-(sw-2),ty+j,(j&1)?USR[ok==='g'?'red':ok==='y'?'gold':'mana']||USR.red:(S.av.A&&USR[S.av.A.paul])||USR.blk,j===V.sode+2?-1:0)}}
+ if(V.kesa&&v===0){for(let y=ty;y<=y1;y++){const x=x0+Math.round((y-ty)*(x1-x0)/(y1-ty||1));usF(x,y,'g');if(x+1<=x1)usF(x+1,y,'f')}}
  if(V.tex==='flute'&&v===0){usF(x0+1,ty+1,'r');usF(fc,ty+th-3,'r')}if(V.cr)usArmCraft(S,A,v,x0,x1,ty,th,fc)}
 /* ---- humanoid rig ---- */
 const US_BUILD={human:{hw:8,hh:8,tw:8,th:8,ll:7,lw:3,aw:2,jaw:1},elf:{hw:8,hh:8,tw:7,th:8,ll:8,lw:3,aw:2,jaw:2},
@@ -555,6 +580,7 @@ function usHeadShape(b,v,r){const hw=b.hw,hh=b.hh,j=b.jaw==null?1:b.jaw,bg=hw>=1
 function usHair(S,v,x0,y0){const st=S.hair,hc=S.hairR;if(!st||st==='bald'||!hc)return;const b=S.b,hw=b.hw,hh=b.hh,H=(c,r,bi)=>usP(x0+c,y0+r,hc,bi),mid=(hw>>1)-1;usPart(1);
  const lng=st==='long'||st==='mane'||st==='braids',vol=st==='curly'||st==='mane'||st==='shaggy';
  if(st==='mohawk'){if(v===0){for(let r=-2;r<=1;r++)for(let c=2;c<=hw-2;c++)if(r>-2||(c>2&&c<hw-2))H(c,r,r===1?-1:0)}else for(let r=-2;r<=hh-3;r++)for(let c=mid;c<=mid+1;c++)H(c,r);return}
+ if(st==='topknot'){if(v===0){H(0,0);H(0,1);H(0,2);H(1,0);H(0,3);H(-1,3);H(1,1)}else{H(0,0);H(hw-1,0);for(let c=0;c<hw;c++)H(c,1);H(0,2);H(hw-1,2)}H(mid,-1);H(mid+1,-1);H(mid,-2,1);H(mid+(v?0:-1),-2,-1);return}   // the chonmage: a shaven crown, a tied knot
  if(st==='tonsure'){if(v===0){H(0,1);H(1,1);H(2,1);H(hw-1,1);H(0,2);H(1,2);H(0,3);H(0,4)}else{for(let r=2;r<=4;r++)for(let c=0;c<hw;c++)H(c,r);H(0,1);H(hw-1,1)}return}
  if(st==='wisps'){if(v===0){H(1,0);H(3,0);H(0,1);H(5,0);H(0,3);H(-1,2)}else{H(1,0);H(4,0);H(2,1);H(6,1);H(0,2);H(5,3);H(3,3)}return}
  if(v===0){
@@ -588,7 +614,7 @@ function usBeard(S,v,x0,y0){const bd=S.beard,hc=S.beardR||S.hairR;if(!bd||!hc||v
  if(bd==='long'){for(let r=hh;r<=hh+2;r++)for(let c=3+(r-hh>1?1:0);c<hw-1-(r-hh>1?1:0);c++)H(c,r,r>hh?-1:0);return}
  const n=bd==='fork'?4:4;for(let j=0;j<n;j++){const r=hh+j,i0=j<2?1:j,i1=j<2?hw-1:hw-j;for(let c=i0;c<=i1;c++){if(bd==='fork'&&j>=2&&c===(hw>>1))continue;H(c,r,(c===(hw>>1)||j===n-1)?-1:0)}}
  if(S.ring)usF(x0+(hw>>1)+1,y0+hh+2,'c')}
-function usHat(S,v,x0,y0,er){const t=S.hat;if(!t)return;if(usHatBg(S,v,x0,y0,er))return;const b=S.b,hw=b.hw,hh=b.hh,c=S.hatR||USR.leather,R=S.MR||USR,k=hw>=11?2:1;
+function usHat(S,v,x0,y0,er){const t=S.hat;if(!t)return;if(US_EHAT[t]){usHatEast(S,v,x0,y0,er);return}if(usHatBg(S,v,x0,y0,er))return;const b=S.b,hw=b.hw,hh=b.hh,c=S.hatR||USR.leather,R=S.MR||USR,k=hw>=11?2:1;
  const dome=(r,rim)=>{for(let x=1;x<hw-1;x++)usP(x0+x,y0-1,r);for(let y=0;y<=rim;y++)for(let x=0;x<hw;x++)usP(x0+x,y0+y,r)};
  if(t==='hood'||t==='coif'){const r=t==='coif'?R.steel:c,tex=t==='coif'?((x,y)=>((x+y)&1)?0:-1):null,put=(x,y,bi)=>usP(x0+x,y0+y,r,(tex?tex(x,y):0)+(bi|0));usPart();
   for(let x=1;x<hw-1;x++)put(x,-1);
@@ -638,6 +664,27 @@ function usHat(S,v,x0,y0,er){const t=S.hat;if(!t)return;if(usHatBg(S,v,x0,y0,er)
    else{const L=t==='crown'?[[0,2],[1,2],[1,1],[2,1],[2,0],[3,0],[3,-1],[4,-1],[4,-2],[4,-3],[5,-2],[5,-3],[5,-4],[4,-4],[4,-5],[5,-5],[4,-6],[3,-7],[3,-6],[0,1],[1,0],[2,2],[3,1],[5,-1]]:[[0,2],[1,2],[1,1],[2,1],[2,0],[3,0],[3,-1],[3,-2],[4,-1],[4,-2],[4,-3],[3,-3],[3,-4],[0,1],[2,2]];
     L.forEach(([a,c2])=>usP(x0+hx+d*a,y0+c2,hr,c2<-3?1:0))}}
   return}}
+/* ---- eastern headgear (19-east.js): jingasa, hachigane, kabuto (lacquered bowl, flared shikoro, turned-back fukigaeshi), menpo, kawari kabuto.
+   S.odoR: the lacing colour of the lames (default red); S.lacqR the lacquer (default black) */
+const US_EHAT={jingasa:1,hachigane:1,kabuto:1,menpo:1,kawari:1};
+function usHatEast(S,v,x0,y0,er){const t=S.hat,b=S.b,hw=b.hw,hh=b.hh,R=USR,L=S.lacqR||R.blk,O=S.odoR||R.red,G=R.gold,front=v?-99:hw-1,a=hw>>1;
+ if(t==='jingasa'){usPart();usP(x0+a-1,y0-3,L,1);usP(x0+a,y0-3,L,1);for(let x=1;x<hw-1;x++)usP(x0+x,y0-2,L,x<a?1:0);for(let x=-1;x<=hw;x++)usP(x0+x,y0-1,L,x<a-1?0:x>a+1?-1:0);
+  usPart();for(let x=-2;x<=hw+1;x++)usP(x0+x,y0,L,-1);if(v===0){usF(x0+a,y0-2,S.monK||'g');usF(x0+a+1,y0-2,S.monK||'g')}else usF(x0+a,y0-2,S.monK||'g');
+  usPart(1);if(v===0){usP(x0+hw-3,y0+er+2,R.white,-1)}return}
+ if(t==='hachigane'){const c=S.hatR||R.white;usPart(1);for(let x=0;x<hw;x++)usP(x0+x,y0+1,c,x===front?-1:0);
+  if(v===0){usPart();usP(x0+hw-4,y0+1,R.steel,1);usP(x0+hw-3,y0+1,R.steel);usP(x0+hw-2,y0+1,R.steel,-1);usPart(1);usP(x0-1,y0+2,c,-1);usP(x0-2,y0+3,c,-1);usP(x0-1,y0+3,c,-1)}
+  else{usPart(1);usP(x0+a,y0+2,c,-1);usP(x0+a-1,y0+3,c,-1);usP(x0+a+1,y0+3,c,-1)}return}
+ // the kabuto: a bowl of riveted plates
+ usPart();for(let x=2;x<hw-2;x++)usP(x0+x,y0-2,L,1);for(let x=1;x<hw-1;x++)usP(x0+x,y0-1,L,(x&1)?1:0);for(let x=0;x<hw;x++)usP(x0+x,y0,L,(x&1)?0:-1);
+ usF(x0+a,y0-3,G===R.gold?'c':'c');usF(x0+a-1,y0-3,'b');
+ // the shikoro: three flared lames laced in O over the neck (and both sides seen from the back)
+ usPart();for(let j=1;j<=3;j++){const y=y0+j;if(v===0){for(let x=-j+1;x<=2-((j>2)?1:0);x++)usP(x0+x-1,y,j&1?L:O,j===3?-1:0)}else for(let x=-j;x<hw+j;x++)usP(x0+x,y,j&1?L:O,j===3?-1:0)}
+ if(v===0){usPart();usP(x0+hw-1,y0+1,L,1);usP(x0+hw,y0,L,1);usP(x0+hw,y0+1,O);usF(x0+hw,y0,'c')}   // fukigaeshi
+ usPart(1);for(let x=0;x<hw;x++)usP(x0+x,y0+1,O,x===front?-1:0);
+ if(t==='menpo'||t==='kawari'){if(v===0){const m=S.menR||R.red;usPart(1);for(let y=er+1;y<hh;y++){const sp=usHeadShape(b,0,y);for(let x=hw-4;x<hw-sp[1];x++)usP(x0+x,y0+y,m,y===hh-1?-1:0)}
+   usF(x0+hw-3,y0+er+2,'l');usF(x0+hw-2,y0+er+2,'l');usF(x0+hw-2,y0+er+3,'0');usP(x0+hw,y0+er+1,m,1);for(let x=-1;x<=1;x++)usP(x0+hw-3+x,y0+hh,O,-1)}}   // the menpo: a red mask with a white moustache and a throat guard
+ if(t==='kawari'){usPart();const cx=v?x0+a:x0+hw-3;usP(cx,y0-3,G,1);usP(cx-1,y0-4,G,1);usP(cx+1,y0-4,G,1);usP(cx-2,y0-5,G,1);usP(cx+2,y0-5,G);usP(cx-2,y0-6,G,1);usP(cx+2,y0-6,G);usP(cx-3,y0-7,G,1);usP(cx+3,y0-7,G,-1);usF(cx,y0-2,'g')}   // a gilt kuwagata crest
+}
 function usHatGold(S,v,x0,y0){if(!S.famH||!S.hat)return;const hw=S.b.hw;usPart(1);for(let x=0;x<hw;x++){const y=y0-1+((S.hat==='hood'||S.hat==='coif'||S.hat==='armcap')?1:0);if(usHas(x0+x,y))usP(x0+x,y,USR.gold,x<(hw>>1)?1:-1)}usF(x0+(v?hw-3:2),y0-1,'e')}
 function usHead(S,v,cx,y0){const b=S.b,hw=b.hw,hh=b.hh,x0=cx-(hw>>1),sk=S.skin,er=b.er==null?hh>>1:b.er,eh=b.eh||(hh>=8?2:1),bg=hw>=11;
  usPart();for(let r=0;r<hh;r++){const s=usHeadShape(b,v,r);for(let c=s[0];c<hw-s[1];c++)usP(x0+c,y0+r,sk)}
@@ -870,6 +917,11 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
  S.res=typeof mercRes==='function'?mercRes(m):null;S.quiver=S.wd.cls==='bow'||S.altCls==='bow';
  if(S.shield||S.slung){const k=usShLook(eq.s);if(S.shield)S.shield=k;else S.slung=k}
  S.famed=!!(S.wd&&S.wd.famed)||!!(S.av&&S.av.gold)||/\*$/.test(S.shield||'')||S.famH;usLookSpec(S,P);usLivery(S,m);return S}
+/* the sashimono: a banner pole up the back with a narrow flag and the mon (fl: the flag ramp, mk: the mon's key, big: a gilt finial) */
+function usSashi(c,fl,mk,big){if(c.lie)return;const S=c.S,dir=c.v?1:-1,x=c.v?((c.x0+c.x1)>>1)+1:c.x0+1,top=c.hy0-(big?9:8),y1=c.ty+3,sw=c.st==='walk'?(c.fr&1):0;usPart();for(let y=top;y<=y1;y++)usP(x,y,USR.dwood,y===top?1:0);
+ if(big){usPart();usP(x,top-1,USR.gold,1);usP(x+dir,top-2,USR.gold);usP(x-dir,top-2,USR.gold,1)}
+ usPart();for(let j=0;j<7;j++)for(let i=1;i<=3;i++){const y=top+1+j+(i===3?sw:0);usP(x+dir*i,y,fl,i===3?-1:j===0?1:0)}
+ usF(x+dir*2,top+3+(sw&0),mk);usF(x+dir*2,top+4,mk);usF(x+dir*1,top+3,mk);if(big)usF(x+dir*3,top+4,mk)}
 function usEnemySpec(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined'?PT_SKIN:{},sk=n=>usSkin(SK[n]||['s','t','u','i']),HC=typeof PT_HAIRC!=='undefined'?PT_HAIRC:{},hr=n=>usHairR(HC[n]||['0','G','o']);
  const B=US_BUILD,S={kind:'hum',seed:7,b:B.human,skin:sk('fair'),armor:'rags',wd:usWdef('fist')},set=o=>Object.assign(S,o);
  switch(id){
@@ -920,7 +972,15 @@ function usEnemySpec(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined'
    over:c=>{if(c.lie||c.v)return;const b=c.S.b,fc=c.x0+Math.round(b.tw*.6),y=c.ty,by=y+b.th-2;
     [[-1,6,'E'],[0,6,'y'],[1,6,'E'],[-1,7,'y'],[0,7,'r'],[1,7,'y'],[-1,8,'E'],[0,8,'y'],[1,8,'E'],[0,5,'K'],[0,9,'K'],[-2,7,'K'],[2,7,'K'],[-3,5,'E'],[-4,4,'K'],[3,9,'E'],[4,10,'K'],[-3,9,'K'],[3,5,'K'],[-5,3,'K'],[5,11,'K']].forEach(([a,j,k2])=>usF(fc-1+a,y+j,k2));
     usPart();for(const sx of[fc-5,fc-1,fc+3]){usRect(sx,by,sx+2,by+1,R.bone);usF(sx,by+1,'0');usF(sx+2,by+1,'0');usP(sx+1,by+2,R.bone,-1)}}});
- }
+
+  /* ---- the Shogunate (19-east.js): lacquered lamellar laced in colour, kabuto and jingasa, sashimono banners with the mon on their backs ---- */
+  case'ashi':return set({b:B.human,skin:sk('fair'),hair:'topknot',hairR:hr('G'),armor:'lamellar',av:usArmorV('tatami'),hat:'jingasa',wd:usWdef('suyari'),sashR:R.red,back:c=>usSashi(c,R.white,'g',0)});
+  case'ashiy':return set({b:B.human,skin:sk('fair'),hair:'topknot',hairR:hr('G'),armor:'lamellar',av:usArmorV('tatami'),hat:'jingasa',wd:usWdef('hankyu'),quiver:1,sashR:R.red,back:c=>usSashi(c,R.white,'g',0)});
+  case'shinobi':return set({b:B.slim,skin:sk('fair'),armor:'padded',clothR:C('black'),legR:usRamp('013',0),hat:'hood',hatR:C('black'),mask:1,eye:'0',wd:usWdef('wakizashi'),sashR:R.red});
+  case'sohei':return set({b:B.brute,skin:sk('tan'),armor:'robe',robeC:'white',av:usArmorV('kesa'),hat:'hood',hatR:C('white'),beads:'i',brow:1,wd:usWdef('naginata'),trim:R.gold});
+  case'onna':return set({b:B.slim,skin:sk('pale'),hair:'long',hairR:hr('G'),armor:'lamellar',av:usArmorV('do'),hat:'hachigane',hatR:R.white,wd:usWdef('naginata'),sashR:R.white,odoR:R.red});
+  case'samurai':return set({b:B.human,skin:sk('fair'),hair:'topknot',hairR:hr('G'),armor:'lamellar',av:usArmorV('domaru'),hat:'kabuto',odoR:R.gold,wd:usWdef('katana'),brow:1,sashR:R.white,back:c=>usSashi(c,R.blk,'c',1)});
+  case'taisho':return set({b:B.knight,skin:sk('fair'),hair:'topknot',hairR:hr('G'),beard:'short',armor:'lamellar',av:usArmorV('oyoroi'),hat:'kawari',odoR:R.red,wd:usWdef('katana2'),cape:R.red,brow:1,sashR:R.gold,trimR:R.gold}); }
  return S}
 
 /* ---- beasts ---- */

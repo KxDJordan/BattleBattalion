@@ -186,12 +186,12 @@ section('death ends the run; pay and saves');
   G=fresh(SEED+71,'slayer');const p1=X.ctrPayBase(2);G.origin='free';const p0=X.ctrPayBase(2);G.origin='slayer';ok(p1>p0,`solo pay ${p1} > one-sword pay ${p0}`);
   // save round trip
   G=fresh(SEED+72,'slayer');G.roster[0].slain={'hunter.wolf':7,'hunter.ogre':2,bogus:5,'hunter.gob':-3};X.mode='world';ok(X.save(),'saves');
-  const r=X.readSave();ok(r.state==='ok'&&r.g.v===12,'reads back at version 12');const m=r.g.roster[0];
+  const r=X.readSave();ok(r.state==='ok'&&r.g.v===X.SAVEVER,'reads back at the current version');const m=r.g.roster[0];
   ok(JSON.stringify(m.slain)==='{"hunter.wolf":7,"hunter.ogre":2}','the tally is kept, junk dropped: '+JSON.stringify(m.slain));ok(r.g.origin==='slayer','still a solo run');
   // a v11 save: every merc (company, recruits, rivals) gets an empty tally
   G=fresh(SEED+73);X.mode='world';X.save();const raw=JSON.parse(X.store.get(X.SAVEKEY));raw.v=11;
   const strip=m=>{delete m.slain};raw.roster.forEach(strip);raw.towns.forEach(t=>(t.recruits||[]).forEach(strip));raw.rivals.forEach(r=>r.roster.forEach(strip));
-  const mg=X.migrateSave(JSON.parse(JSON.stringify(raw)));ok(mg.v===12,'v11 migrates to v12');
+  const mg=X.migrateSave(JSON.parse(JSON.stringify(raw)));ok(mg.v===X.SAVEVER,'v11 migrates to the current version');
   const all=[].concat(mg.roster,...mg.towns.map(t=>t.recruits||[]),...mg.rivals.map(r=>r.roster));ok(all.length>10&&all.every(m=>m.slain&&JSON.stringify(m.slain)==='{}'),'every merc has m.slain = {}');
   X.store.set(X.SAVEKEY,JSON.stringify(raw));const r2=X.readSave();ok(r2.state==='ok'&&r2.g.roster.every(m=>JSON.stringify(m.slain)==='{}')&&r2.g.rivals.every(r=>r.roster.every(m=>m.slain)),'a v11 save loads and plays');
   console.log('death ends the run, solo pay, save round trip and the v11 migration: ok') }

@@ -139,6 +139,7 @@ async function march(X,x,y,dest,log,via){const G=X.G;if(via)X.setRoute([via,{x,y
 async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.length=0;X.newGame(true);ok(X.mode==='world'&&X.sheetOpen,'newGame did not open the world');closeAll(X);
  const G=X.G;ok(G.roster.length===4&&G.towns.length>=10&&G.towns.length<=12&&G.sites.length>=5&&G.weather&&G.v===X.SAVEVER,'unexpected new game state');scan(G,'G');
  G.crowns+=60000;                                     // fixture: the test is about rules, not about going broke
+ if(G.crisisKind!==undefined)G.crisisKind='sunder';    // fixture: the rift dungeon coverage needs the Sundering (the other crises: test/crises.js)
  G.roster.forEach(m=>{m.base.hp+=30;m.base.ms+=12;m.base.md+=8;m.base.brv+=25;m.hp=X.calc(m).hp});   // ... nor about four green swords surviving a month on autopilot (the auto-battle table below measures balance)
  let here=0,loops=0,vet=false,rifts=0;const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  const wages=()=>typeof X.companyWages==='function'?X.companyWages():G.roster.reduce((n,m)=>n+(X.mercWage?X.mercWage(m):X.BG[m.bg].wage),0),mark=()=>({c:G.crowns,d:G.day,w:wages()}),paid=(m,pay)=>G.crowns>=m.c+pay-m.w*(G.day-m.d);   // wages fall due on the road
@@ -162,7 +163,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
   scan(G,'G');closeAll(X)};
  ok(await town(0)==='ok','could not enter the first town');
  while(loops++<80){if(!G.roster.length)return'wiped';inTown();
-  if(G.crisis&&!flags.crisis){flags.crisis=true;ok(G.portals.length===3,'the crisis did not open three rifts')}
+  if(G.crisis&&!flags.crisis){flags.crisis=true;if(!G.crisisKind||G.crisisKind==='sunder')ok(G.portals.length===3,'the crisis did not open three rifts')}
   if(G.crisis&&!vet){vet=true;while(G.roster.length<12){const m=X.newMerc(BGS[G.roster.length]);m.field=true;G.roster.push(m)}G.roster.forEach(m=>{m.field=true});G.roster.forEach(m=>X.gainXP(m,Math.max(0,X.XPT[X.MAXLV]-m.xp)));for(let n=0;n<12;n++)TIERS[3].gear.forEach(id=>G.stash.push(id));levelUps(X,flags);gearUp(X,flags);
    G.roster.forEach(m=>{if(!m.hero){m.hero=1;m.base.hp+=120;m.base.ms+=35;m.base.rs+=35;m.base.md+=25;m.base.rd+=25;m.base.brv+=80}});closeAll(X)}   // fixture: heroes for the rift, so that this walk through the campaign does not hang on the balance of the day
   if(G.crisis&&!flags.dungeon&&G.portals.length&&rifts<8){rifts++;G.roster.forEach(m=>{m.hp=X.calc(m).hp});const p=G.portals[0];
@@ -455,7 +456,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    A.park();
    { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
        hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
-     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');const bid=it.famed&&it.base?it.base:id;ok(it.sk.join()===(((X.WSKID&&X.WSKID[bid])||(own[bid]&&own[bid].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
+     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){const bid=it.famed&&it.base?it.base:id,ea=!!(X.ITEMS[bid]&&X.ITEMS[bid].east);   // eastern gear (19-east.js): its own skill lists, up to three
+      ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=(ea?3:2)&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(ea||it.sk.join()===(((X.WSKID&&X.WSKID[bid])||(own[bid]&&own[bid].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
         ok(!!it.reload===it.sk.includes('reload')&&(!it.reload||(X.isRangedW(it)&&it.reload.ap>=2&&it.reload.fat>=0)),'weapon '+id+': reload weapons are ranged and carry the reload skill')}
       if(it.k==='s')ok(it.hp>0&&it.sk.join()===(it.spike?'shieldwall,spikebash':'shieldwall,bash')&&/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look),'shield '+id+' lacks hitpoints, skills or a look')}
      ok(X.ITEMS.pike.sk.join()==='impale'&&X.ITEMS.greataxe.sk.join()==='split,round','two-hander skills');for(const id in X.AB)ok(X.AB[id].n&&X.AB[id].d,'ability '+id+' lacks a name or description');

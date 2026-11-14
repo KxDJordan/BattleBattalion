@@ -51,21 +51,21 @@ function makeContext(){const els=new Map(),store=new Map();
 function closeAll(X){for(let i=0;i<6&&X.sheetOpen;i++)X.closeSheet(true);if(X.sheetOpen)X.sheetOpen=false;if(X.G)X.G.townOpen=false}
 
 const X=makeContext(),I=X.ITEMS,FAM=['sword','axe','mace','dagger','spear','bow','staff','hammer','polearm','greatsword','crossbow','flintlock'];
-const plain=()=>Object.keys(I).filter(id=>!I[id].famed);
+const plain=()=>Object.keys(I).filter(id=>!I[id].famed&&I[id].k!=='t');   // gear only: trade goods and crisis trophies (kind 't') are not worn
 
 section('catalog');
 { const looks={};for(const id of plain()){const it=I[id];ok(Number.isInteger(it.tier)&&it.tier>=1&&it.tier<=5,id+' has no tier 1..5');ok(typeof it.look==='string'&&it.look,id+' has no look');
    ok(!looks[it.look],'look '+it.look+' is shared by '+id+' and '+looks[it.look]);looks[it.look]=id;ok(it.price>0&&typeof it.n==='string'&&it.n,id+' has no name or price');
-   if(it.k==='w'){ok(Array.isArray(it.d)&&it.d[0]>0&&it.d[1]>it.d[0]&&it.ap>=2&&it.fat>=0&&it.rng>=1&&it.ign>0&&it.ign<1,id+': weapon numbers');ok(it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&(!X.AB[a].needs||X.AB[a].needs===it.wt||(Array.isArray(X.AB[a].needs)&&X.AB[a].needs.includes(it.wt)))),id+': skills of its own family')}
+   if(it.k==='w'){ok(Array.isArray(it.d)&&it.d[0]>0&&it.d[1]>it.d[0]&&it.ap>=2&&it.fat>=0&&it.rng>=1&&it.ign>0&&it.ign<1,id+': weapon numbers');ok(it.sk.length>=1&&it.sk.length<=(it.east?3:2)&&it.sk.every(a=>X.AB[a]&&(!X.AB[a].needs||X.AB[a].needs===it.wt||(Array.isArray(X.AB[a].needs)&&X.AB[a].needs.includes(it.wt)))),id+': skills of its own family')}
    if(it.k==='s')ok(/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look)&&it.hp>0&&it.md>0&&it.rd>0,id+': shield look family and numbers');
    if(it.k==='a'||it.k==='h')ok(it.arm>0&&it.fat>=0,id+': armor numbers')}
   const rows=[];
-  for(const f of FAM){const L=plain().filter(id=>I[id].k==='w'&&I[id].wt===f),T=new Set(L.map(id=>I[id].tier));ok(L.length>=5&&L.length<=7,f+': '+L.length+' items (5 to 7)');ok(T.size>=4&&T.has(1)&&T.has(5),f+' must span tiers 1 to 5');
+  for(const f of FAM){const L=plain().filter(id=>I[id].k==='w'&&I[id].wt===f&&!I[id].east),T=new Set(L.map(id=>I[id].tier));ok(L.length>=5&&L.length<=7,f+': '+L.length+' items (5 to 7)');ok(T.size>=4&&T.has(1)&&T.has(5),f+' must span tiers 1 to 5');
    for(const a of L)for(const b of L)if(I[b].tier>=I[a].tier+2)ok(I[b].price>I[a].price,f+': '+b+' (tier '+I[b].tier+') must cost more than '+a+' (tier '+I[a].tier+')');rows.push(f+' '+L.length)}
   for(const [k,n,min] of [['a','body armor',14],['h','helmets',12],['s','shields',12]]){const L=plain().filter(id=>I[id].k===k),T=new Set(L.map(id=>I[id].tier));ok(L.length>=min,n+': '+L.length+' (need '+min+')');ok(T.size===5,n+' must span tiers 1 to 5');rows.push(n+' '+L.length)}
   ok(['buckler','round','kite','heater','tower','spiked','targe','pavise'].every(l=>plain().some(id=>I[id].k==='s'&&I[id].look.indexOf(l)===0)),'every shield shape is carried');
   { const sh=plain().filter(id=>I[id].k==='s').map(id=>I[id]);ok(new Set(sh.map(i=>[i.md,i.rd,i.hp,i.fat].join())).size===sh.length,'every shield has its own numbers') }
-  { const hs=plain().filter(id=>I[id].k==='h').map(id=>I[id]).sort((a,b)=>a.price-b.price);ok(hs.every((h,i)=>!i||(h.arm>hs[i-1].arm&&h.fat>=hs[i-1].fat&&h.tier>=hs[i-1].tier)),'helmets rise in armor, weight and tier with price') }
+  { const hs=plain().filter(id=>I[id].k==='h'&&!I[id].east).map(id=>I[id]).sort((a,b)=>a.price-b.price);ok(hs.every((h,i)=>!i||(h.arm>hs[i-1].arm&&h.fat>=hs[i-1].fat&&h.tier>=hs[i-1].tier)),'helmets rise in armor, weight and tier with price') }
   for(const b in X.BG)for(const g of X.BG[b].gear.concat(X.BG[b].side?[X.BG[b].side]:[]))for(const id of g.split('|'))ok(id==='-'||(I[id]&&I[id].tier<=3),'starting gear of '+b+': '+id+' (an item of tier 1 to 3)');
   for(const f in X.FACT)for(const id of X.FACT[f].loot||[])if(!I[id])console.log('  note: FACT.'+f+'.loot names an unknown item "'+id+'" (skipped by the loot roll)');
   console.log(rows.join(', ')+'; '+plain().length+' items, every look unique: ok') }

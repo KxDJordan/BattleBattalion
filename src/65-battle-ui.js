@@ -281,7 +281,8 @@ function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side==
    h+='<button class="ab pxb '+(B.sel===id?'sel on':'')+(a.withdraw?' wd':'')+(ok?'':' off')+(pw?' pl':'')+(lk||plk?' lk':'')+(rl?' rl':'')+'" aria-disabled="'+!ok+'" aria-pressed="'+(B.sel===id)+'" aria-label="'+esc(a.n)+', '+a.ap+' AP'+(a.cost?', '+a.cost[1]+' '+RESN[a.cost[0]]:'')+(why?', '+esc(why.toLowerCase()):'')+'" title="'+esc(a.n+(why?' ('+why.toLowerCase()+')':''))+'" onpointerdown="abHint(\''+id+'\')" onclick="selAb(\''+id+'\')"'+(a.cost?' style="--rc:'+RESC[a.cost[0]]+'"':'')+'>'+abIcon(u,id,32)+'<b class="apc">'+a.ap+'</b>'+(a.cost?'<em class="rcc">'+a.cost[1]+'</em>':'')+(lk||plk?'<i class="lkb">'+pic('lock',16,'a-burst')+'</i>':'')+'</button>'})}
  const hd=$('ahdr');if(hd&&hd._h!==hdr){hd.innerHTML=hdr;hd._h=hdr;hd.classList.toggle('on',!!hdr);hd.classList.toggle('aim',!!(mine&&(B.sel||FC.armed)))}
  const ab=$('abar');if(ab&&ab._d!==dense){ab._d=dense;ab.classList.toggle('dense',dense)}
- setHTMLs([['order',oh,1,op],['uinfo',ch],['abar',h],['bcmd',cmdHTML(u,mine)],
+ const bh=bossChipHTML(),be=$('bboss');if(be&&be.classList.contains('hidden')!==!bh)be.classList.toggle('hidden',!bh);
+ setHTMLs([['order',oh,1,op],['uinfo',ch],['bboss',bh],['abar',h],['bcmd',cmdHTML(u,mine)],
   ['bend',swapHTML(u,mine)+'<button class="pri end pxb" aria-label="End turn" title="End turn" '+(mine&&!B.busy&&!B.over?'':'disabled')+' onclick="endTurn()">'+pic('endturn',32,'glass')+'</button>']])}
 /* weapon swap control beside the end-turn button: the weapon in hand (big), the backup (small), the cost (AP or FREE) */
 function swapCost(u,a){a=a||abilityInfo(u,'swap');let ap=a.ap|0;try{if(typeof swapAP==='function'){const v=swapAP(u);if(typeof v==='number')ap=v}}catch(e){}return ap}
@@ -445,3 +446,12 @@ function objChipHTML(){if(typeof objStatus!=='function')return'';let o=null;try{
  else if(o.k==='siege'&&o.leader){val=o.leader.alive?o.leader.hp+'<small>/'+o.leader.hpMax+'</small>':'Slain';const p=o.leader.hpMax?Math.round(100*o.leader.hp/o.leader.hpMax):0;bar='<i class="ohp foe"><b style="width:'+p+'%"></b></i>'}
  const tgt=o.vip&&o.vip.u?o.vip.u:o.leader&&o.leader.u?o.leader.u:null;
  return'<button class="objc'+st+' k-'+o.k+'" '+(tgt?'onclick="focusUnit('+tgt.id+')" ':'')+'aria-label="'+esc((o.n||'Objective')+': '+(o.goal||'')+'. '+(o.line||''))+'" title="'+esc(o.goal||'')+'">'+pic(ic,16,'obj')+'<span class="oct"><b>'+esc(o.n||'Objective')+'</b><span class="ocv">'+val+'</span></span>'+bar+'</button>'}
+
+/* ---- the boss chip (21-fabled.js bossStatus): name and title, the hitpoint bar with the next phase's mark, the phase count, enrage.
+   Under the unit chip, only while the battle has a boss. ---- */
+function bossChipHTML(){if(typeof bossStatus!=='function')return'';let S=null;try{S=bossStatus()}catch(e){S=null}if(!S)return'';
+ const n=Math.max(1,(S.phases|0)+1),ph=Math.min(n,(S.phase|0)+1),pct=clamp(+S.pct||0,0,100),nx=S.next!=null&&isFinite(S.next)?clamp(Math.round(S.next*100),0,100):null;
+ return`<div class="bb-hd">${pic('boss',16)}<b>${esc(S.name||'The boss')}</b>${S.enraged?'<span class="bb-enr">Enraged</span>':S.alive===false?'<span class="bb-dead">Fallen</span>':`<span class="bb-ph">Phase ${ph}/${n}</span>`}</div>`
+  +(S.title?`<small class="bb-ti">${esc(S.title)}</small>`:'')
+  +`<span class="bb-bar" role="img" aria-label="${esc(S.name||'Boss')}: ${Math.round(S.hp||0)} of ${Math.round(S.hpMax||0)} hitpoints"><i style="width:${pct}%"></i>${nx!=null&&S.alive!==false?`<em style="left:${nx}%"></em>`:''}</span>`
+  +(S.text?`<small class="bb-tx${S.enraged?' bad':''}">${esc(S.text)}</small>`:'')}

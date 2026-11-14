@@ -473,7 +473,7 @@ function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.li
   else{if(p.ch||!Array.isArray(p.pts)||!p.pts.length){p.ch=0;setPatrol(p)}
    else if(Math.hypot(p.tx-p.x,p.ty-p.y)<5){p.pi=(p.pi+1)%p.pts.length;const q=p.pts[p.pi];if(p.pts.length<2||!lineClear(p.x,p.y,q.x,q.y))setPatrol(p);else{p.tx=q.x;p.ty=q.y}}
    tx=p.tx;ty=p.ty}
-  const d=Math.hypot(tx-p.x,ty-p.y)||1,sp=Math.min(d,WBAND*(speedAt(p.x,p.y)||.5)*wf*dt*(p.goal==='caravan'?.8:1)),nx=p.x+(tx-p.x)/d*sp,ny=p.y+(ty-p.y)/d*sp;
+  const d=Math.hypot(tx-p.x,ty-p.y)||1,sp=Math.min(d,WBAND*(speedAt(p.x,p.y)||.5)*wf*dt*(p.goal==='caravan'?.8:1)*(p.cr&&!p.ch?.4:1)),nx=p.x+(tx-p.x)/d*sp,ny=p.y+(ty-p.y)/d*sp;
   if(okAt(nx,ny)){p.x=nx;p.y=ny}else if(route){p.x=tx;p.y=ty}else if(!p.ch)patrolHop(p)}
  if(gone)G.parties=G.parties.filter(p=>!p.gone)}
 function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNote();return}

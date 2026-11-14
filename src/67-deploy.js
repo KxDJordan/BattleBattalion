@@ -170,7 +170,11 @@ function dpRivalHTML(o){const r=typeof battleRival==='function'?battleRival(o.ri
  const merc=id=>r&&Array.isArray(r.roster)?r.roster.find(m=>m.id===id):null;
  return head+`<div class="dp-foes dp-rv">${L.map(x=>{const m=merc(x.id),por=m&&typeof portraitHTML==='function'?portraitHTML(m,32):`<span class="dp-unk">?</span>`,w=x.w&&ITEMS[x.w]?ITEMS[x.w].n:'Fists';
   return`<span class="dp-en${x.back?' bk':''}" title="${q>=2?x.name+', ':''}level ${x.lvl} ${String(x.bgN).toLowerCase()}: ${w}${x.s&&ITEMS[x.s]?', '+ITEMS[x.s].n:''}${x.hp<x.hpMax?', wounded':''}${x.inj?', injured':''}">${por}<b>Lv ${x.lvl}</b><small>${q>=2?x.name:x.bgN}</small></span>`}).join('')}</div>`}
-function dpFoeHTML(o){if(DP.rv&&o.rival)return dpRivalHTML(o);const F=FACT[o.f]||{n:'Foes',units:[]},L=DP.foes,por=id=>id&&typeof portraitHTML==='function'?portraitHTML(id,32):`<span class="dp-unk">?</span>`;
+// The fabled warriors of o.fabled (21-fabled.js fabledPreview): named, with portrait and title, above the rest of the foes.
+function dpFabledHTML(o){const L=typeof fabledPreview==='function'?fabledPreview(o):[];if(!L.length)return'';
+ return`<div class="dp-sec"><span>${o.duel?'A duel to yielding':'Fabled'}</span><i>${L.length===1?'a named warrior':L.length+' named warriors'}</i></div><div class="dp-foes">${L.map(x=>`<span class="dp-en sure fabled" title="${x.n}, ${x.title}">${typeof portraitHTML==='function'&&typeof fabledMerc==='function'?portraitHTML(fabledMerc(x.id),32):''}<b>Lv ${x.lvl}</b><small>${x.n}, ${x.title}</small></span>`).join('')}</div>`}
+function dpFoeHTML(o){if(DP.rv&&o.rival)return dpRivalHTML(o);const fb=dpFabledHTML(o);if(o.fabledOnly)return fb;return fb+dpFoeHTML0(o)}
+function dpFoeHTML0(o){const F=FACT[o.f]||{n:'Foes',units:[]},L=DP.foes,por=id=>id&&typeof portraitHTML==='function'?portraitHTML(id,32):`<span class="dp-unk">?</span>`;
  if(L){const tot=L.reduce((a,x)=>a+x.n,0);
   return`<div class="dp-sec"><span>They field</span><i>${tot} foe${tot===1?'':'s'}</i></div><div class="dp-foes">${L.map(x=>`<span class="dp-en" title="${x.id?EN[x.id].n:'Unknown'}">${por(x.id)}<b>×${x.n}</b><small>${x.id?EN[x.id].n:'Unseen'}</small></span>`).join('')}</div>`}
  const fx=(o.fixed||[]).filter(id=>EN[id]),ids=fx.concat(F.units.map(u=>u[0]).filter(id=>EN[id]&&!fx.includes(id)));

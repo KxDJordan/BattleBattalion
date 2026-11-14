@@ -38,17 +38,17 @@ const EASTN={roots:['Akane','Kurogane','Hoshino','Shirakawa','Tsukiyama','Kagero
 
 /* ---- the Shogunate's soldiers ---- */
 Object.assign(EN,{
- ashi:{n:'Ashigaru spearman',hp:56,arm:55,helm:30,ms:54,md:8,rd:10,init:100,d:[22,34],w:'suyari',xp:110,role:'line',brv:35,flee:.25,east:1,abs:['spearwall','thrust']},
- ashiy:{n:'Ashigaru archer',hp:46,arm:35,helm:28,ms:42,rs:56,md:5,rd:8,init:105,d:[22,36],w:'hankyu',rng:6,xp:120,role:'sniper',brv:30,flee:.35,east:1,abs:['quick'],side:'tanto'},
- shinobi:{n:'Shinobi',hp:58,arm:30,helm:12,ms:64,md:22,rd:26,init:150,ap:11,d:[24,36],w:'wakizashi',xp:220,role:'flanker',brv:45,flee:.2,dive:1,east:1,abs:['footwork','slash']},
- sohei:{n:'Warrior monk',hp:92,arm:60,helm:25,ms:64,md:14,rd:12,init:104,d:[40,58],w:'naginata',xp:260,role:'line',brv:88,east:1,abs:['nsweep','hook']},
- onna:{n:'Onna-musha',hp:80,arm:120,helm:85,ms:68,md:18,rd:14,init:116,d:[38,56],w:'naginata',xp:280,role:'line',brv:72,east:1,abs:['nsweep','trip']},
- samurai:{n:'Samurai',hp:96,arm:140,helm:110,ms:70,md:16,rd:16,init:110,d:[36,52],w:'katana',xp:300,role:'line',brv:72,east:1,abs:['iaido','slash','riposte']},
- taisho:{n:'Samurai general',hp:160,arm:220,helm:170,ms:78,md:20,rd:18,init:112,d:[48,68],w:'katana2',xp:600,role:'caster',brv:90,lead:1,banner:1,max:1,sub:'samurai',east:1,abs:['brally','iaido','riposte']}
+ ashi:{n:'Ashigaru spearman',hp:50,arm:45,helm:25,ms:52,md:8,rd:10,init:100,d:[22,34],w:'suyari',xp:110,role:'line',brv:35,flee:.25,east:1,abs:['spearwall','thrust']},
+ ashiy:{n:'Ashigaru archer',hp:44,arm:35,helm:28,ms:42,rs:56,md:5,rd:8,init:105,d:[22,36],w:'hankyu',rng:6,xp:120,role:'sniper',brv:30,flee:.35,east:1,abs:['quick'],side:'tanto'},
+ shinobi:{n:'Shinobi',hp:55,arm:25,helm:12,ms:62,md:20,rd:24,init:150,ap:11,d:[24,36],w:'wakizashi',xp:220,role:'flanker',brv:45,flee:.2,dive:1,east:1,abs:['footwork','slash']},
+ sohei:{n:'Warrior monk',hp:85,arm:50,helm:20,ms:60,md:10,rd:10,init:104,d:[40,58],w:'naginata',xp:260,role:'line',brv:88,east:1,abs:['nsweep','hook']},
+ onna:{n:'Onna-musha',hp:75,arm:95,helm:65,ms:62,md:14,rd:12,init:116,d:[38,56],w:'naginata',xp:280,role:'line',brv:72,east:1,abs:['nsweep','trip']},
+ samurai:{n:'Samurai',hp:86,arm:110,helm:85,ms:62,md:12,rd:12,init:108,d:[34,48],w:'katana',xp:300,role:'line',brv:72,east:1,abs:['iaido','slash','riposte']},
+ taisho:{n:'Samurai general',hp:140,arm:180,helm:140,ms:72,md:16,rd:14,init:112,d:[48,68],w:'katana2',xp:600,role:'caster',brv:90,lead:1,banner:1,max:1,sub:'samurai',east:1,abs:['brally','iaido','riposte']}
 });
 const EASTLOOT=['tanto','wakizashi','katana','suyari','jumonji','hankyu','naginata','jingasa','hachigane','kabuto','tatami','do','kesa'];
 FACT.east={n:'The Shogunate',g:'K',col:'#c4493f',skin:'#f0c8a0',tier:'early',spawn:{gate:2,d0:0,d1:0},east:1,biomes:null,lair:'Break an eastern war camp',
- units:[['ashi',18],['ashi',18],['ashiy',22],['shinobi',36],['sohei',40],['onna',44],['samurai',52],['taisho',96]],rank:[.5,1.2,.3,19],loot:EASTLOOT};
+ units:[['ashi',20],['ashi',20],['ashiy',24],['shinobi',40],['sohei',48],['onna',60],['samurai',74],['taisho',120]],rank:[.5,1.2,.3,19],loot:EASTLOOT};
 
 /* ---- eastern gear: every family across the tiers; east:1 marks it for the eastern markets ----
    Skills: katana -> the sword tree (slash, riposte) plus Iaijutsu; nodachi -> greatsword; wakizashi / tanto -> sword / dagger;

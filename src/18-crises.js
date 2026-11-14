@@ -18,7 +18,7 @@
            crisisFacts() crisisDay(news) startCrisis() crisisEnd(won) crisisSheet() crisisLine() crisisMarks() crisisOutcome() crisisNews()
            crTownHeld(i) townOwner(i) crTownSheet(i) crPartyBattle(p,o) crisisBattleEnd(s,win) crSiteSheet(s) crAssault(k) */
 const CRKEYS=['sunder','deadmarch','horde','barbarian'];
-const CRK={start:18,doomLose:100,hostCap:5,siegeDays:2,fallDoom:9,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
+const CRK={start:18,doomLose:100,hostCap:4,siegeDays:3,fallDoom:6,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
 const CRTITLE={sunder:'Sealers of the Sky',deadmarch:'Breakers of the Bone Throne',horde:'Bane of the Great Horde',barbarian:'Emperor-Slayers'};
 const CRTROPHY={sunder:'crshard',deadmarch:'crbonecrown',horde:'crwartusk',barbarian:'crempcrown'};
 const CR_LTN=['Morvane the Unburied','Sister Ashgrave','Old Hollowmouth','Corvus Pale','the Widow Marrow','Bishop Sallow'];
@@ -134,8 +134,8 @@ function crFree(i,how,news){const t=G.towns[i];if(!t||!t.held)return false;const
 function crSiegeHost(i){for(const p of G.parties)if(p.cr&&!p.gone&&p.siegeT===i)return p;return null}
 // sieges run their course: two days after a host camps before a town, it falls unless it holds
 function crSieges(news){for(const p of G.parties){if(!p.cr||p.gone||p.siegeT==null)continue;const i=p.siegeT,t=G.towns[i];if(!t||crTownHeld(i)){p.siegeT=null;p.gone=1;continue}
-  if(G.day-p.sday<CRK.siegeDays)continue;
-  const H=Array.isArray(G.houses)&&G.houses.find(h=>h.seat===i),hold=clamp(.12+.08*(t.size|0)+(H?.12:0)-.12*((p.mult||1)-1)+(t.ward?.25:0),.05,.55);
+  if(G.day-p.sday<CRK.siegeDays+(G.crisis&&G.day-G.crisis.day<12?2:0))continue;   // the first sieges of a crisis are slower: time to answer them
+  const H=Array.isArray(G.houses)&&G.houses.find(h=>h.seat===i),hold=clamp(.32+.08*(t.size|0)+(H?.15:0)+.05*(G.crisis&&G.crisis.fell|0)-.12*((p.mult||1)-1),.1,.7);   // each fallen town stiffens the rest
   if(p.cr==='raid'){crSack(i,p,news);continue}
   if(rnd()<hold){p.gone=1;townSitDel(i,'crsiege');const w=`${t.name} held against ${factName(p.f).replace(/^The /,'the ')}`;worldNews(w);news.push(w);continue}
   p.gone=1;crFall(i,p.f,news)}}
@@ -290,19 +290,19 @@ deadmarch:{n:'The Dead March',f:'dead',icon:'skull',d:'The graveyards empty. Ris
  lateText:'The Bone Throne can still be broken, if the company can reach it.',
  start(G){const c=G.crisis,n=WN<=64?3:4,av=[];c.total=3;c.closed=0;c.clues=0;
   c.lts=[];const names=CR_LTN.slice();for(let i=0;i<3;i++){const j=ri(0,names.length-1);c.lts.push({n:names.splice(j,1)[0],alive:true,day:0})}
-  const T0=G.towns[0];for(let g=0;g<n;g++){const p=crSpot(5,(x,y)=>{const px=(x+.5)*TS,py=(y+.5)*TS;let d=1e9;for(const a of av)d=Math.min(d,Math.hypot(a.x-px,a.y-py));return Math.min(d,30*TS)/TS-Math.abs(Math.hypot(px-T0.x,py-T0.y)/TS-18)*.3},0x9a0+g*77,av.map(a=>({x:a.x,y:a.y,r:9})));
+  const T0=G.towns[0];for(let g=0;g<n;g++){const p=crSpot(7,(x,y)=>{const px=(x+.5)*TS,py=(y+.5)*TS;let d=1e9;for(const a of av)d=Math.min(d,Math.hypot(a.x-px,a.y-py));return Math.min(d,30*TS)/TS-Math.abs(Math.hypot(px-T0.x,py-T0.y)/TS-18)*.3},0x9a0+g*77,av.map(a=>({x:a.x,y:a.y,r:9})));
    av.push(p);crSite('grave',p.x,p.y,{n:g})}
   const t=crSpot(8,(x,y)=>Math.hypot((x+.5)*TS-T0.x,(y+.5)*TS-T0.y)/TS,0x7b3,av.map(a=>({x:a.x,y:a.y,r:5})));c.throne={x:t.x,y:t.y,known:0};
-  for(const s of G.sites)if(s.kind==='grave')crRaise(s.x,s.y,1)},
+  {const g=G.sites.find(s=>s.kind==='grave');if(g)crRaise(g.x,g.y,1)}},
  day(G,news){const c=G.crisis,age=G.day-c.day,cap=Math.min(8,CRK.hostCap+Math.floor(age/10)),H=crHosts('dead');let n=H.length;
   // night: every graveyard may raise a host; haunted towns raise them too
-  for(const s of G.sites){if(s.kind!=='grave'||n>=cap)continue;if(rnd()<.32*c.str){if(crRaise(s.x,s.y,1))n++}}
+  for(const s of G.sites){if(s.kind!=='grave'||n>=cap)continue;if(rnd()<.12*c.str){if(crRaise(s.x,s.y,1))n++}}
   G.towns.forEach((t,i)=>{if(n<cap&&crTownHeld(i)==='dead'&&rnd()<.12){if(crRaise(t.x,t.y+TS,1,i))n++}});
   // the lieutenants take the field in turn
-  for(let i=0;i<c.lts.length;i++){const L=c.lts[i];if(!L.alive||H.some(p=>p.cr==='lt'&&p.lt===i)||G.day-L.day<4||rnd()>=.3)continue;const g=G.sites.filter(s=>s.kind==='grave');const s=g.length?g[i%g.length]:null;if(!s)break;
+  for(let i=0;i<c.lts.length;i++){const L=c.lts[i];if(!L.alive||H.some(p=>p.cr==='lt'&&p.lt===i)||G.day-L.day<8||rnd()>=.25)continue;const g=G.sites.filter(s=>s.kind==='grave');const s=g.length?g[i%g.length]:null;if(!s)break;
    if(crRaise(s.x,s.y,1.15,null,{cr:'lt',lt:i})){L.day=G.day;const w=`${L.n} leads a host out of the graves`;worldNews(w);news.push(w)}break}
   if(!c.throne.known&&(c.clues>=4||c.doom>=70))crThroneReveal(news);
-  return .55+.35*G.towns.filter((t,i)=>crTownHeld(i)==='dead').length},
+  return .5+.25*G.towns.filter((t,i)=>crTownHeld(i)==='dead').length},
  ended(G){return !!G.crisis.throneDown},
  win(G){crDisband('dead');crDropSite('grave');crDropSite('throne');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='dead')crFree(i,'end')})},
  lose(G){crThroneReveal()},
@@ -337,7 +337,7 @@ horde:{n:'The Great Horde',f:'horde',icon:'swords',d:'Orc and goblin tribes gath
   if(due&&n<cap){const L=crTownsNear(c.camp.x,c.camp.y,3,i=>crTargeted(i));if(L.length){const to=L[ri(0,L.length-1)];if(crHost('horde',c.camp.x,c.camp.y,to,{cr:'band',spd:8})){n++;const w=`A horde war band marches on ${G.towns[to].name}`;worldNews(w);news.push(w)}}}
   // the towns the horde holds send war bands of their own
   G.towns.forEach((t,i)=>{if(n>=cap||crTownHeld(i)!=='horde'||rnd()>=.12)return;const L=crTownsNear(t.x,t.y,2,j=>crTargeted(j));if(L.length&&crHost('horde',t.x,t.y+TS,L[0],{cr:'band',spd:8}))n++});
-  return .6+.3*G.towns.filter((t,i)=>crTownHeld(i)==='horde').length},
+  return .5+.25*G.towns.filter((t,i)=>crTownHeld(i)==='horde').length},
  ended(G){return !!(G.crisis.chief&&!G.crisis.chief.alive)},
  win(G){crDisband('horde');crDropSite('hcamp');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='horde'&&rnd()<.5)crFree(i,'end')})},
  lose(G){},

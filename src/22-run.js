@@ -134,7 +134,7 @@ function runEsc(s){return typeof htmlEsc==='function'?htmlEsc(s):String(s)}
 // the difficulty / ironman chips of a company (the new-company sheet, the slot cards, the summary)
 function runChips(diff,iron){const D=DIFF[diff]||DIFF.normal;return`<span class="rn-chip d-${DIFF[diff]?diff:'normal'}">${runIc('diff-'+(DIFF[diff]?diff:'normal'))}${runEsc(D.n)}</span>${iron?`<span class="rn-chip iron">${runIc('ironman')}Ironman</span>`:''}`}
 function runStartLine(){if(!G)return'';const t=G.tut&&!G.tut.done;
- return`<p class="rn-start">${runChips(G.diff,G.ironman)}${t?`<span class="rn-chip tut">${runIc('hint')}Tutorial</span>`:''}<small>${G.ironman?'One book, written as you go. No reloads: death or retirement ends the march.':runEsc(DIFF[diffOf()].d)}</small></p>`}
+ return`<p class="rn-start">${runChips(G.diff,G.ironman)}${t?`<span class="rn-chip tutc">${runIc('hint')}Tutorial</span>`:''}<small>${G.ironman?'One book, written as you go. No reloads: death or retirement ends the march.':runEsc(DIFF[diffOf()].d)}</small></p>`}
 /* ---- the summary sheet ---- */
 const RUNKIND={retire:{h:'The banner is laid down',ic:'banner'},wipe:{h:'The company is no more',ic:'skull'},victory:{h:'The crisis is broken',ic:'laurel'},live:{h:'The chronicle so far',ic:'ledger'}};
 function runStat(ic,v,l){return`<div class="rs-st">${runIc(ic)}<b class="pxn">${runEsc(v)}</b><small>${runEsc(l)}</small></div>`}
@@ -175,7 +175,7 @@ function hallClearAsk(){sheet(`<h2>Forget the fallen?</h2><p>Every name in the h
 function slotCard(s){const i=s.slot,ok=s.state==='ok',bn=ok&&typeof bannerHTML==='function'?bannerHTML(s.banner,40,'sl-bn'):`<span class="sl-empty">${runIc('ledger',32)}</span>`;
  const t=ok?`<b>${runEsc(s.name||'')}</b><small>Day ${s.day} · ${s.swords} sword${s.swords===1?'':'s'} · ${s.crowns} crowns${s.wsize&&WORLDSZ[s.wsize]?' · '+WORLDSZ[s.wsize].name:''}</small><span class="sl-chips">${runChips(s.diff,s.ironman)}</span>`
   :s.state==='none'?`<b>An empty book</b><small>Raise a new company here</small>`:`<b>${s.state==='newer'?'A newer save':'A damaged save'}</b><small>${s.state==='newer'?'Saved by a newer version':'It cannot be read'+(s.why?' ('+runEsc(s.why)+')':'')}</small>`;
- const act=ok?`<button class="pri sm" onclick="slotPlay(${i})">${runIc('back')}<span>Play</span></button>${s.ironman?'':`<button class="sm" onclick="exportSheet(${i})">${runIc('export')}<span>Export</span></button>`}<button class="sm warn" onclick="slotDelAsk(${i})" aria-label="Delete book ${i+1}">${runIc('close')}</button>`
+ const act=ok?`<button class="pri sm" onclick="slotPlay(${i})">${runIc('endturn')}<span>Play</span></button>${s.ironman?'':`<button class="sm" onclick="exportSheet(${i})">${runIc('export')}<span>Export</span></button>`}<button class="sm warn" onclick="slotDelAsk(${i})" aria-label="Delete book ${i+1}">${runIc('close')}</button>`
   :`<button class="pri sm" onclick="slotNew(${i})">${runIc('banner')}<span>New</span></button><button class="sm" onclick="importSheet(${i})">${runIc('import')}<span>Import</span></button>${s.state!=='none'?`<button class="sm warn" onclick="slotDelAsk(${i})" aria-label="Clear book ${i+1}">${runIc('close')}</button>`:''}`;
  return`<div class="sl-card${s.cur?' cur':''}${ok?'':' off'}"><span class="sl-n pxn">${i+1}</span>${bn}<span class="sl-t">${t}</span><span class="sl-a">${act}</span></div>`}
 function slotsSheet(){if(G&&mode==='world')save();const L=saveSlots(),back=mode==='title'?'closeSheet(true)':'menuSheet()';

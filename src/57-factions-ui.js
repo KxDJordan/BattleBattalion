@@ -10,16 +10,20 @@ const FXTIERC={hostile:'g',cold:'X',neutral:'p',friendly:'5',allied:'c'};
 function fxuEsc(s){return typeof htmlEsc==='function'?htmlEsc(s):String(s)}
 function fxuIc(n,sz,cls){if(typeof pnIcon==='function')return pnIcon(n,cls||'',sz||16);return typeof pxIcon==='function'?pxIcon(n,sz||16):''}
 function fxuTiers(){return typeof REPT==='object'&&Array.isArray(REPT)&&REPT.length?REPT:[{k:'hostile',n:'Hostile',min:-100},{k:'cold',n:'Cold',min:-40},{k:'neutral',n:'Neutral',min:-10},{k:'friendly',n:'Friendly',min:15},{k:'allied',n:'Allied',min:50}]}
-function fxuFacts(){const L=[];if(G&&Array.isArray(G.houses))for(const h of G.houses)if(h&&h.id)L.push(h.id);if(G&&G.towns&&G.towns.some(t=>t.own==='free')||(G&&G.rep&&typeof G.rep.free==='number'))L.push('free');return L}
-function fxuTowns(f){if(typeof houseTowns==='function'&&f!=='free'){try{return houseTowns(f)}catch(e){}}const L=[];if(G&&G.towns)G.towns.forEach((t,i)=>{if(t.own===f)L.push(i)});return L}
-function fxuRel(a,b){if(typeof houseRelation==='function'){try{return houseRelation(a,b)}catch(e){}}if(G&&Array.isArray(G.wars)&&G.wars.some(w=>(w.a===a&&w.b===b)||(w.a===b&&w.b===a)))return'war';return'peace'}
+/* the East (19-east.js) stands beside the houses: its banner and name from G.east, its towns those it owns, its standing G.rep.east */
+function fxuEast(f){return f==='east'&&!!G&&!!G.east&&typeof G.east==='object'}
+function fxuHouse(f){if(fxuEast(f))return typeof eastHouse==='function'?eastHouse():{id:'east',n:G.east.n,short:G.east.short,c1:G.east.c1,c2:G.east.c2,emblem:G.east.emblem,seat:-1};return lkHouse(f)}
+function fxuName(f){if(fxuEast(f))return G.east.n||'The East';return lkFacName(f)}
+function fxuFacts(){const L=[];if(G&&Array.isArray(G.houses))for(const h of G.houses)if(h&&h.id)L.push(h.id);if(fxuEast('east'))L.push('east');if(G&&G.towns&&G.towns.some(t=>t.own==='free')||(G&&G.rep&&typeof G.rep.free==='number'))L.push('free');return L}
+function fxuTowns(f){if(typeof houseTowns==='function'&&f!=='free'&&f!=='east'){try{return houseTowns(f)}catch(e){}}const L=[];if(G&&G.towns)G.towns.forEach((t,i)=>{if(t.own===f)L.push(i)});return L}
+function fxuRel(a,b){if(a==='east'||b==='east'){const v=typeof eastWar==='function'?eastWar():null;return v&&v.stage==='war'&&v.side!=='east'?'war':'tense'}if(typeof houseRelation==='function'){try{return houseRelation(a,b)}catch(e){}}if(G&&Array.isArray(G.wars)&&G.wars.some(w=>(w.a===a&&w.b===b)||(w.a===b&&w.b===a)))return'war';return'peace'}
 const FXRELN={war:'At war',tense:'Tense',peace:'At peace',ally:'Friends'};
 /* the standing bar: tier segments from -100 to 100, a pin at the value */
 function fxuBar(f,big){const v=clamp(Math.round(lkRep(f)),-100,100),T=fxuTiers(),cur=lkRepTier(f);let seg='';
  for(let i=0;i<T.length;i++){const a=T[i].min,b=i+1<T.length?T[i+1].min:101,w=(b-a)/201*100;seg+=`<i class="t-${T[i].k}${T[i].k===cur.k?' on':''}" style="width:${w.toFixed(2)}%"${big?` title="${fxuEsc(T[i].n)}"`:''}></i>`}
  return`<span class="fx-bar${big?' big':''}" role="img" aria-label="Standing ${v} of 100, ${fxuEsc(cur.n)}">${seg}<b style="left:${((v+100)/200*100).toFixed(2)}%"></b></span>`}
 function fxuTierChip(f){const t=lkRepTier(f);return`<span class="fx-tier t-${t.k}">${fxuIc('rep-'+t.k,16)}${fxuEsc(t.n)}</span>`}
-function fxuBanner(f,sz){const h=lkHouse(f);if(h&&typeof bannerHTML==='function')return bannerHTML({name:h.n,c1:h.c1,c2:h.c2,emblem:h.emblem},sz||32);
+function fxuBanner(f,sz){const h=fxuHouse(f);if(h&&typeof bannerHTML==='function')return bannerHTML({name:h.n,c1:h.c1,c2:h.c2,emblem:h.emblem},sz||32);
  if(f==='free')return`<i class="fx-free" style="width:${Math.round((sz||32)*.75)}px;height:${sz||32}px">${fxuIc('market',16)}</i>`;return fxuIc('skull',sz||32)}
 function fxuPers(h){const P=typeof HPERS==='object'&&HPERS&&h?HPERS[h.pers]:null;return P||null}
 /* what the tier does in that faction's towns, in plain words */
@@ -32,19 +36,19 @@ function fxuEffects(f){const t=lkRepTier(f),K=typeof REPK==='object'&&REPK?REPK[
 function fxuNext(f){const v=lkRep(f),T=fxuTiers(),i=T.findIndex(t=>t.k===lkRepTier(f).k);const up=T[i+1],dn=i>0?T[i]:null;
  return(up?`${up.min-v} to ${fxuEsc(up.n)}`:'The highest standing')+(dn&&i>0?` · ${fxuEsc(T[i-1].n)} below ${dn.min}`:'')}
 function fxuLog(f,n){const L=G&&Array.isArray(G.repLog)?G.repLog:[],out=[];for(let i=L.length-1;i>=0&&out.length<(n||99);i--){const e=L[i];if(e&&(!f||e.f===f))out.push(e)}return out}
-function fxuLogRow(e,showF){const d=Math.round(+e.n||0);return`<div class="fx-log${d<0?' neg':''}">${showF?`<span class="fx-lb">${fxuBanner(e.f,24)}</span>`:''}<b class="fx-d">${d>0?'+':d<0?'−':''}${Math.abs(d)}</b><span class="fx-why">${showF?`<em>${fxuEsc(lkFacName(e.f))}</em>`:''}${fxuEsc(e.why||'Standing changed')}</span><small>Day ${e.day|0}</small></div>`}
+function fxuLogRow(e,showF){const d=Math.round(+e.n||0);return`<div class="fx-log${d<0?' neg':''}">${showF?`<span class="fx-lb">${fxuBanner(e.f,24)}</span>`:''}<b class="fx-d">${d>0?'+':d<0?'−':''}${Math.abs(d)}</b><span class="fx-why">${showF?`<em>${fxuEsc(fxuName(e.f))}</em>`:''}${fxuEsc(e.why||'Standing changed')}</span><small>Day ${e.day|0}</small></div>`}
 /* ---- the house list ---- */
 function fxuList(){const F=fxuFacts();if(!F.length)return pnEmpty('No houses rule this land yet.');let h='';
- F.forEach(f=>{const n=fxuTowns(f).length,P=fxuPers(lkHouse(f));
-  h+=pnRow({on:`factionsPick('${f}')`,sel:f===FXUI.sel,cls:'wrap fx-row',lead:fxuBanner(f,40),title:fxuEsc(lkFacName(f)),sub:`${fxuTierChip(f)}<span class="fx-n">${n} town${n===1?'':'s'}${P?' · '+fxuEsc(P.n):''}</span>${fxuBar(f)}`})});
+ F.forEach(f=>{const n=fxuTowns(f).length,P=fxuPers(fxuHouse(f));
+  h+=pnRow({on:`factionsPick('${f}')`,sel:f===FXUI.sel,cls:'wrap fx-row',lead:fxuBanner(f,40),title:fxuEsc(fxuName(f)),sub:`${fxuTierChip(f)}<span class="fx-n">${n} town${n===1?'':'s'}${P?' · '+fxuEsc(P.n):''}</span>${fxuBar(f)}`})});
  const M=typeof FACT==='object'&&FACT?Object.keys(FACT).filter(k=>!FACT[k].house&&k!=='free'):[];
  if(M.length)h+=`<div class="fx-mon">${pnSec('Always hostile')}<div class="fx-monl">${M.map(k=>`<span title="${fxuEsc(FACT[k].n||k)}">${typeof twEmblem==='function'?twEmblem({type:'hunt',f:k},24):''}<b>${fxuEsc(FACT[k].n||k)}</b></span>`).join('')}</div></div>`;
  return h}
 /* ---- one faction ---- */
-function fxuDetail(f){const h=lkHouse(f),P=fxuPers(h),towns=fxuTowns(f),v=Math.round(lkRep(f)),t=lkRepTier(f);let d='';
+function fxuDetail(f){const h=fxuHouse(f),P=fxuPers(h),towns=fxuTowns(f),v=Math.round(lkRep(f)),t=lkRepTier(f);let d='';
  const seat=h&&G.towns[h.seat]?G.towns[h.seat].name:null;
- d+=`<div class="fx-hero">${fxuBanner(f,72)}<div><div class="pn-kick">${h?'Noble house':'Independent'}${P?' · '+fxuEsc(P.n):''}</div><div class="pn-h">${fxuEsc(lkFacName(f))}</div>
-  <p class="pn-p">${h?(seat?'Seat at <b>'+fxuEsc(seat)+'</b>. ':'')+(P?fxuEsc(P.d):''):'Towns that answer to no lord. Their councils hire swords like anyone else and remember who kept the roads safe.'}</p></div></div>`;
+ d+=`<div class="fx-hero">${fxuBanner(f,72)}<div><div class="pn-kick">${fxuEast(f)?'The Eastern realm':h?'Noble house':'Independent'}${P?' · '+fxuEsc(P.n):''}</div><div class="pn-h">${fxuEsc(fxuName(f))}</div>
+  <p class="pn-p">${fxuEast(f)?fxuEsc((G.east.lord?'Ruled by '+G.east.lord+'. ':'')+'Pagodas and curved-roof castles beyond the eastern hills. Its warriors keep their own code, and its markets sell steel the houses cannot match.')+(typeof eastWarStatus==='function'&&eastWarStatus()?`</p><p class="pn-p fx-ew">${fxuIc('flag',16)} <b>${fxuEsc(eastWarStatus())}</b>${typeof eastWarSheet==='function'&&typeof eastWarOn==='function'&&eastWarOn()?` <button class="sm" onclick="eastWarSheet()">The war</button>`:''}`:''):h?(seat?'Seat at <b>'+fxuEsc(seat)+'</b>. ':'')+(P?fxuEsc(P.d):''):'Towns that answer to no lord. Their councils hire swords like anyone else and remember who kept the roads safe.'}</p></div></div>`;
  d+=pnHead('Your standing')+`<div class="fx-stand">${fxuTierChip(f)}<b class="fx-v">${v>0?'+':''}${v}</b><small>${fxuNext(f)}</small></div>${fxuBar(f,true)}<div class="fx-ticks">${fxuTiers().map(x=>`<span>${fxuEsc(x.n)}</span>`).join('')}</div>`;
  d+=pnHead('In '+(h?'its':'their')+' towns at '+fxuEsc(t.n.toLowerCase()))+pnFacts(fxuEffects(f));
  if(h&&G.houses.length>1){const R=G.houses.filter(o=>o.id!==f).map(o=>{const r=fxuRel(f,o.id);return`<div class="fx-rel r-${r}">${fxuBanner(o.id,28)}<span><b>${fxuEsc(o.n)}</b><small>${fxuEsc(FXRELN[r]||r)}</small></span>${r==='war'?fxuIc('swords',16):''}</div>`}).join('');
@@ -53,7 +57,7 @@ function fxuDetail(f){const h=lkHouse(f),P=fxuPers(h),towns=fxuTowns(f),v=Math.r
   return`<div class="fx-town${h&&h.seat===i?' seat':''}"><b>${fxuEsc(T.name)}${h&&h.seat===i?' <em>seat</em>':''}</b><span class="fx-sits">${S.map(s=>`<span title="${fxuEsc(lkSitDef(s.k||s).n)}">${fxuIc(lkSitIcon(s.k||s),16)}</span>`).join('')}${hp?'<span class="fx-bad">closed</span>':''}</span>${typeof T.pros==='number'?`<span class="fx-pros" title="Prosperity ${Math.round(T.pros)}">${pnBar(T.pros,'pros')}</span>`:''}</div>`}).join('')}</div>`:pnEmpty('No towns.'));
  const L=fxuLog(f,8);d+=pnHead('Recent')+(L.length?`<div class="fx-logs">${L.map(e=>fxuLogRow(e,false)).join('')}</div>`:pnEmpty('Nothing yet. Contracts, battles and choices on the road change your standing.'));
  return d}
-function fxuStanding(){const L=fxuLog(null,30);let h=`<div class="fx-sum">${fxuFacts().map(f=>`<div class="fx-sumi" role="button" tabindex="0" onclick="factionsPick('${f}')">${fxuBanner(f,32)}<span><b>${fxuEsc(lkFacName(f))}</b>${fxuTierChip(f)}${fxuBar(f)}</span></div>`).join('')}</div>`;
+function fxuStanding(){const L=fxuLog(null,30);let h=`<div class="fx-sum">${fxuFacts().map(f=>`<div class="fx-sumi" role="button" tabindex="0" onclick="factionsPick('${f}')">${fxuBanner(f,32)}<span><b>${fxuEsc(fxuName(f))}</b>${fxuTierChip(f)}${fxuBar(f)}</span></div>`).join('')}</div>`;
  const N=G&&Array.isArray(G.news)?G.news.slice(-12).reverse():[];if(N.length)h+=pnHead('News from the roads')+`<div class="fx-logs">${N.map(e=>`<div class="fx-log">${fxuIc('day',16)}<span class="fx-why">${fxuEsc(e.t||'')}</span><small>Day ${e.day|0}</small></div>`).join('')}</div>`;
  h+=pnHead('Reputation log')+(L.length?`<div class="fx-logs all">${L.map(e=>fxuLogRow(e,true)).join('')}</div>`:pnEmpty('No changes yet. Contracts, battles and choices on the road change your standing.'));return h}
 /* ---- rival companies (rivals round): the list (banner, personality, renown, swords, standing; the wiped out greyed) and one company ---- */
@@ -67,7 +71,7 @@ function fxuRvDetail(id){const r=lkRival(id);if(!r)return pnEmpty('No company.')
  d+=`<div class="fx-hero">${rivalBannerHTML(r,64)}<div><div class="pn-kick">${fxuIc(P.icon,16)} Mercenary company · ${fxuEsc(P.n)}</div><div class="pn-h">${fxuEsc(r.n)}${dd?' <span class="fx-dead">Wiped out</span>':''}</div>
   <p class="pn-p">${job&&!dd?'<b>'+fxuEsc(job)+'.</b> ':''}${fxuEsc(P.d)}</p></div></div>`;
  const s=dd?0:lkRivalStr(r);
- d+=pnFacts([['Renown',`${fxuEsc(T.n)} · ${Math.round(+r.renown||0)}`],['Swords',dd?'None':String(n)],home?['Home',fxuEsc(home.name)]:null,!dd?['Against you',`<span class="${s<=1?'fx-good':s>=3?'fx-bad':''}">${lkStrWord(s)}</span>`]:null,r.hired&&!dd?['Hired by',`<span class="fx-bad">${fxuEsc(lkFacName(r.hired.by))}, to hunt you</span>`]:null]);
+ d+=pnFacts([['Renown',`${fxuEsc(T.n)} · ${Math.round(+r.renown||0)}`],['Swords',dd?'None':String(n)],home?['Home',fxuEsc(home.name)]:null,!dd?['Against you',`<span class="${s<=1?'fx-good':s>=3?'fx-bad':''}">${lkStrWord(s)}</span>`]:null,r.hired&&!dd?['Hired by',`<span class="fx-bad">${fxuEsc(fxuName(r.hired.by))}, to hunt you</span>`]:null]);
  if(!dd){d+=pnHead('Their stance toward you')+`<div class="fx-stand">${fxuTierChip(r.id)}<b class="fx-v">${v>0?'+':''}${v}</b><small>${fxuNext(r.id)}</small></div>${fxuBar(r.id,true)}<div class="fx-ticks">${fxuTiers().map(x=>`<span>${fxuEsc(x.n)}</span>`).join('')}</div>`;
   const R=(Array.isArray(r.roster)?r.roster.filter(Boolean):[]).slice().sort((a,b)=>(+b.lvl||1)-(+a.lvl||1)).slice(0,6);
   if(R.length)d+=pnHead('Their best swords')+`<div class="fx-mercs">${R.map(m=>`<div class="fx-merc">${typeof portraitHTML==='function'?portraitHTML(m,32):''}<span><b>${fxuEsc(m.name||'')}</b><small>Level ${m.lvl|0}${typeof BG==='object'&&BG[m.bg]?' '+fxuEsc(BG[m.bg].n.toLowerCase()):''}</small></span></div>`).join('')}</div>`}

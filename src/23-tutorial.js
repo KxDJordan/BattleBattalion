@@ -69,7 +69,8 @@ function tutPlace(e,a){const vw=innerWidth,vh=innerHeight,w=Math.min(300,vw-24);
   else if(r.top>vh*.55){x=clamp(cx-w/2,8,vw-w-8);y=r.top-h-12;dir='d'}
   else{x=clamp(cx-w/2,8,vw-w-8);y=r.bottom+12;dir='u'}
   const ar=e.querySelector('.tut-ar');if(ar){if(dir==='r'){ar.style.left='';ar.style.top=clamp(r.top+r.height/2-y-6,10,h-20)+'px'}else{ar.style.top='';ar.style.left=clamp(cx-x-6,12,w-24)+'px'}}}
- else{x=clamp(vw/2-w/2,8,vw-w-8);y=mode==='battle'?Math.max(56,vh*.14):Math.max(52,vh*.16)}
+ else if(mode==='battle'){x=8;y=vh-h-8}                                   // the board's middle stays clear: low on the left
+ else{x=clamp(vw/2-w/2,8,vw-w-8);y=Math.max(52,vh*.16)}
  e.style.left=Math.round(x)+'px';e.style.top=Math.round(Math.max(8,y))+'px';e.dataset.dir=dir}
 function tutHide(){if(TUT.el&&!TUT.el.classList.contains('hidden'))TUT.el.classList.add('hidden')}
 // the first hint after the "company is raised" sheet closes (and after a load)

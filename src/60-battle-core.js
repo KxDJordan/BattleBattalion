@@ -133,7 +133,7 @@ function mkMercUnit(m,side){const s=calc(m),res={},c=armorCond(m),sh=s.shield;fo
  const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m)),tb=unitTraitB(m,s,side?1:0);
  return initLoad(initUnit({side:side?1:0,mor:s.flags.cocky?4:3,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init+tb.init,ms:s.ms+tb.ms,rs:s.rs+tb.rs,md:s.md,rd:s.rd,brv:s.brv+tb.brv,
   wpn:s.wpn,abs:s.abs.slice(),res,flags:s.flags,dmgB:s.dmg,buffs:[],st:{},alive:true,shield:!!sh&&sh.raised,slung:!!sh&&!sh.raised,shp:sh?sh.hp:0,shpMax:sh?sh.hp:0,shb:sh?{md:sh.md,rd:sh.rd}:null,
-  hand:'w',wid:s.wid,alt:s.alt,cld:s,back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null,aw:s.aw||0,acl:s.acl||'light'}))}
+  hand:'w',wid:s.wid,alt:s.alt,cld:s,fabled:m.fabled||null,title:m.fabled&&m.title||'',back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null,aw:s.aw||0,acl:s.acl||'light'}))}
 /* ---- Rival companies (CONTRACT.md) ----
    battleRival(id): the rival company record (rivalById from 15-factions.js / 40-world.js, else G.rivals), or null.
    rivalField(r): the mercs it fields, at most MAXRIVAL: those not benched (m.field!==false) first, in roster order; the dead never.
@@ -149,7 +149,7 @@ function rivalName(r){return r&&r.n?String(r.n):'A rival company'}
 function battleFoeN(o){const f=o&&o.f;if(FACT[f])return FACT[f].n;const r=battleRival(o&&o.rival||f);return r?rivalName(r):'Foes'}
 function rivalField(r){const L=(r&&Array.isArray(r.roster)?r.roster:[]).filter(m=>m&&m.eq&&m.base&&!m.dead&&!(m.hp<=0));
  return L.filter(m=>m.field!==false).concat(L.filter(m=>m.field===false)).slice(0,MAXRIVAL)}
-function mkRivalUnit(m,r){const u=mkMercUnit(m,1),s=m.slot;u.f=r.id;u.rival=r.id;
+function mkRivalUnit(m,r){const u=mkMercUnit(m,1),s=m.slot;u.f=r.id;u.rival=r.id;if(m.fabled){u.fabled=m.fabled;u.title=m.title||''}
  if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:BW-1-s.col,r:s.row?DEPLOY.e.back:DEPLOY.e.front};return u}
 function rivalPreview(r){return rivalField(r).map(m=>{const s=calc(m),gk=m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m);
  return{id:m.id,name:m.name,bg:m.bg,bgN:BG[m.bg]?BG[m.bg].n:m.bg,lvl:m.lvl,back:!!(isRangedW(s.wpn)||gk),w:s.wid||null,s:m.eq.s||null,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,inj:Array.isArray(m.inj)?m.inj.length:0}})}

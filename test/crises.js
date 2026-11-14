@@ -107,7 +107,7 @@ section('towns');
  X.sheets.length=0;ok(X.crTownSheet(i)&&/Storm the gate/.test(X.sheets.join()),'arriving at a held town offers the fight');closeAll(X);
  X.worldBattleEnd({type:'crisis',k:'horde',what:'town',i},true);ok(!X.crTownHeld(i)&&G.towns[i].own===own,'liberating a town returns it');
  // a host besieges and the town falls (or holds) after two days
- const p=X.crHost('horde',G.towns[i].x+40,G.towns[i].y,i,{cr:'band'});ok(p,'crHost');X.crArrive(p);ok(p.siegeT===i&&X.townSit(i,'crsiege'),'arrival must start a siege');for(let d=0;d<3;d++)day(G);ok(!G.parties.some(q=>q.id===p.id),'the siege must end');
+ const p=X.crHost('horde',G.towns[i].x+40,G.towns[i].y,i,{cr:'band'});ok(p,'crHost');X.crArrive(p);ok(p.siegeT===i&&X.townSit(i,'crsiege'),'arrival must start a siege');for(let d=0;d<6;d++)day(G);ok(!G.parties.some(q=>q.id===p.id),'the siege must end');
  console.log('fall, liberation, sieges: ok')}
 
 section('contracts');

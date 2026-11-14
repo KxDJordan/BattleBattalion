@@ -185,7 +185,7 @@ function fabledStats(F,L){const g=L-1,b={hp:66+Math.round(3*g),fat:106+2*g,init:
  const R=RACE[F.race]||RACE.human;for(const k in R.st)b[k]=(b[k]||0)+R.st[k];for(const k in F.st||{})b[k]=(b[k]||0)+F.st[k];return b}
 function fabledMerc(id,o){const F=FABLED[id];if(!F)return null;o=o||{};const L=clamp(Math.floor(o.lvl||F.lvl),1,typeof MAXLV==='number'?MAXLV:15);
  const eq={w:null,b:null,s:null,a:null,h:null};
- for(const gid of F.gear){const it=ITEMS[gid];if(!it)continue;if(it.k==='w'){if(!eq.w)eq.w=gid;else if(!eq.b)eq.b=gid}else if(['s','a','h'].includes(it.k)&&!eq[it.k])eq[it.k]=gid}
+ for(const gid of F.gear){const it=ITEMS[gid];if(!it||(!o.keepGear&&fabledOwned(gid)))continue;/* named gear is unique: what the company holds is not worn again */if(it.k==='w'){if(!eq.w)eq.w=gid;else if(!eq.b)eq.b=gid}else if(['s','a','h'].includes(it.k)&&!eq[it.k])eq[it.k]=gid}
  for(const k in F.eq||{}){const pick0=fabledBase(F.eq[k]);if(pick0&&!eq[k]&&ITEMS[pick0].k===k)eq[k]=pick0}
  const pool=(BG[F.bg]&&BG[F.bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice(0,4),trees=F.gift&&MAST[F.gift]?pool.concat([F.gift]):pool;
  const m={id:o.join&&G?G.nid++:-(1000+Object.keys(FABLED).indexOf(id)),name:F.n,title:F.title,bg:F.bg,race:RACE[F.race]?F.race:'human',lvl:1,xp:0,pp:1,pend:0,base:fabledStats(F,L),tal:{},trees,gift:F.gift&&MAST[F.gift]?F.gift:null,
