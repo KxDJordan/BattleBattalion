@@ -15,6 +15,8 @@
 // Rivals update: a rival mercenary company of the same profile (another of the profile's companies, its own formation and gear, played
 // by the rival AI: aiRun with AI_RIVAL's plan) at every profile (--no-rival skips it; --only rival runs only it). The sensible pilot
 // must win 55..75% overall against an equal rival (they are as good as you), and the naive pilot less than the sensible.
+// Solo update: the Solo (Beast Slayer) origin's one sword at levels 3, 6 and 9 (SOLO) against beasts, serpents and ogres, its quarry perks readied
+// for the faction (QPLAN); a table of its own, reported, not judged (--no-solo skips it; --only solo runs only it; --ns N battles a cell).
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
