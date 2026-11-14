@@ -208,6 +208,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
   log:'',floats:[],shots:[],cam:{x:ctr.x,y:ctr.y,tx:ctr.x,ty:ctr.y,z:1}};
  // B.auto is a live switch: turning it on while the company is waiting for orders hands the turn to the AI at once.
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
+ b.east=!!(o.east||(typeof isEast==='function'&&G&&G.p&&isEast(G.p.x,G.p.y)));   // eastern ground: 71-tiles draws eastern props
  B=b;const used=new Set(),pu=place(f.map(m=>{const u=mkPlayerUnit(m),s=m.slot;if(dep[m.id])u.slot=dep[m.id];else if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:s.col,r:s.row?DEPLOY.p.back:DEPLOY.p.front};return u}),DEPLOY.p.front,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used),
   el=o.rival?rf.map(m=>mkRivalUnit(m,rv)):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)});
  if(o.fabled&&typeof fabledSpawn==='function')fabledSpawn(el,o);   // fabled warriors mixed into the enemy side (o.fabled: ids)
@@ -324,7 +325,10 @@ function abilityInfo(u,id){const w=u.wpn,fl=u.flags||{},bowR=w.rng+(w.wt==='bow'
    A ranged weapon attack is an ability that uses a ranged weapon (RANGEDWT: bow, crossbow, flintlock): a.needs one of them, or a weapon
    ability (a.wpn) with one in hand. Spells are not. Reload weapons (wpn.reload) must also be loaded to fire (canFire); reloading is never locked.
    rangedLocked(u): an able foe (alive, not fleeing, not stunned) stands next to u, so it cannot shoot (perk flag noLock lifts it). */
-function isRangedAtk(u,a){return!!a&&!a.magic&&(RANGEDWT.includes(a.needs)||(!!a.wpn&&isRangedW(u.wpn)))}
+/* a.needs: one weapon family, or a list of them (needsOK). a.fresh: only as the unit's first action of its turn (all its AP left). */
+const needsOK=(a,wt)=>!a.needs||(Array.isArray(a.needs)?a.needs.includes(wt):a.needs===wt);
+const needsN=a=>Array.isArray(a.needs)?a.needs.join(' or '):a.needs;
+function isRangedAtk(u,a){return!!a&&!a.magic&&((Array.isArray(a.needs)?a.needs.some(w=>RANGEDWT.includes(w)):RANGEDWT.includes(a.needs))||(!!a.wpn&&isRangedW(u.wpn)))}
 // False when a would fire a reload weapon that is not loaded.
 const canFire=(u,a)=>!(u.wpn&&u.wpn.reload&&u.loaded===false&&isRangedAtk(u,a));
 function rangedLocked(u){if(!B||!u||!u.alive||(u.flags&&u.flags.noLock))return false;for(const e of B.units)if(e.alive&&e.side!==u.side&&e.mor!==0&&!(e.st&&e.st.stun)&&mdist(e,u)===1)return true;return false}
@@ -352,13 +356,13 @@ function swapWeapons(u){if(!canSwap(u))return false;const from=u.wpn;u.ld=Object
  float(u,u.wpn.n||'Fists','#e9e0c9');FX.emit('swap',{u,from,to:u.wpn});return true}
 // Why u cannot use a now ('' when it can): for the HUD. Mirrors canUse().
 function useBlock(u,a){if(!u||!a)return'Unavailable';if(u.mor===0)return'Fleeing';if(a.swapW&&!canSwap(u))return'No other weapon';
- if(a.needs&&u.wpn.wt!==a.needs)return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||a.needs+' in hand');if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
+ if(!needsOK(a,u.wpn.wt))return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||needsN(a)+' in hand');if(a.fresh&&u.ap<u.apMax)return'Only as the first action of a turn';if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
  if(a.noBow&&isRangedW(u.wpn))return'Not with a ranged weapon in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
  if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(!canFire(u,a))return'Not loaded: reload first';
  if(a.reloadW&&!u.wpn.reload)return'Nothing to reload';if(a.reloadW&&u.loaded!==false)return'Already loaded';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
  if(u.ap<a.ap)return'Not enough AP';if(u.fat+a.fat>u.fatMax)return'Too tired';return''}
-function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(a.needs&&u.wpn.wt!==a.needs)return false;
+function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;
  if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;
  if(a.noBow&&isRangedW(u.wpn))return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;if(!canFire(u,a))return false;
  if(a.reloadW&&(!u.wpn.reload||u.loaded!==false))return false;return true}

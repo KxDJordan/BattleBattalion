@@ -56,7 +56,7 @@ const plain=()=>Object.keys(I).filter(id=>!I[id].famed);
 section('catalog');
 { const looks={};for(const id of plain()){const it=I[id];ok(Number.isInteger(it.tier)&&it.tier>=1&&it.tier<=5,id+' has no tier 1..5');ok(typeof it.look==='string'&&it.look,id+' has no look');
    ok(!looks[it.look],'look '+it.look+' is shared by '+id+' and '+looks[it.look]);looks[it.look]=id;ok(it.price>0&&typeof it.n==='string'&&it.n,id+' has no name or price');
-   if(it.k==='w'){ok(Array.isArray(it.d)&&it.d[0]>0&&it.d[1]>it.d[0]&&it.ap>=2&&it.fat>=0&&it.rng>=1&&it.ign>0&&it.ign<1,id+': weapon numbers');ok(it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&(!X.AB[a].needs||X.AB[a].needs===it.wt)),id+': skills of its own family')}
+   if(it.k==='w'){ok(Array.isArray(it.d)&&it.d[0]>0&&it.d[1]>it.d[0]&&it.ap>=2&&it.fat>=0&&it.rng>=1&&it.ign>0&&it.ign<1,id+': weapon numbers');ok(it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&(!X.AB[a].needs||X.AB[a].needs===it.wt||(Array.isArray(X.AB[a].needs)&&X.AB[a].needs.includes(it.wt)))),id+': skills of its own family')}
    if(it.k==='s')ok(/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look)&&it.hp>0&&it.md>0&&it.rd>0,id+': shield look family and numbers');
    if(it.k==='a'||it.k==='h')ok(it.arm>0&&it.fat>=0,id+': armor numbers')}
   const rows=[];
