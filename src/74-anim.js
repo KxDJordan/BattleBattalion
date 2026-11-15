@@ -148,15 +148,24 @@ function anSprite(id){let c=AN_SPR[id];if(c!==undefined)return c;c=null;
    then up to three statuses from the rules' list, the pressing ones first; also the body tint and the fleeing / gathering poses */
 const AN_PRI={stun:0,nova:0,webbed:1,web:1,root:1,grab:1,daze:2,bleed:2,poison:2,burn:2,chill:3,hex:3,panic:1,enrage:1};
 const AN_TINT={chill:'F',webbed:'l',web:'l',poison:'A',hex:'C',enrage:'g',ward:'x'};
-function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic;let n=0,tint=null,tp=9;const m=typeof shMor==='function'?shMor(u):-1;
+function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic,bk=s.bk||(s.bk=[]);let n=0,tint=null,tp=9;const m=typeof shMor==='function'?shMor(u):-1;
  s.run=m===0||!!(u.st&&u.st.panic);s.gath=!!(u.st&&u.st.nova);
- if(m>=0&&m!==3){const c=anSprite('morale-'+m);if(c)ic[n++]=c}
- let lk=false;try{lk=typeof shLocked==='function'&&shLocked(u)}catch(e){}if(lk){const c=anSprite('ranged-lock');if(c)ic[n++]=c}
+ if(m>=0&&m!==3){const c=anSprite('morale-'+m);if(c){bk[n]=anBk(bk[n],'morale-'+m,m<=1?'bad':m===4?'good':'neutral',0);ic[n++]=c}}
+ let lk=false;try{lk=typeof shLocked==='function'&&shLocked(u)}catch(e){}if(lk){const c=anSprite('ranged-lock');if(c){bk[n]=anBk(bk[n],'ranged-lock','bad',0);ic[n++]=c}}
  let L=null;try{L=shStatuses(u)}catch(e){}
  if(L){for(let pass=0;pass<4&&n<4;pass++)for(let i=0;i<L.length&&n<4;i++){const k=L[i].key,S=shStatus(k),pr=AN_PRI[k]!=null?AN_PRI[k]:S&&S.good?5:4,band=pr<=1?0:pr<=3?1:pr===4?2:3;if(band!==pass)continue;
-    const c=anSprite('st-'+k);if(!c)continue;let dup=false;for(let j=0;j<n;j++)if(ic[j]===c)dup=true;if(!dup)ic[n++]=c}
+    const c=anSprite('st-'+k);if(!c)continue;let dup=false;for(let j=0;j<n;j++)if(ic[j]===c)dup=true;if(!dup){bk[n]=anBk(bk[n],'st-'+k,S&&S.good?'good':S&&S.good===0?'bad':AN_NEU[k]?'neutral':'bad',L[i].turns);ic[n++]=c}}
   for(let i=0;i<L.length;i++){const k=L[i].key,pr=AN_PRI[k]!=null?AN_PRI[k]:6;if(AN_TINT[k]&&pr<tp){tp=pr;tint=AN_TINT[k]}}}
  s.icn=n;s.tint=tint}
+/* Detail High: each status hangs over the unit as a high-resolution square (pkBadgeCanvas, 06p-iconspaint.js): framed green when it
+   helps, red when it hurts, brass when neutral, with the turns left; drawn at device pixels, not art pixels. Detail Low keeps the 16 px icons. */
+const AN_NEU={telegraph:1,nova:1,charging:1,tired:1,grab:1,held:1,cover:1};
+function anBk(o,id,tone,turns){o=o||{};o.id=id;o.tone=tone;o.turns=turns>0&&turns<10?turns:0;return o}
+function anBadges(q,s,n,x,top,step){const T=q.getTransform(),sy=Math.abs(T.d)||1,sx=Math.abs(T.a)||1,N=Math.max(12,Math.round(13*sy)),bk=s.bk;if(!bk)return false;
+ const cy=top-7;q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;let ok=true;
+ for(let i=0;i<n;i++){const b=bk[i],c=b?pkBadgeCanvas(b.id,b.tone,b.turns,N):null;if(!c){ok=false;continue}const ax=x+(i-(n-1)/2)*step;
+  q.drawImage(c,Math.round(T.a*ax+T.c*cy+T.e-N/2),Math.round(T.b*ax+T.d*cy+T.f-N/2))}
+ q.restore();return ok}
 /* The bars and the target brackets are painted once into small canvases (per unit / per bracket shape) and re-painted only when
    what they show changes (a numeric key of every input), so a frame costs one drawImage per unit instead of ~20 fillRects.
    The pixels are the same: the canvas holds exactly the rects the frame used to fill, blitted at whole art pixels. Only when
@@ -198,6 +207,6 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  // morale flag and status icons (16x16 native, outlined), packed tighter when there are many
  if(s.rev<0)anStRefresh(u,s,t);
  const n=s.icn>3?3:s.icn;let ty=top;
- if(n){const step=n<3?14:12,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=top-15;ty=top-13;
-  for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
+ if(n){const step=n<3?14:12.5,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=top-15;ty=top-13;
+  if(!(hdArt()&&typeof pkBadgeCanvas==='function'&&anBadges(q,s,n,x,top,step)))for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
  if(o.cur){const c=anSprite(foe?'chev1':'chev0'),bob=rm?0:AN_BOB[((t/140)|0)&3];if(c)q.drawImage(c,x-4,ty-8-bob)}}

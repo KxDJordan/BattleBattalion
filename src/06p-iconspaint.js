@@ -70,7 +70,7 @@ function pkCirc(cx,cy,r){const p=new Path2D();p.arc(cx,cy,r,0,Math.PI*2);return{
 function pkEll(cx,cy,rx,ry,rot){const p=new Path2D();p.ellipse(cx,cy,rx,ry,(rot||0)*Math.PI/180,0,Math.PI*2);const r=Math.max(rx,ry);return{p,b:rot?[cx-r,cy-r,cx+r,cy+r]:[cx-rx,cy-ry,cx+rx,cy+ry]}}
 function pkRect(x,y,w,h,r){const p=new Path2D();r=Math.min(r||0,w/2,h/2);if(r>0){p.moveTo(x+r,y);p.arcTo(x+w,y,x+w,y+h,r);p.arcTo(x+w,y+h,x,y+h,r);p.arcTo(x,y+h,x,y,r);p.arcTo(x,y,x+w,y,r);p.closePath()}else p.rect(x,y,w,h);return{p,b:[x,y,x+w,y+h]}}
 function pkPoly(pts,open){const p=new Path2D();const b=[1e9,1e9,-1e9,-1e9];for(let i=0;i<pts.length;i+=2){const x=pts[i],y=pts[i+1];i?p.lineTo(x,y):p.moveTo(x,y);if(x<b[0])b[0]=x;if(y<b[1])b[1]=y;if(x>b[2])b[2]=x;if(y>b[3])b[3]=y}if(!open)p.closePath();return{p,b}}
-function pkU(){const p=new Path2D(),b=[1e9,1e9,-1e9,-1e9];for(const s of arguments){if(!s)continue;p.addPath(s.p);b[0]=Math.min(b[0],s.b[0]);b[1]=Math.min(b[1],s.b[1]);b[2]=Math.max(b[2],s.b[2]);b[3]=Math.max(b[3],s.b[3])}return{p,b}}
+function pkU(){const p=new Path2D(),b=[1e9,1e9,-1e9,-1e9];for(const s of arguments){if(!s)continue;p.addPath(s.p);b[0]=Math.min(b[0],s.b[0]);b[1]=Math.min(b[1],s.b[1]);b[2]=Math.max(b[2],s.b[2]);b[3]=Math.max(b[3],s.b[3])}return{p,b,u:1}}   // u: overlapping parts; pkFill lines only the outside of the union
 /* a tube along a polyline / sampled curve: pts [x,y,...], w = width or [w0,w1] (tapers), caps: 'round' | 'flat' */
 function pkTube(pts,w,caps){const n=pts.length>>1,W=i=>Array.isArray(w)?w[0]+(w[1]-w[0])*(n>1?i/(n-1):0):w,L=[],R=[];
  for(let i=0;i<n;i++){const a=Math.max(0,i-1),c=Math.min(n-1,i+1);let dx=pts[c*2]-pts[a*2],dy=pts[c*2+1]-pts[a*2+1];const m=Math.hypot(dx,dy)||1;dx/=m;dy/=m;const h=W(i)/2;
@@ -94,12 +94,13 @@ function pkFill(g,S,mat,o){o=o||{};const M=pkMat(mat),b=S.b,cx=(b[0]+b[2])/2,cy=
  if(o.flat)g.fillStyle=M[2];
  else if(o.ball){const r=Math.max(b[2]-b[0],b[3]-b[1])/2,gr=g.createRadialGradient(cx+lx*r*.45,cy+ly*r*.45,r*.05,cx,cy,r*1.15);gr.addColorStop(0,M[4]);gr.addColorStop(.22,M[3]);gr.addColorStop(.62,M[2]);gr.addColorStop(1,M[1]);g.fillStyle=gr}
  else{const e=Math.abs(lx)*(b[2]-b[0])/2+Math.abs(ly)*(b[3]-b[1])/2,gr=g.createLinearGradient(cx+lx*e,cy+ly*e,cx-lx*e,cy-ly*e);gr.addColorStop(0,M[3]);gr.addColorStop(.42,M[2]);gr.addColorStop(1,M[1]);g.fillStyle=gr}
+ const lw=o.lw===undefined?PK.lw:o.lw;if(lw&&S.u){g.lineJoin='round';g.lineCap='round';g.lineWidth=lw*2;g.strokeStyle=o.ink||PK.ink;g.stroke(S.p)}
  g.fill(S.p,rule);
  g.save();g.clip(S.p,rule);const k=o.k||1.5,band=(sh,col,a)=>{const v=pkVec(g,sh*PK_L[0],sh*PK_L[1]),q=new Path2D();q.rect(b[0]-40,b[1]-40,b[2]-b[0]+80,b[3]-b[1]+80);q.addPath(S.p,new DOMMatrix([1,0,0,1,v[0],v[1]]));g.globalAlpha=a;g.fillStyle=col;g.fill(q,'evenodd')};
  if(!o.noShade){band(k*2.2,M[0],.22);band(k,M[0],.42)}
  if(!o.noRim){band(-k*.75,M[4],.5)}
  g.globalAlpha=1;if(o.inside)o.inside(g,M);g.restore();
- const lw=o.lw===undefined?PK.lw:o.lw;if(lw){g.lineJoin='round';g.lineCap='round';g.lineWidth=lw;g.strokeStyle=o.ink||PK.ink;g.stroke(S.p)}}
+ if(lw&&!S.u){g.lineJoin='round';g.lineCap='round';g.lineWidth=lw;g.strokeStyle=o.ink||PK.ink;g.stroke(S.p)}}
 /* strokes: ink detail lines and painted highlight / shadow strokes (SVG path data or a shape) */
 function pkLine(g,d,w,col,a){g.save();g.globalAlpha=a==null?1:a;g.lineCap='round';g.lineJoin='round';g.lineWidth=w||PK.lw*.9;g.strokeStyle=col||PK.ink;g.stroke(typeof d==='string'?new Path2D(d):d.p||d);g.restore()}
 const pkHi=(g,d,w,a,col)=>pkLine(g,d,w||1,col||'#ffffff',a==null?.75:a);
@@ -150,7 +151,7 @@ function pkGem(g,x,y,r,mat,cut){const M=pkMat(mat);pkAt(g,x,y,0,1,g=>{let S;
  const h=cut==='long'?r*1.5:r,w=cut==='long'?r*.72:r;S=pkPoly([0,-h,w,0,0,h,-w,0]);
  pkFill(g,S,M,{k:r*.16,inside:(g,m)=>{g.fillStyle=m[3];g.globalAlpha=.8;g.fill(new Path2D(`M0 ${-h} L${-w} 0 L${-w*.35} 0 Z`));g.fillStyle=m[4];g.globalAlpha=.55;g.fill(new Path2D(`M0 ${-h} L${-w*.35} 0 L0 ${-h*.1} Z`));
   g.fillStyle=m[1];g.globalAlpha=.8;g.fill(new Path2D(`M${w} 0 L0 ${h} L${w*.3} 0 Z`));g.fillStyle=m[0];g.globalAlpha=.35;g.fill(new Path2D(`M0 ${h} L${w*.3} 0 L0 ${h*.15} Z`));g.globalAlpha=1;
-  pkLine(g,`M${-w} 0 L${w} 0 M0 ${-h} L0 ${h}`,.4,m[0],.35)}});pkPost(g=>pkGlint(g,x-w*.35,y-h*.45,r*.55))})}
+  pkLine(g,`M${-w} 0 L${w} 0 M0 ${-h} L0 ${h}`,.4,m[0],.35)}});pkPost(g=>pkGlint(g,x-w*.38,y-h*.42,r*.28))})}
 /* flame of height h standing on (x,y); mat: 'fire' | 'frost' | gift colour */
 function pkFlame(g,x,y,h,mat){const M=pkMat(mat||'fire');pkAt(g,x,y,0,h/28,g=>{const O=pkS('M0 0 C-8 0 -11 -6 -10 -11 C-9 -15 -6 -17 -6 -21 C-3 -19 -2 -16 -2 -14 C-1 -18 1 -23 0 -28 C5 -24 8 -19 7 -14 C9 -15 10 -17 10 -19 C12 -15 12 -10 10 -6 C8 -2 4 0 0 0 Z');
   pkFill(g,O,[M[0],M[1],M[2],M[2],M[3]],{k:2});
@@ -174,7 +175,7 @@ function pkFlag(g,x,y,o){o=o||{};const w=o.w||17,h=o.h||11,ph=o.pole||25;
  pkFill(g,pkCirc(x,y-1.6,1.9),o.tip||'brass',{ball:1,k:.6})}
 /* coin centred on (x,y) radius r; mark(g) draws the stamp */
 function pkCoin(g,x,y,r,mat,mark){pkAt(g,x,y,0,1,g=>{pkFill(g,pkCirc(0,0,r),mat||'gold',{k:r*.13,inside:(g,m)=>{g.lineWidth=r*.12;g.strokeStyle=m[1];g.globalAlpha=.9;g.beginPath();g.arc(0,0,r*.78,0,Math.PI*2);g.stroke();g.globalAlpha=1;
-   if(mark)mark(g,m,r)}});pkPost(g=>pkGlint(g,x-r*.48,y-r*.5,r*.42))})}
+   if(mark)mark(g,m,r)}});pkPost(g=>pkGlint(g,x-r*.5,y-r*.5,r*.3))})}
 /* arrow from (x0,y0) (fletching) to (x1,y1) (point): o {w, mat, head, fletch} */
 function pkArrow(g,x0,y0,x1,y1,o){o=o||{};const a=Math.atan2(x1-x0,-(y1-y0))*180/Math.PI,L=Math.hypot(x1-x0,y1-y0);pkAt(g,x0,y0,a,1,g=>{const w=o.w||1.5,hl=o.head||5;
  pkFill(g,pkRect(-w/2,-L+hl*.6,w,L-hl*.6,w/2),o.shaft||'wood',{k:.5,lw:PK.lw*.85});
@@ -250,8 +251,8 @@ pkP.fatigue=g=>{pkDrop(g,16,29,26,'white');pkLine(g,'M11.5 21 Q13 24.5 17 24.6',
 pkP.init=g=>{pkFill(g,pkRect(13.5,1.5,5,3.6,1),'brass',{k:.5});pkFill(g,pkCirc(16,18,12.6),'brass',{k:1.6});
  pkFill(g,pkCirc(16,18,9.6),'vellum',{k:1.4,noRim:1,inside:(g,m)=>{for(let i=0;i<12;i++){const a=i*Math.PI/6,r0=i%3?7.8:6.8;pkLine(g,`M${16+Math.sin(a)*r0} ${18-Math.cos(a)*r0} L${16+Math.sin(a)*8.7} ${18-Math.cos(a)*8.7}`,i%3?.6:1,PK.ink,.8)}}});
  pkLine(g,'M16 18 L16 11 M16 18 L20.5 20.5',1.8,PK.ink);pkFill(g,pkCirc(16,18,1.5),'blood',{k:.4,lw:.6});pkPost(g=>pkGlint(g,9.5,11.5,2.4))};
-pkP.melee=g=>pkSword(g,16,22,0,{len:19,w:4.2,guard:12});
-pkP.ranged=g=>pkArrow(g,6.5,26,26.5,5.5,{w:1.9,head:6.5});
+pkP.melee=g=>pkSword(g,16,22.5,0,{len:20,w:5.4,guard:13.5,grip:5});
+pkP.ranged=g=>pkArrow(g,6,26.5,27.5,4.5,{w:2.6,head:7.5});
 const pkHeaterCross=(g,mat,crossMat)=>pkShield(g,16,16,{kind:'heater',w:24,h:27,mat:mat||'teal',rim:'silver',emblem:g=>{pkFill(g,pkS('M-1.7 -9 L1.7 -9 L1.7 -4 L6 -4 L6 -.8 L1.7 -.8 L1.7 8.5 L-1.7 8.5 L-1.7 -.8 L-6 -.8 L-6 -4 L-1.7 -4 Z'),crossMat||'white',{k:.6,lw:PK.lw*.8})}});
 pkP.mdef=g=>pkHeaterCross(g);
 pkP.rdef=g=>{pkShield(g,14.5,16.5,{kind:'heater',w:23,h:26,mat:'teal',rim:'silver'});pkArrow(g,4.5,29,27,4,{w:1.8,head:6,fletch:'cloth'})};
@@ -282,7 +283,7 @@ pkP.tools=g=>{pkFill(g,pkS('M3 20 L23 20 C23 22 25 22.5 29 22.5 L29 24.5 L22 24.
 pkP.camp=g=>{pkFill(g,pkS('M16 4 L29.5 27 L2.5 27 Z'),'canvas',{k:1.6,inside:(g,m)=>{pkLine(g,'M16 6 L10 27 M16 6 L22 27',.8,m[1],.8)}});
  pkFill(g,pkS('M16 12 L20.5 27 L11.5 27 Z'),'darkwood',{k:.8,noRim:1});pkLine(g,'M16 4 L13 1.5 M16 4 L19 1.5',1.4,PKM.wood[1]);pkLine(g,'M1.5 27.5 L30.5 27.5',1.6,PK.ink)};
 pkP.settings=g=>{const n=8,p=[];for(let i=0;i<n*4;i++){const a=(i/(n*4))*Math.PI*2-Math.PI/(n*4)*1.5,R=(i%4===0||i%4===1)?14:10.6;p.push(16+Math.sin(a)*R,16-Math.cos(a)*R)}
- const S=pkPoly(p),h=new Path2D(S.p);h.arc(16,16,4.6,0,Math.PI*2,true);pkFill(g,{p:h,b:S.b},'steel',{k:1.6,rule:'evenodd',inside:(g,m)=>{g.lineWidth=1;g.strokeStyle=m[1];g.beginPath();g.arc(16,16,7.6,0,Math.PI*2);g.stroke()}})};
+ const S=pkPoly(p),h=new Path2D(S.p);h.moveTo(20.6,16);h.arc(16,16,4.6,0,Math.PI*2,true);pkFill(g,{p:h,b:S.b},'steel',{k:1.6,rule:'evenodd',inside:(g,m)=>{g.lineWidth=1;g.strokeStyle=m[1];g.beginPath();g.arc(16,16,7.6,0,Math.PI*2);g.stroke()}});pkHi(g,'M7 9.5 Q9.5 6 13.5 5',1.2,.5)};
 pkP.endturn=g=>{const plate=y=>pkFill(g,pkRect(5,y,22,3.4,1.2),'brass',{k:.7});
  pkFill(g,pkS('M8 6 L24 6 C24 11 19 13.5 17.6 16 C19 18.5 24 21 24 26 L8 26 C8 21 13 18.5 14.4 16 C13 13.5 8 11 8 6 Z'),'frost',{k:1.2,inside:(g,m)=>{
    pkFill(g,pkS('M10.6 9.5 L21.4 9.5 C20 12 17.4 13.5 16 15.6 C14.6 13.5 12 12 10.6 9.5 Z'),'canvas',{lw:0,k:.6,noRim:1});pkFill(g,pkS('M16 17 L16.6 21 C19 21.8 22 23 22.8 26 L9.2 26 C10 23 13 21.8 15.4 21 Z'),'canvas',{lw:0,k:.6,noRim:1});
@@ -294,38 +295,38 @@ pkP.check=g=>{pkFill(g,pkS('M2.5 16.5 L7 12 L12.5 17.5 L25 5 L29.5 9.5 L12.5 26.
 pkP.star=g=>{pkStar(g,16,17,14.5,'gold',5,6.4);pkPost(g=>pkGlint(g,11,10,2.6))};
 pkP.skull=g=>pkSkull(g,16,16.5,1.3,'bone');
 /* ---- weapons (diagonal, point to the upper right, like the pixel set) ---- */
-pkP.sword=g=>pkSword(g,11.5,20.5,45,{len:19,w:3.6,guard:10.5});
-pkP.dagger=g=>pkSword(g,13,19,45,{len:12,w:3.6,guard:9,grip:5});
-pkP.axe=g=>{pkHaft(g,5,28,21.5,7.5,2.6,'wood');pkAt(g,22,8.5,38,1,g=>pkAxeHead(g,{s:1.02}))};
-pkP.mace=g=>{pkHaft(g,5,28,19,11,2.6,'wood');pkFill(g,pkRect(-1.8,-1.3,3.6,2.6,.6),'brass');
- const p=[];for(let i=0;i<16;i++){const a=i*Math.PI/8,R=i&1?5.6:8.6;p.push(22+Math.sin(a)*R,9-Math.cos(a)*R)}pkFill(g,pkPoly(p),'steel',{k:1.2});pkFill(g,pkCirc(22,9,5.2),'steel',{ball:1,k:1,lw:PK.lw*.8})};
-pkP.spear=g=>{pkHaft(g,4.5,28.5,20,12,2.2,'wood');pkFill(g,pkRect(-1.5,-1.5,3,3,.5),'brass');pkAt(g,19.5,12.5,45,1,g=>{pkFill(g,pkRect(-1.6,-1,3.2,3.4,.6),'brass',{k:.5});pkBlade(g,{len:13,w:5.6,tip:'leaf',fuller:true})})};
-pkP.bow=g=>{const limb=pkTube(pkQ(9,3,27,16,9,29,20).concat([]),[2.2,2.2],'round');pkLine(g,'M9.4 3.4 L9.4 28.6',1,'#efe6c8');
- pkFill(g,pkTube(pkQ(9,2.8,26.5,16,9,29.2,24),[2,3.4].length?2.6:2.6,'round'),'wood',{k:.8});pkFill(g,pkRect(14,13.5,3.6,5,1),'leather',{k:.5})};
+pkP.sword=g=>pkSword(g,10.5,21.5,45,{len:21,w:4.8,guard:12.5,grip:5.2});
+pkP.dagger=g=>pkSword(g,12.5,19.5,45,{len:14,w:5,guard:11,grip:5.5});
+pkP.axe=g=>{pkHaft(g,3.5,28.5,20,12,3.2,'wood');pkAt(g,17.5,13,225,1,g=>pkAxeHead(g,{s:1.08}))};
+pkP.mace=g=>{pkHaft(g,4.5,28.5,19,12,3.2,'wood');pkAt(g,18.2,12.8,45,1,g=>pkFill(g,pkRect(-2.4,-1.4,4.8,2.8,.8),'brass',{k:.5}));
+ const p=[];for(let i=0;i<16;i++){const a=i*Math.PI/8,R=i&1?6.4:9.6;p.push(21.5+Math.sin(a)*R,10.5-Math.cos(a)*R)}pkFill(g,pkPoly(p),'steel',{k:1.2});pkFill(g,pkCirc(21.5,10.5,6),'steel',{ball:1,k:1,lw:PK.lw*.8})};
+pkP.spear=g=>{pkHaft(g,4,29,19.5,13.5,3,'wood');pkAt(g,18.8,14.2,45,1,g=>{pkFill(g,pkRect(-2,-1,4,4,.8),'brass',{k:.5});pkBlade(g,{len:15.5,w:7.4,tip:'leaf',fuller:true})})};
+pkP.bow=g=>{pkLine(g,'M8.6 3.4 L8.6 28.6',1.3,'#efe6c8');
+ pkFill(g,pkTube(pkQ(8,2.6,28,16,8,29.4,24),3.6,'round'),'wood',{k:.9,inside:(g,m)=>pkHi(g,'M10.5 4.5 Q18 9 20 14',.9,.5)});pkFill(g,pkRect(16.2,12.8,4.2,6.4,1),'leather',{k:.5})};
 pkP['w-xbow']=g=>{pkLine(g,'M5.5 9 L16 19.5 L22.5 26',.9,'#efe6c8');
- pkFill(g,pkTube(pkQ(4,10.5,12,4,21,4.5,14),2.6,'round'),'wood',{k:.7});pkFill(g,pkTube(pkQ(21.5,4,27.5,12,21.5,21,14),2.6,'round'),'wood',{k:.7});
- pkFill(g,pkTube([5.5,26.5,24,8],3.6,'round'),'darkwood',{k:1});pkFill(g,pkRect(-1.8,-1.8,3.6,3.6,.6),'steel');pkAt(g,14.8,17.2,45,1,g=>pkFill(g,pkRect(-2.2,-2,4.4,4,1),'steel',{k:.6}));
- pkFill(g,pkTube([4,28,8.5,23.5],4,'round'),'leather',{k:.6})};
-pkP.staff=g=>{pkHaft(g,5,28.5,21.5,11,2.6,'wood');pkFill(g,pkTube([21.5,11,24,8.5],2.2,'round'),'brass',{k:.5});pkGlow(g,25,7,8,'#8ccfff',.55);pkGem(g,25,7,4.4,'mana','round');pkPost(g=>pkGlint(g,26,3,2))};
+ pkFill(g,pkTube(pkQ(3.5,11,11,3.5,21,4,14),3.2,'round'),'steel',{k:.7});pkFill(g,pkTube(pkQ(22,3.5,28.5,11,21,21.5,14),3.2,'round'),'steel',{k:.7});
+ pkFill(g,pkTube([5.5,26.5,24,8],4.2,'round'),'wood',{k:1});pkAt(g,14.8,17.2,45,1,g=>pkFill(g,pkRect(-2.2,-2,4.4,4,1),'steel',{k:.6}));
+ pkFill(g,pkTube([4,28,9,23],5,'round'),'darkwood',{k:.6})};
+pkP.staff=g=>{pkHaft(g,4.5,29,21.5,11,3.2,'wood');pkFill(g,pkTube([21.5,11,24,8.5],2.2,'round'),'brass',{k:.5});pkGlow(g,24.5,7.5,9,'#8ccfff',.55);pkGem(g,24.5,7.5,5.4,'mana','round');pkPost(g=>pkGlint(g,22.6,5.4,2))};
 pkP.shield=g=>pkShield(g,16,16,{kind:'round',w:27,h:27,mat:'wood',rim:'iron',rimW:2.2,boss:4.6,emblem:g=>{pkLine(g,'M-11 -3 L11 -3 M-11 3.4 L11 3.4',.8,PKM.wood[0],.6)}});
 /* ---- abilities ---- */
-pkP['ab-attack']=g=>{pkSwoosh(g,14,19,12,-60,70,4,'mana');pkSword(g,11,21,45,{len:17,w:3.4,guard:9.5})};
+pkP['ab-attack']=g=>{pkSwoosh(g,13,19,13,-62,72,5,'mana');pkSword(g,10.5,21.5,45,{len:18,w:4.4,guard:11,grip:5})};
+pkP['ab-slash']=g=>{pkSword(g,11,21,45,{len:18,w:4.4,guard:11,grip:5});pkSwoosh(g,5,31,23,14,86,5.4,'blood')};
 pkP['ab-slash']=g=>{pkSword(g,12,20.5,45,{len:17,w:3.4,guard:9.5});pkSwoosh(g,6,30,22,15,85,4.6,'blood')};
-pkP['ab-fireball']=g=>{pkAt(g,0,0,0,1,g=>{pkFill(g,pkS('M17 15 C12 12 8 8 3 5 C8 5.5 9 4 7 2 C13 4 17 6 22 9 Z'),'fire',{k:.8,lw:PK.lw*.8});pkFill(g,pkS('M15 21 C10 21 5 22 2 24 C4 20 3 18.5 1.5 17 C7 16.6 11 16 16 15 Z'),'fire',{k:.8,lw:PK.lw*.8})});
- pkGlow(g,20,18,12,'#ffb12e',.6);pkFill(g,pkCirc(20,18,8.6),'fire',{ball:1,k:1.4});pkFill(g,pkCirc(19,17,4.6),[ '#ffb12e','#ffb12e','#ffe07a','#fff6b8','#ffffff'],{ball:1,lw:0,noShade:1,noRim:1})};
+pkP['ab-fireball']=g=>{const tail=(pts,w,m)=>pkFill(g,pkTube(pts,w,'round'),m,{k:.8,lw:PK.lw*.85});
+ tail(pkQ(2,4,8,8,17,14,10),[.4,7],'fire');tail(pkQ(1.5,20,7,19,14,18.5,8),[.3,5],'fire');tail(pkQ(9,2,12,6,17,12,8),[.3,4],'fire');
+ pkGlow(g,20,18,12,'#ffb12e',.6);pkFill(g,pkCirc(20,18,9),'fire',{ball:1,k:1.4});pkFill(g,pkCirc(18.8,16.8,4.8),['#ffb12e','#ffb12e','#ffe07a','#fff6b8','#ffffff'],{ball:1,lw:0,noShade:1,noRim:1})};
 pkP['ab-bash']=g=>{pkShield(g,13,17,{kind:'heater',w:19,h:22,mat:'teal',rim:'silver',emblem:g=>pkFill(g,pkS('M-1.4 -7 L1.4 -7 L1.4 -3.4 L5 -3.4 L5 -.6 L1.4 -.6 L1.4 6.5 L-1.4 6.5 L-1.4 -.6 L-5 -.6 L-5 -3.4 L-1.4 -3.4 Z'),'white',{k:.5,lw:PK.lw*.8})});
  pkFill(g,pkStarS(25,8.5,7,8,3),'aura',{k:.6});pkPost(g=>pkGlint(g,25,8.5,2.6))};
-pkP['ab-bandage']=g=>{pkFill(g,pkTube(pkQ(19,20,20,28,5,27.5,12),[5,4.2],'flat'),'vellum',{k:.8,inside:(g,m)=>pkLine(g,'M13 25 L12.5 29 M9 25 L8.5 29',.6,m[1],.8)});
- pkFill(g,pkEll(20,13,8.2,9,0),'vellum',{k:1.6,inside:(g,m)=>{pkFill(g,pkPoly([15.5,10,18.5,7,21.5,10,24.5,13,21.5,16,18.5,19,15.5,16,12.5,13].slice(0,0).concat([18.6,10.4,21.4,10.4,21.4,7.8,18.6,7.8])),'blood',{lw:0});}});
- pkFill(g,pkEll(21,12,3.4,3.8,0),'canvas',{k:.6,noRim:1,inside:(g,m)=>{g.lineWidth=.7;g.strokeStyle=m[1];g.beginPath();g.arc(21,12,1.8,0,Math.PI*2);g.stroke()}});
- pkFill(g,pkS('M9.4 6.6 L12.6 6.6 L12.6 9.4 L15.4 9.4 L15.4 12.6 L12.6 12.6 L12.6 15.4 L9.4 15.4 L9.4 12.6 L6.6 12.6 L6.6 9.4 L9.4 9.4 Z'),'blood',{k:.6,lw:PK.lw*.8})};
+pkP['ab-bandage']=g=>{pkFill(g,pkTube(pkQ(17,22,16,29,3.5,27.5,12),[6,5],'flat'),'vellum',{k:.9,inside:(g,m)=>pkLine(g,'M11 25 L10.5 30.5 M6.5 25 L6 30.5',.7,m[1],.8)});
+ pkFill(g,pkEll(19.5,14,10,11,0),'vellum',{k:1.8,inside:(g,m)=>{g.lineWidth=.8;g.strokeStyle=m[1];g.globalAlpha=.9;for(const r of [6.6,3.4]){g.beginPath();g.arc(20.5,13.5,r,0,Math.PI*2);g.stroke()}}});
+ pkAt(g,8,8,0,.78,g=>pkFill(g,pkS('M-2.4 -7.5 L2.4 -7.5 L2.4 -2.4 L7.5 -2.4 L7.5 2.4 L2.4 2.4 L2.4 7.5 L-2.4 7.5 L-2.4 2.4 L-7.5 2.4 L-7.5 -2.4 L-2.4 -2.4 Z'),'blood',{k:.8}))};
 /* ---- statuses ---- */
 pkP.bleed=g=>{pkDrop(g,16,20,17,'blood');pkDrop(g,7.5,29,11,'blood');pkDrop(g,24.5,30,11,'blood')};
 pkP.burn=g=>{pkGlow(g,16,19,14,'#ff8a3c',.5);pkFlame(g,16,30,28,'fire')};
-pkP.chill=g=>{pkGlow(g,16,16,15,'#8fd8ff',.45);const arms=[];for(let i=0;i<6;i++)pkAt(g,16,16,i*60,1,g=>arms.push(g.getTransform()));
- const S=[];for(let i=0;i<6;i++){const a=i*60;const r=(x,y)=>{const t=a*Math.PI/180;return[16+x*Math.cos(t)-y*Math.sin(t),16+x*Math.sin(t)+y*Math.cos(t)]};
-  const A=r(0,-1),B=r(0,-13.5),C=r(0,-8),D=r(-4,-11.5),E=r(4,-11.5);S.push(pkTube([A[0],A[1],B[0],B[1]],2.4,'round'),pkTube([C[0],C[1],D[0],D[1]],1.9,'round'),pkTube([C[0],C[1],E[0],E[1]],1.9,'round'))}
- pkFill(g,pkU.apply(null,S),'frost',{k:.9});pkFill(g,pkPoly([16,12.5,19,14.2,19,17.8,16,19.5,13,17.8,13,14.2]),'white',{k:.6,lw:PK.lw*.8})};
+pkP.chill=g=>{pkGlow(g,16,16,15,'#8fd8ff',.4);const S=[];for(let i=0;i<6;i++){const t=i*Math.PI/3,r=(x,y)=>[16+x*Math.cos(t)-y*Math.sin(t),16+x*Math.sin(t)+y*Math.cos(t)];
+  const A=r(0,-2),B=r(0,-14),C=r(0,-8.5),D=r(-4,-11.8),E=r(4,-11.8);S.push(pkTube([A[0],A[1],B[0],B[1]],3.4,'round'),pkTube([C[0],C[1],D[0],D[1]],2.4,'round'),pkTube([C[0],C[1],E[0],E[1]],2.4,'round'))}
+ pkFill(g,pkU.apply(null,S),['#1f5a9a','#5aa2dc','#a6dcf8','#e2f6ff','#ffffff'],{k:.7});pkFill(g,pkPoly([16,11.5,19.9,13.75,19.9,18.25,16,20.5,12.1,18.25,12.1,13.75]),'white',{k:.7,lw:PK.lw*.9});pkPost(g=>pkGlint(g,10,7,2.2))};
 pkP.poisoned=g=>{pkDrop(g,16,29,26,'poison');g.fillStyle=PK.ink;g.fill(pkEll(12.6,19,1.5,2.2).p);g.fill(pkEll(19.4,19,1.5,2.2).p);pkLine(g,'M13 24.2 Q16 22.6 19 24.2',1,PK.ink)};
 pkP['ab-poison']=g=>{pkSword(g,12.5,19.5,45,{len:15,w:3.4,guard:9});pkDrop(g,21,30,9,'poison');pkDrop(g,27.5,25,6.5,'poison')};
 pkP.stun=g=>{pkFill(g,pkEll(16,20,12.5,5),'aura',{k:.8,rule:'evenodd',lw:0,flat:1,noShade:1});const R=new Path2D();R.ellipse(16,20,12.5,5,0,0,Math.PI*2);R.ellipse(16,20,9.5,3.2,0,0,Math.PI*2);
@@ -336,10 +337,12 @@ pkP['it-mail']=g=>{const S=pkS('M9 3.5 L13 3.5 Q16 6.5 19 3.5 L23 3.5 L29.5 9 L2
  pkFill(g,S,'iron',{k:1.8,inside:(g,m)=>{g.lineWidth=.55;for(let y=5;y<29;y+=2.2)for(let x=3+((y/2.2|0)&1)*1.1;x<29;x+=2.2){g.strokeStyle=m[0];g.globalAlpha=.55;g.beginPath();g.arc(x,y,.85,0,Math.PI*2);g.stroke();g.strokeStyle=m[4];g.globalAlpha=.35;g.beginPath();g.arc(x-.2,y-.2,.85,Math.PI,Math.PI*1.5);g.stroke()}g.globalAlpha=1;
    pkFill(g,pkRect(7.5,24.5,17,4,0),'leather',{k:.6,lw:PK.lw*.8});pkFill(g,pkRect(14.2,24.8,3.6,3.4,.6),'brass',{k:.4,lw:.6})}})};
 pkP['it-greathelm']=g=>{pkFill(g,pkS('M17 4 C19 -1 27 0 29.5 4 C26.5 3 22.5 4 20 7 Z'),'cloth',{k:.8});pkAt(g,1,2,0,.94,g=>pkHelmGreat(g,'steel','brass'))};
-pkP['it-longbow']=g=>{pkLine(g,'M7.4 2 L7.4 30',.9,'#efe6c8');pkFill(g,pkTube(pkQ(7,1.5,24,16,7,30.5,24),2.4,'round'),'wood',{k:.7});pkFill(g,pkRect(14.4,13.5,3.2,5,1),'leather',{k:.5});
- pkArrow(g,4,22.5,27,9,{w:1.4,head:4.8})};
+pkP['it-longbow']=g=>{pkLine(g,'M7.4 2 L7.4 30',1.1,'#efe6c8');pkFill(g,pkTube(pkQ(7,1.5,24,16,7,30.5,24),3,'round'),'wood',{k:.7});pkFill(g,pkRect(14.4,13.5,3.2,5,1),'leather',{k:.5});
+ pkArrow(g,3.5,23,28,8.5,{w:1.8,head:5.6})};
 /* ---- a trade good, a mastery, a trait ---- */
-pkP['tg-ore']=g=>{pkFill(g,pkS('M3 26 L6 17 L13 14 L18 18 L17 27 Z'),'stone',{k:1.4});pkFill(g,pkS('M14 27 L16 15 L23 11 L29.5 17 L28.5 27 Z'),'stone',{k:1.4,inside:g=>{pkGem(g,22,19,3,'gold');}});pkGem(g,9.5,21,2.4,'gold');pkPost(g=>pkGlint(g,23,16,2))};
+pkP['tg-ore']=g=>{pkFill(g,pkS('M1.5 28 L4 16 L12 11.5 L18.5 16 L17.5 28.5 Z'),'stone',{k:1.6,inside:g=>pkLine(g,'M4 16 L10 18.5 L12 11.5 M10 18.5 L11 28',.8,PKM.stone[0],.5)});
+ pkFill(g,pkS('M13.5 28.5 L15 13 L23 7 L30.5 14.5 L29.5 28.5 Z'),'stone',{k:1.6,inside:g=>pkLine(g,'M15 13 L22 16 L23 7 M22 16 L24 28.5',.8,PKM.stone[0],.5)});
+ pkGem(g,24,21,3.6,'gold');pkGem(g,8.5,22,3,'gold');pkGem(g,19,10.8,2.2,'gold')};
 pkP['m-vanguard']=g=>{pkFill(g,pkCirc(16,16,14.5),'brass',{k:1.6});pkFill(g,pkCirc(16,16,10.8),'dark',{k:1,noRim:1});pkSword(g,16,20,0,{len:13,w:3.4,guard:9,grip:4})};
-pkP['trait-brave']=g=>{pkBadgeBack(g,'good');pkAt(g,16,16.5,0,.66,g=>{g.translate(-16,-16);pkFill(g,pkS(PK_HEART),'blood',{k:2.4,inside:()=>pkHi(g,'M6 9.5 Q6.4 6.6 9.2 6.2',2.4,.8)})})};
-pkP['trait-craven']=g=>{pkBadgeBack(g,'bad');pkAt(g,16,16,0,.7,g=>{g.translate(-16,-16);pkFlag(g,8,6,{w:17,h:11,mat:'white',pole:22,wave:1.2,droop:2.5})})};
+pkP['trait-brave']=g=>{pkBadgeBack(g,'good');pkAt(g,16,16.5,0,.76,g=>{g.translate(-16,-16);pkFill(g,pkS(PK_HEART),'blood',{k:2.4,inside:()=>pkHi(g,'M6 9.5 Q6.4 6.6 9.2 6.2',2.4,.8)})})};
+pkP['trait-craven']=g=>{pkBadgeBack(g,'bad');pkAt(g,16,16,0,.84,g=>{g.translate(-16,-16);pkFlag(g,8,5,{w:17,h:12,mat:'white',pole:22,wave:1.2,droop:2.5})})};
