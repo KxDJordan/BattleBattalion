@@ -226,7 +226,7 @@ function setPatrol(p){p.pts=patrolPts(p.x,p.y);if(p.pts.length<2){patrolHop(p);r
 /* ---- spawn ranges: who roams where (CONTRACT.md "Spawn ranges") ----
    companyPower(): sum over the fielded mercs of level + gear (log2(1 + price of what they carry / 150) x 1.1, at most 9).
      A new company is ~6, L4x6 ~45, L8x9 ~120, L12x12 ~220.
-   spawnProg(power, day) in 0..1 = .65 x clamp((power - 8) / 210) + .35 x clamp(day / 90): how far the land has turned against you.
+   spawnProg(power, day) in 0..1 = clamp((power - 8) / 235): how far the land has turned against you (company strength only; day is ignored).
    Each faction's tier (FACT[f].tier, overridden by FACT[f].spawn) gives the curve SPAWNT[tier] = {gate, d0, d1, w0, w1}:
      it roams only once prog >= gate; then, with t = (prog - gate) / (1 - gate), at least minD = d0 + (d1 - d0) t tiles from the nearest
      town, with weight w0 + (w1 - w0) t; mid/late/end factions only on their own biomes (FACT[f].biomes) and, before prog .6, never within
@@ -236,7 +236,7 @@ const SPAWNT={early:{gate:0,d0:0,d1:0,w0:1,w1:.55},mid:{gate:.08,d0:10,d1:3,w0:.
 const TERRN=['water','plains','forest','hills','mountains','swamp','desert','snow'];
 function gearPower(m){let p=0;const eq=m&&m.eq||{};for(const k of ['w','b','s','a','h']){const it=eq[k]&&ITEMS[eq[k]];if(it)p+=it.price||0}return Math.min(9,Math.log2(1+p/150)*1.1)}
 function companyPower(list){const L=list||(typeof fielded==='function'&&G?fielded():[]);let p=0;for(const m of L)p+=(m.lvl||1)+gearPower(m);return Math.round(p*10)/10}
-function spawnProg(power,day){return clamp(.65*clamp((power-8)/210,0,1)+.35*clamp(day/90,0,1),0,1)}
+function spawnProg(power,day){return clamp((power-8)/235,0,1)}   // how far dangerous bands reach toward towns: the company's strength only, not the day
 /* factionPool(ctx): the factions that may appear now, [{f, w (weight), minD (tiles from the nearest town), dmin..dmax (tiles from the
    contract's town for a lair), startD, tier, biomes}].
    ctx (all optional): {power, day, crisis (include riftspawn: default G.crisis), prog}. Used by spawnParty and by genContract. */

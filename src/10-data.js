@@ -2,7 +2,7 @@
 const RESC={mana:'#62a6ee',aura:'#ecc64f',qi:'#3fd0b6',chi:'#9bd96f'},RESN={mana:'Mana',aura:'Aura',qi:'Qi',chi:'Chi'},RESK=['mana','aura','qi','chi'];
 const STATN={hp:'Hitpoints',fat:'Fatigue',init:'Initiative',ms:'Melee skill',rs:'Ranged skill',md:'Melee defense',rd:'Ranged defense',brv:'Resolve'};
 const ROLL={hp:[2,4],fat:[2,4],init:[3,5],ms:[1,3],rs:[2,4],md:[1,3],rd:[2,4],brv:[2,4]};
-const XPT=[0,0,150,380,750,1250,1900,2700,3650,4750,6000,7400,8900,10600,12400,14600];
+const XPT=[0,0,200,500,1000,1700,2600,3700,5000,6500,8200,10100,12200,14500,17000,20000];
 const MAXLV=15,MAXROSTER=20,MAXFIELD=12;   // the roster holds 20 swords, 12 take the field
 const FIST={n:'Fists',wt:'fist',d:[6,12],ap:4,fat:6,rng:1,ign:.1};
 const ITEMS={
@@ -398,7 +398,7 @@ Object.assign(STATUS,{
 const MORN=['Fleeing','Breaking','Wavering','Steady','Confident'],
  MORFX=[{hit:-30,def:-20},{hit:-20,def:-10},{hit:-10,def:-5},{hit:0,def:0},{hit:10,def:5}];
 /* ---- Combat constants ---- */
-const HEADCH=25,HEADMULT=1.5,COVERPEN=15,FFCH=.3,FFDMG=.75,HEAVYHIT=.25,INJCH=.5,DOWNCH=.7,PERMCH=.3,TOOLPTS=15,TOOLPRICE=3,BLEEDDMG=6;
+const HEADCH=25,HEADMULT=1.5,COVERPEN=15,FFCH=.3,FFDMG=.75,HEAVYHIT=.25,INJCH=.5,DOWNCH=.3,PERMCH=.3,TOOLPTS=15,TOOLPRICE=3,BLEEDDMG=6;
 /* ---- Injuries: m.inj=[{id,days}], days left (-1 = permanent). loc 'h' comes from head hits, 'b' from body hits.
    st is added to the merc's stats in calc(m) (dmg is a fraction of damage dealt); days is the healing time rolled for a fresh one. ---- */
 const INJ={
@@ -487,7 +487,7 @@ const MAST={
   [perkDef('Inspiring presence','Allies within 3 tiles get +10 resolve on morale checks',{mod:{brvAura:10}})],[perkDef('Command','Ability: an ally within 4 tiles gets +3 AP on its next turn',{ab:'command'})],
   [perkDef('Read the field','+15 initiative, +6 ranged defense',{st:{init:15,rd:6}})],[perkDef('Hold fast!','Ability: you and allies within 2 tiles get +10 melee and ranged defense and +15 resolve for 2 turns',{ab:'holdfast'})]]},
  survivor:{n:'Survivor',kind:'style',aff:['melee','ranged','caster','support'],d:'Hard to put down',tiers:[
-  [perkDef('Thick skin','+8 hitpoints',{st:{hp:8}})],[perkDef('Second wind','Ability: once per battle, shed 40 fatigue and recover 8–14 hitpoints',{ab:'secwind'})],
+  [perkDef('Thick skin','+8 hitpoints',{id:'survivor.1',st:{hp:8}}),perkDef('Stubborn','When struck down, 65% chance to live instead of 30% (an injury all the same)',{id:'survivor.stubborn',mod:{downSurv:.65}})],[perkDef('Second wind','Ability: once per battle, shed 40 fatigue and recover 8–14 hitpoints',{ab:'secwind'})],
   [perkDef('Hard to kill','Take 15% less damage while below half health',{mod:{lastStand:.15}})],[perkDef('Steel nerves','+15 resolve',{st:{brv:15}})],
   [perkDef('Grit','Recover 4 hitpoints at the start of each of your turns',{mod:{regenHP:4}})],[perkDef('Undying','Once per battle, a blow that would kill you leaves you at 1 hitpoint',{flag:'undying'})]]},
  medic:{n:'Field medic',kind:'style',aff:['support'],d:'Keeps the company standing',tiers:[

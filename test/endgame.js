@@ -35,7 +35,7 @@ function foeSig(X,b){return b.units.filter(u=>u.side===1).map(u=>[u.eid,u.name,u
 function startOnly(X,o){X.B=null;X.mode='world';const b=X.startBattle(Object.assign({},o,{quiet:true,turnCap:1,onEnd(){}}));ok(b,'battle did not start: '+JSON.stringify(o.src));const s={sig:foeSig(X,b),b};X.B=null;X.mode='world';return s}
 // a battle in progress, played to the end by the AI, then left through the real afterBattle()
 async function finish(X){const b=X.B;ok(b&&X.mode==='battle','no battle to finish');b.opts.turnCap=5000;const res=b.result||await new Promise(r=>{b.onEnd=r;b.auto=true});ok(!res.stuck,'an endgame battle got stuck');const out=X.afterBattle(res.win?1:0);closeAll(X);return{res,out}}
-function heroes(X){X.G.roster.forEach(m=>{m.base.hp+=160;m.base.ms+=45;m.base.rs+=40;m.base.md+=30;m.base.rd+=30;m.base.brv+=90;m.hp=X.calc(m).hp})}
+function heroes(X){X.G.roster.forEach(m=>{if(Array.isArray(m.perks)&&!m.perks.includes('survivor.stubborn'))m.perks.push('survivor.stubborn');m.base.hp+=160;m.base.ms+=45;m.base.rs+=40;m.base.md+=30;m.base.rd+=30;m.base.brv+=90;m.hp=X.calc(m).hp})}
 function setComp(X,comp,day){const G=X.G;G.roster=X.clone(comp);G.roster.forEach(m=>{m.field=true});G.day=day;G.stash=[];closeAll(X)}
 
 /* ---------- win-rate workers ---------- */

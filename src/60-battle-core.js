@@ -183,7 +183,10 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 /* battlePreview(o): what startBattle(o) would roll, for a deployment screen: {bk, tiles, foes:[enemy ids], budget}.
    It draws from the seeded stream exactly as startBattle does; hand the result back as o.tiles and o.foes and the battle
    is the one previewed (startBattle then rolls neither again). */
-function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=!S?12+m.lvl*5:sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee));return budget*(o&&o.mult||1)*(1+G.day*.008)*(typeof BUDGETK==='number'?BUDGETK:1)*runK('budget')}   // difficulty: diffK('budget')
+// Foes scale with the company's strength, not the calendar: each sword adds by level, times gearK for its kit (gearPower 2.3 = starting
+// kit: x1; tier 3 ~x1.19, tier 4 ~x1.31, tier 5 ~x1.40). A company that does not improve its gear does not face harder bands.
+const GEARK=.09;function gearK(m){const g=typeof gearPower==='function'?gearPower(m):2.3;return 1+GEARK*Math.max(0,g-2.3)}
+function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?12+m.lvl*5:sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*runK('budget')}   // difficulty: diffK('budget')
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
 /* ---- Fixed rosters (Phase 8B endgame, CONTRACT.md): o.roster = [{id, n?, lvl?, elite?, at?:{c,r}, name?, hpK?}] is the enemy side exactly as
@@ -505,7 +508,8 @@ function inflictInjury(t,head,perm,slow){if(!t.m)return null;const id=rollInjury
 /* Difficulty (22-run.js diffK, 1 on Normal): the company's own swords only. 'death' scales the chance a fallen merc is killed rather than
    struck down, 'injury' the chance a heavy blow injures and that a struck-down merc's wound is permanent. Rival mercs keep the plain odds. */
 const runK=k=>typeof diffK==='function'?diffK(k):1;
-const downCh=t=>t.side===0?clamp(1-(1-DOWNCH)*runK('death'),0,1):DOWNCH;
+const downBase=t=>Math.max(DOWNCH,(t.flags&&t.flags.downSurv)||0);   // the Survivor's Stubborn raises the chance to live when struck down
+const downCh=t=>t.side===0?clamp(1-(1-downBase(t))*runK('death'),0,1):downBase(t);
 const injK=t=>t.side===0?runK('injury'):1;
 function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.killer=src.name||(src.def&&src.def.n)||'';if(src.m)src.m.kills=(src.m.kills|0)+1}   // the killing blow counts toward the killer's quarry tally (m.slain)
  if(t.m){t.down=B.opts.yield?true:rnd()<downCh(t);if(t.down)inflictInjury(t,head,!B.opts.yield&&rnd()<PERMCH*injK(t),true)}   // a duel to yielding (o.yield): nobody dies   // struck down and alive: always at the price of an injury (a rival's merc too)

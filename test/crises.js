@@ -95,7 +95,7 @@ for(const k of K){const G=fresh(SEED+5+K.indexOf(k),k);toStart(G);for(let d=0;d<
  X.sheets.length=0;X.crisisEndSheet();ok(/victory/i.test(X.sheets.join()),'the victory sheet');closeAll(X);console.log(k+': won (scripted), rewards, title, trophy: ok')}
 
 section('losing');
-for(const k of K){const G=fresh(SEED+9+K.indexOf(k),k);toStart(G);day(G);G.crisis.doom=99.9;day(G);const c=G.crisis;
+for(const k of K){const G=fresh(SEED+9+K.indexOf(k),k);toStart(G);day(G);G.crisis.doom=999;day(G);const c=G.crisis;
  ok(c.lost&&c.fin&&!c.won&&Array.isArray(G.crScar)&&G.crScar.some(s=>s.k===k),k+': the crisis was not lost');ok(G.roster.length>0&&X.mode==='world','the run must go on after a defeat');
  for(let d=0;d<15;d++)day(G);ok(!c.won,'a lost crisis does not win itself');
  // the late victory
