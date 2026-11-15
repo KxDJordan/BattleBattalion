@@ -161,10 +161,10 @@ function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic,bk=s.bk||(s.bk=
    helps, red when it hurts, brass when neutral, with the turns left; drawn at device pixels, not art pixels. Detail Low keeps the 16 px icons. */
 const AN_NEU={telegraph:1,nova:1,charging:1,tired:1,grab:1,held:1,cover:1};
 function anBk(o,id,tone,turns){o=o||{};o.id=id;o.tone=tone;o.turns=turns>0&&turns<10?turns:0;return o}
-function anBadges(q,s,n,x,top,step){const T=q.getTransform(),sy=Math.abs(T.d)||1,sx=Math.abs(T.a)||1,N=Math.max(12,Math.round(13*sy)),bk=s.bk;if(!bk)return false;
- const cy=top-7;q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;let ok=true;
- for(let i=0;i<n;i++){const b=bk[i],c=b?pkBadgeCanvas(b.id,b.tone,b.turns,N):null;if(!c){ok=false;continue}const ax=x+(i-(n-1)/2)*step;
-  q.drawImage(c,Math.round(T.a*ax+T.c*cy+T.e-N/2),Math.round(T.b*ax+T.d*cy+T.f-N/2))}
+function anBadges(q,s,n,x,top,step){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(12,Math.min(Math.round(13*sy),Math.round(26*(typeof dpr==='number'?dpr:1)))),bk=s.bk;if(!bk)return false;
+ const cy=top-1-N/sy/2,st=Math.min(step,N/sy+1);q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;let ok=false;
+ for(let i=0;i<n;i++){const b=bk[i],c=b?pkBadgeCanvas(b.id,b.tone,b.turns,N):null;if(!c)continue;const ax=x+(i-(n-1)/2)*st;
+  q.drawImage(c,Math.round(T.a*ax+T.c*cy+T.e-N/2),Math.round(T.b*ax+T.d*cy+T.f-N/2));ok=true}
  q.restore();return ok}
 /* The bars and the target brackets are painted once into small canvases (per unit / per bracket shape) and re-painted only when
    what they show changes (a numeric key of every input), so a frame costs one drawImage per unit instead of ~20 fillRects.
