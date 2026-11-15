@@ -117,6 +117,9 @@ section('saves');
   const bad=make(G,'patrol');bad.stages[1].x='q';ok(!X.ctrRepair(bad),'a broken stage is dropped');
   // the whole save
   const c=make(G,'escort');X.ctrAccept(c);ok(X.save(),'save');const g2=JSON.parse(X.store.get([...X.store.keys()].find(k=>X.store.get(k).includes('"stages"'))));ok(g2.contract&&g2.contract.type==='escort','saved with the game');
+  // continuing from the title (no game in memory: G is null while the save is read) keeps the contract in hand and the town boards
+  { const id=G.contract.id,boards=G.towns.reduce((n,t)=>n+(t.contracts||[]).length,0);X.G=null;X.mode='title';X.continueGame();closeAll(X);const H=X.G;
+    ok(H&&H.contract&&H.contract.id===id&&H.contract.type==='escort','the contract in hand survives Continue from the title');ok(H.towns.reduce((n,t)=>n+(t.contracts||[]).length,0)===boards,'the town boards survive it too') }
   console.log('round trips for every type, phase-6 hunts and deliveries migrate, broken ones dropped: ok') }
 
 section('negotiation');

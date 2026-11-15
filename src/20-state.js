@@ -178,8 +178,8 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  {const S={};if(svObj(m.slain))for(const k in m.slain){const n=m.slain[k];if(typeof QUARRY==='object'&&QUARRY[k]&&svFin(n)&&n>0)S[k]=Math.min(9999,Math.floor(n))}m.slain=S}   // the quarry tally: known keys, whole kills
  if(svFin(m.kills)&&m.kills>0)m.kills=Math.min(99999,Math.floor(m.kills));else delete m.kills;if(typeof m.fabled!=='string'||!m.fabled)delete m.fabled;if(m.title!==undefined){if(typeof m.title==='string'&&m.title)m.title=m.title.slice(0,60);else delete m.title}
  m.field=!!m.field;syncMast(m);m.hp=clamp(Math.round(svNum(m.hp,m.base.hp)),1,calc(m).hp);return true}
-function repairContract(c,nTowns){if(!svObj(c))return false;if(c.type!=='deliver'&&c.type!=='hunt')return typeof CTYPES!=='undefined'&&!!CTYPES[c.type]&&typeof ctrRepair==='function'&&!!ctrRepair(c,nTowns);
- if(typeof ctrRepair==='function'&&ctrRepair(c,nTowns)===false)return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skulls
+function repairContract(c,nTowns,towns){if(!svObj(c))return false;if(c.type!=='deliver'&&c.type!=='hunt')return typeof CTYPES!=='undefined'&&!!CTYPES[c.type]&&typeof ctrRepair==='function'&&!!ctrRepair(c,nTowns,towns);
+ if(typeof ctrRepair==='function'&&ctrRepair(c,nTowns,towns)===false)return false;c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);   // contracts run 1..5 skulls
  if(!svFin(c.pay)||typeof c.title!=='string')return false;
  if(c.type==='deliver')return Number.isInteger(c.to)&&c.to>=0&&c.to<nTowns;
  if(c.type==='hunt')return !!FACT[c.f]&&svFin(c.x)&&svFin(c.y);return false}
@@ -198,7 +198,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.stash=Array.isArray(g.stash)?g.stash.filter(id=>!!ITEMS[id]):[];
  g.towns.forEach((t,i)=>{if(typeof t.name!=='string'||!t.name)t.name=TOWNN[i%TOWNN.length];t.ref=svNum(t.ref,-99);t.size=clamp(Math.round(svNum(t.size,1)),1,3);
   t.recruits=Array.isArray(t.recruits)?t.recruits.filter(repairMerc):[];t.stock=Array.isArray(t.stock)?t.stock.filter(id=>!!ITEMS[id]&&!ITEMS[id].famed):[];
-  t.contracts=Array.isArray(t.contracts)?t.contracts.filter(c=>repairContract(c,g.towns.length)):[]});
+  t.contracts=Array.isArray(t.contracts)?t.contracts.filter(c=>repairContract(c,g.towns.length,g.towns)):[]});
  rivalRepair(g);   // the rival companies (registered in FACT by factionsInit below, before the bands are checked)
  worldRepair(g);   // phase 7: houses (registered in FACT before the bands are checked), rep, town state, nests, wars (below)
  g.parties=Array.isArray(g.parties)?g.parties.filter(p=>svObj(p)&&FACT[p.f]&&svFin(p.x)&&svFin(p.y)&&svFin(p.tx)&&svFin(p.ty)&&svFin(p.mult)&&svFin(p.id)):[];
@@ -208,7 +208,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.weather=svObj(g.weather)&&WTHR[g.weather.kind]&&svFin(g.weather.t)&&svFin(g.weather.dur)?{kind:g.weather.kind,t:Math.max(0,g.weather.t),dur:Math.max(.1,g.weather.dur)}:{kind:'clear',t:0,dur:8};
  g.fog=typeof g.fog==='string'?g.fog:null;g.route=[];
  g.portals=Array.isArray(g.portals)?g.portals.filter(p=>svObj(p)&&svFin(p.x)&&svFin(p.y)&&svFin(p.id)&&BIO[p.realm]):[];
- if(g.contract&&!(repairContract(g.contract,g.towns.length)&&Number.isInteger(g.contract.town)&&g.contract.town>=0&&g.contract.town<g.towns.length))g.contract=null;
+ if(g.contract&&!(repairContract(g.contract,g.towns.length,g.towns)&&Number.isInteger(g.contract.town)&&g.contract.town>=0&&g.contract.town<g.towns.length))g.contract=null;
  if(g.contract)g.contract.done=!!g.contract.done;else g.contract=null;
  if(typeof g.crisisKind!=='string'||(typeof CRISES==='object'&&CRISES&&!CRISES[g.crisisKind]))g.crisisKind=svObj(g.crisis)&&!g.crisis.k?'sunder':runCrisisPick(g.seed);
  if(typeof crisisRepair==='function')crisisRepair(g);else if(svObj(g.crisis)){g.crisis.closed=Math.max(0,Math.floor(svNum(g.crisis.closed,0)));g.crisis.total=Math.max(1,Math.floor(svNum(g.crisis.total,3)));g.crisis.ended=!!g.crisis.ended}else g.crisis=null;

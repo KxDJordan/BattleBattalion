@@ -23,7 +23,7 @@
      ctrDaily()           acting: the world calls it once a day (deadlines, curses, travel twists)
      ctrTwistCard(c)      -> {k, n, text, opts:[{t,d,req?}]} the card for a fired twist; ctrTwistPick(i) acting -> {text, fight:o|null}
      objStatus()          -> the battle objective for the HUD, or null
-     ctrRepair(c)         validates a saved contract in place (old deliver/hunt saves get their stages); false = drop it
+     ctrRepair(c,nTowns?,towns?) validates a saved contract in place (against the save's towns, or G's) (old deliver/hunt saves get their stages); false = drop it
      genContract2(t,ti)   -> a new contract for town t (genContract in 50-towns.js delegates here) */
 const CTR_KINDS=['deliver','hunt','escort','defend','patrol','beast','relic','siege','nest','bounty'];
 function ctrH(seed,n){let h=(seed|0)^Math.imul((n|0)+0x9e37,0x85ebca6b);h=Math.imul(h^(h>>>16),0x7feb352d);h=Math.imul(h^(h>>>15),0x846ca68b);h^=h>>>16;return(h>>>0)/4294967296}   // a pure hash: [0,1)
@@ -315,7 +315,8 @@ function objPlan(plan,u){const b=B,ob=b&&b.obj;if(!ob)return plan;const p=Object
  return p}
 
 /* ---- saves ---- */
-function ctrRepair(c){if(!svObj(c))return false;if(!CTYPES[c.type])return false;const nT=G&&Array.isArray(G.towns)?G.towns.length:0;
+function ctrRepair(c,nTowns,towns){if(!svObj(c))return false;if(!CTYPES[c.type])return false;   // nTowns/towns: the save being loaded (G may not exist yet at the title)
+ towns=Array.isArray(towns)?towns:G&&Array.isArray(G.towns)?G.towns:[];const nT=Number.isInteger(nTowns)?nTowns:towns.length;
  c.diff=clamp(Math.floor(svNum(c.diff,1)),1,5);if(!svFin(c.pay)||typeof c.title!=='string')return false;c.pay=Math.max(0,Math.round(c.pay));c.adv=clamp(Math.round(svNum(c.adv,0)),0,c.pay);
  const ti=i=>Number.isInteger(i)&&i>=0&&i<nT;if(!ti(c.town))c.town=0;
  if(!Array.isArray(c.stages)||!c.stages.length){   // a phase-6 contract: rebuild its stages from its fields
@@ -326,7 +327,7 @@ function ctrRepair(c){if(!svObj(c))return false;if(!CTYPES[c.type])return false;
   if(typeof s.label!=='string')s.label=s.k==='town'?'Collect the pay':'Target'}
  if(c.stages[c.stages.length-1].k!=='town')c.stages.push(ctrHome(c.town));
  c.stage=clamp(Math.floor(svNum(c.stage,0)),0,c.stages.length-1);if(!svFin(c.id))c.id=Math.floor(ctrH(Math.round(c.pay)+c.diff*977,c.town)*2147483646)+1;
- if(c.emp==null||typeof c.emp!=='string')c.emp=(G.towns[c.town]&&G.towns[c.town].own)||'free';
+ if(c.emp==null||typeof c.emp!=='string')c.emp=(towns[c.town]&&towns[c.town].own)||'free';
  c.due=svFin(c.due)?Math.floor(c.due):null;if(c.twist&&(!svObj(c.twist)||!CTWIST[c.twist.k]))c.twist=null;if(c.twist)delete c.twist.card;
  if(c.neg&&!svObj(c.neg))delete c.neg;c.failed=!!c.failed;
  if(typeof c.rival==='string'&&/^h[0-9]$/.test(c.rival)){c.outbid=c.rival;delete c.rival}if(c.rival!=null&&!/^r[0-9]+$/.test(String(c.rival)))delete c.rival;if(c.outbid!=null&&typeof c.outbid!=='string')delete c.outbid;
