@@ -189,7 +189,7 @@
 /* small screens: the forecast drops the portrait (the foe is on the board, bracketed) so it fits beside the target, clear of the line of fire */
 @media (max-width:760px){.fcp{display:none}#fcw{max-width:226px;padding-left:9px}.fcn b{min-width:60px}}
 /* ---- arms: weapon swap control, ranged-lock badges, the weapon in hand on the chip ---- */
-#bend{display:flex;align-items:flex-end;gap:6px}
+#bend{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px}   /* the weapon swap stands above End turn */
 #bend .swp{position:relative;flex:none;width:58px;height:48px;margin-bottom:2px;display:flex;align-items:center;justify-content:center;gap:1px;padding:0 2px;overflow:visible}
 #bend .swp .swh{display:block;width:32px;height:32px;line-height:0}
 #bend .swp .swa{display:flex;flex-direction:column;gap:0;line-height:0}
