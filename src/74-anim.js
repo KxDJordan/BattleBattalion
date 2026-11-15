@@ -159,9 +159,10 @@ function anStRefresh(u,s,t){s.rev=SHV.rev;s.revT=t;const ic=s.ic,bk=s.bk||(s.bk=
  s.icn=n;s.tint=tint}
 /* Detail High: each status hangs over the unit as a high-resolution square (pkBadgeCanvas, 06p-iconspaint.js): framed green when it
    helps, red when it hurts, brass when neutral, with the turns left; drawn at device pixels, not art pixels. Detail Low keeps the 16 px icons. */
+const AN_BADGE=8,AN_BADGEMAX=15;   // status square size: art px on the board, capped at CSS px (small, so many statuses on many units stay readable)
 const AN_NEU={telegraph:1,nova:1,charging:1,tired:1,grab:1,held:1,cover:1};
 function anBk(o,id,tone,turns){o=o||{};o.id=id;o.tone=tone;o.turns=turns>0&&turns<10?turns:0;return o}
-function anBadges(q,s,n,x,top,step){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(12,Math.min(Math.round(13*sy),Math.round(26*(typeof dpr==='number'?dpr:1)))),bk=s.bk;if(!bk)return false;
+function anBadges(q,s,n,x,top,step){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(10,Math.min(Math.round(AN_BADGE*sy),Math.round(AN_BADGEMAX*(typeof dpr==='number'?dpr:1)))),bk=s.bk;if(!bk)return false;
  const cy=top-1-N/sy/2,st=Math.min(step,N/sy+1);q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;let ok=false;
  for(let i=0;i<n;i++){const b=bk[i],c=b?pkBadgeCanvas(b.id,b.tone,b.turns,N):null;if(!c)continue;const ax=x+(i-(n-1)/2)*st;
   q.drawImage(c,Math.round(T.a*ax+T.c*cy+T.e-N/2),Math.round(T.b*ax+T.d*cy+T.f-N/2));ok=true}
