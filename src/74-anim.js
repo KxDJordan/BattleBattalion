@@ -240,7 +240,7 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  if(n){const step=n<3?14:12.5,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=tI-15;ty=hdArt()&&typeof pkBadgeCanvas==='function'?tI-AN_BADGE-1:tI-13;
   if(!(hdArt()&&typeof pkBadgeCanvas==='function'&&anBadges(q,s,n,x,tI,step)))for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
  s.ovT=ty;   // the top of the overlay (read by the board's objective marks, 70-render.js)
- if(o.cur){const bob=rm?0:AN_BOB[((t/140)|0)&3];if(!(hdArt()&&typeof pdChevCanvas==='function'&&anChev(q,foe===1,x+.5,ty-5-bob))){const c=anSprite(foe===1?'chev1':'chev0');if(c)q.drawImage(c,x-4,ty-8-bob)}}}
+ if(o.cur){const bob=rm?0:AN_BOB[((t/140)|0)&3];if(!(hdArt()&&typeof pdChevCanvas==='function'&&anChev(q,foe===1,x+.5,ty-7-bob))){const c=anSprite(foe===1?'chev1':'chev0');if(c)q.drawImage(c,x-4,ty-8-bob)}}}
 /* Detail High: the chevron painted at device pixels (pdChevCanvas, 06pd-status.js), centred where the 9x6 pixel chevron was */
-function anChev(q,foe,ax,ay){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(10,Math.round(9.5*sy)),c=pdChevCanvas(foe,N);if(!c)return false;
+function anChev(q,foe,ax,ay){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(14,Math.round(13.5*sy)),c=pdChevCanvas(foe,N);if(!c)return false;
  q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;q.drawImage(c,Math.round(T.a*ax+T.c*ay+T.e-N/2),Math.round(T.b*ax+T.d*ay+T.f-N/2));q.restore();return true}

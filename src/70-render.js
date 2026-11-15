@@ -743,6 +743,8 @@ function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.de
  else{g.globalAlpha=v.pA*v.pSh*.42;g.drawImage(sh,x-(sh.width>>1),gy-(sh.height>>1));
   if(u.alive){const rg=ellRing(E,u,wide,big);g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
  g.globalAlpha=v.pA;const sk=s.k||1,sw=s.cv.width/sk,sh2=s.cv.height/sk;   // an HD figure (k 2, 73h-unitshd.js) is blitted at half size
+ if(u===B.cur&&!B.over&&!v.mv){const o=.9*(B.cam&&B.cam.s?1/B.cam.s:.5)+.45,pu=reduced?.6:.45+.45*(.5+.5*Math.sin(now/260)),sl=silOf(s.cv,u.side!==0?'r':u.ally?'x':'e');   // whose turn: a pulsing outline round the figure
+  g.globalAlpha=v.pA*pu;if(s.smooth)g.imageSmoothingEnabled=true;for(const [dx,dy] of TURNOL)g.drawImage(sl,x-s.ax+dx*o,y-s.ay+dy*o,sw,sh2);g.imageSmoothingEnabled=false;g.globalAlpha=v.pA}
  if(s.smooth)g.imageSmoothingEnabled=true;g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay,sw,sh2);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay,sw,sh2)}
  if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);g.drawImage(silOf(s.cv,'r'),x-s.ax,y-s.ay,sw,sh2)}
  g.imageSmoothingEnabled=false;g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
@@ -841,7 +843,18 @@ function drawOverlays(R,d){if(R.ovOn[d])g.drawImage(R.ov[d],R.x0[d],R.y0[d]);
   g.drawImage(ovSpr('ring2','0'),x,y+1);g.drawImage(ovSpr('ring2',PL.hz?'E':'d'),x,y);g.drawImage(ovSpr('ring','e'),x,y)}
  for(let i=0;i<PL.tn;i++){const q=PL.tg[i];if(R.dp[q]!==d)continue;const x=R.ax[q]-16,y=R.ay[q]-8;g.drawImage(ovSpr('dash','0'),x,y+1);g.drawImage(ovSpr('dash','E'),x,y)}
  if(insK>=0&&R.dp[insK]===d)g.drawImage(ovSpr('dash','r'),R.ax[insK]-16,R.ay[insK]-8);
- bmDraw(R,d)}
+ turnTileDraw(R,d);bmDraw(R,d)}
+const TURNOL=[[-1,0],[1,0],[0,-1],[0,1],[-.7,-.7],[.7,-.7],[-.7,.7],[.7,.7]];
+/* whose turn it is: the acting unit's tile(s) glow under it — a filled diamond and a bright double rim, pulsing (gold for the company,
+   red for foes, blue for allies), drawn as vector paths at device resolution (Detail High) or as art-pixel rings (Low). Not while it walks. */
+function turnTileDraw(R,d){const u=B&&B.cur;if(!u||!u.alive||B.over||visOf(u).mv)return;const pu=reduced?.5:.5+.5*Math.sin(now/260),
+  col=u.side!==0?['#ff6a55','#ffd2c8']:u.ally?['#6fb1ff','#d8ecff']:['#ffd25a','#fff4c8'];
+ for(const [c,r] of unitTiles(u)){if(!inb(c,r))continue;const q=key(c,r);if(R.dp[q]!==d)continue;const x=R.ax[q],y=R.ay[q];
+  if(typeof hdArt==='function'&&hdArt()){g.save();const dia=(k)=>{g.beginPath();g.moveTo(x,y-8*k);g.lineTo(x+16*k,y);g.lineTo(x,y+8*k);g.lineTo(x-16*k,y);g.closePath()};
+   g.globalAlpha=.22+.18*pu;g.fillStyle=col[0];dia(1);g.fill();
+   g.globalAlpha=.55+.4*pu;g.lineJoin='round';g.strokeStyle='rgba(8,14,13,.85)';g.lineWidth=1.6;dia(.94);g.stroke();g.strokeStyle=col[0];g.lineWidth=1.1;dia(.94);g.stroke();
+   g.globalAlpha=.35+.5*pu;g.strokeStyle=col[1];g.lineWidth=.5;dia(.72+.08*pu);g.stroke();g.restore()}
+  else{const xx=x-16,yy=y-8;g.globalAlpha=.3+.25*pu;g.drawImage(ovSpr('fill',u.side!==0?'r':'c'),xx,yy);g.globalAlpha=1;g.drawImage(ovSpr('ring2','0'),xx,yy+1);g.drawImage(ovSpr('ring2',u.side!==0?'r':'c'),xx,yy);g.globalAlpha=1}}}
 function uiK(){return 1/Math.sqrt(clamp(B.cam.z,.5,1))}
 /* the move plan (65-battle-ui.js: B.plan, planInfo): its tile, path, pill, and the foes in reach from there; read once a frame */
 const PL={k:-1,path:null,cost:0,left:0,hz:false,tg:new Int16Array(40),tn:0,I:null};
