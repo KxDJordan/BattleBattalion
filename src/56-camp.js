@@ -50,41 +50,42 @@ function campRestNow(){if(!G)return'';G.moving=false;G.route=[];const hp0=G.rost
  else{if(typeof advanceTime==='function')advanceTime(CAMP.restH,2);msg=typeof campReport==='function'?campReport(CAMP.restH):(typeof repairAll==='function'&&repairAll(),'Made camp for six hours')}
  const hp=G.roster.reduce((n,m)=>n+m.hp,0)-hp0;msg=String(msg||'Made camp for six hours');if(hp>0)msg+=`. ${hp} hitpoints mended`;return msg}
 function campQuickRest(){if(!G)return'';if(G.moving){G.moving=false;G.route=[];return''}const msg=campRestNow();if(typeof campRest!=='function')campToast(msg);if(typeof save==='function')save();campEvent();return msg}
-/* ---- the hour-by-hour rest (campSim): in a real page the Rest button plays the hours forward, CSIM.ms a step, in a popup over the camp
-   panel that lists every hour: the clock, the company's hitpoints (healing %), its armor (repair %), food eaten and wages paid (both fall
-   due at midnight, in newDay). Each hour is advanceTime(1, 2) and repairAll(k) with the tools spread evenly over the hours, so a full
-   rest heals and mends what the one-step rest does. Skip plays the rest at once. Headless (no document) campRestTab rests in one step. ---- */
+/* ---- the hour-by-hour rest (campSim): in a real page the Make camp button plays the hours forward, CSIM.ms a step, in a popup over the
+   camp panel, and keeps going until the player taps Break camp (any time). Every hour is listed: the clock, the company's hitpoints
+   (healing %), its armor (repair %), food eaten and wages paid (both fall due at midnight, in newDay). Each hour is advanceTime(1, 2) and
+   repairAll(k): up to CSIM.rate tools an hour, the rate set at the start so the armor that needs mending is mended over CAMP.restH hours
+   when there are tools enough. Headless (no document) campRestTab rests CAMP.restH hours in one step. ---- */
 const CSIM={on:false,ms:650,tm:0};
 function campStat(){let hp=0,hpM=0,ar=0,arM=0;for(const m of G.roster){const mx=campMaxHp(m);hp+=Math.min(m.hp,mx);hpM+=mx;if(typeof armorCond==='function'){const c=armorCond(m);ar+=c.a+c.h;arM+=c.aMax+c.hMax}}
  return{hp,hpM,ar,arM,hpP:hpM?Math.round(hp/hpM*100):100,arP:arM?Math.round(ar/arM*100):100,food:G.food||0,crowns:G.crowns||0,n:G.roster.length}}
 function campSimCan(){return typeof document!=='undefined'&&!!document.getElementById&&!!document.getElementById('pn')&&typeof setTimeout==='function'}
-function campSimStart(hours){if(!G||CSIM.on)return false;G.moving=false;G.route=[];const n=hours||CAMP.restH,tp=typeof cpToolPts==='function'?cpToolPts():15,need=typeof cpDamageAll==='function'?cpDamageAll():0;
+function campSimStart(){if(!G||CSIM.on)return false;G.moving=false;G.route=[];const n=CAMP.restH,tp=typeof cpToolPts==='function'?cpToolPts():15,need=typeof cpDamageAll==='function'?cpDamageAll():0;
  const T=Math.min(typeof cpTools==='function'?cpTools():0,Math.ceil(need/Math.max(1,tp))),s0=campStat();
- Object.assign(CSIM,{on:true,n,h:0,T,tools:0,pts:0,s0,last:s0,rows:[],food:0,wages:0,notes:[],day0:G.day,hour0:G.hour});
+ Object.assign(CSIM,{on:true,done:false,full:false,rate:Math.max(1,Math.ceil(T/n)),h:0,T,tools:0,pts:0,s0,last:s0,rows:[],food:0,wages:0,notes:[],day0:G.day,hour0:G.hour});
  campSimDraw();CSIM.tm=setTimeout(campSimTick,CSIM.ms);return true}
-function campSimStep(){const i=CSIM.h,n=CSIM.n,c0=G.crowns||0,f0=G.food||0,d0=G.day,r0=G.roster.length;
- advanceTime(1,2);const k=Math.floor(CSIM.T*(i+1)/n)-Math.floor(CSIM.T*i/n);if(k>0&&typeof repairAll==='function'){const r=repairAll(k);CSIM.tools+=r.tools;CSIM.pts+=r.pts}
+function campSimStep(){const c0=G.crowns||0,f0=G.food||0,d0=G.day,r0=G.roster.length;
+ advanceTime(1,2);const tp=typeof cpToolPts==='function'?cpToolPts():15,need=typeof cpDamageAll==='function'?cpDamageAll():0,k=Math.min(CSIM.rate,typeof cpTools==='function'?cpTools():0,Math.ceil(need/Math.max(1,tp)));if(k>0&&typeof repairAll==='function'){const r=repairAll(k);CSIM.tools+=r.tools;CSIM.pts+=r.pts}
  const s=campStat(),row={clock:campHour(),day:G.day,hpP:s.hpP,dHp:s.hp-CSIM.last.hp,arP:s.arP,dAr:s.ar-CSIM.last.ar,food:0,wage:0,note:''};
  if(G.day!==d0){row.wage=Math.max(0,c0-(G.crowns||0));row.food=Math.max(0,f0-(G.food||0));CSIM.wages+=row.wage;CSIM.food+=row.food;
   let msg='';try{const e=document.getElementById('toast');msg=e&&e.textContent||''}catch(e){}if(msg.indexOf('Day '+G.day)===0)row.note=msg;else row.note='A new day: Day '+G.day;if(G.roster.length<r0&&!/desert/.test(row.note))row.note+=' (someone left)'}
- CSIM.rows.push(row);CSIM.last=s;CSIM.h++}
-function campSimTick(){CSIM.tm=0;if(!CSIM.on)return;campSimStep();if(CSIM.h>=CSIM.n){campSimEnd();return}campSimDraw();CSIM.tm=setTimeout(campSimTick,CSIM.ms)}
-function campSimSkip(){if(!CSIM.on)return;if(CSIM.tm){clearTimeout(CSIM.tm);CSIM.tm=0}while(CSIM.h<CSIM.n)campSimStep();campSimEnd()}
-function campSimEnd(){CSIM.done=true;const s=CSIM.last,s0=CSIM.s0;
- CSIM.msg=`Made camp for ${CSIM.n===6?'six':CSIM.n} hours`+(s.hp>s0.hp?`. ${s.hp-s0.hp} hitpoints mended`:'')+(CSIM.pts?`. Repaired ${CSIM.pts} armor with ${CSIM.tools} tool${CSIM.tools===1?'':'s'}`:'');
- if(typeof save==='function')save();campSimDraw()}
-function campSimClose(){const el=document.getElementById('csim');if(el)el.remove();if(!CSIM.on)return;CSIM.on=false;CSIM.done=false;campNote(`<p class="good">${htmlEsc(CSIM.msg||'Made camp')}.</p>`);campRender();
+ if(!CSIM.full&&s.hp>=s.hpM&&(s.ar>=s.arM||!(typeof cpTools==='function'&&cpTools()))){CSIM.full=true;row.note=(row.note?row.note+'. ':'')+(s.ar>=s.arM?'Everyone is healed and mended':'Everyone is healed; no tools left for the armor')}
+ CSIM.rows.push(row);if(CSIM.rows.length>72)CSIM.rows.shift();CSIM.last=s;CSIM.h++}
+function campSimTick(){CSIM.tm=0;if(!CSIM.on||CSIM.done)return;campSimStep();campSimDraw();CSIM.tm=setTimeout(campSimTick,CSIM.ms)}
+function campSimMsg(){const s=CSIM.last,s0=CSIM.s0,h=CSIM.h;return`Made camp for ${h} hour${h===1?'':'s'}`+(s.hp>s0.hp?`. ${s.hp-s0.hp} hitpoints mended`:'')+(CSIM.pts?`. Repaired ${CSIM.pts} armor with ${CSIM.tools} tool${CSIM.tools===1?'':'s'}`:'')+(CSIM.food?`. ${CSIM.food} food eaten`:'')+(CSIM.wages?`. ${CSIM.wages} crowns paid in wages`:'')}
+// Break camp: stops the clock at once (between hours), saves, and returns to the camp panel; a camp event may follow.
+function campSimClose(){if(CSIM.tm){clearTimeout(CSIM.tm);CSIM.tm=0}const el=document.getElementById('csim');if(el)el.remove();if(!CSIM.on)return;CSIM.on=false;CSIM.done=true;if(typeof save==='function')save();
+ const msg=CSIM.h?campSimMsg():'You struck camp before the first hour was out';if(typeof toast==='function')toast(msg);campNote(`<p class="good">${htmlEsc(msg)}.</p>`);campRender();
  campEvent(()=>{if(typeof panelOpen==='function'&&panelOpen()==='camp')campRender()})}
 function campSimDraw(){const root=document.getElementById('pn');if(!root)return;let el=document.getElementById('csim');if(!el){el=document.createElement('div');el.id='csim';el.className='cs-wrap';el.setAttribute('role','dialog');el.setAttribute('aria-label','Camp');root.appendChild(el)}
- const C=CSIM,s=C.last,pct=Math.round(C.h/C.n*100),sg=v=>v>0?`<em class="good">+${v}</em>`:'',
-  head=`<div class="cs-top">${campIc('camp',32)}<div><div class="pn-kick">${C.done?'Camp struck':'Resting'} · Day ${G.day}</div><div class="pn-h">${campHour()} <small>hour ${C.h} of ${C.n}</small></div></div></div>
+ const C=CSIM,s=C.last,pct=Math.round(((G.hour||0)%24)/24*100),sg=v=>v>0?`<em class="good">+${v}</em>`:'',
+  head=`<div class="cs-top">${campIc('camp',32)}<div><div class="pn-kick">In camp · Day ${G.day}${C.full?' · <span class="good">all rested</span>':''}</div><div class="pn-h">${campHour()} <small>${C.h} hour${C.h===1?'':'s'} in camp</small></div></div></div>
   <div class="cs-bar"><i style="width:${pct}%"></i></div>
   <div class="cs-sum"><span>${campIc('hp',16)}<b>${s.hpP}%</b><small>healed</small></span><span>${campIc('armor',16)}<b>${s.arP}%</b><small>armor</small></span><span>${campIc('food',16)}<b>${C.food}</b><small>food eaten</small></span><span>${campIc('coin',16)}<b>${C.wages}</b><small>wages paid</small></span></div>`,
-  rows=C.rows.map((r,i)=>`<tr${i===C.rows.length-1&&!C.done?' class="now"':''}><td>${r.clock}</td><td>${r.hpP}% ${sg(r.dHp)}</td><td>${r.arP}% ${sg(r.dAr)}</td><td>${r.food?`<em class="bad">−${r.food}</em>`:'·'}</td><td>${r.wage?`<em class="bad">−${r.wage}</em>`:'·'}</td></tr>${r.note?`<tr class="cs-note"><td colspan="5">${htmlEsc(r.note)}</td></tr>`:''}`).reverse().join(''),
+  rows=C.rows.map((r,i)=>`<tr${i===C.rows.length-1?' class="now"':''}><td>${r.clock}</td><td>${r.hpP}% ${sg(r.dHp)}</td><td>${r.arP}% ${sg(r.dAr)}</td><td>${r.food?`<em class="bad">−${r.food}</em>`:'·'}</td><td>${r.wage?`<em class="bad">−${r.wage}</em>`:'·'}</td></tr>${r.note?`<tr class="cs-note"><td colspan="5">${htmlEsc(r.note)}</td></tr>`:''}`).reverse().join(''),
   tbl=`<div class="cs-log"><table><thead><tr><th>Hour</th><th>Healing</th><th>Armor</th><th>Food</th><th>Wages</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="dim">The fire is lit…</td></tr>'}</tbody></table></div>`,
-  foot=C.done?`<p class="cs-msg">${htmlEsc(C.msg||'')}.</p><button type="button" class="pn-btn pri" onclick="campSimClose()">Break camp</button>`:`<button type="button" class="pn-btn" onclick="campSimSkip()">Skip to the end</button>`;
+  foot=`<p class="cs-msg dim">Time runs on until you break camp. Wages and food fall due at midnight.</p><button type="button" class="pn-btn pri" onclick="campSimClose()">${campIc('camp')}<span>Break camp</span></button>`;
  el.innerHTML=`<div class="cs-pop">${head}${tbl}<div class="cs-foot">${foot}</div></div>`}
-function campRestTab(){if(campSimCan()){campSimStart(CAMP.restH);return}const msg=campRestNow();campNote(`<p class="good">${msg}.</p>`);if(typeof save==='function')save();campRender();campEvent(()=>{if(typeof panelOpen==='function'&&panelOpen()==='camp')campRender()})}
+function campRestTab(){if(campSimCan()){campSimStart();return}const msg=campRestNow();campNote(`<p class="good">${msg}.</p>`);if(typeof save==='function')save();campRender();campEvent(()=>{if(typeof panelOpen==='function'&&panelOpen()==='camp')campRender()})}
 // a camp event may follow a rest (17-events.js eventTick('camp'): seeded, at most once a day); then runs when its card closes
 function campEvent(then){if(typeof eventTick!=='function')return false;try{return eventTick('camp',then?{then}:{})}catch(e){return false}}
 function campCraft(id){const why=typeof craftWhy==='function'?craftWhy(id):'Crafting is not available';if(why){campToast(why);return false}const r=craftDo(id);if(!r)return false;
@@ -119,15 +120,15 @@ function campRow(o){return typeof pnRow==='function'?pnRow(o):`<div class="pn-ro
 function campRestView(){let list='',detail='',foot='';const need=typeof cpDamageAll==='function'?cpDamageAll():0,tools=typeof cpTools==='function'?cpTools():G.tools||0,tp=typeof cpToolPts==='function'?cpToolPts():15;
  const hurt=G.roster.filter(m=>m.hp<campMaxHp(m)),inj=G.roster.filter(m=>Array.isArray(m.inj)&&m.inj.length);
  list+=typeof pnSec==='function'?pnSec('Make camp'):'';
- list+=campRow({on:'',sel:true,cls:'static cm-row',lead:campIc('camp',32),title:'Rest six hours',sub:`Wounds mend twice as fast; armor is mended with tools`});
+ list+=campRow({on:'',sel:true,cls:'static cm-row',lead:campIc('camp',32),title:'Make camp',sub:`Rest until you break camp: wounds mend twice as fast; armor is mended with tools`});
  list+=pnSec('Wounded',hurt.length);if(!hurt.length)list+=pnEmpty('Everyone is fit to march.');
  hurt.forEach(m=>{list+=campRow({on:'',cls:'static cm-row merc',lead:campPor(m,32),title:htmlEsc(m.name),sub:campMercSub(m)})});
  const mend=Math.min(need,tools*tp);
- detail=campHead(campIc('camp',48),'Today\'s camp','Rest six hours')+`<p class="pn-p">The company pitches tents, lights a fire and sleeps in shifts. Hitpoints come back at <b>2 an hour</b> for every sword (${CAMP.restH*2} over six hours), and every tool mends <b>${tp} points</b> of armor, the fielded and the worst damaged first.</p>`
-  +pnFacts([['Wounded',hurt.length?hurt.length+' of '+G.roster.length:'None'],['Carrying injuries',inj.length||'None'],['Armor to mend',need?need+' points':'None'],['Tools',tools],need?['Tools will mend',mend+' points']:null,['Time',campHour()+' → +'+CAMP.restH+' hours']])
+ detail=campHead(campIc('camp',48),'Today\'s camp','Make camp')+`<p class="pn-p">The company pitches tents, lights a fire and sleeps in shifts, hour after hour until you break camp. Hitpoints come back at <b>2 an hour</b> for every sword, and every tool mends <b>${tp} points</b> of armor, the fielded and the worst damaged first (all of it within about ${CAMP.restH} hours when there are tools enough).</p>`
+  +pnFacts([['Wounded',hurt.length?hurt.length+' of '+G.roster.length:'None'],['Carrying injuries',inj.length||'None'],['Armor to mend',need?need+' points':'None'],['Tools',tools],need?['Tools will mend',mend+' points']:null,['Time',campHour()+', until you break camp']])
   +(need>tools*tp?`<p class="pn-p warn">${tools?'Not enough tools to mend everything: forge more from scrap iron on the Craft tab, or buy them in town.':'No tools: armor stays broken. Forge some from scrap iron on the Craft tab, or buy them in town.'}</p>`:'')
   +'<p class="pn-p dim">Injuries heal a day at a time whatever you do; field surgery on the Surgery tab speeds them up.</p>';
- foot=campCost(0,CAMP.restH,'Wages are paid at dawn')+campBtn(campIc('camp')+'<span>Rest six hours</span>','campRestTab()',true);
+ foot='<span class="pn-fl"><small>Until you break camp · wages and food fall due at midnight</small></span>'+campBtn(campIc('camp')+'<span>Make camp</span>','campRestTab()',true);
  return{list,detail,foot,key:'rest'}}
 
 /* Train */
