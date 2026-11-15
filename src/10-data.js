@@ -322,23 +322,10 @@ Object.assign(AB,{
  breath:{n:'Steady breathing',ap:2,fat:4,cost:['chi',8],tgt:'self',buff:{key:'steady',rs:15},dur:2,fx:'chi',d:'Slow the heart between shots: +15 ranged skill for 2 turns.'},
  pparrow:{n:'Pressure-point arrow',fat:12,cost:['chi',10],tgt:'enemy',wpn:1,needs:'bow',mult:.8,status:{daze:1,weak:2},fx:'chi',d:'A shot to a nerve cluster: 80% damage; the target is dazed and weakened (−25% damage dealt) for 2 turns.'},
  spiritarrow:{n:'Spirit arrow',ap:6,fat:18,cost:['chi',22],tgt:'enemy',wpn:1,needs:'bow',mult:1,pierce:1,hit:10,fx:'chi',d:'An arrow of pure Chi that ignores armor: full damage straight to hitpoints, +10 to hit.'},
- bladedance:{n:'Blade dance',ap:6,fat:22,tgt:'aoe',wpn:1,needs:'sword',mult:.75,fx:'spin',d:'Turn among the foes around you: strike each adjacent one at 75% damage.'},
  masterstroke:{n:'Masterstroke',ap:6,fat:20,tgt:'enemy',wpn:1,needs:'sword',mult:1.5,hit:15,fx:'slash',d:'The cut every master teaches last: 150% damage, +15 to hit.'},
- axeexec:{n:'Behead',fat:20,tgt:'enemy',wpn:1,needs:'axe',mult:1.2,vsHurt:.5,head:15,fx:'chop',d:'120% damage and a further +50% against a foe below half health; +15% chance to hit the head.'},
- skullcrack:{n:'Skullcracker',fat:18,tgt:'enemy',wpn:1,needs:'mace',mult:1,head:50,status:{daze:2},fx:'bonk',d:'Full damage aimed at the head (+50% head chance); dazes for 2 turns.'},
- sunder:{n:'Sunder',ap:5,fat:18,tgt:'enemy',wpn:1,needs:'mace',mult:.8,ignB:.2,status:{weak:2,marked:2},fx:'bonk',d:'Batter guard and armor alike: 80% damage, +20% armor piercing; the foe is weakened (−25% damage) and marked (+15 to hit it) for 2 turns.'},
- gut:{n:'Gut',fat:14,tgt:'enemy',wpn:1,needs:'dagger',mult:.8,bleed:3,hit:5,fx:'stab',d:'Open the belly: 80% damage, +5 to hit, and a wound that reaches flesh bleeds for 3 turns.'},
- assassin:{n:'Assassinate',ap:5,fat:20,tgt:'enemy',wpn:1,needs:'dagger',mult:1,pierce:1,vsHurt:.5,fx:'stab',d:'A blade between the plates: full damage straight to hitpoints, ignoring armor; +50% against a foe below half health.'},
- skewer:{n:'Skewer',ap:5,fat:18,tgt:'enemy',wpn:1,needs:'spear',mult:.9,through:1,fx:'stab',d:'Drive the point through: 90% damage to the target, then 75% of that to the foe right behind it.'},
- pinspear:{n:'Pin',fat:18,tgt:'enemy',wpn:1,needs:'spear',mult:1.1,status:{root:2},fx:'stab',d:'Pin a foe in place: 110% damage, and it cannot move for 2 turns.'},
- doubleshot:{n:'Double shot',ap:6,fat:18,tgt:'enemy',wpn:1,needs:'bow',mult:.6,hits:2,hit:-5,fx:'arrow',d:'Two arrows nocked at once: two shots at 60% damage, −5 to hit each.'},
- cripple:{n:'Crippling shot',fat:16,tgt:'enemy',wpn:1,needs:'bow',mult:.9,status:{root:1,weak:2},fx:'arrow',d:'Shoot for the legs: 90% damage; the target cannot move on its next turn and is weakened (−25% damage) for 2.'},
- vault:{n:'Pole vault',ap:3,fat:12,rng:3,tgt:'move',leap:1,needs:'staff',fx:'leap',d:'Vault up to 3 tiles over anything on the staff, drawing no free attacks.'},
  staffquake:{n:'Ringing staff',ap:6,fat:20,tgt:'aoe',wpn:1,needs:'staff',mult:.9,status:{daze:1},fx:'quake',d:'Strike the ground and every adjacent foe: 90% damage to each, all dazed.'},
- fistflurry:{n:'Flurry of fists',ap:5,fat:16,tgt:'enemy',wpn:1,needs:'fist',mult:.7,hits:3,fx:'multi',d:'Three punches at 70% damage each, while the foe stands.'},
- dragonkick:{n:'Dragon kick',ap:5,fat:20,tgt:'enemy',wpn:1,needs:'fist',mult:1.4,kb:2,status:{daze:1},fx:'shove',d:'A flying kick: 140% damage, knocks the foe back 2 tiles and dazes it.'}
 });
-/* ---- Arms update abilities: weapon skills of the new families, shield skills, their weapon trees ----
+/* ---- Arms update abilities: weapon skills of the new families, shield skills (and abilities fabled warriors and eastern foes carry) ----
    Fields read by the rules beyond the ones above: reloadW (the reload: AP and fatigue come from the weapon in hand's reload),
    crushB (added to the weapon's armor crushing), pull (drag the target that many tiles toward the attacker), scare (a hit tests the
    target's morale), spikeD (the damage roll is the raised shield's spike, not the weapon), ignW (armor piercing of that roll). */
@@ -353,17 +340,8 @@ Object.assign(AB,{
  xaim:{n:'Braced shot',ap:6,fat:12,tgt:'enemy',wpn:1,needs:'crossbow',mult:1.1,hit:20,head:10,fx:'bolt',d:'Brace the crossbow and take your time: 6 AP, +20 to hit, 110% damage, +10% head chance.'},
  blast:{n:'Scattershot',fat:14,tgt:'enemy',wpn:1,needs:'flintlock',mult:.55,aoe:1,hit:10,fx:'smoke',d:'A charge of shot instead of a ball: 55% damage to the target and 70% of that to every foe beside it, +10 to hit.'},
  spikebash:{n:'Spiked bash',ap:4,fat:14,rng:1,tgt:'enemy',shield:1,spikeD:1,ignW:.3,melee:1,nostun:1,mult:1,hit:10,kb:1,fx:'shove',d:'Ram the spiked boss into a foe: the shield’s spike damage (30% through armor), knocks it back 1 tile, +10 to hit.'},
- scharge:{n:'Shield charge',ap:5,fat:18,rng:3,tgt:'enemy',shield:1,dash:1,noDmg:1,nostun:1,kb:1,hit:10,status:{daze:1},noDmgTxt:'Bowled over',fx:'charge',d:'Rush up to 3 tiles behind the shield and slam into a foe: it is knocked back 1 tile and dazed. No damage, +10 to hit.'},
- fortress:{n:'Testudo',ap:4,fat:20,tgt:'self',shield:1,party:1,buff:{key:'fortress',md:8,rd:20,indom:1},dur:1,fx:'guard',d:'Shields up and locked: you and every ally next to you get +8 melee and +20 ranged defense and cannot be knocked back until your (their) next turn.'},
- ringblow:{n:'Bell ringer',fat:18,tgt:'enemy',wpn:1,needs:'hammer',mult:.8,head:20,hit:-5,status:{stun:1},fx:'bonk',d:'Ring the helmet like a bell: 80% damage, +20% head chance, and the foe loses its next turn. −5 to hit.'},
- demolish:{n:'Demolish',ap:6,fat:24,tgt:'enemy',wpn:1,needs:'hammer',mult:1.4,crushB:1,ignB:.2,hit:-5,fx:'quake',d:'Everything into one blow: 140% damage, armor crushed twice as hard, +20% armor piercing. −5 to hit.'},
  trip:{n:'Trip',fat:14,tgt:'enemy',wpn:1,needs:'polearm',mult:.6,hit:5,status:{root:1,daze:1},fx:'hook',d:'Hook the legs out from under a foe: 60% damage, it cannot move on its next turn and is dazed. +5 to hit.'},
- glaivecut:{n:'Headsman’s arc',ap:6,fat:22,tgt:'enemy',wpn:1,needs:'polearm',mult:1.3,vsHurt:.4,head:15,fx:'slash',d:'A long, falling cut: 130% damage, +40% more against a foe below half health, +15% head chance.'},
- gsweep:{n:'Wide arc',ap:6,fat:24,tgt:'aoe',wpn:1,needs:'greatsword',mult:.9,fx:'spin',d:'Swing the greatsword through every foe beside you: 90% damage to each.'},
- mordhau:{n:'Mordhau',fat:20,rng:1,tgt:'enemy',wpn:1,needs:'greatsword',mult:1.1,crushB:.6,hit:-5,nostun:1,status:{stun:1},fx:'bonk',d:'Reverse the sword and strike with the hilt at a foe beside you: 110% damage that crushes armor, and it loses its next turn. −5 to hit.'},
- xpin:{n:'Pinning bolt',fat:14,tgt:'enemy',wpn:1,needs:'crossbow',mult:.8,status:{root:2},fx:'bolt',d:'A bolt through the foot: 80% damage, and the target cannot move for 2 turns.'},
  xheart:{n:'Heartseeker',ap:6,fat:18,tgt:'enemy',wpn:1,needs:'crossbow',mult:1.5,hit:10,head:15,fx:'bolt',d:'A bolt for the heart: 6 AP, 150% damage, +10 to hit, +15% head chance.'},
- fdeafen:{n:'Deafening shot',fat:16,tgt:'enemy',wpn:1,needs:'flintlock',mult:.9,scare:1,status:{daze:1},fx:'smoke',d:'Fire past the ear: 90% damage, the target is dazed and must test its morale.'},
  fexecute:{n:'Execution',fat:18,tgt:'enemy',wpn:1,needs:'flintlock',mult:1.25,vsHurt:.5,ignB:.15,fx:'smoke',d:'A slow, sure shot: 125% damage, +15% armor piercing, a further +50% against a foe below half health.'}
 });
 // Descriptions of the older abilities (they used to borrow the perk text).
@@ -391,7 +369,6 @@ Object.assign(STATUS,{
  manashield:{n:'Mana shield',d:'Takes 30% less damage.',icon:'manashield',good:1},
  avatar:{n:'Avatar of war',d:'+30% damage, +10 melee skill, +10 melee defense.',icon:'avatar',good:1},
  steady:{n:'Steady breathing',d:'+15 ranged skill.',icon:'steady',good:1},
- fortress:{n:'Testudo',d:'+8 melee and +20 ranged defense, cannot be knocked back.',icon:'fortress',good:1},
  unloaded:{n:'Unloaded',d:'The crossbow or firearm in hand is spent: it must be reloaded before it can fire again.',icon:'unloaded',good:0}
 });
 /* ---- Morale: u.mor 0..4. hit is added to the unit's own chance to hit, def to its defense against every attack. ---- */
@@ -433,12 +410,16 @@ const INJ={
      'style'  mundane combat craft, 6 tiers of one perk; a merc carries 4 drawn from BG[bg].pool
      'gift'   a resource tree (res: mana aura qi chi) in a fighting style (style: melee ranged caster support), 6 tiers;
               the first perk learned in it awakens the gift: a pool of GIFTBASE (regen GIFTREGEN a turn) plus the perks' res/regen
-     'weapon' one per weapon family (wt), 3 tiers of two perks; they only work while a weapon of that family is in hand
-              (the shield tree, wt 'shield': only while a shield is raised)
-   Tier t of a style or gift tree opens at level t, tier t of a weapon tree at level 3t (tierLevel). No same-tree prerequisites.
+     'weapon' the one Weapon mastery tree (MAST.weapons): a single tier of one perk per weapon family (perk.wt); each works only
+              while a weapon of that family is in hand (wt 'shield': only while a shield is raised); a merc may learn only the
+              families its background allows (weaponTypes in 61-talents.js)
+     'armor'  lightarmor medarmor heavyarmor, one perk a tier (BG[bg].at decides which a merc has)
+     'hunter' MAST.hunter, 9 tiers of one quarry perk: one of the 4 trees a recruit draws (BG[bg].hw: its chance; rollTrees)
+   Tier t of a style or gift tree opens at level t, the weapon tier at level 3, armor tier t at 3t-1 (tierLevel). No same-tree prerequisites.
    aff: what the tree suits (melee ranged caster support one two shield bow light), read by autoLearn.
    Perk: {id, n, d, st?:{stat deltas, dmg as a fraction, ap = action points}, ab?:AB id, flag?:string, mod?:{flag:number},
-          res?:number, regen?:number, wmod?:{d:[+min,+max], ap, rng, ign, hit, stun, spell, crush, rld (reload AP)} (weapon trees: changes the weapon in hand)}
+          res?:number, regen?:number, wt?:weapon family (weapon mastery perks),
+          wmod?:{d:[+min,+max], ap, fat (attack and weapon-skill fatigue), rng, ign, hit, stun, spell, crush, rld (reload AP)} (changes the weapon in hand)}
    Ids are '<tree>.<tier>' (one perk in the tier) or '<tree>.<tier>a' / 'b'. d states the exact effect.
    The flags and mods the rules read (u.flags / calc(m).flags; mods add up):
      exec berserk forged path eagle (as before)   vsHurt vsFull dmgMelee dmgRanged twoDmg lowHpDmg duelHit duelDmg flankDmg spellB splitB
@@ -446,10 +427,11 @@ const INJ={
      regenHP medAura killHeal killRes brvAura healB freeSwap noLock undying   shieldDef shieldHp (calc only)
      arms update: vsArm (damage while the target's body armor holds), reachHit (to hit a foe 2 tiles away with a reach weapon),
      deflect (less damage from shots and spells while a shield is raised), shieldDr (less damage while a shield is raised), shGuard (Cover from a tower shield)
-     armor trees (kind 'armor', aw light/medium/heavy, tiers at levels 2/5/8; idle unless armorClass(m) matches aw):
-     nimble fleet sidestep slip freshDef dance | brace armRegen roll footing layerDef padIgn | kbImm ironLung unbowed steelWall hpSoak noStun */
+     armor trees (kind 'armor', aw light/medium/heavy, tiers at levels 2/5/8 (11); idle unless armorClass(m) matches aw):
+     nimble fleet sidestep slip freshDef dance initDef | brace armRegen roll footing layerDef padIgn | kbImm ironLung unbowed steelWall hpSoak noStun
+     (initDef: that share of the initiative, rounded down, is added to melee and ranged defense by calc()) */
 const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
- WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'];   // weapon tree keys in display order ('shield': the shield tree)
+ WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'];   // weapon families in display order (the weapon mastery perks; 'shield': a raised shield)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
 const MAST={
  /* ---- style trees ---- */
@@ -551,92 +533,45 @@ const MAST={
   [perkDef('Steady breathing','Awakens Chi (30). Ability: +15 ranged skill for 2 turns (2 AP)',{ab:'breath'})],[perkDef('Chi focus','+10% head chance with weapon attacks, +4 ranged skill',{mod:{headB:10},st:{rs:4}})],
   [perkDef('Pressure-point arrow','Ability: 80% damage, dazes and weakens (−25% damage) for 2 turns',{ab:'pparrow'})],[perkDef('Calm mind','+15 Chi, +2 Chi a turn, +10 resolve',{res:15,regen:2,st:{brv:10}})],
   [perkDef('Point-blank','You may shoot with foes next to you (no ranged lock)',{flag:'noLock'})],[perkDef('Spirit arrow','Ability: full damage straight to hitpoints, ignoring armor, +10 to hit',{ab:'spiritarrow'})]]},
- /* ---- weapon trees: only while a weapon of the family is in hand ---- */
- sword:{n:'Swordplay',kind:'weapon',wt:'sword',aff:['melee','one'],d:'Edge, point and guard',tiers:[
-  [perkDef('Edge discipline','+5 to hit with swords',{wmod:{hit:5}}),perkDef('Swift guard','+5 melee defense with a sword in hand',{st:{md:5}})],
-  [perkDef('Blade dance','Ability: strike every adjacent foe at 75% damage',{ab:'bladedance'}),perkDef('Keen edge','+4 sword damage (min and max)',{wmod:{d:[4,4]}})],
-  [perkDef('Masterstroke','Ability: 150% damage, +15 to hit',{ab:'masterstroke'}),perkDef('Bladesong','+5 melee skill, +10% damage with a sword in hand',{st:{ms:5,dmg:.1}})]]},
- axe:{n:'Axe craft',kind:'weapon',wt:'axe',aff:['melee'],d:'Hewing through wood and men',tiers:[
-  [perkDef('Hew','+10% armor piercing with axes',{wmod:{ign:.1}}),perkDef('Shieldbreaker','Split shield does 50% more damage to shields',{mod:{splitB:.5}})],
-  [perkDef('Bloody edge','Axe hits that reach flesh bleed for 2 turns',{mod:{bleedOn:2}}),perkDef('Heft','+3 minimum and +6 maximum axe damage',{wmod:{d:[3,6]}})],
-  [perkDef('Behead','Ability: 120% damage, a further +50% against a foe below half health, +15% head chance',{ab:'axeexec'}),perkDef('Reaver','+10% damage with an axe in hand; recover 5 hitpoints on a kill',{st:{dmg:.1},mod:{killHeal:5}})]]},
- mace:{n:'Mace work',kind:'weapon',wt:'mace',aff:['melee'],d:'Bruises through steel',tiers:[
-  [perkDef('Bonebreaker','+10% chance to stun on a mace hit',{wmod:{stun:.1}}),perkDef('Weighted head','+10% armor piercing with maces',{wmod:{ign:.1}})],
-  [perkDef('Skullcracker','Ability: full damage, +50% head chance, dazes for 2 turns',{ab:'skullcrack'}),perkDef('Ringing blows','+10% head chance with a mace in hand',{mod:{headB:10}})],
-  [perkDef('Sunder','Ability: 80% damage, +20% armor piercing; the foe is weakened and marked for 2 turns',{ab:'sunder'}),perkDef('Judgment','+15% damage with a mace in hand',{st:{dmg:.15}})]]},
- dagger:{n:'Knife fighting',kind:'weapon',wt:'dagger',aff:['melee','one','light'],d:'Close, quick and dirty',tiers:[
-  [perkDef('Quick blade','Dagger attacks cost 1 less AP (at least 2)',{wmod:{ap:-1}}),perkDef('Knife in the ribs','+15% damage in melee against a foe one of your allies is also next to',{mod:{flankDmg:.15}})],
-  [perkDef('Gut','Ability: 80% damage, +5 to hit, bleeds for 3 turns',{ab:'gut'}),perkDef('Lightfoot','+10 initiative, +4 melee defense with a dagger in hand',{st:{init:10,md:4}})],
-  [perkDef('Assassinate','Ability: full damage straight to hitpoints, +50% against a foe below half health',{ab:'assassin'}),perkDef('Venom','Dagger hits that reach flesh bleed for 2 turns',{mod:{bleedOn:2}})]]},
- spear:{n:'Spear drill',kind:'weapon',wt:'spear',aff:['melee'],d:'Point and reach (pikes too)',tiers:[
-  [perkDef('Steady point','+5 to hit with spears',{wmod:{hit:5}}),perkDef('Brace','+5 melee defense with a spear in hand',{st:{md:5}})],
-  [perkDef('Skewer','Ability: 90% damage, then 75% of it to the foe right behind',{ab:'skewer'}),perkDef('Set for the charge','+20% damage to foes still at full health',{mod:{vsFull:.2}})],
-  [perkDef('Pin','Ability: 110% damage and the foe cannot move for 2 turns',{ab:'pinspear'}),perkDef('Shoulder to shoulder','+5 defense beside an ally, +10% damage with a spear in hand',{mod:{adjDef:5},st:{dmg:.1}})]]},
- bow:{n:'Archery',kind:'weapon',wt:'bow',aff:['ranged','bow'],d:'String, shaft and fletching',tiers:[
-  [perkDef('Fletcher','+3 minimum and +4 maximum bow damage',{wmod:{d:[3,4]}}),perkDef('Steady stance','+6 ranged skill with a bow in hand',{st:{rs:6}})],
-  [perkDef('Double shot','Ability: two shots at 60% damage, −5 to hit each',{ab:'doubleshot'}),perkDef('Broadheads','Arrows that reach flesh bleed for 2 turns',{mod:{bleedOn:2}})],
-  [perkDef('Crippling shot','Ability: 90% damage, the target cannot move on its next turn and is weakened for 2',{ab:'cripple'}),perkDef('Nimble fingers','Bow attacks cost 1 less AP (at least 2)',{wmod:{ap:-1}})]]},
- staff:{n:'Staff arts',kind:'weapon',wt:'staff',aff:['caster','melee'],d:'Quarterstaff and focus',tiers:[
-  [perkDef('Staff guard','+5 melee and ranged defense with a staff in hand',{st:{md:5,rd:5}}),perkDef('Channeling','+10% spell damage with a staff in hand',{wmod:{spell:.1}})],
-  [perkDef('Pole vault','Ability: vault up to 3 tiles over anything',{ab:'vault'}),perkDef('Warding','Take 10% less damage from shots and spells with a staff in hand',{mod:{drRanged:.1}})],
-  [perkDef('Ringing staff','Ability: strike every adjacent foe at 90% and daze them',{ab:'staffquake'}),perkDef('Archstaff','+15% spell damage and +10 resolve with a staff in hand',{wmod:{spell:.15},st:{brv:10}})]]},
- fist:{n:'Open hand',kind:'weapon',wt:'fist',aff:['melee','light'],d:'Unarmed fighting',tiers:[
-  [perkDef('Iron knuckles','Fists deal +6 minimum and +8 maximum damage',{wmod:{d:[6,8]}}),perkDef('Flowing stance','+6 melee defense while unarmed',{st:{md:6}})],
-  [perkDef('Flurry of fists','Ability: three punches at 70% damage',{ab:'fistflurry'}),perkDef('Pressure points','+15% chance to stun with fists',{wmod:{stun:.15}})],
-  [perkDef('Dragon kick','Ability: 140% damage, knockback 2, dazes',{ab:'dragonkick'}),perkDef('Empty hand','Fists deal +6/+8 more damage and +20% armor piercing',{wmod:{d:[6,8],ign:.2}})]]},
- /* ---- the arms update: five more families and the shield ---- */
- hammer:{n:'Hammer craft',kind:'weapon',wt:'hammer',aff:['melee'],d:'Plate is only metal',tiers:[
-  [perkDef('Plate breaker','Hammer hits crush 30% more armor',{wmod:{crush:.3}}),perkDef('Heavy head','+2 minimum and +5 maximum hammer damage',{wmod:{d:[2,5]}})],
-  [perkDef('Bell ringer','Ability: 80% damage, +20% head chance, stuns; −5 to hit',{ab:'ringblow'}),perkDef('Momentum','+15% damage with a hammer against a foe whose body armor still holds',{mod:{vsArm:.15}})],
-  [perkDef('Demolish','Ability: 140% damage, armor crushed twice as hard, +20% armor piercing',{ab:'demolish'}),perkDef('Anvil','+10 hitpoints, +10% armor piercing with a hammer in hand',{st:{hp:10},wmod:{ign:.1}})]]},
- polearm:{n:'Polearm drill',kind:'weapon',wt:'polearm',aff:['melee','two'],d:'Bills, halberds and glaives from the second rank',tiers:[
-  [perkDef('Long reach','+5 to hit with polearms',{wmod:{hit:5}}),perkDef('Keep them off','+5 melee defense with a polearm in hand',{st:{md:5}})],
-  [perkDef('Trip','Ability: 60% damage, the foe cannot move on its next turn and is dazed',{ab:'trip'}),perkDef('Leverage','+10% damage with a polearm in hand',{st:{dmg:.1}})],
-  [perkDef('Headsman’s arc','Ability: 130% damage, +40% more against a foe below half health, +15% head chance',{ab:'glaivecut'}),perkDef('Second rank','+10 to hit when you strike a foe 2 tiles away',{mod:{reachHit:10}})]]},
- greatsword:{n:'Greatsword school',kind:'weapon',wt:'greatsword',aff:['melee','two'],d:'Two hands on a long blade',tiers:[
-  [perkDef('Edge alignment','+5 to hit with greatswords',{wmod:{hit:5}}),perkDef('Broad blade','+3 minimum and +6 maximum greatsword damage',{wmod:{d:[3,6]}})],
-  [perkDef('Wide arc','Ability: strike every adjacent foe at 90% damage',{ab:'gsweep'}),perkDef('Measure','+4 melee defense and +5 initiative with a greatsword in hand',{st:{md:4,init:5}})],
-  [perkDef('Mordhau','Ability: a hilt blow at an adjacent foe: 110% damage that crushes armor, stuns; −5 to hit',{ab:'mordhau'}),perkDef('Master of the long sword','+5 melee skill, +10% damage with a greatsword in hand',{st:{ms:5,dmg:.1}})]]},
- crossbow:{n:'Crossbow drill',kind:'weapon',wt:'crossbow',aff:['ranged'],d:'Crank, quarrel and trigger',tiers:[
-  [perkDef('Quick crank','Reloading a crossbow costs 1 less AP (at least 2)',{wmod:{rld:-1}}),perkDef('Steady rest','+6 ranged skill with a crossbow in hand',{st:{rs:6}})],
-  [perkDef('Pinning bolt','Ability: 80% damage, the target cannot move for 2 turns',{ab:'xpin'}),perkDef('Bodkin points','+10% armor piercing with crossbows',{wmod:{ign:.1}})],
-  [perkDef('Heartseeker','Ability: 150% damage, +10 to hit, +15% head chance (6 AP)',{ab:'xheart'}),perkDef('Well oiled','Reloading costs 1 less AP; +3 minimum and +5 maximum crossbow damage',{wmod:{rld:-1,d:[3,5]}})]]},
- flintlock:{n:'Gunnery',kind:'weapon',wt:'flintlock',aff:['ranged'],d:'Powder, ball and nerve',tiers:[
-  [perkDef('Powder measure','+4 minimum and +6 maximum firearm damage',{wmod:{d:[4,6]}}),perkDef('Calm in the smoke','+6 ranged skill with a firearm in hand',{st:{rs:6}})],
-  [perkDef('Deafening shot','Ability: 90% damage, dazes and tests the target’s morale',{ab:'fdeafen'}),perkDef('Ramrod drill','Reloading a firearm costs 1 less AP (at least 2)',{wmod:{rld:-1}})],
-  [perkDef('Execution','Ability: 125% damage, +15% armor piercing, +50% more against a foe below half health',{ab:'fexecute'}),perkDef('Gunsmith','+10% armor piercing and +5 to hit with firearms',{wmod:{ign:.1,hit:5}})]]},
- shield:{n:'Shield work',kind:'weapon',wt:'shield',aff:['shield','melee'],d:'Boss, rim and wall (only while a shield is raised)',tiers:[
-  [perkDef('Shield discipline','A raised shield gives +4 more melee and ranged defense',{mod:{shieldDef:4}}),perkDef('Hardened boss','Your shield has 30% more hitpoints',{mod:{shieldHp:.3}})],
-  [perkDef('Shield charge','Ability: rush up to 3 tiles and slam into a foe: knockback 1, daze',{ab:'scharge'}),perkDef('Deflect','Take 10% less damage from shots and spells while your shield is raised',{mod:{deflect:.1}})],
-  [perkDef('Testudo','Ability: you and every ally next to you get +8 melee and +20 ranged defense and no knockback until your next turn',{ab:'fortress'}),perkDef('Iron wall','Take 10% less damage from everything while your shield is raised',{mod:{shieldDr:.1}})]]},
- /* ---- armor trees: every merc has all three; each works only while the body armor worn is of its weight class (armorClass(m):
-         light = up to 60 armor or any robe, also no armor; medium = 61 to 150; heavy = over 150). Tiers open at levels 2, 5, 8. ---- */
+ /* ---- the weapon mastery tree: one perk per weapon family (p.wt), each working only while a weapon of that family is in hand
+         (shield: only while a shield is raised). A merc sees and may learn only the families its background allows (weaponTypes).
+         One tier: every perk opens at level 3 (tierLevel('weapon', 1)). Ids 'weapons.<family>'. ---- */
+ weapons:{n:'Weapon mastery',kind:'weapon',aff:['melee','ranged'],d:'One mastery per weapon family: each works only while that weapon is in hand',tiers:[[
+  perkDef('Blade discipline','+10 to hit with a sword in hand',{id:'weapons.sword',wt:'sword',wmod:{hit:10}}),
+  perkDef('Hew','+15% armor piercing with an axe in hand',{id:'weapons.axe',wt:'axe',wmod:{ign:.15}}),
+  perkDef('Bonebreaker','+15% chance to stun on a hit with a mace in hand',{id:'weapons.mace',wt:'mace',wmod:{stun:.15}}),
+  perkDef('Plate breaker','Hammer hits crush 40% more armor',{id:'weapons.hammer',wt:'hammer',wmod:{crush:.4}}),
+  perkDef('Quick blade','Dagger attacks cost 1 less AP (at least 2), and so do weapon skills that cost the weapon’s AP',{id:'weapons.dagger',wt:'dagger',wmod:{ap:-1}}),
+  perkDef('Steady point','+10 to hit with a spear in hand',{id:'weapons.spear',wt:'spear',wmod:{hit:10}}),
+  perkDef('Second rank','+10 to hit with a polearm against a foe 2 tiles away',{id:'weapons.polearm',wt:'polearm',mod:{reachHit:10}}),
+  perkDef('Measured swings','With a greatsword in hand, attacks and weapon skills cost 6 less fatigue',{id:'weapons.greatsword',wt:'greatsword',wmod:{fat:-6}}),
+  perkDef('Nimble fingers','Bow shots cost 1 less AP (at least 2), and so do weapon skills that cost the weapon’s AP',{id:'weapons.bow',wt:'bow',wmod:{ap:-1}}),
+  perkDef('Crank drill','Reloading a crossbow costs 2 less AP (at least 2)',{id:'weapons.crossbow',wt:'crossbow',wmod:{rld:-2}}),
+  perkDef('Ramrod drill','Reloading a firearm costs 2 less AP (at least 2)',{id:'weapons.flintlock',wt:'flintlock',wmod:{rld:-2}}),
+  perkDef('Channeling','+15% spell damage with a staff in hand',{id:'weapons.staff',wt:'staff',wmod:{spell:.15}}),
+  perkDef('Iron knuckles','Fighting unarmed: fists deal +8 minimum and +10 maximum damage',{id:'weapons.fist',wt:'fist',wmod:{d:[8,10]}}),
+  perkDef('Shield discipline','A raised shield gives +5 more melee and ranged defense',{id:'weapons.shield',wt:'shield',mod:{shieldDef:5}})]]},
+ /* ---- armor trees: a merc has its background's (BG[bg].at); each works only while the body armor worn is of its weight class (armorClass(m):
+         light = up to 60 armor or any robe, also no armor; medium = 61 to 150; heavy = over 150). One perk a tier; tiers open at levels 2, 5, 8
+         (and 11: the light armor tree's fourth). ---- */
  lightarmor:{n:'Light armor',kind:'armor',aw:'light',aff:['light'],d:'Cloth, leather and robes: not being there (only while your body armor is light: up to 60 armor, or a robe)',tiers:[
-  [perkDef('Nimble','Take less damage the lighter you go: 30% minus 1.5% per point of body armor and helmet weight (their fatigue), at full strength while fresh and half of it when exhausted (scales with the stamina you have left)',{mod:{nimble:1}}),
-   perkDef('Fleet','After you move on your turn: +10 ranged defense against shots until your next turn',{mod:{fleet:10}})],
-  [perkDef('Sidestep','Once between your turns, a blow that would take more than 25% of your maximum hitpoints only grazes you: you lose half those hitpoints',{mod:{sidestep:.25}}),
-   perkDef('Slippery','The first tile you leave each turn draws no free attacks',{flag:'slip'})],
-  [perkDef('Fresh legs','+8 melee and ranged defense while your fatigue is below half',{mod:{freshDef:8}}),
-   perkDef('Dancer','Every attack that misses you gives +5 melee and ranged defense until your next turn (up to +15)',{mod:{dance:5}})]]},
+  [perkDef('Nimble','Take less damage the lighter you go: 30% minus 1.5% per point of body armor and helmet weight (their fatigue), at full strength while fresh and half of it when exhausted (scales with the stamina you have left); after you move on your turn, +10 ranged defense against shots until your next turn',{mod:{nimble:1,fleet:10}})],
+  [perkDef('Slippery','Once between your turns, a blow that would take more than 25% of your maximum hitpoints only grazes you: you lose half those hitpoints; the first tile you leave each turn draws no free attacks',{mod:{sidestep:.25},flag:'slip'})],
+  [perkDef('Dancer','+8 melee and ranged defense while your fatigue is below half; every attack that misses you gives +5 melee and ranged defense until your next turn (up to +15)',{mod:{freshDef:8,dance:5}})],
+  [perkDef('Quicksilver','+10% of your initiative (rounded down) as melee and ranged defense',{mod:{initDef:.1}})]]},
  medarmor:{n:'Medium armor',kind:'armor',aw:'medium',aff:['melee','ranged'],d:'Mail, leather and brigandine: give a little, keep the rest (only while your body armor is medium: 61 to 150 armor)',tiers:[
-  [perkDef('Brace','The first blow that hits you between your turns deals 20% less damage',{mod:{brace:.2}}),
-   perkDef('Mail mender','Regain 6 body armor at the start of each of your turns (up to its maximum)',{mod:{armRegen:6}})],
-  [perkDef('Rolling with it','Knockbacks, hooks and stuns against you work only half the time',{mod:{roll:.5}}),
-   perkDef('Steady footing','Moving costs 1 fatigue a tile instead of 2',{flag:'footing'})],
-  [perkDef('Layered defense','+6 melee and ranged defense while your body armor is above half',{mod:{layerDef:6}}),
-   perkDef('Padded under-layer','The share of a blow that pierces your body armor is a third smaller (head hits excluded)',{mod:{padIgn:1/3}})]]},
+  [perkDef('Braced mail','The first blow that hits you between your turns deals 20% less damage; regain 6 body armor at the start of each of your turns (up to its maximum)',{mod:{brace:.2,armRegen:6}})],
+  [perkDef('Rolling with it','Knockbacks, hooks and stuns against you work only half the time; moving costs 1 fatigue a tile instead of 2',{mod:{roll:.5},flag:'footing'})],
+  [perkDef('Layered defense','+6 melee and ranged defense while your body armor is above half; the share of a blow that pierces your body armor is a third smaller (head hits excluded)',{mod:{layerDef:6,padIgn:1/3}})]]},
  heavyarmor:{n:'Heavy armor',kind:'armor',aw:'heavy',aff:['melee','shield'],d:'Plate and scale: a wall that walks (only while your body armor is heavy: over 150 armor)',tiers:[
-  [perkDef('Immovable','You cannot be knocked back or dragged',{flag:'kbImm'}),
-   perkDef('Iron lung','Your body armor and helmet cost half as much fatigue (rounded down)',{flag:'ironLung'})],
-  [perkDef('Unbowed','A single blow never strips more than 30% of the armor it strikes (body armor or helmet, of its maximum)',{mod:{unbowed:.3}}),
-   perkDef('Bulwark of steel','Allies next to you take 10% less damage',{mod:{steelWall:.1}})],
-  [perkDef('Juggernaut','Every blow that reaches your hitpoints takes 5 fewer (at least 1)',{mod:{hpSoak:5}}),
-   perkDef('Unshakable','You cannot be stunned, and heavy blows do not test your morale',{flag:'noStun'})]]}
+  [perkDef('Immovable','You cannot be knocked back or dragged; your body armor and helmet cost half as much fatigue (rounded down)',{flag:'kbImm',mod:{ironLung:1}})],
+  [perkDef('Unbowed','A single blow never strips more than 30% of the armor it strikes (body armor or helmet, of its maximum); allies next to you take 10% less damage',{mod:{unbowed:.3,steelWall:.1}})],
+  [perkDef('Juggernaut','Every blow that reaches your hitpoints takes 5 fewer (at least 1), you cannot be stunned, and heavy blows do not test your morale',{mod:{hpSoak:5},flag:'noStun'})]]}
 };
 /* ---- Monster hunter (kind 'hunter'): 9 tiers of one perk, tier t opens at level t (tierLevel). Each perk is a quarry (QUARRY, keyed by
    the perk id): against a unit whose EN id is in QUARRY[k].en, a merc who has learned it deals +QUARRYB% damage plus per% for every one of
    that quarry it has slain (m.slain[k], counted always, also before the perk is learned), up to cap kills, and gets floor(kills x per / 2)
-   to hit. Wyverns are never a quarry. Only backgrounds with BG[bg].ht may learn it (hunterTrees). Rules: quarryVs / quarryInfo (61-talents.js). ---- */
+   to hit. Wyverns are never a quarry. It is one of the 4 trees a merc carries (m.trees): a background with BG[bg].hw draws it with that chance (rollTrees; the Beast slayer always). Rules: quarryVs / quarryInfo (61-talents.js). ---- */
 const QUARRYB=5;
 const QUARRY={
  'hunter.gob':    {n:'Goblins',      one:'goblin',      tag:'Goblin-slayer',  en:['gob','gobarch','gobsham'],        per:.5,cap:30},
@@ -691,7 +626,7 @@ Object.assign(BG.spellblade,{style:'melee',pool:['duelist','vanguard','skirmishe
 Object.assign(BG.wildling,{style:'melee',pool:['berserker','brute','survivor','vanguard','skirmisher','scout','marksman','brawler'],wt:['axe','mace','hammer','spear','bow'],at:['lightarmor','medarmor']});
 Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor'],wt:['sword','mace','hammer','greatsword','shield'],at:['medarmor','heavyarmor']});
 BG.hunter.r=[['qi',.2],['aura',.12],['chi',.08],['mana',.05]];      // a hunter's gift, if any, comes as its archery variant
-RACE.human.noWt=[];RACE.elf.noWt=['flintlock','hammer'];RACE.dwarf.noWt=['bow','polearm'];RACE.halforc.noWt=['bow','crossbow','flintlock'];   // weapon trees a race never learns
+RACE.human.noWt=[];RACE.elf.noWt=['flintlock','hammer'];RACE.dwarf.noWt=['bow','polearm'];RACE.halforc.noWt=['bow','crossbow','flintlock'];   // weapon masteries a race never learns
 /* ---- More backgrounds (phase 6): every field in one entry. w is the rarity weight in the tavern draw (wpickBG), town (1-3) the
    smallest settlement that hires them out, bio the biomes where they turn up more often (x2). tr: trait weights (see TRAITS; 1 when
    absent, 0 = never). look: appearance hints for the art {hat, cloth, accent, trim, hair?, beard?} in the portrait vocabulary
@@ -765,11 +700,12 @@ Object.assign(BG,{
   tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}}
 });
 /* The Beast Slayer: the one sword of the Solo origin (ORIGINS.slayer). w 0 and noHire: never in a tavern, a rival roster or an event. */
-BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,ht:1,st:{hp:12,ms:10,rs:8,md:6,rd:4,fat:12,brv:16,init:6},r:[['qi',.2],['aura',.12]],
+BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,st:{hp:12,ms:10,rs:8,md:6,rd:4,fat:12,brv:16,init:6},r:[['qi',.2],['aura',.12]],
  gear:['boarspear','leather','cap'],side:'huntxbow',
  style:'melee',pool:['survivor','vanguard','skirmisher','scout','berserker','duelist','brute'],wt:['spear','axe','sword','crossbow','dagger'],at:['medarmor','lightarmor'],
  tr:{beastwise:4,tough:2,brave:2,athletic:2,craven:0,fragile:.3,superstitious:.3},look:{hat:'hood',cloth:'black',accent:'charcoal',trim:'steel',garb:'bandolier',beard:'short'}};
-for(const k of ['hunter','poacher','witchhunter','wildling'])if(BG[k])BG[k].ht=1;   // the backgrounds that may learn the Monster hunter tree
+/* The Monster hunter tree as one of a recruit's 4 trees: hw is the chance rollTrees puts it in place of the 4th style tree ('hunter' in pool). */
+for(const [k,w] of [['slayer',1],['hunter',.6],['poacher',.6],['witchhunter',.5],['wildling',.5],['woodcutter',.15],['nomad',.15],['butcher',.1]])if(BG[k]){BG[k].hw=w;if(!BG[k].pool.includes('hunter'))BG[k].pool.push('hunter')}
 for(const k in BG)if(!BG[k].m)BG[k].m=BG[k].pool.slice(0,2);
 for(const k in BG){const b=BG[k];if(b.town)b.size=b.town;if(b.bio)b.biomes=b.bio}   // the names 50-towns' recruitBG also reads (size: minimum town size, biomes)                              // the old two-mastery list (read by nothing new; kept for shape)
 /* Trait weights and looks of the first twelve backgrounds (the portraits already draw these hats). */

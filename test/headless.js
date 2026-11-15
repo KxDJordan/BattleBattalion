@@ -604,20 +604,26 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        put(f1,5,mid+4);tough(f1);const fs=X.forecast(sp,f1,ab(sp,'spikebash'));ok(fs.dmgMax>0&&fs.kb&&fs.kb.n===1,'the forecast knows the spiked bash');sp.ms=300;ev.length=0;
        await hitUntil(async()=>{put(f1,5,mid+4);sp.ap=9;sp.fat=0;zb.cur=sp;await X.useAbility(sp,ab(sp,'spikebash'),KU(f1));await rest(zb)},()=>f1.hp<5000,'the spiked bash never drew blood');
        unspawn(tw,mate,sp) }
-     // the shield tree: only while a shield is raised
-     { Z.park();const P=['shield.1a','shield.1b','shield.2a','shield.2b','shield.3a','shield.3b'],m=mer('arming','greataxe','heater',P),s=X.calc(m),s2=X.calc(m,{hand:'b'});
-       ok(X.weaponTrees(m).includes('shield')&&P.every(id=>s.perks.includes(id))&&s.abs.includes('scharge')&&s.abs.includes('fortress')&&s.flags.deflect===.1&&s.flags.shieldDr===.1&&s.shield.md===X.ITEMS.heater.md+4,'the shield tree works with the shield raised');
-       ok(P.every(id=>s2.off.includes(id))&&!s2.abs.includes('scharge')&&!s2.flags.deflect&&s2.shield.hp===s.shield.hp,'a slung shield: the shield tree sleeps (its hitpoints stay)');
-       ok(X.calc(mer('arming',null,null,P)).off.length===6,'no shield, no shield tree');
-       const g=spawnM(m,8,mid+2),mate=spawnM(mer('arming',null,'buckler'),9,mid+2);f0.wpn={n:'',wt:'bow',d:[30,40],ap:4,fat:0,rng:8,ign:.25};put(f0,8,mid-3);const at=ab(f0,'attack'),fA=X.forecast(f0,g,at);
-       const fl=g.flags;g.flags=Object.assign({},fl,{deflect:0,shieldDr:0});const fB=X.forecast(f0,g,at);g.flags=fl;ok(fA.dmgMax<fB.dmgMax,'Deflect and Iron wall cut the damage of a shot');
-       zb.cur=g;g.ap=9;g.fat=0;await X.useAbility(g,ab(g,'fortress'),KU(g));await rest(zb);ok(g.buffs.some(x=>x.key==='fortress')&&mate.buffs.some(x=>x.key==='fortress')&&X.statusList(mate).some(x=>x.key==='fortress'),'Testudo covers you and the ally beside you');
-       put(f1,8,mid-1);tough(f1);g.ms=300;g.ap=9;g.fat=0;ok(X.validTargets(g,ab(g,'scharge')).has(KU(f1)),'shield charge reaches 3 tiles');await X.useAbility(g,ab(g,'scharge'),KU(f1));await rest(zb);ok(g.r!==mid+2&&Math.abs(g.c-f1.c)+Math.abs(g.r-f1.r)<=2,'shield charge closes in');
-       X.breakShield(g);ok(!X.canUse(g,Object.assign(ab(g,'fortress'),{ap:0,fat:0}))&&X.drOf(f0,g,at)===X.drOf(f0,Object.assign({},g,{flags:Object.assign({},g.flags,{deflect:0,shieldDr:0})}),at),'a split shield: no shield skills, no shield-tree damage reduction');
-       unspawn(g,mate) }
+     // the shield mastery: only while a shield is raised
+     { Z.park();const P=['weapons.shield'],m=mer('arming','greataxe','heater',P),s=X.calc(m),s2=X.calc(m,{hand:'b'}),s0=X.calc(mer('arming','greataxe','heater',[]));
+       ok(X.weaponTypes(m).includes('shield')&&s.perks.includes('weapons.shield')&&s.shield.md===X.ITEMS.heater.md+5&&s.md===s0.md+5&&s.rd===s0.rd+5,'the shield mastery works with the shield raised');
+       ok(s2.off.includes('weapons.shield')&&s2.shield.hp===s.shield.hp&&!s2.flags.shieldDef,'a slung shield: the shield mastery sleeps');
+       ok(X.calc(mer('arming',null,null,P)).off.length===1,'no shield, no shield mastery') }
+     // every weapon mastery works only with its family in hand, and does what it says
+     { const W=(id,P)=>X.calc(mer(id,null,null,P)).wpn,base=id=>X.calc(mer(id,null,null,[])).wpn;
+       ok(W('arming',['weapons.sword']).hit===base('arming').hit+10,'sword mastery: +10 to hit');ok(W('waraxe',['weapons.axe']).ign===base('waraxe').ign+.15,'axe mastery: +15% armor piercing');
+       ok(Math.abs(W('mace',['weapons.mace']).stun-base('mace').stun-.15)<1e-9,'mace mastery: +15% stun');ok(Math.abs(W('warhammer',['weapons.hammer']).crush-base('warhammer').crush-.4)<1e-9,'hammer mastery: crush');
+       ok(W('rondel',['weapons.dagger']).ap===2&&W('shortbow',['weapons.bow']).ap===3&&W('warbow',['weapons.bow']).ap===4,'dagger and bow masteries: 1 less AP, at least 2');
+       const gs=W('greatsword',['weapons.greatsword']);ok(gs.fat===X.ITEMS.greatsword.fat-6&&gs.fatCut===6,'greatsword mastery: 6 less fatigue');
+       ok(W('crossbow',['weapons.crossbow']).reload.ap===2&&W('musket',['weapons.flintlock']).reload.ap===3,'crossbow and firearm masteries: reload 2 AP cheaper');
+       ok(Math.abs(W('staff',['weapons.staff']).spell-base('staff').spell-.15)<1e-9,'staff mastery: +15% spell damage');const fw=W(null,['weapons.fist']);ok(fw.d[0]===X.FIST.d[0]+8&&fw.d[1]===X.FIST.d[1]+10,'fist mastery: +8/+10');
+       ok(X.calc(mer('halberd',null,null,['weapons.polearm'])).flags.reachHit===10&&!X.calc(mer('greatsword',null,null,['weapons.polearm'])).flags.reachHit,'polearm mastery: +10 to hit at 2 tiles, only with a polearm');
+       const off=X.calc(mer('arming',null,null,['weapons.axe','weapons.bow']));ok(off.off.length===2&&off.wpn.ign===base('arming').ign,'a mastery of another family sleeps') }
      // weapon trees follow background and race
-     for(const bg in X.BG)for(const race in X.RACE){const m=X.newMerc(bg);m.race=race;const wt=X.weaponTrees(m);m.lvl=9;m.pp=1;
-       ok(wt.every(w=>X.BG[bg].wt.includes(w)&&!X.RACE[race].noWt.includes(w)),'weapon trees outside '+bg+' / '+race);for(const w of X.WTS)ok(X.canLearn(m,w+'.1a')===wt.includes(w),'canLearn must follow the weapon trees: '+bg+' '+race+' '+w)}
+     for(const bg in X.BG)for(const race in X.RACE){const m=X.newMerc(bg);m.race=race;const wt=X.weaponTypes(m);m.lvl=9;m.pp=1;
+       ok(wt.every(w=>X.BG[bg].wt.includes(w)&&!X.RACE[race].noWt.includes(w)),'weapon masteries outside '+bg+' / '+race);ok(X.weaponTrees(m).join()===(wt.length?'weapons':''),'one weapon tree: '+bg);
+       ok(X.perkOptions(m).filter(o=>o.kind==='weapon').map(o=>o.perk.wt).join()===wt.join(),'perkOptions lists the allowed masteries: '+bg+' '+race);
+       for(const w of X.WTS)ok(X.canLearn(m,'weapons.'+w)===wt.includes(w),'canLearn must follow the weapon families: '+bg+' '+race+' '+w)}
      ok(!X.BG.monk.wt.includes('flintlock')&&X.RACE.elf.noWt.includes('flintlock')&&X.RACE.halforc.noWt.includes('bow'),'no firearms for monks or elves, no bows for half-orcs');
      // friendly fire: every ranged weapon attack with an ally in the line strays into him, ONE projectile, to him, and he takes the hit
      const fsh=X.FX.shot,shotLog=[];X.FX.shot=function(a,b2,...r){shotLog.push({a,b:b2});return fsh.call(this,a,b2,...r)};
@@ -651,8 +657,9 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    // -- the catalog --
    const styles=keys.filter(k=>kind(k)==='style'),gifts=keys.filter(k=>kind(k)==='gift'),wts=keys.filter(k=>kind(k)==='weapon');
    ok(styles.length>=12&&['vanguard','bulwark','marksman','skirmisher'].every(k=>kind(k)==='style'),'at least 12 style trees, the four old ones kept');
-   ok(wts.length===14&&['sword','axe','mace','dagger','spear','bow','staff','fist','hammer','polearm','greatsword','crossbow','flintlock','shield'].every(w=>M[w]&&M[w].wt===w&&M[w].tiers.length===3&&M[w].tiers.every(t=>t.length===2)),'14 weapon trees (13 families and the shield) of 3 tiers x 2 perks');
-   ok(X.WTS.length===14&&wts.every(k=>X.WTS.includes(k)),'WTS lists every weapon tree');
+   ok(wts.join()==='weapons'&&M.weapons.tiers.length===1&&M.weapons.tiers[0].map(p=>p.wt).join()===X.WTS.join()&&M.weapons.tiers[0].every(p=>p.id==='weapons.'+p.wt),'one weapon tree: one mastery per family (13 families and the shield), ids weapons.<family>');
+   ok(X.WTS.length===14&&['sword','axe','mace','dagger','spear','bow','staff','fist','hammer','polearm','greatsword','crossbow','flintlock','shield'].every(w=>X.WTS.includes(w)),'WTS lists every weapon family');
+   ok(M.weapons.tiers[0].every(p=>!p.ab&&Object.keys(p.wmod||{}).length+Object.keys(p.mod||{}).length===1),'each weapon mastery has one clear effect');
    for(const k of styles.concat(gifts))ok(M[k].tiers.length===6&&M[k].tiers.every(t=>t.length>=1),k+': 6 tiers');
    ok(M.mana.style==='caster'&&M.aura.style==='melee'&&M.qi.style==='melee'&&M.chi.style==='support'&&['mana','aura','qi','chi'].every(k=>kind(k)==='gift'&&M[k].res===k),'the four old gift trees keep their keys');
    for(const r of X.RESK){const vs=gifts.filter(k=>M[k].res===r).map(k=>M[k].style);ok(vs.includes('melee')&&vs.includes('ranged'),r+' needs melee and ranged variants');ok(X.giftKey(r,'melee')&&X.giftKey(r,'ranged')&&M[X.giftKey(r,'ranged')].style==='ranged','giftKey '+r)}
@@ -660,8 +667,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    for(const k of keys)M[k].tiers.forEach((t,ti)=>t.forEach(p=>{ok(p.id&&!ids.has(p.id)&&p.n&&p.d&&X.perkById(p.id)&&X.perkById(p.id).tier===ti+1&&X.perkById(p.id).key===k,'perk '+p.id+' is malformed or not unique');ids.add(p.id);
      if(p.ab)ok(X.AB[p.ab]&&X.AB[p.ab].n&&X.AB[p.ab].d,'perk '+p.id+' grants an unknown ability '+p.ab);ok(p.st||p.ab||p.flag||p.mod||p.res||p.wmod||(p.quarry&&X.QUARRY[p.quarry]),'perk '+p.id+' does nothing')}));
    const nAb=new Set([...ids].map(id=>X.perkById(id).perk.ab).filter(Boolean)).size;
-   { const pools=[];for(const bg in X.BG){const b=X.BG[bg];ok(X.TALSTYLE.includes(b.style),bg+' has no style');ok(b.pool.length>=6&&b.pool.length<=9&&b.pool.every(k=>M[k]&&kind(k)==='style')&&new Set(b.pool).size===b.pool.length,bg+': pool of 6-9 style trees');
-       ok(b.wt.length>=3&&b.wt.length<=5&&b.wt.every(w=>M[w]&&kind(w)==='weapon')&&new Set(b.wt).size===b.wt.length,bg+': 3-5 weapon trees');pools.push(b.pool.slice().sort().join());
+   { const pools=[];for(const bg in X.BG){const b=X.BG[bg];ok(X.TALSTYLE.includes(b.style),bg+' has no style');ok(b.pool.length>=6&&b.pool.length<=9&&b.pool.every(k=>M[k]&&(kind(k)==='style'||k==='hunter'))&&new Set(b.pool).size===b.pool.length&&b.pool.includes('hunter')===!!b.hw,bg+': pool of 6-9 style trees (and the hunter tree with hw)');
+       ok(b.wt.length>=3&&b.wt.length<=5&&b.wt.every(w=>X.WTS.includes(w))&&new Set(b.wt).size===b.wt.length,bg+': 3-5 weapon trees');pools.push(b.pool.slice().sort().join());
        ok(Array.isArray(b.at)&&b.at.length>=1&&b.at.length<=2&&b.at.every(k=>M[k]&&kind(k)==='armor')&&new Set(b.at).size===b.at.length,bg+': 1-2 armor trees');
        // the starting weapons (and shield) are inside the background's trees; known exceptions: a sellsword's sidearm knife, a wildling's odd shield
        const EXC={sellsword:['dagger'],wildling:['shield']},gw=new Set();b.gear.forEach(gs=>gs.split('|').forEach(id=>{const it=X.ITEMS[id];if(it&&it.k==='w')gw.add(it.wt);if(it&&it.k==='s')gw.add('shield')}));
@@ -670,39 +677,39 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      ok(['knight','squire','militia','sellsword','acolyte'].every(bg=>X.BG[bg].wt.includes('shield'))&&['knight','squire'].every(bg=>X.BG[bg].wt.includes('greatsword')&&X.BG[bg].at.includes('heavyarmor'))&&X.BG.hunter.wt.includes('bow')&&X.BG.hunter.wt.includes('crossbow')&&!X.BG.monk.wt.includes('flintlock'),'background weapon trees: shields for the line, bows for hunters');
      ok(X.BG.hunter.at.join()==='lightarmor'&&X.BG.thief.at.join()==='lightarmor'&&X.BG.hedge.at.join()==='lightarmor'&&X.BG.sellsword.at.slice().sort().join()==='heavyarmor,medarmor'&&X.BG.acolyte.at.join()==='medarmor','background armor trees');
      for(const k of ['lightarmor','medarmor','heavyarmor'])ok(Object.keys(X.BG).some(bg=>X.BG[bg].at.includes(k)),'no background can learn the '+k+' tree');
-     for(const k of wts)ok(Object.keys(X.BG).some(bg=>X.BG[bg].wt.includes(k)),'no background can learn the '+k+' tree');
-     for(const r in X.RACE)ok(Array.isArray(X.RACE[r].noWt)&&X.RACE[r].noWt.every(w=>M[w]&&kind(w)==='weapon'),'race '+r+': noWt');
+     for(const k of X.WTS)ok(Object.keys(X.BG).some(bg=>X.BG[bg].wt.includes(k)),'no background can learn the '+k+' mastery');
+     for(const r in X.RACE)ok(Array.isArray(X.RACE[r].noWt)&&X.RACE[r].noWt.every(w=>X.WTS.includes(w)),'race '+r+': noWt');
      ok(new Set(pools).size===pools.length,'two backgrounds share the same pool');ok(X.RACE.halforc.noWt.includes('bow'),'a half-orc never gets the bow tree');
      const cov=new Set();for(const bg in X.BG)X.BG[bg].pool.forEach(k=>cov.add(k));ok(styles.every(k=>cov.has(k)),'a style tree no background can draw') }
-   ok(X.tierLevel('style',1)===1&&X.tierLevel('gift',6)===6&&X.tierLevel('weapon',1)===3&&X.tierLevel('weapon',3)===9,'tierLevel');
+   ok(X.tierLevel('style',1)===1&&X.tierLevel('gift',6)===6&&X.tierLevel('weapon',1)===3,'tierLevel');
    // -- recruits --
    X.seedRng(SEED+7001);X.newGame(true);closeAll(X);
-   { const by={};for(let i=0;i<120;i++){const bg=Object.keys(X.BG)[i%12],m=X.newMerc(bg),st=m.trees.filter(k=>kind(k)==='style');
-       ok(st.length===4&&new Set(st).size===4&&st.every(k=>X.BG[bg].pool.includes(k))&&Array.isArray(m.perks)&&!m.perks.length&&m.pp===1&&m.lvl===1,'a recruit must carry 4 trees of its pool, no perks and 1 point');
+   { const by={};for(let i=0;i<120;i++){const bg=Object.keys(X.BG)[i%12],m=X.newMerc(bg),st=m.trees.filter(k=>kind(k)==='style'||kind(k)==='hunter');
+       ok(st.length===4&&new Set(st).size===4&&st.every(k=>X.BG[bg].pool.includes(k))&&(X.BG[bg].hw||!st.includes('hunter'))&&Array.isArray(m.perks)&&!m.perks.length&&m.pp===1&&m.lvl===1,'a recruit must carry 4 trees of its pool, no perks and 1 point');
        ok(m.gift===null?m.trees.length===4:(m.trees.length===5&&m.trees[4]===m.gift&&M[m.gift].kind==='gift'&&m.gift===X.giftKey(M[m.gift].res,X.BG[bg].style)),'a recruit gift tree must follow its background style');
        ok(X.mercRes(m)===(m.gift?M[m.gift].res:null)&&X.giftVariant(m)===m.gift&&X.mercStyle(m)===X.BG[bg].style,'mercRes / giftVariant / mercStyle');
        (by[bg]=by[bg]||new Set()).add(st.slice().sort().join())}
      for(const bg in by)ok(by[bg].size>=2,'two recruits of one background must be able to differ: '+bg);
      let h=null;for(let i=0;i<200&&!h;i++){const m=X.newMerc('hunter');if(m.gift)h=m}ok(h&&M[h.gift].style==='ranged','a gifted hunter must get the ranged variant: '+(h&&h.gift));
-     let hu=null;for(let i=0;i<60&&!hu;i++){const m=X.newMerc('hunter');if(m.race==='halforc')hu=m}ok(hu&&!X.weaponTrees(hu).includes('bow')&&!X.perkOptions(hu).some(o=>o.key==='bow'),'a half-orc hunter must not have the bow tree');
-     hu.lvl=9;hu.pp=5;ok(!X.canLearn(hu,'bow.1a')&&!X.learnPerk(hu,'bow.1a'),'a half-orc must not learn bow perks');
-     const hh=X.newMerc('hunter');hh.race='human';ok(X.weaponTrees(hh).join()===X.WTS.filter(w=>X.BG.hunter.wt.includes(w)).join()&&X.weaponTrees(hh).includes('bow'),'weapon trees follow the background');
-     ok(X.mercTrees(hh).map(x=>x.kind).join().replace(/style,?/g,'s').startsWith('ssss'),'mercTrees: style trees first');
+     let hu=null;for(let i=0;i<60&&!hu;i++){const m=X.newMerc('hunter');if(m.race==='halforc')hu=m}ok(hu&&!X.weaponTypes(hu).includes('bow')&&!X.perkOptions(hu).some(o=>o.perk.wt==='bow'),'a half-orc hunter must not have the bow mastery');
+     hu.lvl=9;hu.pp=5;ok(!X.canLearn(hu,'weapons.bow')&&!X.learnPerk(hu,'weapons.bow')&&hu.pp===5,'a half-orc must not learn the bow mastery');
+     const hh=X.newMerc('hunter');hh.race='human';ok(X.weaponTypes(hh).join()===X.WTS.filter(w=>X.BG.hunter.wt.includes(w)).join()&&X.weaponTypes(hh).includes('bow')&&X.weaponTrees(hh).join()==='weapons','weapon masteries follow the background');
+     hh.trees=['marksman','scout','survivor','skirmisher'];ok(X.mercTrees(hh).map(x=>x.kind).join().replace(/style,?/g,'s').startsWith('ssss'),'mercTrees: style trees first');
      ok(X.BG.hunter.side&&X.newMerc('hunter').eq.b==='knife','hunters carry a knife as a sidearm') }
    // -- tiered unlocks, points, gift awakening --
    { const m=X.newMerc('knight');m.gift='aura';m.trees=['vanguard','bulwark','brute','duelist','aura'];m.perks=[];m.race='human';m.eq.w='arming';X.syncMast(m);
      m.lvl=2;m.pp=2;ok(!X.canLearn(m,'vanguard.3')&&!X.learnPerk(m,'vanguard.3')&&m.pp===2,'a tier-3 perk must not open at level 2');
      ok(X.canLearn(m,'bulwark.2')&&X.learnPerk(m,'bulwark.2')&&m.pp===1&&m.perks.includes('bulwark.2')&&!m.perks.includes('bulwark.1'),'a tier-2 perk must not need the tier-1 perk');
      const hp0=m.hp;ok(m.hp===Math.min(X.calc(m).hp,hp0)&&X.calc(m).hp===X.calc(Object.assign(X.clone(m),{perks:[]})).hp+15,'Colossus must add 15 hitpoints');
-     ok(!X.canLearn(m,'sword.1a'),'weapon tier 1 must wait for level 3');m.lvl=3;ok(X.canLearn(m,'sword.1a'),'weapon tier 1 opens at level 3');ok(!X.canLearn(m,'sword.2a'),'weapon tier 2 waits for level 6');
+     ok(!X.canLearn(m,'weapons.sword'),'weapon masteries must wait for level 3');m.lvl=3;ok(X.canLearn(m,'weapons.sword'),'weapon masteries open at level 3');ok(!X.canLearn(m,'weapons.bow'),'not a family the background lacks');
      ok(!X.canLearn(m,'bulwark.2')&&!X.canLearn(m,'marksman.1'),'no perk twice, none from a tree the merc lacks');
      m.lvl=5;m.pp=1;ok(!X.giftAwake(m)&&!X.calc(m).res.aura,'the gift sleeps until a perk awakens it');
      ok(X.learnPerk(m,'aura.5')&&X.giftAwake(m)&&X.calc(m).res.aura.max===X.GIFTBASE+15&&X.calc(m).res.aura.regen===X.GIFTREGEN&&X.calc(m).dmg===.1&&!X.calc(m).abs.includes('astrike'),'a tier-5 gift perk must awaken the gift by itself');
      m.pp=0;ok(!X.canLearn(m,'vanguard.1'),'no point, no perk');
-     const po=X.perkOptions(m);ok(po.length===X.mercTrees(m).reduce((n,x)=>n+x.tree.tiers.reduce((a,t)=>a+t.length,0),0)&&po.every(o=>o.need===X.tierLevel(o.kind,o.tier)&&o.unlocked===(m.lvl>=o.need)&&o.owned===m.perks.includes(o.id)),'perkOptions');
+     const po=X.perkOptions(m);ok(po.length===X.mercTrees(m).reduce((n,x)=>n+x.tree.tiers.reduce((a,t)=>a+t.filter(p=>!p.wt||X.weaponTypes(m).includes(p.wt)).length,0),0)&&po.every(o=>o.need===X.tierLevel(o.kind,o.tier)&&o.unlocked===(m.lvl>=o.need)&&o.owned===m.perks.includes(o.id)),'perkOptions');
      // weapon perks follow the weapon in hand
-     const h=X.newMerc('hunter');h.race='human';h.eq.w='shortbow';h.eq.b='knife';h.lvl=6;h.pp=3;ok(X.learnPerk(h,'bow.1b')&&X.learnPerk(h,'dagger.1a')&&X.learnPerk(h,'bow.2b'),'hunter weapon perks');
-     const cb=X.calc(h),ck=X.calc(h,{hand:'b'});ok(cb.rs===ck.rs+6&&cb.off.includes('dagger.1a')&&ck.off.includes('bow.1b')&&cb.flags.bleedOn===2&&!ck.flags.bleedOn&&ck.wpn.ap===2&&cb.wpn.ap===X.ITEMS.shortbow.ap&&cb.wpn.id==='shortbow'&&ck.wpn.id==='knife','weapon perks must only work with that family in hand');
+     const h=X.newMerc('hunter');h.race='human';h.eq.w='shortbow';h.eq.b='knife';h.lvl=6;h.pp=3;ok(X.learnPerk(h,'weapons.bow')&&X.learnPerk(h,'weapons.dagger'),'hunter weapon masteries');
+     const cb=X.calc(h),ck=X.calc(h,{hand:'b'});ok(cb.off.includes('weapons.dagger')&&ck.off.includes('weapons.bow')&&ck.wpn.ap===2&&cb.wpn.ap===X.ITEMS.shortbow.ap-1&&cb.wpn.id==='shortbow'&&ck.wpn.id==='knife','weapon masteries must only work with that family in hand');
      ok(cb.abs.includes('swap')&&cb.abs.includes('quick')&&!cb.abs.includes('puncture')&&ck.abs.includes('puncture')&&!ck.abs.includes('quick'),'weapon skills follow the hand') }
    // -- autoLearn --
    { let n=0;for(const bg in X.BG)for(let v=0;v<3;v++){const m=X.newMerc(bg);X.gainXP(m,X.XPT[[3,8,15][v]]);const got=X.autoLearn(m);n++;
@@ -780,27 +787,29 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      e0.fatMax=60;e0.fat=60;ok(X.tiredPen(e0)===TM&&X.hitChance(Pl,e0,at)===h0+TM&&X.hitChance(e0,Pl,ea)===g0-TM,'a foe with real fatigue (orcs) tires like a merc');
      ok(X.unitStatuses(e0).some(s=>s.key==='tired'&&s.turns===TM)&&!X.unitStatuses(Pl).some(s=>s.key==='tired'),'Tired shows in the statuses');e0.fatMax=9999;e0.fat=0 }
    // -- armor trees: classes, tiers, perks only in their class --
-   { const AT=['lightarmor','medarmor','heavyarmor'];ok(AT.every(k=>M[k]&&kind(k)==='armor'&&M[k].tiers.length===3&&M[k].tiers.every(t=>t.length===2))&&M.lightarmor.aw==='light'&&M.medarmor.aw==='medium'&&M.heavyarmor.aw==='heavy','three armor trees of 3 tiers x 2 perks');
-     ok(X.tierLevel('armor',1)===2&&X.tierLevel('armor',2)===5&&X.tierLevel('armor',3)===8,'armor tiers open at levels 2, 5 and 8');
+   { const AT=['lightarmor','medarmor','heavyarmor'];ok(AT.every(k=>M[k]&&kind(k)==='armor'&&M[k].tiers.length===(k==='lightarmor'?4:3)&&M[k].tiers.every(t=>t.length===1))&&M.lightarmor.aw==='light'&&M.medarmor.aw==='medium'&&M.heavyarmor.aw==='heavy','three armor trees of one perk a tier (3, light armor 4)');
+     ok(X.tierLevel('armor',1)===2&&X.tierLevel('armor',2)===5&&X.tierLevel('armor',3)===8&&X.tierLevel('armor',4)===11,'armor tiers open at levels 2, 5, 8 (and 11)');
+     ok(AT.every(k=>M[k].tiers.every(t=>t.length===1))&&M.lightarmor.tiers.length===4&&M.medarmor.tiers.length===3&&M.heavyarmor.tiers.length===3,'armor trees: one perk a tier; light armor has a fourth');
      const ac=id=>{const m={eq:{a:id}};return X.armorClass(m)};
      ok(ac(null)==='light'&&ac('rags')==='light'&&ac('padded')==='light'&&ac('robe')==='light'&&ac('archrobe')==='light'&&ac('mailrobe')==='light'&&ac('hide')==='medium'&&ac('mail')==='medium'&&ac('brigandine')==='medium'&&ac('lamellar')==='heavy'&&ac('plate')==='heavy','armorClass by armor points (robes are light)');
      X.ITEMS['f:armtest']=Object.assign({},X.ITEMS.padded,{famed:1,base:'padded',arm:90});ok(ac('f:armtest')==='light','a famed piece keeps its base class');delete X.ITEMS['f:armtest'];
      const m=X.newMerc('knight');m.race='human';m.perks=[];m.lvl=1;m.pp=1;m.eq.a='plate';const mt=X.mercTrees(m);ok(mt.slice(-2).map(x=>x.key+':'+x.kind).join()==='medarmor:armor,heavyarmor:armor'&&!mt.some(x=>x.key==='lightarmor'),'a knight\'s mercTrees ends with its two armor trees, medium and heavy');
-     ok(!X.canLearn(m,'heavyarmor.1a'),'armor tier 1 waits for level 2');m.lvl=2;ok(X.canLearn(m,'heavyarmor.1a')&&X.canLearn(m,'medarmor.1a')&&!X.canLearn(m,'heavyarmor.2a'),'armor tier 1 opens at level 2, for each allowed class');
-     ok(!X.canLearn(m,'lightarmor.1a')&&!X.learnPerk(m,'lightarmor.1a')&&m.pp===1&&!X.perkOptions(m).some(o=>o.key==='lightarmor'),'a knight must not learn the light armor tree');
-     for(const bg in X.BG){const q=X.newMerc(bg);q.lvl=15;q.pp=5;const at=X.BG[bg].at,wt=X.weaponTrees(q);ok(X.armorTrees(q).join()===X.ARMORT.filter(k=>at.includes(k)).join(),'armorTrees follows BG.at: '+bg);
-       for(const k of X.ARMORT)ok(X.canLearn(q,k+'.1a')===at.includes(k)&&X.perkOptions(q).some(o=>o.key===k)===at.includes(k),'canLearn / perkOptions must follow the armor trees: '+bg+' '+k);
-       for(const w of X.WTS)ok(X.canLearn(q,w+'.1a')===wt.includes(w),'canLearn must follow the weapon trees: '+bg+' '+w);
-       for(const k of X.ARMORT.filter(k=>!at.includes(k)))ok(!X.learnPerk(q,k+'.3b')&&q.pp===5,'a disallowed armor perk was learned: '+bg+' '+k)}
+     ok(!X.canLearn(m,'heavyarmor.1'),'armor tier 1 waits for level 2');m.lvl=2;ok(X.canLearn(m,'heavyarmor.1')&&X.canLearn(m,'medarmor.1')&&!X.canLearn(m,'heavyarmor.2'),'armor tier 1 opens at level 2, for each allowed class');
+     ok(!X.canLearn(m,'lightarmor.1')&&!X.learnPerk(m,'lightarmor.1')&&m.pp===1&&!X.perkOptions(m).some(o=>o.key==='lightarmor'),'a knight must not learn the light armor tree');
+     for(const bg in X.BG){const q=X.newMerc(bg);q.lvl=15;q.pp=5;const at=X.BG[bg].at,wt=X.weaponTypes(q);ok(X.armorTrees(q).join()===X.ARMORT.filter(k=>at.includes(k)).join(),'armorTrees follows BG.at: '+bg);
+       for(const k of X.ARMORT)ok(X.canLearn(q,k+'.1')===at.includes(k)&&X.perkOptions(q).some(o=>o.key===k)===at.includes(k),'canLearn / perkOptions must follow the armor trees: '+bg+' '+k);
+       for(const w of X.WTS)ok(X.canLearn(q,'weapons.'+w)===wt.includes(w),'canLearn must follow the weapon families: '+bg+' '+w);
+       for(const k of X.ARMORT.filter(k=>!at.includes(k)))ok(!X.learnPerk(q,k+'.3')&&q.pp===5,'a disallowed armor perk was learned: '+bg+' '+k)}
      const at0=X.BG.knight.at;X.BG.knight.at=AT.slice();   // the class mechanics below need all three trees on one merc: widened for the fixture only
-     m.lvl=5;ok(X.canLearn(m,'medarmor.2b')&&!X.canLearn(m,'medarmor.3a'),'armor tier 2 at level 5');m.lvl=8;ok(X.canLearn(m,'lightarmor.3b'),'armor tier 3 at level 8');
-     const po=X.perkOptions(m).filter(o=>o.kind==='armor');ok(po.length===18&&po.every(o=>o.need===[2,5,8][o.tier-1]),'perkOptions lists the armor perks with their levels');
-     const all=[];for(const k of AT)M[k].tiers.forEach(t=>t.forEach(p=>all.push(p.id)));m.pp=18;for(const id of all)ok(X.learnPerk(m,id),'learn '+id);ok(m.pp===0&&!m.perks.some(id=>!all.includes(id)),'all 18 armor perks learned with points');X.BG.knight.at=at0;
+     m.lvl=5;ok(X.canLearn(m,'medarmor.2')&&!X.canLearn(m,'medarmor.3'),'armor tier 2 at level 5');m.lvl=8;ok(X.canLearn(m,'lightarmor.3')&&!X.canLearn(m,'lightarmor.4'),'armor tier 3 at level 8');m.lvl=11;ok(X.canLearn(m,'lightarmor.4'),'light armor tier 4 at level 11');
+     const po=X.perkOptions(m).filter(o=>o.kind==='armor');ok(po.length===10&&po.every(o=>o.need===[2,5,8,11][o.tier-1]),'perkOptions lists the armor perks with their levels');
+     const all=[];for(const k of AT)M[k].tiers.forEach(t=>t.forEach(p=>all.push(p.id)));m.pp=10;for(const id of all)ok(X.learnPerk(m,id),'learn '+id);ok(m.pp===0&&!m.perks.some(id=>!all.includes(id)),'all 10 armor perks learned with points');X.BG.knight.at=at0;
      const bare=X.clone(m);bare.perks=[];
      for(const [a,cl] of [['jack','light'],['mail','medium'],['plate','heavy']]){m.eq.a=a;bare.eq.a=a;const s=X.calc(m),s0=X.calc(bare),T=AT[['light','medium','heavy'].indexOf(cl)];
-       ok(s.acl===cl&&s.perks.every(id=>X.perkById(id).key===T)&&s.perks.length===6&&s.off.length===12&&s.off.every(id=>X.perkById(id).key!==T),cl+' armor: only its own tree works');
-       for(const k of ['nimble','fleet','sidestep','freshDef','dance','brace','armRegen','roll','layerDef','padIgn','unbowed','steelWall','hpSoak'])ok(!!s.flags[k]===(X.perkById(all.find(id=>{const p=X.perkById(id).perk;return(p.mod&&p.mod[k]!=null)})).key===T),cl+': '+k+' must follow the armor class');
-       for(const k of ['slip','footing','kbImm','ironLung','noStun'])ok(!!s.flags[k]===(X.perkById(all.find(id=>X.perkById(id).perk.flag===k)).key===T),cl+': '+k+' must follow the armor class');
+       const nT=M[T].tiers.length;ok(s.acl===cl&&s.perks.every(id=>X.perkById(id).key===T)&&s.perks.length===nT&&s.off.length===10-nT&&s.off.every(id=>X.perkById(id).key!==T),cl+' armor: only its own tree works');
+       ok(cl==='light'?s.initDef===Math.floor(.1*s.init)&&s.initDef>0&&s.md===s0.md+s.initDef&&s.rd===s0.rd+s.initDef:!s.initDef&&s.md===s0.md,cl+': Quicksilver adds a tenth of initiative to melee and ranged defense in light armor only: '+s.initDef);
+       for(const k of ['nimble','fleet','sidestep','freshDef','dance','initDef','brace','armRegen','roll','layerDef','padIgn','unbowed','steelWall','hpSoak','ironLung'])ok(!!s.flags[k]===(X.perkById(all.find(id=>{const p=X.perkById(id).perk;return(p.mod&&p.mod[k]!=null)})).key===T),cl+': '+k+' must follow the armor class');
+       for(const k of ['slip','footing','kbImm','noStun'])ok(!!s.flags[k]===(X.perkById(all.find(id=>X.perkById(id).perk.flag===k)).key===T),cl+': '+k+' must follow the armor class');
        ok(s.fat===s0.fat+(cl==='heavy'?Math.floor(s.aw/2):0)&&s.aw===X.ITEMS[a].fat+(m.eq.h?X.ITEMS[m.eq.h].fat||0:0),'Iron lung halves the armor weight on fatigue, in heavy armor only')}
      // autoLearn takes armor perks from the tree of the armor worn only
      for(const [a,T] of [['jack','lightarmor'],['mail','medarmor'],['plate','heavyarmor']])for(const bg of ['knight','hunter','hedge','sellsword','acolyte']){const q=X.newMerc(bg);q.eq.a=a;X.gainXP(q,X.XPT[15]);X.autoLearn(q);
@@ -843,15 +852,15 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        put(W,5,6);W.flags=Object.assign({},W.flags,{steelWall:.1});Pl.flags={};X.auraScan();ok(X.armorDr(Pl)===.1&&X.forecast(e0,Pl,ea).armDr===.1,'Bulwark of steel: 10% off for an ally beside it');put(W,0,11);X.auraScan();ok(X.armorDr(Pl)===0,'Bulwark of steel: only beside it');W.flags.steelWall=0;X.auraScan() }
      // a class the merc does not wear gives nothing: light armor's flags on, then a medium kit
      { const Md=fl('mail');Pl.flags=Md.flags;Pl.aw=Md.aw;Pl.fat=0;Pl.brc=1;ok(X.nimbleDr(Pl)===0&&X.armorDr(Pl)===0&&!X.kbImmune(Pl),'no Nimble or Immovable in medium armor');Pl.flags={} } }
-   console.log('fatigue (curve, attacker and target, spells, foes that never tire, orcs, forecast parts), armor trees (classes, tiers 2/5/8, 18 perks each in its class only, autoLearn, field effects): ok');
+   console.log('fatigue (curve, attacker and target, spells, foes that never tire, orcs, forecast parts), armor trees (classes, tiers 2/5/8/11, 10 perks each in its class only, Quicksilver, autoLearn, field effects): ok');
    X.FX.on=null;X.B=null;X.mode='world';
    { const m=ARMM;     // armor perks: save round trip: armor perks are plain perk ids
      const sm=X.clone(m);sm.eq.a='plate';sm.id=777001;sm.perks=sm.perks.filter(id=>X.perkById(id).key!=='lightarmor');sm.pp=0;X.G.roster.push(sm);   // the knight's own trees: medium and heavy
-     const lt=X.clone(sm);lt.id=777002;lt.perks.push('lightarmor.1a','lightarmor.2b');X.G.roster.push(lt);ok(X.save(),'save failed');const keep=sm.perks.slice().sort().join();
-     const r=X.readSave();ok(r.state==='ok'&&r.g.v===X.SAVEVER,'save unreadable');const back=r.g.roster.find(q=>q.id===777001);X.calc(back);ok(back&&back.perks.length===12&&back.perks.slice().sort().join()===keep&&back.pp===0,'armor perks must survive a save round trip: '+(back&&back.perks.join()));
+     const lt=X.clone(sm);lt.id=777002;lt.perks.push('lightarmor.1','lightarmor.2');X.G.roster.push(lt);ok(X.save(),'save failed');const keep=sm.perks.slice().sort().join();
+     const r=X.readSave();ok(r.state==='ok'&&r.g.v===X.SAVEVER,'save unreadable');const back=r.g.roster.find(q=>q.id===777001);X.calc(back);ok(back&&back.perks.length===6&&back.perks.slice().sort().join()===keep&&back.pp===0,'armor perks must survive a save round trip: '+(back&&back.perks.join()));
      const lb=r.g.roster.find(q=>q.id===777002);ok(lb&&lb.perks.slice().sort().join()===keep&&lb.pp===2,'the loader must refund perks of an armor tree the background lacks: '+(lb&&lb.perks.join()+' pp '+lb.pp));
      X.G.roster=X.G.roster.filter(q=>q.id!==777002);X.G.roster.pop();{const cl=X.clone(sm);cl.perks=['vanguard.1'];X.calc(cl);X.mercTrees(cl);X.syncMast(cl);ok(cl.perks.join()==='vanguard.1','calc / mercTrees / syncMast must never change the perks')}
-     X.G=null;X.mode='title';X.continueGame();const lm=X.G&&X.G.roster.find(q=>q.id===777001);ok(lm&&lm.perks.slice().sort().join()===keep&&X.calc(lm).perks.length===6,'armor perks must load and work after continueGame');console.log('armor perks: save round trip and continueGame: ok');X.G.roster=X.G.roster.filter(q=>q.id!==777001) }
+     X.G=null;X.mode='title';X.continueGame();const lm=X.G&&X.G.roster.find(q=>q.id===777001);ok(lm&&lm.perks.slice().sort().join()===keep&&X.calc(lm).perks.length===3,'armor perks must load and work after continueGame');console.log('armor perks: save round trip and continueGame: ok');X.G.roster=X.G.roster.filter(q=>q.id!==777001) }
    // -- a version 7 save: perks of weapon and armor trees the background no longer allows are refunded, and the player is told once --
    { X.store.clear();X.seedRng(SEED+7250);X.newGame(true);closeAll(X);const R0=X.G.roster;ok(R0.length>=3,'fixture roster');
      Object.assign(R0[0],{bg:'sellsword',race:'human',lvl:9,pp:1,perks:['sword.1a','medarmor.1a','lightarmor.1a','bow.1a','flintlock.2b','heavyarmor.2a'],armp:{ids:['lightarmor.1a'],base:'x'}});
@@ -859,17 +868,35 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const tw=X.G.towns.find(t=>t.recruits&&t.recruits.length),rc=tw&&tw.recruits[0];if(rc)Object.assign(rc,{bg:'monk',lvl:6,pp:0,perks:['heavyarmor.1a','fist.1a']});
      ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=7;g.note='newlands';X.store.set(X.SAVEKEY,JSON.stringify(g));
      const r=X.readSave();ok(r.state==='ok'&&r.v===7&&r.g.v===X.SAVEVER&&X.SAVEVER>=8,'a version 7 save was not migrated to 8');const A=r.g.roster[0],H=r.g.roster[1];
-     ok(A.perks.join()==='sword.1a,medarmor.1a,heavyarmor.2a'&&A.pp===4&&A.armp===undefined,'v8: a sellsword keeps its own trees\' perks and gets 3 points back: '+A.perks.join()+' pp '+A.pp);
-     ok(H.perks.join()==='bow.1a,lightarmor.1a'&&H.pp===2,'v8: a hunter loses its heavy armor and shield perks for 2 points: '+H.perks.join()+' pp '+H.pp);
+     // (and on through v15: the old weapon tree perks go too, armor halves become the merged perks)
+     ok(A.perks.join()==='medarmor.1,heavyarmor.2'&&A.pp===5&&A.armp===undefined,'v8+v15: a sellsword keeps its own armor trees\' perks and gets 4 points back: '+A.perks.join()+' pp '+A.pp);
+     ok(H.perks.join()==='lightarmor.1'&&H.pp===3,'v8+v15: a hunter loses its heavy armor, shield and bow perks for 3 points: '+H.perks.join()+' pp '+H.pp);
      ok(r.g.roster[2].pp===1&&!r.g.roster[2].perks.length,'v8: a merc with nothing to refund is untouched');
-     if(rc){const rr=r.g.towns[X.G.towns.indexOf(tw)].recruits[0];ok(rr.perks.join()==='fist.1a'&&rr.pp===1,'v8: recruits waiting in towns are refunded too')}
-     ok(r.g.note==='newlands'&&Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===[A.name+':3',H.name+':2'].join(),'v8: G.refund lists the company\'s swords who got points back: '+JSON.stringify(r.g.refund));
+     if(rc){const rr=r.g.towns[X.G.towns.indexOf(tw)].recruits[0];ok(!rr.perks.length&&rr.pp===2,'v8+v15: recruits waiting in towns are refunded too')}
+     ok(r.g.note==='newlands'&&Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===[A.name+':4',H.name+':3'].join(),'v8: G.refund lists the company\'s swords who got points back: '+JSON.stringify(r.g.refund));
      // in game: the note waits behind any other note, shows once, and is gone after a save
-     X.G=null;X.mode='title';X.continueGame();closeAll(X);ok(X.G&&X.G.roster[0].pp===4&&X.G.note==='newlands','continueGame after the v8 migration');const n0=X.sheets.length;
+     X.G=null;X.mode='title';X.continueGame();closeAll(X);ok(X.G&&X.G.roster[0].pp===5&&X.G.note==='newlands','continueGame after the v8 migration');const n0=X.sheets.length;
      X.worldTick(.016);ok(X.sheets.length===n0+1&&/New lands/.test(X.sheets[n0])&&X.G.note==='refund','the earlier note comes first, the refund note queued behind it');closeAll(X);
-     X.worldTick(.016);const rs=X.sheets[n0+1]||'';ok(X.sheets.length===n0+2&&/Perk points returned/.test(rs)&&rs.includes(X.G.roster[0].name)&&rs.includes(X.G.roster[1].name)&&/3 points/.test(rs)&&!X.G.refund&&!X.G.note,'the refund note names who got points back, once');closeAll(X);
+     X.worldTick(.016);const rs=X.sheets[n0+1]||'';ok(X.sheets.length===n0+2&&/Perk points returned/.test(rs)&&rs.includes(X.G.roster[0].name)&&rs.includes(X.G.roster[1].name)&&/4 points/.test(rs)&&/3 points/.test(rs)&&!X.G.refund&&!X.G.note,'the refund note names who got points back, once');closeAll(X);
      X.worldTick(.016);ok(X.sheets.length===n0+2,'the refund note shows only once');ok(X.save(),'save failed');X.G=null;X.mode='title';X.continueGame();closeAll(X);X.worldTick(.016);
-     ok(X.sheets.length===n0+2&&!X.G.refund&&X.G.roster[0].pp===4,'no refund note after a reload');console.log('v7 -> v8 migration: weapon and armor perks refunded ('+(A.name)+' 3, '+H.name+' 2), note shown once: ok') }
+     ok(X.sheets.length===n0+2&&!X.G.refund&&X.G.roster[0].pp===5,'no refund note after a reload');console.log('v7 -> v8 -> v15 migration: weapon and armor perks refunded ('+(A.name)+' 4, '+H.name+' 3), note shown once: ok') }
+   // -- a version 14 save: the merged masteries (v15) --
+   { X.store.clear();X.seedRng(SEED+7275);X.newGame(true);closeAll(X);const R0=X.G.roster;ok(R0.length>=4,'fixture roster');
+     Object.assign(R0[0],{bg:'sellsword',race:'human',lvl:9,pp:0,trees:['vanguard','bulwark','brute','duelist'],perks:['vanguard.1','sword.1a','sword.2b','medarmor.1a','medarmor.1b','medarmor.2b','sword.cap'],deeds:{bane:1}});
+     Object.assign(R0[1],{bg:'hunter',race:'human',lvl:9,pp:1,trees:['marksman','scout','survivor','skirmisher'],gift:null,perks:['marksman.1','scout.2','hunter.gob','hunter.wolf','lightarmor.3b']});
+     Object.assign(R0[2],{bg:'hunter',race:'human',lvl:4,pp:0,trees:['marksman','scout','survivor','skirmisher'],gift:null,perks:['marksman.1','scout.2','survivor.3','skirmisher.4']});
+     Object.assign(R0[3],{bg:'wildling',race:'human',lvl:6,pp:0,trees:['berserker','brute','survivor','vanguard'],gift:null,perks:['berserker.1','brute.2','survivor.3','vanguard.4','hunter.ogre']});
+     const rv=X.G.rivals&&X.G.rivals[0]&&X.G.rivals[0].roster[0];if(rv)Object.assign(rv,{bg:'hunter',race:'human',perks:['shield.1a','lightarmor.1b'],pp:0});
+     ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=14;X.store.set(X.SAVEKEY,JSON.stringify(g));
+     const r=X.readSave();ok(r.state==='ok'&&r.v===14&&r.g.v===X.SAVEVER&&X.SAVEVER===15,'a version 14 save was not migrated to 15');const [A,H,H2,W]=r.g.roster;
+     ok(A.perks.join()==='vanguard.1,medarmor.1,medarmor.2,sword.cap'&&A.pp===3,'v15: weapon tree perks refunded, armor halves merged (both halves: one point back), the weapon capstone kept: '+A.perks.join()+' pp '+A.pp);
+     ok(H.trees.join()==='marksman,scout,survivor,hunter'&&H.perks.join()==='marksman.1,scout.2,hunter.gob,hunter.wolf,lightarmor.3'&&H.pp===1,'v15: a hunter with quarry perks keeps the hunter tree in place of an unused style tree: '+H.trees.join());
+     ok(H2.trees.join()==='marksman,scout,survivor,skirmisher'&&H2.pp===0,'v15: a hunter without quarry perks keeps its trees');
+     ok(W.trees.join()==='berserker,brute,survivor,vanguard,hunter'&&W.perks.includes('hunter.ogre'),'v15: every style tree in use: the hunter tree comes as a 5th');
+     if(rv){const rr=r.g.rivals[0].roster.find(q=>q.id===rv.id);ok(rr&&rr.perks.join()==='lightarmor.1'&&rr.pp===1,'v15: rival swords migrate too')}
+     ok(Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===A.name+':3','v15: G.refund names who got points back: '+JSON.stringify(r.g.refund));
+     X.G=null;X.mode='title';X.continueGame();closeAll(X);const L=X.G.roster;ok(X.mercTrees(L[1]).some(x=>x.key==='hunter')&&X.calc(L[1]).perks.includes('hunter.gob')&&L[0].perks.includes('sword.cap'),'the migrated perks load and work');
+     console.log('v14 -> v15 migration: weapon perks refunded, armor perks merged, the hunter tree kept where it was used: ok') }
    // -- an old (version 4) save: masteries become trees and perks --
    { X.store.clear();X.seedRng(SEED+7300);X.newGame(true);closeAll(X);ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=4;
      const olds=[{vanguard:2,bulwark:0,aura:1},{marksman:4,skirmisher:1,qi:2},{bulwark:3,vanguard:1,chi:5},{skirmisher:0,mana:3,bulwark:1}];

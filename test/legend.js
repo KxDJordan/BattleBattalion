@@ -117,7 +117,8 @@ section('powers in the rules');
 
 section('final mastery tier');
 { const G=fresh(SEED+4);let n=0;
-  for(const k in X.MAST){const T=X.MAST[k];ok(T.cap&&T.cap.unlock&&X.DEEDS[T.cap.unlock.deed]&&T.cap.tiers.length===1&&T.cap.tiers[0].length>=1&&T.cap.tiers[0].length<=2,k+': a capstone tier with 1-2 perks and a deed');
+  for(const k in X.MAST){const T=X.MAST[k];const W=T.kind==='weapon';ok(T.cap&&T.cap.unlock&&X.DEEDS[T.cap.unlock.deed]&&T.cap.tiers.length===1&&T.cap.tiers[0].length>=1&&T.cap.tiers[0].length<=(W?X.WTS.length:2),k+': a capstone tier with 1-2 perks (the weapon tree: one a family) and a deed');
+   if(W)ok(T.cap.tiers[0].every(p=>X.WTS.includes(p.wt)&&p.id===p.wt+'.cap'),'the weapon capstones: one per family, ids <family>.cap');
    for(const p of T.cap.tiers[0]){const P=X.perkById(p.id);ok(P&&P.cap===true&&P.key===k&&P.tier===T.tiers.length+1&&p.n&&p.d,k+': capstone '+p.id+' indexed');ok(p.st||p.mod||p.flag||p.wmod||p.res||p.regen||p.ab,p.id+': does something');n++}}
   const m=G.roster[0];X.makeVeteran(m,12);m.pend=0;X.autoLearn(m);ok(!m.perks.some(id=>X.perkById(id).cap),'autoLearn takes no sealed capstone');
   const C=X.capOptions(m);ok(C.length>0&&C.every(o=>o.cap&&!o.open&&!o.unlocked&&o.why),'every capstone is sealed without deeds, with the reason');ok(!X.perkOptions(m).some(o=>o.cap),'perkOptions keeps to the ordinary tiers');

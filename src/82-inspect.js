@@ -75,7 +75,7 @@ function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&M
  if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk&&!(((x.tree||T[x.key])||{}).kind==='armor'&&((x.tree||T[x.key])||{}).aw!==acl)).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}">${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
  const P=Array.isArray(m.perks)?m.perks:[];
  for(const id of P){let r=null;try{r=typeof perkById==='function'?perkById(id):null}catch(e){}const p=r&&r.perk;if(!p)continue;const icn=p.ab&&AB[p.ab]?'ab-'+p.ab:'perk-'+id;
-  const idle=off.includes(id),why=idle?(r.tree&&r.tree.kind==='armor'?'idle: needs '+(r.tree.aw||'other')+' armor':'idle: another weapon in hand'):'';
+  const idle=off.includes(id),why=idle?(r.tree&&r.tree.kind==='armor'?'idle: needs '+(r.tree.aw||'other')+' armor':p&&p.wt==='shield'?'idle: no shield raised':'idle: another weapon in hand'):'';
   if(r.tree&&r.tree.kind==='hunter'&&typeof tlQuarryInfo==='function'){const I=tlQuarryInfo(m,typeof tlQuarryOf==='function'&&tlQuarryOf({perk:p,id})||id);   // a quarry perk: its live stack
    if(I){h+=`<div class="ins-ab ins-pk ins-q${I.max?' max':''}" title="${htmlEsc(I.n+': '+I.slain+' slain, +'+I.dmg+'% damage, +'+I.hit+' to hit (cap '+I.cap+' kills)')}">${insIc(icn)}<div><b>${p.n}</b><i>${I.slain} slain</i><span>+${I.dmg}% dmg${I.hit?', +'+I.hit+' hit':''}${I.max?' (full)':''}</span></div></div>`;continue}}
   h+=`<div class="ins-ab ins-pk${idle?' idle':''}" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b>${idle?`<i>${why}</i>`:''}<span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}

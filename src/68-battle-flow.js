@@ -107,11 +107,11 @@ function battleFamed(b,en){if(typeof famedPlan!=='function'||typeof makeFamed!==
  for(const s of plan.sure){const id=makeFamed(famedBasePick(s.power,b.opts.f),s.power,{from:s.from,day:G.day});if(id)out.push(id)}
  if(!out.length&&plan.p>0&&rnd()<plan.p){const id=makeFamed(famedBasePick(plan.power,b.opts.f),plan.power,{from:'a '+(FACT[b.opts.f]?FACT[b.opts.f].n.toLowerCase().replace(/s$/,''):'foe')+' band',day:G.day});if(id)out.push(id)}
  return out}
-/* what a level-up from level a to level b opens: ['New tier unlocked', 'Weapon trees open', ...] (tierLevel from the rules, else t / 3t) */
+/* what a level-up from level a to level b opens: ['New tier unlocked', 'Weapon masteries open', ...] (tierLevel from the rules, else t / 3t) */
 function brTierLv(kind,t){if(typeof tlTierLv==='function')return tlTierLv(kind,t);if(typeof tierLevel==='function'){try{const v=tierLevel(kind,t);if(typeof v==='number')return v}catch(e){}}return kind==='weapon'?3*t:t}
 function brOpens(a,b){const out=[],R=['I','II','III','IV','V','VI','VII','VIII','IX'];if(!(b>a))return out;
  for(let t=1;t<=9;t++){const L=brTierLv('style',t);if(L>a&&L<=b&&t<=6)out.push('New tier unlocked: tier '+R[t-1])}
- for(let t=1;t<=3;t++){const L=brTierLv('weapon',t);if(L>a&&L<=b)out.push(t===1?'Weapon trees open':'Weapon tier '+R[t-1]+' opens')}
+ {const L=brTierLv('weapon',1);if(L>a&&L<=b)out.push('Weapon masteries open')}   // the Weapon mastery tree has one tier
  return out}
 /* the battle objective's outcome, one line (escort / hold / siege, and a named foe) */
 function brObjLine(res){let t='';if(res.objK==='escort')t=res.vip&&res.vip.alive?`<p class="good">${res.vip.name} came through (${res.vip.hp}/${res.vip.hpMax}).</p>`:`<p class="bad">The ${(res.vip?res.vip.name:'wagon').toLowerCase()} is lost.</p>`;

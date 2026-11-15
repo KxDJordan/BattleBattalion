@@ -16,7 +16,8 @@
      (G.legend[id]) or held by the company.
    Deeds: m.deeds = {portal:n, dungeon:n, bane:n}; deedAdd(m, k, n?) records one (the endgame agent calls it) and returns the new count.
      The first deed of each DEEDS kind also gives the merc DEED_PP perk point ("the deed teaches").
-   Final mastery tier: every tree MAST[k] has cap = {unlock:{deed, n}, lvl, tiers:[[perk, ...]]} (perk ids '<key>.cap', '<key>.capb');
+   Final mastery tier: every tree MAST[k] has cap = {unlock:{deed, n}, lvl, tiers:[[perk, ...]]} (perk ids '<key>.cap', '<key>.capb'; the Weapon
+     mastery tree: one per weapon family, '<family>.cap' with perk.wt);
      capOpen(m, key) -> true when the merc's deeds open that tree's capstone; capWhy(m, key) -> '' or how to open it;
      capNeed(kind) -> the level it also needs. 61-talents.js indexes the perks (perkById(id).cap === true), capOptions(m) lists them,
      canLearn / learnPerk / autoLearn / refundTrees respect the lock. Uses no randomness except legendFor (one draw). */
@@ -107,6 +108,10 @@ for(const k in MAST){const T=MAST[k];if(!T||!Array.isArray(T.tiers)||T.cap)conti
  if(!L&&T.kind==='fabled')L=[['Legend complete','+10 hitpoints; +15% damage against bosses, fabled and huge foes',{st:{hp:10},mod:{vsBoss:.15}}]];
  if(!L)continue;const deed=CAP_DEED[T.kind]||'portal';
  T.cap={unlock:{deed,n:1},lvl:capNeed(T.kind),tiers:[L.map((x,j)=>capFields({id:k+(j?'.capb':'.cap'),n:x[0],d:x[1],cap:1},x[2]))]}}
+/* the Weapon mastery tree (MAST.weapons): one capstone per weapon family (CAPS[family], id '<family>.cap', perk.wt), working only with that
+   family in hand like the tree's own perks; a merc sees those of the families its background allows (capOptions). */
+if(MAST.weapons&&!MAST.weapons.cap){const L=WTS.filter(w=>CAPS[w]).map(w=>capFields({id:w+'.cap',n:CAPS[w][0][0],d:CAPS[w][0][1],cap:1,wt:w},CAPS[w][0][2]));
+ if(L.length)MAST.weapons.cap={unlock:{deed:CAP_DEED.weapon,n:1},lvl:capNeed('weapon'),tiers:[L]}}
 /* ---- legendary items ---- [key, base ('a|b': the first that exists), name, stat overrides, power, lore] */
 const LG_CHAIN={d:[18,28],ign:.5,rng:3};
 const LEGENDS=[

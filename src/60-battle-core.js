@@ -343,7 +343,7 @@ function callReserve(m,k){const b=B;if(!canCallReserve())return null;const i=b.r
 /* ---- Abilities ---- */
 function abilityInfo(u,id){const w=u.wpn,fl=u.flags||{},bowR=w.rng+(w.wt==='bow'?(fl.eagle?1:0)+(fl.rngB||0):0);
  if(id==='attack'){const o={id,n:isRangedW(w)?'Shoot':'Attack',ap:w.ap,fat:w.fat||0,rng:B&&B.realm&&B.realm.sight?Math.min(bowR,B.realm.sight):bowR,tgt:'enemy',wpn:1,mult:1};if(w.fx)o.fx=w.fx;return o}
- const a=Object.assign({id},AB[id]);if(a.wpn){if(a.ap==null)a.ap=w.ap;if(a.rng==null)a.rng=bowR}if(a.swapW&&u.swapFree)a.ap=0;
+ const a=Object.assign({id},AB[id]);if(a.wpn){if(a.ap==null)a.ap=w.ap;if(a.rng==null)a.rng=bowR;if(w.fatCut&&a.fat)a.fat=Math.max(0,a.fat-w.fatCut)}if(a.swapW&&u.swapFree)a.ap=0;
  if(a.reloadW&&w.reload){a.ap=w.reload.ap;a.fat=w.reload.fat}
  if(a.spikeD)a.dmgD=(u.spike||[10,18]).slice();
  if(a.buff&&a.buff.key==='shieldwall'&&u.shw)a.buff=Object.assign({},a.buff,{md:(a.buff.md||0)+u.shw,rd:(a.buff.rd||0)+u.shw});
