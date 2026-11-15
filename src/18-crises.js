@@ -32,25 +32,26 @@ Object.assign(EN,{
  // the Dead March
  gknight:{n:'Grave knight',hp:115,arm:180,helm:150,ms:66,md:12,rd:18,init:70,d:[40,58],ap:8,xp:380,role:'line',brv:99,fearless:1,abs:['vreap']},
  necrolt:{n:'Necromancer lieutenant',hp:95,arm:60,helm:40,ms:50,md:10,rd:30,init:95,d:[16,26],xp:520,role:'caster',brv:90,fearless:1,lead:1,max:1,sub:'necro',res:{mana:[36,8]},abs:['nbolt','nraise','dgloom']},
- bthrone:{n:'The Bone Throne',hp:430,arm:220,helm:220,ms:70,md:0,rd:22,init:85,d:[42,62],ap:9,big:1,boss:1,kbImm:1,anchored:1,xp:1700,role:'boss',brv:99,fearless:1,lead:1,noCorpse:1,res:{mana:[40,9]},abs:['nbolt','nraise','bsummon','bnova'],
-  crph:[{at:.6,n:'The throne wakes',say:'The Bone Throne shudders: the dead of a hundred graves answer.',summon:['skel','skelhal']},{at:.3,n:'Last rites',say:'Grave-cold pours off the throne. Its servants fight with the strength of the dead.',enrage:{dmg:.25,ms:8,ap:2}}]},
+ bthrone:{n:'The Bone Throne',hp:300,arm:160,helm:160,ms:70,md:0,rd:22,init:85,d:[42,62],ap:9,big:1,boss:1,kbImm:1,anchored:1,xp:1700,role:'boss',brv:99,fearless:1,lead:1,noCorpse:1,res:{mana:[40,9]},abs:['nbolt','nraise','bsummon','bnova'],
+  crph:[{at:.6,n:'The throne wakes',say:'The Bone Throne shudders: the dead of a hundred graves answer.',summon:['skel','skelhal']},{at:.3,n:'Last rites',say:'Grave-cold pours off the throne. Its servants fight with the strength of the dead.',enrage:{dmg:.25,ms:8}}]},
  // the Great Horde
  hstd:{n:'Horde standard-bearer',hp:115,arm:100,helm:70,ms:60,md:8,rd:8,init:85,d:[30,46],xp:300,role:'line',brv:80,banner:1,max:2,sub:'orcw',tire:1,fury:6,fatMax:70,wfat:15,abs:['owarcry']},
- hchief:{n:'Orc warchief',hp:250,arm:230,helm:180,ms:80,md:14,rd:12,init:95,d:[60,88],kb:2,kbCh:.5,big:1,boss:1,xp:1300,role:'boss',brv:95,fearless:1,lead:1,max:1,sub:'orcw',tire:1,fury:6,fatMax:110,wfat:16,abs:['owarcry','ocharge','osmash'],
-  crph:[{at:.5,n:'Blood frenzy',say:'The warchief roars and the horde roars with him.',summon:['orcy','orcy'],enrage:{dmg:.25,ms:6,ap:2}}]},
+ hchief:{n:'Orc warchief',hp:380,arm:230,helm:180,ms:82,md:14,rd:12,init:95,d:[66,96],kb:2,kbCh:.5,big:1,boss:1,xp:1300,role:'boss',brv:95,fearless:1,lead:1,max:1,sub:'orcw',tire:1,fury:6,fatMax:110,wfat:16,abs:['owarcry','ocharge','osmash'],
+  crph:[{at:.6,n:'Blood frenzy',say:'The warchief roars and the horde roars with him.',summon:['orcy','orcy'],enrage:{dmg:.25,ms:6,ap:2}},{at:.25,n:'The tribes answer',say:'Crushers shoulder through the press to stand by their warchief.',summon:['obrute','obrute'],heal:.15}]},
  // the Barbarian War
  barbz:{n:'Berserker',hp:100,arm:40,helm:20,ms:66,md:0,rd:0,init:118,d:[34,52],w:'greataxe',xp:230,role:'flanker',brv:75,fury:6,enrage:.5,abs:['ocharge']},
  barbax:{n:'Axe thrower',hp:62,arm:40,helm:25,ms:50,rs:60,md:6,rd:12,init:112,d:[22,34],rng:3,xp:200,role:'sniper',brv:55,flee:.25,abs:['aimed'],side:{n:'Bearded axe',wt:'axe',d:[18,30],ap:4,fat:0,rng:1,ign:.25}},
  barbhound:{n:'War hound',hp:62,arm:20,ms:58,md:12,rd:10,init:150,d:[20,32],ap:11,quad:1,xp:130,role:'flanker',brv:55,pack:1},
  barbskald:{n:'Skald',hp:62,arm:35,helm:20,ms:46,md:6,rd:10,init:104,d:[12,20],xp:260,role:'caster',brv:70,lead:1,max:1,sub:'barbz',res:{mana:[24,6]},abs:['bsong']},
- barbhus:{n:'Huscarl champion',hp:155,arm:170,helm:130,ms:72,md:14,rd:14,init:92,d:[44,64],w:'waraxe',xp:450,role:'line',brv:90,shield:{hp:64,md:12,rd:12},abs:['shieldwall','osmash']},
- emperor:{n:'The Barbarian Emperor',hp:340,arm:270,helm:210,ms:84,md:16,rd:12,init:108,d:[64,90],kb:2,kbCh:.6,big:1,boss:1,xp:2000,role:'boss',brv:99,fearless:1,lead:1,ign:.35,abs:['ecleave','ehorn','ocharge'],
-  crph:[{at:.66,n:'The war-horn',say:'The Emperor sounds the war-horn. Berserkers come howling over the palisade.',summon:['barbz','barbz']},{at:.33,n:'The last oath',say:'Bleeding, the Emperor swears on his crown: he will not fall alone.',enrage:{dmg:.3,ms:10,md:5,ap:2},heal:.12}]}
+ barbhus:{n:'Huscarl champion',hp:155,arm:170,helm:130,ms:72,md:14,rd:14,init:92,d:[44,64],w:'waraxe',xp:450,role:'line',brv:90,shield:{hp:64,md:12,rd:12},abs:['shieldwall','osmash'],
+  crph:[{at:.5,n:'The shield-oath',say:'The huscarls lock shields over their captain, and the skald calls the berserkers in.',summon:['barbz','barbz'],enrage:{dmg:.2,md:8},heal:.2}]},
+ emperor:{n:'The Barbarian Emperor',hp:400,arm:270,helm:210,ms:84,md:16,rd:12,init:108,d:[64,90],kb:2,kbCh:.6,big:1,boss:1,xp:2000,role:'boss',brv:99,fearless:1,lead:1,ign:.35,abs:['ecleave','ehorn','ocharge'],
+  crph:[{at:.66,n:'The war-horn',say:'The Emperor sounds the war-horn. Berserkers come howling over the palisade.',summon:['barbz','barbz','barbax']},{at:.33,n:'The last oath',say:'Bleeding, the Emperor swears on his crown: he will not fall alone.',enrage:{dmg:.3,ms:10,md:5,ap:2},heal:.12}]}
 });
 Object.assign(FACT,{
- dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',15],['zomb',14],['skelhal',21],['necro',30],['gknight',52]],rank:[.32,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
- horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',10],['gobarch',12],['orcy',38],['orcw',62],['obrute',60],['hstd',58]],rank:[.46,1.55,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
- barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',40],['barbax',30],['barbhound',22],['barbskald',36],['barbhus',70]],rank:[.46,1.5,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
+ dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',15],['zomb',14],['skelhal',22],['necro',31],['gknight',56]],rank:[.32,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
+ horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',16],['gobarch',20],['orcy',62],['orcw',100],['obrute',98],['hstd',95]],rank:[.44,.8,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
+ barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',64],['barbax',46],['barbhound',33],['barbskald',55],['barbhus',115]],rank:[.46,.9,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
 });
 if(FACT.void)FACT.void.crisis='sunder';
 // situations of a town in a crisis (prices, recruits, contracts, prosperity; drawn on the world by 41-worldart.js)
@@ -194,6 +195,12 @@ function crPartyBattle(p,o){const c=G.crisis;if(!p.cr||!c)return o;o.src.cr=p.cr
  return o}
 // boss options for startBattle (60-battle-core / 21-fabled bossSetup): phases from the EN entry (crph), enrage round
 function crBoss(id,name,title,er){const o={id,name,title};const d=EN[id];if(d&&Array.isArray(d.crph))o.phases=d.crph.map(p=>Object.assign({},p));if(er)o.enrageRound=er;return o}
+/* the strength of the final fights. A boss stage: about .7 of an even fight (the boss, its phases and any fabled champion make up the rest),
+   rising a little with the crisis's escalation (str) and the camp's defenses, never past .9. The storming stages: an even fight or a little more. */
+function crBossMult(c,extra){const s=c?c.str||1:1,camp=c&&c.camp?c.camp.str/100:.5;return Math.round(clamp(.66+(s-1)*.16+(camp-.5)*.06+(extra||0),.6,.9)*100)/100}
+// the Emperor's huscarls: his guard is no boss fight but the hardest stand of the storm (the Emperor himself waits behind it)
+function crChampMult(c){const s=c?c.str||1:1,camp=c&&c.camp?c.camp.str/100:.5;return Math.round(clamp(1.25+(s-1)*.2+(camp-.5)*.2,1.2,1.5)*100)/100}
+function crCampMult(c){const s=c?c.str||1:1,camp=c&&c.camp?c.camp.str/100:.5;return Math.round(clamp(.9+(s-1)*.3+(camp-.5)*.2,.85,1.5)*100)/100}
 function crBattle(k,what,o){o=Object.assign({src:{type:'crisis',k,what}},o);return o}
 /* worldBattleEnd hands crisis battles and crisis hosts here (before the party is removed). Returns true when it handled the src. */
 function crisisBattleEnd(s,win,out){const c=G.crisis;if(!c)return false;
@@ -346,9 +353,9 @@ horde:{n:'The Great Horde',f:'horde',icon:'swords',d:'Orc and goblin tribes gath
  onWin(G){crDisband('horde');crDropSite('hcamp');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='horde'&&rnd()<.5)crFree(i,'end')})},
  onLose(G){},
  after(G,news){const c=G.crisis;if(c.won)return;if(G.day%5===0&&crHosts('horde').length<3){const L=crTownsNear(c.camp.x,c.camp.y,3,i=>crTargeted(i));if(L.length)crHost('horde',c.camp.x,c.camp.y,L[0],{cr:'band',spd:8})}},
- stages(G,i){const c=G.crisis,m=Math.round(clamp((.95+c.camp.str/400)*c.str,.9,2.6)*100)/100,bk=crBiomeAt(c.camp.x,c.camp.y);
+ stages(G,i){const c=G.crisis,m=crCampMult(c),bk=crBiomeAt(c.camp.x,c.camp.y);
   if(i===0)return crBattle('horde','camp',{f:'horde',mult:m,obj:{k:'siege'},biome:bk});
-  return crFabled(crBattle('horde','chief',{f:'horde',mult:m*.9,fixed:['hchief','hstd'],boss:crBoss('hchief',c.chief.n,'Warchief of the Great Horde',14),biome:bk}),{boss:1})},
+  return crFabled(crBattle('horde','chief',{f:'horde',mult:crBossMult(c,.18),fixed:['hchief','hstd','hstd','obrute'],boss:crBoss('hchief',c.chief.n,'Warchief of the Great Horde',10),biome:bk}),{boss:1})},
  onBattle(G,s,win){const c=G.crisis;if(s.what!=='camp'&&s.what!=='chief')return;if(!c.as)c.as={stage:s.what==='chief'?1:0};
   if(!win){c.as=null;return}if(s.what==='camp'){c.camp.str=Math.max(30,c.camp.str-25);crAssaultWon(2);return}
   c.chief.alive=false;c.closed=1;c.as=null;worldNews(`${c.chief.n}, warchief of the Great Horde, is dead`);if(c.fin&&c.lost)crisisEnd(true)},
@@ -382,10 +389,10 @@ barbarian:{n:'The Barbarian War',f:'barb',icon:'swords',d:'A Barbarian Emperor h
  onWin(G){crDisband('barb');crDropSite('ecamp');G.towns.forEach((t,i)=>{if(crTownHeld(i)==='barb')crFree(i,'end')})},
  onLose(G){},
  after(G,news){const c=G.crisis;if(c.won)return;if(G.day>=c.next){crRaid(news);c.next=G.day+6}crRaidStep(news)},
- stages(G,i){const c=G.crisis,m=Math.round(clamp((.9+c.camp.str/300)*c.str,.9,2.8)*100)/100,bk=crBiomeAt(c.camp.x,c.camp.y);
+ stages(G,i){const c=G.crisis,m=crCampMult(c),bk=crBiomeAt(c.camp.x,c.camp.y);
   if(i===0)return crBattle('barbarian','palisade',{f:'barb',mult:m,obj:{k:'siege'},biome:bk});
-  if(i===1)return (crBattle('barbarian','champions',{f:'barb',mult:m*.95,fixed:['barbhus','barbhus','barbskald'],boss:crBoss('barbhus',c.champs[0],'Huscarl of the Emperor'),biome:bk}),{});
-  return crFabled(crBattle('barbarian','emperor',{f:'barb',mult:m*.85,fixed:['emperor','barbhus'],boss:crBoss('emperor',c.emp.n,'Emperor of the North',16),biome:bk}),{boss:1})},
+  if(i===1)return (crBattle('barbarian','champions',{f:'barb',mult:crChampMult(c),fixed:['barbhus','barbhus','barbhus','barbskald','barbz','barbz'],boss:crBoss('barbhus',c.champs[0],'Huscarl of the Emperor'),biome:bk}),{});
+  return crFabled(crBattle('barbarian','emperor',{f:'barb',mult:crBossMult(c,.18),fixed:['emperor','barbhus'],boss:crBoss('emperor',c.emp.n,'Emperor of the North',16),biome:bk}),{boss:1})},
  onBattle(G,s,win){const c=G.crisis;if(!['palisade','champions','emperor'].includes(s.what))return;if(!c.as)c.as={stage:['palisade','champions','emperor'].indexOf(s.what)};
   if(!win){c.as=null;c.camp.str=Math.min(100,c.camp.str+5);return}
   if(s.what!=='emperor'){c.camp.str=Math.max(10,c.camp.str-20);crAssaultWon(3);return}
@@ -408,7 +415,7 @@ function crRaise(x,y,k,from,o){const c=G.crisis,L=crTownsNear(x,y,3,i=>crTargete
 function crThroneReveal(news){const c=G.crisis;if(!c||!c.throne||c.throne.known)return;c.throne.known=1;if(!crSiteOf('throne'))crSite('throne',c.throne.x,c.throne.y);
  if(typeof fogRevealAt==='function'){fogRevealAt(c.throne.x,c.throne.y,2*TS);if(W)W.fogRev++}const w='The Bone Throne is found: the hosts all come from one hill of bones';worldNews(w);if(news)news.push(w);if(typeof toast==='function')toast(w)}
 function crThroneFight(){const c=G.crisis;if(!c||!c.throne)return null;if(typeof closeSheet==='function')closeSheet(true);const left=c.lts?c.lts.filter(l=>l.alive).length:0;
- const o=crFabled(crBattle('deadmarch','throne',{f:'dead',mult:Math.round(clamp(c.str*(.95+.12*left),.9,2.8)*100)/100,fixed:['bthrone'].concat(left?['necrolt']:[]),boss:crBoss('bthrone','The Bone Throne','Heart of the Dead March',16),obj:{k:'siege'},biome:crBiomeAt(c.throne.x,c.throne.y)}),{boss:1});
+ const o=crFabled(crBattle('deadmarch','throne',{f:'dead',mult:crBossMult(c,.03*left-.08),fixed:['bthrone'].concat(left?['necrolt']:[]),boss:crBoss('bthrone','The Bone Throne','Heart of the Dead March',16),obj:{k:'siege'},biome:crBiomeAt(c.throne.x,c.throne.y)}),{boss:1});
  G.moving=false;G.route=[];engage(o);return o}
 
 /* ---- the Barbarian War helpers ---- */
