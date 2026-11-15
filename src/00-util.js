@@ -16,3 +16,11 @@ let SPEEDF=1;const sleep=ms=>SPEEDF>0?new Promise(r=>setTimeout(r,ms*SPEEDF)):Pr
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shade(hex,f){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;if(f>=0){r+=(255-r)*f;g+=(255-g)*f;b+=(255-b)*f}else{r*=1+f;g*=1+f;b*=1+f}return`rgb(${r|0},${g|0},${b|0})`}
 function noiseFn(r,sc,n){const m=Math.ceil(n/sc)+2,g=[];for(let i=0;i<m*m;i++)g.push(r());return(x,y)=>{const fx=x/sc,fy=y/sc,ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),a=g[iy*m+ix],b=g[iy*m+ix+1],c=g[(iy+1)*m+ix],d=g[(iy+1)*m+ix+1];return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy}}
+
+/* ---- visual detail (Settings > Detail): SET.detail 'high' (default) or 'low'. hdArt() is the one switch every high-resolution art path
+   reads (battle tiles, unit sprites and the gear they carry, icons, portraits); 'low' draws the original lower-resolution art.
+   onArtChange(fn) registers a cache flush; artChanged() (setOpt) bumps ARTHD.rev and runs them. Art caches may also key on ARTHD.rev. ---- */
+const ARTHD={rev:0,hooks:[]};
+function hdArt(){return!(typeof SET==='object'&&SET&&SET.detail==='low')}
+function onArtChange(fn){if(typeof fn==='function')ARTHD.hooks.push(fn)}
+function artChanged(){ARTHD.rev++;for(const f of ARTHD.hooks){try{f()}catch(e){}}}

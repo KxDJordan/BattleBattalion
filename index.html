@@ -129,6 +129,9 @@ const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)),pick=a=>a[Math.floor(rnd()*a.length)
 let SPEEDF=1;const sleep=ms=>SPEEDF>0?new Promise(r=>setTimeout(r,ms*SPEEDF)):Promise.resolve();function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shade(hex,f){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;if(f>=0){r+=(255-r)*f;g+=(255-g)*f;b+=(255-b)*f}else{r*=1+f;g*=1+f;b*=1+f}return`rgb(${r|0},${g|0},${b|0})`}
 function noiseFn(r,sc,n){const m=Math.ceil(n/sc)+2,g=[];for(let i=0;i<m*m;i++)g.push(r());return(x,y)=>{const fx=x/sc,fy=y/sc,ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),a=g[iy*m+ix],b=g[iy*m+ix+1],c=g[(iy+1)*m+ix],d=g[(iy+1)*m+ix+1];return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy}}
+const ARTHD={rev:0,hooks:[]};function hdArt(){return!(typeof SET==='object'&&SET&&SET.detail==='low')}
+function onArtChange(fn){if(typeof fn==='function')ARTHD.hooks.push(fn)}
+function artChanged(){ARTHD.rev++;for(const f of ARTHD.hooks){try{f()}catch(e){}}}
 const PAL={'0':'#0b1514','1':'#101d1c','2':'#182a28','3':'#213a36','4':'#35554f','5':'#58b39c','6':'#9fe0cd','7':'#2c6a5d','a':'#3a2c12','b':'#8a6a2a','c':'#d1a94e','d':'#f3d98b','e':'#fff4c8','f':'#5a1f1c','g':'#c4493f','h':'#ef8a78','i':'#4a3826','j':'#7a5a38','k':'#a98455','l':'#e9e0c9','m':'#b9ad8f','n':'#7d8f86','o':'#4d5a5c','p':'#8d99a6','q':'#c8d0d8','r':'#ffffff','s':'#f0c8a0','t':'#d09a72','u':'#9a6444','v':'#8fb56a','w':'#5f8244','x':'#62a6ee','X':'#2f5fa8','y':'#ecc64f','Y':'#a8801f','z':'#3fd0b6','Z':'#1f8573','A':'#9bd96f','B':'#4f8f3a','C':'#b98cf0','D':'#5a3a9a','E':'#ff8a3c','F':'#8fd8ff','G':'#2a2a34','H':'#6b4a2b','I':'#c9a24a','J':'#b8b8c0','K':'#a8482a'};const PX={icon:16,portrait:32,unit:[24,32],tile:[32,16]};const _pxCache=new Map();function pxCanvas(w,h){if(typeof document==='undefined')return null;const c=document.createElement('canvas');c.width=w;c.height=h;return c}
 const _pxLE=new Uint8Array(new Uint32Array([1]).buffer)[0]===1;const _pxU32=new Map();function _pxCol(col){let v=_pxU32.get(col);if(v!==undefined)return v;v=0;const m=/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{6}ff)$/i.exec(col);if(m){let h=m[1];if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);v=(_pxLE?(0xff000000|b<<16|g<<8|r):(r<<24|g<<16|b<<8|0xff))>>>0}
 _pxU32.set(col,v);return v}
@@ -10990,7 +10993,7 @@ return true}
 function txLerpHex(a,b,t){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16),m=(s)=>Math.round((x>>s&255)+((y>>s&255)-(x>>s&255))*t);return'#'+((1<<24)|m(16)<<16|m(8)<<8|m(0)).toString(16).slice(1)}
 const TXTINT={ashen:{mul:'#ffbfa6',add:'#1e0600',a:.5},hollow:{mul:'#b9a8f6',add:'#0a0420',a:.55},glass:{mul:'#b4ecf0',add:'#001216',a:.45}};function sceneTint(bk,hour){const T=TXTINT[bk];if(T)return{mul:T.mul,add:T.add,a:T.a};const h=((+hour||0)%24+24)%24;const n=h<4.5||h>=20.5?1:h<6.5?(6.5-h)/2:h>18.5?(h-18.5)/2:0,wd=Math.max(0,1-Math.abs(h-18.6)/1.9),wm=Math.max(0,1-Math.abs(h-6.4)/1.6),wr=Math.max(wd,wm);const warm=wd>=wm?'#ffb48c':'#ffd2b4';let mul=wr>0?warm:'#ffffff',add='#000000',a=wr*.6;if(n>0){mul=txLerpHex(wr>0?warm:'#9aa6e0','#9aa6e0',wr>0?n:1);add=txLerpHex('#000000','#04081a',n);a=Math.max(a,n*.7)}
 if(bk==='snow'&&n>0)a*=.9;return{mul,add,a:Math.round(a*1000)/1000}}
-const TXHD={on:true,cap:1600};const HDHEAD=28;function hdOK(){return TXHD.on&&!(typeof SET==='object'&&SET&&SET.hdTiles===false)}
+const TXHD={on:true,cap:1600};const HDHEAD=28;function hdOK(){return TXHD.on&&hdArt()&&!(typeof SET==='object'&&SET&&SET.hdTiles===false)}
 function hdC(k){const s=PAL[k]||k,n=parseInt(s.slice(1),16);return(0xff000000|(n&255)<<16|(n>>8&255)<<8|n>>16)>>>0}
 function hdR(c){return c&255}function hdG(c){return c>>8&255}function hdB(c){return c>>16&255}
 function hdP(r,g,b){r=r<0?0:r>255?255:r|0;g=g<0?0:g>255?255:g|0;b=b<0?0:b>255?255:b|0;return(0xff000000|b<<16|g<<8|r)>>>0}
@@ -12887,14 +12890,14 @@ else if(typeof tutKick==='function')tutKick()}
 const RUN_S0={v:null};{const sb=startBattle;startBattle=function(o){ironOnBattle(o);const s0={};if(G&&Array.isArray(G.roster))for(const m of G.roster)s0[m.id]=slainSum(m);RUN_S0.v=s0;const b=sb.apply(this,arguments);if(b&&typeof b==='object'&&!b.runSlain0)b.runSlain0=s0;else if(!b&&G&&G.ironFight)delete G.ironFight;return b}}
 {const rb=resolveBattle;resolveBattle=function(win){const b=B;if(b&&!b.runSlain0)b.runSlain0=RUN_S0.v||{};const res=rb.apply(this,arguments);try{runOnBattle(res,b)}catch(e){}if(G)delete G.ironFight;return res}}
 {const ab=afterBattle;afterBattle=function(win){const out=ab.apply(this,arguments);if(out&&out.kind==='wiped'&&G)runEnd('wipe');return out}}
-const SETKEY='wyrdmarch_settings_v1';const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,awake:true,vol:.8,music:.6,sfx:.8,mute:false};const setVol=v=>typeof v==='number'&&isFinite(v)?Math.round(Math.max(0,Math.min(1,v))*100)/100:null;let _setConfirmUser=false,_rmq=null;function coarsePointer(){try{return!!window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
+const SETKEY='wyrdmarch_settings_v1';const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,detail:'high',awake:true,vol:.8,music:.6,sfx:.8,mute:false};const setVol=v=>typeof v==='number'&&isFinite(v)?Math.round(Math.max(0,Math.min(1,v))*100)/100:null;let _setConfirmUser=false,_rmq=null;function coarsePointer(){try{return!!window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
 function reducedMotion(){let dev=false;try{dev=!!(_rmq&&_rmq.matches===true)}catch(e){}return SET.motion==='reduce'||dev}
 function applyMotion(){const rm=reducedMotion();try{const a=$('app');if(a)a.classList.toggle('rm',rm)}catch(e){}
 if(typeof reduced!=='undefined')reduced=rm;if(rm&&typeof Wipe!=='undefined')Wipe.stop();return rm}
-function loadSettings(){SET.confirm=coarsePointer();try{const o=JSON.parse(storeGet(SETKEY)||'null');if(o&&typeof o==='object'){if(o.speed===1||o.speed===.35)SET.speed=o.speed;if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy;if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.awake==='boolean')SET.awake=o.awake;for(const k of['vol','music','sfx']){const v=setVol(o[k]);if(v!=null)SET[k]=v}if(typeof o.mute==='boolean')SET.mute=o.mute}}catch(e){}
+function loadSettings(){SET.confirm=coarsePointer();try{const o=JSON.parse(storeGet(SETKEY)||'null');if(o&&typeof o==='object'){if(o.speed===1||o.speed===.35)SET.speed=o.speed;if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy;if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.awake==='boolean')SET.awake=o.awake;if(o.detail==='low'||o.detail==='high')SET.detail=o.detail;for(const k of['vol','music','sfx']){const v=setVol(o[k]);if(v!=null)SET[k]=v}if(typeof o.mute==='boolean')SET.mute=o.mute}}catch(e){}
 SPEEDF=SET.speed;try{_rmq=window.matchMedia('(prefers-reduced-motion: reduce)');const f=()=>applyMotion();if(_rmq.addEventListener)_rmq.addEventListener('change',f);else if(_rmq.addListener)_rmq.addListener(f)}catch(e){_rmq=null}
 applyMotion();applyTheme(SET.theme)}
-function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,awake:SET.awake,vol:SET.vol,music:SET.music,sfx:SET.sfx,mute:SET.mute};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
+function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,detail:SET.detail,awake:SET.awake,vol:SET.vol,music:SET.music,sfx:SET.sfx,mute:SET.mute};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
 function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=SET.speed}
 else if(k==='deploy'){SET.deploy=!!v}
 else if(k==='confirm'){SET.confirm=!!v;_setConfirmUser=true;if(typeof fcClear==='function')fcClear()}
@@ -12902,6 +12905,7 @@ else if(k==='motion'){SET.motion=v==='reduce'?'reduce':'auto';applyMotion()}
 else if(k==='theme'){SET.theme=typeof THEMES!=='undefined'&&THEMES[v]?v:'verdigris';applyTheme(SET.theme)}
 else if(k==='awake'){SET.awake=!!v;if(SET.awake)wakeOn();else wakeOff()}
 else if(k==='allyBars'){SET.allyBars=!!v;try{if(typeof _allyBars!=='undefined')_allyBars=SET.allyBars}catch(e){}}
+else if(k==='detail'){const v2=v==='low'?'low':'high';if(SET.detail!==v2){SET.detail=v2;if(typeof artChanged==='function')artChanged()}}
 else if(k==='mute'){SET.mute=!!v;if(!SET.mute&&typeof AUDIO!=='undefined')AUDIO.unlock();if(typeof AUDIO!=='undefined')AUDIO.apply()}
 else if(k==='vol'||k==='music'||k==='sfx'){const x=setVol(+v);if(x!=null)SET[k]=x;if(typeof AUDIO!=='undefined')AUDIO.apply()}
 saveSettings();settingsRefresh();if(mode==='battle'&&B)updateBUI()}
@@ -12920,6 +12924,7 @@ function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();const seg=(
 +row('company','company','Deployment','Place your swords before each battle',seg('deploy',[[true,'On'],[false,'Off']],SET.deploy!==false))
 +row('sun','sun','Keep screen awake','Stop the phone from dimming and locking while the game is open',seg('awake',[[true,'On'],[false,'Off']],SET.awake!==false))
 +row('hp','heart','Ally bars','Health and armor bars over your own swords in battle',seg('allyBars',[[true,'Show'],[false,'Hide']],SET.allyBars!==false))
++row('gem','gem','Detail','High-resolution art for battle tiles, figures, gear, icons and portraits; Low draws the original pixel art (lighter on older phones)',seg('detail',[['high','High'],['low','Low']],SET.detail==='low'?'low':'high'))
 +(themes?row('banner','banner','Colours',(THEMES[SET.theme]||THEMES.verdigris).d,themes,'wide'):'')
 +row('info','sun','Motion','Auto follows this device'+(reducedMotion()&&SET.motion!=='reduce'?' (it asks for less motion)':''),seg('motion',[['auto','Auto'],['reduce','Reduced']],SET.motion))
 +(fs?row('fullscreen','full','Fullscreen','Hide the browser frame',seg('full',[[true,'On'],[false,'Off']],full)):'')
