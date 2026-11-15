@@ -74,6 +74,7 @@ for(const k of K){section(k);
  if(k==='deadmarch')ok(G.sites.filter(s=>s.kind==='grave').length>=3&&a.maxHosts>=2&&a.held>=1,'the Dead March: graves, hosts or fallen towns missing: '+[a.maxHosts,a.held]);
  if(k==='horde')ok(X.crSiteOf('hcamp')&&a.maxHosts>=2&&a.held>=1,'the Great Horde: camp, bands or taken towns missing: '+[a.maxHosts,a.held]);
  if(k==='barbarian'){const s=X.crSiteOf('ecamp');ok(s&&s.y<X.WS*.35,'the Emperor\'s Camp must stand in the far north');ok(a.maxHosts>=2&&(a.sacked>=1||a.held>=1),'the Barbarian War: raids or sacked towns missing: '+[a.maxHosts,a.sacked])}
+ if(!X.crisisMarks().length){const p=k==='sunder'?G.portals[0]:G.sites.find(s=>s.cr||s.kind==='grave');if(p)X.fogRevealAt(p.x,p.y,X.TS*2)}   // marks show what the company has seen: where it stands, it may have seen none yet
  ok(X.crisisLine().length>4&&X.crisisMarks().length>0,k+': no status line or no map marks');
  X.sheets.length=0;X.crisisSheet();ok(X.sheets.join().includes(X.CRISES[k].n),k+': the crisis sheet');closeAll(X);
  ok(a.ms/60<25,k+': the daily simulation is slow: '+(a.ms/60).toFixed(2)+' ms a day');

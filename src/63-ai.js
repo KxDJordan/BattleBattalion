@@ -143,7 +143,7 @@ async function AI_NAIVE(u){const b=B;let sw=0;for(let n=0;n<6&&u.alive&&B===b&&!
   if(inr.length||u.rooted||u.ap<2)return;
   const want=foes.some(f=>mdist(u,f)<=atk.rng)?1:atk.rng;              // foes in range but none in sight: close in until one is
   const D=dijkstra(u,99),st=key(u.c,u.r),tl=b.tiles;let best=st,bs=1e9;
-  D.forEach((v,k)=>{if(v.air)return;const c=k%BW,r=(k/BW)|0;let dm=99;for(const f of foes){const d=fdist(c,r,u.sz||1,f);if(d<dm)dm=d}const sc=(dm>want?dm-want:0)*10+v.cost*.1+(tl[k].t==='haz'?30:0);if(sc<bs){bs=sc;best=k}});
+  D.forEach((v,k)=>{if(v.air)return;const c=k%BW,r=(k/BW)|0;let dm=99;for(const f of foes){const d=fdist(c,r,u.sz||1,f);if(d<dm)dm=d}const sc=(dm>want?dm-want:0)*10+v.cost*.1+(tl[k].t==='haz'?(B&&B.round>AIHAZR?4:30):0);if(sc<bs){bs=sc;best=k}});
   if(best===st)return;await walkPath(u,pathTo(D,best));if(B!==b||!u.alive||key(u.c,u.r)===st)return;if(checkEnd())return}}
 /* Uses an ability the way the rules do. Abilities with a mechanic of their own go through foeUse(); everything
    else through useAbility(), with its hand-back to the player (afterAction) held off: the AI's turn is not over. */
@@ -209,8 +209,9 @@ function aiGoal(u,X){const g=X.goal,tl=B.tiles,bk=[],hunt=X.plan&&X.plan.press&&
  for(let d=0;d<bk.length&&d<64;d++){const q=bk[d];if(!q)continue;for(let i=0;i<q.length;i++){const k=q[i];if(g[k]<=d)continue;g[k]=d;const c=k%BW,r=(k/BW)|0,h=tl[k].h;
    for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=nr*BW+nc;if(g[nk]<=d+1||tl[nk].t==='block'||h-tl[nk].h>1)continue;(bk[d+1]||(bk[d+1]=[])).push(nk)}}}}
 // Worth of ending on tile k (higher is better). Cached per decision.
+const AIHAZR=40;
 function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan=X.plan,t=B.tiles[k],c=k%BW,r=(k/BW)|0;
- let v=-P.care*X.thr[k]*X.frail+P.high*t.h-(t.t==='haz'?60:0);if(X.hand)v+=aiHandV(X,k);
+ let v=-P.care*X.thr[k]*X.frail+P.high*t.h-(t.t==='haz'?(B&&B.round>AIHAZR?12:60):0);   // a long fight (AIHAZR rounds): walk through the fire rather than stand off foreverif(X.hand)v+=aiHandV(X,k);
  const sz=u.sz||1;let gk=X.goal[k];if(sz>1)for(let y=0;y<sz;y++)for(let x=0;x<sz;x++)if(inb(c+x,r+y))gk=Math.min(gk,X.goal[key(c+x,r+y)]);   // a footprint is as close as its nearest tile
  const g=gk>X.want?gk-X.want:0;
  if(X.hold===2){const front=DEPLOY.p.front;v-=(r<front-1?(front-1-r)*7:0)}else{v-=P.adv*g;if(X.hold===1){const front=DEPLOY.p.front;if(r<front-2)v-=(front-2-r)*5}}

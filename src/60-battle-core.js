@@ -96,7 +96,7 @@ function buildEnemies(f,budget,fixed,mult){if(typeof FACT[f].build==='function'&
    band brings. SOLOFLOOR: a band that bought one foe brings a second with the chance leftover / (SOLOFLOOR x the cheapest foe's cost).
    A monster band (tier 'mid') too poor for its lead monster is that monster alone (buildEnemies). */
 let SOLOFLOOR=1,SOLOMAX=2;
-const SOLOBUD={base:6,lvl:7,knee:6,late:4};   // 27 at level 3, 48 at 6, 60 at 9, 72 at 12 (a company merc, mercBud: 25 44 63 85)
+const SOLOBUD={base:6,lvl:7,knee:6,late:4};   // 27 at level 3, 48 at 6, 60 at 9, 72 at 12 (a company merc, mercBud: 25 44 64 85)
 /* ---- Units ----
    A battle unit (both sides): side, name, lvl, hp/hpMax, arm/armMax (body armor), helm/helmMax (head armor), ap/apMax, fat/fatMax,
    init, ms, rs, md, rd, brv (resolve), mor (morale 0..4), fearless, wpn, abs, res, flags, dmgB, buffs, st (status turns), alive,
