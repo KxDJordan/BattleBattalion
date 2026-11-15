@@ -214,9 +214,11 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  if(o.fabled&&typeof fabledSpawn==='function')fabledSpawn(el,o);   // fabled warriors mixed into the enemy side (o.fabled: ids)
  const eu=place(el,DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
  b.rival=o.rival||null;if(o.ambush)for(const u of eu)u.unready=1;   // an ambush (o.ambush, from a parley): the company acts first in round 1, the foe starts unready
- b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&o.boss.fabled?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
+ b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&(o.boss.fabled||(Array.isArray(o.boss.phases)&&EN[o.boss.id]&&EN[o.boss.id].boss))?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
  mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${battleFoeN(o)} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} ${b.rival?'swords':'foes'}.`);nextTurn();return b}
-/* spawnUnit(u): adds a unit mid-battle (reserves, summons, the raised dead). u needs side and its stats (mkEnemy(id,f) and
+/* (A fabled boss, or a phased boss (o.boss.phases) whose EN entry is a boss already (def.boss: the crisis bosses), skips the contract-boss upgrade of objSetup,
+   CTR_BOSSK: it is boss-sized as it stands; bossSetup (21-fabled.js) marks it and runs its phases.)
+   spawnUnit(u): adds a unit mid-battle (reserves, summons, the raised dead). u needs side and its stats (mkEnemy(id,f) and
    mkPlayerUnit(m) make complete ones); u.c/u.r is where it should appear: the nearest free walkable tile is used when that
    one is taken, blocked or missing. It joins the turn order from the next round. Returns u, or null when the board is full. */
 function spawnUnit(u){const b=B;if(!b||!u)return null;initUnit(u);const sz=u.sz||1,free=k=>sz>1?footFree(k%BW,(k/BW)|0,sz,u):b.tiles[k].t!=='block'&&!unitAt(k%BW,(k/BW)|0);
