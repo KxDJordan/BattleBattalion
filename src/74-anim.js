@@ -193,25 +193,27 @@ function anBarsPaint(q,X,Y,w,bh,helm,arm,ah,aa,hw,lw,low,foe,sw,scol){const x0=X
   if(low){q.fillStyle=PAL['r'];q.fillRect(hx,hy,hw,1)}
   q.fillStyle=PAL[foe?'f':'7'];for(let i=4;i<hw;i+=4)q.fillRect(hx+i-1,hy+1,1,1)}
  if(sw){q.fillStyle=PAL['0'];q.fillRect(x0+w+2,top+bh-7,3,7);q.fillStyle=PAL['3'];q.fillRect(x0+w+3,top+bh-6,1,5);q.fillStyle=PAL[scol?'E':'k'];q.fillRect(x0+w+3,top+bh-1-sw,1,sw)}}   // shield hitpoints: a wooden pip beside the bars
-/* Detail High: the same simple bars drawn at device pixels (not art pixels): a dark frame, then head armor (brass), body armor (steel)
-   and hitpoints (two-tone green for the company, red for foes) as exact fractions in flat colours, the lost-hitpoints lag in pale, the
-   low-health blink, and the shield's wooden pip beside them. Same footprint and colours as the art-pixel bars. */
+/* Detail High: slim painted bars at device pixels. One rounded hitpoint bar (company green, foes red) with a soft dark outline,
+   a light sheen on its top third, the lost-hitpoints lag in pale and the low-health flash. Armor shows only once it is damaged:
+   thin rounded lines under the bar (body armor steel, head armor brass), and the raised shield as a small wooden pip only when
+   it is damaged. Same width and place as the art-pixel bars; Detail Low keeps those. */
+function anRR(q,x,y,w,h,r){r=Math.max(0,Math.min(r,h/2,w/2));q.beginPath();q.moveTo(x+r,y);q.arcTo(x+w,y,x+w,y+h,r);q.arcTo(x+w,y+h,x,y+h,r);q.arcTo(x,y+h,x,y,r);q.arcTo(x,y,x+w,y,r);q.closePath()}
 function anBarsHD(q,x0,top,w,bh,F){const T=q.getTransform(),sx=Math.hypot(T.a,T.b)||1,sy=Math.hypot(T.c,T.d)||1,X=(x,y)=>T.a*x+T.c*y+T.e,Y=(x,y)=>T.b*x+T.d*y+T.f,R=Math.round;
- const fx=R(X(x0,top)),fy=R(Y(x0,top)),fw=R((w+2)*sx),fh=Math.max(5,R(bh*sy)),p=Math.max(1,R(sx*.45)),g=Math.max(1,R(sy*.3));
- q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=false;
- q.fillStyle=PAL['0'];q.fillRect(fx+1,fy,fw-2,fh);q.fillRect(fx,fy+1,fw,fh-2);   // frame, corners clipped
- const rows=[];if(F.hasH)rows.push(['h',1]);if(F.hasA)rows.push(['a',1]);rows.push(['p',2]);
- const iw=fw-2*p,H=fh-2*p-g*(rows.length-1),u=H/rows.reduce((a,r)=>a+r[1],0);let y=fy+p;
- for(let i=0;i<rows.length;i++){const [k,wt]=rows[i],yy=R(y),hh=Math.max(1,R(y+wt*u)-yy),ix=fx+p;
-  q.fillStyle=k==='p'?PAL['2']:PAL['3'];q.fillRect(ix,yy,iw,hh);
-  const fr=k==='h'?F.helm:k==='a'?F.arm:F.hp,fw2=fr>0?Math.max(1,R(iw*Math.min(1,fr))):0;
-  if(k==='p'&&F.lag>fr){const lw=R(iw*Math.min(1,F.lag));q.fillStyle=PAL['e'];q.fillRect(ix+fw2,yy,lw-fw2,hh)}
-  if(fw2){const c=k==='h'?['c','c']:k==='a'?['q','q']:F.low?['r','r']:F.foe?['h','g']:['6','5'];   // flat fills in the art bars' colours
-   q.fillStyle=PAL[c[0]];q.fillRect(ix,yy,fw2,hh);if(c[1]!==c[0]){const hb=R(hh/2);q.fillStyle=PAL[c[1]];q.fillRect(ix,yy+hb,fw2,hh-hb)}}
-  y+=wt*u+g}
- if(F.sh!=null){const px=R(X(x0+w+2,top)),pw=Math.max(3,R(3*sx)),ph=Math.max(6,R(7*sy)),py=fy+fh-ph;
-  q.fillStyle=PAL['0'];q.fillRect(px,py,pw,ph);const ih=ph-2,iw2=pw-2;q.fillStyle=PAL['3'];q.fillRect(px+1,py+1,iw2,ih);
-  const sf=Math.max(1,R(ih*Math.min(1,F.sh)));q.fillStyle=PAL[F.scol?'E':'k'];q.fillRect(px+1,py+1+ih-sf,iw2,sf)}
+ const ol=Math.max(1,R(sy*.35)),hh=Math.max(4,R(sy*2.2)),lh=Math.max(2,R(sy*.85)),gap=Math.max(1,R(sy*.35));
+ const lines=[];if(F.hasA&&F.arm<.999)lines.push(['a',F.arm]);if(F.hasH&&F.helm<.999)lines.push(['h',F.helm]);
+ const bw=R((w+2)*sx),bx=R(X(x0,top)),by0=R(Y(x0,top+bh))-hh-lines.length*(lh+gap)-ol;   // bottom-aligned where the old frame ended
+ q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;
+ const bar=(y,h,fr,col,dk,sheen,lag)=>{q.fillStyle='rgba(8,14,13,.82)';anRR(q,bx-ol,y-ol,bw+2*ol,h+2*ol,(h+2*ol)/2);q.fill();
+  q.fillStyle='#16241f';anRR(q,bx,y,bw,h,h/2);q.fill();
+  if(lag>fr){q.fillStyle='rgba(233,224,201,.55)';anRR(q,bx,y,Math.max(h,bw*Math.min(1,lag)),h,h/2);q.fill()}
+  if(fr>0){const fw=Math.max(h,bw*Math.min(1,fr)),gr=q.createLinearGradient(0,y,0,y+h);gr.addColorStop(0,col);gr.addColorStop(1,dk);q.fillStyle=gr;anRR(q,bx,y,fw,h,h/2);q.fill();
+   if(sheen&&h>=4){q.fillStyle='rgba(255,255,255,.28)';anRR(q,bx+h*.35,y+h*.14,Math.max(0,fw-h*.7),Math.max(1,h*.28),h*.14);q.fill()}}};
+ const hc=F.low?['#ffe2d6','#ef8a78']:F.foe?['#ef7a68','#a8352c']:['#8fe0c5','#3f9e86'];
+ bar(by0,hh,F.hp,hc[0],hc[1],true,F.lag);
+ let y=by0+hh+ol+gap;for(const [k,fr] of lines){bar(y,lh,fr,k==='a'?'#d9e1e8':'#f0cf7a',k==='a'?'#8d99a6':'#b58a2e',false,0);y+=lh+gap}
+ if(F.sh!=null&&F.sh<.999){const pw=Math.max(3,R(sx*1.6)),ph=hh+ (lines.length?lines.length*(lh+gap):0),px=bx+bw+ol+Math.max(1,R(sx*.6));
+  q.fillStyle='rgba(8,14,13,.82)';anRR(q,px-ol,by0-ol,pw+2*ol,ph+2*ol,pw/2+ol);q.fill();q.fillStyle='#16241f';anRR(q,px,by0,pw,ph,pw/2);q.fill();
+  const f=Math.max(0,Math.min(1,F.sh)),fh=Math.max(f>0?pw:0,ph*f);if(fh>0){q.fillStyle=F.scol?'#ef8a78':'#b07a45';anRR(q,px,by0+ph-fh,pw,fh,pw/2);q.fill()}}
  q.restore()}
 function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;const s=anOf(u),t=anNow(),big=!!o.big,wide=!!o.wide,w=wide?30:big?22:16,rm=typeof reduced!=='undefined'&&reduced,
   noBars=u.side===0&&(o.bars===false||(typeof SET!=='undefined'&&SET&&SET.allyBars===false));
