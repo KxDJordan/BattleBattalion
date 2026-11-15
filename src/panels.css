@@ -721,3 +721,40 @@
 [data-stat]{cursor:help}
 @media (prefers-reduced-motion:no-preference){.st-tip:not([hidden]){animation:stTipIn .12s ease-out}}
 @keyframes stTipIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+/* ---- legendary gear (25-legend.js): an ember-and-violet glow and frame, distinct from famed gold ---- */
+.famed.lgd{filter:drop-shadow(0 0 1px #ffb048) drop-shadow(0 0 3px rgba(255,122,40,.65)) drop-shadow(0 0 6px rgba(176,108,255,.45));animation:lgGlow 3s ease-in-out infinite}
+.famed.lgd::after{box-shadow:0 0 0 1px rgba(255,190,110,.75),0 0 0 2px rgba(120,60,170,.6),0 0 8px 2px rgba(255,122,40,.4)}
+@keyframes lgGlow{0%,100%{filter:drop-shadow(0 0 1px #ffb048) drop-shadow(0 0 3px rgba(255,122,40,.6)) drop-shadow(0 0 5px rgba(176,108,255,.35))}50%{filter:drop-shadow(0 0 1px #ffd08a) drop-shadow(0 0 4px rgba(255,140,60,.8)) drop-shadow(0 0 8px rgba(176,108,255,.6))}}
+@media (prefers-reduced-motion:reduce){.famed.lgd{animation:none!important}}
+#app.rm .famed.lgd{animation:none!important}
+.fmd-n.lgd-n{color:#ffc069;text-shadow:0 0 4px rgba(255,122,40,.6),0 0 8px rgba(176,108,255,.35),0 1px 0 #3a1430}
+.fmd-tag.lgd-tag,#pn .fmd-tag.lgd-tag{border-color:#c77dff;background:linear-gradient(#5a1f4a,#3a1430);color:#ffe2b0;box-shadow:0 0 4px rgba(255,122,40,.45)}
+.fmd-box.lgd-box{border-color:#9a4fc8;background:linear-gradient(#2c1430,#1a0f1e);box-shadow:inset 0 0 0 1px #4a1f50,0 0 8px rgba(255,122,40,.18)}
+.lgd-pw{display:flex;gap:6px;align-items:flex-start;margin:5px 0 3px;padding:4px 6px;border:1px solid #c77dff;background:#3a1430}
+.lgd-pw b{display:block;color:#ffc069;font-family:'Jersey 15',monospace;font-size:1rem;letter-spacing:.02em}
+.lgd-pw small{display:block;color:#f4e3ff;font-size:.82rem;line-height:1.25}
+.lgd-lore{font-style:italic;color:#d9c3e0;margin:4px 0 2px}
+.lgd-from{font-size:.78rem}
+#pn .pn-row.fmd-row.lgd-row{box-shadow:inset 3px 0 0 #c77dff}
+/* ---- the final mastery tier (capstones sealed by deeds) and the deeds row ---- */
+.tg-sec.tg-cap{margin-top:6px}
+.tg-cap .tg-wh{border-color:#9a4fc8;background:linear-gradient(#2c1430,#1a0f1e)}
+.tg-cap .tg-wh b{color:#ffc069}
+.tg-capl{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px;padding:4px 2px}
+.tg-capr{display:flex;align-items:center;gap:6px;padding:3px 5px;border:1px solid #4a2f50;background:#1c1420;min-width:0}
+.tg-capr.open{border-color:#c77dff;background:#2c1430;box-shadow:0 0 6px rgba(199,125,255,.25)}
+.tg-capr .tg-n{flex:none}
+.tg-capr .tg-n.cap.can,.tg-capr .tg-n.cap.open{box-shadow:0 0 0 1px #ffb048,0 0 6px rgba(255,122,40,.5)}
+.tg-capm{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.tg-capm b{font-size:.84rem;color:#f4e3ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tg-capm small{font-size:.72rem;color:#b9a3c0}
+.tg-capr.open .tg-capm small{color:#ffc069}
+.mt-foot .cap-why{color:#d9a6ff}
+.ch-dd{margin-top:6px}
+.ch-ddl{display:flex;flex-wrap:wrap;gap:4px}
+.ch-dr{display:flex;align-items:center;gap:5px;padding:2px 6px 2px 3px;border:1px solid #3a3040;background:#18141c;opacity:.7}
+.ch-dr.on{opacity:1;border-color:#c77dff;background:#2c1430;box-shadow:0 0 5px rgba(199,125,255,.3)}
+.ch-dr b{font-size:.8rem;color:#e8dcef;white-space:nowrap}
+.ch-dr em{font-style:normal;font-family:'Jersey 15',monospace;font-size:1rem;color:#ffc069;min-width:1ch;text-align:right}
+.ch-ddn{font-size:.74rem;color:#b9a3c0;margin:3px 0 0}
+.fmd-lines.in.lgd i,.fmd-lines.lgd li{border-color:#9a4fc8;background:#3a1430;color:#ffc069;white-space:normal}

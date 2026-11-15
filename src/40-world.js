@@ -429,6 +429,7 @@ function worldDay(){const news=[];worldEnsure();if(G.wsim.day>=G.day)return news
  if(typeof crisisDay==='function'){try{crisisDay(news)}catch(e){if(typeof console!=='undefined')console.warn('crisisDay failed',e)}}   // the run's crisis (18-crises.js)
  if(typeof eastDay==='function'){try{eastDay(news)}catch(e){if(typeof console!=='undefined')console.warn('eastDay failed',e)}}        // the Eastern War (19-east.js): pushes its lines into news
  if(typeof fabledDay==='function'){try{fabledDay()}catch(e){if(typeof console!=='undefined')console.warn('fabledDay failed',e)}}     // fabled warriors (21-fabled.js)
+ if(typeof dungeonDay==='function'){try{dungeonDay(news)}catch(e){if(typeof console!=='undefined')console.warn('dungeonDay failed',e)}}   // dungeons open over time (24-endgame.js)
  const live=WSIM.live*TS;for(const p of G.parties){if(p.gone)continue;if(svFin(p.life)&&--p.life<=0){p.gone=1;continue}if(Math.hypot(p.x-G.p.x,p.y-G.p.y)>live)wsStep(p)}
  // reputation fades slowly toward neutral (a point a week)
  if(G.day%7===0)for(const f in G.rep){const v=G.rep[f];if(v>0)G.rep[f]=v-1;else if(v<0)G.rep[f]=v+1}
@@ -447,7 +448,7 @@ function showNote(){const n=G.note;G.note=null;if(n==='crisis')crisisSheet();els
 function newLandsSheet(){const t=G.towns[0],n=G.portals.length;
  sheet(`<h2>New lands</h2><p>The old country is behind you. The company marched for weeks and has come down into a wider land: ${t.name} stands before you, with ${G.towns.length-1} more towns beyond it, roads between them and rivers to cross.</p>
  <p class="dim">Your swords, crowns, stores and renown came with you. Contracts from the old country were left behind${n?`, but the rifts have followed: ${n===1?'one burns':n+' burn'} in this land`:''}.</p><button class="pri" onclick="closeSheet()">March on</button>`)}
-function siteSheet(id){const s=G.sites&&G.sites.find(s=>s.id===id);if(!s)return;if(s.cr&&typeof crSiteSheet==='function'&&crSiteSheet(s))return;const R=RUINS[s.n%RUINS.length]||RUINS[0],first=!s.v;s.v=1;
+function siteSheet(id){const s=G.sites&&G.sites.find(s=>s.id===id);if(!s)return;if((s.kind==='dgn'||s.kind==='dgnc')&&typeof dungeonSheet==='function')return dungeonSheet(s.id);if(s.cr&&typeof crSiteSheet==='function'&&crSiteSheet(s))return;const R=RUINS[s.n%RUINS.length]||RUINS[0],first=!s.v;s.v=1;
  sheet(`<h2>${R[0]}</h2><p>${R[1]}</p><p class="dim">${first?'The company rests a moment among the stones. There is nothing here to carry off.':'Nothing has changed since the company last passed.'}</p><button class="pri" onclick="closeSheet()">Move on</button>`)}
 function advanceTime(h,rate){G.hour+=h;if(G.grace>0)G.grace-=h;G.healAcc+=h*(rate||1)*(typeof followerHas==='function'&&followerHas('cook')?1.25:1);while(G.healAcc>=1){G.healAcc--;G.roster.forEach(m=>{const mx=calc(m).hp;if(m.hp<mx)m.hp++})}
  stepWeather(h);while(G.hour>=24){G.hour-=24;G.day++;newDay()}fogReveal();

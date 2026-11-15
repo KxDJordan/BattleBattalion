@@ -102,7 +102,7 @@ const S_SLASH=1,S_PIERCE=2,S_BLUNT=3,S_CLAW=4,S_ARROW=5,S_MANA=6,S_BLAST=7,S_FLA
 const IMP=[];for(let i=0;i<32;i++)IMP.push({on:false,at:0,t:null,u:null,dmg:0,arm:0,sty:0,miss:false,dead:false,dx:0,dy:0});
 function fxQueue(t,u,at,dmg,arm,sty,miss){let e=null;for(let i=0;i<IMP.length;i++)if(!IMP[i].on){e=IMP[i];break}if(!e){e=IMP[0];fxImpact(e)}
  e.on=true;e.at=at;e.t=t;e.u=u;e.dmg=dmg;e.arm=arm;e.sty=sty;e.miss=miss;e.dead=false;e.dx=0;e.dy=-1;e.head=false;e.rmp=FXS.rmp|0;
- if(u&&u!==t){const a=fxUP(u),ax=a.x,ay=a.y,b=fxUP(t),dx=b.x-ax,dy=b.y-ay,L=Math.hypot(dx,dy)||1;e.dx=dx/L;e.dy=dy/L}return e}
+ if(u&&u!==t){const a=fxUP(u),ax=a.x,ay=a.y,b=fxUP(t),dx=b.x-ax,dy=b.y-ay,L=Math.hypot(dx,dy)||1;e.dx=dx/L;e.dy=dy/L}FXS.lastQ=e;return e}   // lastQ: the audio times a blow's sound to its landing (26-audio.js)
 function fxImpact(e){e.on=false;const t=e.t;if(!t)return;e.t=null;const u=e.u;e.u=null;const p=fxUB(t),x=p.x,fy=p.y,h=p.h,head=!!e.head,y=fy-h*(head?.84:.48),dx=e.dx,dy=e.dy,dmg=e.dmg,arm=e.arm,sty=e.sty,sp=Math.max(.6,fxSp());
  if(e.miss){fxFloat(t,'MISS',FS_MISS);return}
  if(arm>0){cone(K_TRAIL,R_STEEL,x,y,dx,dy*.6-.25,5+Math.min(9,arm/8|0),90,260,.26,1,300,2,1);glyphFx('glint',x-dx*6,y-dy*6,0,110,0)}
@@ -245,6 +245,7 @@ function fxEvent(type,d){if(!d||typeof B==='undefined'||!B||mode!=='battle')retu
   else if(type==='reload')fxOnReload(d.u);else if(type==='blocked')fxOnBlocked(d);else if(type==='ff')fxOnFF(d);else if(type==='loc'){}
   else if(type==='heal')fxOnHeal(d.t);else if(type==='buff')fxOnBuff(d.t);else if(type==='turn')fxOnTurn(d.u)}catch(e){if(!FXS.err){FXS.err=e;if(typeof console!=='undefined')console.warn('fx '+type+': '+(e&&e.stack||e))}}}
 if(typeof FX!=='undefined'&&FX)try{FX.on=fxEvent}catch(e){}
+if(typeof audioHookFx==='function')try{audioHookFx()}catch(e){}   // sound chains onto the scene's handler (26-audio.js)
 
 /* ================= Phase 5: locations, morale, injuries, shields, weapon skills, enemy abilities =================
    An ability animates by a key: fxKey(ab) reads its `fx` hint, then its id and name, and falls back to 'gen' with the

@@ -91,6 +91,8 @@
 .ex-err{display:flex;align-items:center;gap:8px;margin:4px 0 8px;padding:6px 8px;color:#ffd9d0;background:#5a1f1c;box-shadow:inset 0 0 0 2px #c4493f}
 .ex-err .pxi,.ex-err .pn-i{width:16px;height:16px;flex:none}
 @media (max-height:420px){.ex-code{height:64px}}
+.ex-act .ex-copy{flex:1 1 auto;min-height:52px}.ex-act .ex-file{flex:none;opacity:.9}
+.ex-hint{margin:6px 0 0;font-size:.8rem;line-height:1.3}.ex-hint.on{color:#e9e0c9}
 
 /* ---- the title's six buttons ---- */
 #titleBox .tgrid.six{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr))}

@@ -62,7 +62,7 @@ function foeRank(f){const b=B;if(!b||!FACT[f])return 1;if(b.frank&&b.frank.f===f
 /* enemyInit(u,id): called by the rules for every enemy at battle start (and by foeSpawn for late arrivals). */
 function enemyInit(u,id){let d=u.def||EN[id];
  // A warband has only so many leaders: the ones beyond def.max take the field as def.sub instead.
- if(d.max&&d.sub&&EN[d.sub]&&B&&!u.spawned){const n=B.fcnt||(B.fcnt={});n[id]=(n[id]||0)+1;if(n[id]>d.max){const e=mkEnemy(d.sub,u.f);for(const k in e)u[k]=e[k];id=d.sub;d=u.def}}
+ if(d.max&&d.sub&&EN[d.sub]&&B&&!u.spawned&&!u.ros){const n=B.fcnt||(B.fcnt={});n[id]=(n[id]||0)+1;if(n[id]>d.max){const e=mkEnemy(d.sub,u.f);for(const k in e)u[k]=e[k];id=d.sub;d=u.def}}
  u.eid=id;u.role=d.role||'line';u.abs=(d.abs||[]).filter(a=>AB[a]);if(u.wpn.reload&&AB.reload&&!u.abs.includes('reload'))u.abs.push('reload');   // a crossbow or firearm: it reloads like a merc
  if(u.wpnAlt&&AB.swap)u.abs.push('swap');   // a sidearm (def.side): the archer is not helpless when a foe gets close
 u.cds={};u.usedN={};u.spell=undefined;
@@ -70,7 +70,7 @@ u.cds={};u.usedN={};u.spell=undefined;
  if(d.fatMax){u.fatMax=d.fatMax;u.wpn.fat=d.wfat||10}
  if(d.ign)u.wpn.ign=d.ign;if(d.wap)u.wpn.ap=d.wap;
  u.back=u.role==='caster'||u.role==='sniper';if(d.fury)u.st.fury=d.fury+1;
- const x=foeRank(u.f);
+ const x=u.rx>0?u.rx:B&&B.fixedSide?B.frank.x:foeRank(u.f);   // a fixed roster (o.roster): its own rank, never the company's
  if(x>1&&!d.boss){const L=Math.log2(x),R=FOE_RANK;u.rank=L;u.lvl=1+Math.round(L*4);
   u.hp=u.hpMax=Math.round(u.hp*Math.pow(x,R.hp));u.arm=u.armMax=Math.round(u.arm*Math.pow(x,R.arm));
   if(typeof u.helm==='number'){u.helm=u.helmMax=Math.round(u.helm*Math.pow(x,R.arm))}

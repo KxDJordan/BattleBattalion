@@ -86,6 +86,7 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
   if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd;if(sh.guard){s.flags.guard=(s.flags.guard||0)+sh.guard;s.flags.shGuard=sh.guard}}}
  if(a){s.arm=a.arm;s.fat-=a.fat;s.md+=a.md||0;s.rd+=a.rd||0}if(h){s.helm=h.arm;s.fat-=h.fat;s.md+=h.md||0;s.rd+=h.rd||0}   // armor and helmets may carry defence (famed rolls)
  s.aw=(a?a.fat||0:0)+(h?h.fat||0:0);if(s.flags.ironLung)s.fat+=Math.floor(s.aw/2);   // aw: what armor and helmet weigh (Nimble); Iron lung gives half of it back
+ if(typeof legendPow==='function'){if(wi&&wi.power)legendPow(s,wi.power);if(sh&&sh.power&&raised)legendPow(s,sh.power);if(a&&a.power)legendPow(s,a.power);if(h&&h.power)legendPow(s,h.power)}   // legendary powers (25-legend.js): the weapon in hand, a raised shield, armor, helmet
  for(const id of (wpn.sk||[]).concat(raised&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);
  if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  for(const T of traitsOf(m)){if(T.st)for(const k in T.st)s[k]=(s[k]||0)+T.st[k];if(T.flag)s.flags[T.flag]=1;if(T.mod)for(const q in T.mod)s.flags[q]=(s.flags[q]||0)+T.mod[q]}   // traits

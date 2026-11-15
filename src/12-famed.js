@@ -80,13 +80,14 @@ function makeFamed(baseId,power,o){const B=ITEMS[baseId];if(!B||B.famed||!G)retu
 // the rolls that suit base item B at power pw (AP -1 only from strong fights)
 function famedPool(B,pw){return FAMED_ROLL[famedKind(B)].filter(r=>(!r[4]||r[4](B))&&(r[0]!=='ap'||pw>=.5))}
 /* the improvements of famed item id, readable: [{k, t:'+6–9 damage'}] ([] for an ordinary item) */
-function famedLines(id){const it=ITEMS[id];if(!it||!it.famed)return[];const M=it.mods||{},out=[],pc=v=>Math.round(v*100)+'%',add=(k,t)=>out.push({k,t});
+function famedLines(id){const it=ITEMS[id];if(!it||!it.famed)return[];if(it.legend)return typeof legendLines==='function'?legendLines(id):[];   // a legendary piece: its power (25-legend.js)
+const M=it.mods||{},out=[],pc=v=>Math.round(v*100)+'%',add=(k,t)=>out.push({k,t});
  if(M.d)add('dmg',`+${M.d[0]}–${M.d[1]} damage`);if(M.ap)add('ap',`−${M.ap} AP a swing`);if(M.hit)add('hit',`+${M.hit} to hit`);if(M.ign)add('ign',`+${pc(M.ign)} through armor`);
  if(M.rng)add('rng',`+${M.rng} range`);if(M.rld)add('rld',`−${M.rld} AP to reload`);if(M.stun)add('stun',`+${pc(M.stun)} stun chance`);if(M.crush)add('crush',`+${pc(M.crush)} armor crushing`);
  if(M.spell)add('spell',`+${pc(M.spell)} spell damage`);if(M.arm)add('arm',`+${M.arm} ${it.k==='h'?'head ':''}armor`);if(M.md)add('md',`+${M.md} melee defense`);if(M.rd)add('rd',`+${M.rd} ranged defense`);
  if(M.hp)add('hp',`+${M.hp} shield hitpoints`);if(M.fat)add('fat',`−${M.fat} fatigue`);return out}
 // one line of flavour: what it was made from and where it was taken
-function famedFlavour(id){const it=ITEMS[id];if(!it||!it.famed)return'';const B=ITEMS[it.base];return`A famed ${B?B.n.toLowerCase():'piece'}${it.from?', taken from '+it.from:''}${it.day?' on day '+it.day:''}.`}
+function famedFlavour(id){const it=ITEMS[id];if(!it||!it.famed)return'';if(it.legend)return it.lore||'A legendary piece.';const B=ITEMS[it.base];return`A famed ${B?B.n.toLowerCase():'piece'}${it.from?', taken from '+it.from:''}${it.day?' on day '+it.day:''}.`}
 // the price a market pays for item id
 function sellPrice(id){const it=ITEMS[id];if(!it)return 0;return Math.floor((it.price||0)*(it.famed?FAMED_SELL:.4))}
 /* ---- drops ----

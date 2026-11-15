@@ -741,3 +741,27 @@ WASITK.push('crsiege','haunted','occupied','sacked','burned');
   if(bit('haunted'))for(let i=0;i<14;i++){const ph=(f*2+i*3)&7,x=X(2+((waHash(i,5,72)*(TW-4))|0)),y=B-5-((waHash(i,6,72)*(TH*.6))|0)-(ph>>1);if(ph<6){P.p(x,y,night?'Z':'6');if(ph<3)P.p(x,y-1,'7')}}
   if(bit('sacked')||bit('burned'))for(let i=0;i<12;i++){const x=X(3+((waHash(i,sz,83)*(TW-6))|0)),y=B-2-((waHash(i,sz,84)*(TH*.55))|0);P.p(x,y,'0');P.p(x+1,y,'1')}
   P.flat=fl0}}
+
+/* ================= DUNGEONS on the world map (endgame agent, 24-endgame.js) =================
+   G.sites kinds 'dgn' (open: a dungeon waiting to be cleared, a baleful light in its mouth) and 'dgnc' (cleared: the same place gone dark
+   and broken), variant o.n = DUNGEONS[k].art: 0 a drowned barrow mound, 1 a deep lair cave, 2 a black keep, 3 a rotting grove.
+   Static sprites keyed by kind and variant (the world draw list carries them, so they are in the WSG signature like every site). */
+Object.assign(WASITE,{dgn:{w:40,h:36},dgnc:{w:40,h:36}});
+function waDgn(P,v,lit){const B=P.h-3,cx=20,G0=v===0?['B','w']:v===1?['k','j']:v===2?['n','4']:['w','B'];waGround(P,cx,B-1,18,5,G0[0],G0[1]);const glow=lit?(v===3?'A':v===0?'6':'g'):'0',glow2=lit?(v===3?'v':v===0?'5':'h'):'1';
+ if(v===0){   // a barrow mound: a turf hump, a stone door, standing stones, reeds
+  P.ell(cx,B,16,15,(x,y,a,b)=>y>B-1?null:b<-.82?'v':b<-.7&&a<0?'A':a<-.4?'B':a>.45?'7':'w');P.r(cx-5,B-10,11,10,'n');P.r(cx-5,B-11,11,2,'m');P.r(cx-6,B-11,1,11,'n');P.p(cx-5,B-11,'l');P.r(cx-3,B-8,7,8,'0');P.r(cx-2,B-6,5,6,glow);P.r(cx-1,B-4,3,4,glow2);
+  for(const sx of [cx-14,cx+12]){P.r(sx,B-12,3,11,'n');P.r(sx,B-12,1,11,'m');P.p(sx+1,B-13,'m')}P.s(cx+6,B-1,['.x.x','xX.X']);P.s(cx-9,B,['x.x','X.X'])}
+ else if(v===1){   // a lair: a rock face with a black mouth, bones before it
+  P.ell(cx,B-6,18,14,(x,y,a,b)=>y>B-1?null:b<-.55?'p':a<-.2?'o':a>.5?'G':'o');P.ell(cx,B-3,7,8,(x,y,a,b)=>y>B-1?null:'0');if(lit){P.ell(cx,B-1,4,4,(x,y,a,b)=>y>B-1?null:b>.1?glow:'0');P.p(cx,B-2,glow2);P.p(cx-1,B-1,glow2);P.p(cx+1,B-1,glow2);P.p(cx-3,B-6,glow);P.p(cx+3,B-6,glow)}
+  P.s(cx-11,B-1,['l.l','.l.','l.l']);P.s(cx+8,B,['lml']);P.p(cx+11,B-1,'l');P.s(cx-2,B,['l.ll'])}
+ else if(v===2){   // a black keep: a broken tower and wall, a lit window
+  P.r(cx-6,B-28,12,28,'o');P.r(cx-6,B-28,2,28,'p');P.r(cx+4,B-28,2,28,'G');for(let i=0;i<6;i+=2)P.r(cx-6+i*2,B-31,2,3,'o');P.r(cx-14,B-12,8,12,'o');P.r(cx+6,B-9,9,9,'o');P.r(cx-14,B-12,8,1,'p');P.r(cx+6,B-9,9,1,'p');
+  P.r(cx-2,B-8,4,8,'0');P.r(cx-1,B-20,2,4,glow);P.p(cx-1,B-21,glow2);P.r(cx-12,B-8,2,3,glow);P.p(cx+10,B-6,glow2);P.s(cx+12,B-12,['..p','.pp'])}
+ else{   // a rotting grove: dead trees about a sick light
+  const tree=(x,h,lean)=>{for(let j=0;j<h;j++){const xo=x+Math.round(lean*j/h*3);P.p(xo,B-j,'i');P.p(xo+1,B-j,'j')}const tx=x+lean*3;P.s(tx-4,B-h-3,['i...i.i','.i.i.i.','..iji..']);};
+  tree(cx-11,18,-1);tree(cx+9,20,1);tree(cx-3,24,0);P.ell(cx,B-3,6,3,(x,y)=>glow);P.ell(cx,B-3,3,2,(x,y)=>glow2);P.s(cx+3,B-1,['w.w','www'])}
+ if(!lit){for(let i=0;i<10;i++){const x=4+((waHash(i,v,91)*32)|0),y=B-2-((waHash(i,v,92)*14)|0);if(P.g(x,y))P.p(x,y,'0')}}
+ P.outline();
+ if(lit){const fl=P.flat;P.flat=true;for(let i=0;i<5;i++){const x=cx-6+((waHash(i,v,93)*12)|0),y=B-12-((waHash(i,v,94)*10)|0);P.p(x,y,glow2)}P.flat=fl}}
+{const d1=drawSitePx;drawSitePx=function(q,x,y,o){o=o||{};const k=o.kind;if(k!=='dgn'&&k!=='dgnc')return d1(q,x,y,o);if(!waInit())return;
+  const D=waSiteDim(o),v=clamp(o.n|0,0,3),lit=k==='dgn',s=waSprite(k+v,D.w,D.h,D.w>>1,D.h-2,P=>waDgn(P,v,lit));waShadow(q,x,y,D.w-4,7);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}}

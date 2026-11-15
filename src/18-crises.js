@@ -19,7 +19,7 @@
            crisisFacts() crisisDay(news) startCrisis() crisisEnd(won) crisisSheet() crisisLine() crisisMarks() crisisOutcome() crisisNews()
            crTownHeld(i) townOwner(i) crTownSheet(i) crPartyBattle(p,o) crisisBattleEnd(s,win) crSiteSheet(s) crAssault(k) */
 const CRKEYS=['sunder','deadmarch','horde','barbarian'];
-const CRK={start:18,doomLose:100,hostCap:4,siegeDays:3,fallDoom:6,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
+const CRK={start:26,doomLose:100,hostCap:4,siegeDays:3,fallDoom:6,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
 const CRTITLE={sunder:'Sealers of the Sky',deadmarch:'Breakers of the Bone Throne',horde:'Bane of the Great Horde',barbarian:'Emperor-Slayers'};
 const CRTROPHY={sunder:'crshard',deadmarch:'crbonecrown',horde:'crwartusk',barbarian:'crempcrown'};
 const CR_LTN=['Morvane the Unburied','Sister Ashgrave','Old Hollowmouth','Corvus Pale','the Widow Marrow','Bishop Sallow'];
@@ -49,9 +49,9 @@ Object.assign(EN,{
   crph:[{at:.66,n:'The war-horn',say:'The Emperor sounds the war-horn. Berserkers come howling over the palisade.',summon:['barbz','barbz','barbax']},{at:.33,n:'The last oath',say:'Bleeding, the Emperor swears on his crown: he will not fall alone.',enrage:{dmg:.3,ms:10,md:5,ap:2},heal:.12}]}
 });
 Object.assign(FACT,{
- dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',15],['zomb',14],['skelhal',22],['necro',31],['gknight',56]],rank:[.32,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
- horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',16],['gobarch',20],['orcy',62],['orcw',100],['obrute',98],['hstd',95]],rank:[.44,.8,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
- barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',64],['barbax',46],['barbhound',33],['barbskald',55],['barbhus',115]],rank:[.46,.9,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
+ dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',18],['zomb',17],['skelhal',25],['necro',34],['gknight',62]],rank:[.32,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
+ horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',13],['gobarch',16],['orcy',50],['orcw',80],['obrute',80],['hstd',78]],rank:[.44,.8,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
+ barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',64],['barbax',46],['barbhound',33],['barbskald',55],['barbhus',115]],rank:[.46,.8,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
 });
 if(FACT.void)FACT.void.crisis='sunder';
 // situations of a town in a crisis (prices, recruits, contracts, prosperity; drawn on the world by 41-worldart.js)
@@ -290,7 +290,7 @@ sunder:{n:'The Sundering',f:'void',icon:'mana',d:'The sky splits. Rifts tear ope
  onBeat(){},
  marks(){return G.portals.filter(p=>seenAt(Math.floor(p.x/TS),Math.floor(p.y/TS))).map(p=>({x:p.x,y:p.y,kind:'rift',label:'A rift to '+(BIO[p.realm]?BIO[p.realm].n:'elsewhere'),f:'void'}))},
  line(){const c=G.crisis;return`Rifts closed: ${c.closed} of ${c.total}`},
- sheet(){const c=G.crisis;return`<p>The sky splits. Rifts have torn open across the land and riftspawn pour through them.</p><p class="dim">Each rift leads to another world: three battles with no rest between them, and a tyrant at the end. Close three rifts to end the Sundering. Every rift left open feeds the doom, and every twelve days a new one tears open.</p>${c?`<p>Rifts closed: <b>${c.closed} of ${c.total}</b>. Open now: <b>${G.portals.length}</b>.</p>`:''}`}},
+ sheet(){const c=G.crisis;return`<p>The sky splits. Rifts have torn open across the land and riftspawn pour through them.</p><p class="dim">Each rift opens on another world: a short road of five to seven places (fights, elites, shrines, spoils), under that world's own rules, and a named tyrant at its end. Wounds carry from one fight to the next, and turning back costs dear. Close three rifts to end the Sundering. Every rift left open feeds the doom, and every twelve days a new one tears open.</p>${c?`<p>Rifts closed: <b>${c.closed} of ${c.total}</b>. Open now: <b>${G.portals.length}</b>.</p>`:''}`}},
 
 /* ---------- the Dead March: graveyards raise hosts each night; lieutenants lead them; the Bone Throne commands them ---------- */
 deadmarch:{n:'The Dead March',f:'dead',icon:'skull',d:'The graveyards empty. Risen hosts march on the towns, led by necromancer lieutenants, and somewhere the Bone Throne calls them.',
