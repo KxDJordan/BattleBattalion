@@ -712,7 +712,7 @@ function ellInit(){ELL.ok=true;ELL.sh=ellSpr(16,7,'0');ELL.shB=ellSpr(28,12,'0')
  const mix=(sh,rg)=>{const c=mkCanvas(rg.width,rg.height),q=c.getContext('2d');q.globalAlpha=.42;q.drawImage(sh,(rg.width-sh.width)>>1,(rg.height-sh.height)>>1);q.globalAlpha=.85;q.drawImage(rg,0,0);return c};   // shadow + side ring in one blit for a unit standing still
  ELL.c0=mix(ELL.sh,ELL.r0);ELL.c1=mix(ELL.sh,ELL.r1);ELL.c0B=mix(ELL.shB,ELL.r0B);ELL.c1B=mix(ELL.shB,ELL.r1B);
  ELL.shW=ellSpr(54,24,'0');ELL.r0W=ellSpr(62,28,'5',1);ELL.r1W=ellSpr(62,28,'g',1);ELL.c0W=mix(ELL.shW,ELL.r0W);ELL.c1W=mix(ELL.shW,ELL.r1W);return ELL}
-function unitTop(u){const mi=umon(u);if(mi.kind)return mi.top;if(typeof unitSpriteBox==='function'){try{const b=unitSpriteBox(u);if(b&&b.h>0)return b.h}catch(e){}}return u.def&&u.def.big?48:32}
+function unitTop(u){if(typeof sheetTop==='function'){const t=sheetTop(u);if(t>0)return t}const mi=umon(u);if(mi.kind)return mi.top;if(typeof unitSpriteBox==='function'){try{const b=unitSpriteBox(u);if(b&&b.h>0)return b.h}catch(e){}}return u.def&&u.def.big?48:32}
 // Sprites are built on first use; warming one unit a frame at the start of a battle keeps that off the action frames.
 // Passes: every unit's idle frames in every facing first (a rotation needs them all at once), then walk and hit, then the rest.
 // Each frame spends at most WARMMS ms (at least one sprite), so the warm-up never turns into a run of long frames.
