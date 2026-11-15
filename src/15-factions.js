@@ -74,7 +74,7 @@ function fxSeedNests(g,w,r){const n=Math.max(2,Math.round(2*Math.sqrt(WN*WN/4096
 /* the noble houses fight as FACT entries of their own (house soldiers in the house's colours) so that every FACT[p.f] lookup works */
 function houseFactReg(g){g=g||G;for(const k of Object.keys(FACT))if(FACT[k].house&&k!=='free'&&!(FACT[k].rival?g&&Array.isArray(g.rivals)&&g.rivals.some(r=>r.id===k):g&&Array.isArray(g.houses)&&g.houses.some(h=>h.id===k)))delete FACT[k];
  rivalFactReg(g);if(!g||!Array.isArray(g.houses))return;for(const h of g.houses){const c=typeof BANNERC!=='undefined'&&BANNERC[h.c1]?PAL[BANNERC[h.c1].r[1]]:'#5a5a66';
-  FACT[h.id]={n:h.n,g:'H',col:c,skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a patrol of '+h.n,units:HOUSEUNITS,rank:[.5,.9,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])}}}
+  FACT[h.id]={n:h.n,g:'H',col:c,skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a patrol of '+h.n,units:HOUSEUNITS,rank:[.5,.7,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])}}}
 // lazy guard: a campaign that reached the world without factionsInit (older code paths) gets its factions now. Draws no game randomness.
 function worldEnsure(){if(G&&Array.isArray(G.towns)&&G.towns.length&&(!Array.isArray(G.houses)||!G.houses.length||!svObj(G.rep)||!Array.isArray(G.nests)||G.towns.some(t=>typeof t.own!=='string'||!Array.isArray(t.sit)||!Array.isArray(G.rivals))))factionsInit(G);else if(G&&Array.isArray(G.houses)&&G.houses.length&&(!FACT[G.houses[0].id]||(Array.isArray(G.rivals)&&G.rivals.length&&!FACT[G.rivals[0].id])))houseFactReg(G)}
 

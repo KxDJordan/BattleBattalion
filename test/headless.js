@@ -157,8 +157,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
     for(const m of G.roster)for(const j of m.inj.slice()){if(j.days<0){flags.maimed=true;continue}const cost=X.injuryCost(m,j.id);if(G.crowns<cost)G.crowns=cost+100;const c=G.crowns;ok(X.treatInjury(m,j.id)&&G.crowns===c-cost&&!m.inj.includes(j),'the temple did not treat '+j.id);flags.temple=true}
     G.roster.forEach(m=>{m.hp=Math.min(m.hp,X.calc(m).hp)}) }
   for(let j=G.stash.length-1;j>=0;j--){if(X.ITEMS[G.stash[j]].price>150||X.ITEMS[G.stash[j]].uniq)continue;c0=G.crowns;X.sellItem(j);if(G.crowns>c0)flags.sell=true}
-  if(!G.contract){const want=!flags.deliver?'deliver':!flags.hunt?'hunt':null;let j=t.contracts.findIndex(c=>!want||c.type===want);
-   for(let g=0;j<0&&g<200;g++){const c=X.genContract(t);if(c.type===want){t.contracts.push(c);j=t.contracts.length-1}}
+  if(!G.contract){const want=!flags.deliver?'deliver':!flags.hunt?'hunt':null;let j=t.contracts.findIndex(c=>c.rtook==null&&(!want||c.type===want));   // a notice a rival took cannot be accepted
+   for(let g=0;j<0&&g<200;g++){const c=X.genContract(t);if(c.type===want&&c.rtook==null){t.contracts.push(c);j=t.contracts.length-1}}
    if(j>=0){X.acceptContract(j);ok(G.contract&&G.contract.town===G.town,'contract was not accepted');flags.accept=true;if(G.contract){G.contract.twist=null;G.contract.due=null}}}   // fixture: twists and deadlines are covered by test/contracts.js
   scan(G,'G');closeAll(X)};
  ok(await town(0)==='ok','could not enter the first town');

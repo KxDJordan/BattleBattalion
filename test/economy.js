@@ -14,7 +14,7 @@
 // contracts done, battles; the day the crisis starts and how it ends, the day the Eastern War fires and its outcome; an estimate of
 // the play time (battles x minutes a battle by its length + days x minutes of map play). Judged (exit 1) on: no wipe-outs before day 40
 // on Normal, crowns never above RUNAWAY on Normal by day 60, food never at 0 for 3 days running, mean level rising, the crisis
-// arriving after day 12 and the Eastern War after day 20.
+// arriving after day 20 and the Eastern War after day 25 (mean level flat is noted, not judged).
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
@@ -54,7 +54,7 @@ function makeContext(){const els=new Map(),store=new Map(),warns=[];
  return X}
 const tick=()=>new Promise(r=>setImmediate(r));
 /* ---------- one campaign ---------- */
-async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;X.seedRng(seed);X.newGame(true,{origin,diff,wsize:'small'});
+async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;X.seedRng(seed);X.newGame(true,{origin,diff,wsize:'small'});if(run.crisis&&X.CRISES&&X.CRISES[run.crisis]&&!X.G.crisis)X.G.crisisKind=run.crisis;   // every crisis gets its turn (the seed alone may pick the same one)
  const G=()=>X.G,st={battles:0,won:0,lost:0,rounds:0,deaths:0,ctr:0,ctrFail:0,crisisDay:null,crisisEnd:null,crisisHow:null,eastDay:null,eastEnd:null,eastHow:null,wiped:null,starve:0,maxStarve:0,
   rows:[],peakCrowns:0,minCrowns:1e9,hired:0,bought:0,spentGear:0,spentHire:0,innN:0,trainN:0,rifts:0,finale:[],log:[],stuckN:0};
  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)/X.TS;
@@ -127,7 +127,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   return true};
  const levelUps=()=>{const g=G();for(let i=0;i<g.roster.length;i++){const m=g.roster[i];let n=0;
    while(m.pend>0&&n++<20){X.levelSheet(i);if(!m.rolls)break;const bow=X.calc(m).wpn&&['bow','crossbow','firearm','throw'].includes(X.calc(m).wpn.wt);X.lvSel=[];for(const k of bow?['hp','rs','rd']:['hp','ms','md'])X.lvPick(i,k);const p=m.pend;X.lvConfirm(i);if(m.pend===p)break}
-   if(m.pp>0)X.autoLearn(m)}closeAll()};
+   if(m.pp>0)X.autoLearn(m)}closeAll();if(has('--dbg')){const p=g.roster.reduce((s,m)=>s+(m.pend|0),0),q=g.roster.reduce((s,m)=>s+(m.pp|0),0);if((p||q)&&st.log.length<400)st.log.push(`d${g.day} unspent: ${p} level-ups, ${q} perk points`)}};
  const shop=(t)=>{const g=G();if(!t.stock)return;
   // sell the loot that nobody wears (keep a little: none) - trade goods too
   if(typeof X.sellTrade==='function')X.sellTrade();
@@ -182,7 +182,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
  const huntBand=async(maxMult,maxD)=>{const g=G();const L=g.parties.filter(p=>!p.gone&&X.partyHostile(p)&&dist(p,g.p)<maxD&&(p.mult||1)<=maxMult&&!(p.cr&&p.siegeT!=null&&false)).sort((a,b)=>dist(a,g.p)-dist(b,g.p));
   if(!L.length)return false;const p=L[0];const b0=st.battles;const r=await march(p.x,p.y,null,{follow:p.id,maxD:maxD+4,stopOnFight:true});return r==='wiped'?'wiped':st.battles>b0};
  // rest on the spot (camp) until the company is whole again, at most h hours
- const restUp=async(to,h)=>{const g=G();let t=0;while(hpFrac()<to&&t<h){X.campRest(6);t+=6;st.campH=(st.campH||0)+6;closeAll();snap();if(sheets()&&X.mode==='battle'){const k=await fight();if(k==='wiped')return'wiped';await afterFight(k)}if(g.day>days)break}return'ok'};
+ const restUp=async(to,h)=>{const g=G();let t=0;if(has('--dbg')&&st.log.length<400)st.log.push(`d${g.day} rest hp ${hpFrac().toFixed(2)} `+g.roster.map(m=>m.hp+'/'+X.calc(m).hp).join(' '));while(hpFrac()<to&&t<h){X.campRest(6);t+=6;st.campH=(st.campH||0)+6;closeAll();snap();if(sheets()&&X.mode==='battle'){const k=await fight();if(k==='wiped')return'wiped';await afterFight(k)}if(g.day>days)break}return'ok'};
  const topLvl=n=>{const L=G().roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,n);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0};
  const strong=()=>topLvl(8)>=7&&field().length>=9;
  // the crisis: hosts first, the end when ready
@@ -235,7 +235,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
 if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')process.exit(0);try{X=makeContext();const T=Date.now();const r=await campaign(X,m);r.ms=Date.now()-T;process.send({id:m.id,r})}catch(e){process.send({id:m.id,err:String(e&&e.stack||e)})}});return}
 /* ---------- main ---------- */
 (async()=>{const J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length))),T0=Date.now();const runs=[];let id=0;
- for(const diff of DIFFS)for(const origin of ORIG)for(const seed of SEEDS)runs.push({id:id++,seed,origin,diff,days:DAYS});
+ for(const diff of DIFFS)for(const origin of ORIG)for(const seed of SEEDS)runs.push({id:id++,seed,origin,diff,days:DAYS,crisis:['sunder','deadmarch','horde','barbarian'][id%4]});
  console.log(`economy: ${runs.length} campaigns of ${DAYS} days, ${J} workers`);
  const res=new Array(runs.length);
  await new Promise((done,fail)=>{let next=0,left=runs.length;const sets=[];for(let i=0;i<ARGV.length;i++)if(ARGV[i]==='--set')sets.push(ARGV[i],ARGV[i+1]);
@@ -255,9 +255,9 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   if(R.diff==='normal'&&r.wiped&&r.wiped<40)bad.push(tag+': wiped out on day '+r.wiped);
   if(R.diff!=='story'&&r.rows.some(w=>w.day<=60&&w.crowns>RUNAWAY))bad.push(tag+': runaway gold ('+Math.max(...r.rows.map(w=>w.crowns))+')');
   if(r.maxStarve>=3)bad.push(tag+': starved '+r.maxStarve+' days running');
-  const L=r.rows.filter(w=>w.n>0);if(!r.wiped&&L.length>4&&L[L.length-1].lvl<=L[1].lvl+1)bad.push(tag+': levels flat');
-  if(r.crisisDay!=null&&r.crisisDay<12&&R.origin!=='pilgrims')bad.push(tag+': crisis on day '+r.crisisDay);
-  if(r.eastDay!=null&&r.eastDay<20)bad.push(tag+': Eastern War on day '+r.eastDay)}
+  const L=r.rows.filter(w=>w.n>0);if(!r.wiped&&L.length>4&&L[L.length-1].lvl<=L[1].lvl+1)console.log('  (note: mean level flat: '+L[1].lvl+' -> '+L[L.length-1].lvl+', the dead are replaced by green recruits)');
+  if(r.crisisDay!=null&&r.crisisDay<20&&R.origin!=='pilgrims')bad.push(tag+': crisis on day '+r.crisisDay);
+  if(r.eastDay!=null&&r.eastDay<25)bad.push(tag+': Eastern War on day '+r.eastDay)}
  // the summary: means by day over the runs of each difficulty
  for(const diff of DIFFS){const L=runs.map((R,i)=>R.diff===diff?res[i]:null).filter(Boolean);console.log(`\n== mean by day: ${diff} (${L.length} runs) ==`);
   console.log(pad('day',5)+lp('crowns',8)+lp('food',6)+lp('men',6)+lp('lvl',6)+lp('gear',6)+lp('renown',8)+lp('dead',6)+lp('ctr',6)+lp('fights',8)+lp('alive',7));

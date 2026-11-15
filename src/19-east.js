@@ -48,7 +48,7 @@ Object.assign(EN,{
 });
 const EASTLOOT=['tanto','wakizashi','katana','suyari','jumonji','hankyu','naginata','jingasa','hachigane','kabuto','tatami','do','kesa'];
 FACT.east={n:'The Shogunate',g:'K',col:'#c4493f',skin:'#f0c8a0',tier:'early',spawn:{gate:2,d0:0,d1:0},east:1,biomes:null,lair:'Break an eastern war camp',
- units:[['ashi',20],['ashi',20],['ashiy',24],['shinobi',40],['sohei',48],['onna',60],['samurai',74],['taisho',120]],rank:[.5,1.05,.3,19],loot:EASTLOOT};
+ units:[['ashi',20],['ashi',20],['ashiy',24],['shinobi',40],['sohei',48],['onna',60],['samurai',74],['taisho',120]],rank:[.5,.85,.3,19],loot:EASTLOOT};
 
 /* ---- eastern gear: every family across the tiers; east:1 marks it for the eastern markets ----
    Skills: katana -> the sword tree (slash, riposte) plus Iaijutsu; nodachi -> greatsword; wakizashi / tanto -> sword / dagger;

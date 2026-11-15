@@ -870,7 +870,7 @@ const FACT={
  undead:{n:'Restless dead',g:'U',col:'#b9b39a',skin:'#e4e0cf',lair:'Put the restless dead to rest',units:[['skel',15],['zomb',14],['skelhal',21],['necro',30]],rank:[.3,1.4,0,17],loot:['shortsword','kite','spear','mail','bill','halberd']},
  beast:{n:'Beasts',g:'B',col:'#6b5137',skin:'#8a6b49',lair:'Clear a den of beasts',units:[['wolf',21],['wolf',21],['spider',20],['bear',58]],rank:[.38,1.2,.3],loot:[]},
  orc:{n:'Orcs',g:'O',col:'#4f6b46',skin:'#7c9b62',lair:'Break an orc warcamp',units:[['orcy',38],['orcw',62],['obrute',60],['orcl',105]],rank:[.46,1.6,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','mallet','spiked']},
- bandit:{n:'Brigands',g:'R',col:'#5a5a66',skin:'#d9b99a',lair:'Root out a brigand hideout',units:[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],rank:[.5,.9,.3,19],loot:['shortsword','club','padded','leather','shortbow','mace','heater','lightxbow','crossbow','roundshield','pistol']},
+ bandit:{n:'Brigands',g:'R',col:'#5a5a66',skin:'#d9b99a',lair:'Root out a brigand hideout',units:[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],rank:[.5,.75,.3,19],loot:['shortsword','club','padded','leather','shortbow','mace','heater','lightxbow','crossbow','roundshield','pistol']},
  void:{n:'Riftspawn',g:'V',col:'#7a46b8',skin:'#b99be6',lair:'Purge a riftspawn nest',units:[['imp',28],['vknight',67],['vmage',56]],rank:[.45,1.45],loot:['arming','warspear','scale','focus','warbow','rondel','zweihander','arbalest','steeltower']}
 };
 const BIOKEY=[null,'plains','forest','hills',null,'swamp','desert','snow'];
@@ -907,7 +907,7 @@ Object.assign(EN,{
  whatch:{n:'Wyvern hatchling',fly:1,hp:85,arm:30,helm:20,ms:62,md:16,rd:16,init:135,ap:10,d:[22,34],xp:200,role:'flanker',brv:70,abs:['hsting']}
 });
 Object.assign(FACT,{
- serpent:{n:'Serpents',g:'S',col:'#5d7a3a',skin:'#a7b85a',tier:'mid',biomes:['swamp','desert'],spawn:{d0:7,d1:2,gate:.04},lair:'Clear a serpent nest',units:[['adder',14],['adder',14],['viper',17],['gserp',62]],rank:[.56,1.4,.3],solo:[46.5,1.5],loot:['dirk','seax','stiletto','rondel','shortbow','padded','leather','cap'].filter(id=>ITEMS[id])},
+ serpent:{n:'Serpents',g:'S',col:'#5d7a3a',skin:'#a7b85a',tier:'mid',biomes:['swamp','desert'],spawn:{d0:7,d1:2,gate:.04},lair:'Clear a serpent nest',units:[['adder',14],['adder',14],['viper',17],['gserp',62]],rank:[.56,1.25,.3],solo:[46.5,1.5],loot:['dirk','seax','stiletto','rondel','shortbow','padded','leather','cap'].filter(id=>ITEMS[id])},
  ent:{n:'Ents',g:'E',col:'#4d5f2e',skin:'#7f6a45',tier:'mid',biomes:['forest'],lair:'Burn out a blighted grove',units:[['thorn',18],['thorn',18],['ent',80],['elder',130]],rank:[.4,1.2,.25,19],loot:['witchstave','sigilrobe','longbow','recurve','staff','focus','robe','warbow'].filter(id=>ITEMS[id])},
  ogre:{n:'Ogres',g:'T',col:'#7a6a4a',skin:'#b59a72',tier:'mid',biomes:['hills','mountains','plains'],lair:'Break an ogre camp',units:[['ogre',76],['ogre',76],['aogre',96],['gob',10]],rank:[.42,1.25,.25,19],solo:[3,6.2],loot:['spikedclub','morningstar','bellmace','knighthammer','lamellar','sallet','maul','warmaul','scale'].filter(id=>ITEMS[id])},
  wyvern:{n:'Wyverns',g:'W',col:'#6b4a3a',skin:'#a8604a',tier:'end',biomes:['mountains','snow','hills'],lair:'Slay the wyvern of {place}',units:[['wyvern',400],['whatch',40]],rank:[.4,1,.2],loot:['gothic','armet','greatbow','windlass','heater2','plate','arbalest','runegreat'].filter(id=>ITEMS[id]),
@@ -993,7 +993,7 @@ const GOODS={
  ale:{n:'Ale',d:'Famous breweries: men sign on cheaply over a mug.',icon:'tavern',kind:'hire',k:.88,bio:['plains','forest','hills','swamp']}};
 /* the house soldiers: every noble house and the free towns field these (their banner colours are filled in by houseFactReg, 15-factions.js) */
 const HOUSEUNITS=[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],HOUSELOOT=['shortsword','mace','heater','kite','mail','padded','leather','spear','crossbow','lightxbow','arming','cap'];
-FACT.free={n:'Free towns',g:'F',col:'#7d8f86',skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a free town militia',units:HOUSEUNITS,rank:[.5,.9,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])};
+FACT.free={n:'Free towns',g:'F',col:'#7d8f86',skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a free town militia',units:HOUSEUNITS,rank:[.5,.7,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])};
 
 /* ================= CARAVAN CARGO AND RIVAL COMPANIES (world agent) =================
    GOODS[k].cargo  what a caravan out of a town with specialty k carries (rolled once when it sets out, cargoRoll in 40-world.js):
