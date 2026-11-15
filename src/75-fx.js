@@ -57,8 +57,11 @@ const FXG={
  sweat:['.F.','FrF','FFx','.x.'],webb:['.l.l.','lllll','.lml.','lllll','.l.l.'],web0:['l...l...l','.l..l..l.','..l.l.l..','...lll...','lllllllll','...lll...','..l.l.l..','.l..l..l.','l...l...l'],
  bone:['ll...ll','lmlllml','ll...ll'],crown:['0.0.0.0','d0d0d0d','ddcdcdc','0ccccb0','.00000.']};
 const FXGC={};
-function fxSpr(id){let c=FXGC[id];if(c!==undefined)return c;if(id.slice(0,3)==='ic:'){c=null;try{const r=typeof iconRows==='function'?iconRows(id.slice(3)):null;if(r)c=px(r)}catch(e){}FXGC[id]=c;return c}const i=id.indexOf(':'),rows=FXG[i<0?id:id.slice(0,i)];c=null;
+function fxSpr(id){if(id.slice(0,3)==='ic:'){const h=fxIcHd(id);if(h)return h}let c=FXGC[id];if(c!==undefined)return c;if(id.slice(0,3)==='ic:'){c=null;try{const r=typeof iconRows==='function'?iconRows(id.slice(3)):null;if(r)c=px(r)}catch(e){}FXGC[id]=c;return c}const i=id.indexOf(':'),rows=FXG[i<0?id:id.slice(0,i)];c=null;
  if(rows){let map=null;if(i>=0){map={};const m=id.slice(i+1);for(let j=0;j+1<m.length;j+=2)map[m[j]]=m[j+1]}c=px(rows,map)}FXGC[id]=c;return c}
+/* Detail High: an icon glyph ('ic:<name>') is the painted icon (06p) at about device resolution (hdk = canvas px per fx art px) */
+function fxIcHd(id){if(typeof pkCanvas!=='function'||!hdArt())return null;const k=Math.max(2,Math.min(6,Math.round(DS2)||2)),key=id+'@'+k;let h=FXGC[key];
+ if(h===undefined){h=pkCanvas(id.slice(3),16*k)||null;if(h)h.hdk=k;FXGC[key]=h}return h}
 const FXSIL=new WeakMap();
 function fxSil(cv,k){let m=FXSIL.get(cv);if(!m){m={};FXSIL.set(cv,m)}let c=m[k];if(c)return c;c=pxCanvas(cv.width,cv.height);if(!c)return null;const q=c.getContext('2d');q.drawImage(cv,0,0);q.globalCompositeOperation='source-in';q.fillStyle=PAL[k];q.fillRect(0,0,c.width,c.height);if(cv.hdk)c.hdk=cv.hdk;m[k]=c;return c}
 const FXGL={};

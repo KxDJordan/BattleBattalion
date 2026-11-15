@@ -14,6 +14,7 @@
    Status squares over units: pkBadgeCanvas(id,tone,turns,px) (74-anim.js). */
 const PK={u:1,lw:1.1,ol:1.15,ink:'#0c0d12',ms:0,n:0,post:null,cv:new Map(),url:new Map(),bdg:new Map(),scr:{}};
 const PAINT={};
+const PK_SQ={};   // status squares only: PK_SQ['st-<key>'] = a glyph drawn for that status's square instead of the icon it resolves to (06pd)
 /* ---- materials: 5-tone ramps [deep, shadow, mid, lit, highlight] ---- */
 const PKM={
  steel:['#1b2633','#4a5b6c','#8797a8','#c6d2de','#ffffff'],
@@ -227,7 +228,8 @@ function pkCanvas(name,px){if(!hdArt())return null;let n=String(name);try{n=icRe
 function pkBadgeCanvas(id,tone,turns,N){N=Math.max(10,N|0);turns=turns>0&&turns<10?turns|0:0;const k=id+'|'+tone+'|'+turns+'|'+N;let c=PK.bdg.get(k);if(c!==undefined)return c;
  c=pxCanvas(N,N);if(!c){PK.bdg.set(k,null);return null}const q=c.getContext('2d');q.setTransform(N/32,0,0,N/32,0,0);PK.u=N/32;pkBadgeBack(q,tone,{t:2.4,r:7});
  let n='none';try{n=icResolve(id)}catch(e){}const gp=Math.round(N*.8),gx=(N-gp)/2,gy=(N-gp)/2;q.setTransform(1,0,0,1,0,0);
- if(pkHas(n)){const gl=pkCanvas(n,gp);if(gl){q.imageSmoothingEnabled=true;q.drawImage(gl,gx,gy)}}
+ const sq=Object.prototype.hasOwnProperty.call(PK_SQ,id)&&typeof PK_SQ[id]==='function'?PK_SQ[id]:null;
+ if(sq||pkHas(n)){const gl=sq?pkRender(sq,gp):pkCanvas(n,gp);if(gl){q.imageSmoothingEnabled=true;q.drawImage(gl,gx,gy)}}
  else{const r=typeof iconHdCanvas==='function'?iconHdCanvas(n):null,src=r||(typeof iconRows==='function'&&iconRows(id)?px(iconRows(id)):null);   // the HD pixel icon until this status gets a painting
   if(src){q.save();q.beginPath();q.rect(N*.1,N*.1,N*.8,N*.8);q.clip();q.imageSmoothingEnabled=gp<src.width;const s=Math.round(N*.74);q.drawImage(src,Math.round((N-s)/2),Math.round((N-s)/2),s,s);q.restore()}}
  if(turns){const fs=Math.max(7,Math.round(N*.42));q.font='800 '+fs+'N system-ui,-apple-system,"Segoe UI",sans-serif';q.textAlign='right';q.textBaseline='alphabetic';const tx=N-N*.07,ty=N-N*.06;

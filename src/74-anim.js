@@ -210,4 +210,7 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  const n=s.icn>3?3:s.icn;let ty=top;
  if(n){const step=n<3?14:12.5,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=top-15;ty=top-13;
   if(!(hdArt()&&typeof pkBadgeCanvas==='function'&&anBadges(q,s,n,x,top,step)))for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
- if(o.cur){const c=anSprite(foe?'chev1':'chev0'),bob=rm?0:AN_BOB[((t/140)|0)&3];if(c)q.drawImage(c,x-4,ty-8-bob)}}
+ if(o.cur){const bob=rm?0:AN_BOB[((t/140)|0)&3];if(!(hdArt()&&typeof pdChevCanvas==='function'&&anChev(q,foe,x+.5,ty-5-bob))){const c=anSprite(foe?'chev1':'chev0');if(c)q.drawImage(c,x-4,ty-8-bob)}}}
+/* Detail High: the chevron painted at device pixels (pdChevCanvas, 06pd-status.js), centred where the 9x6 pixel chevron was */
+function anChev(q,foe,ax,ay){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(10,Math.round(9.5*sy)),c=pdChevCanvas(foe,N);if(!c)return false;
+ q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;q.drawImage(c,Math.round(T.a*ax+T.c*ay+T.e-N/2),Math.round(T.b*ax+T.d*ay+T.f-N/2));q.restore();return true}
