@@ -519,7 +519,7 @@ function ptColSig(m){const c=typeof mercLook==='function'?mercLook(m):m&&m.color
 function ptLivery(P,m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;if(!c||typeof c!=='object')return;const cl=ptDye(c.cloth),ac=ptDye(c.accent),mt=ptFin(c.metal);if(!cl&&!ac&&!mt)return;
  P.liv={cl,ac,mt};if(cl){P.ragC=cl;P.robeC=cl;P.clothC=cl;if(P.hat==='hood')P.hatC=cl}if(ac){P.shC=ac;if(P.hat==='band'||P.hat==='feather')P.hatC=ac}}
 function ptPick(R,a){return a[R(a.length)]}
-function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
+function ptMercSpec(m){const FB=m.fabled&&typeof FABLED==='object'?FABLED[m.fabled]:null;if(FB)m={id:0,name:'fabled:'+m.fabled,race:m.race,bg:m.bg,eq:m.eq,gift:m.gift,perks:m.perks,mast:m.mast,colors:m.colors};const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
  const P={seed,race,fem,face:{},marks:{}};
  // race
  if(race==='elf'){P.head=PT_HEAD.elf;P.ears='elf';P.skin=PT_SKIN[ptPick(R,['pale','pale','fair','tan'])];P.build='slim'}
@@ -580,7 +580,15 @@ function ptMercSpec(m){const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed
  ptLookBody(P,m,R);if(hid)P.veil=null;ptLivery(P,m);if(P.av&&P.av.ptC){P.clothC=P.av.ptC;P.robeC=P.av.ptC}if(P.shield&&typeof usShieldPtRows==='function'){const c=ptCl(P.shC)||PT_CLOTH.red;try{P.shRows=usShieldPtRows(P.shield,usRamp(c.join(''),1))}catch(e){P.shRows=null}}
  if(race==='dwarf'){P.wy=3}
  P.gem=typeof mercRes==='function'?mercRes(m):null;
+ if(FB)ptFabled(P,FB,!!hid);
  return P}
+/* A fabled warrior (21-fabled.js FABLED[id].pt): a fixed look over the hashed one (hair, beard, skin, marks, a hat when no helmet is worn,
+   the backdrop colours), the sex of the record, and a gilded frame that marks every fabled bust. */
+function ptFabled(P,F,helm){const L=F.pt||{};P.fem=!!F.fem;if(P.race==='human')P.head=F.fem?PT_HEAD.humanf:PT_HEAD.human;P.face.lash=!!F.fem;if(F.fem){P.beard=null;if(P.marks)P.marks.stubble=0}
+ if(L.skin&&PT_SKIN[L.skin])P.skin=PT_SKIN[L.skin];if(L.hair)P.hair=L.hair;if(L.hairC&&PT_HAIRC[L.hairC]){P.hairC=PT_HAIRC[L.hairC];P.face.browC=P.hairC[1]}
+ if(L.beard!==undefined&&!F.fem)P.beard=L.beard;if(L.beardC&&PT_HAIRC[L.beardC])P.beardC=PT_HAIRC[L.beardC];if(L.marks)P.marks=Object.assign({},P.marks,L.marks);if(L.beads)P.beads=L.beads;
+ if(!helm&&L.hat){P.hat=L.hat;P.hatC=L.hatC||null}if(!helm&&L.veil)P.veil=L.veil;if(L.bg)P.bg=L.bg;
+ const top0=P.top;P.top=(C,E)=>{if(top0)top0(C,E);for(let i=0;i<32;i++){const k=i%4<2?'c':'b';ptS(C,i,0,k);ptS(C,i,31,k);ptS(C,0,i,k);ptS(C,31,i,k)}for(const [x,y] of [[0,0],[31,0],[0,31],[31,31]])ptS(C,x,y,'d')}}
 
 /* ---- enemies ---- */
 const PT_BEAST={
@@ -707,6 +715,21 @@ function ptEnemyRows(id,f){const seed=ptHash('en:'+id),bg=['f','1','g'].slice(0,
  case'vknight':return B({head:PT_HEAD.human,skin:PT_SKIN.void,ears:'none',build:'broad',armor:'void',face:{eye:9,brow:9,mouth:9},over:ptVoidHelm,wpn:'rift'});
  case'vmage':return B({head:PT_HEAD.elf,skin:['G','0','0','0'],ears:'none',build:'slim',armor:'robe',robeC:'purple',face:{eye:4,iris:'F',white:'r',brow:9,nose:9,mouth:9,nolip:1},hat:'hood',hatC:'purple',wpn:'focus',top:C=>{ptSt(C,['.C.','CrC','.C.'],3,8);ptSt(C,['.C.','CrC','.C.'],26,22);ptS(C,6,15,'C');ptS(C,7,15,'D')}});
  case'tyrant':return B({head:PT_HEAD.big,skin:['D','G','0','0'],ears:'orc',ey:13,my:19,build:'huge',armor:'void',face:{eye:4,iris:'E',white:'y',brow:5,browC:'0',nose:4,mouth:7},hat:'crown',over:(L,E)=>{ptHat(L,{hat:'horns',hornC:['m','l','r'],skin:PT_SKIN.void,head:PT_HEAD.big,ey:13},E);[[8,16],[9,17],[9,18],[10,19],[22,9],[21,10],[21,11],[20,12]].forEach(([x,y])=>ptS(L,x,y,'C'));ptH(L,12,14,10,'C');ptS(L,11,11,'C')}});
+ /* the crisis hosts (18-crises.js / 78-crisis-art.js CR_LOOKS, matched to their sprites) and the Shogunate's soldiers (19-east.js) */
+ case'barbz':return B({bg:['f','0'],head:PT_HEAD.human,skin:PT_SKIN.tan,build:'broad',armor:'bare',hair:'mohawk',hairC:PT_HAIRC.K,beard:'full',beardC:PT_HAIRC.K,face:{iris:'0',brow:5,browC:'f',nose:2,mouth:7},marks:{paint:2,paintC:'X',scar:2},wpn:'axe'});
+ case'barbax':return B({bg:['n','o'],head:PT_HEAD.human,skin:PT_SKIN.fair,build:'normal',armor:'leather',hair:'tail',hairC:PT_HAIRC.I,beard:'short',beardC:PT_HAIRC.I,face:{iris:'X',brow:2,browC:'b',nose:1,mouth:0},hat:'furcap',hatC:'brown',wpn:'axe1'});
+ case'barbskald':return B({bg:['X','G'],head:PT_HEAD.human,skin:PT_SKIN.fair,build:'slim',armor:'fur',hair:'mane',hairC:PT_HAIRC.W,beard:'long',beardC:PT_HAIRC.W,face:{iris:'X',brow:1,browC:'p',nose:1,mouth:3},hat:'band',hatC:'blue',wpn:'staff',beads:['x','X']});
+ case'barbhus':return B({bg:['X','1'],head:PT_HEAD.human,skin:PT_SKIN.fair,build:'broad',armor:'mail',beard:'full',beardC:PT_HAIRC.I,face:{iris:'0',brow:3,browC:'i',nose:2,mouth:4},marks:{scar:1},hat:'spangen',wpn:'axe1',shield:'round',shC:'blue'});
+ case'emperor':return B({bg:['X','G','c'],head:PT_HEAD.human,skin:PT_SKIN.fair,build:'huge',armor:'scale',hair:'mane',hairC:PT_HAIRC.W,beard:'long',beardC:PT_HAIRC.W,face:{eye:4,iris:'x',white:'r',brow:5,browC:'p',nose:2,mouth:3},marks:{scar:3},hat:'crown',wpn:'axe',wx:2});
+ case'hstd':return B({bg:['f','1'],head:PT_HEAD.orc,skin:PT_SKIN.dorc,ears:'orc',ey:13,my:19,build:'broad',armor:'mail',face:{eye:0,iris:'g',white:'y',brow:5,browC:'1',nose:2,mouth:7},hat:'nasal',wpn:'spear',top:C=>{ptR(C,24,2,29,9,'g');ptH(C,24,29,2,'h');ptV(C,23,2,20,'j');ptS(C,26,5,'l');ptS(C,27,5,'l');ptS(C,26,6,'0')}});
+ case'hchief':return B({bg:['w','4','c'],head:PT_HEAD.orc,skin:PT_SKIN.dorc,ears:'orc',ey:13,my:19,build:'huge',armor:'plate',face:{eye:4,iris:'E',white:'y',brow:5,browC:'1',nose:2,mouth:7},marks:{scar:3,paint:2,paintC:'f'},hat:'horns',hornC:['m','l','r'],hair:'mohawk',hairC:PT_HAIRC.K,wpn:'axe',wx:2});
+ case'gknight':return B({bg:['1','0'],head:PT_HEAD.skull,skin:PT_SKIN.bone,ears:'none',build:'broad',armor:'plate',face:{eye:5,iris:'6',brow:9,nose:4,mouth:9},hat:'great',wpn:'gsword',over:ptSkullJaw});
+ case'necrolt':return B({bg:['D','0','C'],head:PT_HEAD.skull,skin:PT_SKIN.ash,ears:'none',build:'slim',armor:'robe',robeC:'black',face:{eye:4,iris:'6',white:'r',brow:2,browC:'G',nose:1,mouth:4,bags:1},hat:'hood',hatC:'black',wpn:'staff',beads:['6','5']});
+ case'ashi':case'ashiy':return B({bg:['f','1'],head:PT_HEAD.human,skin:PT_SKIN.tan,build:'normal',armor:'leather',hair:'short',hairC:PT_HAIRC.G,face:{iris:'0',brow:2,browC:'0',nose:0,mouth:0},hat:'straw',hatC:'straw',wpn:id==='ashi'?'spear':'bow'});
+ case'shinobi':return B({bg:['0','1'],head:PT_HEAD.human,skin:PT_SKIN.tan,build:'slim',armor:'padded',clothC:PT_CLOTH.black,face:{iris:'0',brow:2,browC:'0',nose:0,mouth:9},hat:'mask',hatC:'night',veil:'night',wpn:'dagger'});
+ case'sohei':return B({bg:['n','m'],head:PT_HEAD.human,skin:PT_SKIN.tan,build:'broad',armor:'robe',robeC:'white',face:{iris:'0',brow:3,browC:'0',nose:2,mouth:4},hat:'hood',hatC:'white',veil:'white',wpn:'glaive',beads:['l','i']});
+ case'onna':return B({bg:['f','0'],head:PT_HEAD.humanf,skin:PT_SKIN.fair,fem:1,build:'normal',armor:'lamellar',hair:'long',hairC:PT_HAIRC.G,face:{iris:'0',brow:1,browC:'0',nose:0,mouth:0,lash:1,lip:'g'},hat:'band',hatC:'white',wpn:'glaive'});
+ case'samurai':case'taisho':return B({bg:id==='taisho'?['f','a','c']:['f','1'],head:PT_HEAD.human,skin:PT_SKIN.tan,build:'broad',armor:'lamellar',hair:'tail',hairC:PT_HAIRC.G,beard:id==='taisho'?'stache':'',face:{iris:'0',brow:3,browC:'0',nose:1,mouth:4},marks:{scar:id==='taisho'?2:0},hat:'kettle',wpn:'sword'});
  }
  return B({head:PT_HEAD.human,skin:PT_SKIN.rot,armor:'rags',face:{eye:4,iris:'g'}})}
 function ptSkullJaw(L,E){const y=E.y1;ptH(L,12,19,y-5,'n');ptH(L,13,18,y-3,'0');for(let x=13;x<=18;x++){ptS(L,x,y-4,x%2?'l':'n');ptS(L,x,y-2,x%2?'m':'n')}ptS(L,11,y-6,'n');ptS(L,20,y-6,'n');ptS(L,10,y-8,'n');ptS(L,21,y-8,'o')}
@@ -718,7 +741,7 @@ function ptVoidHelm(L,E){for(let y=E.y0-1;y<=E.y1;y++){const x0=y<E.y0?E.X0(E.y0
 /* ---- public API ---- */
 let PT_HELMS=null;function ptHelmsExist(){if(PT_HELMS===null){PT_HELMS=false;for(const k in ITEMS)if(ITEMS[k].k==='h'){PT_HELMS=true;break}}return PT_HELMS}
 function ptKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?'e:'+x:null;
- const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)}
+ const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+(m.fabled?'F'+m.fabled:m.id)+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)}
  if(x.def){for(const k in EN)if(EN[k]===x.def)return'e:'+k;if(x.eid&&EN[x.eid])return'e:'+x.eid}return null}
 function portraitRows(x){let key=null;try{key=ptKey(x)}catch(e){}if(!key)key='e:?';let r=PTC.rows.get(key);if(r)return r;
  try{if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;r=ptBust(ptMercSpec(m))}else r=ptEnemyRows(key.slice(2),x&&x.f)}catch(e){r=null}

@@ -312,6 +312,24 @@ function txStump(P,R,x0,y0){const sv=(R()*9)|0;for(let x=-7;x<=7;x++){const H=x<
 const TXPK={plains:[[4,'leafy'],[2,'leafy2'],[3,'boulder'],[1,'col'],[1,'wall']],forest:[[5,'pine'],[3,'pines'],[2,'leafy'],[1,'col']],hills:[[4,'boulder'],[3,'stack'],[2,'pine'],[1,'wall'],[1,'col']],
  swamp:[[4,'willow'],[3,'dead'],[1,'boulder'],[1,'wall']],desert:[[3,'cactus'],[3,'stack'],[2,'arch'],[2,'boulder'],[1,'col']],snow:[[5,'pine'],[3,'pines'],[2,'boulder'],[1,'col']],
  ashen:[[4,'stump'],[4,'spire'],[3,'dead']],hollow:[[5,'crystal'],[3,'monolith'],[2,'crystal2']],glass:[[5,'crystal'],[3,'crystal2'],[2,'fan']]};
+/* ---- the East (19-east.js): when the battle is fought on eastern ground (B.east) the obstacles are eastern: cherry and pine trees,
+   bamboo, stone lanterns (toro), torii gates; rocks stay rocks ---- */
+const TXPKE={plains:[[4,'sakura'],[2,'boulder'],[2,'toro'],[1,'torii'],[2,'jpine']],forest:[[4,'jpine'],[3,'bamboo'],[2,'sakura'],[1,'toro']],hills:[[3,'boulder'],[3,'jpine'],[1,'toro'],[1,'torii'],[1,'sakura']],
+ swamp:[[4,'bamboo'],[2,'willow'],[1,'toro']],desert:[[3,'boulder'],[2,'jpine'],[1,'toro'],[1,'torii']],snow:[[4,'jpine'],[2,'boulder'],[1,'toro']]};
+function txEastOn(){return typeof B==='object'&&!!B&&!!B.east}
+function txSakura(P,R,v){txLeafy(P,R,0,1,{tH:9+v,lean:v===1?.3:v===2?-.2:.1,n:7,rx:12,ry:8,cr:6,thick:1,C:{hi:'r',mid:'h',lo:'g',dk:'f',sp:'l'}});for(let i=0;i<9;i++){const x=Math.round((R()-.5)*26),y=Math.round(1+(R()-.5)*6);P.p(x,y,R()<.5?'h':'r')}}
+function txJPine(P,R,v){const lean=v===1?-1:1;for(let y=0;y<16;y++){const b=Math.round(lean*y*y/40);P.p(b-1,1-y,'j');P.p(b,1-y,'i');P.p(b+1,1-y,'a')}P.p(-2,1,'i');P.p(2,1,'a');
+ const pads=[[-lean*6,-9,8,3],[lean*7,-15,7,3],[-lean*2,-21,8,3.4],[lean*3,-27,5,2.6]];for(const [dx,dy,rx,ry] of pads){const bx=Math.round(lean*(-dy)*(-dy)/40);P.line(bx,dy+2,bx+dx,dy+1,'i');txEll(P,bx+dx,dy,rx,ry,'A','B','7',.45)}
+ for(const [dx,dy,rx] of pads){const bx=Math.round(lean*(-dy)*(-dy)/40);for(let x=-rx+1;x<rx;x++)if(P.g(bx+dx+x,dy+Math.round(2))&&((x+dy)&1))P.p(bx+dx+x,dy+2,'3')}}
+function txBamboo(P,R,v){const n=4+v;for(let i=0;i<n;i++){const x=Math.round((i-(n-1)/2)*4+(R()-.5)*2),H=26+((R()*14)|0),lean=(R()-.5)*.12;
+  for(let y=0;y<H;y++){const b=Math.round(lean*y),nd=(y+i*3)%7===0;P.p(x+b,1-y,nd?'B':'v');P.p(x+b+1,1-y,nd?'7':'w')}
+  for(let k=0;k<3;k++){const y=1-H+4+k*7,b=Math.round(lean*(H-4-k*7)),d=k&1?1:-1;for(let j=0;j<4;j++)P.p(x+b+d*(2+j),y+(j>>1),j<2?'A':'B')}}}
+function txToro(P,R,v){const S=['q','p','o'];for(let x=-5;x<=5;x++){P.p(x,1,x<0?'p':'o');P.p(x,0,x<-2?'q':x>2?'o':'p')}for(let y=-1;y>=-9;y--){P.p(-1,y,'q');P.p(0,y,'p');P.p(1,y,'o')}
+ for(let x=-4;x<=4;x++)P.p(x,-10,x<0?'q':'p');for(let y=-11;y>=-15;y--){P.p(-4,y,'p');P.p(4,y,'o');for(let x=-3;x<=3;x++)P.p(x,y,(y===-13||y===-12)&&Math.abs(x)<=1?'y':'G')}P.p(0,-13,'e');
+ for(let j=0;j<4;j++){const w=6-j;for(let x=-w;x<=w;x++)P.p(x,-16-j,j===0?(x<0?'p':'o'):x<-1?'q':'p')}P.p(-7,-15,'p');P.p(7,-15,'o');P.p(0,-20,'q');P.p(0,-21,'p');void S;if(v===2){txEll(P,7,0,4,2,'w','B','7',.5)}}
+function txToriiB(P,R,v){for(let y=0;y<26;y++){P.p(-9,1-y,'g');P.p(-8,1-y,'f');P.p(8,1-y,'g');P.p(9,1-y,'f')}for(let x=-12;x<=12;x++){P.p(x,-19,x<0?'g':'f');P.p(x,-18,'f')}
+ for(let x=-15;x<=15;x++){P.p(x,-25,'G');P.p(x,-24,'0')}P.p(-16,-26,'G');P.p(16,-26,'G');P.p(-15,-26,'G');P.p(15,-26,'G');for(let x=-13;x<=13;x++)P.p(x,-23,x<0?'g':'f');P.p(0,-22,'c');P.p(0,-21,'c');
+ P.p(-10,1,'o');P.p(-7,1,'o');P.p(7,1,'o');P.p(10,1,'o')}
 const TXPC=new Map();
 function txPropId(bk,c,r){const L=TXPK[bk]||TXPK.plains;let tot=0;for(const a of L)tot+=a[0];let q=txHash(c,r,77)*tot,kind=L[0][1];for(const a of L){if(q<a[0]){kind=a[1];break}q-=a[0]}return bk+'|'+kind+'|'+((txHash(c,r,91)*3)|0)}
 function txProp(id){let S=TXPC.get(id);if(S)return S;const a=id.split('|'),bk=a[0],kind=a[1],v=+a[2],P=txBuf(TXPW,TXPH,TXPAX,TXPAY),R=mulberry(Math.imul(v+1,2654435761)^Math.imul(kind.length*7+kind.charCodeAt(0),40503)),gl=[];
@@ -336,6 +354,7 @@ function txProp(id){let S=TXPC.get(id);if(S)return S;const a=id.split('|'),bk=a[
  else if(kind==='crystal2'){txBoulder(P,R,0,1,10,4,bk==='hollow'?['D','G','1','0']:['5','7','3','2']);txPrism(P,-5,0,22+v*2,6,-3,cry);txPrism(P,4,1,30+v*2,6,2,cry);txPrism(P,9,2,11,4,5,cry);txPrism(P,-9,3,9,4,-4,cry);txPrism(P,0,4,6,3,0,cry);gl.push([5,-30-v*2],[-7,-21])}
  else if(kind==='fan'){for(let i=0;i<7;i++){const a=(i-3)/3;txBlade(P,Math.round(a*7),1+Math.round((1-Math.abs(a))*3)-1,Math.round(30-Math.abs(a)*14-(i&1)*4),3+(i===3?1:0),Math.round(a*9),'r','F','5','r')}txBoulder(P,R,0,2,9,3,['5','7','3','2']);gl.push([0,-28],[-9,-12])}
  else if(kind==='stakes')txStakes(P,R,v);
+ else if(kind==='sakura')txSakura(P,R,v);else if(kind==='jpine')txJPine(P,R,v);else if(kind==='bamboo')txBamboo(P,R,v);else if(kind==='toro')txToro(P,R,v);else if(kind==='torii')txToriiB(P,R,v);
  else if(kind==='monolith'){for(let y=0;y<30;y++){const w=y<4?y+1:y>25?30-y+1:5;for(let x=-w;x<=w;x++){let k=x<-w+2?'D':x>w-2?'1':'G';if(y>7&&y<23&&(x===0||(Math.abs(x)===2&&y%5===0)||(y===15&&Math.abs(x)<4)))k=x===0&&y%4?'C':'r';P.p(x,-6-y,k)}}
   txPrism(P,-10,2,7,3,-2,cry);txPrism(P,9,3,9,4,2,cry);P.p(-9,-16,'C');P.p(10,-22,'C');P.p(-7,-27,'D');gl.push([0,-21],[9,-6])}
  txOutline(P);
@@ -348,7 +367,8 @@ function txStakes(P,R,v){txEll(P,0,1,15,5,'k','j','i',.5);
   if(i&&i<N)P.line(x0-12,y0-6-Math.round(H*.45)+3,x0,y0-Math.round(H*.45)+2,'H')}
  for(let i=0;i<6;i++){const x=Math.round((R()-.5)*26),y=Math.round(3+(R()-.5)*5);P.p(x,y,'u')}}
 const TXPL=new Map();
-function txPropBox(bk,c,r){if(typeof B==='object'&&B&&B.tiles&&typeof key==='function'){const t=B.tiles[key(c,r)];if(t&&t.fort)return txProp('fort|stakes|'+((txHash(c,r,91)*3)|0))}if(!TXPK[bk])bk='plains';const k=(TXBI[bk]*128+(c&127))*128+(r&127);let S=TXPL.get(k);if(!S){S=txProp(txPropId(bk,c,r));TXPL.set(k,S)}return S}
+function txPropBox(bk,c,r){if(typeof B==='object'&&B&&B.tiles&&typeof key==='function'){const t=B.tiles[key(c,r)];if(t&&t.fort)return txProp('fort|stakes|'+((txHash(c,r,91)*3)|0))}if(!TXPK[bk])bk='plains';const e=txEastOn()&&TXPKE[bk]?1:0,k=((TXBI[bk]*128+(c&127))*128+(r&127))*2+e;let S=TXPL.get(k);if(!S){S=txProp(e?txPropIdE(bk,c,r):txPropId(bk,c,r));TXPL.set(k,S)}return S}
+function txPropIdE(bk,c,r){const L=TXPKE[bk];let tot=0;for(const a of L)tot+=a[0];let q=txHash(c,r,77)*tot,kind=L[0][1];for(const a of L){if(q<a[0]){kind=a[1];break}q-=a[0]}return bk+'|'+kind+'|'+((txHash(c,r,91)*3)|0)}
 function propBoxPx(bk,c,r){const S=txPropBox(bk,c,r);return{w:S.w,h:S.h}}
 function drawPropPx(q,x,y,o){const S=txPropBox(o.bk,o.c|0,o.r|0);if(S.cv===undefined)S.cv=txCv(S.P);if(!S.cv)return false;x=Math.round(x);y=Math.round(y);q.drawImage(S.cv,x-TXPAX,y-TXPAY);
  if(S.gl.length&&!txRM()){const f=(o.frame|0)+((o.c*7+o.r*13)&15);for(let i=0;i<S.gl.length;i++){const t=(f+i*6)%18;if(t>2)continue;const gx=x+S.gl[i][0],gy=y+S.gl[i][1];q.fillStyle=PAL.r;q.fillRect(gx,gy,1,1);if(t===1){q.fillRect(gx-1,gy,3,1);q.fillRect(gx,gy-1,1,3)}}return true}
@@ -407,7 +427,7 @@ const TXSCN={
  ashen:[['ridge',.04,.2,{lit:'G',shade:'1',body:'1',fade:12},71],['ridge',-.02,.1,{lit:'f',shade:'1',body:'1',fade:5},72],['spire',-.1,.1,{body:'1',rim:'G'},73],['hill',-.22,.05,{body:'0',rim:'f'},74]],
  hollow:[],
  glass:[['spire',.02,.2,{body:'3',rim:'7',rimw:1},81],['spire',-.03,.3,{body:'2',rim:'5',rimw:1},82],['spire',-.14,.16,{body:'1',rim:'3'},83],['hill',-.27,.04,{body:'0',rim:'2'},84]]};
-function txBackdropBuild(bk,tod,w,h,hq){const realm=bk==='ashen'||bk==='hollow'||bk==='glass',S=txBuf(w,h,0,0),U=Math.max(1,h/180),H0=Math.round(h*.45),R=mulberry(TXBI[bk]*977+13),st={tw:[],cl:[],pt:[],mid:null,front:null,back:null,w,h,realm,bk,H0,U};
+function txBackdropBuild(bk,tod,w,h,hq,east){const realm=bk==='ashen'||bk==='hollow'||bk==='glass',S=txBuf(w,h,0,0),U=Math.max(1,h/180),H0=Math.round(h*.45),R=mulberry(TXBI[bk]*977+13),st={tw:[],cl:[],pt:[],mid:null,front:null,back:null,w,h,realm,bk,H0,U};
  const sky=realm?TXSKY[bk]:(TXSKY[tod][bk]||TXSKY[tod].def);txGrad(S,0,w,0,H0+2*U,sky);
  /* stars */
  if(tod==='night'||bk==='hollow'||bk==='glass'||bk==='ashen'){const n=Math.round(w*H0/(bk==='ashen'?2600:bk==='hollow'?260:420));for(let i=0;i<n;i++){const x=(R()*w)|0,y=(R()*R()*H0*.95)|0,b=R();S.p(x,y,bk==='ashen'?'f':b<.12?'r':b<.45?(bk==='hollow'?'C':'q'):bk==='hollow'?'D':'o');if(b<.12&&st.tw.length<14)st.tw.push([x,y])}}
@@ -431,6 +451,7 @@ function txBackdropBuild(bk,tod,w,h,hq){const realm=bk==='ashen'||bk==='hollow'|
  /* scenery layers */
  S.map=realm?null:TXTOD[tod];
  for(const L of TXSCN[bk]||[])txLayer(S,txProf(w,L[4]*7919,L[0],L[2]*h,U),H0-L[1]*h,Object.assign({},L[3],L[3].snow?{snow:[L[3].snow[0],L[3].snow[1],L[3].snow[2]*h]}:null));
+ if(east)txEastSkyline(S,bk,w,h,H0,U);
  S.map=null;
  if(bk==='ashen'){for(let i=0;i<Math.round(w/16);i++){let x=(R()*w)|0,y=H0+((R()*h*.2)|0)-(h*.03|0);const n=(4+R()*10)*U|0;for(let j=0;j<n;j++){S.p(x,y,j<2?'E':R()<.5?'g':'f');y++;if(R()<.5)x+=R()<.5?1:-1}}}
  if(bk==='glass'){for(let i=0;i<Math.round(w/9);i++){const x=(R()*w)|0,y=H0-((R()*h*.2)|0)+(h*.08|0);if(S.g(x,y)&&S.g(x,y)!=='0')S.p(x,y,R()<.3?'r':'6')}}
@@ -452,9 +473,18 @@ function txBackdropBuild(bk,tod,w,h,hq){const realm=bk==='ashen'||bk==='hollow'|
   const Fb=txBuf(w,h,0,0);for(const L of TXSCN.glass)txLayer(Fb,txProf(w,L[4]*7919,L[0],L[2]*h,U),H0-L[1]*h,L[3]);
   for(let i=0;i<w*h;i++)if(Fb.d[i])Fb.d[i]=S.d[i];st.front=txCv(Fb)}
  return st}
+/* the East on the horizon: a castle keep and a pagoda in the colours of the second scenery layer, standing on it */
+function txEastSkyline(S,bk,w,h,H0,U){const L=TXSCN[bk]&&TXSCN[bk][1];if(!L)return;const body=L[3].body,rim=L[3].rim||L[3].lit||body,base=Math.round(H0-L[1]*h);
+ const roof=(cx,y,hw,th)=>{for(let j=0;j<th;j++){const t=(j+1)/th,ww=Math.round(hw*(.3+.7*t*t));for(let i=-ww;i<=ww;i++)S.p(cx+i,y-th+1+j,j===0?rim:body)}S.p(cx-hw-1,y-1,body);S.p(cx+hw+1,y-1,body)};
+ const block=(cx,y,hw,hh)=>{for(let j=0;j<hh;j++)for(let i=-hw;i<=hw;i++)S.p(cx+i,y-j,body)};
+ // the pagoda
+ {const cx=Math.round(w*.18),u=Math.max(1,Math.round(U));let y=base+2*u;for(let k=0;k<5;k++){const hw=(6-k)*u;block(cx,y,hw-2*u,3*u);y-=3*u;roof(cx,y,hw,2*u);y-=2*u}for(let j=0;j<6*u;j++)S.p(cx,y-j,body)}
+ // the castle on its stone base
+ {const cx=Math.round(w*.78),u=Math.max(1,Math.round(U));let y=base+3*u;for(let j=0;j<6*u;j++){const hw=Math.round((16-j*.5/u)*u);for(let i=-hw;i<=hw;i++)S.p(cx+i,y-j,body)}y-=6*u;
+  for(let k=0;k<3;k++){const hw=(11-k*3)*u;block(cx,y,hw-u,4*u);y-=4*u;roof(cx,y,hw+2*u,3*u);y-=3*u}S.p(cx-2*u,y,rim);S.p(cx+2*u,y,rim)}}
 function txPrismS(S,x,y,hg,w){for(let d=0;d<hg;d++){const ww=Math.max(1,Math.round(w*(1-d/hg)));for(let i=-ww;i<=ww;i++)S.p(x+i,y-d,i<0?'C':i===0?'r':'D')}}
-function drawBackdropPx(q,w,h,o){w=Math.max(8,w|0);h=Math.max(8,h|0);const bk=TXM[o.bk]?o.bk:'plains',realm=bk==='ashen'||bk==='hollow'||bk==='glass',hour=((+o.hour||0)%24+24)%24,tod=realm?'realm':txTod(hour),hq=realm?0:Math.round(hour*2)/2,key=bk+'|'+tod+'|'+hq+'|'+w+'|'+h;
- if(TXBD.key!==key){TXBD.key=key;TXBD.st=txBackdropBuild(bk,tod,w,h,hq)}
+function drawBackdropPx(q,w,h,o){w=Math.max(8,w|0);h=Math.max(8,h|0);const bk=TXM[o.bk]?o.bk:'plains',realm=bk==='ashen'||bk==='hollow'||bk==='glass',hour=((+o.hour||0)%24+24)%24,tod=realm?'realm':txTod(hour),hq=realm?0:Math.round(hour*2)/2,east=!realm&&(o.east!=null?!!o.east:txEastOn()),key=bk+'|'+tod+'|'+hq+'|'+w+'|'+h+(east?'|E':'');
+ if(TXBD.key!==key){TXBD.key=key;TXBD.st=txBackdropBuild(bk,tod,w,h,hq,east)}
  const st=TXBD.st;if(!st||!st.back)return false;const f=txRM()?0:(o.frame|0),U=st.U;q.drawImage(st.back,0,0);
  if(st.mid){q.drawImage(st.mid[(f>>2)&3],0,0);if(st.front)q.drawImage(st.front,0,0)}
  for(const c of st.cl){const x=((c.x+f*c.v)%(w+c.w*2))-c.w;q.drawImage(c.cv,Math.round(x),c.y)}

@@ -13,7 +13,7 @@ function ctrPool(t,ti){let L=null;
   const dr=Array.isArray(o.d)?o.d:Array.isArray(o.dist)?o.dist:null,lo=svNum(o.dmin,svNum(o.min,dr?dr[0]:4)),hi=svNum(o.dmax,svNum(o.max,dr?dr[1]:lo+6));
   out.push({f,w:Math.max(0,svNum(o.w,svNum(o.weight,1))),lo:Math.max(2,lo),hi:Math.max(lo+1,hi)})}
  if(out.some(x=>x.w>0))return ctrRenownCap(out.filter(x=>x.w>0));
- const fs=['gob','bandit','beast','undead'];if(G.day>5)fs.push('orc');if(G.crisis)fs.push('void');const out2=fs.map(f=>({f,w:1,lo:4,hi:10}));
+ const fs=['gob','bandit','beast','undead'];if(G.day>5)fs.push('orc');if(typeof crisisFacts==='function')crisisFacts().forEach(f=>{if(FACT[f]&&!fs.includes(f))fs.push(f)});else if(G.crisis)fs.push('void');const out2=fs.map(f=>({f,w:1,lo:4,hi:10}));
  // the new factions by tier, further out (the rules' factionPool refines this with company strength)
  for(const [f,day,w,lo,hi] of [['serpent',6,1,6,12],['ent',10,.8,7,13],['ogre',10,.8,7,13],['wyvern',30,.35,Math.max(8,18-Math.floor((G.day-30)/6)),20]])if(FACT[f]&&G.day>=day)out2.push({f,w,lo,hi:Math.max(lo+2,hi)});
  return ctrRenownCap(out2)}
@@ -42,6 +42,8 @@ function stockTown(t){t.ref=G.day;t.recruits=[];const D=typeof renownDef==='func
  for(let i=0;i<nR;i++){const m=newMerc(typeof recruitBG==='function'?recruitBG(t):wpickBG());if(D&&D.vet>0&&rnd()<D.vet)makeVeteran(m,ri(D.lv[0],D.lv[1]));t.recruits.push(m)}
  const maxT=marketTier(t.size,G.day),ids=marketPool(maxT);t.stock=[];const nS=Math.max(3,9+twCountStep(typeof townStockK==='function'?townStockK(G.towns.indexOf(t)):1,2));for(let i=0;i<nS;i++)t.stock.push(stockPick(ids,maxT));
  {const hs=ids.filter(k=>ITEMS[k].k==='h');if(hs.length&&t.stock.length&&!t.stock.some(id=>ITEMS[id].k==='h')){const lo=hs.filter(k=>(ITEMS[k].tier||1)<=Math.min(maxT,3));t.stock[t.stock.length-1]=pick(lo.length?lo:hs)}}   // every market has a helmet on the stalls
+ // eastern stalls (19-east.js): eastStock(t, stock, maxTier) -> the town's stock (eastern gear in eastern markets; may draw rnd)
+ if(typeof eastStock==='function'){let X=null;try{X=eastStock(t,t.stock,maxT)}catch(e){X=null}if(Array.isArray(X))t.stock=X.filter(id=>ITEMS[id]&&!ITEMS[id].famed)}
  const keep=typeof rvKeepTaken==='function'?rvKeepTaken(t):[];   // notices a rival company holds stay up, marked as taken
  t.contracts=[];const nC=Math.max(0,townBoardN(t)-keep.length);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}t.contracts=keep.concat(t.contracts)}
 /* how many notices a board posts: 3, +1 in a city, +1 when the owner is friendly or allied, -1 when cold; none when the town is hostile.
@@ -146,9 +148,10 @@ function townView(t){let list='',detail='',foot='',key=townTab;
   if(!n){list+=pnEmpty('No work posted.');detail=`<div class="pn-blank">${twIcon('board',48,'contracts')}<p>${G.contract?'You already hold a contract. Finish or abandon it before taking another.':'No work posted. New notices go up every three days.'}</p></div>`}
   t.contracts.forEach((c,j)=>{list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'wrap tw-row',lead:twEmblem(c,32),title:c.title,sub:twCtrSub(c),right:pnCoin(c.pay)+twSkulls(c.diff,Math.max(3,c.diff))})});
   if(n){const c=t.contracts[i],v=twCtrDetail(c,t);detail=v.detail;foot=v.foot}}
+ else if(townTab==='tavern'&&townSel.tav==='fab'&&tavFabled().length){const v=fabledView(t);list=v.list;detail=v.detail;foot=v.foot;key+=':'+v.key}
  else if(townTab==='tavern'&&townSel.tav==='ret'&&typeof FOLLOWERS!=='undefined'){const v=retinueView(t);list=v.list;detail=v.detail;foot=v.foot;key+=':'+v.key}
  else if(townTab==='tavern'){const n=t.recruits.length,i=clamp(+townSel.tavern||0,0,n-1),full=G.roster.length>=MAXROSTER,solo=!(typeof canRecruit!=='function'||canRecruit());townSel.tavern=i;key+=':'+i;
-  if(typeof FOLLOWERS!=='undefined')list+=tavTabs('rec');list+=pnSec('Looking for work',solo?recruitWhy():`Roster ${G.roster.length} of ${MAXROSTER}`);
+  if(typeof FOLLOWERS!=='undefined'||tavFabled().length)list+=tavTabs('rec');list+=pnSec('Looking for work',solo?recruitWhy():`Roster ${G.roster.length} of ${MAXROSTER}`);
   if(!n){list+=pnEmpty('Nobody is looking for work today.');detail=`<div class="pn-blank">${twIcon('tavern',48,'tavern')}<p>Nobody is looking for work today. New faces drift in every three days.</p></div>`}
   t.recruits.forEach((m,j)=>{const c=hireCost(m),tc=typeof traitChips==='function'?traitChips(m,{compact:1}):'';list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row'+(solo?' off solo':''),lead:twPortrait(m,32),title:htmlEsc(m.name)+(m.lvl>1?` <span class="tw-t vet">Lv ${m.lvl}</span>`:''),sub:`<span class="tw-line">${twRecruitLine(m)}</span><span class="tw-line co-trees tw-trees">${twRecruitTrees(m)}${tc}</span>`,right:pnCoin(c,G.crowns<c?'short':'')})});
   if(n){const m=t.recruits[i],b=BG[m.bg],s=calc(m),c=hireCost(m),tf=typeof traitChips==='function'?traitChips(m,{full:1}):'';
@@ -175,7 +178,7 @@ function townView(t){let list='',detail='',foot='',key=townTab;
   detail=`${twHead(twIcon('inn',48,'inn'),'Inn','A bed for the night')}<p class="pn-p">A night under a roof heals every wound of the flesh, and the company’s tools go to work on its armor.</p>
   ${pnFacts([['Wounded',twIcon('hp',16)+(hurt?hurt+' of '+G.roster.length:'None')],['Armor to mend',need?twIcon('tools',16)+`${need} points, ${needT} tool${needT===1?'':'s'} <small>(${have} carried)</small>`:twIcon('armor',16)+'None'],['Beds',twIcon('coin',16)+G.roster.length+' at 10 crowns'],['Time',twIcon('day',16)+'8 hours']])}
   ${need&&have<needT?`<p class="pn-p warn">Not enough tools to mend everything. The market sells them.</p>`:''}${inj?`<p class="pn-p dim">${inj===1?'One sword carries':inj+' swords carry'} an injury that sleep will not cure. The temple treats those.</p>`:''}
-  ${pnHead('Common-room talk')}<p class="pn-p dim">${G.crisis?(G.crisis.ended?'Travelers say new rifts still open now and then.':`Rifts closed: ${G.crisis.closed} of ${G.crisis.total}.`):`The innkeeper’s seer mutters about a sundering sky, perhaps ${Math.max(1,G.crisisDay-G.day)} days off.`}</p>`;
+  ${pnHead('Common-room talk')}<p class="pn-p dim">${G.crisis&&typeof crisisLine==='function'?htmlEsc(crisisLine()):G.crisis?(G.crisis.ended?'Travelers say new rifts still open now and then.':`Rifts closed: ${G.crisis.closed} of ${G.crisis.total}.`):`The innkeeper’s seer mutters about dark days ahead, perhaps ${Math.max(1,G.crisisDay-G.day)} days off.`}</p>`;
   foot=`<span class="pn-fl">${pnCoin(cost,'big'+(G.crowns<cost?' short':''))}<small>${G.crowns<cost?'<em>Not enough crowns</em>':'for the whole company'}</small></span><button type="button" class="pn-btn pri${G.crowns<cost?' off':''}" onclick="innRest()">Rest the night</button>`}
  return{list,detail,foot,key}}
 /* ---- market: two tabs. Purchase = the town's stock plus provisions and tools; Inventory = everything the company carries:
@@ -285,7 +288,7 @@ function contractSheet(){const c=G.contract;let h='<h2>Contract</h2>';
  sheet(h+'<button onclick="closeSheet()">Close</button>')}
 /* ---- the tavern's two pages: recruits looking for work, and the retinue (followers hired for good, slots by renown) ---- */
 function tavTabs(cur){const nR=G.towns[G.town].recruits.length,nF=(G.retinue||[]).length,sl=typeof followerSlots==='function'?followerSlots():1,b=(k,n,ic,c)=>`<button type="button" role="tab" class="mk-tab${cur===k?' on':''}" id="tavTab-${k}" aria-selected="${cur===k}" onclick="tavTab('${k}')">${twIcon(ic,16)}<span>${n}</span><i>${c}</i></button>`;
- return`<div class="mk-tabs" role="tablist" aria-label="Tavern">${b('rec','Recruits','swords',nR)}${b('ret','Retinue','retinue',nF+'/'+sl)}</div>`}
+ const nB=tavFabled().length;return`<div class="mk-tabs" role="tablist" aria-label="Tavern">${b('rec','Recruits','swords',nR)}${b('ret','Retinue','retinue',nF+'/'+sl)}${nB?b('fab','Fabled','star',nB):''}</div>`}
 function tavTab(k){if(townSel.tav===k)return;townSel.tav=k;renderTown(townNote)}
 function retPick(id){townSel.ret=id;renderTown(townNote)}
 function folIcon(id,sz){return`<span class="fol-por">${twIcon('fol-'+id,sz||32)}</span>`}
@@ -307,3 +310,19 @@ function retinueView(t){const F=FOLLOWERS,ids=Object.keys(F),have=G.retinue||[],
  return{list,detail,foot,key:'ret:'+sel}}
 function retHire(id){if(!hireFollower(id))return false;toast(FOLLOWERS[id].n+' joins the retinue');renderTown(`<p class="good">${FOLLOWERS[id].n} joins the retinue: ${FOLLOWERS[id].effect}</p>`);save();if(typeof ambNotify==='function')ambNotify();return true}
 function retDismiss(id){if(!dismissFollower(id))return false;toast(FOLLOWERS[id].n+' leaves the company');renderTown();save();return true}
+
+/* ---- the tavern's fabled page (21-fabled.js): a named warrior drinking here, what it takes to earn them, the price; hire or duel ---- */
+function tavFabled(){if(!G||G.town==null||typeof fabledOffers!=='function')return[];try{return fabledOffers(G.town)||[]}catch(e){return[]}}
+function fabledView(t){const L=tavFabled();let sel=townSel.fab;if(!L.some(o=>o.id===sel))sel=townSel.fab=L[0].id;let list=tavTabs('fab');
+ list+=pnSec('A legend at the bar','Fabled warriors join only those who earn it');
+ for(const o of L){const m=typeof fabledMerc==='function'?fabledMerc(o.id):null,F=o.F||{};
+  list+=pnRow({on:`fabPick('${o.id}')`,sel:o.id===sel,cls:'tw-row'+(o.can&&o.can.ok?'':' off'),lead:m?twPortrait(m,32):twIcon('star',32),title:htmlEsc(F.n||o.id),sub:`<span class="tw-line">${htmlEsc(F.title||'')}</span><span class="tw-line ${o.earn&&o.earn.ok?'good':'dim'}">${htmlEsc(o.earn?o.earn.text:'')}</span>`,right:pnCoin(o.cost,G.crowns<o.cost?'short':'')})}
+ const o=L.find(x=>x.id===sel),F=o.F||{},m=typeof fabledMerc==='function'?fabledMerc(o.id):null,s=m?calc(m):null;
+ let detail=`${twHead(m?twPortrait(m,64):twIcon('star',48),`Fabled · ${htmlEsc(F.title||'')}`,htmlEsc(F.n||o.id))}<p class="pn-p">${htmlEsc(F.legend||'')}</p>${m&&s?statGrid(m,s):''}
+  ${pnHead('To earn them')}<p class="pn-p ${o.earn&&o.earn.ok?'good':''}">${htmlEsc(o.earn?o.earn.text:'')}</p>${o.can&&!o.can.ok&&o.can.why?`<p class="pn-p bad">${htmlEsc(o.can.why)}</p>`:''}
+  ${pnHead('Terms')}${pnFacts([['Signing',`${o.cost} crowns`],['Wage',`${o.wage} a day`]])}`;
+ const du=typeof fabledDuelCan==='function'?fabledDuelCan(o.id):{ok:false},foot=`<div class="row">${du.ok?`<button onclick="fabDuel('${o.id}')">${twIcon('swords',16)}<span>Challenge to a duel</span></button>`:''}<button class="pri" style="flex:1" ${o.can&&o.can.ok&&G.crowns>=o.cost?'':'disabled'} onclick="fabHire('${o.id}')">${twIcon('star',16)}<span>Hire for ${o.cost}</span></button></div>`;
+ return{list,detail,foot,key:'fab:'+sel}}
+function fabPick(id){townSel.fab=id;renderTown(townNote)}
+function fabHire(id){if(typeof fabledJoin!=='function')return;const m=fabledJoin(id);if(!m){toast('Not yet');return}toast(`${m.name} joins the company`);renderTown();save()}
+function fabDuel(id){if(typeof fabledDuel!=='function')return;if(typeof closeSheet==='function')closeSheet(true);if(!fabledDuel(id))toast(typeof fabledDuelCan==='function'?fabledDuelCan(id).why||'No duel':'No duel')}

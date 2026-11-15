@@ -9,8 +9,11 @@ const DYES={
  ochre:{n:'Ochre',r:['a','Y','I'],p:30},saffron:{n:'Saffron',r:['Y','y','e'],p:65},forest:{n:'Forest',r:['3','B','A'],p:35},
  verdigris:{n:'Verdigris',r:['7','5','6'],p:45},sky:{n:'Sky',r:['X','x','F'],p:55},royal:{n:'Royal blue',r:['G','X','x'],p:90},
  violet:{n:'Violet',r:['G','D','C'],p:120},charcoal:{n:'Charcoal',r:['0','G','o'],p:30},grey:{n:'Ash grey',r:['o','p','q'],p:25},
- bone:{n:'Bone',r:['n','m','l'],p:25},white:{n:'Bleached',r:['m','l','r'],p:50},brown:{n:'Walnut',r:['i','j','k'],p:15}};
-const FINISH={steel:{n:'Bright steel',r:['o','p','q'],p:0},blackened:{n:'Blackened',r:['0','G','o'],p:80},bronze:{n:'Bronzed',r:['a','u','I'],p:140},gilded:{n:'Gilded',r:['b','c','d'],p:320}};
+ bone:{n:'Bone',r:['n','m','l'],p:25},white:{n:'Bleached',r:['m','l','r'],p:50},brown:{n:'Walnut',r:['i','j','k'],p:15},
+ // eastern dyes (19-east.js): only the tailors of eastern towns have them
+ indigo:{n:'Indigo',r:['1','G','X'],p:60,east:1},vermilion:{n:'Vermilion',r:['f','g','E'],p:85,east:1},sakura:{n:'Sakura',r:['g','h','r'],p:95,east:1}};
+const FINISH={steel:{n:'Bright steel',r:['o','p','q'],p:0},blackened:{n:'Blackened',r:['0','G','o'],p:80},bronze:{n:'Bronzed',r:['a','u','I'],p:140},gilded:{n:'Gilded',r:['b','c','d'],p:320},
+ lacquer:{n:'Black lacquer',r:['0','1','G'],p:180,east:1},shu:{n:'Red lacquer',r:['f','g','h'],p:220,east:1}};
 /* the dye that matches each banner colour (tailor's "use banner colours") */
 const BANNERDYE={'5':'verdigris',c:'ochre',g:'crimson',x:'sky',D:'violet',l:'bone',G:'charcoal',B:'forest',E:'ember',j:'brown',y:'saffron',p:'grey'};
 const TLR_PARTS=[['cloth','Cloth','Tunics, robes, padding, hoods and cloaks'],['accent','Trim','Sashes, trims, plumes, tabards and shield faces'],['metal','Metal','Mail, plate, helmets and scale']];
@@ -59,7 +62,7 @@ function tailorView(t){let list=pnSec('The company',G.roster.length),detail='',f
  const spr=tlrSpriteHTML(pv,4);
  detail=`<div class="tl-top"><div class="tl-stage">${spr||`<span class="tl-noart">${tlrSwatchesOf(d)}</span>`}</div><div class="tl-id">${twPortrait(pv,64)}<div><div class="pn-kick">${RACE[m.race].n} ${BG[m.bg].n.toLowerCase()}</div><div class="pn-h">${m.name}</div>
   <div class="tl-qa"><button type="button" class="pn-btn sm" onclick="tailorBanner()" ${b?'':'disabled'}>${b&&typeof bannerHTML==='function'?bannerHTML(b,24):''}<span>Banner colours</span></button><button type="button" class="pn-btn sm" onclick="tailorReset()" ${same?'disabled':''}>${pnIcon('back')}<span>Undo</span></button></div></div></div></div>`;
- for(const [p,n,desc] of TLR_PARTS){const opts=p==='metal'?Object.keys(FINISH):[null].concat(Object.keys(DYES)),cur=d[p]||null,pr=tlrPrice(p,cur),chg=(mercColors(m)[p]||null)!==cur;
+ for(const [p,n,desc] of TLR_PARTS){const eok=k=>{const T=p==='metal'?FINISH:DYES;return!k||!T[k].east||k===(mercColors(m)[p]||null)||(typeof townEast==='function'&&G.town!=null&&townEast(G.town))},opts=(p==='metal'?Object.keys(FINISH):[null].concat(Object.keys(DYES))).filter(eok),cur=d[p]||null,pr=tlrPrice(p,cur),chg=(mercColors(m)[p]||null)!==cur;
   detail+=`<div class="tl-part"><div class="tl-ph"><b>${n}</b><span class="tl-pn">${tlrName(p,cur)}</span>${chg&&pr?`<span class="tl-pr">${pnIcon('coin')}${pr}</span>`:chg?'<span class="tl-pr free">free</span>':''}<small>${desc}</small></div>
   <div class="tl-sws" role="radiogroup" aria-label="${n}">${opts.map(k=>tlrSwatch(p,k==='steel'?null:k,(k==='steel'?null:k)===cur,tlrName(p,k==='steel'?null:k)+(k&&k!=='steel'?', '+tlrPrice(p,k)+' crowns':', free'))).join('')}</div></div>`}
  detail+=`<p class="pn-p dim">New recruits arrive in their own plain colours. The gift's stone stays its own colour whatever the cloth.</p>`;

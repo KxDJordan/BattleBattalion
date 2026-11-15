@@ -706,3 +706,9 @@
 #pn .ch-qr.max .ch-qb>i{background:var(--brass)}
 #pn .ch-qr>em{flex:none;min-width:18px;text-align:right;font:600 1em/1 'Jersey 15',sans-serif;font-style:normal;color:var(--brass)}
 #pn .ch-qnone{margin:3px 0 0;font-size:.8em}
+/* ---- fabled warriors on the roster and the character sheet (21-fabled.js m.fabled / m.title) ---- */
+#pn .co-nm em.fab{background:#3a2c12;color:#f3d98b;box-shadow:inset 0 0 0 1px #d1a94e}
+#pn .co-role .co-fti{color:#f3d98b;font-style:italic}
+#pn .ch-fab{display:inline-block;padding:0 4px;margin-right:2px;color:#1b1608;background:var(--brass);letter-spacing:.08em}
+#pn .ch-fti{margin-top:1px;font-size:.82rem;font-style:italic;color:#f3d98b;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pn .fx-ew{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#ef8a78}

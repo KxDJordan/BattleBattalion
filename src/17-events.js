@@ -321,7 +321,7 @@ roadtax:{n:'A patrol\'s road tax',kind:['travel'],art:'road',cd:8,when:c=>evHous
  opts:[{t:'Pay the tax',d:c=>`−${Math.max(25,Math.round(G.crowns*.08))} crowns (8% of the chest), +5 standing.`,go:c=>{evCrowns(-Math.max(25,Math.round(G.crowns*.08)));evRep(c.f,5,'paid the road tax');return'<p>He writes you a receipt, which is something.</p>'}},
   {t:'Pull rank',badge:'Noble',req:c=>!!evFind(m=>evBg(m,'noble','knight','hedgeknight','squire')),d:c=>`${evPlain(evFind(m=>evBg(m,'noble','knight','hedgeknight','squire')))} speaks to him as an equal: nothing paid, +2 standing.`,go:c=>{evRep(c.f,2,'a gentleman\'s word');return'<p>The captain salutes, stiffly.</p>'}},
   {t:'Refuse',d:c=>`−10 standing with ${evFacName(c.f)}. 30%: they attack (a house patrol: brigand-strength band).`,go:c=>{evRep(c.f,-10,'refused the road tax');if(evRoll(.3)){evFight('bandit',.9,'the patrol');return'<p>He lowers his lance.</p>'}return'<p>He spits, and lets you pass.</p>'}}]},
-riftglow:{n:'A light in the sky',kind:['travel','camp'],art:'rift',cd:10,when:c=>G.crisis||c.day>=(G.crisisDay||18)-5?1.8:c.day>=6?.3:0,
+riftglow:{n:'A light in the sky',kind:['travel','camp'],art:'rift',cd:10,when:c=>{const sk=(G.crisis?G.crisis.k:G.crisisKind)||'sunder';if(sk!=='sunder')return 0;return G.crisis||c.day>=(G.crisisDay||18)-5?1.8:c.day>=6?.3:0},
  text:c=>evP(`A violet seam hangs over the hills at night, thin as a hair. It hums. Shards of something like glass lie in the grass beneath it, cold to the touch.`),
  opts:[{t:'Study it',badge:'Mana',req:c=>!!evAnyGift(c,'mana'),d:c=>`${evPlain(evAnyGift(c,'mana'))} +150 XP. 25%: they see too much and become Superstitious.`,go:c=>{const m=evAnyGift(c,'mana');evXP(m,150);if(evRoll(.25))evTrait(m,'superstitious');return`<p>${evNm(m)} fills a whole notebook and does not sleep.</p>`}},
   {t:'Gather the shards',d:c=>`+1 void shard. 40%: ${evPlain(c.m)} is cut by one (an injury).`,go:c=>{evPart('voidshard',1);if(evRoll(.4))evInj(c.m);return'<p>The shards fight being picked up.</p>'}},
@@ -554,7 +554,7 @@ function evOak(g,x,yb,r,k,kl,kt){evR(g,x,yb-r,x,yb,kt||'a');evDisc(g,x,yb-r-r*.6
 function evStars(g,n,y1,r,keys){for(let i=0;i<n;i++){const x=Math.floor(r()*EVW),y=Math.floor(r()*y1);if(g[y][x]==='0'||g[y][x]==='1'||g[y][x]==='2'||g[y][x]==='G')evS(g,x,y,keys[i%keys.length])}}
 function evFire(g,x,yb,s){s=s||1;evR(g,x-3*s,yb,x+3*s,yb,'i');evS(g,x-4*s,yb,'a');evS(g,x+4*s,yb,'a');for(let j=0;j<4*s;j++){const w=Math.max(0,Math.round((4*s-j)*.6));for(let dx=-w;dx<=w;dx++)evS(g,x+dx,yb-1-j,Math.abs(dx)>=w?'E':j<s*1.5&&Math.abs(dx)<w-1?'e':'y')}evS(g,x,yb-4*s-1,'E');evS(g,x+1,yb-4*s-2,'g')}
 function evRoad(g,cx,yh,wt,wb,k,ke){for(let y=yh;y<EVH;y++){const t=(y-yh)/(EVH-1-yh),w=wt+(wb-wt)*t,c=cx+(1-t)*0;for(let x=Math.round(c-w);x<=Math.round(c+w);x++)evS(g,x,y,(x===Math.round(c-w)||x===Math.round(c+w))?ke:((y*3+x)%11===0?ke:k))}}
-function evHouse(g,x,yb,w,h,wall,roof,rl,door){evR(g,x,yb-h,x+w,yb,wall);for(let i=0;i<=Math.ceil(w/2)+1;i++){evR(g,x-1+i,yb-h-i,x+w+1-i,yb-h-i,i===0?rl:roof)}evS(g,x+1,yb-h,'0');if(door){evR(g,x+Math.floor(w/2)-1,yb-3,x+Math.floor(w/2),yb,door)}evR(g,x+w-3,yb-h+2,x+w-2,yb-h+3,'d')}
+function evHut(g,x,yb,w,h,wall,roof,rl,door){evR(g,x,yb-h,x+w,yb,wall);for(let i=0;i<=Math.ceil(w/2)+1;i++){evR(g,x-1+i,yb-h-i,x+w+1-i,yb-h-i,i===0?rl:roof)}evS(g,x+1,yb-h,'0');if(door){evR(g,x+Math.floor(w/2)-1,yb-3,x+Math.floor(w/2),yb,door)}evR(g,x+w-3,yb-h+2,x+w-2,yb-h+3,'d')}
 function evMan(g,x,yb,k,kh){evR(g,x-1,yb-5,x+1,yb-2,k);evS(g,x-1,yb-1,k);evS(g,x+1,yb-1,k);evS(g,x,yb,k);evS(g,x-1,yb,k);evS(g,x+1,yb,k);evR(g,x-1,yb-8,x+1,yb-6,kh||k);evS(g,x,yb-9,kh||k)}
 function evGrass(g,y0,y1,k,r,n){for(let i=0;i<n;i++){const x=Math.floor(r()*EVW),y=y0+Math.floor(r()*(y1-y0));evS(g,x,y,k);evS(g,x,y-1,k)}}
 const EVGROUND={plains:['w','v','B'],forest:['3','7','w'],hills:['B','w','v'],swamp:['4','7','n'],desert:['b','c','k'],snow:['p','q','r'],ashen:['i','f','a'],hollow:['D','G','C'],glass:['4','5','6']};
@@ -576,7 +576,7 @@ const EVSCENE={
   evR(g,0,38,EVW-1,EVH-1,'w');for(let y=38;y<EVH;y++){const a=34+(y-38)*.5,b=66+(y-38)*1.3;evR(g,a,y,b,y,(y%3===0)?'x':'X');if(y%2===0)evS(g,a+((y*7)%20),y,'F');evS(g,a,y,'j');evS(g,b,y,'j')}
   for(const [x,y] of [[44,44],[52,49],[47,54]]){evR(g,x,y,x+3,y+1,'n');evR(g,x,y,x+3,y,'q')}for(let x=0;x<EVW;x+=4)if(x<30||x>78)evS(g,x,39+((x*5)%3),'B');evPine(g,10,46,12,'3','7');evPine(g,88,48,14,'3','7')},
  square(g,r,c){evSky(g,[[0,'x'],[14,'F']],30);evR(g,0,42,EVW-1,EVH-1,'n');for(let y=43;y<EVH;y+=2)for(let x=(y%4)?0:2;x<EVW;x+=4)evS(g,x,y,'m');
-  evHouse(g,2,42,18,16,'l','g','f','i');evHouse(g,26,42,14,20,'m','f','g','i');evHouse(g,62,42,16,18,'l','i','j','i');evHouse(g,82,42,14,14,'m','g','f','i');
+  evHut(g,2,42,18,16,'l','g','f','i');evHut(g,26,42,14,20,'m','f','g','i');evHut(g,62,42,16,18,'l','i','j','i');evHut(g,82,42,14,14,'m','g','f','i');
   for(let x=0;x<EVW;x++){const y=24+Math.round(3*Math.sin(x*.16));if(x%3===0)evS(g,x,y+1,x%6?'y':'g');evS(g,x,y,'4')}
   evR(g,45,40,55,47,'o');evR(g,46,40,54,41,'p');evR(g,44,31,45,47,'i');evR(g,55,31,56,47,'i');evR(g,43,30,57,31,'g');evMan(g,36,52,'X','t');evMan(g,62,54,'g','t');evMan(g,70,50,'B','s')},
  field(g,r,c){evSky(g,[[0,'o'],[10,'n'],[20,'m']],32);for(let i=0;i<4;i++)evDisc(g,20+i*22,14+((i*5)%6),6+(i%3),'p');evRidge(g,32,3,.08,'4',1);const G=evGr(c);evR(g,0,36,EVW-1,EVH-1,'H');evGrass(g,36,EVH,'i',r,90);evGrass(g,40,EVH,G[0],r,30);
@@ -616,7 +616,7 @@ const EVSCENE={
   for(let y=0;y<5;y++){const w=Math.round(12*Math.sqrt(1-(y/5)**2));evR(g,64-w,48+y,64+w,48+y,y===0?'F':y%2?'X':'x')}evR(g,52,47,76,47,'k');evS(g,58,50,'r');evS(g,69,49,'r');
   for(const [x,h] of [[60,18],[72,14]]){for(let i=0;i<h;i++)evS(g,x+Math.round(Math.sin(i*.2)*2),46-i,'j');const tx=x+Math.round(Math.sin(h*.2)*2),ty=46-h;for(let a=0;a<6;a++)for(let j=0;j<6;j++)evS(g,tx+Math.round(Math.cos(a*1.05)*j),ty+Math.round(Math.sin(a*1.05)*j*.6)+Math.floor(j*j/10),a%2?'B':'w')}},
  farm(g,r,c){evSky(g,[[0,'1'],[10,'f'],[22,'g'],[30,'E']],38);for(let i=0;i<5;i++)evDisc(g,42+i*7,22-i*4,5+i,i%2?'o':'4');evR(g,0,40,EVW-1,EVH-1,'a');for(let y=42;y<EVH;y+=3)evR(g,0,y,EVW-1,y,'b');
-  evGlow(g,42,36,18,'f');evHouse(g,30,42,24,14,'j','i','a','0');for(let x=30;x<56;x+=2){const h=3+((x*7)%7);for(let j=0;j<h;j++)evS(g,x+((j%2)?1:0),27-j,j<2?'y':j<4?'E':'g')}evR(g,35,33,39,36,'y');evR(g,45,33,49,36,'E');evS(g,37,34,'e');
+  evGlow(g,42,36,18,'f');evHut(g,30,42,24,14,'j','i','a','0');for(let x=30;x<56;x+=2){const h=3+((x*7)%7);for(let j=0;j<h;j++)evS(g,x+((j%2)?1:0),27-j,j<2?'y':j<4?'E':'g')}evR(g,35,33,39,36,'y');evR(g,45,33,49,36,'E');evS(g,37,34,'e');
   evR(g,70,30,71,42,'i');evR(g,64,32,76,33,'i');evMan(g,64,52,'0');evR(g,8,36,10,42,'i')},
  gibbet(g,r,c){evSky(g,[[0,'2'],[12,'4'],[24,'n'],[32,'m']],40);evDisc(g,76,12,6,'l','m');evRidge(g,40,3,.07,'3',1);evR(g,0,44,EVW-1,EVH-1,'3');evRoad(g,30,44,3,20,'j','i');evR(g,0,52,EVW-1,54,'j');
   evR(g,52,10,54,52,'0');evR(g,40,10,70,12,'0');evR(g,62,12,66,16,'0');evR(g,44,12,44,18,'o');for(let y=18;y<=30;y++){evS(g,40,y,'o');evS(g,48,y,'o');if(y%4===2)evR(g,40,y,48,y,'o')}evR(g,43,20,45,28,'1');

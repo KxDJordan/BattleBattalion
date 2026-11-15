@@ -15,10 +15,10 @@
 
 function houseById(id){if(!G||!Array.isArray(G.houses))return null;for(const h of G.houses)if(h.id===id)return h;return null}
 function isHouse(f){return typeof f==='string'&&f.length===2&&f[0]==='h'&&!!houseById(f)}
-function humanFact(f){return f==='free'||isHouse(f)}
-function factName(f){const h=houseById(f);if(h)return h.n;const rv=rivalById(f);if(rv)return rv.n;if(f==='free')return 'Free towns';return FACT[f]?FACT[f].n:'Unknown'}
+function humanFact(f){return f==='free'||isHouse(f)||(f==='east'&&typeof G!=='undefined'&&!!G&&!!G.east)}
+function factName(f){const h=houseById(f);if(h)return h.n;const rv=rivalById(f);if(rv)return rv.n;if(f==='free')return 'Free towns';if(f==='east'&&typeof G!=='undefined'&&G&&G.east&&G.east.n)return G.east.n;return FACT[f]?FACT[f].n:'Unknown'}
 function factColor(f){const h=houseById(f)||rivalById(f);if(h&&typeof BANNERC!=='undefined'&&BANNERC[h.c1])return PAL[BANNERC[h.c1].r[1]];return FACT[f]?FACT[f].col:PAL.n}
-function houseTowns(id){const L=[];if(G&&G.towns)G.towns.forEach((t,i)=>{if(t.own===id)L.push(i)});return L}
+function houseTowns(id){const L=[];if(G&&G.towns)G.towns.forEach((t,i)=>{if(t.own===id&&!t.held)L.push(i)});return L}   // a town a crisis holds (t.held) is not the house's while it is held
 
 /* ---- generation (deterministic from the seed) ---- */
 const FX_COL=['g','x','D','B','E','j','p','G','y','l'],FX_C2=['c','l','y','G','p'],FX_EMB=['lion','tower','stag','raven','oak','sun','moon','crown','boar','rose','fleur','wolf','anchor'];
@@ -61,7 +61,10 @@ function factionsInit(g,opt){g=g||G;if(!g||!Array.isArray(g.towns)||!g.towns.len
  if(!Array.isArray(g.nests)){g.nests=[];if(opt.nests!==false)fxSeedNests(g,w,r)}
  if(!svObj(g.wsim))g.wsim={day:svNum(g.day,1)};
  if(!Array.isArray(g.rivals)&&typeof rivalsInit==='function')rivalsInit(g);   // the rival companies (40-world.js): from the seed, no game randomness drawn
- houseFactReg(g);return g}
+ houseFactReg(g);
+ if(typeof eastInit==='function'){try{eastInit(g)}catch(e){if(typeof console!=='undefined')console.warn('eastInit failed',e)}}   // the East (19-east.js): the faction east, eastern towns (idempotent)
+ if(typeof crisisInit==='function'){try{crisisInit(g)}catch(e){}}   // the run's crisis kind (18-crises.js), from the seed
+ return g}
 // the first nests of a new world: 2 (small) to 4 (vast), far from the towns, of the early monster factions
 function fxSeedNests(g,w,r){const n=Math.max(2,Math.round(2*Math.sqrt(WN*WN/4096))),fs=['gob','bandit','beast'],T=g.towns;let nid=Math.floor(svNum(g.nid,1));
  for(let k=0;k<n;k++){let pos=null;for(let a=0;a<600&&!pos;a++){const x=Math.floor(3+r()*(WN-6)),y=Math.floor(3+r()*(WN-6)),i=y*WN+x;if(!w.ok[i])continue;const px=(x+.5)*TS,py=(y+.5)*TS;
@@ -112,7 +115,7 @@ function townPriceWhy(i,kind,id){const t=G&&G.towns&&G.towns[i],out=[];if(!t)ret
  return out}
 function townPriceK(i,kind,id){let k=1;for(const x of townPriceWhy(i,kind,id))k*=x.k;return Math.round(clamp(k,.4,3)*1000)/1000}
 // closed markets: the town's owner is hostile to the company
-function townHostile(i){const t=G&&G.towns&&G.towns[i];if(!t)return false;worldEnsure();return !!REPK[repTier(t.own).k].closed}
+function townHostile(i){const t=G&&G.towns&&G.towns[i];if(!t)return false;worldEnsure();if(t.held)return true;return !!REPK[repTier(t.own).k].closed}
 // recruit odds and counts: rep, situations, prosperity (1 = as before)
 function townRecruitK(i){const t=G&&G.towns&&G.towns[i];if(!t)return 1;worldEnsure();let k=REPK[repTier(t.own).k].recruit*(.8+svNum(t.pros,50)*.004);for(const s of t.sit)if(SITS[s.k])k*=SITS[s.k].recruits;return Math.round(k*100)/100}
 // weight factor for a contract type at town i: situations, and how much work the owner gives you (rep)

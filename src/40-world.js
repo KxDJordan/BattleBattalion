@@ -55,7 +55,10 @@ function tileSpeedOf(t,river,road){if(t===0||t===4)return 0;return road?ROADSPD:
 /* ---- the generator ---- */
 let WGCACHE=null;
 function genWorld(seed){seed=(Number(seed)||0)|0;if(!WGCACHE||WGCACHE.seed!==seed||WGCACHE.n!==WN)WGCACHE=genWorldBase(seed);const b=WGCACHE;
- return{seed,tiles:b.tiles,ok:b.ok,river:b.river,road:b.road,spd:b.spd,size:b.size,towns:b.towns,sites:b.sites,seen:new Uint8Array(WN*WN),fogRev:0,fogKey:-1,img:null}}
+ const w={seed,tiles:b.tiles,ok:b.ok,river:b.river,road:b.road,spd:b.spd,size:b.size,towns:b.towns,sites:b.sites,seen:new Uint8Array(WN*WN),fogRev:0,fogKey:-1,img:null};
+ // the East (19-east.js): eastGen(w) marks the eastern region once per generated base world (w.east, towns t.east); later copies share it
+ if(typeof eastGen==='function'){if(!b.eg){b.eg=1;try{eastGen(w)}catch(e){if(typeof console!=='undefined')console.warn('eastGen failed',e)}b.east=w.east;b.ex={};for(const k in w)if(!(k in b)&&k!=='seen'&&k!=='fogRev'&&k!=='fogKey'&&k!=='img'&&k!=='east')b.ex[k]=w[k]}else{if(b.east!==undefined)w.east=b.east;if(b.ex)for(const k in b.ex)w[k]=b.ex[k]}}
+ return w}
 /* Scales with the world size (WN): ranges, rivers, ruins and the number of towns grow with the land; the small world (64) is exactly as before. */
 function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WORLDSZ[WSZK]&&WORLDSZ[WSZK].n===WN?WORLDSZ[WSZK].towns:Math.round(12*AK/Math.pow(AK,.2))),r=mulberry(seed),nz=sc=>{const f=noiseFn(r,sc,WN+2);return(x,y)=>f(clamp(x,0,WN+1),clamp(y,0,WN+1))};
  const a1=nz(24),a2=nz(12),a3=nz(6),a4=nz(3),wx=nz(15),wy=nz(15),rg=nz(13),rg2=nz(5),mo1=nz(14),mo2=nz(6),te=nz(18),jit=nz(2.2),rj=nz(3.5);
@@ -238,10 +241,12 @@ function spawnProg(power,day){return clamp(.65*clamp((power-8)/210,0,1)+.35*clam
    contract's town for a lair), startD, tier, biomes}].
    ctx (all optional): {power, day, crisis (include riftspawn: default G.crisis), prog}. Used by spawnParty and by genContract. */
 function factionPool(ctx){ctx=ctx||{};const power=ctx.power!=null?ctx.power:companyPower(),day=ctx.day!=null?ctx.day:(G?G.day:1),prog=ctx.prog!=null?ctx.prog:spawnProg(power,day),out=[];
- for(const f in FACT){const F=FACT[f],tier=F.tier||'early';if(F.house)continue;if(tier==='crisis'){if(ctx.crisis!=null?ctx.crisis:G&&G.crisis)out.push({f,w:.5,minD:0,startD:0,tier,biomes:null});continue}
+ for(const f in FACT){const F=FACT[f],tier=F.tier||'early';if(F.house)continue;if(tier==='crisis'){if((ctx.crisis!=null?ctx.crisis:G&&G.crisis)&&crFactLive(f))out.push({f,w:F.crisis==='sunder'?.5:.3,minD:0,startD:0,tier,biomes:null});continue}
   const S=Object.assign({},SPAWNT[tier]||SPAWNT.early,F.spawn||{});if(prog<S.gate)continue;const t=S.gate<1?(prog-S.gate)/(1-S.gate):1;
   const minD=Math.round(S.d0+(S.d1-S.d0)*t);out.push({f,w:Math.round((S.w0+(S.w1-S.w0)*t)*1000)/1000,minD,dmin:Math.max(4,minD),dmax:Math.max(4,minD)+(tier==='end'?8:6),startD:tier==='early'?0:Math.max(0,Math.round(16*(1-prog/.6))),tier,biomes:tier==='early'?null:F.biomes||null})}
  return out}
+// a crisis faction roams as plain bands only while its crisis is under way (or scarred the land); riftspawn: the Sundering
+function crFactLive(f){const k=FACT[f]&&FACT[f].crisis||'sunder',c=G&&G.crisis;if(!c)return false;if((c.k||'sunder')!==k)return Array.isArray(G.crScar)&&G.crScar.some(s=>s.k===k);return !c.ended||(c.lost&&!c.won)||k==='sunder'}
 // Distance in tiles from every world tile to the nearest town, and to the nearest peak (cached per world and town list).
 function worldFields(){if(!W||!G)return null;const sig=W.seed+'|'+WN+'|'+G.towns.length;if(W.fld&&W.fld.sig===sig)return W.fld;const N=WN*WN,td=new Float32Array(N),T=G.towns.map(t=>[t.x/TS-.5,t.y/TS-.5]);
  for(let i=0;i<N;i++){const x=i%WN,y=(i/WN)|0;let m=1e9;for(const [a,b] of T){const d=Math.hypot(x-a,y-b);if(d<m)m=d}td[i]=m}
@@ -268,7 +273,7 @@ function rollFaction(ctx){ctx=ctx||{};let pool=factionPool(ctx).filter(e=>!ctx.o
 const PEAKN=['Greyspire','the Cold Teeth','Ravenfell','the Black Crag','Hollowpeak','Skarnholt','the Widow\'s Tor','Frostmantle'];
 function lairTitle(f,x,y){const L=FACT[f]&&FACT[f].lair||'Clear a lair';if(!L.includes('{place}'))return L;const h=Math.abs(Math.floor((x||0)/TS)*31+Math.floor((y||0)/TS)*17);return L.replace('{place}',PEAKN[h%PEAKN.length])}
 function spawnParty(f){let pos=null;
- if(!f&&G.crisis&&rnd()<2/7)f='void';
+ if(!f&&G.crisis&&(G.crisis.k||'sunder')==='sunder'&&rnd()<2/7)f='void';
  if(!f){const r=rollFaction({x:G.p.x,y:G.p.y,minT:9,maxT:26,crisis:false});if(r){f=r.f;pos={x:r.x,y:r.y}}}
  if(!f)f=pick(['gob','bandit','beast','undead']);if(!pos)pos=randOk(G.p.x,G.p.y,9,26);
  const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5,goal:'roam'};setPatrol(p);G.parties.push(p);return p}
@@ -278,8 +283,6 @@ function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();l
  {const qm=typeof followerHas==='function'&&followerHas('quarter');if(qm){const e=G.roster.length*.8+(G.foodAcc||0),n=Math.floor(e+1e-9);G.foodAcc=Math.max(0,e-n);G.food-=n}else G.food-=G.roster.length}if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
  const news=worldDay();                                                     // the living world: parties with goals, nests, towns, wars (below)
  wsKeepBands();                                                             // the land near the company stays as busy as ever
- if(!G.crisis&&G.day>=G.crisisDay)startCrisis();
- else if(G.crisis&&G.crisis.ended&&G.day%6===0&&G.portals.length<2)addPortal();
  if(news.length)msg+='. '+news[0];toast(msg);if(typeof ambTick==='function')ambTick()}
 /* ================= THE LIVING WORLD (phase 7) =================
    Parties: {id, x, y, tx, ty, f, mult, goal, from?, to?, cargo?, str?, pts?, pi?, ch?, hunt?, home?, siege?, life?, legs?}
@@ -303,8 +306,8 @@ const WSIM={live:30,car:9,pat:10,raid:12,merc:10,hunt:14,nestMax:3.2,nestGrow:.0
 const WSROUTE={caravan:1,patrol:1,raid:1,merc:1};
 function worldNews(t){if(!Array.isArray(G.news))G.news=[];G.news.push({day:G.day,t});if(G.news.length>WSIM.news)G.news.splice(0,G.news.length-WSIM.news);return t}
 function partyHostile(p){if(!p)return false;if(p.goal==='caravan')return false;if(p.goal==='merc')return rivalHostile(rivalById(p.f),p);if(!humanFact(p.f))return true;return !!p.hunt||repTier(p.f).k==='hostile'}
-function partyBattle(p){if(p&&p.goal==='merc'){const r=rivalById(p.f);if(r)return{f:p.f,rival:p.f,mult:rvMult(r),src:{type:'party',id:p.id,goal:'merc',pf:p.f}}}return{f:FACT[p.f]?p.f:'bandit',mult:p.mult,src:{type:'party',id:p.id,goal:p.goal||'roam',pf:p.f}}}
-function partyLabel(p){const f=factName(p.f),T=n=>G.towns[n]?G.towns[n].name:'';switch(p.goal){
+function partyBattle(p){if(p&&p.goal==='merc'){const r=rivalById(p.f);if(r)return{f:p.f,rival:p.f,mult:rvMult(r),src:{type:'party',id:p.id,goal:'merc',pf:p.f}}}const o={f:FACT[p.f]?p.f:'bandit',mult:p.mult,src:{type:'party',id:p.id,goal:p.goal||'roam',pf:p.f}};const r=p&&p.cr&&typeof crPartyBattle==='function'?crPartyBattle(p,o):o;if(p&&p.fab){const L=Array.isArray(r.fabled)?r.fabled.slice():[];if(!L.includes(p.fab))L.push(p.fab);r.fabled=L.slice(0,2)}return r}   // a fabled leader of a host (p.fab, 19-east.js)
+function partyLabel(p){const f=factName(p.f),T=n=>G.towns[n]?G.towns[n].name:'';if(p.cr&&typeof crHostName==='function'){const n=crHostName(p).replace(/^./,c=>c.toUpperCase());return p.siegeT!=null?`${n}, besieging ${T(p.siegeT)}`:p.back?`${n}, carrying plunder north`:p.cr==='hhost'?`${n}, marching north against the Emperor`:`${n}, bound for ${T(p.to)}`}switch(p.goal){
   case 'merc':return rivalLabel(rivalById(p.f))||f;
   case 'caravan':return`Caravan of ${f==='Free towns'?T(p.from):f}, bound for ${T(p.to)}`;
   case 'patrol':return p.siege!=null?`The host of ${f} besieging ${T(p.siege)}`:p.hunt?`${f} riders hunting the company`:`Patrol of ${f}`;
@@ -317,7 +320,9 @@ function attackParty(id){const p=G.parties.find(q=>q.id===id);if(!p)return null;
  const o=partyBattle(p);G.moving=false;G.route=[];engage(o);return o}
 /* worldBattleEnd(src, win): the world's side of a battle's outcome. Call from settleBattle (68-battle-flow.js) BEFORE the party is removed.
    Removes a beaten party itself (idempotent). Returns {crowns, rep:[{f,n}]} of what it did. */
-function worldBattleEnd(s,win,res){const out={crowns:0,rep:[]};if(!s||!G)return out;const add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
+function worldBattleEnd(s,win,res){const out=worldBattleEnd0(s,win,res);if(s&&G&&typeof eastBattleEnd==='function'){try{eastBattleEnd(s,win)}catch(e){}}return out}
+function worldBattleEnd0(s,win,res){const out={crowns:0,rep:[]};if(!s||!G)return out;const add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
+ if(typeof crisisBattleEnd==='function'&&(s.type==='crisis'||s.type==='party')){let h=false;try{h=crisisBattleEnd(s,win,out)}catch(e){if(typeof console!=='undefined')console.warn('crisisBattleEnd',e)}if(h)return out}
  if(s.type==='nest'){if(win)nestClear(s.id,out);return out}
  if(s.type!=='party')return out;const p=G.parties.find(q=>q.id===s.id);
  if(s.goal==='merc'||(p&&p.goal==='merc')){const r=rivalById(s.pf||(p&&p.f));out.src=s;rvBattleEnd(r,p,win,out,res);delete out.src;return out}
@@ -344,7 +349,7 @@ function wsSpawnPatrol(h,hunt){const L=houseTowns(h.id);if(!L.length)return null
  return wsAdd({x:A.x,y:A.y+(okAt(A.x,A.y+TS)?TS:0),f:h.id,goal:'patrol',from:a,to:hunt?undefined:b,hunt:hunt?1:undefined,legs:0,mult:Math.round((hunt?.95:.8+(HPERS[h.pers].patrols?.15:0))*100+rnd()*30)/100,pts:r?wsCopy(r):null})}
 function wsSpawnRaid(f,x,y,to,mult,home){const T0=G.towns[to];if(!T0)return null;const r=wsPathTo(x,y,T0.x,T0.y);if(!r)return null;return wsAdd({x,y,f,goal:'raid',to,mult:mult||.8,home:home!=null?home:null,pts:r})}
 /* ---- arrival at the end of a route; returns true when the party leaves the map ---- */
-function wsArrive(p){const T0=G.towns[p.to];
+function wsArrive(p){if(p.cr&&typeof crArrive==='function'&&crArrive(p))return !!p.gone;const T0=G.towns[p.to];
  if(p.goal==='caravan'){if(T0)T0.pros=clamp(svNum(T0.pros,50)+3,0,100);const A=G.towns[p.from];if(A)A.pros=clamp(svNum(A.pros,50)+1,0,100);p.gone=1;return true}
  if(p.goal==='raid'){if(T0){const i=p.to;if(!townSit(i,'siege')){townSitAdd(i,'raided',ri(SITS.raided.dur[0],SITS.raided.dur[1]));T0.pros=clamp(svNum(T0.pros,50)-10,0,100);
     worldNews(`${factName(p.f)} raided ${T0.name}`)}}
@@ -353,9 +358,9 @@ function wsArrive(p){const T0=G.towns[p.to];
  if(p.goal==='patrol'){p.legs=(p.legs|0)+1;if(p.legs>=3||!Array.isArray(p.pts)){p.gone=1;return true}const t=p.from;p.from=p.to;p.to=t;p.pts.reverse();p.pi=0;return false}
  p.gone=1;return true}
 /* ---- the daily step for one far party: along its route a day's march, or (hunters) toward the company ---- */
-function wsStep(p){if(p.siege!=null)return;
+function wsStep(p){if(p.siege!=null||p.siegeT!=null)return;
  if(p.hunt){const dx=G.p.x-p.x,dy=G.p.y-p.y,d=Math.hypot(dx,dy)||1,s=Math.min(d-WSIM.live*.6*TS,WSIM.hunt*TS);if(s>0){const nx=p.x+dx/d*s,ny=p.y+dy/d*s;if(okAt(nx,ny)){p.x=nx;p.y=ny;p.tx=nx;p.ty=ny}}return}
- if(p.idle||!WSROUTE[p.goal]||!Array.isArray(p.pts)||!p.pts.length)return;const tiles=p.goal==='caravan'?WSIM.car:p.goal==='raid'?WSIM.raid:p.goal==='merc'?WSIM.merc:WSIM.pat;
+ if(p.idle||!WSROUTE[p.goal]||!Array.isArray(p.pts)||!p.pts.length)return;const tiles=p.spd>0?p.spd:p.goal==='caravan'?WSIM.car:p.goal==='raid'?WSIM.raid:p.goal==='merc'?WSIM.merc:WSIM.pat;
  p.pi+=Math.max(1,Math.round(tiles/3));if(p.pi>=p.pts.length){const q=p.pts[p.pts.length-1];p.x=q.x;p.y=q.y;wsArrive(p);return}const q=p.pts[p.pi];p.x=q.x;p.y=q.y;p.tx=q.x;p.ty=q.y}
 
 /* ---- nests ---- */
@@ -381,7 +386,7 @@ function wsTowns(news){G.towns.forEach((t,i)=>{const keep=[],ended=[];for(const 
   if(k&&!has(k)&&!has('siege')){townSitAdd(i,k,ri(SITS[k].dur[0],SITS[k].dur[1]));const l=worldNews(`${SITS[k].n} in ${t.name}`);if(seenAt(Math.floor(t.x/TS),Math.floor(t.y/TS)))news.push(l)}})}
 function wsTownsTail(t,i){let d=0;for(const s of t.sit)if(SITS[s.k])d+=SITS[s.k].pros;const base=38+t.size*10;d+=(base-svNum(t.pros,50))*.04;t.pros=Math.round(clamp(svNum(t.pros,50)+d,0,100)*10)/10}
 /* a siege runs its course: the besieger may take the town (stronger houses, smaller towns, a poor or starving town fall easier) */
-function wsSiegeEnd(i,s){const t=G.towns[i],a=s.by,h=houseById(a);G.parties=G.parties.filter(p=>p.siege!==i);if(!h||t.own===a)return null;
+function wsSiegeEnd(i,s){if(s&&s.by==='east')return null;const t=G.towns[i],a=s.by,h=houseById(a);G.parties=G.parties.filter(p=>p.siege!==i);if(!h||t.own===a)return null;
  const def=t.own,atk=houseTowns(a).length*.8+2+rnd()*5,dfn=(isHouse(def)?houseTowns(def).length*.5:1)+t.size+rnd()*4+svNum(t.pros,50)/50;
  if(atk>dfn&&!G.houses.some(x=>x.seat===i)){t.own=a;t.pros=clamp(svNum(t.pros,50)-8,0,100);t.ref=-99;return worldNews(`${h.n} took ${t.name}${isHouse(def)?' from '+factName(def):''}`)}
  return worldNews(`The siege of ${t.name} failed`)}
@@ -419,7 +424,11 @@ function wsRaiders(news){if(rnd()>=.1)return;const ti=ri(0,G.towns.length-1),t=G
 
 /* worldDay(): one day of the world, once per G.day (newDay calls it). Returns headline lines for the day's toast. */
 function worldDay(){const news=[];worldEnsure();if(G.wsim.day>=G.day)return news;G.wsim.day=G.day;
+ if(typeof eastInit==='function'&&G.east==null){try{eastInit(G)}catch(e){}}   // an old save meets the East lazily (19-east.js)
  wsTowns(news);wsHouses(news);wsNests(news);wsTrade();wsRaiders(news);rvDay(news);
+ if(typeof crisisDay==='function'){try{crisisDay(news)}catch(e){if(typeof console!=='undefined')console.warn('crisisDay failed',e)}}   // the run's crisis (18-crises.js)
+ if(typeof eastDay==='function'){try{eastDay(news)}catch(e){if(typeof console!=='undefined')console.warn('eastDay failed',e)}}        // the Eastern War (19-east.js): pushes its lines into news
+ if(typeof fabledDay==='function'){try{fabledDay()}catch(e){if(typeof console!=='undefined')console.warn('fabledDay failed',e)}}     // fabled warriors (21-fabled.js)
  const live=WSIM.live*TS;for(const p of G.parties){if(p.gone)continue;if(svFin(p.life)&&--p.life<=0){p.gone=1;continue}if(Math.hypot(p.x-G.p.x,p.y-G.p.y)>live)wsStep(p)}
  // reputation fades slowly toward neutral (a point a week)
  if(G.day%7===0)for(const f in G.rep){const v=G.rep[f];if(v>0)G.rep[f]=v-1;else if(v<0)G.rep[f]=v+1}
@@ -430,18 +439,15 @@ function wsTrim(){const d=p=>Math.hypot(p.x-G.p.x,p.y-G.p.y);const plain=G.parti
 /* the old rule, kept for plain bands: those left far behind disperse (at most 2x worldBands() stay), and the land near the company is kept
    at worldBands() of them */
 function wsKeepBands(){const far=34*TS;let near=0,keep=0;const lim=worldBands()*2;G.parties=G.parties.filter(e=>{if(e.goal&&e.goal!=='roam')return true;const d=Math.hypot(e.x-G.p.x,e.y-G.p.y);if(d<far){near++;return true}return ++keep<=lim});
- const want=worldBands()+(G.crisis?4:0);for(;near<want;near++)spawnParty()}
+ const want=worldBands()+(G.crisis&&!G.crisis.ended?4:G.crisis?2:0);for(;near<want;near++)spawnParty()}
 function worldBands(){return Math.round(8*Math.sqrt(worldK()))}                     // bands kept near the company: 8 in the small world, a few more in larger ones
 function addPortal(){const pos=randOk(WS/2,WS/2,2,26*WN/64);G.portals.push({id:G.nid++,x:pos.x,y:pos.y,realm:pick(REALMS)})}
-function startCrisis(){G.crisis={closed:0,total:3,ended:false};for(let i=0;i<3;i++)addPortal();for(let i=0;i<3;i++)spawnParty('void');
- if(sheetOpen)G.note='crisis';else crisisSheet()}   // a day can turn inside a town (inn): announce once the town is left
-function showNote(){const n=G.note;G.note=null;if(n==='crisis')crisisSheet();else if(n==='newlands')newLandsSheet();else if(n==='refund'&&typeof refundSheet==='function')refundSheet();
+function showNote(){const n=G.note;G.note=null;if(n==='crisis')crisisSheet();else if(n==='crisisEnd'&&typeof crisisEndSheet==='function')crisisEndSheet();else if(n==='crisisNext'&&typeof crNextSheet==='function')crNextSheet();else if((n==='east'||n==='eastend')&&typeof eastNoteSheet==='function')eastNoteSheet(n);else if(n==='newlands')newLandsSheet();else if(n==='refund'&&typeof refundSheet==='function')refundSheet();
  if(!G.note&&n!=='refund'&&Array.isArray(G.refund)&&G.refund.length)G.note='refund'}   // the perk refund note waits behind any other note
-function crisisSheet(){sheet(`<h2>The Sundering</h2><p>The sky splits. Three rifts have torn open across the land and riftspawn pour through them.</p><p class="dim">Each rift leads to another world: three battles with no rest between them, and a tyrant at the end. Close all three to end the crisis.</p><button class="pri" onclick="closeSheet()">To arms</button>`)}
 function newLandsSheet(){const t=G.towns[0],n=G.portals.length;
  sheet(`<h2>New lands</h2><p>The old country is behind you. The company marched for weeks and has come down into a wider land: ${t.name} stands before you, with ${G.towns.length-1} more towns beyond it, roads between them and rivers to cross.</p>
  <p class="dim">Your swords, crowns, stores and renown came with you. Contracts from the old country were left behind${n?`, but the rifts have followed: ${n===1?'one burns':n+' burn'} in this land`:''}.</p><button class="pri" onclick="closeSheet()">March on</button>`)}
-function siteSheet(id){const s=G.sites&&G.sites.find(s=>s.id===id);if(!s)return;const R=RUINS[s.n%RUINS.length]||RUINS[0],first=!s.v;s.v=1;
+function siteSheet(id){const s=G.sites&&G.sites.find(s=>s.id===id);if(!s)return;if(s.cr&&typeof crSiteSheet==='function'&&crSiteSheet(s))return;const R=RUINS[s.n%RUINS.length]||RUINS[0],first=!s.v;s.v=1;
  sheet(`<h2>${R[0]}</h2><p>${R[1]}</p><p class="dim">${first?'The company rests a moment among the stones. There is nothing here to carry off.':'Nothing has changed since the company last passed.'}</p><button class="pri" onclick="closeSheet()">Move on</button>`)}
 function advanceTime(h,rate){G.hour+=h;if(G.grace>0)G.grace-=h;G.healAcc+=h*(rate||1)*(typeof followerHas==='function'&&followerHas('cook')?1.25:1);while(G.healAcc>=1){G.healAcc--;G.roster.forEach(m=>{const mx=calc(m).hp;if(m.hp<mx)m.hp++})}
  stepWeather(h);while(G.hour>=24){G.hour-=24;G.day++;newDay()}fogReveal();
@@ -459,15 +465,15 @@ function nearestTown(x,y){let b=0,bd=1e18;for(let i=0;i<G.towns.length;i++){cons
 // their loop. Only parties that are hostile to the company (partyHostile) turn on it, and hunting patrols (p.hunt) seek it out.
 // Parties further than WSIM.live tiles from the company are not moved here: worldDay() advances them a day at a time.
 function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.live*TS;let gone=0;for(const p of G.parties){const dp=Math.hypot(G.p.x-p.x,G.p.y-p.y);if(dp>live)continue;let tx,ty;
-  const hostile=partyHostile(p),route=WSROUTE[p.goal]&&Array.isArray(p.pts)&&p.pts.length>0&&!p.siege;
+  const hostile=partyHostile(p),route=WSROUTE[p.goal]&&Array.isArray(p.pts)&&p.pts.length>0&&!p.siege&&p.siegeT==null;
   if(hostile&&G.grace<=0&&(dp<(p.ch?sight*1.35:sight)||p.hunt)){p.ch=1;tx=G.p.x;ty=G.p.y}
-  else if(p.siege){p.ch=0;tx=p.tx;ty=p.ty}
+  else if(p.siege||p.siegeT!=null){p.ch=0;tx=p.tx;ty=p.ty}   // a besieging host (a house's, or a crisis host: p.siegeT) stays in its lines
   else if(p.goal==='merc'&&(p.idle||!route)){p.ch=0;continue}   // a rival company between plans stands where it is
   else if(route){p.ch=0;const q=p.pts[Math.min(p.pi,p.pts.length-1)];if(Math.hypot(q.x-p.x,q.y-p.y)<5){p.pi++;if(p.pi>=p.pts.length){if(wsArrive(p))gone=1;continue}}const q2=p.pts[p.pi];tx=p.tx=q2.x;ty=p.ty=q2.y}
   else{if(p.ch||!Array.isArray(p.pts)||!p.pts.length){p.ch=0;setPatrol(p)}
    else if(Math.hypot(p.tx-p.x,p.ty-p.y)<5){p.pi=(p.pi+1)%p.pts.length;const q=p.pts[p.pi];if(p.pts.length<2||!lineClear(p.x,p.y,q.x,q.y))setPatrol(p);else{p.tx=q.x;p.ty=q.y}}
    tx=p.tx;ty=p.ty}
-  const d=Math.hypot(tx-p.x,ty-p.y)||1,sp=Math.min(d,WBAND*(speedAt(p.x,p.y)||.5)*wf*dt*(p.goal==='caravan'?.8:1)),nx=p.x+(tx-p.x)/d*sp,ny=p.y+(ty-p.y)/d*sp;
+  const d=Math.hypot(tx-p.x,ty-p.y)||1,sp=Math.min(d,WBAND*(speedAt(p.x,p.y)||.5)*wf*dt*(p.goal==='caravan'?.8:1)*(p.cr&&!p.ch?.4:1)),nx=p.x+(tx-p.x)/d*sp,ny=p.y+(ty-p.y)/d*sp;
   if(okAt(nx,ny)){p.x=nx;p.y=ny}else if(route){p.x=tx;p.y=ty}else if(!p.ch)patrolHop(p)}
  if(gone)G.parties=G.parties.filter(p=>!p.gone)}
 function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNote();return}
@@ -486,7 +492,7 @@ function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNot
  {const tg=typeof ctrTargetAt==='function'?ctrTargetAt(p.x,p.y):null;if(tg){if(tg.o){G.moving=false;G.route=[];engage(tg.o);return}if(typeof ctrArrive==='function'&&ctrArrive(p.x,p.y)){G.moving=false;G.route=[];return}}
   else{const c=G.contract;if(c&&c.type==='hunt'&&!c.done&&Math.hypot(c.x-p.x,c.y-p.y)<.4*TS){G.moving=false;G.route=[];engage({f:c.f,mult:CTR_DIFFK[clamp(c.diff,1,CTR_DIFFK.length)-1],src:{type:'lair'}});return}}}
  if(!G.moving)arrive()}
-function arrive(){const d=G.dest;G.dest=null;G.tap=null;G.route=[];if(!d)return;if(d.type==='town'){if(typeof enterTown==='function')enterTown(d.i);else openTown(d.i)}else if(d.type==='portal')portalSheet(d.id);else if(d.type==='site')siteSheet(d.id)}
+function arrive(){const d=G.dest;G.dest=null;G.tap=null;G.route=[];if(!d)return;if(d.type==='town'){if(typeof crTownSheet==='function'&&crTownHeld(d.i)&&crTownSheet(d.i))return;if(typeof enterTown==='function')enterTown(d.i);else openTown(d.i)}else if(d.type==='portal')portalSheet(d.id);else if(d.type==='site')siteSheet(d.id)}
 /* camp(): the Camp button. On the road it halts the march; standing still it opens the camp screen (campOpen, 56-camp.js) in a real page,
    else (headless, no camp screen, or called from inside an open screen) rests at once: campRest(). */
 function camp(){if(G.moving){G.moving=false;G.route=[];return}if(typeof campOpen==='function'&&!sheetOpen&&mode==='world'&&typeof tvCan==='function'&&tvCan()){campOpen();return}return campRest()}
@@ -630,7 +636,7 @@ function rvTookFail(pc,r,news){const why=`${r.n} reached ${pc.stages&&pc.stages[
  if(typeof ctrRivalFail==='function')ctrRivalFail(pc,r,why);else{pc.failed=true;if(G.contract===pc)G.contract=null}
  const t=`Contract lost: ${why} and claimed ${pc.title.charAt(0).toLowerCase()+pc.title.slice(1)}`;news.unshift(worldNews(t));if(typeof toast==='function')toast(t)}
 /* ---- choosing work: the company's own racing target, a board nearby, a nest ---- */
-const RV_RACE=['hunt','beast','bounty','nest'],RV_TAKE=['hunt','beast','bounty','nest','patrol','relic','defend'];
+const RV_RACE=['hunt','beast','bounty','nest'],RV_TAKE=['hunt','beast','bounty','nest','patrol','relic','defend','crdefend','crhunt','crlib'];
 function rvGoStage(c){if(!c||!Array.isArray(c.stages))return null;for(let i=c.stage|0;i<c.stages.length;i++){const s=c.stages[i];if(s&&s.k==='go'&&s.fight)return s}return null}
 function rvDist(r,x,y){return Math.hypot(r.x-x,r.y-y)/TS}
 function rvJobFrom(c,s,ti){const eta=Math.ceil(Math.hypot(s.x-(G.towns[ti]||s).x,s.y-(G.towns[ti]||s).y)/TS/RV.speed)+1;return{ti,x:s.x,y:s.y,type:c.type,f:s.fight.f,diff:clamp(c.diff|0,1,5),pay:Math.round((c.pay||0)*.9),title:c.title,due:Math.max(svFin(c.due)?c.due:0,G.day+eta+6),day:G.day,nest:c.nest!=null?c.nest:undefined}}

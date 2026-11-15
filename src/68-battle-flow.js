@@ -52,9 +52,10 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    if(Array.isArray(L)){const herb=typeof followerHas==='function'&&followerHas('herbalist'),by={};
     for(const x of L){if(!x||typeof x.key!=='string'||!(x.n>0))continue;if(typeof PARTS!=='undefined'&&!PARTS[x.key])continue;by[x.key]=(by[x.key]||0)+Math.floor(x.n)}
     if(!G.parts||typeof G.parts!=='object')G.parts={};for(const k in by){let n=by[k];if(herb&&rnd()<.5)n++;G.parts[k]=(G.parts[k]||0)+n;res.parts.push({key:k,n})}}}}
+ if(typeof fabledResolve==='function')fabledResolve(b,res,win);   // fabled warriors: permanent death, named gear, duels (21-fabled.js)
  if(typeof ambEvent==='function')ambEvent('battle',res);
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
- b.result=res;return res}
+ b.result=res;if(typeof runOnBattle==='function'){try{runOnBattle(res,b)}catch(e){}}return res}   // the run record (22-run.js; idempotent)
 /* ---- rival companies (CONTRACT.md) ----
    rivalResolve(b,res,win) writes res.rival = {id, n, dead:[names], down:[names], fled:[names], ok:[names], routed, purse, renown,
    loot:[{id,k,worn:[left,max]|null}], joiner:{id,name,lvl,bg,bgN,room,taken,declined}|null, wiped} and applies it:
@@ -89,7 +90,7 @@ function rivalJoin(res){res=res||(typeof B!=='undefined'&&B&&B.result)||null;con
  if(!(typeof canRecruit!=='function'||canRecruit())){j.solo=true;return null}
  if(G.roster.length>=MAXROSTER){j.room=false;return null}const r=battleRival(rr.id),i=r?r.roster.findIndex(m=>m.id===j.id):-1;if(i<0)return null;
  const m=r.roster.splice(i,1)[0];if(G.roster.some(x=>x.id===m.id)||!Number.isInteger(m.id))m.id=G.nid++;delete m.rv;delete m.dead;m.slot=null;m.hp=Math.max(1,m.hp);
- m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);j.taken=true;j.id=m.id;if(!r.roster.length){rr.wiped=true;if(!(typeof B!=='undefined'&&B)&&typeof rvWipe==='function')rvWipe(r,'when its last sword joined '+(G.name||'the company'))}return m}   // before settleBattle the world wipes it itself
+ m.field=G.roster.filter(x=>x.field).length<MAXFIELD;G.roster.push(m);if(m.fabled&&typeof fabledSet==='function')fabledSet(m.fabled,'joined');j.taken=true;j.id=m.id;if(!r.roster.length){rr.wiped=true;if(!(typeof B!=='undefined'&&B)&&typeof rvWipe==='function')rvWipe(r,'when its last sword joined '+(G.name||'the company'))}return m}   // before settleBattle the world wipes it itself
 // The cargo of the caravan a won battle was against, for the results sheet: {good, text} (cargoText, 40-world.js), or null.
 // It is the world's to hand over (cargoTake, from worldBattleEnd in settleBattle); this only reads it.
 function caravanCargo(s){if(!s||s.type!=='party'||!G||!Array.isArray(G.parties))return null;const p=G.parties.find(q=>q.id===s.id);if(!p||p.goal!=='caravan'||!p.cargo)return null;
@@ -140,12 +141,19 @@ function brRival(res){const rr=res.rival;if(!rr)return'';const r=typeof battleRi
 // The joiner's answer from the results sheet (UI: no randomness). Redraws the sheet.
 function brJoin(yes){const res=B&&B.result;if(!res||!res.rival||!res.rival.joiner)return;const j=res.rival.joiner;if(yes){if(!rivalJoin(res)&&typeof toast==='function')toast(j.solo?(typeof recruitWhy==='function'?recruitWhy():'You ride alone'):j.room?'He cannot join now':'The roster is full')}else j.declined=true;
  if(typeof sheet==='function')sheet(battleResultHTML(res))}
+// The fabled warriors of the battle (res.fabled from 21-fabled.js fabledResolve): who fell for good, who yielded, what named gear was taken.
+function brFabled(res){const L=res.fabled||[];if(!L.length)return'';return L.map(x=>{const nm=`<b>${x.n}</b>, ${x.title},`;
+ if(x.side===0)return x.fate==='dead'?`<p class="bad br-fab">${nm} has fallen. The songs will end there.</p>`:'';
+ if(x.fate==='yielded')return`<p class="good br-fab">${nm} yields the duel, and will ride with a company that can beat them.</p>`;
+ if(x.fate==='dead')return`<p class="good br-fab">${nm} is dead, for good.${x.drops.length?' You take '+x.drops.map(g=>`<b class="fmd-n">${ITEMS[g].n}</b>`).join(' and ')+'.':''}</p>`;
+ return`<p class="dim br-fab">${nm} ${x.fate==='down'?'is carried from the field by their own':x.fate==='fled'?'leaves the field':'still stands'}.</p>`}).join('')}
 function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'||r.inj.length||r.arm||r.helm||r.lvl||r.shield),fine=(res.men||[]).length-men.length;let h;
  if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
  h+=brObjLine(res);
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
  h+=brRival(res);
+ h+=brFabled(res);
  if(res.win&&res.cargo){const grid=typeof lkCargoLinesHTML==='function'&&res.cargo.lines?lkCargoLinesHTML(res.cargo.lines):'';h+=`<p class="br-cargo">${brIcon(['cargo','stash'])}<span>The caravan's cargo is yours${!grid&&res.cargo.text?': '+res.cargo.text:''}.</span></p>`+grid}
  if(res.win&&res.parts&&res.parts.length)h+=`<div class="br-parts"><span class="br-ph">${brIcon(['parts','stash'])}Monster parts${typeof followerHas==='function'&&followerHas('herbalist')?' <small>(herbalist)</small>':''}</span>${res.parts.map(x=>{const P=typeof PARTS!=='undefined'&&PARTS[x.key]||{};return`<span class="br-pt">${typeof pxIcon==='function'?pxIcon(P.icon||'part-'+x.key,16):''}<b>${P.n||x.key}</b><i>x${x.n}</i></span>`}).join('')}</div>`;
  if(res.win&&res.xpK>1)h+=`<p class="dim br-drill">${brIcon('xp')}The drillmaster drives them on: +${Math.round((res.xpK-1)*100)}% experience.</p>`;
@@ -179,13 +187,14 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
   if(!win){G.dun=null;out.toast='The rift spits you back out'}
   else if(d.stage<2){d.stage++;G.roster.forEach(m=>{const mx=calc(m).hp;m.hp=Math.min(mx,m.hp+Math.round(mx*.15))});return{kind:'dunNext',stage:d.stage,realm:d.realm}}
   else{const pay=Math.round((800+G.day*20)*(typeof originK==='function'?originK('rift'):1));G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');if(typeof ambEvent==='function')ambEvent('rift');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
-   if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total)G.crisis.ended=ended=true}
+   if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total){ended=true;if(typeof crisisEnd==='function'){try{crisisEnd(true)}catch(e){G.crisis.ended=true}}else G.crisis.ended=true;G.crisis.ended=true}}
    return{kind:'dunDone',pay,ended}}}
  return out}
 // Rules: the company declines a battle it has not yet joined. The same price as sounding the retreat in one: a tenth of the
 // crowns dropped on the run, and whatever settleBattle() makes of a lost fight of that kind (a hunt is forfeit, a rift closes).
 function fleeEncounter(o){const c0=G.crowns;G.crowns=Math.floor(G.crowns*.9);const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
 function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
+ if(out.kind==='wiped'&&typeof runEnd==='function'){try{runEnd('wipe')}catch(e){}}
  if(out.kind==='wiped'){sheet((out.solo?`<h2>The hunt is over</h2><p>The slayer is dead, and nobody rides on in their name. The hunt lasted ${out.days} days.</p>`:`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p>`)+`<button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
  if(out.kind==='dunNext'){sheet(`<h2>${BIO[out.realm].n}</h2><p>${out.stage===1?'The path winds deeper. The air tastes of iron.':'A throne of fused stone. Something vast stirs upon it.'}</p><p class="dim">The company catches its breath (+15% HP). Battle ${out.stage+1} of 3.</p><button class="pri" onclick="dunBattle()">Press on</button>`);return out}
  if(out.kind==='dunDone'){let msg=`<h2>The rift collapses</h2><p>The tyrant falls and the tear in the world seals behind you. You carry out <span class="coin">${out.pay} crowns</span> of strange gold and a rift-forged blade.</p>`;

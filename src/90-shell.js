@@ -170,7 +170,8 @@ function costPopRender(force){const e=CP.el;if(!e||e.hidden)return;const k=costP
 function costPopPlace(){const e=CP.el,b=CP.from;if(!e||e.hidden)return;const hud=$('hud'),hr=hud?hud.getBoundingClientRect():{bottom:40},vw=innerWidth,br=b&&b.getBoundingClientRect?b.getBoundingClientRect():{left:12};
  const rail=$('wbar'),rx=rail&&!rail.classList.contains('hidden')&&rail.getBoundingClientRect().width?rail.getBoundingClientRect().left:vw,w=e.offsetWidth,left=clamp(Math.round(br.left-8),6,Math.max(6,rx-w-6));e.style.left=left+'px';e.style.top=Math.round(hr.bottom+4)+'px';e.style.maxHeight=Math.max(160,innerHeight-hr.bottom-12)+'px'}
 function costPopClose(refocus){const e=CP.el;if(!e||e.hidden)return;e.hidden=true;document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded','false'));if(refocus&&CP.from&&CP.from.focus)try{CP.from.focus({preventScroll:true})}catch(er){}CP.from=null}
-function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world'){worldChrome();rivalWonCheck()}
+function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world'){worldChrome();rivalWonCheck();runShellTick()}
+ if(typeof tutTick==='function')tutTick();
  if(CP.el&&!CP.el.hidden){if(mode!=='world'||sheetOpen)costPopClose(false);else costPopRender(false)}}
 
 /* ---- a rival racing the company for its contract's target (16-contracts.js ctrRace): the Contract button wears their pennant and says so ---- */
@@ -190,11 +191,25 @@ function menuSheet(){const b=G&&typeof bannerHTML==='function'?bannerHTML(G.bann
 <p class="dim">The company's book is kept in this browser. It is written whenever you enter a town or finish a battle.</p>
 <div class="menu">${mbtn('back','Back to the march','Close this menu','closeSheet()','pri','play')}
 ${G&&Array.isArray(G.houses)&&G.houses.length&&typeof factionsSheet==='function'?mbtn('factions','Factions','Houses, wars and your standing','closeSheet();factionsSheet()','',''):''}
-${mbtn('save','Save now','Write the ledger','menuSave()','','save')}
+${G&&G.ironman?mbtn('ironman','Ironman','The book writes itself: no saving, no reloads','toast(\'The ironman book is written as you march\')','',''):mbtn('save','Save now','Write the ledger','menuSave()','','save')}
+${menuExtra()}
+${mbtn('ledger','Books','Three save books, export and import','slotsSheet()','','')}
+${mbtn('laurel','Chronicle','This march so far: battles, kills, the finest','runChronicle()','','')}
+${mbtn('hall','Hall of the fallen','Every sword lost, from every company','hallSheet()','','')}
 ${mbtn('settings','Settings','Speed, colours, motion','settingsSheet()','','sun')}
 ${mbtn('info','How to play','Controls and the rules of the road','howSheet()','','scroll')}
 ${mbtn('close','Quit to title','Saves first','quitToTitle()','','door')}
-${mbtn('skull','Abandon company','Start over from nothing','confirmNew()','warn','skull')}</div>`)}
+${mbtn('banner','Retire the company','End this march and read its chronicle','retireConfirm()','warn','banner')}</div>`)}
+/* entries the content agents' sheets hang on (typeof-guarded): the crisis (18-crises.js crisisSheet), the Eastern War (19-east.js
+   eastWarSheet, once the war has come), fabled warriors (21-fabled.js openFabled) */
+function menuExtra(){if(!G)return'';let h='';
+ if(typeof crisisSheet==='function'&&(G.crisis||G.day>=(G.crisisDay||18)-3)){let n='The crisis';try{const C=typeof CRISES==='object'&&CRISES&&CRISES[G.crisisKind];if(C&&C.n)n=C.n}catch(e){}h+=mbtn('boss',htmlEsc(n),'The crisis sheet: what it is and how to end it','closeSheet(true);crisisSheet()','','')}
+ if(typeof eastWarSheet==='function'&&(typeof eastWarOn!=='function'||eastWarOn()))h+=mbtn('flag','The Eastern War','Choose a side, or stay out and profit','closeSheet(true);eastWarSheet()','','flag');
+ if(typeof openFabled==='function')h+=mbtn('star','Fabled warriors','Named fighters of legend: met, joined, fallen','closeSheet(true);openFabled()','','gem');
+ return h}
+// the world shell's run duties (chromeTick): the crisis outcome and the victory summary, an ironman book written every new day
+let _ironDay=0;
+function runShellTick(){if(!G)return;if(typeof runTick==='function')runTick();if(G.ironman&&!sheetOpen&&G.day!==_ironDay){if(_ironDay)save();_ironDay=G.day}}
 function menuSave(){save();toast('Saved');closeSheet()}
 function quitToTitle(){save();closeSheet(true);mode='title';setUI()}
 function confirmNew(){const st=saveStatus(),nm=st.name?htmlEsc(st.name):'This company';
@@ -204,7 +219,7 @@ function confirmNew(){const st=saveStatus(),nm=st.name?htmlEsc(st.name):'This co
    NCS holds the choices while the dialog is open. Cosmetic dice use Math.random (never the game stream). */
 const NCNAMES=['The Ashen Banner','The Grey Wolves','The Brass Lanterns','The Sundered Oath','Kestrel Company','The Black Hollow','The Last Pennant','Thornmarch Swords','The Hollow Crowns',
  'The Saltmarsh Irregulars','The Iron Ravens','The Lantern Guard','The Oathless','The Ninefold Shield','The Cinder Company','The Wayward Spears','The Stag Riders','The Long Road Company'];
-const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',origin:'free',open:false};
+const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',origin:'free',diff:'normal',iron:false,tut:false,slot:0,open:false};
 /* origins (events agent's ORIGINS): icon, name, the story, and the one rule each, picked in the setup dialog */
 const NCORIC={slayer:'or-slayer',free:'or-free',deserters:'or-deserters',noble:'or-noble',academy:'or-academy',beast:'or-hunters',hunters:'or-hunters',pilgrims:'or-pilgrims'};
 function ncOrigins(){return typeof ORIGINS==='object'&&ORIGINS?Object.keys(ORIGINS):[]}
@@ -213,13 +228,19 @@ function ncOriginHTML(){const L=ncOrigins();if(!L.length)return'';if(!ORIGINS[NC
  return`<div class="ncs-sec"><b>Origin</b><small>How the company began: its first swords, purse and one rule</small></div><div class="ncs-ors" role="radiogroup" aria-label="Origin">${L.map(k=>{const o=ORIGINS[k];return`<button class="ncs-or${NCS.origin===k?' on':''}" role="radio" aria-checked="${NCS.origin===k}" onclick="ncSet('origin','${k}')">${pnIcon(ncOrIcon(k),'',32)}<b>${htmlEsc(o.n)}</b></button>`}).join('')}</div>
  <div class="ncs-ord">${pnIcon(ncOrIcon(NCS.origin),'',32)}<div><b>${htmlEsc(O.n)}</b><p>${htmlEsc(O.d||'')}</p>${O.rule?`<p class="ncs-rule"><i>Rule</i>${htmlEsc(O.rule)}</p>`:''}${typeof O.crowns==='number'?`<p class="ncs-orf">${pnIcon('coin','',16)}${O.crowns} crowns${Array.isArray(O.roster)?` · ${O.roster.length} swords`:''}</p>`:''}</div></div>`}
 function ncRand(a){return a[Math.floor(Math.random()*a.length)]}
-function newCompanySetup(){const st=saveStatus();if(st.state==='newer'||st.state==='corrupt'){saveNotice(st);return}
- NCS.name=ncRand(NCNAMES);NCS.wsize='small';NCS.origin='free';const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.open=true;
+function newCompanySetup(){let st=saveStatus();if(st.state!=='none'){const f=slotFree();if(f<0){if(st.state==='newer'||st.state==='corrupt'){saveNotice(st);return}ncFull();return}slotUse(f);st=saveStatus()}
+ NCS.slot=SLOT;NCS.name=ncRand(NCNAMES);NCS.wsize='small';NCS.origin='free';NCS.diff='normal';NCS.iron=false;NCS.tut=typeof tutWanted==='function'?tutWanted():false;const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.open=true;
  sheet(`<div class="row sp seth ncs-h"><h2>Raise a company</h2><button onclick="ncCancel()">Back</button></div>
 <div class="ncs"><div class="ncs-l"><div class="ncs-flag" id="ncsFlag"></div>
  <label class="ncs-nl" for="ncsName">Company name</label><div class="ncs-name"><input id="ncsName" type="text" maxlength="${NAMEMAX}" autocomplete="off" spellcheck="false" value="${htmlEsc(NCS.name)}" oninput="ncName(this.value)" onkeydown="if(event.key==='Enter'){this.blur()}"><button class="pxb sm icon" aria-label="Suggest a name" title="Suggest a name" onclick="ncDice()">${pnIcon('dice','',16)}</button></div>
  <button class="pri big ncs-go" onclick="ncBegin()"><b>Begin</b><small id="ncsGoSub"></small></button></div>
  <div class="ncs-r" id="ncsOpts"></div></div>`,'wide');ncDraw()}
+function ncFull(){sheet(`<h2>Every book is full</h2><p>Three companies are already kept in this browser. Burn a book, or export one to keep it safe, to raise a new company.</p><div class="row"><button onclick="${mode==='title'?'closeSheet(true)':'menuSheet()'}">Back</button><button class="pri" style="flex:1" onclick="slotsSheet()">${pic('ledger',16)}<span>The books</span></button></div>`)}
+function ncDiffHTML(){const D=DIFF[NCS.diff]||DIFF.normal;
+ return`<div class="ncs-sec"><b>Difficulty</b><small>${htmlEsc(D.d)}</small></div><div class="ncs-sizes ncs-diffs" role="radiogroup" aria-label="Difficulty">${DIFFK.map(k=>`<button class="ncs-size ncs-diff d-${k}${NCS.diff===k?' on':''}" role="radio" aria-checked="${NCS.diff===k}" onclick="ncSet('diff','${k}')">${pnIcon('diff-'+k,'',16)}<b>${DIFF[k].n}</b></button>`).join('')}</div>
+ <ul class="ncs-dl">${D.line.map(x=>`<li>${htmlEsc(x)}</li>`).join('')}</ul>
+ <div class="ncs-tg"><button class="ncs-tog${NCS.iron?' on':''}" role="switch" aria-checked="${NCS.iron}" onclick="ncSet('iron',!NCS.iron)">${pnIcon('ironman','',32)}<span><b>Ironman</b><small>One book that writes itself. No reloads: a lost battle stays lost, and death or retirement ends the march.</small></span><i class="ncs-sw2" aria-hidden="true"></i></button>
+ <button class="ncs-tog${NCS.tut?' on':''}" role="switch" aria-checked="${NCS.tut}" onclick="ncSet('tut',!NCS.tut)">${pnIcon('hint','',32)}<span><b>Tutorial contract</b><small>A first, gentle job with hints over the real screens: marching, fighting, the odds, healing and the pay.${typeof tutDone==='function'&&tutDone()?' (You have finished it before.)':''}</small></span><i class="ncs-sw2" aria-hidden="true"></i></button></div>`}
 function ncCancel(){NCS.open=false;if(mode==='title')closeSheet(true);else menuSheet()}
 function ncName(v){NCS.name=String(v||'').slice(0,NAMEMAX);ncFlag()}
 function ncDice(){let n=NCS.name;for(let i=0;i<6&&n===NCS.name;i++)n=ncRand(NCNAMES);NCS.name=n;const e=$('ncsName');if(e)e.value=n;ncFlag()}
@@ -227,15 +248,15 @@ function ncSet(k,v){if(k==='c1'&&v===NCS.c2)NCS.c2=NCS.c1;else if(k==='c2'&&v===
 function ncShuffle(){const ks=Object.keys(BANNERC);NCS.c1=ncRand(ks);do{NCS.c2=ncRand(ks)}while(NCS.c2===NCS.c1);NCS.emblem=ncRand(Object.keys(EMBLEMS));ncDraw()}
 function ncFlag(){const f=$('ncsFlag');if(!f)return;const b={name:NCS.name,c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem};
  f.innerHTML=`${bannerHTML(b,128,'ncs-big')}<div class="ncs-cap"><b>${htmlEsc(cleanName(NCS.name))}</b><small>${BANNERC[NCS.c2].n} ${EMBLEMS[NCS.emblem].n.toLowerCase()} on ${BANNERC[NCS.c1].n.toLowerCase()}</small></div>`;
- const g=$('ncsGoSub');if(g)g.textContent=`${typeof ORIGINS==='object'&&ORIGINS&&ORIGINS[NCS.origin]&&NCS.origin!=='free'?ORIGINS[NCS.origin].n+', ':''}${WORLDSZ[NCS.wsize].name} world, ${WORLDSZ[NCS.wsize].towns} towns`}
+ const g=$('ncsGoSub');if(g)g.textContent=`${typeof ORIGINS==='object'&&ORIGINS&&ORIGINS[NCS.origin]&&NCS.origin!=='free'?ORIGINS[NCS.origin].n+', ':''}${WORLDSZ[NCS.wsize].name} world · ${DIFF[NCS.diff].n}${NCS.iron?' · Ironman':''} · book ${NCS.slot+1}`}
 function ncDraw(){const o=$('ncsOpts');if(!o)return;const st=o.scrollTop;
  const sw=(k,c)=>`<button class="ncs-sw${NCS[k]===c?' on':''}" role="radio" aria-checked="${NCS[k]===c}" title="${BANNERC[c].n}" aria-label="${BANNERC[c].n}" onclick="ncSet('${k}','${c}')"><i style="background:linear-gradient(180deg,${PAL[BANNERC[c].r[2]]} 0 25%,${PAL[BANNERC[c].r[1]]} 25% 75%,${PAL[BANNERC[c].r[0]]} 75%)"></i></button>`;
- o.innerHTML=ncOriginHTML()+`<div class="ncs-sec"><b>Land</b><small>${WORLDSZ[NCS.wsize].note}</small></div><div class="ncs-sizes" role="radiogroup" aria-label="World size">${Object.keys(WORLDSZ).map(k=>{const z=WORLDSZ[k];return`<button class="ncs-size${NCS.wsize===k?' on':''}" role="radio" aria-checked="${NCS.wsize===k}" onclick="ncSet('wsize','${k}')"><b>${z.name}</b><small>${z.n}×${z.n} · ${z.towns} towns</small></button>`}).join('')}</div>
+ o.innerHTML=ncOriginHTML()+ncDiffHTML()+`<div class="ncs-sec"><b>Land</b><small>${WORLDSZ[NCS.wsize].note}</small></div><div class="ncs-sizes" role="radiogroup" aria-label="World size">${Object.keys(WORLDSZ).map(k=>{const z=WORLDSZ[k];return`<button class="ncs-size${NCS.wsize===k?' on':''}" role="radio" aria-checked="${NCS.wsize===k}" onclick="ncSet('wsize','${k}')"><b>${z.name}</b><small>${z.n}×${z.n} · ${z.towns} towns</small></button>`}).join('')}</div>
  <div class="ncs-sec"><b>Field</b><small>${BANNERC[NCS.c1].n}</small><button class="pxb sm ncs-rnd" onclick="ncShuffle()" title="Roll a banner">${pnIcon('dice','',16)}<span>Roll</span></button></div><div class="ncs-sws" role="radiogroup" aria-label="Field colour">${Object.keys(BANNERC).map(c=>sw('c1',c)).join('')}</div>
  <div class="ncs-sec"><b>Charge</b><small>${BANNERC[NCS.c2].n}: the border and the emblem</small></div><div class="ncs-sws" role="radiogroup" aria-label="Charge colour">${Object.keys(BANNERC).map(c=>sw('c2',c)).join('')}</div>
  <div class="ncs-sec"><b>Emblem</b><small>${EMBLEMS[NCS.emblem].n}</small></div><div class="ncs-ems" role="radiogroup" aria-label="Emblem">${Object.keys(EMBLEMS).map(e=>`<button class="ncs-em${NCS.emblem===e?' on':''}" role="radio" aria-checked="${NCS.emblem===e}" title="${EMBLEMS[e].n}" aria-label="${EMBLEMS[e].n}" onclick="ncSet('emblem','${e}')">${emblemHTML(e,NCS.c2,NCS.c1,32)}</button>`).join('')}</div>`;
  o.scrollTop=st;ncFlag()}
-function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:{c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem},origin:NCS.origin})}
+function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:{c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem},origin:NCS.origin,diff:NCS.diff,ironman:NCS.iron,tutorial:NCS.tut,slot:NCS.slot})}
 
 /* ---- how to play, credits ---- */
 function howSheet(){const r=(ic,svg,t,d)=>`<div class="how-r">${ic==='map'?'<i class="pxi pxi-map s32" aria-hidden="true"></i>':pic(ic,32,svg)}<div><b>${t}</b><p>${d}</p></div></div>`;
@@ -287,18 +308,18 @@ function renderTitle(){
  const st=saveStatus(),s=st.state==='ok'?st:null,bk=s&&s.banner?s.banner.c1+s.banner.c2:'';if(bk!==(_titleBn&&_titleBn.k)){_titleBn=s&&s.banner?{k:bk,b:s.banner}:null;drawTitleArt(true)}else drawTitleArt();
  const has=!!s,fs=canFullscreen(),icon=titleIcon();
  const tb=(on,ic,label,cls)=>`<button class="tm ${cls||''}" onclick="${on}">${ic}<span>${label}</span></button>`;
- const card=has?`<button class="pri big tcont" onclick="continueGame()">${typeof bannerHTML==='function'?bannerHTML(s.banner,44,'tbn'):''}<span class="tcm"><b>Continue</b><span class="tcn">${htmlEsc(s.name||BANNERDEF.name)}</span><small>Day ${s.day||1} · ${s.swords} sword${s.swords===1?'':'s'} · ${s.crowns||0} crowns${s.wsize&&WORLDSZ[s.wsize]?' · '+WORLDSZ[s.wsize].name+' world':''}</small></span></button>`
+ const card=has?`<button class="pri big tcont" onclick="continueGame()">${typeof bannerHTML==='function'?bannerHTML(s.banner,44,'tbn'):''}<span class="tcm"><b>Continue</b><span class="tcn">${htmlEsc(s.name||BANNERDEF.name)}</span><small>Day ${s.day||1} · ${s.swords} sword${s.swords===1?'':'s'} · ${s.crowns||0} crowns · ${DIFF[s.diff]?DIFF[s.diff].n:'Normal'}${s.ironman?' · Ironman':''} · book ${SLOT+1}</small></span></button>`
   :st.state==='newer'||st.state==='corrupt'?`<button class="big tcont warn" onclick="saveNotice(saveStatus())"><span class="tcm"><b>${st.state==='newer'?'A newer save':'A damaged save'}</b><small>It cannot be opened here. Tap for more</small></span></button>`:'';
  $('titleBox').innerHTML=`<p class="over">${icon}A free company chronicle</p><h1>Wyrdmarch</h1><div class="rule" aria-hidden="true"><i></i></div>
 <p class="lede">Lead a free company across a wild land. Take contracts, bury friends, and learn what the four gifts are worth.</p>
 <div class="gifts" aria-hidden="true">${RESK.map(k=>`<span style="--gc:${RESC[k]}">${RESN[k]}</span>`).join('')}</div>
 <nav class="tmenu" aria-label="Main menu">${card}${has?'':`<button class="pri big tcont" onclick="newCompanySetup()"><span class="tcm"><b>Raise a company</b><small>Name it, choose the land and the banner</small></span></button>`}
-<div class="tgrid">${has?tb('confirmNew()',pic('banner',16,'banner'),'New company'):''}${tb('settingsSheet()',pic('settings',16,'sun'),'Settings')}${tb('howSheet()',pic('info',16,'scroll'),'How to play')}${tb('creditsSheet()',pic('star',16,'gem'),'Credits')}</div></nav>`;
+<div class="tgrid${has?' six':''}">${has?tb('newCompanySetup()',pic('banner',16,'banner'),'New company'):''}${tb('slotsSheet()',pic('ledger',16),'Books')}${tb('hallSheet()',pic('hall',16),'The fallen')}${tb('settingsSheet()',pic('settings',16,'sun'),'Settings')}${tb('howSheet()',pic('info',16,'scroll'),'How to play')}${has?'':tb('creditsSheet()',pic('star',16,'gem'),'Credits')}</div></nav>`;
  const T=$('title');let tc=T.querySelector('.tcorner');
  if(!tc){tc=document.createElement('div');tc.className='tcorner';T.appendChild(tc)}
  tc.innerHTML=fs?'<button class="ghost fsb" onclick="toggleFullscreen()">'+pic('fullscreen',16,'full')+'<span>Fullscreen</span></button>':''}
 
-function boot(){loadSettings();wirePress();if(typeof initBattleHud==='function')initBattleHud();resize();mode='title';setUI();
+function boot(){loadSettings();slotLoad();wirePress();if(typeof initBattleHud==='function')initBattleHud();resize();mode='title';setUI();
  const lay=()=>{Layout.update();if(mode==='title')drawTitleArt()};window.addEventListener('resize',lay);window.addEventListener('orientationchange',()=>{lay();setTimeout(lay,250)});
  try{if(window.visualViewport)window.visualViewport.addEventListener('resize',lay)}catch(e){}
  ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{lay();setTimeout(lay,250);settingsRefresh()}));

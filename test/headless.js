@@ -139,6 +139,7 @@ async function march(X,x,y,dest,log,via){const G=X.G;if(via)X.setRoute([via,{x,y
 async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.length=0;X.newGame(true);ok(X.mode==='world'&&X.sheetOpen,'newGame did not open the world');closeAll(X);
  const G=X.G;ok(G.roster.length===4&&G.towns.length>=10&&G.towns.length<=12&&G.sites.length>=5&&G.weather&&G.v===X.SAVEVER,'unexpected new game state');scan(G,'G');
  G.crowns+=60000;                                     // fixture: the test is about rules, not about going broke
+ if(G.crisisKind!==undefined)G.crisisKind='sunder';    // fixture: the rift dungeon coverage needs the Sundering (the other crises: test/crises.js)
  G.roster.forEach(m=>{m.base.hp+=30;m.base.ms+=12;m.base.md+=8;m.base.brv+=25;m.hp=X.calc(m).hp});   // ... nor about four green swords surviving a month on autopilot (the auto-battle table below measures balance)
  let here=0,loops=0,vet=false,rifts=0;const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  const wages=()=>typeof X.companyWages==='function'?X.companyWages():G.roster.reduce((n,m)=>n+(X.mercWage?X.mercWage(m):X.BG[m.bg].wage),0),mark=()=>({c:G.crowns,d:G.day,w:wages()}),paid=(m,pay)=>G.crowns>=m.c+pay-m.w*(G.day-m.d);   // wages fall due on the road
@@ -162,7 +163,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
   scan(G,'G');closeAll(X)};
  ok(await town(0)==='ok','could not enter the first town');
  while(loops++<80){if(!G.roster.length)return'wiped';inTown();
-  if(G.crisis&&!flags.crisis){flags.crisis=true;ok(G.portals.length===3,'the crisis did not open three rifts')}
+  if(G.crisis&&!flags.crisis){flags.crisis=true;if(!G.crisisKind||G.crisisKind==='sunder')ok(G.portals.length===3,'the crisis did not open three rifts')}
   if(G.crisis&&!vet){vet=true;while(G.roster.length<12){const m=X.newMerc(BGS[G.roster.length]);m.field=true;G.roster.push(m)}G.roster.forEach(m=>{m.field=true});G.roster.forEach(m=>X.gainXP(m,Math.max(0,X.XPT[X.MAXLV]-m.xp)));for(let n=0;n<12;n++)TIERS[3].gear.forEach(id=>G.stash.push(id));levelUps(X,flags);gearUp(X,flags);
    G.roster.forEach(m=>{if(!m.hero){m.hero=1;m.base.hp+=120;m.base.ms+=35;m.base.rs+=35;m.base.md+=25;m.base.rd+=25;m.base.brv+=80}});closeAll(X)}   // fixture: heroes for the rift, so that this walk through the campaign does not hang on the balance of the day
   if(G.crisis&&!flags.dungeon&&G.portals.length&&rifts<8){rifts++;G.roster.forEach(m=>{m.hp=X.calc(m).hp});const p=G.portals[0];
@@ -302,7 +303,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    X.store.set(X.SAVEKEY,JSON.stringify(odd));X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.roster[0].eq.w===null&&!X.G.stash.includes('no_such_item')&&X.G.crowns===0&&X.G.contract===null&&X.G.dun===null,'a damaged but usable save was not repaired');scan(X.G,'G');
    X.store.set(X.SAVEKEY,JSON.stringify(Object.assign({},g0,{roster:[]})));ok(X.readSave().state==='none','a company with nobody left must count as no save');
    X.store.clear();X.seedRng(SEED+2);X.newGame(true);closeAll(X);X.G.day=X.G.crisisDay-1;X.G.hour=23;X.G.crowns=5000;X.openTown(0);ok(X.sheetOpen,'the town did not open');X.sheets.length=0;X.innRest();
-   ok(X.G.crisis&&X.G.note==='crisis','a crisis that starts inside a town must wait to be announced');closeAll(X);X.worldTick(.05);ok(X.G.note===null&&/The Sundering/.test(X.sheets.join()),'the deferred crisis announcement was not shown');closeAll(X);
+   ok(X.G.crisis&&X.G.note==='crisis','a crisis that starts inside a town must wait to be announced');closeAll(X);X.worldTick(.05);{const CN=X.CRISES&&X.G.crisisKind&&X.CRISES[X.G.crisisKind]?X.CRISES[X.G.crisisKind].n:'The Sundering';ok(X.G.note===null&&X.sheets.join().indexOf(CN)>=0,'the deferred crisis announcement was not shown ('+CN+')')};closeAll(X);
 
    // a save from the 44x44 world (version 2): the company marches to the new lands
    { X.store.clear();X.seedRng(SEED+4);X.newGame(true);closeAll(X);X.G.crowns=4321;X.G.food=77;X.G.renown=55;X.G.day=23;X.G.stash.push('arming');ok(X.save(),'save failed');const v2=JSON.parse(X.store.get(X.SAVEKEY)),names=v2.roster.map(m=>m.name).join();
@@ -371,7 +372,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    ok(X.hurt(e0,30,.2,m0,{loc:1})===0&&e0.arm===70&&e0.helm===10&&seen('loc')[1].d.head===false,'a body hit must wear body armor only');
    ok(X.hurt(e0,40,.2,m0,{head:true,loc:1})===45&&e0.helm===0,'breaking through a helmet: (40-10) x1.5');ok(X.hurt(e0,20,.2,m0,{head:true})===30&&X.hurt(e0,20,.2,null)===0&&e0.arm===50,'bare head x1.5, plain hurt() goes to body armor');
    ok(X.hurt(e0,20,.2,m0,{pierce:1,loc:1})===20&&e0.arm===50,'a piercing blow must skip armor');
-   { const hs=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='h'&&!X.ITEMS[id].famed).map(id=>X.ITEMS[id]).sort((x,y)=>x.price-y.price||x.arm-y.arm);ok(hs.length>=12&&hs.every((h,i)=>h.arm>0&&h.price>0&&h.fat>=0&&(!i||(h.arm>hs[i-1].arm&&h.price>hs[i-1].price&&h.fat>=hs[i-1].fat))),'helmet tiers must rise in armor, weight and price');
+   { const hs=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='h'&&!X.ITEMS[id].famed&&!X.ITEMS[id].east).map(id=>X.ITEMS[id]).sort((x,y)=>x.price-y.price||x.arm-y.arm);ok(hs.length>=12&&hs.every((h,i)=>h.arm>0&&h.price>0&&h.fat>=0&&(!i||(h.arm>hs[i-1].arm&&h.price>hs[i-1].price&&h.fat>=hs[i-1].fat))),'helmet tiers must rise in armor, weight and price');
      const m=X.clone(roster[0]);m.eq.a='mail';m.eq.h=null;delete m.cond;const s0=X.calc(m);m.eq.h='nasal';const s1=X.calc(m);ok(s0.helm===0&&s1.helm===140&&s1.fat===s0.fat-7&&s1.arm===150,'calc() does not count the helmet');
      let u=X.mkPlayerUnit(m);ok(u.helm===140&&u.helmMax===140&&u.arm===150,'a fresh helmet must be whole');m.cond={a:10,h:50};u=X.mkPlayerUnit(m);ok(u.helm===50&&u.arm===10&&u.armMax===150&&u.helmMax===140,'armor condition must carry into battle');
      const c=X.armorCond(m);ok(c.a===10&&c.aMax===150&&c.h===50&&c.hMax===140,'armorCond() is wrong');X.setArmorCond(m,150,140);ok(m.cond===undefined,'whole armor must not keep a condition record');
@@ -455,7 +456,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    A.park();
    { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
        hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
-     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=2&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');const bid=it.famed&&it.base?it.base:id;ok(it.sk.join()===(((X.WSKID&&X.WSKID[bid])||(own[bid]&&own[bid].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
+     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){const bid=it.famed&&it.base?it.base:id,ea=!!(X.ITEMS[bid]&&X.ITEMS[bid].east);   // eastern gear (19-east.js): its own skill lists, up to three
+      ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=(ea?3:2)&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(ea||it.sk.join()===(((X.WSKID&&X.WSKID[bid])||(own[bid]&&own[bid].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
         ok(!!it.reload===it.sk.includes('reload')&&(!it.reload||(X.isRangedW(it)&&it.reload.ap>=2&&it.reload.fat>=0)),'weapon '+id+': reload weapons are ranged and carry the reload skill')}
       if(it.k==='s')ok(it.hp>0&&it.sk.join()===(it.spike?'shieldwall,spikebash':'shieldwall,bash')&&/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look),'shield '+id+' lacks hitpoints, skills or a look')}
      ok(X.ITEMS.pike.sk.join()==='impale'&&X.ITEMS.greataxe.sk.join()==='split,round','two-hander skills');for(const id in X.AB)ok(X.AB[id].n&&X.AB[id].d,'ability '+id+' lacks a name or description');
