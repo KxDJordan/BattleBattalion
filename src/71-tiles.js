@@ -240,6 +240,7 @@ function drawTilePx(q,x,y,o){const bk=TXM[o.bk]?o.bk:'plains',bi=TXBI[bk],ti=TXT
  let dL=o.dropL|0,dR=o.dropR|0;dL=dL<0?0:dL>5?5:dL;dR=dR<0?0:dR>5?5:dR;const sL=o.shL>0?(o.shL>2?2:o.shL|0):0,sR=o.shR>0?(o.shR>2?2:o.shR|0):0;
  let anim=false,f=0;if(txAnimated(bk,ti,c,r)&&!txRM()){anim=true;f=(o.frame|0)&7}
  x=Math.round(x);y=Math.round(y);
+ if(o.hd&&typeof drawTileHD==='function'){drawTileHD(q,x,y,bk,bi,ti,h,c,r,dL,dR,sL,sR,f);return anim}   // 71h-tileshd.js: the same tile at twice the resolution
  if(dL>0){const cv=txFace(bk,bi,0,h,dL,c,r,dR>0?(dL<dR?dL:dR):0);if(cv)q.drawImage(cv,x-16,y+1)}
  if(dR>0){const cv=txFace(bk,bi,1,h,dR,c,r,0);if(cv)q.drawImage(cv,x,y+1)}
  const key=((((((((bi*4+ti)*4+h)*3+sL)*3+sR)*2+(dL>0?1:0))*2+(dR>0?1:0))*64+(c&63))*64+(r&63))*8+f;let cv=TXC.get(key);
