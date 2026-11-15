@@ -60,7 +60,7 @@ const FXGC={};
 function fxSpr(id){let c=FXGC[id];if(c!==undefined)return c;if(id.slice(0,3)==='ic:'){c=null;try{const r=typeof iconRows==='function'?iconRows(id.slice(3)):null;if(r)c=px(r)}catch(e){}FXGC[id]=c;return c}const i=id.indexOf(':'),rows=FXG[i<0?id:id.slice(0,i)];c=null;
  if(rows){let map=null;if(i>=0){map={};const m=id.slice(i+1);for(let j=0;j+1<m.length;j+=2)map[m[j]]=m[j+1]}c=px(rows,map)}FXGC[id]=c;return c}
 const FXSIL=new WeakMap();
-function fxSil(cv,k){let m=FXSIL.get(cv);if(!m){m={};FXSIL.set(cv,m)}let c=m[k];if(c)return c;c=pxCanvas(cv.width,cv.height);if(!c)return null;const q=c.getContext('2d');q.drawImage(cv,0,0);q.globalCompositeOperation='source-in';q.fillStyle=PAL[k];q.fillRect(0,0,c.width,c.height);m[k]=c;return c}
+function fxSil(cv,k){let m=FXSIL.get(cv);if(!m){m={};FXSIL.set(cv,m)}let c=m[k];if(c)return c;c=pxCanvas(cv.width,cv.height);if(!c)return null;const q=c.getContext('2d');q.drawImage(cv,0,0);q.globalCompositeOperation='source-in';q.fillStyle=PAL[k];q.fillRect(0,0,c.width,c.height);if(cv.hdk)c.hdk=cv.hdk;m[k]=c;return c}
 const FXGL={};
 function fxGlowSpr(k){let s=FXGL[k];if(s)return s;s=pxCanvas(64,64);const q=s.getContext('2d'),gr=q.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,.9)');gr.addColorStop(.3,'rgba(255,255,255,.45)');gr.addColorStop(.65,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(255,255,255,0)');
  q.fillStyle=gr;q.fillRect(0,0,64,64);q.globalCompositeOperation='source-in';q.fillStyle=PAL[k];q.fillRect(0,0,64,64);FXGL[k]=s;return s}
@@ -512,7 +512,7 @@ let DQ=null,DOX=0,DOY=0,DS2=2,DAP=2;
 function A(ax,ay,w,h){const X=Math.round(DOX+ax*DS2),Y=Math.round(DOY+ay*DS2);DQ.fillRect(X,Y,Math.round(DOX+(ax+w)*DS2)-X,Math.round(DOY+(ay+h)*DS2)-Y)}
 function aLine(x0,y0,x1,y1,w){x0=Math.round(x0);y0=Math.round(y0);x1=Math.round(x1);y1=Math.round(y1);const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let e=dx-dy,n=0;w=w||1;const o=w>>1;
  for(;n<200;n++){A(x0-o,y0-o,w,w);if(x0===x1&&y0===y1)break;const e2=2*e;if(e2>-dy){e-=dy;x0+=sx}if(e2<dx){e+=dx;y0+=sy}}}
-function aSpr(c,ax,ay){if(c)DQ.drawImage(c,Math.round(DOX+ax*DS2),Math.round(DOY+ay*DS2),Math.round(c.width*DS2),Math.round(c.height*DS2))}
+function aSpr(c,ax,ay){if(c){const k=c.hdk||1;DQ.drawImage(c,Math.round(DOX+ax*DS2),Math.round(DOY+ay*DS2),Math.round(c.width*DS2/k),Math.round(c.height*DS2/k))}}   // hdk: an HD figure, 2 canvas px per art px
 function aArc(cx,cy,R,tail,head,ramp,sq,maxTh){const Rm=FXR[ramp],lo=Math.min(tail,head),span=Math.abs(head-tail);if(span<.05)return;const fwd=head>=tail,q=DQ,c0=Rm[0],c1=Rm[Math.min(Rm.length-1,2)],c2=Rm[Math.min(Rm.length-1,4)];let last='';
  for(let j=-R;j<=R;j++){const yy=j/sq;for(let i=-R;i<=R;i++){const r=Math.sqrt(i*i+yy*yy);if(r>R+.5||r<R-maxTh-.5)continue;let a=Math.atan2(yy,i)-lo;a-=Math.floor(a/6.2832)*6.2832;if(a>span)continue;
    let f=a/span;if(!fwd)f=1-f;const th=f<.72?.6+(maxTh-.6)*(f/.72):maxTh*(1-(f-.72)/.28)+.3,d=R+.5-r;if(d>th)continue;const c=d<1.2?c0:d<2.2?c1:c2;if(c!==last){q.fillStyle=c;last=c}A(cx+i,cy+j,1,1)}}}

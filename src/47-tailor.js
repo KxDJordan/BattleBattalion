@@ -46,12 +46,12 @@ function tlrRampCSS(r){return r?`linear-gradient(90deg,${PAL[r[0]]} 0 33%,${PAL[
 function tlrSwatch(part,k,on,title){const r=k?part==='metal'?finishRamp(k):dyeRamp(k):null;
  return`<button type="button" class="tl-sw${on?' on':''}${k?'':' plain'}" aria-pressed="${on}" title="${title}" aria-label="${title}" onclick="tailorPick('${part}',${k?`'${k}'`:'null'})"><i style="${r?'background:'+tlrRampCSS(r):''}"></i></button>`}
 /* the merc as it would look: the battle sprite (idle, facing the viewer) drawn 3x, or swatches when the art cannot draw it */
-function tlrSpriteHTML(m,sc){if(typeof unitSpritePx!=='function'||typeof document==='undefined')return'';try{const u={m,side:0,hp:1},f=unitSpritePx(u,1,'idle',0),cv=f&&(f.cv||f);if(!cv||!cv.width)return'';
+function tlrSpriteHTML(m,sc){if(typeof unitSpritePx!=='function'||typeof document==='undefined')return'';try{const u={m,side:0,hp:1},f=unitSpritePx(u,1,'idle',0),cv=f&&(f.cv||f),k=f&&f.k||1;if(!cv||!cv.width)return'';
   let bx=0,by=0,bw=cv.width,bh=cv.height;try{const d=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;let x0=bw,y0=bh,x1=-1,y1=-1;     // crop to the figure
    for(let y=0;y<bh;y++)for(let x=0;x<bw;x++)if(d[(y*bw+x)*4+3]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}if(x1>=0){bx=x0;by=y0;bw=x1-x0+1;bh=y1-y0+1}}catch(e){}
-  sc=Math.max(1,Math.min(sc,Math.floor(100/bh)||1,Math.floor(84/bw)||1));
+  sc=Math.max(1,Math.min(sc,Math.floor(100*k/bh)||1,Math.floor(84*k/bw)||1));   // k 2: an HD figure, shown at the art size (its canvas px fill a 2x screen)
   const c=document.createElement('canvas');c.width=bw*sc;c.height=bh*sc;const g=c.getContext('2d');if(!g||!g.drawImage)return'';g.imageSmoothingEnabled=false;g.drawImage(cv,bx,by,bw,bh,0,0,c.width,c.height);
-  const url=c.toDataURL();return url&&url.slice(0,5)==='data:'?`<img class="tl-spr" alt="" src="${url}" width="${c.width}" height="${c.height}">`:''}catch(e){return''}}
+  const url=c.toDataURL();return url&&url.slice(0,5)==='data:'?`<img class="tl-spr" alt="" src="${url}" width="${c.width/k}" height="${c.height/k}">`:''}catch(e){return''}}
 function tlrSwatchesOf(c){c=c||{};return TLR_PARTS.map(([p])=>{const r=c[p]?p==='metal'?finishRamp(c[p]):dyeRamp(c[p]):null;return`<i class="tl-dot${r?'':' plain'}" style="${r?'background:'+tlrRampCSS(r):''}"></i>`}).join('')}
 function tlrName(part,k){return!k?part==='metal'?FINISH.steel.n:'Plain':part==='metal'?FINISH[k].n:DYES[k].n}
 /* the town panel tab: {list, detail, foot, key} like the other tabs of townView */

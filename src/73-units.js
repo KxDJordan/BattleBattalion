@@ -1153,18 +1153,19 @@ function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=u
 function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?performance.now():0,S=L.S,v=face>=2?1:0,mir=face===1||face===2,d=US_DIM[L.big];
  usBegin(L.big);usCrk=S.shCrack?1:0;
  try{if(S.kind==='quad')usQuad(S.Q,v,mir,st,fr);else if(S.kind==='spider')usSpider(v,mir,st,fr);else usHuman(S,v,mir,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.err){US.err=1;console.error('unit sprite',L.key,st,fr,e)}}
+ if(typeof uhOut==='function'&&uhOn()){const o=uhOut(usG,L.big||S.armor==='plate',d.ax,d.ay,S.famed&&st!=='death',S.lgd);if(o){o.r=ARTHD.rev;US.builds++;if(t0)US.ms+=performance.now()-t0;return o}}   // Detail High: the HD figure (73h-unitshd.js)
  const cv=usResolve(usG,L.big||S.armor==='plate');let gl=null;if(S.famed&&st!=='death'){const Z=usG.Z,w=usG.w,a=[],on=i=>i>=0&&i<Z.length&&Z[i]&&usGL[Z[i]];for(let i=0;i<Z.length;i++)if(on(i)&&(!on(i-1)||!on(i+1)||!on(i-w)||!on(i+w)))a.push(i);if(a.length){a.sort((p,q)=>(p%w-((p/w)|0))-(q%w-((q/w)|0)));gl={a,w,lg:!!S.lgd}}}
- US.builds++;if(t0)US.ms+=performance.now()-t0;return{cv,ax:d.ax,ay:d.ay,gl}}
+ US.builds++;if(t0)US.ms+=performance.now()-t0;return{cv,ax:d.ax,ay:d.ay,gl,r:ARTHD.rev}}
 /* famed gear glints: a gold highlight runs along the famed weapon / armor / shield every ~1.5 s (4 precomputed frames per sprite frame, built on demand); still under reduced motion */
 function usRM(){try{if(typeof reduced!=='undefined'&&reduced)return true;if(typeof SET!=='undefined'&&SET&&SET.motion==='reduce')return true}catch(e){}return false}
 const US_GLN=4,US_GLP=14,US_GLMS=110;
 function usGlint(o){if(!o||!o.gl||!o.cv||usRM())return o;const t=typeof performance!=='undefined'?performance.now():Date.now(),ph=Math.floor(t/US_GLMS)%US_GLP;if(ph>=US_GLN)return o;const v=o.gv||(o.gv=[]);return v[ph]||(v[ph]=usGlintFrame(o,ph))}
 function usGlintFrame(o,ph){const c=pxCanvas(o.cv.width,o.cv.height);if(!c)return o;const q=c.getContext('2d');q.drawImage(o.cv,0,0);let im;try{im=q.getImageData(0,0,c.width,c.height)}catch(e){return o}
  const d=im.data,A=o.gl.a,w=o.gl.w,dg=i=>i%w-((i/w)|0),d0=dg(A[0]),d1=dg(A[A.length-1]),mid=d0+(d1-d0)*(ph+.5)/US_GLN,rgb=US.rgb||(US.rgb=usRGB());
- for(const i of A){const k=Math.abs(dg(i)-mid);if(k>1)continue;const j=i*4;if(d[j+3]===0)continue;const cc=rgb[o.gl.lg?(k<.75?'r':'C'):k<.75?'e':'d'];d[j]=cc[0];d[j+1]=cc[1];d[j+2]=cc[2]}q.putImageData(im,0,0);return{cv:c,ax:o.ax,ay:o.ay}}
+ const kk=o.k||1;for(const i of A){const k=Math.abs(dg(i)-mid)/kk;if(k>1)continue;const j=i*4;if(d[j+3]===0)continue;const cc=rgb[o.gl.lg?(k<.75?'r':'C'):k<.75?'e':'d'];d[j]=cc[0];d[j+1]=cc[1];d[j+2]=cc[2]}q.putImageData(im,0,0);if(o.k)c.hdk=o.k;return{cv:c,ax:o.ax,ay:o.ay,k:o.k}}
 function usMon(u,face,state,frame){if(!u||!u.def||u.m||typeof monsterSpritePx!=='function')return null;try{return monsterSpritePx(u,face,state,frame)||null}catch(e){return null}}   // monster art (76-monsters.js) draws its own enemies first
 function unitSpritePx(u,face,state,frame){const M=usMon(u,face,state,frame);if(M)return M;const L=usLook(u),n=UNIT_FRAMES[state];if(!n){state='idle'}const nf=UNIT_FRAMES[state];
- face=((face|0)%4+4)%4;frame=((frame|0)%nf+nf)%nf;const i=face*US_NF+US_OFF[state]+frame;const o=L.fr[i]||(L.fr[i]=usBuild(L,face,state,frame));return o.gl?usGlint(o):o}
+ face=((face|0)%4+4)%4;frame=((frame|0)%nf+nf)%nf;const i=face*US_NF+US_OFF[state]+frame;let o=L.fr[i];if(!o||o.r!==ARTHD.rev)o=L.fr[i]=usBuild(L,face,state,frame);return o.gl?usGlint(o):o}
 /* pre-build every frame of a unit (call at battle start); returns the number of frames built.
    Optional: until (a performance.now() deadline: stops before a build past it and sets US.cut), states (a subset of US_WARM). */
 function unitSpriteWarm(u,faces,until,states){US.cut=0;if(usMon(u,0,'idle',0))return 0;const L=usLook(u);let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of states||US_WARM)for(let k=0;k<UNIT_FRAMES[st];k++){const i=f*US_NF+US_OFF[st]+k;if(!L.fr[i]){if(until&&performance.now()>=until){US.cut=1;return n}L.fr[i]=usBuild(L,f,st,k);n++}}}return n}

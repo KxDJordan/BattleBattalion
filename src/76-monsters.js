@@ -984,7 +984,8 @@ function msPgLoad(pk,g){for(const e of MS_PG){if(e.pk!==pk||e.R.length!==g.R.len
 function msBuild(kind,face,st,fr,va){if(typeof document==='undefined')return null;const K=MSK[kind],t0=typeof performance!=='undefined'?performance.now():0,v=face>=2?1:0,mir=face===1||face===2;
  if(typeof usGrid!=='function'||typeof usResolve!=='function')return null;msBegin(K);const pk=kind+'|'+v+'|'+st+'|'+fr+'|'+(va||'');
  if(!msPgLoad(pk,usG)){try{MSD[kind](v,st,fr,va||'')}catch(e){if(!MS.err){MS.err=1;if(typeof console!=='undefined')console.error('monster sprite',kind,st,fr,e)}}msPgSave(pk,usG)}
- if(mir)usFlip(usG);const cv=usResolve(usG,true);MS.builds++;if(t0)MS.ms+=performance.now()-t0;return cv?{cv,ax:mir?K.g[0]-1-K.g[2]:K.g[2],ay:K.g[3]}:null}
+ if(mir)usFlip(usG);const hx=mir?K.g[0]-1-K.g[2]:K.g[2];if(typeof uhOut==='function'&&uhOn()){const o=uhOut(usG,true,hx,K.g[3]);if(o){MS.builds++;if(t0)MS.ms+=performance.now()-t0;return o}}   // Detail High: HD figure (73h-unitshd.js)
+ const cv=usResolve(usG,true);MS.builds++;if(t0)MS.ms+=performance.now()-t0;return cv?{cv,ax:mir?K.g[0]-1-K.g[2]:K.g[2],ay:K.g[3]}:null}
 function msNorm(kind,st){const K=MSK[kind];if(!MS_FR[st])st='idle';const F=K.fr&&K.fr[st]||MS_FR[st];return[st,F]}
 function monsterSpriteOf(kind,face,state,frame,va){if(!MSK[kind]||!MSD[kind])return null;const n=msNorm(kind,state),st=n[0],F=n[1];face=((face|0)%4+4)%4;frame=((frame|0)%F+F)%F;va=MS_VAR[st]&&va?va:'';
  const id=kind+'|'+face+'|'+st+'|'+frame+'|'+va;let s=MS.fr.get(id);if(s===undefined){s=msBuild(kind,face,st,frame,va);MS.fr.set(id,s)}return s}

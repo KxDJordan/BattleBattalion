@@ -6291,7 +6291,8 @@ let IC_STYLE=null;
  for(const n in ICONS){const u=pxURL('ic:'+n,ICONS[n],1);if(typeof u!=='string'||u.slice(0,5)!=='data:')return;css+='.pxi-'+icCls(n)+'{background-image:url('+u+')}'}
  const st=document.createElement('style');st.id='pxi-css';st.textContent=css;document.head.appendChild(st);IC_STYLE=st}catch(e){}})();
 function icCss(n){try{if(!IC_STYLE)return;const u=pxURL('ic:'+n,ICONS[n],1);if(typeof u!=='string'||u.slice(0,5)!=='data:')return;const rule='.pxi-'+icCls(n)+'{background-image:url('+u+')}';
-  try{IC_STYLE.sheet.insertRule(rule,IC_STYLE.sheet.cssRules.length)}catch(e){IC_STYLE.appendChild(document.createTextNode(rule))}}catch(e){}}
+  try{IC_STYLE.sheet.insertRule(rule,IC_STYLE.sheet.cssRules.length)}catch(e){IC_STYLE.appendChild(document.createTextNode(rule))}}catch(e){}
+ try{if(typeof icHdUse==='function')icHdUse(n,1)}catch(e){}}   // 06h-iconshd.js: repaint the HD drawing if this icon already has one
 /* ---- generated icons: no ability, status or injury ever shows the placeholder ----
    ab-<id>   a hand-drawn icon when the id or name says what it is (IC_ABKEY), else a category glyph
              (melee ranged magic buff debuff move summon shout) picked from the AB entry's fields and tinted by its resource
@@ -6344,7 +6345,7 @@ function icResolve0(name){name=String(name);if(icHas(name))return name;const al=
   const s=(key+' '+(S&&S.n||'')).toLowerCase();for(const k of IC_STKEY)if(k[0].test(s)&&icHas(k[1]))return k[1];
   const good=!!(S&&S.good),h=icHash(key);rows=icTinted(good?'good':'bad',good?['chi','verd','gold','qi'][h&3]:['foe','void','fire','bone'][h&3],0)}
  if(!rows)return'none';ICONS[name]=rows;icCss(name);return name}
-function pxIcon(name,size,cls){let n='none';try{n=icResolve(name)}catch(e){}const s=size===32||size===48?size:(+size>0?Math.max(16,Math.round(+size/16)*16):16);
+function pxIcon(name,size,cls){let n='none';try{n=icResolve(name)}catch(e){}try{if(typeof icHdUse==='function')icHdUse(n)}catch(e){}const s=size===32||size===48?size:(+size>0?Math.max(16,Math.round(+size/16)*16):16);
  return'<i class="pxi pxi-'+icCls(n)+(cls?' '+cls:'')+'" style="width:'+s+'px;height:'+s+'px" aria-hidden="true"></i>'}
 function iconRows(name){let n='none';try{n=icResolve(name)}catch(e){}return n!=='none'&&Object.prototype.hasOwnProperty.call(ICONS,n)?ICONS[n]:null}
 /* which drawn/generated icon a name resolves to, and whether it is hand-drawn ('drawn') or a category glyph ('generic') */

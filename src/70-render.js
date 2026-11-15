@@ -582,8 +582,8 @@ function tintCanvas(c){if(!TN.on)return c;const w=c.width,h=c.height,s=TN.sc||(T
  if(TN.add!=='#000000'){q.globalCompositeOperation='lighter';q.fillStyle=TN.add;q.fillRect(0,0,w,h)}
  q.globalAlpha=1;q.globalCompositeOperation='destination-in';q.drawImage(s,0,0,w,h,0,0,w,h);q.restore();return c}
 const TINTED=new WeakMap(),SILS=new WeakMap();
-function tintedOf(c){if(!TN.on)return c;let e=TINTED.get(c);if(e&&e.k===TN.k)return e.c;const t=mkCanvas(c.width,c.height);t.getContext('2d').drawImage(c,0,0);tintCanvas(t);TINTED.set(c,{k:TN.k,c:t});return t}
-function silOf(c,col){let m=SILS.get(c);if(!m){m={};SILS.set(c,m)}let s=m[col];if(s)return s;s=m[col]=mkCanvas(c.width,c.height);const q=s.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle=PAL[col];q.fillRect(0,0,s.width,s.height);return s}
+function tintedOf(c){if(!TN.on)return c;let e=TINTED.get(c);if(e&&e.k===TN.k)return e.c;const t=mkCanvas(c.width,c.height);t.getContext('2d').drawImage(c,0,0);tintCanvas(t);if(c.hdk)t.hdk=c.hdk;TINTED.set(c,{k:TN.k,c:t});return t}
+function silOf(c,col){let m=SILS.get(c);if(!m){m={};SILS.set(c,m)}let s=m[col];if(s)return s;s=m[col]=mkCanvas(c.width,c.height);const q=s.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle=PAL[col];q.fillRect(0,0,s.width,s.height);if(c.hdk)s.hdk=c.hdk;return s}
 
 /* ---- ground strips ---- */
 const TO={bk:'',t:'ground',h:0,c:0,r:0,dropL:0,dropR:0,shL:0,shR:0,frame:0,hd:false},PO={bk:'',c:0,r:0,frame:0};
@@ -733,8 +733,9 @@ function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.de
  else if(u.alive&&v.pA>.99&&v.pSh>.99){const c=wide?(u.side?E.c1W:E.c0W):big?(u.side?E.c1B:E.c0B):u.side?E.c1:E.c0;g.drawImage(c,x-(c.width>>1),gy-(c.height>>1))}
  else{g.globalAlpha=v.pA*v.pSh*.42;g.drawImage(sh,x-(sh.width>>1),gy-(sh.height>>1));
   if(u.alive){const rg=wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
- g.globalAlpha=v.pA;g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay)}
- if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);g.drawImage(silOf(s.cv,'r'),x-s.ax,y-s.ay)}
+ g.globalAlpha=v.pA;const sk=s.k||1,sw=s.cv.width/sk,sh2=s.cv.height/sk;   // an HD figure (k 2, 73h-unitshd.js) is blitted at half size
+ g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay,sw,sh2);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay,sw,sh2)}
+ if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);g.drawImage(silOf(s.cv,'r'),x-s.ax,y-s.ay,sw,sh2)}
  g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
 /* fallback figure (no 73-units.js): the old vector stand-in, cached at device resolution */
 function drawUnitArt(q,u){const d=u.def||{},F=u.side===1?FACT[u.f]:null,body=u.side===0?'#2f7868':F.col,skin=u.side===0?'#e3bf9c':F.skin;q.strokeStyle='#0b1514';q.lineWidth=1.5;q.lineJoin='round';

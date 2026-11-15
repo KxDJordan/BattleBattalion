@@ -9,7 +9,7 @@
    Low-frequency noise is sampled in rot-0 board space, so at the default view the ground flows across tile borders. */
 const TXHD={on:true,cap:1600};
 const HDHEAD=28;                                   // headroom above the diamond (HD px) for upright details
-function hdOK(){return TXHD.on&&!(typeof SET==='object'&&SET&&SET.hdTiles===false)}
+function hdOK(){return TXHD.on&&hdArt()&&!(typeof SET==='object'&&SET&&SET.hdTiles===false)}
 function hdC(k){const s=PAL[k]||k,n=parseInt(s.slice(1),16);return(0xff000000|(n&255)<<16|(n>>8&255)<<8|n>>16)>>>0}
 function hdR(c){return c&255}function hdG(c){return c>>8&255}function hdB(c){return c>>16&255}
 function hdP(r,g,b){r=r<0?0:r>255?255:r|0;g=g<0?0:g>255?255:g|0;b=b<0?0:b>255?255:b|0;return(0xff000000|b<<16|g<<8|r)>>>0}
