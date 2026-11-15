@@ -554,7 +554,7 @@ function mkRV(rot){const R={rot,tiles:null,ax:new Int16Array(NT),ay:new Int16Arr
   ord:new Int16Array(NT),ds:new Int16Array(ND+1),x0:new Int16Array(ND),y0:new Int16Array(ND),w:new Int16Array(ND),h:new Int16Array(ND),built:new Uint8Array(ND),nb:0,cv:[],ov:[],ovOn:new Uint8Array(ND),props:[],anim:[]};
  for(let d=0;d<ND;d++)R.props.push([]);return R}
 const RVW=[mkRV(0),mkRV(1),mkRV(2),mkRV(3)];let V=RVW[0];
-const TL={hazAll:[],scale:1,k:1};           // TL.hazAll: keys of hazard tiles (read by the effects)
+const TL={hazAll:[],scale:1,k:1,trim:false};           // TL.hazAll: keys of hazard tiles (read by the effects)
 function viewTables(R){const k=R.rot,tl=B.tiles,vw=k&1?BH:BW,vh=k&1?BW:BH;let n=0;R.tiles=tl;
  const hn=(a,b)=>{const j=vKey(a,b,k);return j<0?-1:tl[j].h};
  for(let d=0;d<ND;d++){R.ds[d]=n;R.props[d].length=0;let xa=1e9,xb=-1e9,ya=1e9,yb=-1e9;
@@ -563,8 +563,12 @@ function viewTables(R){const k=R.rot,tl=B.tiles,vw=k&1?BH:BW,vh=k&1?BW:BH;let n=
    xa=Math.min(xa,x-18);xb=Math.max(xb,x+18);ya=Math.min(ya,y-24);yb=Math.max(yb,y+10+Math.max(R.dl[q],R.dr[q])*8)}
   R.x0[d]=xa;R.y0[d]=ya;R.w[d]=xb-xa;R.h[d]=yb-ya;R.built[d]=0;R.ovOn[d]=0}
  R.ds[ND]=n;R.nb=0;R.anim.length=0}
-function viewBuild(){if(!B||!B.tiles)return;if(!HAVE.init)haveInit();TL.k=HAVE.tile?1:2;for(let i=0;i<4;i++)viewTables(RVW[i]);V=RVW[VIEW.rot];PROPC.clear();PANIM.length=0;ANI.R=null;OV.sig=null;OV.targets=0;
+function viewBuild(){if(!B||!B.tiles)return;if(!HAVE.init)haveInit();TL.k=tileK();TL.trim=false;for(let i=0;i<4;i++)viewTables(RVW[i]);V=RVW[VIEW.rot];PROPC.clear();PANIM.length=0;ANI.R=null;OV.sig=null;OV.targets=0;
  TL.hazAll.length=0;for(let i=0;i<NT;i++)if(B.tiles[i].t==='haz')TL.hazAll.push(i);tintRefresh();TN.at=now}
+/* ground strip pixels per art pixel: 2 for the HD tiles (71h-tileshd.js) once the camera shows at least 2 backing px per art
+   pixel, else 1 (the 1x tiles); 2 for the vector fallback */
+function tileK(){if(!HAVE.tile)return 2;return typeof drawTileHD==='function'&&typeof hdOK==='function'&&hdOK()&&!(B&&B.cam&&B.cam.s<2)?2:1}
+function stripsReset(){TL.trim=false;for(let i=0;i<4;i++){const R=RVW[i];R.built.fill(0);R.nb=0;R.anim.length=0}ANI.R=null}
 function viewInvalidate(){RVW[0].tiles=null}
 function viewEnsure(){if(RVW[0].tiles!==B.tiles)viewBuild();return V}
 
@@ -582,17 +586,18 @@ function tintedOf(c){if(!TN.on)return c;let e=TINTED.get(c);if(e&&e.k===TN.k)ret
 function silOf(c,col){let m=SILS.get(c);if(!m){m={};SILS.set(c,m)}let s=m[col];if(s)return s;s=m[col]=mkCanvas(c.width,c.height);const q=s.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle=PAL[col];q.fillRect(0,0,s.width,s.height);return s}
 
 /* ---- ground strips ---- */
-const TO={bk:'',t:'ground',h:0,c:0,r:0,dropL:0,dropR:0,shL:0,shR:0,frame:0},PO={bk:'',c:0,r:0,frame:0};
+const TO={bk:'',t:'ground',h:0,c:0,r:0,dropL:0,dropR:0,shL:0,shR:0,frame:0,hd:false},PO={bk:'',c:0,r:0,frame:0};
 function tileFrame(){return reduced?0:Math.floor(now/166)}
 function drawTile(q,R,k,frame){const t=B.tiles[k];
- if(HAVE.tile){TO.bk=B.bk;TO.t=t.t;TO.h=t.h;TO.c=k%BW;TO.r=(k/BW)|0;TO.dropL=R.dl[k];TO.dropR=R.dr[k];TO.shL=R.sl[k];TO.shR=R.sr[k];TO.frame=frame;
+ if(HAVE.tile){TO.bk=B.bk;TO.t=t.t;TO.h=t.h;TO.c=k%BW;TO.r=(k/BW)|0;TO.dropL=R.dl[k];TO.dropR=R.dr[k];TO.shL=R.sl[k];TO.shR=R.sr[k];TO.frame=frame;TO.hd=TL.k===2;
   try{return drawTilePx(q,R.ax[k],R.ay[k],TO)===true}catch(e){artFail('tile',e);return false}}
  drawTileOld(q,R.ax[k],R.ay[k],t,k%BW,(k/BW)|0,R.dl[k],R.dr[k],R.sl[k],R.sr[k]);return false}
 function buildStrip(R,d){const K=TL.k,c=R.cv[d]||(R.cv[d]=mkCanvas(1,1));c.width=R.w[d]*K;c.height=R.h[d]*K;const q=c.getContext('2d'),f=tileFrame();q.imageSmoothingEnabled=false;q.setTransform(K,0,0,K,-R.x0[d]*K,-R.y0[d]*K);
  for(let i=R.ds[d];i<R.ds[d+1];i++){const k=R.ord[i];if(drawTile(q,R,k,f)&&R.tiles)R.anim.push(k)}
  tintCanvas(c);R.built[d]=1;R.nb++}
 function stripsEnsure(R){if(R.nb<ND){for(let d=0;d<ND;d++)if(!R.built[d]&&R.tiles)buildStrip(R,d);return}
- for(let i=1;i<4;i++){const O=RVW[(R.rot+i)&3];if(O.nb<ND&&O.tiles){for(let d=0;d<ND;d++)if(!O.built[d]){buildStrip(O,d);return}}}}   // other rotations fill in one strip a frame
+ for(let i=1;i<4;i++){const O=RVW[(R.rot+i)&3];if(O.nb<ND&&O.tiles){for(let d=0;d<ND;d++)if(!O.built[d]){buildStrip(O,d);return}}}   // other rotations fill in one strip a frame
+ if(!TL.trim&&TL.k===2&&typeof hdTrim==='function'){TL.trim=true;hdTrim()}}   // every strip is built: the HD tile canvases are dead weight (animated ones repaint on demand)
 // Animated tiles and props repaint at the 6 Hz tile clock, spread over the frames in between.
 const ANI={R:null,f:-1,i:0},ASC={cv:null};
 function redrawTile(R,k,f){const d=R.dp[k],K=TL.k;
@@ -916,7 +921,7 @@ function tfArt(){const c=B.cam,s=c.z===c.zt?c.s:c.z*2*dpr;g.setTransform(s*BKX,0
 function tfBoard(){const c=B.cam,s=(c.z===c.zt?c.s:c.z*2*dpr)/2;g.setTransform(s*BKX,0,0,s,btx,bty)}
 function drawBattle(dt){dt=dt||0;const cam=B.cam;if(!HAVE.init)haveInit();let R=viewEnsure();BKX=rotStep();R=V;
  if(now-TN.at>1000){TN.at=now;if(tintRefresh()){viewBuild();R=V}}
- updateBattleCam(dt);g.imageSmoothingEnabled=false;drawSky();stripsEnsure(R);animTick(R);warmSprites();planPrep();buildOverlays(R);pathPrep(R);bmPrep(R);
+ updateBattleCam(dt);if(HAVE.tile&&tileK()!==TL.k){TL.k=tileK();stripsReset()}g.imageSmoothingEnabled=false;drawSky();stripsEnsure(R);animTick(R);warmSprites();planPrep();buildOverlays(R);pathPrep(R);bmPrep(R);
  for(let d=0;d<ND;d++)DU[d].length=0;
  for(let i=0;i<B.units.length;i++){const u=B.units[i],v=visOf(u);v.drawn=false;if(u.alive)stepUnit(u,v,dt);else if(!v.deadT)v.deadT=now;poseTo(u,v);if(v.show){const L=DU[clamp(u.alive?v.depth:udepth(u,R),0,ND-1)];if(usize(u)>1)L.unshift(u);else L.push(u)}}
  if(typeof fxScan==='function')fxScan(dt);
