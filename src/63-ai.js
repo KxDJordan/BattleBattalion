@@ -157,6 +157,7 @@ async function aiUse(u,a,k){const b=B;const fo=b.aiFoc||(b.aiFoc=[null,null]);if
 function aiNoop(){}
 
 /* ---- reading the board ---- */
+const AIFORT=2,AIFORTR=6;   // siege defenders: rounds they hold their works, and how close the company may come before they sally
 function aiScan(u,P,plan,S){const b=B,N=BW*BH,X=S.X||(S.X={thr:new Float32Array(N),sw:new Float32Array(N),goal:new Uint8Array(N),pv:new Float32Array(N),ps:new Int32Array(N)});
  X.u=u;X.P=P;X.plan=plan;X.at=key(u.c,u.r);X.foes=[];X.allies=[];X.adj=[];X.S=S;S.stamp=(S.stamp||0)+1;
  const lm=X.lm||(X.lm=new Uint8Array(N));lm.fill(0);AI_LM=lm;AI_LMU=u;
@@ -167,8 +168,9 @@ function aiScan(u,P,plan,S){const b=B,N=BW*BH,X=S.X||(S.X={thr:new Float32Array(
  aiThreat(u,X);
  X.D=dijkstra(u,u.rooted?0:u.ap);
  X.hold=0;X.tele=null;X.brace=0;X.fresh=0;X.lead=-1;X.guard=plan&&plan.guard&&plan.guard.alive&&plan.guard!==u?plan.guard:null;
- // a siege: the foe keeps behind its stakes for the first rounds unless the company is already at the works
- X.fort=u.side===1&&b.obj&&b.obj.k==='siege'&&b.round<=4&&!u.fly?DEPLOY.e.front+1:-1;
+ // a siege: the foe keeps behind its stakes for the first two rounds, and comes out at once when the company closes in
+ // (any of its swords within AIFORTR tiles of a defender): defenders that sit out a waiting player read as a broken AI
+ X.fort=-1;if(u.side===1&&b.obj&&b.obj.k==='siege'&&b.round<=AIFORT&&!u.fly){let near=99;for(const f of X.foes)for(const o of b.units)if(o.alive&&o.side===1){const d=mdist(f,o);if(d<near)near=d}if(near>AIFORTR)X.fort=DEPLOY.e.front+1}
  // enemies come on together: until the lines meet, nobody runs more than a couple of rows ahead of the band
  if(u.side===1&&b.round<=6){let m=99,s=0,n=0;for(const o of X.allies){if(o.back)continue;s+=o.r;n++;for(const f of X.foes){const d=mdist(f,o);if(d<m)m=d}}
   if(n>=2&&m>3&&X.near(u)>3)X.lead=s/n+(P.back>1.2?3:2)}

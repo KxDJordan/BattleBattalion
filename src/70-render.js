@@ -785,7 +785,7 @@ function drawUnitOverlays(){const us=B.units,ab=allyBarsOn(),cam=B.cam;OO.exact=
   drawOverlayOld(u,v,v.ox,v.oy,cur)}g.globalAlpha=1;
  /* objective marks (phase 7): the escorted VIP wears a gold shield, the siege leader a red crown; both bob unless motion is reduced */
  const ob=B.obj;if(ob&&(ob.vip||ob.leader)){for(const [u,rows,key] of [[ob.vip,OBJMK.vip,'objvip'],[ob.leader,OBJMK.lead,'objlead']]){if(!u||!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;
-   const mi=umon(u),big=!!(u.def&&u.def.big)||mi.size>1,c=pxScaled(key,rows,1);if(!c)continue;const bob=reduced?0:((now/400)|0)&1,yy=v.oy-(big?66:52)-(mi.kind?mi.top||0:0)-bob;
+   const mi=umon(u),big=!!(u.def&&u.def.big)||mi.size>1,c=pxScaled(key,rows,1);if(!c)continue;const bob=reduced?0:((now/400)|0)&1,an=typeof anOf==='function'?anOf(u):null,yy=an&&an.ovT!=null&&hdArt()?an.ovT-c.height-2-(u===B.cur?10:0)-bob:v.oy-(big?66:52)-(mi.kind?mi.top||0:0)-bob;   // right above the overlay (above the chevron on its turn)
    const m=g.getTransform(),dp=Math.round(12*Math.abs(m.a)),pc=typeof paCanvas==='function'&&dp>=8?paCanvas('pa-'+key,dp):null;   // painted mark at device resolution (Detail High), 12 art px square
    if(pc){const s=g.imageSmoothingEnabled;g.imageSmoothingEnabled=true;g.drawImage(pc,v.ox-6,yy+c.height/2-6,12,12);g.imageSmoothingEnabled=s}else g.drawImage(c,Math.round(v.ox-c.width/2),Math.round(yy))}}}
 const OBJMK={vip:['..0000000..','.0ddddddd0.','0deeeeeddc0','0de0e0e0dc0','0deeeeeedc0','0ddeeeedcc0','.0ddedddc0.','..0dddcc0..','...0ddc0...','....0c0....','.....0.....'],
