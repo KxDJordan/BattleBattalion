@@ -54,7 +54,7 @@ function tileSpeedOf(t,river,road){if(t===0||t===4)return 0;return road?ROADSPD:
 
 /* ---- the generator ---- */
 let WGCACHE=null;
-function genWorld(seed){seed=(Number(seed)||0)|0;if(!WGCACHE||WGCACHE.seed!==seed||WGCACHE.n!==WN)WGCACHE=genWorldBase(seed);const b=WGCACHE;
+function genWorld(seed){seed=(Number(seed)||0)|0;const shk=(typeof WSHK==='string'?WSHK:'')+'|'+(typeof WBMK==='string'?WBMK:'');if(!WGCACHE||WGCACHE.seed!==seed||WGCACHE.n!==WN||WGCACHE.shk!==shk){WGCACHE=genWorldBase(seed);WGCACHE.shk=shk};const b=WGCACHE;
  const w={seed,tiles:b.tiles,ok:b.ok,river:b.river,road:b.road,spd:b.spd,size:b.size,towns:b.towns,sites:b.sites,seen:new Uint8Array(WN*WN),fogRev:0,fogKey:-1,img:null};
  // the East (19-east.js): eastGen(w) marks the eastern region once per generated base world (w.east, towns t.east); later copies share it
  if(typeof eastGen==='function'){if(!b.eg){b.eg=1;try{eastGen(w)}catch(e){if(typeof console!=='undefined')console.warn('eastGen failed',e)}b.east=w.east;b.ex={};for(const k in w)if(!(k in b)&&k!=='seen'&&k!=='fogRev'&&k!=='fogKey'&&k!=='img'&&k!=='east')b.ex[k]=w[k]}else{if(b.east!==undefined)w.east=b.east;if(b.ex)for(const k in b.ex)w[k]=b.ex[k]}}
@@ -63,39 +63,43 @@ function genWorld(seed){seed=(Number(seed)||0)|0;if(!WGCACHE||WGCACHE.seed!==see
 function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WORLDSZ[WSZK]&&WORLDSZ[WSZK].n===WN?WORLDSZ[WSZK].towns:Math.round(12*AK/Math.pow(AK,.2))),r=mulberry(seed),nz=sc=>{const f=noiseFn(r,sc,WN+2);return(x,y)=>f(clamp(x,0,WN+1),clamp(y,0,WN+1))};
  const a1=nz(24),a2=nz(12),a3=nz(6),a4=nz(3),wx=nz(15),wy=nz(15),rg=nz(13),rg2=nz(5),mo1=nz(14),mo2=nz(6),te=nz(18),jit=nz(2.2),rj=nz(3.5);
  const el=new Float32Array(N),ridge=new Float32Array(N),tiles=new Uint8Array(N),river=new Uint8Array(N),road=new Uint8Array(N);
+ const SH=typeof msGen==='function'?msGen(seed,AK,SK):null,BM=SH&&SH.bio;   // world shape and biome mix (39-mapshapes.js): null = the continent as it always was
  const edgeOf=i=>{const x=i%WN,y=(i/WN)|0;return Math.min(x,y,WN-1-x,WN-1-y)};
  // 1. elevation: warped fractal noise, pulled under the sea toward the map edge
  for(let y=0;y<WN;y++)for(let x=0;x<WN;x++){const i=y*WN+x,ux=x+(wx(x,y)-.5)*14,uy=y+(wy(x,y)-.5)*14,d=Math.min(x,y,WN-1-x,WN-1-y),e=clamp(1-d/12,0,1),rr=Math.hypot(x-(WN-1)/2,y-(WN-1)/2)/(WN/2);
-  el[i]=a1(ux,uy)*.5+a2(ux,uy)*.26+a3(x,y)*.15+a4(x,y)*.09-Math.pow(e,1.7)*.55-Math.max(0,rr-1.02)*1.2;
+  el[i]=SH&&SH.el?SH.el(x,y,ux,uy,a1(ux,uy)*.5+a2(ux,uy)*.26+a3(x,y)*.15+a4(x,y)*.09,d):a1(ux,uy)*.5+a2(ux,uy)*.26+a3(x,y)*.15+a4(x,y)*.09-Math.pow(e,1.7)*.55-Math.max(0,rr-1.02)*1.2;
   ridge[i]=(1-Math.abs(2*rg(ux,uy)-1))*.8+rg2(x,y)*.2}
  const PV=new Float64Array(N),pct=(arr,keep,q)=>{let n=0;for(let i=0;i<N;i++)if(keep(i))PV[n++]=arr[i];if(!n)return 0;const v=PV.subarray(0,n).sort();return v[Math.min(n-1,Math.floor(n*q))]};   // a typed sort: the same order as (a,b)=>a-b
- const sea=pct(el,()=>true,.47);let top=sea+1e-6;for(let i=0;i<N;i++)if(el[i]>top)top=el[i];
+ const sea=pct(el,()=>true,SH&&SH.seaQ!=null?SH.seaQ:.47);let top=sea+1e-6;for(let i=0;i<N;i++)if(el[i]>top)top=el[i];
  for(let i=0;i<N;i++){tiles[i]=el[i]>sea&&edgeOf(i)>=3?1:0;el[i]=clamp((el[i]-sea)/(top-sea),0,1)}
  // drop specks: single land tiles in the sea and one-tile puddles
  for(let pass=0;pass<2;pass++)for(let i=0;i<N;i++){const x=i%WN,y=(i/WN)|0;if(x<1||y<1||x>=WN-1||y>=WN-1)continue;let same=0;for(let j=0;j<4;j++)if(tiles[i+WDX[j]+WDY[j]*WN]===tiles[i])same++;if(!same)tiles[i]=tiles[i]?0:1}
  // 2. mountain ranges: a few wandering spines with gaps for passes, some lone massifs from the ridged noise, hills at their feet
  let cd=wgBfs(i=>tiles[i]===0);
  {const inland=[];for(let i=0;i<N;i++)if(tiles[i]===1&&cd[i]>=4)inland.push(i);const heads=[],nR=Math.round((3+Math.floor(r()*3))*Math.pow(AK,.8));
-  for(let g=0;g<nR*12&&heads.length<nR&&inland.length;g++){const s=inland[Math.floor(r()*inland.length)],sx=s%WN,sy=(s/WN)|0;if(heads.some(h=>Math.hypot(h[0]-sx,h[1]-sy)<12))continue;heads.push([sx,sy]);
+  if(!SH||!SH.noSpines)for(let g=0;g<nR*12&&heads.length<nR&&inland.length;g++){const s=inland[Math.floor(r()*inland.length)],sx=s%WN,sy=(s/WN)|0;if(heads.some(h=>Math.hypot(h[0]-sx,h[1]-sy)<12))continue;heads.push([sx,sy]);
    let x=sx,y=sy,a=r()*6.283,rad=1+r()*.6,gap=6+Math.floor(r()*8),out=0;const len=12+Math.floor(r()*18);
    for(let k=0;k<len&&out<3;k++){a+=(r()-.5)*.8;rad=clamp(rad+(r()-.5)*.5,.7,1.7);x+=Math.cos(a);y+=Math.sin(a);if(--gap<=0){gap=7+Math.floor(r()*9);x+=Math.cos(a);y+=Math.sin(a);continue}
     const cx=Math.round(x),cy=Math.round(y);if(cx<3||cy<3||cx>=WN-3||cy>=WN-3||cd[cy*WN+cx]<2){out++;continue}out=0;
     for(let ay=-2;ay<=2;ay++)for(let ax=-2;ax<=2;ax++){const i=(cy+ay)*WN+cx+ax;if(tiles[i]===1&&cd[i]>=2&&Math.hypot(cx+ax-x,cy+ay-y)<=rad)tiles[i]=4}}}
-  const land=i=>tiles[i]===1&&cd[i]>=3,mt=pct(ridge,land,.975);for(let i=0;i<N;i++)if(land(i)&&ridge[i]>mt)tiles[i]=4;
+  if(SH&&SH.ranges)SH.ranges({tiles,cd,el,rs:SH.rs,wx,wy,rg});
+  const land=i=>tiles[i]===1&&cd[i]>=3,mt=pct(ridge,land,SH&&SH.massQ||.975);for(let i=0;i<N;i++)if(land(i)&&ridge[i]>mt)tiles[i]=4;
   for(let i=0;i<N;i++){if(tiles[i]!==4)continue;const x=i%WN,y=(i/WN)|0;let n=0;for(let j=0;j<4;j++)if(tiles[(y+WDY[j])*WN+x+WDX[j]]===4)n++;if(!n)tiles[i]=1}   // no lone peaks
   const md=wgBfs(i=>tiles[i]===4);for(let i=0;i<N;i++)if(tiles[i])el[i]=clamp(el[i]*.7+.3*clamp(1-md[i]/6,0,1),0,1);                                         // the land rises toward the ranges
-  const ht=pct(el,i=>tiles[i]===1,.955);
+  const ht=pct(el,i=>tiles[i]===1,SH&&SH.hillQ||.955);
   for(let i=0;i<N;i++){if(tiles[i]!==1)continue;const x=i%WN,y=(i/WN)|0;if(md[i]===1||(md[i]===2&&jit(x,y)>.55)||(el[i]>ht&&cd[i]>=2))tiles[i]=3}}
  // 3. one mainland: cut passes through ranges and close narrow straits so every sizeable landmass joins the largest
+ const J=SH&&SH.join,JW=J?J.w:2.2,JB=J?J.big:13.5,JS=J?J.small:4.6,JM=J?J.min:5;
  for(let g=0;g<40*AK;g++){const C=wgComps(i=>tiles[i]!==0&&tiles[i]!==4),starts=[];if(C.best<0)break;for(let i=0;i<N;i++)if(C.comp[i]===C.best)starts.push(i);
-  const res=wgPath(starts,(k,n)=>edgeOf(n)<2?-1:tiles[n]===4?1:tiles[n]===0?2.2:0,(k,d)=>C.comp[k]>=0&&C.comp[k]!==C.best&&C.sizes[C.comp[k]]>=5&&d<=(C.sizes[C.comp[k]]>=100?13.5:4.6));   // a pass up to 4 peaks long, a strait up to 2 tiles (6 for a second continent)
+  const res=wgPath(starts,(k,n)=>edgeOf(n)<2?-1:tiles[n]===4?1:tiles[n]===0?JW:0,(k,d)=>C.comp[k]>=0&&C.comp[k]!==C.best&&C.sizes[C.comp[k]]>=JM&&d<=(C.sizes[C.comp[k]]>=100?JB:JS));   // a pass up to 4 peaks long, a strait up to 2 tiles (6 for a second continent)
   if(res.end<0)break;for(const k of wgChain(res.prev,res.end))if(tiles[k]===4)tiles[k]=3;else if(tiles[k]===0)tiles[k]=1}
+ if(SH&&SH.carve)SH.carve({tiles,river,el,rs:SH.rs});   // the river valley's great river
  cd=wgBfs(i=>tiles[i]===0);const md=wgBfs(i=>tiles[i]===4);
  // 4. rivers: from the feet of the mountains down the cheapest (lowest) way to the sea, a lake or another river
  {const src=[];for(let i=0;i<N;i++)if(tiles[i]===3&&md[i]===1&&cd[i]>=5)src.push(i);
   if(src.length<8)for(let i=0;i<N;i++)if(tiles[i]!==0&&tiles[i]!==4&&cd[i]>=6&&el[i]>.45)src.push(i);
   for(let i=src.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=src[i];src[i]=src[j];src[j]=t}
-  const want=Math.round((5+Math.floor(r()*3))*Math.pow(AK,.8)),heads=[];let made=0;
+  const want=Math.round((5+Math.floor(r()*3))*Math.pow(AK,.8)*(SH&&SH.rivK||1)),heads=[];let made=0;
   for(const s of src){if(made>=want)break;if(river[s]||heads.some(h=>Math.abs(h%WN-s%WN)+Math.abs(((h/WN)|0)-((s/WN)|0))<11))continue;
    const res=wgPath([s],(k,n)=>{if(tiles[n]===4)return-1;if(tiles[n]===0)return .2;if(river[n])return .1;const x=n%WN,y=(n/WN)|0;let c=.2+el[n]*4+rj(x,y)*2.2+jit(x,y)*1.6;
      for(let j=0;j<4;j++){const m=(y+WDY[j])*WN+x+WDX[j];if(m!==k&&river[m])c+=3}return c},k=>k!==s&&(tiles[k]===0||river[k]>0));   // never run beside another river: join it
@@ -104,8 +108,8 @@ function genWorldBase(seed){const N=WN*WN,AK=WN*WN/4096,SK=Math.sqrt(AK),NT=(WOR
    heads.push(s);made++}}
  // 5. climate: snow in the north, desert in the dry south, swamp on low wet ground, forest where it is moist
  {const rd=wgBfs(i=>river[i]>0),tm=new Float32Array(N),mo=new Float32Array(N),gen=i=>tiles[i]===1;
-  for(let i=0;i<N;i++){const x=i%WN,y=(i/WN)|0;tm[i]=y/(WN-1)+(te(x,y)-.5)*.36-el[i]*.06;mo[i]=mo1(x,y)*.62+mo2(x,y)*.38+(rd[i]<=1?.1:rd[i]===2?.05:0)+(cd[i]<=1?.03:0)}
-  const cold=Math.max(.17,pct(tm,gen,.14)),hot=Math.min(.8,pct(tm,gen,.8)),low=pct(el,gen,.3),wet=pct(mo,gen,.56),damp=pct(mo,gen,.62);
+  for(let i=0;i<N;i++){const x=i%WN,y=(i/WN)|0;tm[i]=BM&&BM.tmA?y/(WN-1)*BM.lat+(te(x,y)-.5)*BM.tmA+(a3(x,y)-.5)*BM.tmB-el[i]*.06:y/(WN-1)+(te(x,y)-.5)*.36-el[i]*.06;mo[i]=mo1(x,y)*.62+mo2(x,y)*.38+(rd[i]<=1?.1:rd[i]===2?.05:0)+(cd[i]<=1?.03:0)}
+  const cold=Math.max(BM?BM.coldMin:.17,pct(tm,gen,BM?BM.cold:.14)),hot=Math.min(BM?BM.hotMax:.8,pct(tm,gen,BM?BM.hot:.8)),low=pct(el,gen,BM&&BM.low||.3),wet=pct(mo,gen,BM?BM.wet:.56),damp=pct(mo,gen,BM?BM.damp:.62);
   for(let i=0;i<N;i++){if(!gen(i))continue;const t=tm[i],m=mo[i];tiles[i]=t<cold?7:t>hot&&m<damp?6:m>wet&&el[i]<low&&t>cold+.06?5:m>damp?2:1}
   const C8=new Int32Array(8);for(let pass=0;pass<2;pass++){const out=tiles.slice();for(let i=0;i<N;i++){const t=tiles[i];if(t===0||t===3||t===4)continue;const x=i%WN,y=(i/WN)|0,c=C8.fill(0);let same=0;
     for(let ay=-1;ay<=1;ay++)for(let ax=-1;ax<=1;ax++){if(!ax&&!ay)continue;const nx=x+ax,ny=y+ay;if(nx<0||ny<0||nx>=WN||ny>=WN)continue;const u=tiles[ny*WN+nx];if(u===t)same++;c[u]++}

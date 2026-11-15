@@ -1,0 +1,9 @@
+/* map variety: the setup's shape and climate pickers (39-mapshapes.js ncShapeHTML) */
+.ncs-mss{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:4px}
+#sheetBody .ncs-ms{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;min-height:44px;padding:4px 3px 3px;text-align:center}
+.ncs-ms b{font-size:.8rem;line-height:1.05;font-weight:600}
+.ncs-ms .msp{display:block;width:56px;height:56px;image-rendering:pixelated;image-rendering:crisp-edges;background:#1d2a3a;border:1px solid rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.ncs-ms .msp-rnd{display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(45deg,rgba(0,0,0,.22) 0 6px,rgba(0,0,0,.1) 6px 12px);font-family:var(--pxfont);font-style:normal;font-size:2rem;line-height:1;color:var(--brass)}
+.ncs-ms.on .msp-rnd{color:#3a2c12}
+.ncs-ms.on .msp{border-color:#3a2c12}
+@media (max-height:420px),(max-width:520px){.ncs-mss{grid-template-columns:repeat(auto-fill,minmax(62px,1fr))}.ncs-ms .msp{width:44px;height:44px}.ncs-ms b{font-size:.72rem}}

@@ -189,7 +189,7 @@ function repairContract(c,nTowns,towns){if(!svObj(c))return false;if(c.type!=='d
 // Fills defaults in place. Returns '' when the save is usable, 'empty' for a company with nobody left, else what is wrong.
 function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.famed=typeof registerFamed==='function'?registerFamed(svObj(g.famed)?g.famed:{}):{};   // famed items go into ITEMS before anything below checks an item id
- g.wsize=WORLDSZ[g.wsize]?g.wsize:'small';g.name=cleanName(g.name);g.banner=bannerFix(g.banner,g.name);
+ g.wsize=WORLDSZ[g.wsize]?g.wsize:'small';if(typeof shapeRepair==='function')shapeRepair(g);g.name=cleanName(g.name);g.banner=bannerFix(g.banner,g.name);
  if(!Array.isArray(g.towns))return 'no towns';g.towns=g.towns.filter(t=>svObj(t)&&svFin(t.x)&&svFin(t.y));if(g.towns.length<2)return 'no towns';
  if(!Array.isArray(g.roster))return 'no roster';if(!g.roster.length)return 'empty';
  g.roster=g.roster.filter(repairMerc);if(!g.roster.length)return 'no readable mercenaries';
@@ -237,7 +237,7 @@ function readSave(slot){return readSaveRaw(storeGet(slotKey(slot)))}
 function readSaveRaw(raw){if(raw==null||raw==='')return{state:'none'};let g;
  try{g=JSON.parse(raw)}catch(e){return{state:'corrupt',why:'unreadable data'}}
  if(!svObj(g))return{state:'corrupt',why:'unreadable data'};const v=saveVersion(g);if(v>SAVEVER)return{state:'newer',v};
- const wk=WSZK;try{setWorldSize(svObj(g)&&WORLDSZ[g.wsize]?g.wsize:'small');g=migrateSave(g);const why=repairSave(g);if(why==='empty')return{state:'none'};if(why)return{state:'corrupt',why}}catch(e){return{state:'corrupt',why:String(e&&e.message||e)}}finally{setWorldSize(wk)}
+ const wk=WSZK,wsh=typeof setWorldShape==='function'?[WSHK,WBMK]:null;try{setWorldSize(svObj(g)&&WORLDSZ[g.wsize]?g.wsize:'small');if(wsh)setWorldShape(g.shape,g.biomes);g=migrateSave(g);const why=repairSave(g);if(why==='empty')return{state:'none'};if(why)return{state:'corrupt',why}}catch(e){return{state:'corrupt',why:String(e&&e.message||e)}}finally{setWorldSize(wk);if(wsh)setWorldShape(wsh[0],wsh[1])}
  return{state:'ok',g,v}}
 function loadSave(){const r=readSave();return r.state==='ok'?r.g:null}          // a loadable campaign, or null
 function saveStatus(slot){const r=readSave(slot),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns;s.name=r.g.name;s.banner=r.g.banner;s.wsize=r.g.wsize;s.renown=r.g.renown;s.diff=r.g.diff;s.ironman=!!r.g.ironman;s.origin=r.g.origin;s.crisisKind=r.g.crisisKind}return s}

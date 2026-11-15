@@ -2,10 +2,11 @@
 // Rules: rolls a world and a starting company. No UI. Returns G.
 // opts = {name, wsize, banner, origin (an ORIGINS key, default 'free'), diff (a DIFF key), ironman, tutorial} from the new-company setup; absent fields take the defaults (a small world, the brass and verdigris banner).
 function createCampaign(opts){opts=opts||{};const wk=setWorldSize(opts.wsize),AK=worldK(),NT=WORLDSZ[wk].towns;let best=null;
+ const shp=typeof setWorldShape==='function'?[opts.shape==='random'?rollShape(rnd):shapeKey(opts.shape),opts.biomes==='random'?rollBiomes(rnd):biomesKey(opts.biomes)]:null;if(shp)setWorldShape(shp[0],shp[1]);   // map variety (39-mapshapes.js): 'random' is drawn from the seeded stream
  for(let tries=0;tries<60;tries++){const seed=(rnd()*1e9)|0,w=genWorld(seed);   // the generator almost always gives its full count of towns on a broad mainland; reroll the rare cramped world
   if(!best||w.towns.length>best.towns.length||(w.towns.length===best.towns.length&&w.size>best.size))best=w;
-  if(w.towns.length>=NT-2&&w.size>=1500*AK)break}
- W=best;G={seed:W.seed,nid:1,towns:placeTowns()};G.sites=worldSites(W,G.nid);G.nid+=G.sites.length;
+  if(w.towns.length>=NT-2&&w.size>=(shp?shapeLand():1500)*AK)break}
+ W=best;G={seed:W.seed,nid:1,towns:placeTowns()};if(shp&&(shp[0]!=='continent'||shp[1]!=='temperate')){G.shape=shp[0];G.biomes=shp[1]}G.sites=worldSites(W,G.nid);G.nid+=G.sites.length;
  const name=cleanName(opts.name);
  Object.assign(G,{v:SAVEVER,name,wsize:wk,banner:bannerFix(Object.assign({},opts.banner||{},{name}),name),day:1,hour:8,crowns:1200,food:50,tools:20,renown:0,roster:[],stash:['spear','buckler'],parties:[],portals:[],contract:null,crisis:null,crisisDay:26,diff:DIFF[opts.diff]?opts.diff:'normal',ironman:!!opts.ironman,fabled:{},dun:null,portalRun:null,dungeons:[],grace:4,healAcc:0,zoom:1,path:[],route:[],moving:false,dest:null,town:null,note:null,fog:null,
   weather:{kind:'clear',t:0,dur:10},p:{x:G.towns[0].x,y:G.towns[0].y+.65*TS}});
@@ -37,7 +38,7 @@ function saveNotice(st){const playing=mode==='world'&&G&&G.roster&&G.roster.leng
   :`<h2>The save could not be read</h2><p>The company saved in this browser is damaged and cannot be opened${st.why?' ('+st.why+')':''}.</p><p class="dim">Raising a new company replaces it; a copy of the damaged data is set aside.</p>`)
   +`<div class="row" style="margin-top:14px">${playing?'<button onclick="closeSheet(true)">Keep playing</button>':''}<button class="pri" style="flex:1" onclick="newGame(true)">Raise a new company</button></div>`)}
 function continueGame(){const r=readSave();if(r.state==='none'){newGame();return}if(r.state!=='ok'){saveNotice(r);return}
- G=r.g;if(typeof companyRepair==='function')companyRepair(G);if(typeof evtRepair==='function')evtRepair(G);setWorldSize(G.wsize);setRngState(G.rng);W=genWorld(G.seed);
+ G=r.g;if(typeof companyRepair==='function')companyRepair(G);if(typeof evtRepair==='function')evtRepair(G);setWorldSize(G.wsize);if(typeof setWorldShape==='function')setWorldShape(G.shape,G.biomes);setRngState(G.rng);W=genWorld(G.seed);
  if(!okAt(G.p.x,G.p.y)){const t=G.towns.find(t=>okAt(t.x,t.y))||G.towns[0];G.p={x:t.x,y:t.y}}
  if(!fogLoad(G.fog))fogStart();else fogReveal();
  if(!G.parties.length)for(let i=0;i<7;i++)spawnParty();          // a company that has just marched in from an older save meets a land with bands in it

@@ -95,7 +95,7 @@ Object.assign(AB,{
 /* ---- region ---- */
 const EASTC=new Map();   // seed|WN -> {mask, towns}
 function eastNum(x,d){return typeof x==='number'&&isFinite(x)?x:d}
-function eastRegion(w){if(!w||!w.tiles||!Array.isArray(w.towns))return null;const key=(w.seed|0)+'|'+WN+'|'+w.towns.length;let R=EASTC.get(key);if(R)return R;
+function eastRegion(w){if(!w||!w.tiles||!Array.isArray(w.towns))return null;const key=(w.seed|0)+'|'+WN+'|'+w.towns.length+(typeof WSHK==='string'?'|'+WSHK+'|'+WBMK:'');let R=EASTC.get(key);if(R)return R;
  const T=w.towns,nT=T.length,N=WN*WN,mask=new Uint8Array(N);
  const k=nT<2?0:Math.max(1,Math.min(nT-1,Math.round(nT*.2)));
  const order=T.map((t,i)=>i).filter(i=>i>0).sort((a,b)=>T[b].x-T[a].x||a-b),east=order.slice(0,k).sort((a,b)=>a-b),isE=new Uint8Array(nT);for(const i of east)isE[i]=1;
