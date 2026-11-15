@@ -186,12 +186,30 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=!S?12+m.lvl*5:sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee));return budget*(o&&o.mult||1)*(1+G.day*.008)*(typeof BUDGETK==='number'?BUDGETK:1)*runK('budget')}   // difficulty: diffK('budget')
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
-function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
+/* ---- Fixed rosters (Phase 8B endgame, CONTRACT.md): o.roster = [{id, n?, lvl?, elite?, at?:{c,r}, name?, hpK?}] is the enemy side exactly as
+   listed: no budget, no rank from the company (its size, level, renown, day or power never reach it). lvl sets the foe's rank (lvl 1 = as in EN,
+   every 4 levels doubles its strength the way foeRank would), elite marks a picked fighter (ROSTER.elite more rank, 'Elite' in its name), at a
+   tile (board coordinates; r 0 is the enemy's own edge), name a proper name, hpK a hitpoint multiplier (named bosses). The one thing allowed to
+   move it is the player's own difficulty setting, diffK('budget'), applied the same for everyone as a flat stat multiplier (ROSTER.dhp / dd
+   exponents). Summons and the raised dead in such a battle take ROSTER.sumLvl's rank, never foeRank. rosterList(o) expands it (at most MAXFOES). */
+const ROSTER={elite:1.6,dhp:.8,dd:.5,sumLvl:5};
+const rosterX=e=>Math.pow(2,(Math.max(1,+e.lvl||1)-1)/4)*(e.elite?ROSTER.elite:1);
+function rosterList(o){const L=o&&Array.isArray(o.roster)?o.roster:null,out=[];if(!L)return null;
+ for(const e of L){if(!e||!EN[e.id])continue;const n=clamp(Math.floor(e.n==null?1:+e.n||0),0,MAXFOES);for(let i=0;i<n&&out.length<MAXFOES;i++)out.push(i?Object.assign({},e,{at:null,name:e.name&&n>1?null:e.name}):e)}
+ return out}
+function mkRosterUnit(e,f,dk){const u=mkEnemy(e.id,f);u.rx=rosterX(e);u.ros=1;if(typeof enemyInit==='function')enemyInit(u,e.id);initUnit(u);
+ if(e.hpK>0){u.hp=u.hpMax=Math.round(u.hpMax*e.hpK)}
+ if(dk!==1){u.hp=u.hpMax=Math.round(u.hpMax*Math.pow(dk,ROSTER.dhp));const k=Math.pow(dk,ROSTER.dd);u.wpn.d=[Math.round(u.wpn.d[0]*k),Math.round(u.wpn.d[1]*k)];u.dmgK=(u.dmgK||1)*k}
+ if(e.elite&&!/^Elite /.test(u.name))u.name='Elite '+String(EN[e.id].n).toLowerCase();if(e.name)u.name=e.name;u.elite=e.elite?1:0;
+ if(e.at&&Number.isInteger(e.at.c)&&Number.isInteger(e.at.r)&&inb(e.at.c,e.at.r))u.slot={c:e.at.c,r:e.at.r};return u}
+function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
-function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',rv=o.rival?battleRival(o.rival):null,budget=rv?0:battleBudget(o);
+function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',rv=o.rival?battleRival(o.rival):null,budget=rv||Array.isArray(o.roster)?0:battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);
+ if(o.realm&&!tiles.realm&&typeof realmTiles==='function'){realmTiles(tiles,o.realm);tiles.realm=o.realm}   // a portal realm's ground (seeded, so the preview is the battle)
  if(o.obj&&o.obj.k==='siege'&&typeof objFortify==='function'&&!tiles.fortified){objFortify(tiles);tiles.fortified=1}   // the siege works (no rnd)
  if(rv)return{bk,tiles,foes:[],rival:rivalPreview(rv),rv:rv.id,budget};   // a rival company: its own swords, no budget
+ if(Array.isArray(o.roster))return{bk,tiles,foes:previewEnemies(o),roster:rosterList(o),realm:o.realm||null,fabled:typeof fabledPreview==='function'?fabledPreview(o):[],budget:0};   // a fixed roster: exactly as listed
  return{bk,tiles,foes:previewEnemies(o),fabled:typeof fabledPreview==='function'?fabledPreview(o):[],budget}}
 /* startBattle(o): o = {f, mult, src:{type,...}, biome?, fixed?, rival?} plus optional engine flags:
    rival: a rival company id (CONTRACT.md): the enemy side is its roster (rivalField, mkRivalUnit) instead of EN defs; o.f is set to the
@@ -208,13 +226,15 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
   log:'',floats:[],shots:[],cam:{x:ctr.x,y:ctr.y,tx:ctr.x,ty:ctr.y,z:1}};
  // B.auto is a live switch: turning it on while the company is waiting for orders hands the turn to the AI at once.
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
+ if(Array.isArray(o.roster)){b.frank={f:o.f,x:rosterX({lvl:ROSTER.sumLvl})};b.fixedSide=1}   // a fixed roster: summons take a fixed rank, never foeRank
+ b.realm=typeof realmOf==='function'?realmOf(o.realm):null;   // portal realm rules (24-endgame.js)
  b.east=!!(o.east||(typeof isEast==='function'&&G&&G.p&&isEast(G.p.x,G.p.y)));   // eastern ground: 71-tiles draws eastern props
  B=b;const used=new Set(),pu=place(f.map(m=>{const u=mkPlayerUnit(m),s=m.slot;if(dep[m.id])u.slot=dep[m.id];else if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:s.col,r:s.row?DEPLOY.p.back:DEPLOY.p.front};return u}),DEPLOY.p.front,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used),
-  el=o.rival?rf.map(m=>mkRivalUnit(m,rv)):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)});
+  el=o.rival?rf.map(m=>mkRivalUnit(m,rv)):Array.isArray(o.roster)?rosterList(o).map(e=>mkRosterUnit(e,o.f,runK('budget'))):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)});
  if(o.fabled&&typeof fabledSpawn==='function')fabledSpawn(el,o);   // fabled warriors mixed into the enemy side (o.fabled: ids)
  const eu=place(el,DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
  b.rival=o.rival||null;if(o.ambush)for(const u of eu)u.unready=1;   // an ambush (o.ambush, from a parley): the company acts first in round 1, the foe starts unready
- b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&(o.boss.fabled||(Array.isArray(o.boss.phases)&&EN[o.boss.id]&&EN[o.boss.id].boss))?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();
+ b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&(Array.isArray(o.roster)||o.boss.fabled||(Array.isArray(o.boss.phases)&&EN[o.boss.id]&&EN[o.boss.id].boss))?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();if(b.realm&&typeof realmStart==='function')realmStart(b);
  mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${battleFoeN(o)} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} ${b.rival?'swords':'foes'}.`);nextTurn();return b}
 /* (A fabled boss, or a phased boss (o.boss.phases) whose EN entry is a boss already (def.boss: the crisis bosses), skips the contract-boss upgrade of objSetup,
    CTR_BOSSK: it is boss-sized as it stands; bossSetup (21-fabled.js) marks it and runs its phases.)
@@ -317,11 +337,12 @@ function callReserve(m,k){const b=B;if(!canCallReserve())return null;const i=b.r
  const u=mkPlayerUnit(b.reserves[i]);u.c=k%BW;u.r=(k/BW)|0;if(!spawnUnit(u))return null;b.reserves.splice(i,1);b.resRound=b.round;u.ap=0;say(`${u.name} joins the fight.`);FX.ui();return u}
 /* ---- Abilities ---- */
 function abilityInfo(u,id){const w=u.wpn,fl=u.flags||{},bowR=w.rng+(w.wt==='bow'?(fl.eagle?1:0)+(fl.rngB||0):0);
- if(id==='attack'){const o={id,n:isRangedW(w)?'Shoot':'Attack',ap:w.ap,fat:w.fat||0,rng:bowR,tgt:'enemy',wpn:1,mult:1};if(w.fx)o.fx=w.fx;return o}
+ if(id==='attack'){const o={id,n:isRangedW(w)?'Shoot':'Attack',ap:w.ap,fat:w.fat||0,rng:B&&B.realm&&B.realm.sight?Math.min(bowR,B.realm.sight):bowR,tgt:'enemy',wpn:1,mult:1};if(w.fx)o.fx=w.fx;return o}
  const a=Object.assign({id},AB[id]);if(a.wpn){if(a.ap==null)a.ap=w.ap;if(a.rng==null)a.rng=bowR}if(a.swapW&&u.swapFree)a.ap=0;
  if(a.reloadW&&w.reload){a.ap=w.reload.ap;a.fat=w.reload.fat}
  if(a.spikeD)a.dmgD=(u.spike||[10,18]).slice();
  if(a.buff&&a.buff.key==='shieldwall'&&u.shw)a.buff=Object.assign({},a.buff,{md:(a.buff.md||0)+u.shw,rd:(a.buff.rd||0)+u.shw});
+ if(B&&B.realm&&B.realm.sight&&a.tgt==='enemy'&&a.rng>B.realm.sight)a.rng=B.realm.sight;   // the Hollow: darkness shortens every shot and spell
  return a}
 /* ---- Arms: the ranged lock and the weapon swap ----
    A ranged weapon attack is an ability that uses a ranged weapon (RANGEDWT: bow, crossbow, flintlock): a.needs one of them, or a weapon
@@ -455,7 +476,7 @@ const burnDmg=u=>Math.round(8*(1+(u.fw||0)));
 const kbImmune=t=>(t.sz||1)>1||!!(t.def&&t.def.kbImm)||buffSum(t,'indom')>0||!!(t.flags&&t.flags.kbImm);
 // Steady footing (medium armor) halves what a step costs in fatigue.
 const moveFat=u=>u&&u.flags&&u.flags.footing?1:2;
-const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0||u.m?u.lvl*.03:0));   // a merc's level (either side)
+const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0||u.m?u.lvl*.03:0))*(B&&B.realm&&B.realm.spellK||1);   // the Glass Wastes: mana storms (24-endgame.js)   // a merc's level (either side)
 const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)+(u.flags&&u.flags.ignB||0);
 // The damage roll of a weapon ability (a Spiked bash rolls the shield's spike), and the armor crushing of the blow (hammers).
 const rollOf=(u,a)=>a.dmgD||u.wpn.d;
@@ -606,7 +627,7 @@ async function walkPath0(u,path,land){const b=B,sz=u.sz||1,mf=moveFat(u);for(con
   if(stop){u.ap=Math.max(0,u.ap-c);break}
   u.ap-=c;u.fat+=mf;u.mvd=1;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(land&&!airAt(u)){land[0]=nc;land[1]=nr}if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
 /* ---- Ability effects on allies (heal, buff, rally, cleanse, AP) ---- */
-const healRoll=(u,a)=>{const h=ri(a.heal[0],a.heal[1]);return Math.round(h*(1+(u.flags&&u.flags.healB||0)))};
+const healRoll=(u,a)=>{const h=ri(a.heal[0],a.heal[1]);return Math.round(h*(1+(u.flags&&u.flags.healB||0))*(B&&B.realm&&B.realm.healK!=null?B.realm.healK:1))};   // the Ashen Reach halves healing
 function healUnit(t,h){const h0=t.hp;t.hp=Math.min(t.hpMax,t.hp+h);float(t,'+'+h,'#9bd96f');FX.emit('heal',{t,n:t.hp-h0})}
 function allyEffect(u,t,a){if(!t.alive)return;if(a.heal)healUnit(t,healRoll(u,a));
  if(a.cleanse){let n=0;for(const k of a.cleanse)if(t.st[k]>0){t.st[k]=0;n++}if(a.cleanse.includes('root')&&t===B.cur&&!(t.st.webbed>0))t.rooted=false;if(n)float(t,'Cleansed','#9bd96f')}
@@ -620,6 +641,7 @@ function lineBeyond(u,t,n){const out=[],dc=t.c-u.c,dr=t.r-u.r,L=Math.max(Math.ab
 const THROUGH=.75;
 async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null;b.reach=null;payFor(u,a);if(a.id!=='attack')say(`${u.name} uses ${a.n}.`);FX.ui();const c=k%BW,r=(k/BW)|0;
  if(a.id!=='attack')FX.emit('cast',{u,t:a.tgt==='self'?u:a.tgt==='ally'||a.tgt==='enemy'?unitAt(c,r)||null:null,ab:a});
+ if(b.realm&&b.realm.backlash&&a.magic&&typeof realmBacklash==='function'){realmBacklash(u,a);if(B!==b)return;if(!u.alive){await sleep(120);if(B!==b)return;b.busy=false;afterAction();return}}   // the Glass Wastes: a spell burns its caster
  if(typeof a.run==='function'){await a.run(u,k,a);if(B!==b)return}
  else if(a.tgt==='self'){if(a.withdraw){u.ap+=a.ap;await withdraw(u);if(B!==b)return}
   if(a.swapW){swapWeapons(u);auraScan()}
@@ -650,7 +672,7 @@ function checkEnd(){const b=B;if(!b||b.over)return true;const p=b.units.some(u=>
 async function nextTurn(){const b=B;if(!b||checkEnd())return;
  if(b.opts.turnCap&&b.turns>=b.opts.turnCap){b.over=true;b.busy=true;b.stuck=true;battleSync();if(b.onEnd)b.onEnd({stuck:true,win:false,rounds:b.round,turns:b.turns});return}
  b.turns++;let u=null;
- while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);const amb=b.round===1&&b.opts.ambush;b.order=al.sort((x,y)=>(amb?x.side-y.side:0)||y.roll-x.roll||x.id-y.id);if(b.boss)bossRound(b);if(b.obj&&checkEnd())return}
+ while(!u){if(!b.order.length){b.round++;if(b.auto&&canCallReserve())callReserve(b.reserves[0]);const al=b.units.filter(x=>x.alive);al.forEach(x=>x.roll=x.init+(rnd()-.5)*5.66);const amb=b.round===1&&b.opts.ambush;b.order=al.sort((x,y)=>(amb?x.side-y.side:0)||y.roll-x.roll||x.id-y.id);if(b.boss)bossRound(b);if(b.realm&&typeof realmRound==='function')realmRound(b);if(b.obj&&checkEnd())return}
   const x=b.order.shift();if(x.alive&&!x.vip)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
  u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;if(u.unready){u.unready=0;u.ap=Math.max(0,u.ap-AMBUSHAP);float(u,'Caught unready','#ffd27a')}u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic
@@ -663,7 +685,7 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
  if(u.st.bleed){u.st.bleed--;hurt(u,BLEEDDMG,1,null,{pierce:1});await sleep(200);if(B!==b)return}
  if(u.alive&&u.st.burn){u.st.burn--;hurt(u,burnDmg(u),1);await sleep(260);if(B!==b)return}if(u.alive&&T(u).t==='haz'){hurt(u,12,1);await sleep(200);if(B!==b)return}
  if(!u.alive)return nextTurn();
- { const rg=(u.flags&&u.flags.regenHP||0)+bestAdj(u,'medAura');if(rg>0&&u.hp<u.hpMax){const h0=u.hp;u.hp=Math.min(u.hpMax,u.hp+rg);float(u,'+'+(u.hp-h0),'#9bd96f');FX.emit('heal',{t:u,n:u.hp-h0})} }
+ { const rg=b.realm&&b.realm.noRegen?0:(u.flags&&u.flags.regenHP||0)+bestAdj(u,'medAura');if(rg>0&&u.hp<u.hpMax){const h0=u.hp;u.hp=Math.min(u.hpMax,u.hp+rg);float(u,'+'+(u.hp-h0),'#9bd96f');FX.emit('heal',{t:u,n:u.hp-h0})} }
  if(u.st.stun){u.st.stun=0;if(typeof monStunned==='function')monStunned(u);float(u,'Stunned','#ffd27a');await sleep(420);if(B!==b)return;return nextTurn()}
  if(moraleTurn(u)){await sleep(u.side===1?200:60);if(B!==b)return;await fleeTurn(u);if(B!==b||b.over)return;return nextTurn()}
  if(u.side===1||b.auto){await sleep(u.side===1?260:60);if(B!==b)return;await aiTurn(u);if(B!==b||b.over)return;return nextTurn()}

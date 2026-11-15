@@ -10,6 +10,17 @@
    m.mast is a derived, read-only mirror {treeKey: perks owned} kept for older UI code; nothing in the rules reads it.
    Uses no randomness except rollTrees() at recruitment (seeded). */
 const PERKIX={};for(const k in MAST)MAST[k].tiers.forEach((tier,ti)=>tier.forEach(p=>{PERKIX[p.id]={perk:p,tree:MAST[k],key:k,tier:ti+1,kind:MAST[k].kind}}));
+/* Final mastery tier (25-legend.js): MAST[k].cap = {unlock:{deed,n}, lvl, tiers:[[perk...]]}. Its perks are indexed here with tier = the tree's
+   tier count + 1 and cap:true; they open at capNeed(kind) AND only once capOpen(m, k) (the merc's deeds). perkOptions(m) lists the ordinary tiers
+   only; capOptions(m) lists the capstones [{id, perk, key, tree, tier, kind, cap:true, owned, unlocked, need, open, why}].
+   perkNeed(P) -> the level a perkById record needs (tierLevel, or capNeed for a capstone). */
+for(const k in MAST){const T=MAST[k];if(T.cap&&Array.isArray(T.cap.tiers))T.cap.tiers.forEach(tier=>tier.forEach(p=>{if(!PERKIX[p.id])PERKIX[p.id]={perk:p,tree:T,key:k,tier:T.tiers.length+1,kind:T.kind,cap:true}}))}
+function perkNeed(P){return P&&P.cap?(P.tree.cap&&P.tree.cap.lvl)||(typeof capNeed==='function'?capNeed(P.kind):10):tierLevel(P.kind,P.tier)}
+const capOK=(m,k)=>typeof capOpen==='function'&&capOpen(m,k);
+function capOptions(m){const own=new Set(m&&Array.isArray(m.perks)?m.perks:[]),out=[];if(!m)return out;
+ for(const {key,tree,kind} of mercTrees(m)){const C=tree.cap;if(!C||!Array.isArray(C.tiers))continue;const need=C.lvl||10,open=capOK(m,key),why=typeof capWhy==='function'?capWhy(m,key):'';
+  for(const tier of C.tiers)for(const p of tier)out.push({id:p.id,perk:p,key,tree,tier:tree.tiers.length+1,kind,cap:true,owned:own.has(p.id),open,why,unlocked:open&&(m.lvl||1)>=need,need})}
+ return out}
 // The level at which tier t (1-based) of a tree of this kind opens: style, gift and hunter t, weapon 3t (3 6 9), armor 3t-1 (2 5 8).
 function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:kind==='fabled'?3*t-2:t}
 /* Armor trees: a merc may learn only its background's (BG[bg].at: 1 or 2 of ARMORT, display order light medium heavy); a perk of one
@@ -21,7 +32,7 @@ const isArmorPerk=id=>!!(PERKIX[id]&&PERKIX[id].kind==='armor');
 /* refundTrees(m): takes back every learned perk of a weapon or armor tree the merc may not learn (its background or race does not
    allow it) and returns the points to m.pp. Returns how many perks were refunded. Used by the v8 save migration and the loader. */
 function refundTrees(m){if(!m||!Array.isArray(m.perks))return 0;const ok=new Set(weaponTrees(m).concat(armorTrees(m),hunterTrees(m),fabledTrees(m)));let n=0;
- m.perks=m.perks.filter(id=>{const P=PERKIX[id];if(P&&(P.kind==='weapon'||P.kind==='armor'||P.kind==='hunter'||P.kind==='fabled')&&!ok.has(P.key)){n++;return false}return true});
+ m.perks=m.perks.filter(id=>{const P=PERKIX[id];if(P&&(P.kind==='weapon'||P.kind==='armor'||P.kind==='hunter'||P.kind==='fabled')&&!ok.has(P.key)){n++;return false}if(P&&P.cap&&!capOK(m,P.key)){n++;return false}return true});   // a capstone whose deed the merc lacks is refunded too
  if(n)m.pp=Math.max(0,Math.floor(Number(m.pp)||0))+n;return n}
 // {perk, tree, key, tier, kind} for a perk id, or null.
 function perkById(id){return PERKIX[id]||null}
@@ -73,7 +84,7 @@ function mercTrees(m){const out=[],tr=Array.isArray(m.trees)?m.trees:[];
 function perkOptions(m){const own=new Set(Array.isArray(m.perks)?m.perks:[]),out=[];
  for(const {key,tree,kind} of mercTrees(m))tree.tiers.forEach((tier,ti)=>{const need=tierLevel(kind,ti+1);for(const p of tier)out.push({id:p.id,perk:p,key,tree,tier:ti+1,kind,owned:own.has(p.id),unlocked:(m.lvl||1)>=need,need})});
  return out}
-function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(m.perks)||m.perks.includes(id))return false;if((m.lvl||1)<tierLevel(P.kind,P.tier))return false;return mercTrees(m).some(x=>x.key===P.key)}
+function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(m.perks)||m.perks.includes(id))return false;if((m.lvl||1)<perkNeed(P))return false;if(P.cap&&!capOK(m,P.key))return false;return mercTrees(m).some(x=>x.key===P.key)}
 // Spends a point on perk id. Awakens the gift on its first perk; hitpoints gained are healed at once. Returns true when learned.
 function learnPerk(m,id){if(!canLearn(m,id))return false;const hp0=calc(m).hp;m.perks.push(id);m.pp--;const hp1=calc(m).hp;if(hp1>hp0)m.hp=Math.min(hp1,(m.hp||0)+hp1-hp0);else m.hp=Math.min(m.hp,hp1);syncMast(m);return true}
 // Older UI code reads m.mast; keep it a mirror of m.perks.
@@ -89,7 +100,7 @@ function mercTags(m){const t=new Set([mercStyle(m)]),w=ITEMS[m.eq&&m.eq.w],a=ITE
  if(m.gift&&MAST[m.gift])t.add(MAST[m.gift].style);return t}
 function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,rngd=isRangedW(w),bow=wt==='bow',two=!!(w&&w.two),
   sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
- let s=o.tier*10;if(o.kind==='gift')s+=giftAwake(m)?18:60;if(o.kind==='fabled')s+=80;   // a fabled warrior's own tree comes first
+ let s=o.tier*10+(o.cap?40:0);if(o.kind==='gift')s+=giftAwake(m)?18:60;if(o.kind==='fabled')s+=80;   // a fabled warrior's own tree comes first
  if(o.kind==='weapon')s+=T.wt==='shield'?(up?14:swUp?4:-25):T.wt===wt?14:T.wt===swt?4:-25;
  if(o.kind==='armor'){if(T.aw!==armorClass(m))return s-200;s+=20;const md=p.mod||{};   // only the tree of the armor worn; within it, what suits the merc
   if(md.fleet&&!rngd)s-=6;if(p.flag==='slip'&&rngd)s+=4;if(md.steelWall&&rngd)s-=8;if(p.flag==='ironLung')s+=4;if(md.armRegen)s+=3}
@@ -101,7 +112,7 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
  if(p.st){if(rngd&&p.st.ms)s-=8;if(!rngd&&p.st.rs&&!p.st.ms)s-=12}
  return s}
 function autoLearn(m){const got=[];if(!m||!Array.isArray(m.perks))return got;const tags=mercTags(m);let g=0;
- while(m.pp>0&&g++<40){let best=null,bs=-1e9;for(const o of perkOptions(m)){if(o.owned||!o.unlocked)continue;const s=perkFit(m,o,tags);if(s>bs){bs=s;best=o}}
+ while(m.pp>0&&g++<40){let best=null,bs=-1e9;for(const o of perkOptions(m).concat(capOptions(m))){if(o.owned||!o.unlocked)continue;const s=perkFit(m,o,tags);if(s>bs){bs=s;best=o}}
   if(!best||!learnPerk(m,best.id))break;got.push(best.id)}
  return got}
 /* equipRules(m, slot, itemId) -> {ok, why, drops?:[slots], slung?}: the hands rules for the equipment screen.
@@ -120,3 +131,10 @@ function equipRules(m,slot,id){const it=ITEMS[id];if(!it)return{ok:false,why:'Un
 function fixHands(m){const eq=m.eq||{},two=x=>!!(ITEMS[x]&&ITEMS[x].k==='w'&&ITEMS[x].two);if(eq.s&&two(eq.w)&&two(eq.b)){const s=eq.s;eq.s=null;return s}return null}
 // The perks an old mastery record {key: n} stands for: the first n tier perks of each tree.
 function legacyPerks(mast){const out=[];if(!mast||typeof mast!=='object')return out;for(const k in mast){const T=MAST[k];if(!T)continue;const n=Math.max(0,Math.floor(Number(mast[k])||0));for(let t=0;t<n&&t<T.tiers.length;t++)out.push(T.tiers[t][0].id)}return out}
+
+/* ---- legendary powers in the battle rules (25-legend.js): hurt(), killUnit() and mkMercUnit() of 60-battle-core.js are wrapped once, here
+   (this file loads after it), so leech / thorns / chain lightning / fearless run without touching the core file. The wrappers only add what
+   legendHit / legendKill / legendUnit do; the forecast is untouched (those effects follow the hit; the hit and damage numbers are the core's). */
+if(typeof hurt==='function'&&typeof legendHit==='function'&&!hurt.lg){const h0=hurt;hurt=function(t,dmg,ign,src,o){const r=h0(t,dmg,ign,src,o);if(src)legendHit(src,t,r,o);return r};hurt.lg=1}
+if(typeof killUnit==='function'&&typeof legendKill==='function'&&!killUnit.lg){const k0=killUnit;killUnit=function(t,src,head){const r=k0(t,src,head);if(src)legendKill(src,t);return r};killUnit.lg=1}
+if(typeof mkMercUnit==='function'&&typeof legendUnit==='function'&&!mkMercUnit.lg){const u0=mkMercUnit;mkMercUnit=function(m,side){return legendUnit(u0(m,side))};mkMercUnit.lg=1}
