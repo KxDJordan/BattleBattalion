@@ -144,7 +144,7 @@ const FABLED={
   legend:'He brought down a rockslide on an ogre clan with one swing at the right stone. Ogres still run from his name; men are wiser to do the same.',
   pt:{hair:'shaggy',hairC:'H',beard:'short',beardC:'H',bg:['j','i','k'],marks:{scar:1}}},
  agathe:{n:'Sister Agathe',title:'the Lantern of Saint Vey',bg:'acolyte',bgN:'Lantern sister',race:'human',fem:1,lvl:8,st:{hp:10,md:6,brv:25},traits:['loyal'],gift:'chi',gear:['fb:lanternmace','fb:saintstower'],eq:{a:'mail',h:'coif'},
-  where:['recruit'],earn:{k:'renown',tier:3},cost:2800,
+  where:['recruit','rival','crisis'],crisis:['deadmarch'],earn:{k:'renown',tier:3},cost:2800,
   legend:'She carried the Saint’s lantern through the plague year and it never went out. Wounded men swear it heals; dying ones swear it is the last kind thing they saw.',
   pt:{hat:'band',hatC:'white',hair:'bun',hairC:'H',bg:['y','Y','e'],skin:'fair',beads:['c','b','d','e']}},
  yuki:{n:'Hayase Yuki',title:'the Hundred Arrows',bg:'hunter',bgN:'Yumi archer',race:'human',east:1,fem:1,lvl:10,st:{rs:14,init:10},traits:[],gear:['fb:hundredbow','fb:snowdo'],eq:{},
@@ -187,7 +187,8 @@ function fabledMerc(id,o){const F=FABLED[id];if(!F)return null;o=o||{};const L=c
  const eq={w:null,b:null,s:null,a:null,h:null};
  for(const gid of F.gear){const it=ITEMS[gid];if(!it||(!o.keepGear&&fabledOwned(gid)))continue;/* named gear is unique: what the company holds is not worn again */if(it.k==='w'){if(!eq.w)eq.w=gid;else if(!eq.b)eq.b=gid}else if(['s','a','h'].includes(it.k)&&!eq[it.k])eq[it.k]=gid}
  for(const k in F.eq||{}){const pick0=fabledBase(F.eq[k]);if(pick0&&!eq[k]&&ITEMS[pick0].k===k)eq[k]=pick0}
- const pool=(BG[F.bg]&&BG[F.bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice(0,4),trees=F.gift&&MAST[F.gift]?pool.concat([F.gift]):pool;
+ const hunt=!!(BG[F.bg]&&BG[F.bg].hw>=.5&&MAST.hunter),   // a fabled hunter, poacher, witch hunter or wildling carries the Monster hunter tree as one of the four
+  pool=(BG[F.bg]&&BG[F.bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice(0,hunt?3:4).concat(hunt?['hunter']:[]),trees=F.gift&&MAST[F.gift]?pool.concat([F.gift]):pool;
  const m={id:o.join&&G?G.nid++:-(1000+Object.keys(FABLED).indexOf(id)),name:F.n,title:F.title,bg:F.bg,race:RACE[F.race]?F.race:'human',lvl:1,xp:0,pp:1,pend:0,base:fabledStats(F,L),tal:{},trees,gift:F.gift&&MAST[F.gift]?F.gift:null,
   perks:[],eq,hp:1,field:false,inj:[],traits:(F.traits||[]).filter(k=>typeof TRAITS==='object'&&TRAITS[k]),slain:{},fabled:id};
  if(!traitsValid(m.traits))m.traits=[];
@@ -234,7 +235,10 @@ function fabledEarn(id){const F=FABLED[id];if(!F)return{ok:false,p:0,goal:1,text
 function fabledWage(id){const F=FABLED[id];return F?Math.round((BG[F.bg]?BG[F.bg].wage:20)*2.5+20):0}
 function fabledCost(id){const F=FABLED[id];return F?Math.round((F.cost||3000)*(typeof followerHas==='function'&&followerHas('recruiter')?.85:1)/10)*10:0}
 // {ok, why}: can the company take this fabled warrior on now (the earn condition, the purse, room, solo runs: never)
-function fabledCan(id){const F=FABLED[id];if(!F)return{ok:false,why:'Nobody of that name'};
+/* FABLED_HIRE (owner's rule): fabled warriors are never for hire. They are met only as foes, rival champions and bosses; no tavern
+   page, no recruit or duel offer. fabledCan is always false, fabledOffers empty, fabledDuelCan closed. A fabled who joined in an older save stays. */
+const FABLED_HIRE=false;
+function fabledCan(id){const F=FABLED[id];if(!F)return{ok:false,why:'Nobody of that name'};if(!FABLED_HIRE)return{ok:false,why:'Serves no company but their own'};
  if(!(typeof canRecruit!=='function'||canRecruit()))return{ok:false,why:typeof recruitWhy==='function'?recruitWhy():'You ride alone: nobody joins',solo:true};
  if(!F.where.includes('recruit'))return{ok:false,why:'Serves no company but their own'};const s=fabledState(id);
  if(s==='dead')return{ok:false,why:'Dead'};if(s==='joined')return{ok:false,why:'Already with the company'};if(/^rival:/.test(s))return{ok:false,why:'Rides with a rival company'};
@@ -247,11 +251,11 @@ function fabledTown(id){if(!G||!Array.isArray(G.towns)||!G.towns.length||!FABLED
  if(F.east&&east.length)L=east;else if(!F.east&&east.length<L.length)L=L.filter(i=>!east.includes(i));const big=L.filter(i=>(G.towns[i].size||1)>=2);if(big.length)L=big;
  return L[fabledHash((G.seed|0)+':'+id)%L.length]}
 // the fabled who wait in town ti for the company: [{id, F, state, earn, can, cost, wage}] (in solo runs: none)
-function fabledOffers(ti){if(!G||isSoloF())return[];const out=[];for(const id in FABLED){const F=FABLED[id];if(!F.where.includes('recruit')||!fabledFree(id)||fabledTown(id)!==ti)continue;
+function fabledOffers(ti){if(!FABLED_HIRE||!G||isSoloF())return[];const out=[];for(const id in FABLED){const F=FABLED[id];if(!F.where.includes('recruit')||!fabledFree(id)||fabledTown(id)!==ti)continue;
  out.push({id,F,state:fabledState(id),earn:fabledEarn(id),can:fabledCan(id),cost:fabledCost(id),wage:fabledWage(id)})}return out}
 /* ---- duels ----  fabledDuel(id, mercId): your champion alone against the fabled warrior, fought to yielding (nobody dies: B.opts.yield).
    Winning sets G.fabled[id].duel; the earn condition 'duel' is then met. Returns the battle or null. */
-function fabledDuelCan(id){const F=FABLED[id];if(!F||!F.earn||F.earn.k!=='duel')return{ok:false,why:'Fights no duels'};if(!fabledFree(id))return{ok:false,why:'Not here'};
+function fabledDuelCan(id){const F=FABLED[id];if(!FABLED_HIRE)return{ok:false,why:'Fights no duels'};if(!F||!F.earn||F.earn.k!=='duel')return{ok:false,why:'Fights no duels'};if(!fabledFree(id))return{ok:false,why:'Not here'};
  const e=fabledEarn(id);if(e.ok)return{ok:false,why:'Already beaten'};if(!e.duel)return{ok:false,why:e.text};return{ok:true,why:''}}
 function fabledDuel(id,mid){if(!fabledDuelCan(id).ok)return null;const m=(G.roster.find(x=>x.id===mid)||G.roster.filter(x=>!(x.hp<=0)).sort((a,b)=>b.lvl-a.lvl)[0]);if(!m)return null;
  const o={f:'bandit',fabled:[id],fabledOnly:1,duel:id,yield:1,deploy:[{id:m.id}],src:{type:'fabled',id},biome:null};
@@ -301,7 +305,7 @@ function fabledKnown(id){const s=fabledState(id);return s!=='unmet'||fabledEarn(
 function fabledCard(id){const F=FABLED[id],s=fabledState(id),e=fabledEarn(id),ti=fabledTown(id),here=G&&G.town===ti&&ti>=0,m=fabledMerc(id),c=calc(m);
  const st=s==='dead'?'<em class="bad">Dead</em>':s==='joined'?'<em class="good">With the company</em>':/^rival:/.test(s)?'<em class="warn">With a rival company</em>':'';
  const gear=F.gear.map(g=>`<b class="fmd-n">${ITEMS[g].n}</b>`).join(', '),tree=MAST[F.tree];
- let act='';if(F.where.includes('recruit')&&fabledFree(id)){const can=fabledCan(id),dc=fabledDuelCan(id);
+ let act='';if(FABLED_HIRE&&F.where.includes('recruit')&&fabledFree(id)){const can=fabledCan(id),dc=fabledDuelCan(id);
   act=`<p class="dim">${e.ok?'<span class="good">Earned</span>':'To earn: '+e.text}${ti>=0?` · waits in <b>${G.towns[ti].name}</b>`:''}</p>`;
   if(here&&can.ok)act+=`<button class="pri" onclick="fabledHire('${id}')">Recruit (${fabledCost(id)} crowns, ${fabledWage(id)} a day)</button>`;
   else if(here&&dc.ok)act+=`<button class="pri" onclick="fabledDuelUI('${id}')">Challenge to a duel</button>`;
@@ -310,6 +314,6 @@ function fabledCard(id){const F=FABLED[id],s=fabledState(id),e=fabledEarn(id),ti
   <p><b>${F.n}</b>, ${F.title} ${st}</p><p class="dim">Level ${m.lvl} ${RACE[m.race].n.toLowerCase()} ${(F.bgN||BG[F.bg].n).toLowerCase()} · ${c.hp} hp · melee ${c.ms} · ranged ${c.rs} · defense ${c.md}/${c.rd}</p>
   <p><i>${F.legend}</i></p><p class="dim">Named gear: ${gear}. Tree: <b>${tree.n}</b> (${tree.tiers.map(t=>t[0].n).join(', ')}).</p>${act}</div></div>`}
 function openFabled(){if(typeof sheet!=='function'||!G)return;const ids=Object.keys(FABLED).filter(fabledKnown);
- sheet(`<h2>Fabled warriors</h2><p class="dim">${isSoloF()?'You ride alone: the fabled never join a solo run, though you may cross blades with them.':'Rare named fighters. Each must be earned; each carries named gear and a tree of their own. Death is for good.'}</p>${ids.length?ids.map(fabledCard).join(''):'<p>Nobody sings of them to an unknown company yet.</p>'}<button onclick="closeSheet()">Close</button>`)}
+ sheet(`<h2>Fabled warriors</h2><p class="dim">${'Rare named fighters who serve no company but their own: you meet them across the field, at the head of rival companies, crises and the eastern host. Each carries named gear, and death is for good.'}</p>${ids.length?ids.map(fabledCard).join(''):'<p>Nobody sings of them to an unknown company yet.</p>'}<button onclick="closeSheet()">Close</button>`)}
 function fabledHire(id){const m=fabledJoin(id);if(!m){const c=fabledCan(id);if(typeof toast==='function')toast(c.why||'They will not join');return}if(typeof toast==='function')toast(`${m.name}, ${FABLED[id].title}, joins the company.`);if(typeof save==='function')save();openFabled()}
 function fabledDuelUI(id){if(typeof closeSheet==='function')closeSheet(true);if(!fabledDuel(id)&&typeof toast==='function')toast(fabledDuelCan(id).why||'No duel')}
