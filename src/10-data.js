@@ -560,13 +560,13 @@ const MAST={
   [perkDef('Dancer','+8 melee and ranged defense while your fatigue is below half; every attack that misses you gives +5 melee and ranged defense until your next turn (up to +15)',{mod:{freshDef:8,dance:5}})],
   [perkDef('Quicksilver','+10% of your initiative (rounded down) as melee and ranged defense',{mod:{initDef:.1}})]]},
  medarmor:{n:'Medium armor',kind:'armor',aw:'medium',aff:['melee','ranged'],d:'Mail, leather and brigandine: give a little, keep the rest (only while your body armor is medium: 61 to 150 armor)',tiers:[
-  [perkDef('Braced mail','The first blow that hits you between your turns deals 20% less damage; regain 6 body armor at the start of each of your turns (up to its maximum)',{mod:{brace:.2,armRegen:6}})],
+  [perkDef('Braced mail','The first blow that hits you between your turns deals 15% less damage; regain 3 body armor at the start of each of your turns (up to its maximum)',{mod:{brace:.15,armRegen:3}})],
   [perkDef('Rolling with it','Knockbacks, hooks and stuns against you work only half the time; moving costs 1 fatigue a tile instead of 2',{mod:{roll:.5},flag:'footing'})],
-  [perkDef('Layered defense','+6 melee and ranged defense while your body armor is above half; the share of a blow that pierces your body armor is a third smaller (head hits excluded)',{mod:{layerDef:6,padIgn:1/3}})]]},
+  [perkDef('Layered defense','+5 melee and ranged defense while your body armor is above half; the share of a blow that pierces your body armor is a quarter smaller (head hits excluded)',{mod:{layerDef:5,padIgn:.25}})]]},
  heavyarmor:{n:'Heavy armor',kind:'armor',aw:'heavy',aff:['melee','shield'],d:'Plate and scale: a wall that walks (only while your body armor is heavy: over 150 armor)',tiers:[
   [perkDef('Immovable','You cannot be knocked back or dragged; your body armor and helmet cost half as much fatigue (rounded down)',{flag:'kbImm',mod:{ironLung:1}})],
-  [perkDef('Unbowed','A single blow never strips more than 30% of the armor it strikes (body armor or helmet, of its maximum); allies next to you take 10% less damage',{mod:{unbowed:.3,steelWall:.1}})],
-  [perkDef('Juggernaut','Every blow that reaches your hitpoints takes 5 fewer (at least 1), you cannot be stunned, and heavy blows do not test your morale',{mod:{hpSoak:5},flag:'noStun'})]]}
+  [perkDef('Unbowed','A single blow never strips more than 35% of the armor it strikes (body armor or helmet, of its maximum); allies next to you take 5% less damage',{mod:{unbowed:.35,steelWall:.05}})],
+  [perkDef('Juggernaut','Every blow that reaches your hitpoints takes 4 fewer (at least 1), you cannot be stunned, and heavy blows do not test your morale',{mod:{hpSoak:4},flag:'noStun'})]]}
 };
 /* ---- Monster hunter (kind 'hunter'): 9 tiers of one perk, tier t opens at level t (tierLevel). Each perk is a quarry (QUARRY, keyed by
    the perk id): against a unit whose EN id is in QUARRY[k].en, a merc who has learned it deals +QUARRYB% damage plus per% for every one of
@@ -839,7 +839,7 @@ Object.assign(EN,{
  elder:{n:'Elder ent',hp:300,arm:180,helm:120,ms:68,md:0,rd:30,init:65,ap:8,d:[54,78],big:1,kbImm:1,xp:700,role:'boss',brv:99,fearless:1,lead:1,max:1,sub:'ent',fireWeak:.5,regen:.06,abs:['groots','limbcrush','barkskin','grove']},
  ogre:{n:'Ogre',hp:185,arm:60,helm:35,ms:62,md:0,rd:0,init:85,d:[50,76],w:'maul',wap:5,big:1,kb:1,kbCh:.3,xp:380,role:'line',brv:70,abs:['ohurl','osweep']},
  aogre:{n:'Armored ogre',hp:200,arm:200,helm:150,ms:64,md:4,rd:6,init:75,d:[54,80],w:'warmaul',wap:5,big:1,kb:1,kbCh:.3,xp:520,role:'line',brv:80,abs:['oslam','ohurl']},
- wyvern:{n:'Wyvern',size:2,fly:1,hp:5600,arm:260,helm:200,ms:85,md:14,rd:10,init:120,ap:14,d:[150,200],ign:.45,xp:2400,role:'boss',boss:1,endgame:1,brv:99,fearless:1,abs:['wbite','wsting','wbuffet','wdive']},
+ wyvern:{n:'Wyvern',size:2,fly:1,hp:6400,arm:260,helm:200,ms:85,md:14,rd:10,init:120,ap:14,d:[150,200],ign:.45,xp:2400,role:'boss',boss:1,endgame:1,brv:99,fearless:1,abs:['wbite','wsting','wbuffet','wdive']},
  whatch:{n:'Wyvern hatchling',fly:1,hp:85,arm:30,helm:20,ms:62,md:16,rd:16,init:135,ap:10,d:[22,34],xp:200,role:'flanker',brv:70,abs:['hsting']}
 });
 Object.assign(FACT,{

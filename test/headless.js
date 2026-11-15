@@ -814,7 +814,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      // autoLearn takes armor perks from the tree of the armor worn only
      for(const [a,T] of [['jack','lightarmor'],['mail','medarmor'],['plate','heavyarmor']])for(const bg of ['knight','hunter','hedge','sellsword','acolyte']){const q=X.newMerc(bg);q.eq.a=a;X.gainXP(q,X.XPT[15]);X.autoLearn(q);
        const ar=q.perks.filter(id=>X.perkById(id).kind==='armor'),own=X.BG[bg].at.includes(T);
-       ok(ar.every(id=>X.BG[bg].at.includes(X.perkById(id).key))&&(own?ar.length>=2&&ar.every(id=>X.perkById(id).key===T):!ar.length),'autoLearn picks the armor tree of the armor worn, if the background has it: '+bg+' in '+a+': '+ar.join())}
+       ok(ar.every(id=>X.BG[bg].at.includes(X.perkById(id).key))&&(own?ar.length>=1&&ar.every(id=>X.perkById(id).key===T):!ar.length),'autoLearn picks the armor tree of the armor worn, if the background has it: '+bg+' in '+a+': '+ar.join())}
      ARMM=X.clone(m);
      // in the field: one class at a time, the flags calc gives (other classes get none of them)
      const fl=a=>{m.eq.a=a;const s=X.calc(m);return{flags:s.flags,aw:s.aw}};
@@ -833,20 +833,20 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        const seen=[];X.FX.on=(type,d)=>{if((type==='hit'||type==='miss')&&d.u===e0)seen.push(type)};Pl.ap=9;e0.aoo=0;Pl.slipT=0;await X.walkPath(Pl,[5*BW+4]);ok(Pl.c===4&&!seen.length&&!e0.aoo,'Slippery: no free attack on the first step');
        put(Pl,5,5);Pl.ap=9;e0.aoo=0;await X.walkPath(Pl,[5*BW+4]);ok(seen.length===1,'Slippery: only the first tile of a turn');X.FX.on=(type,d)=>ev.push({type,d});Pl.hp=200;put(Pl,5,5) }
      // medium
-     { const Md=fl('mail');Pl.flags=Md.flags;Pl.aw=Md.aw;Pl.fat=0;Pl.arm=200;ok(X.armorDr(Pl)===.2&&X.forecast(e0,Pl,ea).armDr===.2,'Brace: 20% off the first blow');X.hurt(Pl,10,0,e0,{loc:1});ok(Pl.brc===1&&X.armorDr(Pl)===0,'Brace is spent by a hit');Pl.brc=0;
-       Pl.arm=200;ok(X.hitChance(e0,Pl,ea)===g0-6,'Layered defense: +6 while the armor is above half');Pl.arm=100;ok(X.hitChance(e0,Pl,ea)===g0,'Layered defense: not at half');Pl.arm=200;
+     { const Md=fl('mail');Pl.flags=Md.flags;Pl.aw=Md.aw;Pl.fat=0;Pl.arm=200;ok(X.armorDr(Pl)===.15&&X.forecast(e0,Pl,ea).armDr===.15,'Braced mail: 15% off the first blow');X.hurt(Pl,10,0,e0,{loc:1});ok(Pl.brc===1&&X.armorDr(Pl)===0,'Brace is spent by a hit');Pl.brc=0;
+       Pl.arm=200;ok(X.hitChance(e0,Pl,ea)===g0-5,'Layered defense: +5 while the armor is above half');Pl.arm=100;ok(X.hitChance(e0,Pl,ea)===g0,'Layered defense: not at half');Pl.arm=200;
        { const t2=X.clone({}),h0=Pl.hp;Pl.arm=200;X.hurt(Pl,100,.6,e0,{loc:1});const a1=Pl.arm,l1=h0-Pl.hp;Pl.hp=h0;Pl.arm=200;const f0=Pl.flags;Pl.flags=Object.assign({},f0,{padIgn:0});X.hurt(Pl,100,.6,e0,{loc:1});const l2=h0-Pl.hp;Pl.flags=f0;Pl.hp=h0;Pl.arm=200;
-         ok(l1<l2&&l1===Math.max(0,Math.round(100*.6*(2/3)-(200-100)*.1))&&a1===100,'Padded under-layer: a third less of the piercing share: '+l1+' vs '+l2) }
+         ok(l1<l2&&l1===Math.max(0,Math.round(100*.6*.75-(200-100)*.1))&&a1===100,'Layered defense: a quarter less of the piercing share: '+l1+' vs '+l2) }
        let kb=0,st=0;for(let i=0;i<200;i++){put(Pl,5,5);await X.knockback(e0,Pl,1,0);if(Pl.c!==5)kb++;Pl.st={};X.addStatus(Pl,'stun',1);if(Pl.st.stun)st++}put(Pl,5,5);Pl.st={};
        ok(kb>70&&kb<130&&st>70&&st<130,'Rolling with it: half the knockbacks and stuns land: '+kb+' / '+st);
        const kbA={id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,status:{stun:1},rng:1,tgt:'enemy'},fk=X.forecast(e0,Pl,kbA);ok(fk.kb&&fk.kb.ch===.5&&fk.statuses.some(s=>s.k==='stun'&&s.ch===.5),'forecast: Rolling with it halves knockback and stun chances');
        Pl.ap=9;Pl.fat=0;put(e0,15,0);await X.walkPath(Pl,[5*BW+4,5*BW+3,5*BW+2]);ok(Pl.c===2&&Pl.fat===3&&X.moveFat(Pl)===1,'Steady footing: 1 fatigue a tile');put(Pl,5,5);put(e0,6,5);
-       Pl.arm=150;const res0=Pl.res;Pl.res={mana:{cur:0,max:30,regen:4}};b.order=[Pl];b.busy=true;await X.nextTurn();ok(Pl.arm===156&&b.cur===Pl,'Mail mender: +6 armor at turn start');ok(Pl.res.mana.cur===4,'gift pools still regenerate at turn start');Pl.res=res0;b.busy=true;Pl.arm=200 }
+       Pl.arm=150;const res0=Pl.res;Pl.res={mana:{cur:0,max:30,regen:4}};b.order=[Pl];b.busy=true;await X.nextTurn();ok(Pl.arm===153&&b.cur===Pl,'Braced mail: +3 armor at turn start');ok(Pl.res.mana.cur===4,'gift pools still regenerate at turn start');Pl.res=res0;b.busy=true;Pl.arm=200 }
      // heavy
      { const H=fl('plate');Pl.flags=H.flags;Pl.aw=H.aw;Pl.fat=0;ok(X.kbImmune(Pl),'Immovable');put(Pl,5,5);await X.knockback(e0,Pl,2,0);ok(Pl.c===5&&Pl.r===5,'Immovable: no knockback');
        ok(X.forecast(e0,Pl,{id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,rng:1,tgt:'enemy'}).kb.ch===0,'forecast: Immovable');
-       Pl.arm=200;X.hurt(Pl,150,.2,e0,{loc:1});ok(Pl.arm===140,'Unbowed: one blow strips at most 30% of the maximum: '+Pl.arm);Pl.arm=200;Pl.helm=100;X.hurt(Pl,80,.2,e0,{loc:1,head:true});ok(Pl.helm===70,'Unbowed covers the helmet');Pl.helm=100;
-       const hp0=Pl.hp;X.hurt(Pl,20,1,e0,{loc:1,pierce:1});ok(hp0-Pl.hp===15,'Juggernaut: 5 fewer hitpoints a blow');const hp1=Pl.hp;X.hurt(Pl,3,1,e0,{loc:1,pierce:1});ok(hp1-Pl.hp===1,'Juggernaut: at least 1');const hp2=Pl.hp;X.hurt(Pl,20,1,null,{pierce:1});ok(hp2-Pl.hp===20,'Juggernaut: only weapon and spell hits');Pl.hp=200;
+       Pl.arm=200;X.hurt(Pl,150,.2,e0,{loc:1});ok(Pl.arm===130,'Unbowed: one blow strips at most 35% of the maximum: '+Pl.arm);Pl.arm=200;Pl.helm=100;X.hurt(Pl,80,.2,e0,{loc:1,head:true});ok(Pl.helm===65,'Unbowed covers the helmet');Pl.helm=100;
+       const hp0=Pl.hp;X.hurt(Pl,20,1,e0,{loc:1,pierce:1});ok(hp0-Pl.hp===16,'Juggernaut: 4 fewer hitpoints a blow');const hp1=Pl.hp;X.hurt(Pl,3,1,e0,{loc:1,pierce:1});ok(hp1-Pl.hp===1,'Juggernaut: at least 1');const hp2=Pl.hp;X.hurt(Pl,20,1,null,{pierce:1});ok(hp2-Pl.hp===20,'Juggernaut: only weapon and spell hits');Pl.hp=200;
        Pl.st={};X.addStatus(Pl,'stun',1);ok(!Pl.st.stun,'Unshakable: no stun');ok(!X.forecast(e0,Pl,{id:'st',n:'st',wpn:1,mult:1,status:{stun:1},rng:1,tgt:'enemy'}).statuses.some(s=>s.k==='stun'),'forecast: Unshakable drops the stun');
        Pl.fearless=false;Pl.brv=-200;Pl.mor=3;for(let i=0;i<10;i++){Pl.hp=200;X.hurt(Pl,80,1,e0,{loc:1,pierce:1})}ok(Pl.mor===3,'Unshakable: heavy blows do not test morale');Pl.fearless=true;Pl.hp=200;
        put(W,5,6);W.flags=Object.assign({},W.flags,{steelWall:.1});Pl.flags={};X.auraScan();ok(X.armorDr(Pl)===.1&&X.forecast(e0,Pl,ea).armDr===.1,'Bulwark of steel: 10% off for an ally beside it');put(W,0,11);X.auraScan();ok(X.armorDr(Pl)===0,'Bulwark of steel: only beside it');W.flags.steelWall=0;X.auraScan() }

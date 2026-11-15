@@ -114,7 +114,7 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
   sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two,pw=p.wt||T.wt;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
  let s=o.tier*10+(o.cap?40:0);if(o.kind==='gift')s+=giftAwake(m)?18:60;if(o.kind==='fabled')s+=80;   // a fabled warrior's own tree comes first
  if(o.kind==='weapon')s+=pw==='shield'?(up?14:swUp?4:-25):pw===wt?20:pw===swt?4:-25;   // the mastery of the weapon in hand first
- if(o.kind==='armor'){if(T.aw!==armorClass(m))return s-200;s+=32;const md=p.mod||{};   // only the tree of the armor worn (one perk a tier, worth two); within it, what suits the merc
+ if(o.kind==='armor'){if(T.aw!==armorClass(m))return s-200;s+=20;const md=p.mod||{};   // only the tree of the armor worn; within it, what suits the merc
   if(md.fleet&&!rngd)s-=4;if(p.flag==='slip'&&rngd)s+=4;if(md.steelWall&&rngd)s-=4;if(md.ironLung)s+=4;if(md.armRegen)s+=3;if(md.initDef)s+=4}
  if(o.kind==='hunter'){const I=quarryInfo(m,o.id);return 4+o.tier*3+(I?Math.min(I.slain,I.cap)*4:0)}   // worth it once the merc has a tally of that quarry
  if((T.aff||[]).some(a=>tags.has(a)))s+=12;

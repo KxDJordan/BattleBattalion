@@ -137,7 +137,7 @@ section('dungeons');
 section('saves');
 {X.seedRng(SEED+9);X.newGame(true);closeAll(X);const G=X.G;ok(X.SAVEVER>=14,'SAVEVER is below 14');ok(X.save(),'save failed');const g=JSON.parse(X.store?X.store.get(X.SAVEKEY):X.ctx.localStorage.getItem(X.SAVEKEY));
  g.v=13;delete g.portalRun;delete g.dungeons;delete g.legend;g.dun={id:5,stage:1,realm:'ashen'};g.roster.forEach(m=>delete m.deeds);const r=X.readSaveRaw(JSON.stringify(g));
- ok(r.state==='ok'&&r.g.v===14&&r.g.portalRun===null&&Array.isArray(r.g.dungeons)&&!r.g.dungeons.length&&r.g.roster.every(m=>m.deeds==null||typeof m.deeds==='object')&&r.g.dun==null,'the v13 save did not migrate: '+r.state+' '+(r.why||'')+' '+JSON.stringify([r.g&&r.g.v,r.g&&r.g.portalRun,r.g&&r.g.dungeons,r.g&&r.g.roster.map(m=>m.deeds),r.g&&r.g.dun]));
+ ok(r.state==='ok'&&r.g.v===X.SAVEVER&&r.g.portalRun===null&&Array.isArray(r.g.dungeons)&&!r.g.dungeons.length&&r.g.roster.every(m=>m.deeds==null||typeof m.deeds==='object')&&r.g.dun==null,'the v13 save did not migrate: '+r.state+' '+(r.why||'')+' '+JSON.stringify([r.g&&r.g.v,r.g&&r.g.portalRun,r.g&&r.g.dungeons,r.g&&r.g.roster.map(m=>m.deeds),r.g&&r.g.dun]));
  const bad=JSON.parse(JSON.stringify(g));bad.v=14;bad.portalRun={id:999999,realm:'nowhere',nodes:'x'};bad.dungeons=[{id:'q',k:'nope'},{id:7,k:'barrow',x:1,y:2,stage:99}];const r2=X.readSaveRaw(JSON.stringify(bad));
  ok(r2.state==='ok'&&r2.g.portalRun===null&&r2.g.dungeons.length===1&&r2.g.dungeons[0].cleared,'broken endgame data was not repaired');console.log('v13 -> v14 migration and repair ok')}
 
