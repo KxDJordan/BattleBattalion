@@ -41,7 +41,8 @@ const _ROT=(function(){const W=30,H=20,g=[];for(let y=0;y<H;y++)g.push(new Array
  [[21,5],[22,5],[24,5],[25,5],[22,6],[23,6],[24,6],[23,7]].forEach(p=>{g[p[1]][p[0]]='d'});
  return g.map(r=>r.join(''))})();
 /* ================= UI THEMES =================
-   THEMES[k] = {n, d, pine, verd, brass}: each family is {h: target hue, s: saturation factor, lk: lift toward white} or null (kept).
+   THEMES[k] = {n, d, pine, verd, brass}: each family is {h: target hue, s: saturation factor, lk: lift toward white, lift?: a lift that
+   grows with the colour's lightness (the lighter themes)} or null (kept).
    themeHex(hex, k) recolours one colour: the dark pine family (the teal hues), the verdigris accents (the same hues, lighter) and
    the brass family move to the theme's hues at the same lightness, so contrast holds; gift colours, madder, vellum and every
    other colour stay. The frames below are rebuilt from theme colours registered as extra PAL keys (themePalKey); 90-shell.js
@@ -52,7 +53,12 @@ const THEMES={
  royal:{n:'Royal blue and gold',d:'Night-blue panels, sky accents',pine:{h:222,s:1.35},verd:{h:206,s:1.15},brass:null},
  ash:{n:'Ash and ember',d:'Grey iron, glowing coals',pine:{h:215,s:.16},verd:{h:22,s:1.45},brass:{h:210,s:.14,lk:.18}},
  forest:{n:'Forest and parchment',d:'Deep greens, leather and vellum',pine:{h:112,s:.95},verd:{h:88,s:.95},brass:{h:34,s:.55,lk:.22}},
- amethyst:{n:'Amethyst and silver',d:'Dusk violet, cold silver',pine:{h:268,s:1.1},verd:{h:272,s:.95,lk:.08},brass:{h:220,s:.1,lk:.26}}};
+ amethyst:{n:'Amethyst and silver',d:'Dusk violet, cold silver',pine:{h:268,s:1.1},verd:{h:272,s:.95,lk:.08},brass:{h:220,s:.1,lk:.26}},
+ /* lighter themes: lift raises the panel family's lightness, more for the lighter shades, so outlines stay darker than fills */
+ seaglass:{n:'Sea glass and brass',d:'Light: pale teal panels',pine:{h:176,s:.6,lift:.4},verd:{h:170,s:.95},brass:null},
+ sandstone:{n:'Sandstone and copper',d:'Light: warm stone panels',pine:{h:30,s:.38,lift:.42},verd:{h:18,s:1.15},brass:null},
+ frost:{n:'Frost and silver',d:'Light: cool blue-grey panels',pine:{h:212,s:.4,lift:.44},verd:{h:200,s:1.05},brass:{h:212,s:.14,lk:.3}},
+ rose:{n:'Rose quartz and gold',d:'Light: dusty rose panels',pine:{h:346,s:.42,lift:.4},verd:{h:340,s:.95},brass:null}};
 const THEMEKEEP=new Set(['62a6ee','2f5fa8','ecc64f','a8801f','3fd0b6','1f8573','9bd96f','4f8f3a','e9e0c9','e9c8bf','ffd9d0','8fd8ff','a8e4ff','c9a24a','f0c8a0','d09a72','9a6444']);
 function thRGB(h){h=h.replace('#','');if(h.length<=4)h=h.slice(0,3).split('').map(c=>c+c).join('');const n=parseInt(h.slice(0,6),16);return[n>>16&255,n>>8&255,n&255]}
 function thHSL(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);
@@ -64,7 +70,7 @@ function thHex(h,s,l){h=((h%360)+360)%360;s=Math.max(0,Math.min(1,s));l=Math.max
 function themeHex(hex,k){const T=THEMES[k];const rgb=thRGB(hex),raw=rgb.map(v=>v.toString(16).padStart(2,'0')).join('');if(!T||THEMEKEEP.has(raw))return'#'+raw;
  const [h,s,l]=thHSL(rgb[0],rgb[1],rgb[2]);let f=null;
  if(h>=128&&h<=198&&s>.05)f=l>=.33?T.verd:T.pine;else if(h>=28&&h<=55&&s>=.35)f=T.brass;
- if(!f)return'#'+raw;return thHex(f.h,s*f.s,l+(1-l)*(f.lk||0))}
+ if(!f)return'#'+raw;let L=l+(1-l)*(f.lk||0);if(f.lift)L=L+f.lift*(1-L)*Math.min(1,(L+.04)/.3);return thHex(f.h,s*f.s,L)}
 /* the frame and control keys a theme recolours */
 const THEMEKEYS=['0','1','2','3','4','5','6','7','a','b','c','d','e'];
 function themePalKey(k,t){if(t==='verdigris'||!THEMES[t])return k;const i=THEMEKEYS.indexOf(k);if(i<0)return k;const n=Object.keys(THEMES).indexOf(t);
