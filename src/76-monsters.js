@@ -989,7 +989,7 @@ function msBuild(kind,face,st,fr,va){if(typeof document==='undefined')return nul
 function msNorm(kind,st){const K=MSK[kind];if(!MS_FR[st])st='idle';const F=K.fr&&K.fr[st]||MS_FR[st];return[st,F]}
 function monsterSpriteOf(kind,face,state,frame,va){if(!MSK[kind]||!MSD[kind])return null;const n=msNorm(kind,state),st=n[0],F=n[1];face=((face|0)%4+4)%4;frame=((frame|0)%F+F)%F;va=MS_VAR[st]&&va?va:'';
  const id=kind+'|'+face+'|'+st+'|'+frame+'|'+va;let s=MS.fr.get(id);if(s===undefined){s=msBuild(kind,face,st,frame,va);MS.fr.set(id,s)}return s}
-function monsterSpritePx(u,face,state,frame){if(typeof document==='undefined')return null;const k=monsterKind(u);if(!k||!MSD[k])return null;let va='';if(MS_VAR[state]&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
+function monsterSpritePx(u,face,state,frame){if(typeof document==='undefined')return null;if(typeof sheetSpritePx==='function'){const r=sheetSpritePx(u,face,state,frame);if(r)return r}const k=monsterKind(u);if(!k||!MSD[k])return null;let va='';if(MS_VAR[state]&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
  return monsterSpriteOf(k,face,state,frame,va)}
 /* pre-build a monster's common frames (the board warms one unit and one facing a frame at the start of a battle) */
 // optional: until (performance.now() deadline: stops before a build past it and sets MS.cut), states (a subset of MS_WARM)
