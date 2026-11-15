@@ -166,7 +166,7 @@ section('origins');
   G=fresh(84,'beast');ok(X.originK('parts')===1.5&&G.parts.pelt>=3&&G.roster.some(m=>m.traits.includes('beastwise')),'beast hunters: parts x1.5, pelts, a beast-wise hunter');
   { let a=0,b=0;X.seedRng(5);for(let i=0;i<400;i++)a+=X.partsDrop({win:true,slain:['wolf']}).reduce((n,x)=>n+x.n,0);G.origin='free';X.seedRng(5);for(let i=0;i<400;i++)b+=X.partsDrop({win:true,slain:['wolf']}).reduce((n,x)=>n+x.n,0);
     ok(a>b*1.3,'beast hunters drop more parts ('+a+' vs '+b+')')}
-  G=fresh(85,'pilgrims');ok(G.crisisDay===12&&G.parts.voidshard>=2,'pilgrims: the Sundering on day 12, void shards')}
+  G=fresh(85,'pilgrims');ok(G.crisisDay===18&&G.parts.voidshard>=2,'pilgrims: the Sundering on day 18, void shards')}
 
 section('twists and repair');
 { const G=fresh(91);let hit=0;ok(X.eventShow({n:'The cargo is cursed',text:'<p>It whispers.</p>',opts:[{t:'Dump it',d:'−50 crowns.',go:c=>{X.evCrowns(-50);hit++;return'Gone.'}},{t:'Keep it',d:'Nothing.',go:()=>''}]},{then:()=>hit+=10})===true,'a generic twist card shows');

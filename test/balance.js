@@ -18,11 +18,15 @@
 // Solo update: the Solo (Beast Slayer) origin's one sword at levels 3, 6 and 9 (SOLO) against beasts, serpents and ogres, its quarry perks readied
 // for the faction (QPLAN, open tiers only) and typical tallies; a table of its own with a 95% interval, reported, not judged (--no-solo skips it;
 // --only solo runs only it; --ns N battles a cell; tuning: --sprof S3,S9 --sfac ogre --sens-only). KSOLO slayers per profile.
+// Phase 8B update: the houses (FACT.free: the house soldiers every noble house fields), the East and the crisis peoples (dead, horde, barb) join
+// the even-fight table (XFAC; the East and the crisis peoples from L4x6 on, where the war and the crisis meet the company). Every cell
+// shows a 95% interval (±). --full: thousands of battles a cell (--n default 1000, all cores), the per-band judgement: every faction's
+// sensible win rate in every band within FULLBAND (72..92: the 75..90 target with the interval's slack), naive overall < 50%, rivals 55..75%.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
 const SRC=ARGV.includes('--srcdir')?path.resolve(ARGV[ARGV.indexOf('--srcdir')+1]):path.join(__dirname,'..','src'),SEED=+arg('--seed',20261113),TURNCAP=4000;
-const FACS=['gob','undead','beast','orc','bandit','void'],MONF=['serpent','ent','ogre'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8,KSOLO=40;   // companies per profile; slayers per solo profile (one sword: its rolled stats, traits and trees weigh more)
+const FACS=['gob','undead','beast','orc','bandit','void'],XFAC=['free','east','dead','horde','barb'],XPROF={east:['L4x6','L8x9','L12x12'],dead:['L4x6','L8x9','L12x12'],horde:['L4x6','L8x9','L12x12'],barb:['L4x6','L8x9','L12x12']},MONF=['serpent','ent','ogre'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8,KSOLO=40;   // companies per profile; slayers per solo profile (one sword: its rolled stats, traits and trees weigh more)
 /* ---------- company profiles ---------- */
 // role -> level-up stat picks and gear by tier [L4, L8, L12] (b: the sidearm). Perks are spent by the game's own autoLearn(m)
 // on the trees the merc rolled from its background pool, after the gear is on (autoLearn reads the weapons and the shield).
@@ -142,8 +146,8 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
    catch(e){process.send({id:job.id,err:String(e&&e.stack||e)})}}busy=false};
  process.on('message',m=>{if(m==='quit')process.exit(0);q.push(m);pump()});return}
 /* ---------- main ---------- */
-(async()=>{const QUICK=has('--quick'),N=+arg('--n',QUICK?40:200),NA=+arg('--na',Math.max(20,Math.round(N/2))),J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length)));
- const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'&&f!=='solo'&&f!=='fabled'&&f!=='crisis'):FACS.concat(MONF),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
+(async()=>{const QUICK=has('--quick'),FULL=has('--full'),N=+arg('--n',QUICK?40:FULL?1000:200),NA=+arg('--na',Math.max(20,Math.round(N/(FULL?5:2)))),J=+arg('--jobs',Math.max(1,FULL?os.cpus().length:Math.min(4,os.cpus().length)));
+ const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'&&f!=='solo'&&f!=='fabled'&&f!=='crisis'):FACS.concat(MONF,XFAC),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
  const X0=makeContext(),PLAN=JSON.parse(JSON.stringify(X0.AI_PLAN)),FACT=X0.FACT;
  /* The tactics the sensible pilot is run without, one at a time: name -> what to strip from a plan. */
  const TACTICS={
@@ -162,13 +166,13 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  };
  // where the game lets each monster faction roam: the profiles whose company power and day put it in factionPool
  const roams={};{const Xp=X0;for(const P of PROFILES){const ros=buildCompany(Xp,P,SEED+hash(P.id)%9973),pw=Xp.companyPower(ros),pool=Xp.factionPool({power:pw,day:P.day,crisis:false});P.power=pw;for(const e of pool)(roams[e.f]||(roams[e.f]=[])).push(P.id)}}
- const profOf=f=>MONF.includes(f)||f==='wyvern'?profs.filter(p=>(roams[f]||[]).includes(p)):profs;
+ const profOf=f=>MONF.includes(f)||f==='wyvern'?profs.filter(p=>(roams[f]||[]).includes(p)):XPROF[f]?profs.filter(p=>XPROF[f].includes(p)):profs;
  const jobs=[];let jid=0;const add=(kind,f,prof,pilot,n,plan,tag,fixed,foes)=>{const j={id:jid++,kind,f,prof,pilot,n,plan:plan||null,tag:tag||null,fixed:fixed||null,foes:foes||null};jobs.push(j);return j};
  for(const f of facs)for(const p of profOf(f))for(const pilot of ['naive','sensible'])add('main',f,p,pilot,N);
  if(RIV)for(const p of profs)for(const pilot of ['naive','sensible'])add('rival','rival',p,pilot,N);
  const AP=arg('--aprof','L4x6,L8x9,L12x12').split(',').filter(p=>profs.includes(p)||arg('--prof',null)==null);
- if(!has('--no-abl'))for(const t in TACTICS)for(const f of facs){const p=JSON.parse(JSON.stringify(PLAN[f]||{})),before=JSON.stringify(p);TACTICS[t](p);if(JSON.stringify(p)===before)continue;for(const pr of AP.filter(x=>profOf(f).includes(x))){add('abl',f,pr,'sensible',NA,p,t);add('ablbase',f,pr,'sensible',NA,null,t)}}
- const CROSS=FACS.concat(MONF);if(!has('--no-cross'))for(const f of facs)for(const g of (MONF.includes(f)?CROSS:FACS)){for(const pr of AP.filter(x=>profOf(f).includes(x)))add('cross',f,pr,'sensible',NA,PLAN[g],g)}
+ if(!has('--no-abl'))for(const t in TACTICS)for(const f of facs.filter(f=>!XFAC.includes(f))){const p=JSON.parse(JSON.stringify(PLAN[f]||{})),before=JSON.stringify(p);TACTICS[t](p);if(JSON.stringify(p)===before)continue;for(const pr of AP.filter(x=>profOf(f).includes(x))){add('abl',f,pr,'sensible',NA,p,t);add('ablbase',f,pr,'sensible',NA,null,t)}}
+ const CROSS=FACS.concat(MONF);if(!has('--no-cross'))for(const f of facs.filter(f=>!XFAC.includes(f)))for(const g of (MONF.includes(f)?CROSS:FACS)){for(const pr of AP.filter(x=>profOf(f).includes(x)))add('cross',f,pr,'sensible',NA,PLAN[g],g)}
  const WYV=has('--no-wyvern')||(only&&!only.split(',').includes('wyvern'))?[]:['L8x9','L12x12'].filter(p=>PROFILES.some(q=>q.id===p));
  const NW=+arg('--nw',Math.max(40,Math.round(N/2))),WABL={'dodge the dive':'dodge','pin its wings':'ground','spread out':'spread','no plan at all':'*'};
  for(const pr of WYV)for(const pilot of ['naive','sensible'])add('wyv','wyvern',pr,pilot,NW,null,null,null,['wyvern']);
@@ -202,14 +206,21 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const R=j=>uniq.get(sig(j)).res,pct=r=>100*r.wins/r.n,f1=x=>x.toFixed(1),pad=(s,n)=>String(s).padEnd(n),lp=(s,n)=>String(s).padStart(n);
  /* ---- balance table ---- */
  console.log('\n== even fights: faction x company profile ==');
- console.log(pad('faction',16)+pad('profile',8)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('rounds',8)+lp('lost(n)',9)+lp('lost(s)',9)+lp('down(s)',9));
+ const ci=r=>196*Math.sqrt(Math.max(r.wins,1)/r.n*(1-Math.min(r.wins,r.n-1)/r.n)/r.n),FULLBAND=[72,92];
+ console.log(pad('faction',16)+pad('profile',8)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('±95%',7)+lp('rounds',8)+lp('lost(n)',9)+lp('lost(s)',9)+lp('down(s)',9));
  const tot={n:0,s:0,c:0,rounds:0},byF={};let stuck=0,ai={n:0,ms:0,max:0},bad=[];
  if(!facs.length)tot.c=1;
  for(const f of facs){byF[f]={n:0,s:0,c:0};for(const p of profOf(f)){const a=R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='naive')),b=R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='sensible'));
    stuck+=a.stuck+b.stuck;const rounds=(a.rounds+b.rounds)/(a.n+b.n);
-   console.log(pad(FACT[f].n,16)+pad(p,8)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1(rounds),8)+lp((a.dead/a.n).toFixed(2),9)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9));
+   console.log(pad(FACT[f].n,16)+pad(p,8)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1(ci(b)),7)+lp(f1(rounds),8)+lp((a.dead/a.n).toFixed(2),9)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9)+(FULL&&!MONF.includes(f)&&(pct(b)<FULLBAND[0]||pct(b)>FULLBAND[1])?'   OUT OF BAND':''));
+   if(FULL&&!MONF.includes(f)&&(pct(b)<FULLBAND[0]||pct(b)>FULLBAND[1]))bad.push(`${FACT[f].n} ${p}: sensible ${f1(pct(b))}% outside ${FULLBAND[0]}..${FULLBAND[1]}%`);
    byF[f].n+=pct(a);byF[f].s+=pct(b);byF[f].c++;tot.n+=pct(a);tot.s+=pct(b);tot.c++;tot.rounds+=rounds}}
  for(const t of uniq.values())if(t.res){ai.n+=t.res.ai.n;ai.ms+=t.res.ai.ms;ai.max=Math.max(ai.max,t.res.ai.max)}
+ {console.log('\n== by band: sensible win % ±95% (naive in brackets) ==');console.log(pad('faction',16)+profs.map(p=>lp(p,20)).join(''));
+  for(const f of facs){let line=pad(FACT[f].n,16);for(const p of profs){const ja=jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='naive'),jb=jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='sensible');
+    if(!ja||!jb){line+=lp('·',20);continue}const a=R(ja),b=R(jb);line+=lp(f1(pct(b))+'±'+f1(ci(b))+' ['+f1(pct(a))+']',20)}console.log(line)}
+  const bandTot=p=>{const L=facs.filter(f=>!MONF.includes(f)&&jobs.some(j=>j.kind==='main'&&j.f===f&&j.prof===p));if(!L.length)return'·';const s=L.reduce((t,f)=>t+pct(R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='sensible'))),0)/L.length,n=L.reduce((t,f)=>t+pct(R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='naive'))),0)/L.length;return f1(s)+' ['+f1(n)+']'};
+  console.log(pad('mean',16)+profs.map(p=>lp(bandTot(p),20)).join(''))}
  console.log('\n== by faction ==');
  for(const f of facs){if(!byF[f].c){console.log(pad(FACT[f].n,16)+'   (roams at none of these profiles)');continue}const n=byF[f].n/byF[f].c,s=byF[f].s/byF[f].c,mon=MONF.includes(f);console.log(pad(FACT[f].n,16)+lp('naive '+f1(n)+'%',14)+lp('sensible '+f1(s)+'%',18)+(mon?'   ('+profOf(f).join(' ')+')':'')+(n>65?'   NAIVE TOO HIGH':'')+(s<65?'   SENSIBLE TOO LOW':''));if(n>65)bad.push(FACT[f].n+': naive '+f1(n)+'% > 65%');if(s<65)bad.push(FACT[f].n+': sensible '+f1(s)+'% < 65%');
   if(mon&&n>=50)bad.push(FACT[f].n+': naive '+f1(n)+'% >= 50% where it roams');if(mon&&s<=80)bad.push(FACT[f].n+': sensible '+f1(s)+'% <= 80% where it roams')}

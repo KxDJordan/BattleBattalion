@@ -30,7 +30,7 @@
    by 'east'); when the siege runs out the town falls or the host breaks. Breaking it on the field (worldBattleEnd -> townSiegeEnd) frees the town. */
 
 /* ---- tuning ---- */
-const EW={minDay:22,thr:120,lateDay:40,lateThr:60,hardDay:55,waves:3,gap:7,len:[5,7],cap:36,mult:[1.05,1.25,1.45],hosts:[2,2,3],
+const EW={minDay:30,thr:120,lateDay:45,lateThr:70,hardDay:60,waves:3,gap:7,len:[5,7],cap:36,mult:[1.05,1.25,1.45],hosts:[2,2,3],
  pay:{houses:1500,east:2600},renown:{win:60,lose:20,out:15},rep:{side:-45,ally:25,houseSide:-30}};
 const EASTN={roots:['Akane','Kurogane','Hoshino','Shirakawa','Tsukiyama','Kagero','Asahi','Mizuchi'],
  lords:['Lord Akechi Tadamasa','Lady Hoshino Kiyo','Lord Kurogane Ietsugu','Lord Shirakawa Munenori','Lady Tsukiyama Sen','Lord Asahi Nagahide'],
@@ -48,7 +48,7 @@ Object.assign(EN,{
 });
 const EASTLOOT=['tanto','wakizashi','katana','suyari','jumonji','hankyu','naginata','jingasa','hachigane','kabuto','tatami','do','kesa'];
 FACT.east={n:'The Shogunate',g:'K',col:'#c4493f',skin:'#f0c8a0',tier:'early',spawn:{gate:2,d0:0,d1:0},east:1,biomes:null,lair:'Break an eastern war camp',
- units:[['ashi',20],['ashi',20],['ashiy',24],['shinobi',40],['sohei',48],['onna',60],['samurai',74],['taisho',120]],rank:[.5,1.2,.3,19],loot:EASTLOOT};
+ units:[['ashi',20],['ashi',20],['ashiy',24],['shinobi',40],['sohei',48],['onna',60],['samurai',74],['taisho',120]],rank:[.5,1.05,.3,19],loot:EASTLOOT};
 
 /* ---- eastern gear: every family across the tiers; east:1 marks it for the eastern markets ----
    Skills: katana -> the sword tree (slash, riposte) plus Iaijutsu; nodachi -> greatsword; wakizashi / tanto -> sword / dagger;

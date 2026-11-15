@@ -19,7 +19,7 @@
            crisisFacts() crisisDay(news) startCrisis() crisisEnd(won) crisisSheet() crisisLine() crisisMarks() crisisOutcome() crisisNews()
            crTownHeld(i) townOwner(i) crTownSheet(i) crPartyBattle(p,o) crisisBattleEnd(s,win) crSiteSheet(s) crAssault(k) */
 const CRKEYS=['sunder','deadmarch','horde','barbarian'];
-const CRK={start:18,doomLose:100,hostCap:4,siegeDays:3,fallDoom:6,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
+const CRK={start:26,doomLose:100,hostCap:4,siegeDays:3,fallDoom:6,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
 const CRTITLE={sunder:'Sealers of the Sky',deadmarch:'Breakers of the Bone Throne',horde:'Bane of the Great Horde',barbarian:'Emperor-Slayers'};
 const CRTROPHY={sunder:'crshard',deadmarch:'crbonecrown',horde:'crwartusk',barbarian:'crempcrown'};
 const CR_LTN=['Morvane the Unburied','Sister Ashgrave','Old Hollowmouth','Corvus Pale','the Widow Marrow','Bishop Sallow'];
@@ -49,9 +49,9 @@ Object.assign(EN,{
   crph:[{at:.66,n:'The war-horn',say:'The Emperor sounds the war-horn. Berserkers come howling over the palisade.',summon:['barbz','barbz','barbax']},{at:.33,n:'The last oath',say:'Bleeding, the Emperor swears on his crown: he will not fall alone.',enrage:{dmg:.3,ms:10,md:5,ap:2},heal:.12}]}
 });
 Object.assign(FACT,{
- dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',15],['zomb',14],['skelhal',22],['necro',31],['gknight',56]],rank:[.32,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
- horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',16],['gobarch',20],['orcy',62],['orcw',100],['obrute',98],['hstd',95]],rank:[.44,.8,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
- barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',64],['barbax',46],['barbhound',33],['barbskald',55],['barbhus',115]],rank:[.46,.9,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
+ dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',17],['zomb',16],['skelhal',25],['necro',34],['gknight',62]],rank:[.32,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
+ horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',13],['gobarch',16],['orcy',50],['orcw',80],['obrute',80],['hstd',78]],rank:[.44,.8,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
+ barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',60],['barbax',43],['barbhound',31],['barbskald',52],['barbhus',108]],rank:[.46,.9,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
 });
 if(FACT.void)FACT.void.crisis='sunder';
 // situations of a town in a crisis (prices, recruits, contracts, prosperity; drawn on the world by 41-worldart.js)

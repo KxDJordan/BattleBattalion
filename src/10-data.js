@@ -398,7 +398,7 @@ Object.assign(STATUS,{
 const MORN=['Fleeing','Breaking','Wavering','Steady','Confident'],
  MORFX=[{hit:-30,def:-20},{hit:-20,def:-10},{hit:-10,def:-5},{hit:0,def:0},{hit:10,def:5}];
 /* ---- Combat constants ---- */
-const HEADCH=25,HEADMULT=1.5,COVERPEN=15,FFCH=.3,FFDMG=.75,HEAVYHIT=.25,INJCH=.5,DOWNCH=.8,PERMCH=.3,TOOLPTS=15,TOOLPRICE=3,BLEEDDMG=6;
+const HEADCH=25,HEADMULT=1.5,COVERPEN=15,FFCH=.3,FFDMG=.75,HEAVYHIT=.25,INJCH=.5,DOWNCH=.7,PERMCH=.3,TOOLPTS=15,TOOLPRICE=3,BLEEDDMG=6;
 /* ---- Injuries: m.inj=[{id,days}], days left (-1 = permanent). loc 'h' comes from head hits, 'b' from body hits.
    st is added to the merc's stats in calc(m) (dmg is a fraction of damage dealt); days is the healing time rolled for a fresh one. ---- */
 const INJ={
@@ -868,10 +868,10 @@ const EN={
 const FACT={
  gob:{n:'Goblins',g:'G',col:'#7a9a3c',skin:'#9fc25a',lair:'Burn out a goblin warren',units:[['gob',10],['gobarch',12],['gobsham',20]],rank:[.5,1.25],loot:['knife','shortbow','buckler','spear']},
  undead:{n:'Restless dead',g:'U',col:'#b9b39a',skin:'#e4e0cf',lair:'Put the restless dead to rest',units:[['skel',15],['zomb',14],['skelhal',21],['necro',30]],rank:[.3,1.4,0,17],loot:['shortsword','kite','spear','mail','bill','halberd']},
- beast:{n:'Beasts',g:'B',col:'#6b5137',skin:'#8a6b49',lair:'Clear a den of beasts',units:[['wolf',19],['wolf',19],['spider',18],['bear',58]],rank:[.38,1.2,.3],loot:[]},
+ beast:{n:'Beasts',g:'B',col:'#6b5137',skin:'#8a6b49',lair:'Clear a den of beasts',units:[['wolf',21],['wolf',21],['spider',20],['bear',58]],rank:[.38,1.2,.3],loot:[]},
  orc:{n:'Orcs',g:'O',col:'#4f6b46',skin:'#7c9b62',lair:'Break an orc warcamp',units:[['orcy',38],['orcw',62],['obrute',60],['orcl',105]],rank:[.46,1.6,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','mallet','spiked']},
- bandit:{n:'Brigands',g:'R',col:'#5a5a66',skin:'#d9b99a',lair:'Root out a brigand hideout',units:[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],rank:[.5,1.1,.3,19],loot:['shortsword','club','padded','leather','shortbow','mace','heater','lightxbow','crossbow','roundshield','pistol']},
- void:{n:'Riftspawn',g:'V',col:'#7a46b8',skin:'#b99be6',lair:'Purge a riftspawn nest',units:[['imp',26],['vknight',62],['vmage',52]],rank:[.45,1.45],loot:['arming','warspear','scale','focus','warbow','rondel','zweihander','arbalest','steeltower']}
+ bandit:{n:'Brigands',g:'R',col:'#5a5a66',skin:'#d9b99a',lair:'Root out a brigand hideout',units:[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],rank:[.5,.9,.3,19],loot:['shortsword','club','padded','leather','shortbow','mace','heater','lightxbow','crossbow','roundshield','pistol']},
+ void:{n:'Riftspawn',g:'V',col:'#7a46b8',skin:'#b99be6',lair:'Purge a riftspawn nest',units:[['imp',28],['vknight',67],['vmage',56]],rank:[.45,1.45],loot:['arming','warspear','scale','focus','warbow','rondel','zweihander','arbalest','steeltower']}
 };
 const BIOKEY=[null,'plains','forest','hills',null,'swamp','desert','snow'];
 const BIO={
@@ -993,7 +993,7 @@ const GOODS={
  ale:{n:'Ale',d:'Famous breweries: men sign on cheaply over a mug.',icon:'tavern',kind:'hire',k:.88,bio:['plains','forest','hills','swamp']}};
 /* the house soldiers: every noble house and the free towns field these (their banner colours are filled in by houseFactReg, 15-factions.js) */
 const HOUSEUNITS=[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],HOUSELOOT=['shortsword','mace','heater','kite','mail','padded','leather','spear','crossbow','lightxbow','arming','cap'];
-FACT.free={n:'Free towns',g:'F',col:'#7d8f86',skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a free town militia',units:HOUSEUNITS,rank:[.5,1.1,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])};
+FACT.free={n:'Free towns',g:'F',col:'#7d8f86',skin:'#d9b99a',tier:'early',house:1,biomes:null,lair:'Break a free town militia',units:HOUSEUNITS,rank:[.5,.9,.3,19],loot:HOUSELOOT.filter(id=>ITEMS[id])};
 
 /* ================= CARAVAN CARGO AND RIVAL COMPANIES (world agent) =================
    GOODS[k].cargo  what a caravan out of a town with specialty k carries (rolled once when it sets out, cargoRoll in 40-world.js):

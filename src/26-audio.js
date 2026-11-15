@@ -202,7 +202,8 @@ const AU_FXMAP={
   if(k==='lucky'||k==='undying')return[['buff',dl,{pan:p}]];return[['tick',dl,{pan:p,v:.7}]]},
  swap(d){return[['swap',0,{pan:auPan(d.u)}]]},
  shield(d){return[['shieldUp',0,{pan:auPan(d.u),p:d.raised?1.1:.9}]]},
- reload(d){return[['reload',0,{pan:auPan(d.u)}]]}};
+ reload(d){return[['reload',0,{pan:auPan(d.u)}]]},
+ realm(d){return[[d.what==='fire'?'burn':'kb',0,{v:.7}]]}};   // a portal realm's turn of the field (24-endgame.js): the embers spread, the stones shift
 function auPlan(type,d){const f=AU_FXMAP[type];if(!f||!d||typeof d!=='object')return[];try{return f(d)||[]}catch(e){return[]}}
 function audioFx(type,d){if(type==='cast'&&d&&d.u){const ab=d.ab||{},g=auGift(ab,d.u);AU.lastCast=g&&ab.tgt!=='self'&&ab.tgt!=='ally'&&ab.tgt!=='move'?{u:d.u,g,at:typeof now==='number'?now:0}:null}
  else if(type==='turn')AU.lastCast=null;

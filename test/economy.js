@@ -74,7 +74,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   st.peakCrowns=Math.max(st.peakCrowns,g.crowns);if(g.day>3)st.minCrowns=Math.min(st.minCrowns,g.crowns);
   while(lastDay<g.day){lastDay++;if(lastDay===1||lastDay%5===0||lastDay===days){const r=g.run||{};
    st.rows.push({day:lastDay,crowns:g.crowns,food:g.food,n:g.roster.length,lvl:+meanLvl().toFixed(1),gear:+gearTier().toFixed(2),renown:g.renown|0,rt:X.renownTier(),deaths:st.deaths,ctr:st.ctr,battles:st.battles,won:st.won,
-    power:Math.round(X.companyPower()),crisis:g.crisis?(g.crisis.won?'won':g.crisis.lost?'lost':'doom '+Math.round(g.crisis.doom||0)):'-',east:ew?(ew.stage==='over'?'over:'+(ew.outcome||''):'war w'+(ew.wave|0)):'-'})}}};
+    power:Math.round(X.companyPower()),top:+(()=>{const L=g.roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,8);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0})().toFixed(1),crisis:g.crisis?(g.crisis.won?'won':g.crisis.lost?'lost':'doom '+Math.round(g.crisis.doom||0)):'-',east:ew?(ew.stage==='over'?'over:'+(ew.outcome||''):'war w'+(ew.wave|0)):'-'})}}};
  // sheets the game opens: events (first open option), the Eastern War (the houses' side), the crisis assault (go on), notes
  const sheets=()=>{const g=G();let did=false;
   const ew=g.east&&g.east.war;if(ew&&ew.stage==='war'&&!ew.side&&typeof X.eastWarChoose==='function'){X.eastWarChoose('houses');did=true}
@@ -183,21 +183,22 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   if(!L.length)return false;const p=L[0];const b0=st.battles;const r=await march(p.x,p.y,null,{follow:p.id,maxD:maxD+4,stopOnFight:true});return r==='wiped'?'wiped':st.battles>b0};
  // rest on the spot (camp) until the company is whole again, at most h hours
  const restUp=async(to,h)=>{const g=G();let t=0;while(hpFrac()<to&&t<h){X.campRest(6);t+=6;st.campH=(st.campH||0)+6;closeAll();snap();if(sheets()&&X.mode==='battle'){const k=await fight();if(k==='wiped')return'wiped';await afterFight(k)}if(g.day>days)break}return'ok'};
- const strong=()=>meanLvl()>=9&&field().length>=10;
+ const topLvl=n=>{const L=G().roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,n);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0};
+ const strong=()=>topLvl(8)>=7&&field().length>=9;
  // the crisis: hosts first, the end when ready
- const crisisMove=async()=>{const g=G(),c=g.crisis;if(!c||c.ended||(c.won))return false;const k=c.k||'sunder',ready=strong()||(c.doom>=75&&meanLvl()>=7&&field().length>=8);
+ const crisisMove=async()=>{const g=G(),c=g.crisis;if(!c||c.ended||(c.won))return false;const k=c.k||'sunder',ready=strong()||(c.doom>=70&&topLvl(8)>=5&&field().length>=8);
   if(ready&&hpFrac()>.85){
-   if(k==='sunder'&&g.portals.length){const p=g.portals.slice().sort((a,b)=>dist(a,g.p)-dist(b,g.p))[0];const r=await march(p.x,p.y,null);if(r==='wiped')return'wiped';closeAll();if(dist(g.p,p)<2){st.rifts++;st.finale.push('d'+g.day+' rift');X.enterRift(p.id);closeAll();
+   if(k==='sunder'&&g.portals.length){const p=g.portals.slice().sort((a,b)=>dist(a,g.p)-dist(b,g.p))[0];const r=await march(p.x,p.y,null);if(r==='wiped')return'wiped';closeAll();if(dist(g.p,p)<2&&hpFrac()>.85&&field().length>=8){st.rifts++;st.finale.push('d'+g.day+' rift');X.enterRift(p.id);closeAll();
      if(X.mode==='battle'){const k2=await fight();if(k2==='wiped')return'wiped';if(await afterFight(k2)==='wiped')return'wiped'}else if(g.portalRun){if(await afterFight('world')==='wiped')return'wiped'}}return true}
    const site=k==='deadmarch'?(c.throne&&c.throne.known?c.throne:null):(c.camp||null);
-   if(site&&(k!=='horde'||g.day>=(c.gather||0)+6||c.campSeen)){const r=await march(site.x,site.y,null);if(r==='wiped')return'wiped';closeAll();if(dist(g.p,site)<2.5){st.finale.push('d'+g.day+' '+k);
+   if(site&&(k!=='horde'||g.day>=(c.gather||0)+6||c.campSeen)){const r=await march(site.x,site.y,null);if(r==='wiped')return'wiped';closeAll();if(dist(g.p,site)<2.5&&hpFrac()>.85&&field().length>=8){st.finale.push('d'+g.day+' '+k);
      if(k==='deadmarch')X.crThroneFight();else X.crAssault(k);if(X.mode==='battle'){const k2=await fight();if(k2==='wiped')return'wiped';if(await afterFight(k2)==='wiped')return'wiped'}closeAll()}return true}}
   // hosts near (sieges first)
   const H=g.parties.filter(p=>p.cr&&!p.gone&&X.partyHostile(p)&&dist(p,g.p)<22&&(p.mult||1)<=appetite()+.1).sort((a,b)=>(a.siegeT!=null?-10:0)+dist(a,g.p)-((b.siegeT!=null?-10:0)+dist(b,g.p)));
   if(H.length&&hpFrac()>.7){const b0=st.battles;const r=await march(H[0].x,H[0].y,null,{follow:H[0].id,maxD:26,stopOnFight:true});if(r==='wiped')return'wiped';return st.battles>b0}
   return false};
  // the deploy screen's withdraw: a band the company did not choose to fight, met hurt, thin or outmatched, is declined (10% of the purse)
- {const eng=X.ctx.engage;X.ctx.engage=function(o){const s=o&&o.src||{};if(s.type==='party'&&!s.cr&&(hpFrac()<.6||field().length<3||(o.mult||1)>appetite()+.3)){st.fled=(st.fled||0)+1;X.fleeEncounter(o);return null}return eng.apply(this,arguments)}}
+ {const eng=X.ctx.engage;X.ctx.engage=function(o){const s=o&&o.src||{};if(s.type==='party'&&(hpFrac()<.6||field().length<3||(o.mult||1)>appetite()+.15)){st.fled=(st.fled||0)+1;X.fleeEncounter(o);return null}return eng.apply(this,arguments)}}
  // the ledger: crowns in and out by kind (the game's own functions, wrapped)
  st.led={};for(const [fn,k] of [['newDay','wages'],['afterBattle','battle'],['ctrTurnIn','contracts'],['ctrAccept','contracts'],['buyItem','gear'],['hire','hire'],['buyFood','food'],['innRest','inn'],['sellItem','sales'],['sellTrade','sales'],['templeTreat','temple'],['buyTools','tools'],['campTrain','drill'],['fleeEncounter','withdraw'],['eventTick','events'],['evtPick','events']]){const f=X.ctx[fn];if(typeof f!=='function')continue;
   X.ctx[fn]=function(){const c0=G()?G().crowns:0;const r=f.apply(this,arguments);const g=G();if(g){const d=g.crowns-c0;if(d)st.led[k]=(st.led[k]||0)+d}return r}}
@@ -219,7 +220,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   if(g.contract){const r=await doContract();if(r==='wiped')break;if(typeof r==='number'){here=r;inTown(r)}if(g.contract&&g.contract.stage===0&&idle++>3){X.ctrAbandon();st.ctrFail++}continue}
   // no work here: the crisis, a band, a camp, or the next town
   const cm=await crisisMove();if(cm==='wiped')break;if(cm){const i=nearestTown(true);if((await goTown(i))==='wiped')break;here=i;continue}
-  if(hpFrac()<.75){if((await restUp(.9,36))==='wiped')break;continue}
+  if(hpFrac()<.7){if((await restUp(.85,24))==='wiped')break;continue}
   if(hpFrac()>.8){const hb=await huntBand(Math.min(1,appetite()-.1),9);if(hb==='wiped')break;if(hb){closeAll();continue}}
   if(field().length>=4&&typeof X.campTrain==='function'&&g.crowns>reserve()*2){for(const m of field().slice(0,3)){const T=X.campTrainInfo(m);if(!T.why&&g.crowns-(T.cost||0)>reserve()){if(X.campTrain(m.id))st.trainN++}}closeAll()}
   // travel: the best board within reach (a big town, not the one just seen)
@@ -245,8 +246,8 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
  const est=r=>{const mins=r.battles*(3+.45*(r.rounds/Math.max(1,r.battles)))+r.end.day*2.2;return mins/60};
  for(const k in runs){const R=runs[k],r=res[k];
   console.log(`\n== ${R.origin} / ${R.diff} / seed ${R.seed}: crisis ${r.crisisKind} (due day ${r.crisisStart}) started ${r.crisisDay??'-'}, ${r.crisisHow||'-'}${r.crisisEnd?' day '+r.crisisEnd:''}; Eastern War ${r.eastDay??'-'}${r.eastHow?' -> '+r.eastHow+' day '+r.eastEnd:''}${r.wiped?'; WIPED day '+r.wiped:''} ==`);
-  console.log(pad('day',5)+lp('crowns',8)+lp('food',6)+lp('men',5)+lp('lvl',6)+lp('gear',6)+lp('renown',8)+lp('tier',5)+lp('power',7)+lp('dead',6)+lp('ctr',5)+lp('fights',8)+lp('won',5)+'  crisis       east');
-  for(const w of r.rows)console.log(pad(w.day,5)+lp(w.crowns,8)+lp(w.food,6)+lp(w.n,5)+lp(w.lvl.toFixed(1),6)+lp(w.gear.toFixed(2),6)+lp(w.renown,8)+lp(w.rt,5)+lp(w.power,7)+lp(w.deaths,6)+lp(w.ctr,5)+lp(w.battles,8)+lp(w.won,5)+'  '+pad(w.crisis,12)+' '+w.east);
+  console.log(pad('day',5)+lp('crowns',8)+lp('food',6)+lp('men',5)+lp('lvl/top8',9)+lp('gear',6)+lp('renown',8)+lp('tier',5)+lp('power',7)+lp('dead',6)+lp('ctr',5)+lp('fights',8)+lp('won',5)+'  crisis       east');
+  for(const w of r.rows)console.log(pad(w.day,5)+lp(w.crowns,8)+lp(w.food,6)+lp(w.n,5)+lp(w.lvl.toFixed(1)+'/'+w.top.toFixed(0),7)+lp(w.gear.toFixed(2),6)+lp(w.renown,8)+lp(w.rt,5)+lp(w.power,7)+lp(w.deaths,6)+lp(w.ctr,5)+lp(w.battles,8)+lp(w.won,5)+'  '+pad(w.crisis,12)+' '+w.east);
   console.log(`  hired ${r.hired} (${r.spentHire} cr), bought ${r.bought} pieces (${r.spentGear} cr), inn rests ${r.innN}, camp hours ${r.campH|0}, drills ${r.trainN}, contracts failed ${r.ctrFail}, withdrew ${r.fled|0}, peak crowns ${r.peakCrowns}, longest starving ${r.maxStarve} days, finale ${r.finale.join(', ')||'-'}; ~${est(r).toFixed(1)} h of play (${r.battles} battles, ${(r.rounds/Math.max(1,r.battles)).toFixed(1)} rounds each) [${(r.ms/1000).toFixed(0)} s]`);
   console.log(`  knocked out ${r.ko|0}, of them killed ${r.kod|0}`);console.log('  ledger: '+Object.keys(r.led).sort((a,b)=>r.led[b]-r.led[a]).map(k=>k+' '+r.led[k]).join(', '));
   if(has('--verbose'))console.log('  '+r.log.join('\n  '));

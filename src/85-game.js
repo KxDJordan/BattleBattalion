@@ -7,7 +7,7 @@ function createCampaign(opts){opts=opts||{};const wk=setWorldSize(opts.wsize),AK
   if(w.towns.length>=NT-2&&w.size>=1500*AK)break}
  W=best;G={seed:W.seed,nid:1,towns:placeTowns()};G.sites=worldSites(W,G.nid);G.nid+=G.sites.length;
  const name=cleanName(opts.name);
- Object.assign(G,{v:SAVEVER,name,wsize:wk,banner:bannerFix(Object.assign({},opts.banner||{},{name}),name),day:1,hour:8,crowns:1200,food:50,tools:20,renown:0,roster:[],stash:['spear','buckler'],parties:[],portals:[],contract:null,crisis:null,crisisDay:18,diff:DIFF[opts.diff]?opts.diff:'normal',ironman:!!opts.ironman,fabled:{},dun:null,grace:4,healAcc:0,zoom:1,path:[],route:[],moving:false,dest:null,town:null,note:null,fog:null,
+ Object.assign(G,{v:SAVEVER,name,wsize:wk,banner:bannerFix(Object.assign({},opts.banner||{},{name}),name),day:1,hour:8,crowns:1200,food:50,tools:20,renown:0,roster:[],stash:['spear','buckler'],parties:[],portals:[],contract:null,crisis:null,crisisDay:26,diff:DIFF[opts.diff]?opts.diff:'normal',ironman:!!opts.ironman,fabled:{},dun:null,grace:4,healAcc:0,zoom:1,path:[],route:[],moving:false,dest:null,town:null,note:null,fog:null,
   weather:{kind:'clear',t:0,dur:10},p:{x:G.towns[0].x,y:G.towns[0].y+.65*TS}});
  if(!okAt(G.p.x,G.p.y))G.p.y=G.towns[0].y;fogStart();
  ['sellsword','squire','hunter','acolyte'].forEach(b=>{const m=newMerc(b);m.field=true;G.roster.push(m)});
@@ -16,7 +16,7 @@ function createCampaign(opts){opts=opts||{};const wk=setWorldSize(opts.wsize),AK
  G.crisisKind=runCrisisPick(G.seed);if(typeof crisisInit==='function')crisisInit(G);   // the run's crisis (18-crises.js)
  if(typeof eastInit==='function')eastInit(G);if(typeof fabledInit==='function')fabledInit(G);   // the East (19-east.js) before the markets are stocked; fabled warriors (21-fabled.js)
  G.evt=typeof evtNew==='function'?evtNew():{seen:{},flags:{}};if(typeof originApply==='function')originApply(G,opts.origin);else G.origin='free';   // 17-events.js
- G.crisisDay=Math.max(6,Math.round((G.crisisDay||18)*diffK('crisisDay')));   // difficulty moves the crisis (the origin may already have)
+ G.crisisDay=Math.max(6,Math.round((G.crisisDay||26)*diffK('crisisDay')));   // difficulty moves the crisis (the origin may already have)
  G.run=runNew(G);G.towns.forEach(stockTown);for(let i=0;i<7;i++)spawnParty();if(opts.tutorial&&typeof tutStart==='function')tutStart(G);return G}
 // newGame(): start a fresh campaign. If the browser holds a save this version cannot read (newer or damaged),
 // it explains that first instead of silently replacing it; newGame(true) goes ahead (a copy of the old data is kept).

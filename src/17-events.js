@@ -172,7 +172,7 @@ const ORIGINS={
  beast:{n:'Beast hunters',icon:'part-pelt',d:'Trappers and monster-hunters who follow the bounties. You know which gland is worth the knife and which tracks are fresh.',
   rule:'Monster parts drop 1.5 times as often. One hunter starts Beast-wise. You start with pelts, meat and two salves more.',roster:['hunter','poacher','wildling','woodcutter'],crowns:1000,k:{parts:1.5,intel:1}},
  pilgrims:{n:'Pilgrims of the Rift',icon:'ab-riftstep',d:'You saw the sky crack in a dream, and walked. The rifts will open sooner for you, and you mean to be there.',
-  rule:'The Sundering comes on day 12, not 18. Closing a rift pays 50% more. The free towns shelter pilgrims (+20 with them); the houses distrust zealots (−5).',roster:['flagellant','cultist','acolyte','monk'],crowns:900,k:{rift:1.5}},
+  rule:'The Sundering comes on day 18, not 26. Closing a rift pays 50% more. The free towns shelter pilgrims (+20 with them); the houses distrust zealots (−5).',roster:['flagellant','cultist','acolyte','monk'],crowns:900,k:{rift:1.5}},
  slayer:{n:'Solo: Beast Slayer',icon:'or-slayer',solo:1,d:'One hunter, one spear, a crossbow on the back and a ledger of every beast that ever fell to them. No banner-men, no partners: the bounties are all yours.',
   rule:'You ride alone: nobody can join the company, not by hire, parley or event (followers still can). The slayer starts at level 3, Beast-wise, with the Monster hunter tree: every kill of a kind makes the next easier. Contracts pay as for two swords. If the slayer dies, the run ends.',
   roster:['slayer'],crowns:1000,k:{}}
@@ -204,7 +204,7 @@ ORIGINS.academy.setup=g=>{for(const m of g.roster){if(!m.gift){const r=pick(['ma
   evTraitQuiet(m,'fragile');m.hp=evMaxHp(m)}g.stash.push('focus')};
 ORIGINS.beast.setup=g=>{if(!g.parts||typeof g.parts!=='object')g.parts={};g.parts.pelt=(g.parts.pelt||0)+3;g.parts.meat=(g.parts.meat||0)+4;g.salve=(typeof g.salve==='number'?g.salve:2)+2;
  const h=g.roster[0];if(h)evTraitQuiet(h,'beastwise');g.stash.push('huntbow')};
-ORIGINS.pilgrims.setup=g=>{g.crisisDay=12;if(Array.isArray(g.houses))for(const h of g.houses)evSetRep(h.id,-5);evSetRep('free',20);
+ORIGINS.pilgrims.setup=g=>{g.crisisDay=18;if(Array.isArray(g.houses))for(const h of g.houses)evSetRep(h.id,-5);evSetRep('free',20);
  if(!g.parts||typeof g.parts!=='object')g.parts={};g.parts.voidshard=(g.parts.voidshard||0)+2;g.stash.push('pilgrim')};
 // the lone Beast Slayer: level 3 (two levels' perk points and stat rolls to spend), the full kit, Beast-wise; two salves and a bundle of meat more
 ORIGINS.slayer.setup=g=>{const L=g.roster[0];if(!L)return;gainXP(L,XPT[3]-L.xp);evGear(L,['boarspear','leather','cap']);if(ITEMS.huntxbow)L.eq.b='huntxbow';if(typeof fixHands==='function')fixHands(L);
