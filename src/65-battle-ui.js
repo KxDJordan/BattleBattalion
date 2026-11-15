@@ -196,7 +196,8 @@ function setHTMLs(L){let n=0;for(const x of L){const e=$(x[0]);if(!e||e._h===x[1
 function focusUnit(id){if(!B)return;const u=B.units[id];if(!u||!u.alive)return;B.cam.tx=u.sx;B.cam.ty=u.sy-10;say(unitLine(u)+'.')}
 const ABICO={shove:'a-shove',aimed:'a-aim',pin:'a-pin',footwork:'a-step',adren:'a-bolt',indom:'a-ward',bolt:'a-orb',fireball:'a-flame',blink:'a-blink',chain:'a-chain',astrike:'a-slash',awave:'a-wave',crush:'a-hammer',adash:'a-dash',flame:'a-flame',frost:'a-snow',gale:'a-wind',thunder:'a-burst',reinforce:'a-guard',mend:'a-cross',empower:'a-up',swift:'a-clock'};
 const WTICO={sword:1,axe:1,mace:1,dagger:1,spear:1,bow:1,staff:1,fist:1};
-function abIcon(u,id,size){if(id==='attack'||id==='aoo'){const wt=u.wpn&&u.wpn.wt;return pic(WTICO[wt]||(wt&&typeof icHas==='function'&&icHas(wt))?wt:'ab-attack',size,shRangedW(u.wpn)?'a-bow':'sword')}
+const WTICO2={crossbow:'w-xbow',flintlock:'w-pistol',hammer:'w-warhammer',polearm:'w-halberd',greatsword:'w-greatsword'};   // families with no icon of their own: a weapon of the kind
+function abIcon(u,id,size){if(id==='attack'||id==='aoo'){const wt=u.wpn&&u.wpn.wt,ih=n=>typeof icHas==='function'&&icHas(n),alt=WTICO2[wt]&&ih(WTICO2[wt])?WTICO2[wt]:null;return pic((WTICO[wt]||(wt&&ih(wt)))?wt:alt||'ab-attack',size,shRangedW(u.wpn)?'a-bow':'sword')}
  if(id==='spell')return pic('ab-bolt',size,'a-orb');return pic('ab-'+id,size,ABICO[id]||'a-burst')}
 const STSVG={burn:'a-flame',chill:'a-snow',root:'a-pin',stun:'a-burst',buff:'a-up',indom:'a-ward'},STC={burn:'#ff8a3c',chill:'#8fd8ff',root:'#9bd96f',stun:'#ecc64f',buff:'#e9e0c9',indom:'#c8d0d8'};
 /* one status badge: icon, a count (turns, or `extra` such as a chance), colour by what it does to the bearer */
