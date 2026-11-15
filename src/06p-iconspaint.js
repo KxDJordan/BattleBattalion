@@ -217,7 +217,9 @@ function pkRender(f,px,noOutline){if(typeof document==='undefined')return null;c
  o.drawImage(L,0,0);
  if(PK.post.length){o.setTransform(px/32,0,0,px/32,0,0);for(const fn of PK.post){try{fn(o)}catch(e){}}o.setTransform(1,0,0,1,0,0)}
  PK.post=null;if(t0)PK.ms+=performance.now()-t0;PK.n++;return out}
-const pkHas=n=>Object.prototype.hasOwnProperty.call(PAINT,n)&&typeof PAINT[n]==='function';
+/* PK_DYN: resolvers (name) => painter | null for icon names made at run time (famed items it-f:N); a hit is kept in PAINT */
+const PK_DYN=[];
+const pkHas=n=>{if(Object.prototype.hasOwnProperty.call(PAINT,n))return typeof PAINT[n]==='function';for(const f of PK_DYN){let d=null;try{d=f(n)}catch(e){d=null}if(typeof d==='function'){PAINT[n]=d;return true}}return false};
 /* data URL of a painted icon (resolved name), '' when it has none */
 function pkURL(n){let u=PK.url.get(n);if(u!==undefined)return u;u='';if(pkHas(n)){const c=pkRender(PAINT[n],pkPx());try{if(c)u=c.toDataURL()}catch(e){u=''}}PK.url.set(n,u);return u}
 /* canvas of a painted icon at px device pixels (for canvas users); null when Detail is Low or the icon has no painting */
