@@ -568,7 +568,7 @@ function viewBuild(){if(!B||!B.tiles)return;if(!HAVE.init)haveInit();TL.k=tileK(
 /* ground strip pixels per art pixel: 2 for the HD tiles (71h-tileshd.js) once the camera shows at least 2 backing px per art
    pixel, else 1 (the 1x tiles); 2 for the vector fallback */
 function tileK(){if(!HAVE.tile)return 2;return typeof drawTileHD==='function'&&typeof hdOK==='function'&&hdOK()&&!(B&&B.cam&&B.cam.s<2)?2:1}
-function stripsReset(){TL.trim=false;for(let i=0;i<4;i++){const R=RVW[i];R.built.fill(0);R.nb=0;R.anim.length=0}ANI.R=null}
+function stripsReset(){TL.trim=false;PROPC.clear();PANIM.length=0;for(let i=0;i<4;i++){const R=RVW[i];R.built.fill(0);R.nb=0;R.anim.length=0}ANI.R=null}
 function viewInvalidate(){RVW[0].tiles=null}
 function viewEnsure(){if(RVW[0].tiles!==B.tiles)viewBuild();return V}
 
@@ -586,7 +586,7 @@ function tintedOf(c){if(!TN.on)return c;let e=TINTED.get(c);if(e&&e.k===TN.k)ret
 function silOf(c,col){let m=SILS.get(c);if(!m){m={};SILS.set(c,m)}let s=m[col];if(s)return s;s=m[col]=mkCanvas(c.width,c.height);const q=s.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle=PAL[col];q.fillRect(0,0,s.width,s.height);if(c.hdk)s.hdk=c.hdk;return s}
 
 /* ---- ground strips ---- */
-const TO={bk:'',t:'ground',h:0,c:0,r:0,dropL:0,dropR:0,shL:0,shR:0,frame:0,hd:false},PO={bk:'',c:0,r:0,frame:0};
+const TO={bk:'',t:'ground',h:0,c:0,r:0,dropL:0,dropR:0,shL:0,shR:0,frame:0,hd:false},PO={bk:'',c:0,r:0,frame:0,hd:false};
 function tileFrame(){return reduced?0:Math.floor(now/166)}
 function drawTile(q,R,k,frame){const t=B.tiles[k];
  if(HAVE.tile){TO.bk=B.bk;TO.t=t.t;TO.h=t.h;TO.c=k%BW;TO.r=(k/BW)|0;TO.dropL=R.dl[k];TO.dropR=R.dr[k];TO.shL=R.sl[k];TO.shR=R.sr[k];TO.frame=frame;TO.hd=TL.k===2;
@@ -635,9 +635,11 @@ function drawPropOld(q,x,y){const P=B.P;let gr;q.save();q.translate(x,y);q.scale
 const PROPC=new Map(),PANIM=[];
 function propOf(k){let p=PROPC.get(k);if(p)return p;const c=k%BW,r=(k/BW)|0;let w=36,h=34;
  if(HAVE.prop&&HAVE.box){try{const b=propBoxPx(B.bk,c,r);if(b&&b.w>0&&b.h>0){w=Math.ceil(b.w);h=Math.ceil(b.h)}}catch(e){artFail('box',e)}}
- const K=HAVE.prop?1:2;p={k,c,r,w,h,K,cw:w+12,ch:h+26,ox:(w+12)>>1,oy:h+12,a:1,anim:false,cv:null};p.cv=mkCanvas(p.cw*K,p.ch*K);PROPC.set(k,p);if(propPaint(p,tileFrame())){p.anim=true;PANIM.push(p)}return p}
+ const K=HAVE.prop?propK():2;p={k,c,r,w,h,K,cw:w+12,ch:h+26,ox:(w+12)>>1,oy:h+12,a:1,anim:false,cv:null};p.cv=mkCanvas(p.cw*K,p.ch*K);PROPC.set(k,p);if(propPaint(p,tileFrame())){p.anim=true;PANIM.push(p)}return p}
+/* prop sprite pixels per art pixel: 2 (the HD props of 71p-propshd.js) whenever the ground strips are HD, else 1 */
+function propK(){return TL.k===2&&HAVE.tile&&typeof txPropHD==='function'&&typeof hpOK==='function'&&hpOK()?2:1}
 function propPaint(p,f){const q=p.cv.getContext('2d'),K=p.K;let an=false;q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,p.cv.width,p.cv.height);q.imageSmoothingEnabled=false;q.setTransform(K,0,0,K,p.ox*K,p.oy*K);
- if(HAVE.prop){PO.bk=B.bk;PO.c=p.c;PO.r=p.r;PO.frame=f;try{an=drawPropPx(q,0,0,PO)===true}catch(e){artFail('prop',e)}}else drawPropOld(q,0,0);
+ if(HAVE.prop){PO.bk=B.bk;PO.c=p.c;PO.r=p.r;PO.frame=f;PO.hd=K===2;try{an=drawPropPx(q,0,0,PO)===true}catch(e){artFail('prop',e)}}else drawPropOld(q,0,0);
  tintCanvas(p.cv);return an}
 function propFade(R,dt){const us=B.units,hk=HOV.k>=0?HOV.k:insK,st=reduced?1:dt*7;
  for(let d=0;d<ND;d++){const L=R.props[d];for(let i=0;i<L.length;i++){const k=L[i],p=propOf(k),x0=R.ax[k]-p.w/2+3,x1=R.ax[k]+p.w/2-3,y0=R.ay[k]-p.h+3,y1=R.ay[k]+2;let hid=false;
@@ -908,14 +910,17 @@ function bmLine(R){if(!BM.los)return;const u=BM.u,t=BM.tg;if(!u||!t||!u.alive||!
  if(BM.blocked){const c=anSprite('los-blocked');if(c)g.drawImage(c,vt.ox-9,vt.oy-(HAVE.over?27:34))}}
 
 /* ---- backdrop: painted into an art-resolution buffer at a low rate, scaled up crisp ---- */
-const SKYB={cv:null,key:'',t:0,cost:0,vw:0,vh:0,w:0,h:0,px:1};
+const SKYB={cv:null,key:'',t:0,cost:0,vw:0,vh:0,w:0,h:0,px:1,z:1};
+/* backdrop pixels per default art pixel: 2 at Detail High when the default art pixel is at least 2 device px (the HD backdrop:
+   fine 1 px dithers, rims and stars at the HD tiles' resolution), else 1 */
+function skyZ(){return HAVE.tile&&typeof hdOK==='function'&&hdOK()&&(B.cam.sdef||1)>=2?2:1}
 function drawSky(){if(!HAVE.sky){drawBackdrop(B.bk);return}
- // one buffer size per viewport (a rebuild costs tens of ms): its pixel is the default art pixel, in CSS px, and survives a resolution change
- if(SKYB.vw!==cw||SKYB.vh!==ch||!SKYB.w){SKYB.vw=cw;SKYB.vh=ch;SKYB.px=Math.max(1,B.cam.sdef||1)/dpr;SKYB.w=Math.ceil(cw/SKYB.px);SKYB.h=Math.ceil(ch/SKYB.px)}
- const w=SKYB.w,h=SKYB.h,hour=typeof G!=='undefined'&&G&&typeof G.hour==='number'?G.hour:12,key_=B.bk+'|'+w+'|'+h+'|'+(hour*4|0);
+ // one buffer size per viewport (a rebuild costs tens of ms): its pixel is the default art pixel (or half of it, HD), in CSS px, and survives a resolution change
+ const z=skyZ();if(SKYB.vw!==cw||SKYB.vh!==ch||!SKYB.w||SKYB.z!==z){SKYB.vw=cw;SKYB.vh=ch;SKYB.z=z;SKYB.px=Math.max(1,B.cam.sdef||1)/dpr/z;SKYB.w=Math.ceil(cw/SKYB.px);SKYB.h=Math.ceil(ch/SKYB.px)}
+ const w=SKYB.w,h=SKYB.h,hour=typeof G!=='undefined'&&G&&typeof G.hour==='number'?G.hour:12,key_=B.bk+'|'+w+'|'+h+'|'+(hour*4|0)+'|'+z;
  if(SKYB.key!==key_||(!reduced&&now-SKYB.t>Math.max(240,SKYB.cost*40))){const c=SKYB.cv||(SKYB.cv=mkCanvas(w,h));if(c.width!==w||c.height!==h){c.width=w;c.height=h}const q=c.getContext('2d'),t0=performance.now();SKYB.key=key_;SKYB.t=now;
   q.setTransform(1,0,0,1,0,0);q.globalAlpha=1;q.globalCompositeOperation='source-over';q.imageSmoothingEnabled=false;
-  try{drawBackdropPx(q,w,h,{bk:B.bk,hour,frame:tileFrame()})}catch(e){artFail('sky',e);SKYB.key='';drawBackdrop(B.bk);return}SKYB.cost=performance.now()-t0}
+  try{drawBackdropPx(q,w,h,{bk:B.bk,hour,frame:tileFrame(),hd:z})}catch(e){artFail('sky',e);SKYB.key='';drawBackdrop(B.bk);return}SKYB.cost=performance.now()-t0}
  const k=SKYB.px*dpr;g.setTransform(1,0,0,1,0,0);g.drawImage(SKYB.cv,0,0,Math.round(w*k),Math.round(h*k))}
 
 /* ---- the frame ---- */

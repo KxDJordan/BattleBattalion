@@ -360,7 +360,7 @@ function txProp(id){let S=TXPC.get(id);if(S)return S;const a=id.split('|'),bk=a[
   txPrism(P,-10,2,7,3,-2,cry);txPrism(P,9,3,9,4,2,cry);P.p(-9,-16,'C');P.p(10,-22,'C');P.p(-7,-27,'D');gl.push([0,-21],[9,-6])}
  txOutline(P);
  let x0=99,x1=-99,y0=99;for(let y=0;y<TXPH;y++)for(let x=0;x<TXPW;x++)if(P.d[y*TXPW+x]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y}
- S={P,cv:undefined,w:2*Math.max(TXPAX-x0,x1-TXPAX+1),h:TXPAY-y0+1,gl,ember:bk==='ashen'};TXPC.set(id,S);return S}
+ S={id,P,cv:undefined,hcv:undefined,w:2*Math.max(TXPAX-x0,x1-TXPAX+1),h:TXPAY-y0+1,gl,ember:bk==='ashen'};TXPC.set(id,S);return S}
 /* siege stakes (a 'block' tile with fort set, 16-contracts.js objFortify): sharpened posts in a bank of earth, lashed with a rail */
 function txStakes(P,R,v){txEll(P,0,1,15,5,'k','j','i',.5);
  const N=5;for(let i=0;i<N;i++){const t=i/(N-1)*2-1,x0=Math.round(t*12),y0=Math.round(t*6)+1,H=15+((i*7+v*3)%4)*2-(i&1)*3,ln=i&1?1:-1;
@@ -371,8 +371,12 @@ const TXPL=new Map();
 function txPropBox(bk,c,r){if(typeof B==='object'&&B&&B.tiles&&typeof key==='function'){const t=B.tiles[key(c,r)];if(t&&t.fort)return txProp('fort|stakes|'+((txHash(c,r,91)*3)|0))}if(!TXPK[bk])bk='plains';const e=txEastOn()&&TXPKE[bk]?1:0,k=((TXBI[bk]*128+(c&127))*128+(r&127))*2+e;let S=TXPL.get(k);if(!S){S=txProp(e?txPropIdE(bk,c,r):txPropId(bk,c,r));TXPL.set(k,S)}return S}
 function txPropIdE(bk,c,r){const L=TXPKE[bk];let tot=0;for(const a of L)tot+=a[0];let q=txHash(c,r,77)*tot,kind=L[0][1];for(const a of L){if(q<a[0]){kind=a[1];break}q-=a[0]}return bk+'|'+kind+'|'+((txHash(c,r,91)*3)|0)}
 function propBoxPx(bk,c,r){const S=txPropBox(bk,c,r);return{w:S.w,h:S.h}}
-function drawPropPx(q,x,y,o){const S=txPropBox(o.bk,o.c|0,o.r|0);if(S.cv===undefined)S.cv=txCv(S.P);if(!S.cv)return false;x=Math.round(x);y=Math.round(y);q.drawImage(S.cv,x-TXPAX,y-TXPAY);
- if(S.gl.length&&!txRM()){const f=(o.frame|0)+((o.c*7+o.r*13)&15);for(let i=0;i<S.gl.length;i++){const t=(f+i*6)%18;if(t>2)continue;const gx=x+S.gl[i][0],gy=y+S.gl[i][1];q.fillStyle=PAL.r;q.fillRect(gx,gy,1,1);if(t===1){q.fillRect(gx-1,gy,3,1);q.fillRect(gx,gy-1,1,3)}}return true}
+function drawPropPx(q,x,y,o){const S=txPropBox(o.bk,o.c|0,o.r|0);x=Math.round(x);y=Math.round(y);
+ const hc=o.hd&&typeof txPropHD==='function'?txPropHD(S):null;   // 71p-propshd.js: the same prop at twice the resolution (o.hd: the caller draws at 2 px per art pixel)
+ if(hc)q.drawImage(hc,x-TXPAX,y-TXPAY,TXPW,TXPH);else{if(S.cv===undefined)S.cv=txCv(S.P);if(!S.cv)return false;q.drawImage(S.cv,x-TXPAX,y-TXPAY)}
+ if(S.gl.length&&!txRM()){const f=(o.frame|0)+((o.c*7+o.r*13)&15);for(let i=0;i<S.gl.length;i++){const t=(f+i*6)%18;if(t>2)continue;const gx=x+S.gl[i][0],gy=y+S.gl[i][1];q.fillStyle=PAL.r;
+   if(hc){q.fillRect(gx,gy,.5,.5);if(t===1){q.globalAlpha=.7;q.fillRect(gx-1,gy,2.5,.5);q.fillRect(gx,gy-1,.5,2.5);q.globalAlpha=1}}
+   else{q.fillRect(gx,gy,1,1);if(t===1){q.fillRect(gx-1,gy,3,1);q.fillRect(gx,gy-1,1,3)}}}return true}
  return false}
 
 /* ================= BACKDROPS =================
@@ -392,25 +396,28 @@ const TXSKY={
 function txTod(h){h=((+h||0)%24+24)%24;return h>=5&&h<8?'dawn':h>=8&&h<17.5?'day':h>=17.5&&h<20.5?'dusk':'night'}
 /* vertical ordered-dither gradient between palette keys ('' keeps what is there) */
 function txGrad(S,x0,x1,y0,y1,cols){const n=cols.length-1;for(let y=Math.max(0,y0|0);y<Math.min(S.h,y1);y++){const t=Math.min(.9999,Math.max(0,(y-y0)/(y1-y0)))*n,i=t|0,fr=Math.min(1,Math.max(0,(t-i-.2)/.6));
-  for(let x=x0;x<x1;x++){const k=fr>TXBAY[(x&3)+(y&3)*4]/16+.03?cols[i+1]:cols[i];if(k)S.p(x,y,k)}}}
+  const ka=cols[i],kb=cols[i+1],a=ka?TXI[(S.map&&S.map[ka])||ka]||0:-1,b=kb?TXI[(S.map&&S.map[kb])||kb]||0:-1,o=y*S.w,xa=Math.max(0,x0),xb=Math.min(S.w,x1);
+  for(let x=xa;x<xb;x++){const k=fr>TXBAY[(x&3)+(y&3)*4]/16+.03?b:a;if(k>=0)S.d[o+x]=k}}}
 /* silhouette profiles (height above the base line per column) */
-function txProf(w,seed,kind,amp,U){const R=mulberry(seed),a=new Float32Array(w+2);
+function txProf(w,seed,kind,amp,U,Z){Z=Z||1;const R=mulberry(seed),a=new Float32Array(w+2);
  if(kind==='ridge'){let x=-((R()*20*U)|0),y=amp*R();while(x<w+2){const nx=x+Math.round((7+R()*16)*U),ny=amp*(.25+R()*.75),mx=x+Math.round((nx-x)*(.35+R()*.3)),my=Math.min(y,ny)*(.25+R()*.5);
    for(let i=Math.max(0,x);i<=Math.min(w+1,nx);i++)a[i]=i<mx?y+(my-y)*(i-x)/(mx-x||1):my+(ny-my)*(i-mx)/(nx-mx||1);x=nx;y=ny}}
  else if(kind==='mesa'){let x=-((R()*20*U)|0);while(x<w+2){const len=Math.round((10+R()*34)*U),hh=R()<.4?amp*.12*R():amp*(.45+R()*.55),st=R()<.5?amp*.25:0;
    for(let i=Math.max(0,x);i<Math.min(w+2,x+len);i++){const e=Math.min(i-x,x+len-1-i);a[i]=e<2*U?hh*.55:e<5*U&&st?hh-st:hh}x+=len+Math.round(R()*8*U)}}
  else if(kind==='spire'){for(let i=0;i<w+2;i++)a[i]=amp*.08*(1+Math.sin(i/(9*U)+seed));let x=(R()*10*U)|0;while(x<w+2){const hw=(1.5+R()*4)*U,hh=amp*(.25+R()*R()*.9);for(let i=Math.max(0,Math.floor(x-hw));i<=Math.min(w+1,x+hw);i++)a[i]=Math.max(a[i],hh*(1-Math.abs(i-x)/hw));x+=Math.round((5+R()*26)*U)}}
  else{const p1=R()*9,p2=R()*9,p3=R()*9,f=1/(kind==='dune'?26:38)/U;for(let i=0;i<w+2;i++)a[i]=amp*(.5+.3*Math.sin(i*f+p1)+.14*Math.sin(i*f*2.3+p2)+.06*Math.sin(i*f*5.1+p3));
-  if(kind==='pines'||kind==='trees'||kind==='dead'){const b0=a.slice();let x=(R()*4)|0;while(x<w+2){const pin=kind==='pines',hh=(pin?4+R()*7:kind==='dead'?5+R()*6:3+R()*4)*U,hw=pin?Math.max(1.5,hh*.34):kind==='dead'?.6:hh*.9;
+  if(kind==='pines'||kind==='trees'||kind==='dead'){const b0=a.slice();let x=(R()*4)|0;while(x<w+2){const pin=kind==='pines',hh=(pin?4+R()*7:kind==='dead'?5+R()*6:3+R()*4)*U,hw=pin?Math.max(1.5*Z,hh*.34):kind==='dead'?.6*Z:hh*.9;
     for(let i=Math.max(0,Math.floor(x-hw));i<=Math.min(w+1,x+hw);i++){const e=Math.min(1,Math.abs(i-x)/hw);a[i]=Math.max(a[i],b0[Math.min(w+1,x)]+(pin?hh*(1-e):kind==='dead'?hh:hh*Math.sqrt(1-e*e)))}x+=Math.round(kind==='dead'?(8+R()*30)*U:pin?(2+R()*4)*U:(3+R()*5)*U)}}}
  return a}
 /* paint a layer from its silhouette down to the bottom. o: {body, rim, lit, shade, snow:[lit,shade,line]} */
-function txLayer(S,prof,base,o){const w=S.w,h=S.h;for(let x=0;x<w;x++){const top=Math.round(base-prof[x]);for(let y=Math.max(0,top);y<h;y++){const d=y-top;let k=o.body;
-   if(o.lit){const xs=Math.max(1,Math.min(w-1,Math.round(x-d*.55))),lit=prof[xs+1]>=prof[xs-1];k=lit?o.lit:o.shade;if(d>o.fade&&((x+y)&1||d>o.fade*1.6))k=o.body;
-    if(o.snow&&prof[x]-d>o.snow[2]+2*Math.sin(x*.7))k=lit?o.snow[0]:o.snow[1]}
-   else if(o.rim&&d<(o.rimw||1))k=o.rim;else if(o.rim2&&d<(o.rimw||1)+2&&((x+y)&1))k=o.rim;
-   if(o.band&&d>1&&(d%o.band===0)&&txHash(x>>2,d,3)<.8)k=o.bandc;
-   S.p(x,y,k)}}}
+function txLayer(S,prof,base,o){const w=S.w,h=S.h,Z=o.Z||1,fade=(o.fade||0)*Z,rw=(o.rimw||1)*Z,bd=(o.band||0)*Z,D=S.d,ix=k=>{const m=S.map&&S.map[k];return TXI[m||k]||0};   // writes palette indices straight into the buffer (as S.p would)
+ const Kb=ix(o.body),Kl=o.lit?ix(o.lit):0,Ks=o.lit?ix(o.shade):0,Kr=o.rim?ix(o.rim):0,Kc=bd?ix(o.bandc):0,Ks0=o.snow?ix(o.snow[0]):0,Ks1=o.snow?ix(o.snow[1]):0;
+ for(let x=0;x<w;x++){const top=Math.round(base-prof[x]),sl=o.snow?o.snow[2]+2*Z*Math.sin(x*.7/Z):0;for(let y=Math.max(0,top);y<h;y++){const d=y-top;let k=Kb;
+   if(Kl){const xs=Math.max(1,Math.min(w-1,Math.round(x-d*.55))),lit=prof[xs+1]>=prof[xs-1];k=lit?Kl:Ks;if(d>fade&&((x+y)&1||d>fade*1.6))k=Kb;
+    if(o.snow&&prof[x]-d>sl)k=lit?Ks0:Ks1}
+   else if(Kr&&d<rw)k=Kr;else if(o.rim2&&d<rw+2*Z&&((x+y)&1))k=Kr;
+   if(bd&&d>Z&&(d%bd<Z)&&txHash((x/Z|0)>>2,d/Z|0,3)<.8)k=Kc;
+   D[y*w+x]=k}}}
 function txDisc(S,cx,cy,r,fn){for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++){const q=x*x+y*y;if(q<=r*r+r*.6){const k=fn(x,y,Math.sqrt(q)/r);if(k)S.p(cx+x,cy+y,k)}}}
 function txCloudBuf(R,U,cols){const n=3+((R()*3)|0),L=[];let x=4*U,mh=0;for(let i=0;i<n;i++){const r=(2.5+R()*3.5)*U*(i===0||i===n-1?.7:1);L.push([x+r,r]);x+=r*1.25;mh=Math.max(mh,r)}
  const w=Math.ceil(x+8*U),h=Math.ceil(mh*1.5)+2,P=txBuf(w,h,0,0),base=h-1;
@@ -428,10 +435,10 @@ const TXSCN={
  ashen:[['ridge',.04,.2,{lit:'G',shade:'1',body:'1',fade:12},71],['ridge',-.02,.1,{lit:'f',shade:'1',body:'1',fade:5},72],['spire',-.1,.1,{body:'1',rim:'G'},73],['hill',-.22,.05,{body:'0',rim:'f'},74]],
  hollow:[],
  glass:[['spire',.02,.2,{body:'3',rim:'7',rimw:1},81],['spire',-.03,.3,{body:'2',rim:'5',rimw:1},82],['spire',-.14,.16,{body:'1',rim:'3'},83],['hill',-.27,.04,{body:'0',rim:'2'},84]]};
-function txBackdropBuild(bk,tod,w,h,hq,east){const realm=bk==='ashen'||bk==='hollow'||bk==='glass',S=txBuf(w,h,0,0),U=Math.max(1,h/180),H0=Math.round(h*.45),R=mulberry(TXBI[bk]*977+13),st={tw:[],cl:[],pt:[],mid:null,front:null,back:null,w,h,realm,bk,H0,U};
+function txBackdropBuild(bk,tod,w,h,hq,east,Z){Z=Z||1;const realm=bk==='ashen'||bk==='hollow'||bk==='glass',S=txBuf(w,h,0,0),U=Math.max(Z,h/180),H0=Math.round(h*.45),R=mulberry(TXBI[bk]*977+13),st={tw:[],cl:[],pt:[],mid:null,front:null,back:null,w,h,realm,bk,H0,U,Z};
  const sky=realm?TXSKY[bk]:(TXSKY[tod][bk]||TXSKY[tod].def);txGrad(S,0,w,0,H0+2*U,sky);
  /* stars */
- if(tod==='night'||bk==='hollow'||bk==='glass'||bk==='ashen'){const n=Math.round(w*H0/(bk==='ashen'?2600:bk==='hollow'?260:420));for(let i=0;i<n;i++){const x=(R()*w)|0,y=(R()*R()*H0*.95)|0,b=R();S.p(x,y,bk==='ashen'?'f':b<.12?'r':b<.45?(bk==='hollow'?'C':'q'):bk==='hollow'?'D':'o');if(b<.12&&st.tw.length<14)st.tw.push([x,y])}}
+ if(tod==='night'||bk==='hollow'||bk==='glass'||bk==='ashen'){const n=Math.round(w*H0/(bk==='ashen'?2600:bk==='hollow'?260:420)/(Z*Z));for(let i=0;i<n;i++){const x=(R()*w)|0,y=(R()*R()*H0*.95)|0,b=R();if(Z>1&&b<.3){const k=bk==='ashen'?'f':b<.12?'r':bk==='hollow'?'C':'q';S.p(x+1,y,k);S.p(x,y+1,k);S.p(x+1,y+1,k)}S.p(x,y,bk==='ashen'?'f':b<.12?'r':b<.45?(bk==='hollow'?'C':'q'):bk==='hollow'?'D':'o');if(b<.12&&st.tw.length<14)st.tw.push([x,y])}}
  /* sun / moon */
  if(!realm){const day=hq>=6&&hq<18.5,t=day?(hq-6)/12.5:((hq+24-18.5)%24)/11.5,cx=Math.round(w*(.1+.8*t)),cy=Math.round(H0*(.86-Math.sin(Math.PI*t)*.68)),r=Math.round(6*U);
   if(day){const c=tod==='day'?['r','e','d']:tod==='dawn'?['e','d','y']:['e','y','E'];txDisc(S,cx,cy,r+3*U|0,(x,y,q)=>q>r/(r+3*U)&&((x+y)&1)?(tod==='day'?(bk==='swamp'?'m':'F'):c[2]):'');txDisc(S,cx,cy,r,(x,y,q)=>q<.55?c[0]:q<.86?c[1]:c[2])}
@@ -446,33 +453,33 @@ function txBackdropBuild(bk,tod,w,h,hq,east){const realm=bk==='ashen'||bk==='hol
      const band=q>.93?'D':q>.84?'C':q>.8?'G':q>.7?'C':'D';if(front||((x+y)&1))S.p(cx+x,cy+y,front&&band==='C'&&q>.84&&q<.9?'r':band)}};
   ring(false);txDisc(S,cx,cy,r+2*U|0,(x,y,q)=>q>r/(r+2*U)?(((x+y)&1)?'C':''):'');txDisc(S,cx,cy,r,(x,y,q)=>q>.9?(x+y<0?'C':'D'):q>.78&&x+y<-r*.5?'D':'0');ring(true);
   for(let i=0;i<9;i++){const ix=Math.round(w*(.03+i*.115+txHash(i,1,9)*.06)),iy=Math.round(H0*(.7+txHash(i,2,9)*.75)),iw=Math.round((6+txHash(i,3,9)*15)*U);   // floating isles
-   for(let x=-iw;x<=iw;x++){const t2=x/iw,up=Math.round((1-t2*t2)*2*U+txHash(x+i*40,1,2)*1.5),dn=Math.round((1-Math.abs(t2))*(1-Math.abs(t2))*iw*1.3+txHash((x>>1)+i*40,2,2)*2*U);for(let y=-up;y<=dn;y++)S.p(ix+x,iy+y,y<=-up+1?(i%2?'D':'C'):y<1?'G':x<0&&y<dn*.5?'G':'1')}
+   for(let x=-iw;x<=iw;x++){const t2=x/iw,xz=Math.floor(x/Z),up=Math.round((1-t2*t2)*2*U+txHash(xz+i*40,1,2)*1.5*Z),dn=Math.round((1-Math.abs(t2))*(1-Math.abs(t2))*iw*1.3+txHash((xz>>1)+i*40,2,2)*2*U);for(let y=-up;y<=dn;y++)S.p(ix+x,iy+y,y<=-up+1?(i%2?'D':'C'):y<1?'G':x<0&&y<dn*.5?'G':'1')}
    if(i%2===0)txPrismS(S,ix+Math.round(iw*.3),iy-2*U,Math.round(6*U),Math.max(2,Math.round(1.5*U)))}
   txGrad(S,0,w,H0+2*U,h,['D','G','G','1','0','0','0','0','0'])}
  /* scenery layers */
  S.map=realm?null:TXTOD[tod];
- for(const L of TXSCN[bk]||[])txLayer(S,txProf(w,L[4]*7919,L[0],L[2]*h,U),H0-L[1]*h,Object.assign({},L[3],L[3].snow?{snow:[L[3].snow[0],L[3].snow[1],L[3].snow[2]*h]}:null));
+ for(const L of TXSCN[bk]||[])txLayer(S,txProf(w,L[4]*7919,L[0],L[2]*h,U,Z),H0-L[1]*h,Object.assign({Z},L[3],L[3].snow?{snow:[L[3].snow[0],L[3].snow[1],L[3].snow[2]*h]}:null));
  if(east)txEastSkyline(S,bk,w,h,H0,U);
  S.map=null;
- if(bk==='ashen'){for(let i=0;i<Math.round(w/16);i++){let x=(R()*w)|0,y=H0+((R()*h*.2)|0)-(h*.03|0);const n=(4+R()*10)*U|0;for(let j=0;j<n;j++){S.p(x,y,j<2?'E':R()<.5?'g':'f');y++;if(R()<.5)x+=R()<.5?1:-1}}}
- if(bk==='glass'){for(let i=0;i<Math.round(w/9);i++){const x=(R()*w)|0,y=H0-((R()*h*.2)|0)+(h*.08|0);if(S.g(x,y)&&S.g(x,y)!=='0')S.p(x,y,R()<.3?'r':'6')}}
+ if(bk==='ashen'){for(let i=0;i<Math.round(w/16/Z);i++){let x=(R()*w)|0,y=H0+((R()*h*.2)|0)-(h*.03|0);const n=(4+R()*10)*U|0;for(let j=0;j<n;j++){S.p(x,y,j<2*Z?'E':R()<.5?'g':'f');y++;if(R()<.5/Z)x+=R()<.5?1:-1}}}
+ if(bk==='glass'){for(let i=0;i<Math.round(w/9/Z);i++){const x=(R()*w)|0,y=H0-((R()*h*.2)|0)+(h*.08|0);if(S.g(x,y)&&S.g(x,y)!=='0')S.p(x,y,R()<.3?'r':'6')}}
  if(bk!=='hollow')txGrad(S,0,w,Math.round(h*.7),h,['','','1','0','0']);
  if(bk==='swamp'){S.map=TXTOD[tod];for(let b=0;b<3;b++){const y0=H0+Math.round((-.01+b*.075)*h);for(let x=0;x<w;x++){const th=Math.round((1.2+Math.sin(x/(17*U)+b*2)+Math.sin(x/(7*U)+b))*U);for(let y=0;y<th;y++)if(((x+y)&1)||y===0&&th>1)S.p(x,y0+y,b?'4':'n')}}S.map=null}
  st.back=txCv(S);
  /* clouds (drifting sprites) */
  if(!realm){const cc=tod==='day'?(bk==='swamp'?['l','m','n']:['r','q','p']):tod==='dawn'?['e','h','C']:tod==='dusk'?['h','g','f']:['o','G','1'],n=bk==='desert'?2:bk==='snow'?6:bk==='swamp'?5:4;
-  for(let i=0;i<n;i++){const P=txCloudBuf(R,U*(.7+R()*.6),cc);st.cl.push({cv:txCv(P),w:P.w,x:R()*w,y:Math.round(H0*(.12+R()*.6))-P.h,v:.03+R()*.05})}}
+  for(let i=0;i<n;i++){const P=txCloudBuf(R,U*(.7+R()*.6),cc);st.cl.push({cv:txCv(P),w:P.w,x:R()*w,y:Math.round(H0*(.12+R()*.6))-P.h,v:(.03+R()*.05)*Z})}}
  /* particles: embers fall (ashen), motes drift up (hollow), snowflakes (snow) */
- const np=bk==='ashen'?Math.round(w*h/2600):bk==='hollow'?Math.round(w*h/3600):bk==='snow'?Math.round(w*h/3000):bk==='glass'?Math.round(w*h/9000):0;
+ const np=Math.round((bk==='ashen'?w*h/2600:bk==='hollow'?w*h/3600:bk==='snow'?w*h/3000:bk==='glass'?w*h/9000:0)/(Z*Z));
  for(let i=0;i<np;i++)st.pt.push([R()*w,R()*h,.25+R()*.6,R()*6.28,R()]);
  /* aurora frames (glass) */
  if(bk==='glass'){st.mid=[];const ah=Math.round(H0*.95);for(let f=0;f<4;f++){const A=txBuf(w,ah,0,0);for(let b=0;b<3;b++){const p1=b*2.1+f*.35,by=ah*(.34+b*.2);
-    for(let x=0;x<w;x++){const base=Math.round(by+Math.sin(x/(34*U)+p1)*7*U+Math.sin(x/(13*U)+p1*1.7+f*.4)*3*U),len=Math.round((10+5*Math.sin(x/(9*U)+b+f*1.3)+6*Math.sin(x/(21*U)+b*3))*U*(1.3-b*.25)*(.45+.9*(txHash(x,b,3)*.6+txHash(x>>1,b,5)*.4)));
+    for(let x=0;x<w;x++){const base=Math.round(by+Math.sin(x/(34*U)+p1)*7*U+Math.sin(x/(13*U)+p1*1.7+f*.4)*3*U),xz=Math.floor(x/Z),len=Math.round((10+5*Math.sin(x/(9*U)+b+f*1.3)+6*Math.sin(x/(21*U)+b*3))*U*(1.3-b*.25)*(.45+.9*(txHash(xz,b,3)*.6+txHash(xz>>1,b,5)*.4)));
      for(let d=0;d<len;d++){const q=d/len,y=base-d,bay=TXBAY[(x&3)+(y&3)*4]/16;const k=q<.12?'6':q<.3?(bay<.6?'z':'6'):q<.55?(bay<.55?'Z':'z'):q<.8?(bay<.4?'Z':''):bay<.18?'7':'';if(k)A.p(x,y,b===1&&k==='Z'?'5':k)}}}
-   st.mid.push(txCv(A))}
+   st.mid.push(txCvRows(A))}
   /* spires must stay in front of the aurora: repaint them into a transparent front layer */
-  const Fb=txBuf(w,h,0,0);for(const L of TXSCN.glass)txLayer(Fb,txProf(w,L[4]*7919,L[0],L[2]*h,U),H0-L[1]*h,L[3]);
-  for(let i=0;i<w*h;i++)if(Fb.d[i])Fb.d[i]=S.d[i];st.front=txCv(Fb)}
+  const Fb=txBuf(w,h,0,0);for(const L of TXSCN.glass)txLayer(Fb,txProf(w,L[4]*7919,L[0],L[2]*h,U,Z),H0-L[1]*h,Object.assign({Z},L[3]));
+  for(let i=0;i<w*h;i++)if(Fb.d[i])Fb.d[i]=S.d[i];st.front=txCvRows(Fb)}
  return st}
 /* the East on the horizon: a castle keep and a pagoda in the colours of the second scenery layer, standing on it */
 function txEastSkyline(S,bk,w,h,H0,U){const L=TXSCN[bk]&&TXSCN[bk][1];if(!L)return;const body=L[3].body,rim=L[3].rim||L[3].lit||body,base=Math.round(H0-L[1]*h);
@@ -483,18 +490,21 @@ function txEastSkyline(S,bk,w,h,H0,U){const L=TXSCN[bk]&&TXSCN[bk][1];if(!L)retu
  // the castle on its stone base
  {const cx=Math.round(w*.78),u=Math.max(1,Math.round(U));let y=base+3*u;for(let j=0;j<6*u;j++){const hw=Math.round((16-j*.5/u)*u);for(let i=-hw;i<=hw;i++)S.p(cx+i,y-j,body)}y-=6*u;
   for(let k=0;k<3;k++){const hw=(11-k*3)*u;block(cx,y,hw-u,4*u);y-=4*u;roof(cx,y,hw+2*u,3*u);y-=3*u}S.p(cx-2*u,y,rim);S.p(cx+2*u,y,rim)}}
+/* a canvas of only the rows of P that hold anything, and the row it starts at */
+function txCvRows(P){const w=P.w,d=P.d;let y0=0,y1=P.h-1;while(y0<=y1&&!d.subarray(y0*w,y0*w+w).some(v=>v))y0++;while(y1>=y0&&!d.subarray(y1*w,y1*w+w).some(v=>v))y1--;
+ if(y1<y0)return{cv:null,y:0};const Q=txBuf(w,y1-y0+1,0,0);Q.d.set(d.subarray(y0*w,(y1+1)*w));return{cv:txCv(Q),y:y0}}
 function txPrismS(S,x,y,hg,w){for(let d=0;d<hg;d++){const ww=Math.max(1,Math.round(w*(1-d/hg)));for(let i=-ww;i<=ww;i++)S.p(x+i,y-d,i<0?'C':i===0?'r':'D')}}
-function drawBackdropPx(q,w,h,o){w=Math.max(8,w|0);h=Math.max(8,h|0);const bk=TXM[o.bk]?o.bk:'plains',realm=bk==='ashen'||bk==='hollow'||bk==='glass',hour=((+o.hour||0)%24+24)%24,tod=realm?'realm':txTod(hour),hq=realm?0:Math.round(hour*2)/2,east=!realm&&(o.east!=null?!!o.east:txEastOn()),key=bk+'|'+tod+'|'+hq+'|'+w+'|'+h+(east?'|E':'');
- if(TXBD.key!==key){TXBD.key=key;TXBD.st=txBackdropBuild(bk,tod,w,h,hq,east)}
+function drawBackdropPx(q,w,h,o){w=Math.max(8,w|0);h=Math.max(8,h|0);const bk=TXM[o.bk]?o.bk:'plains',realm=bk==='ashen'||bk==='hollow'||bk==='glass',hour=((+o.hour||0)%24+24)%24,tod=realm?'realm':txTod(hour),hq=realm?0:Math.round(hour*2)/2,east=!realm&&(o.east!=null?!!o.east:txEastOn()),Z=o.hd>1?2:1,key=bk+'|'+tod+'|'+hq+'|'+w+'|'+h+(east?'|E':'')+'|'+Z;
+ if(TXBD.key!==key){TXBD.key=key;TXBD.st=txBackdropBuild(bk,tod,w,h,hq,east,Z)}
  const st=TXBD.st;if(!st||!st.back)return false;const f=txRM()?0:(o.frame|0),U=st.U;q.drawImage(st.back,0,0);
- if(st.mid){q.drawImage(st.mid[(f>>2)&3],0,0);if(st.front)q.drawImage(st.front,0,0)}
+ if(st.mid){const m=st.mid[(f>>2)&3];if(m.cv)q.drawImage(m.cv,0,m.y);if(st.front&&st.front.cv)q.drawImage(st.front.cv,0,st.front.y)}
  for(const c of st.cl){const x=((c.x+f*c.v)%(w+c.w*2))-c.w;q.drawImage(c.cv,Math.round(x),c.y)}
- for(let i=0;i<st.tw.length;i++){const t=(f+i*5)%23;if(t<3){const s=st.tw[i];q.fillStyle=PAL[t===1?'r':'q'];q.fillRect(s[0],s[1],1,1);if(t===1){q.fillRect(s[0]-1,s[1],3,1);q.fillRect(s[0],s[1]-1,1,3)}}}
- if(st.pt.length){const P=st.pt,sz=U>=2?2:1;
-  if(bk==='ashen')for(let i=0;i<P.length;i++){const p=P[i],y=(p[1]+f*p[2]*1.2)%h,x=(p[0]+Math.sin(f*.11+p[3])*4*U+f*.15+w)%w;q.fillStyle=PAL[p[4]<.2?'y':p[4]<.6?'E':'g'];q.fillRect(x|0,y|0,p[4]<.3?sz:1,p[4]<.3?sz:1)}
-  else if(bk==='hollow')for(let i=0;i<P.length;i++){const p=P[i],y=((p[1]-f*p[2]*.45)%h+h)%h,x=(p[0]+Math.sin(f*.07+p[3])*6*U+w)%w;q.fillStyle=PAL[p[4]<.25?'r':p[4]<.7?'C':'D'];q.fillRect(x|0,y|0,1,1)}
-  else if(bk==='snow')for(let i=0;i<P.length;i++){const p=P[i],y=(p[1]+f*p[2]*1.6)%h,x=((p[0]+Math.sin(f*.09+p[3])*5*U-f*.3)%w+w)%w;q.fillStyle=PAL[p[4]<.5?'r':'q'];q.fillRect(x|0,y|0,1,1)}
-  else for(let i=0;i<P.length;i++){const p=P[i];if(((f+i*3)%16)<3){q.fillStyle=PAL.r;q.fillRect(p[0]|0,(p[1]*.6)|0,1,1)}}}
+ for(let i=0;i<st.tw.length;i++){const t=(f+i*5)%23;if(t<3){const s=st.tw[i];q.fillStyle=PAL[t===1?'r':'q'];q.fillRect(s[0],s[1],Z,Z);if(t===1){q.fillRect(s[0]-Z,s[1],3*Z,Z);q.fillRect(s[0],s[1]-Z,Z,3*Z);if(Z>1){q.fillRect(s[0]-2*Z,s[1]+.5*Z,5*Z,1);q.fillRect(s[0]+.5*Z,s[1]-2*Z,1,5*Z)}}}}
+ if(st.pt.length){const P=st.pt,sz=U>=2*Z?2*Z:Z;
+  if(bk==='ashen')for(let i=0;i<P.length;i++){const p=P[i],y=(p[1]+f*p[2]*1.2*Z)%h,x=(p[0]+Math.sin(f*.11+p[3])*4*U+f*.15*Z+w)%w;q.fillStyle=PAL[p[4]<.2?'y':p[4]<.6?'E':'g'];q.fillRect(x|0,y|0,p[4]<.3?sz:Z,p[4]<.3?sz:Z)}
+  else if(bk==='hollow')for(let i=0;i<P.length;i++){const p=P[i],y=((p[1]-f*p[2]*.45*Z)%h+h)%h,x=(p[0]+Math.sin(f*.07+p[3])*6*U+w)%w;q.fillStyle=PAL[p[4]<.25?'r':p[4]<.7?'C':'D'];q.fillRect(x|0,y|0,p[4]<.25?Z:1,p[4]<.25?Z:1)}
+  else if(bk==='snow')for(let i=0;i<P.length;i++){const p=P[i],y=(p[1]+f*p[2]*1.6*Z)%h,x=((p[0]+Math.sin(f*.09+p[3])*5*U-f*.3*Z)%w+w)%w;q.fillStyle=PAL[p[4]<.5?'r':'q'];q.fillRect(x|0,y|0,p[4]<.5?Z:1,p[4]<.5?Z:1)}
+  else for(let i=0;i<P.length;i++){const p=P[i];if(((f+i*3)%16)<3){q.fillStyle=PAL.r;q.fillRect(p[0]|0,(p[1]*.6)|0,Z,Z)}}}
  return true}
 
 /* ================= SCENE TINT =================
