@@ -75,7 +75,7 @@ function egMapShow(){const run=G&&G.portalRun;if(!run||!egCan())return false;con
  r.classList.add('on');sheetOpen=true;egSide();egDraw(true);if(!EGM.raf&&typeof requestAnimationFrame==='function')EGM.raf=requestAnimationFrame(egLoop);return true}
 function egMapHide(){if(!EGM.root)return false;const was=egMapOpen();EGM.root.classList.remove('on');if(was)sheetOpen=false;return was}
 function egFoeLine(roster){const by={};for(const e of roster){const k=e.id+'|'+(e.lvl||1)+'|'+(e.elite?1:0)+'|'+(e.name||'');by[k]=(by[k]||0)+(e.n==null?1:e.n)}
- return Object.keys(by).map(k=>{const [id,l,el,nm]=k.split('|'),n=by[k],d=EN[id];return nm?`<b>${egEsc(nm)}</b>`:`${n} ${el==='1'?'elite ':''}${(d?d.n:id).toLowerCase()}${n>1?'s':''} <i>(rank ${l})</i>`}).join(', ')}
+ return Object.keys(by).map(k=>{const [id,l,el,nm]=k.split('|'),n=by[k],d=EN[id];return nm?`<b>${egEsc(nm)}</b>`:`${n} ${el==='1'?'elite ':''}${(d?d.n:id).toLowerCase()}${n>1?'s':''} <i>(rank ${Math.round(+l)})</i>`}).join(', ')}
 function egSide(){const run=G.portalRun,r=EGM.root;if(!run||!r)return;const E=ENDGAME[run.realm],nx=portalNext(run);
  r.querySelector('#egTitle').textContent=E.n;r.querySelector('#egRules').innerHTML=realmLines(run.realm).map(x=>`<p><b>${x[0]}</b> ${x[1]}</p>`).join('');
  const i=EGM.sel,n=run.nodes[i];let h='';

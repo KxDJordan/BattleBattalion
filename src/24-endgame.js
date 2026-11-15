@@ -48,12 +48,12 @@ function realmRound(b){const R=b&&b.realm;if(!R||b.round<2)return;
   for(let k=0;k<T.length;k++){const t=T[k];if(t.t==='haz')hz.push(k);else if(t.t==='ground'&&egFree(b,k)){const c=k%BW,r=(k/BW)|0;if(DIRS.some(([a,d])=>inb(c+a,r+d)&&T[key(c+a,r+d)].t==='haz'))nb.push(k)}}
   for(let i=0;i<R.fire.out&&hz.length;i++){const k=hz.splice(Math.floor(rnd()*hz.length),1)[0];T[k]=Object.assign({},T[k],{t:'ground'})}
   for(let i=0;i<R.fire.add&&nb.length;i++){const k=nb.splice(Math.floor(rnd()*nb.length),1)[0];T[k]=Object.assign({},T[k],{t:'haz'})}
-  b.tiles=T;say('The embers spread across the ash.');FX.emit('status',{t:null,key:'realm',n:b.round})}
+  b.tiles=T;say('The embers spread across the ash.');FX.emit('realm',{k:R.k,round:b.round,what:'fire'})}
  if(R.shift&&(b.round-1)%R.shift.every===0){const T=b.tiles.slice(),bl=[],gr=[];
   for(let k=0;k<T.length;k++){if(!egFree(b,k))continue;if(T[k].t==='block')bl.push(k);else if(T[k].t==='ground')gr.push(k)}
   for(let i=0;i<R.shift.n&&bl.length;i++){const k=bl.splice(Math.floor(rnd()*bl.length),1)[0];T[k]=Object.assign({},T[k],{t:'ground'})}
   for(let i=0;i<R.shift.n&&gr.length;i++){const k=gr.splice(Math.floor(rnd()*gr.length),1)[0];T[k]=Object.assign({},T[k],{t:'block'})}
-  openBattleMap(T);b.tiles=T;say('The ground of the Hollow shifts.');FX.emit('status',{t:null,key:'realm',n:b.round})}
+  openBattleMap(T);b.tiles=T;say('The ground of the Hollow shifts.');FX.emit('realm',{k:R.k,round:b.round,what:'shift'})}
  egChip(b)}
 function realmBacklash(u,a){const R=B&&B.realm;if(!R||!R.backlash||!u||!u.alive)return;const n=Math.max(3,Math.round(u.hpMax*R.backlash));float(u,'Backlash','#8fd8ff');hurt(u,n,1,null,{pierce:1})}
 // the realm chip on the battle HUD (#bLeft): the realm's name and its rules, the next shift or spread
@@ -61,48 +61,49 @@ function egChip(b){if(typeof document==='undefined'||!document.getElementById)re
  if(!el){if(!R)return;const L=document.getElementById('bLeft');if(!L||!L.insertBefore)return;el=document.createElement('div');el.id='brealm';el.setAttribute('role','status');L.insertBefore(el,L.firstChild)}
  if(!R){el.className='hidden';el.innerHTML='';return}
  const ev=R.fire?R.fire.every:R.shift?R.shift.every:0,nx=ev?(b.round<1?1+ev:b.round+ev-((b.round-1)%ev)):0;
- el.className='eg-chip eg-'+R.k;el.innerHTML=`<b>${R.n}</b>${R.rules.map(r=>`<span title="${r[1]}"><i>${r[0]}</i> ${r[1]}</span>`).join('')}${nx?`<em>${R.fire?'The fire spreads':'The ground shifts'} on round ${nx}</em>`:''}`}
+ el.className='eg-chip eg-'+R.k;el.title=R.rules.map(r=>r[0]+': '+r[1]).join(' ');el.innerHTML=`<b>${R.n}</b><span>${R.rules.map(r=>`<i>${r[0]}</i>`).join(' · ')}</span><span class="eg-cd">${R.rules.map(r=>r[1]).join(' ')}</span>${nx?`<em>${R.fire?'The fire spreads':'The ground shifts'} on round ${nx}</em>`:''}`}
 
 /* ---------- roster shorthand: [id, n, lvl, elite?, name?, hpK?] -> {id, n, lvl, elite, name, hpK} ---------- */
 function egR(L){return L.map(x=>Array.isArray(x)?{id:x[0],n:x[1]==null?1:x[1],lvl:x[2]||1,elite:x[3]?1:0,name:x[4]||null,hpK:x[5]||0}:x)}
 const egBoss=(id,name,title,phases,er)=>({id,name,title,phases,enrageRound:er||0});
 /* ---------- portal worlds ---------- */
+const EGDANGER='Made for a company of veterans: twelve swords of level 11 to 13 in their best steel. Fewer, or greener, will not come back.';
 const ENDGAME={
- ashen:{n:'The Ashen Reach',f:'void',d:'A world that burned and never cooled. Cinders fall like snow; the riftspawn here are born in the fire.',
+ ashen:{n:'The Ashen Reach',f:'void',danger:EGDANGER,d:'A world that burned and never cooled. Cinders fall like snow; the riftspawn here are born in the fire.',
   fights:{
-   cinders:{n:'Cinder pickets',roster:egR([['vknight',3,14],['imp',6,14],['vmage',2,14]])},
+   cinders:{n:'Cinder pickets',roster:egR([['vknight',3,13.5],['imp',6,13.5],['vmage',2,13.5]])},
    ashwalk:{n:'The ash-walkers',roster:egR([['barbz',4,14],['vknight',2,12],['imp',4,12],['vmage',2,12]])},
    pyre:{n:'The burning pyre',roster:egR([['obrute',3,14],['imp',5,13],['vmage',3,13]])},
-   embers:{n:'Ember guard',elite:1,roster:egR([['vknight',4,12,1],['vmage',3,11],['imp',4,11]])},
-   furnace:{n:'The furnace host',elite:1,roster:egR([['obrute',3,12,1],['vknight',2,12],['vmage',3,11],['imp',3,11]])},
+   embers:{n:'Ember guard',elite:1,roster:egR([['vknight',4,11,1],['vmage',3,10],['imp',4,10]])},
+   furnace:{n:'The furnace host',elite:1,roster:egR([['obrute',3,11.5,1],['vknight',2,11.5],['vmage',3,10.5],['imp',3,10.5]])},
    throne:{n:'The Cinder Throne',boss:egBoss('tyrant','Vael the Cinder King','Tyrant of the Ashen Reach',[{at:.66,n:'The pyre wakes',say:'Vael spreads his hands: the ash blazes up.',summon:['imp','imp']},{at:.33,n:'King of cinders',say:'Vael burns brighter as he bleeds.',enrage:{dmg:.25,ms:8}}],9),
     roster:egR([['tyrant',1,11,0,'Vael the Cinder King',1.4],['vknight',3,13],['vmage',2,12],['imp',3,12]])}},
   battle:['cinders','ashwalk','pyre'],elite:['embers','furnace'],boss:'throne',
   treasure:{crowns:500,items:['dwarfaxe','runeblade','zweihander','steeltower']},loot:['lg:kingsblade','lg:worldhammer','lg:aegisplate'],
   event:{n:'The cinder pilgrim',d:'A figure of living ash kneels by the path and offers to burn away what weighs on your swords.',
    a:['Take the burning','Every sword gains 150 experience and loses a fifth of its hitpoints.'],b:['Refuse him','Nothing changes.']}},
- hollow:{n:'The Hollow',f:'void',d:'A dark that moves. The ground forgets its shape; the dead of a hundred worlds wander in it.',
+ hollow:{n:'The Hollow',f:'void',danger:EGDANGER,d:'A dark that moves. The ground forgets its shape; the dead of a hundred worlds wander in it.',
   fights:{
-   gloom:{n:'Gloom stalkers',roster:egR([['imp',6,13],['gknight',3,13],['vmage',2,13]])},
-   barrowmen:{n:'The barrow-men',roster:egR([['gknight',3,15],['skelhal',4,16],['necro',2,15],['imp',3,14]])},
+   gloom:{n:'Gloom stalkers',roster:egR([['imp',6,14],['gknight',3,14],['vmage',2,14]])},
+   barrowmen:{n:'The barrow-men',roster:egR([['gknight',3,14.5],['skelhal',4,15.5],['necro',2,14.5],['imp',3,13.5]])},
    echo:{n:'Echoes in the dark',roster:egR([['vknight',3,13],['imp',5,13],['vmage',3,13]])},
    lanterns:{n:'The lantern-wardens',elite:1,roster:egR([['gknight',4,12,1],['vmage',3,11],['imp',3,11]])},
-   shades:{n:'The shade court',elite:1,roster:egR([['vknight',3,14,1],['necrolt',1,13],['skelhal',4,14],['imp',3,13]])},
+   shades:{n:'The shade court',elite:1,roster:egR([['vknight',3,13.5,1],['necrolt',1,12.5],['skelhal',4,13.5],['imp',3,12.5]])},
    maw:{n:'The Maw of the Hollow',boss:egBoss('tyrant','Ossuar the Unlit','Tyrant of the Hollow',[{at:.66,n:'Lights out',say:'Ossuar swallows the last light: the dead stir.',summon:['skel','skel']},{at:.33,n:'The dark hungers',say:'Ossuar drinks the dark and grows.',heal:.12,enrage:{dmg:.2}}],9),
-    roster:egR([['tyrant',1,12,0,'Ossuar the Unlit',1.4],['gknight',3,14],['vmage',2,13],['imp',3,13]])}},
+    roster:egR([['tyrant',1,12.5,0,'Ossuar the Unlit',1.4],['gknight',3,14.5],['vmage',2,13.5],['imp',3,13.5]])}},
   battle:['gloom','barrowmen','echo'],elite:['lanterns','shades'],boss:'maw',
   treasure:{crowns:500,items:['bardiche','estoc','plate','greathelm']},loot:['lg:shadowweave','lg:dreadcrown','lg:lastmercy'],
   event:{n:'A voice in the dark',d:'Something in the Hollow knows your names. It offers the way through, for a price in blood.',
    a:['Pay in blood','Every sword loses a quarter of its hitpoints; the next fight\'s foes start the battle unready.'],b:['Walk on','Nothing changes.']}},
- glass:{n:'The Glass Wastes',f:'void',d:'A desert of violet glass under a storming sky. Mana falls here like rain, and burns like it too.',
+ glass:{n:'The Glass Wastes',f:'void',danger:EGDANGER,d:'A desert of violet glass under a storming sky. Mana falls here like rain, and burns like it too.',
   fights:{
    shards:{n:'Shard-runners',roster:egR([['imp',6,13],['vmage',3,13],['vknight',2,13]])},
    storm:{n:'The storm-callers',roster:egR([['vmage',4,12],['vknight',3,11],['imp',3,11]])},
-   prism:{n:'Prism guard',roster:egR([['vknight',4,12],['imp',4,12],['vmage',2,12]])},
-   seers:{n:'The glass seers',elite:1,roster:egR([['vmage',4,9,1],['vknight',3,8],['imp',3,8]])},
-   colossus:{n:'The shattered legion',elite:1,roster:egR([['vknight',4,11,1],['vmage',3,10],['imp',4,10]])},
+   prism:{n:'Prism guard',roster:egR([['vknight',4,12.75],['imp',4,12.75],['vmage',2,12.75]])},
+   seers:{n:'The glass seers',elite:1,roster:egR([['vmage',4,9.5,1],['vknight',3,8.5],['imp',3,8.5]])},
+   colossus:{n:'The shattered legion',elite:1,roster:egR([['vknight',4,11.25,1],['vmage',3,10.25],['imp',4,10.25]])},
    eye:{n:'The Eye of the Storm',boss:egBoss('tyrant','Ixa the Glass Tyrant','Tyrant of the Glass Wastes',[{at:.66,n:'The storm breaks',say:'Ixa raises the storm: glass rains on the field.',summon:['imp','imp']},{at:.33,n:'Mana-drunk',say:'Ixa drinks the storm.',enrage:{dmg:.3,ms:6}}],9),
-    roster:egR([['tyrant',1,11,0,'Ixa the Glass Tyrant',1.4],['vmage',3,13],['vknight',2,12],['imp',3,12]])}},
+    roster:egR([['tyrant',1,10.25,0,'Ixa the Glass Tyrant',1.4],['vmage',3,12.25],['vknight',2,11.25],['imp',3,11.25]])}},
   battle:['shards','storm','prism'],elite:['seers','colossus'],boss:'eye',
   treasure:{crowns:500,items:['focus','arbalest','warbow','sigilrobe']},loot:['lg:starweaver','lg:skyrender','lg:mirrorshield'],
   event:{n:'The singing glass',d:'A spire of glass hums with the storm. Those with a gift could drink from it, if they dare.',
@@ -168,45 +169,45 @@ function egDeed(m,k){if(typeof deedAdd==='function'){try{deedAdd(m,k);return}cat
 const DUNGEONS={
  barrow:{n:'The Drowned Barrow',kind:'barrow',art:0,f:'undead',biome:'swamp',danger:'Made for a company of veterans: twelve swords of level 11 to 13 in their best steel. Fewer, or greener, will not come back.',
   d:'A king\'s grave gone under the marsh. Its dead still keep the old watch, and the old king keeps them.',
-  fights:[{n:'The flooded halls',d:'Shamblers in the black water, legionaries on the steps.',roster:egR([['zomb',5,17],['skel',5,17],['skelhal',3,17],['necro',2,16]])},
+  fights:[{n:'The flooded halls',d:'Shamblers in the black water, legionaries on the steps.',roster:egR([['zomb',5,16.5],['skel',5,16.5],['skelhal',3,16.5],['necro',2,15.5]])},
    {n:'The bone choir',d:'The barrow\'s priests raise their dead faster than they fall.',roster:egR([['gknight',3,13],['skelhal',4,15],['necro',3,14],['zomb',3,15]])},
    {n:'The Drowned King',d:'Haldane the Drowned King on his sunken throne, and his grave knights about him.',boss:egBoss('gknight','Haldane the Drowned King','Lord of the Barrow',[{at:.6,n:'Rise, my guard',say:'Haldane strikes the water: his guard rises from it.',summon:['skel','skel','skelhal']},{at:.3,n:'The king will not lie down',say:'The Drowned King draws the marsh into his wounds.',heal:.2,enrage:{dmg:.2,md:6}}],10),
-    roster:egR([['gknight',1,15,0,'Haldane the Drowned King',2.4],['gknight',3,13],['necro',2,14],['skelhal',3,15]])}],
+    roster:egR([['gknight',1,15,0,'Haldane the Drowned King',2.2],['gknight',3,13],['necro',2,14],['skelhal',3,15]])}],
   loot:['lg:dreadcrown','lg:oathbreaker','lg:pilgrimmantle']},
  warren:{n:'The Red Warren',kind:'lair',art:1,f:'ogre',biome:'hills',danger:'Made for a company of veterans: twelve swords of level 11 to 13 in their best steel. Fewer, or greener, will not come back.',
   d:'A cave the goblins dug for something bigger than goblins. The bones at the mouth are not all animal.',
-  fights:[{n:'The goblin tunnels',d:'Goblins in every crack, and an ogre at the bend.',roster:egR([['gob',6,18],['gobarch',4,18],['gobsham',2,17],['ogre',2,13]])},
+  fights:[{n:'The goblin tunnels',d:'Goblins in every crack, and an ogre at the bend.',roster:egR([['gob',6,17],['gobarch',4,17],['gobsham',2,16],['ogre',2,12]])},
    {n:'The ogre pens',d:'Armored ogres, chained no longer.',roster:egR([['ogre',3,14],['aogre',2,14],['gobarch',4,19]])},
    {n:'Gutmaw',d:'Gutmaw the Ever-Hungry, the ogre the warren was dug for.',boss:egBoss('aogre','Gutmaw the Ever-Hungry','Lord of the Red Warren',[{at:.6,n:'Feeding time',say:'Gutmaw bellows: his brood come running.',summon:['ogre']},{at:.3,n:'Blood-mad',say:'Gutmaw goes blood-mad.',enrage:{dmg:.3,ms:8}}],10),
     roster:egR([['aogre',1,14,0,'Gutmaw the Ever-Hungry',2.6],['ogre',2,12],['gobsham',2,16],['gobarch',4,16]])}],
   loot:['lg:worldhammer','lg:grudgebearer','lg:mirrorshield']},
  keep:{n:'The Black Keep',kind:'keep',art:2,f:'bandit',biome:'hills',danger:'Made for a company of veterans: twelve swords of level 11 to 13 in their best steel. Fewer, or greener, will not come back.',
   d:'A burned lord\'s keep, held now by the worst brigands of three kingdoms and the madman who leads them.',
-  fights:[{n:'The gatehouse',d:'Crossbows on the walls, raiders at the gate.',roster:egR([['bxbow',5,16],['braid',4,16],['thug',4,16],['bmark',2,16]])},
+  fights:[{n:'The gatehouse',d:'Crossbows on the walls, raiders at the gate.',roster:egR([['bxbow',5,15],['braid',4,15],['thug',4,15],['bmark',2,15]])},
    {n:'The great hall',d:'The keep\'s sworn men, in stolen plate.',roster:egR([['braid',5,17],['thug',4,16],['bxbow',3,16],['blead',1,15]])},
    {n:'Lord Vesk',d:'The Mad Lord Vesk and his bodyguard, at the top of the tower.',boss:egBoss('blead','Lord Vesk the Mad','Master of the Black Keep',[{at:.6,n:'To me!',say:'Vesk shrieks for his guard.',summon:['braid','braid']},{at:.3,n:'Madness',say:'Vesk laughs and fights like ten men.',enrage:{dmg:.3,ms:10,md:8}}],10),
-    roster:egR([['blead',1,17,0,'Lord Vesk the Mad',3.2],['braid',4,17],['bxbow',4,16],['thug',3,16]])}],
+    roster:egR([['blead',1,16.75,0,'Lord Vesk the Mad',3.2],['braid',4,16.75],['bxbow',4,15.75],['thug',3,15.75]])}],
   loot:['lg:lastmercy','lg:dawnbringer','lg:sunwall']},
  grove:{n:'The Rotting Grove',kind:'grove',art:3,f:'ent',biome:'forest',danger:'Made for a company of veterans: twelve swords of level 11 to 13 in their best steel. Fewer, or greener, will not come back.',
   d:'A wood where the trees remember every axe. At its heart the oldest of them has gone rotten, and angry.',
-  fights:[{n:'The thorn wall',d:'Thornlings by the dozen and the ents that tend them.',roster:egR([['thorn',6,20],['ent',2,16],['viper',4,20]])},
+  fights:[{n:'The thorn wall',d:'Thornlings by the dozen and the ents that tend them.',roster:egR([['thorn',6,19.75],['ent',2,15.75],['viper',4,19.75]])},
    {n:'The serpent pools',d:'Great serpents in the black pools beneath the roots.',roster:egR([['gserp',3,16],['adder',5,19],['viper',3,19]])},
    {n:'The Rotheart',d:'The Rotheart, eldest of the grove, and its rotten court.',boss:egBoss('elder','The Rotheart','Eldest of the Grove',[{at:.6,n:'The grove wakes',say:'The Rotheart groans: the trees walk.',summon:['thorn','thorn','thorn']},{at:.3,n:'Rot and ruin',say:'Rot pours from the Rotheart\'s wounds.',heal:.15,enrage:{dmg:.25}}],10),
     roster:egR([['elder',1,12,0,'The Rotheart',2.4],['ent',2,11],['thorn',4,15],['viper',3,15]])}],
   loot:['lg:heartseeker','lg:starfall','lg:shadowweave']},
  hall:{n:'The Hall of Iron Tusks',kind:'keep',art:2,f:'orc',biome:'snow',danger:'Made for a company of veterans: twelve swords of level 11 to 13 in their best steel. Fewer, or greener, will not come back.',
   d:'The mountain hall of an orc clan that never bent the knee to any warchief, and the iron-jawed brute who rules it.',
-  fights:[{n:'The tusk-gate',d:'Braves at the gate, crushers behind.',roster:egR([['orcy',5,15],['obrute',3,15],['orcw',3,15]])},
-   {n:'The feasting hall',d:'The clan\'s warriors, drunk and eager.',roster:egR([['orcw',5,13],['obrute',3,13],['orcy',3,13]])},
+  fights:[{n:'The tusk-gate',d:'Braves at the gate, crushers behind.',roster:egR([['orcy',5,15.5],['obrute',3,15.5],['orcw',3,15.5]])},
+   {n:'The feasting hall',d:'The clan\'s warriors, drunk and eager.',roster:egR([['orcw',5,15],['obrute',3,15],['orcy',3,15]])},
    {n:'Ghor Ironjaw',d:'Ghor Ironjaw and the warlords of his clan.',boss:egBoss('orcl','Ghor Ironjaw','Chief of the Iron Tusks',[{at:.6,n:'Iron Tusks!',say:'Ghor roars the clan\'s name: warriors pour in.',summon:['orcy','orcy']},{at:.3,n:'Iron jaw',say:'Ghor spits teeth and grins.',enrage:{dmg:.25,ms:8}}],10),
     roster:egR([['orcl',1,11,0,'Ghor Ironjaw',2.6],['orcl',2,10],['orcw',4,11],['orcy',3,11]])}],
   loot:['lg:widowmaker','lg:aegisplate','lg:skyrender']},
  den:{n:'The Hunger Den',kind:'lair',art:1,f:'beast',biome:'forest',danger:'Made for a company of veterans: twelve swords of level 11 to 13 in their best steel. Fewer, or greener, will not come back.',
   d:'A hollow hill where every beast of the north wood comes to die, and some of them do not.',
-  fights:[{n:'The wolf run',d:'A pack that has grown fat on hunters.',roster:egR([['wolf',8,19],['spider',4,19],['bear',1,16]])},
-   {n:'The web halls',d:'Webspinners as big as ponies, and the owlbears that eat them.',roster:egR([['spider',6,17],['bear',3,14],['wolf',3,17]])},
+  fights:[{n:'The wolf run',d:'A pack that has grown fat on hunters.',roster:egR([['wolf',8,18],['spider',4,18],['bear',1,15]])},
+   {n:'The web halls',d:'Webspinners as big as ponies, and the owlbears that eat them.',roster:egR([['spider',6,17.75],['bear',3,14.75],['wolf',3,17.75]])},
    {n:'Old Grandmother',d:'Old Grandmother, the great owlbear of the den, and her get.',boss:egBoss('bear','Old Grandmother','Mother of the Hunger Den',[{at:.6,n:'Her get',say:'Old Grandmother shrieks: her young come out of the dark.',summon:['bear']},{at:.3,n:'The hunger',say:'Old Grandmother is starving, and she has found food.',enrage:{dmg:.3,ms:10}}],10),
-    roster:egR([['bear',1,15,0,'Old Grandmother',3.4],['bear',2,13],['wolf',5,16],['spider',3,16]])}],
+    roster:egR([['bear',1,15.25,0,'Old Grandmother',3.4],['bear',2,13.25],['wolf',5,16.25],['spider',3,16.25]])}],
   loot:['lg:wyrmbane','lg:kingsblade','lg:thunderclap']}};
 // what a dungeon gives when the legendary agent's item is not there (12-famed.js top items)
 const DGNFALL={barrow:'runeblade',warren:'dwarfaxe',keep:'estoc',grove:'bardiche',hall:'greataxe',den:'warbow'};

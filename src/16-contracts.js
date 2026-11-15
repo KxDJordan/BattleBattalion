@@ -35,7 +35,7 @@ function ctrHouse(f){return G&&Array.isArray(G.houses)?G.houses.find(h=>h&&h.id=
 function ctrEmpName(c){const h=ctrHouse(c.emp);if(h)return h.short||h.n;const t=ctrTown(c.town);return t?'the council of '+t.name:'the town council'}
 function ctrRenownT(){return typeof renownTier==='function'?renownTier():1}
 function ctrPayRep(){return typeof renownDef==='function'?renownDef().pay:1+G.renown/300}
-function ctrPayBase(diff,k){return Math.max(30,Math.round((200+G.day*8+Math.max(fielded().length,typeof isSolo==='function'&&isSolo()?2:0)*25)*CTR_PAYK[clamp(diff,1,5)-1]*(k||1)*ctrPayRep()/10)*10)}
+function ctrPayBase(diff,k){return Math.max(30,Math.round((240+G.day*8+Math.max(fielded().length,typeof isSolo==='function'&&isSolo()?2:0)*40)*CTR_PAYK[clamp(diff,1,5)-1]*(k||1)*ctrPayRep()/10)*10)}
 function ctrMult(diff,k){return CTR_DIFFK[clamp(diff,1,CTR_DIFFK.length)-1]*(k||1)}
 function ctrNear(t,lo,hi,f){const p=f?ctrLairAt(t,f,lo,hi):randOk(t.x,t.y,lo,hi);return{x:p.x,y:p.y}}
 function ctrPickF(t,ti,only){let P=ctrPool(t,ti);if(only){const Q=P.filter(x=>only.includes(x.f));if(Q.length)P=Q;else return null}
@@ -63,7 +63,7 @@ const CTYPES={
  deliver:{n:'Delivery',d:'Carry sealed cargo to another town before the deadline.',icon:'contracts',
   w:()=>1,
   gen(t,ti){const to=ctrOtherTown(ti,3,40),o=G.towns[to];if(to<0)return null;const d=ctrDist(o,t),c=ctrNew('deliver',t,ti,1,'Carry sealed cargo to '+o.name);
-   c.to=to;c.cargo=pick(['sealed letters','a strongbox','salt and spice','wine casks','tithe silver']);c.pay=Math.round((60+d*10)*ctrPayRep()/10)*10;c.stages=[ctrHome(to,'Deliver the cargo')];c.due=ctrDue(t,o.x,o.y,1);return c}},
+   c.to=to;c.cargo=pick(['sealed letters','a strongbox','salt and spice','wine casks','tithe silver']);c.pay=Math.round((80+d*12)*ctrPayRep()/10)*10;c.stages=[ctrHome(to,'Deliver the cargo')];c.due=ctrDue(t,o.x,o.y,1);return c}},
  hunt:{n:'Hunt',d:'Find the lair and destroy the band inside, then return for the pay.',icon:'skull',
   w:()=>7.5,
   gen(t,ti){const e=ctrPickF(t,ti);if(!e)return null;const f=e.f,diff=ctrDiff(),pos=ctrLairAt(t,f,e.lo,e.hi),tk=CTR_TIERK[FACT[f].tier]||1,c=ctrNew('hunt',t,ti,diff,ctrTitle(f,t));

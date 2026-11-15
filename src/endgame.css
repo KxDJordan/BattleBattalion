@@ -40,3 +40,5 @@
 .eg-sheet .eg-fights li.done{opacity:.6}
 .eg-sheet .eg-loot{margin:6px 0}
 @media (prefers-reduced-motion:reduce){#egcv{transition:none}}
+#brealm .eg-cd{display:block}
+@media (max-height:420px){#brealm .eg-cd{display:none}#brealm.eg-chip{max-width:200px}}

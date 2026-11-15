@@ -200,7 +200,7 @@ function rosterList(o){const L=o&&Array.isArray(o.roster)?o.roster:null,out=[];i
 function mkRosterUnit(e,f,dk){const u=mkEnemy(e.id,f);u.rx=rosterX(e);u.ros=1;if(typeof enemyInit==='function')enemyInit(u,e.id);initUnit(u);
  if(e.hpK>0){u.hp=u.hpMax=Math.round(u.hpMax*e.hpK)}
  if(dk!==1){u.hp=u.hpMax=Math.round(u.hpMax*Math.pow(dk,ROSTER.dhp));const k=Math.pow(dk,ROSTER.dd);u.wpn.d=[Math.round(u.wpn.d[0]*k),Math.round(u.wpn.d[1]*k)];u.dmgK=(u.dmgK||1)*k}
- if(e.elite&&!/^Elite /.test(u.name))u.name='Elite '+String(EN[e.id].n).toLowerCase();if(e.name)u.name=e.name;u.elite=e.elite?1:0;
+ {const nm=String(EN[e.id].n).toLowerCase();u.name=e.elite?'Elite '+nm:u.rank>=1.5?'Veteran '+nm:EN[e.id].n}if(e.name)u.name=e.name;   // 'Elite' only for the elite-markedu.elite=e.elite?1:0;
  if(e.at&&Number.isInteger(e.at.c)&&Number.isInteger(e.at.r)&&inb(e.at.c,e.at.r))u.slot={c:e.at.c,r:e.at.r};return u}
 function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
