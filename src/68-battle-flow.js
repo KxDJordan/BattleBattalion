@@ -38,7 +38,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
  G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
  if(b.rival)rivalResolve(b,res,win);   // the rival company's dead, wounded and fled; its purse, gear and a beaten sword who asks to join
  if(win)res.cargo=caravanCargo(b.opts.src);
- if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=Math.round((e.def&&e.def.xp||(e.m?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
+ if(win){const en=b.units.filter(u=>u.side!==0);en.forEach(e=>res.xp+=Math.round((e.def&&e.def.xp||(e.m?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
   surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
   res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
@@ -54,6 +54,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
     if(!G.parts||typeof G.parts!=='object')G.parts={};for(const k in by){let n=by[k];if(herb&&rnd()<.5)n++;G.parts[k]=(G.parts[k]||0)+n;res.parts.push({key:k,n})}}}}
  if(b.fixedSide&&typeof egBane==='function')res.bane=egBane(b);   // endgame: the killing blow on an elite or boss is a deed (24-endgame.js)
  if(typeof fabledResolve==='function')fabledResolve(b,res,win);   // fabled warriors: permanent death, named gear, duels (21-fabled.js)
+ if(b.cv&&typeof cvResolve==='function')cvResolve(b,res,win);   // the caravan's guards and wagon (42-caravans.js)
  if(typeof ambEvent==='function')ambEvent('battle',res);
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
  b.result=res;if(typeof runOnBattle==='function'){try{runOnBattle(res,b)}catch(e){}}return res}   // the run record (22-run.js; idempotent)
@@ -208,6 +209,7 @@ function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=
   if(out.ended)msg+=`<p class="good">The last of the three rifts is closed. The Sundering is over, though lesser rifts may still open.</p>`;
   sheet(msg+`<button class="pri" onclick="closeSheet()">Return to the world</button>`)}
  else if(out.toast)toast(out.toast);
+ if(out.kind==='world'&&out.world&&out.world.cv&&typeof cvAfterSheet==='function')cvAfterSheet(out.world.cv);   // the caravan master's word after a clash (42-caravans.js)
  if(out.kind==='world'&&out.cargo&&typeof toast==='function')toast('Taken from the caravan: '+out.cargo);
  if(out.kind==='world'&&win&&out.rival&&(out.rival.purse||out.rival.renown)&&typeof toast==='function')toast(`${out.rival.n}' war chest: ${out.rival.purse} crowns${out.rival.renown?`, +${out.rival.renown} renown`:''}`);
  save();if(typeof ambNotify==='function'&&!sheetOpen)ambNotify();

@@ -189,9 +189,9 @@ function anBarsPaint(q,X,Y,w,bh,helm,arm,ah,aa,hw,lw,low,foe,sw,scol){const x0=X
  if(arm){const ay=top+(helm?3:1);q.fillStyle=PAL['3'];q.fillRect(hx,ay,w,1);if(aa){q.fillStyle=PAL['q'];q.fillRect(hx,ay,aa,1);q.fillStyle=PAL['r'];q.fillRect(hx+aa-1,ay,1,1)}}
  q.fillStyle=PAL['2'];q.fillRect(hx,hy,w,2);
  if(lw>hw){q.fillStyle=PAL['e'];q.fillRect(hx+hw,hy,lw-hw,2)}
- if(hw){q.fillStyle=PAL[foe?'h':'6'];q.fillRect(hx,hy,hw,1);q.fillStyle=PAL[foe?'g':'5'];q.fillRect(hx,hy+1,hw,1);
+ if(hw){q.fillStyle=PAL[foe===2?'x':foe?'h':'6'];q.fillRect(hx,hy,hw,1);q.fillStyle=PAL[foe===2?'X':foe?'g':'5'];q.fillRect(hx,hy+1,hw,1);
   if(low){q.fillStyle=PAL['r'];q.fillRect(hx,hy,hw,1)}
-  q.fillStyle=PAL[foe?'f':'7'];for(let i=4;i<hw;i+=4)q.fillRect(hx+i-1,hy+1,1,1)}
+  q.fillStyle=PAL[foe===2?'X':foe?'f':'7'];for(let i=4;i<hw;i+=4)q.fillRect(hx+i-1,hy+1,1,1)}
  if(sw){q.fillStyle=PAL['0'];q.fillRect(x0+w+2,top+bh-7,3,7);q.fillStyle=PAL['3'];q.fillRect(x0+w+3,top+bh-6,1,5);q.fillStyle=PAL[scol?'E':'k'];q.fillRect(x0+w+3,top+bh-1-sw,1,sw)}}   // shield hitpoints: a wooden pip beside the bars
 /* Detail High: the same simple bars drawn at device pixels (not art pixels): a dark frame, then head armor (brass), body armor (steel)
    and hitpoints (two-tone green for the company, red for foes) as exact fractions in flat colours, the lost-hitpoints lag in pale, the
@@ -206,7 +206,7 @@ function anBarsHD(q,x0,top,w,bh,F){const T=q.getTransform(),sx=Math.hypot(T.a,T.
   q.fillStyle=k==='p'?PAL['2']:PAL['3'];q.fillRect(ix,yy,iw,hh);
   const fr=k==='h'?F.helm:k==='a'?F.arm:F.hp,fw2=fr>0?Math.max(1,R(iw*Math.min(1,fr))):0;
   if(k==='p'&&F.lag>fr){const lw=R(iw*Math.min(1,F.lag));q.fillStyle=PAL['e'];q.fillRect(ix+fw2,yy,lw-fw2,hh)}
-  if(fw2){const c=k==='h'?['c','c']:k==='a'?['q','q']:F.low?['r','r']:F.foe?['h','g']:['6','5'];   // flat fills in the art bars' colours
+  if(fw2){const c=k==='h'?['c','c']:k==='a'?['q','q']:F.low?['r','r']:F.foe===2?['x','X']:F.foe?['h','g']:['6','5'];   // flat fills in the art bars' colours
    q.fillStyle=PAL[c[0]];q.fillRect(ix,yy,fw2,hh);if(c[1]!==c[0]){const hb=R(hh/2);q.fillStyle=PAL[c[1]];q.fillRect(ix,yy+hb,fw2,hh-hb)}}
   y+=wt*u+g}
  if(F.sh!=null){const px=R(X(x0+w+2,top)),pw=Math.max(3,R(3*sx)),ph=Math.max(6,R(7*sy)),py=fy+fh-ph;
@@ -214,8 +214,8 @@ function anBarsHD(q,x0,top,w,bh,F){const T=q.getTransform(),sx=Math.hypot(T.a,T.
   const sf=Math.max(1,R(ih*Math.min(1,F.sh)));q.fillStyle=PAL[F.scol?'E':'k'];q.fillRect(px+1,py+1+ih-sf,iw2,sf)}
  q.restore()}
 function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;const s=anOf(u),t=anNow(),big=!!o.big,wide=!!o.wide,w=wide?30:big?22:16,rm=typeof reduced!=='undefined'&&reduced,
-  noBars=u.side===0&&(o.bars===false||(typeof SET!=='undefined'&&SET&&SET.allyBars===false));
- x=Math.round(x);y=Math.round(y);const arm=u.armMax>0,helm=u.helmMax>0,bh=4+(arm?2:0)+(helm?2:0),x0=x-(w>>1)-1,top=y-2-bh,foe=u.side!==0;
+  noBars=u.side===0&&!u.ally&&(o.bars===false||(typeof SET!=='undefined'&&SET&&SET.allyBars===false));
+ x=Math.round(x);y=Math.round(y);const arm=u.armMax>0,helm=u.helmMax>0,bh=4+(arm?2:0)+(helm?2:0),x0=x-(w>>1)-1,top=y-2-bh,foe=u.side!==0?1:u.ally?2:0;   // 2: an ally (a caravan guard, 42-caravans.js): blue bars
  if(o.tgt){const hw=wide?32:big?20:12,hh=o.top?o.top+(wide?4:0):big?46:30,p=rm?0:((t/170)|0)&1,L=wide?8:big?6:4,X=x-hw-2-p,Y=y-p,c=o.exact?anBrackets(hw,hh,L,p):null;if(c)q.drawImage(c,X,Y);else anBrkPaint(q,X,Y,hw,hh,L,p)}
  // frame with clipped corners; rows from the top: head armor (brass), body armor (steel), hitpoints
  if(!noBars&&typeof hdArt==='function'&&hdArt()){const hp=Math.max(0,Math.min(u.hpMax,s.hp));   // Detail High: device-pixel bars
@@ -224,7 +224,7 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  else if(!noBars){const hp=Math.max(0,Math.min(u.hpMax,s.hp)),hw=hp>0?Math.max(1,Math.round(w*hp/u.hpMax)):0,lw=Math.min(w,Math.round(w*Math.max(0,s.lag)/u.hpMax)),
   ah=helm&&s.helm>0?Math.max(1,Math.round(w*Math.min(1,s.helm/u.helmMax))):0,aa=arm&&s.arm>0?Math.max(1,Math.round(w*Math.min(1,s.arm/u.armMax))):0,
   low=hw&&hp<u.hpMax*.3&&!rm&&((t/260)|0)&1?1:0,sw=u.shpMax>0&&u.shield?Math.max(1,Math.round(5*u.shp/u.shpMax)):0,scol=sw&&u.shp<u.shpMax*.4?1:0,lx=lw>hw?lw:0;
-  const k=((((((((((w*2+(arm?1:0))*2+(helm?1:0))*32+ah)*32+aa)*32+hw)*32+lx)*2+low)*2+(foe?1:0))*8+sw)*2+scol);   // every input of the picture
+  const k=((((((((((w*2+(arm?1:0))*2+(helm?1:0))*32+ah)*32+aa)*32+hw)*32+lx)*2+low)*3+foe)*8+sw)*2+scol);   // every input of the picture
   if(!o.exact){anBarsPaint(q,x0,top-3,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol)}
   else{if(s.obK!==k||!s.obC){s.obK=-1;const c=s.obC=anOvCv(s.obC,w+5,bh+3);if(c){anBarsPaint(c.getContext('2d'),0,0,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol);s.obK=k}}
    if(s.obK===k)q.drawImage(s.obC,x0,top-3);else anBarsPaint(q,x0,top-3,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol)}}
@@ -233,7 +233,7 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  const n=s.icn>3?3:s.icn;let ty=top;
  if(n){const step=n<3?14:12.5,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=top-15;ty=top-13;
   if(!(hdArt()&&typeof pkBadgeCanvas==='function'&&anBadges(q,s,n,x,top,step)))for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
- if(o.cur){const bob=rm?0:AN_BOB[((t/140)|0)&3];if(!(hdArt()&&typeof pdChevCanvas==='function'&&anChev(q,foe,x+.5,ty-5-bob))){const c=anSprite(foe?'chev1':'chev0');if(c)q.drawImage(c,x-4,ty-8-bob)}}}
+ if(o.cur){const bob=rm?0:AN_BOB[((t/140)|0)&3];if(!(hdArt()&&typeof pdChevCanvas==='function'&&anChev(q,foe===1,x+.5,ty-5-bob))){const c=anSprite(foe===1?'chev1':'chev0');if(c)q.drawImage(c,x-4,ty-8-bob)}}}
 /* Detail High: the chevron painted at device pixels (pdChevCanvas, 06pd-status.js), centred where the 9x6 pixel chevron was */
 function anChev(q,foe,ax,ay){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(10,Math.round(9.5*sy)),c=pdChevCanvas(foe,N);if(!c)return false;
  q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;q.drawImage(c,Math.round(T.a*ax+T.c*ay+T.e-N/2),Math.round(T.b*ax+T.d*ay+T.f-N/2));q.restore();return true}

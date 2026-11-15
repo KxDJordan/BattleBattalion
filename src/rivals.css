@@ -101,3 +101,16 @@ p.br-join{display:block;padding:3px 8px;box-shadow:inset 4px 0 0 #4d5a5c}
 #dp .dp-rv .dp-en .ptr{box-shadow:0 0 0 2px #0b1514}
 #dp .dp-rv .dp-en b{color:#f3d98b}
 #dp .dp-rv .dp-en small{color:#c8d0d8}
+/* caravan clashes (42-caravans.js): the two sides of the fight, with what is left of each */
+.cv-vs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}
+.cv-side{display:flex;gap:8px;align-items:center;padding:4px 8px 6px 4px;background:#0b1514;box-shadow:inset 0 0 0 2px #213a36;min-width:0}
+.cv-side.ally{box-shadow:inset 0 0 0 2px #2f5fa8}.cv-side.foe{box-shadow:inset 0 0 0 2px #7a1a20}
+.cv-side>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.1}
+.cv-side b{font-weight:600;font-size:.92rem}
+.cv-side small{font-size:.75rem;color:var(--dim)}
+.cv-bar{display:block;height:6px;background:#182a28;box-shadow:0 0 0 1px #0b1514}
+.cv-bar b{display:block;height:100%;background:#62a6ee}.cv-bar.foe b{background:#c4493f}
+@media (max-width:560px){.cv-vs{grid-template-columns:1fr}}
+.oc.sa{border-color:#62a6ee!important}.oc.sa .ohp b{background:#8fd8ff;box-shadow:inset 0 -1px 0 #2f5fa8}
+.oc.s2{border-color:#ff8a3c!important}
+.await.sa .dots i{background:#62a6ee}

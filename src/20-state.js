@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=15;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=16;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -117,7 +117,10 @@ const MIGRATE={
   if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
   if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(m=>fix(m,false))});
   if(out.length){const L=Array.isArray(g.refund)?g.refund:[];for(const x of out){const o=L.find(y=>svObj(y)&&y.name===x.name);if(o)o.n=Math.max(0,Math.floor(svNum(o.n,0)))+x.n;else L.push(x)}   // one line a sword (a v7 save gets both refunds)
-   g.refund=L;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
+   g.refund=L;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g},
+ /* v16: caravan guards and clashes (42-caravans.js). Every caravan on the road gets the guard detail its home town affords as it stands
+    (cvGuardFor, no randomness: the luck of the hiring is the middle .5) and its strength (p.mult) becomes theirs; no clash is under way. */
+ 15:g=>cvMigrate(g)
 };
 /* migrateMastery(m): one merc of a v14 save to the merged masteries (v15, above). Returns the points given back. Draws no randomness. */
 const OLDWT=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'],OLDHT=['hunter','poacher','witchhunter','wildling','slayer'];
@@ -203,7 +206,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  worldRepair(g);   // phase 7: houses (registered in FACT before the bands are checked), rep, town state, nests, wars (below)
  g.parties=Array.isArray(g.parties)?g.parties.filter(p=>svObj(p)&&FACT[p.f]&&svFin(p.x)&&svFin(p.y)&&svFin(p.tx)&&svFin(p.ty)&&svFin(p.mult)&&svFin(p.id)):[];
  g.parties.forEach(p=>{if(!Array.isArray(p.pts)||!p.pts.length||!p.pts.every(q=>svObj(q)&&svFin(q.x)&&svFin(q.y))){delete p.pts;p.pi=0}else p.pi=clamp(Math.floor(svNum(p.pi,0)),0,p.pts.length-1);p.ch=p.ch?1:0});
- g.parties.forEach(p=>partyRepair(p,g.towns.length,g.nests,g));g.parties=g.parties.filter(p=>!p.gone);
+ g.parties.forEach(p=>partyRepair(p,g.towns.length,g.nests,g));g.parties=g.parties.filter(p=>!p.gone);cvRepair(g);   // caravan guards, raiders' plunder, clashes under way (42-caravans.js)
  g.sites=Array.isArray(g.sites)?g.sites.filter(s=>svObj(s)&&svFin(s.x)&&svFin(s.y)&&svFin(s.id)&&typeof s.kind==='string'):[];g.sites.forEach(s=>{s.n=Math.max(0,Math.floor(svNum(s.n,0)));s.v=s.v?1:0});
  g.weather=svObj(g.weather)&&WTHR[g.weather.kind]&&svFin(g.weather.t)&&svFin(g.weather.dur)?{kind:g.weather.kind,t:Math.max(0,g.weather.t),dur:Math.max(.1,g.weather.dur)}:{kind:'clear',t:0,dur:8};
  g.fog=typeof g.fog==='string'?g.fog:null;g.route=[];

@@ -888,7 +888,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      Object.assign(R0[3],{bg:'wildling',race:'human',lvl:6,pp:0,trees:['berserker','brute','survivor','vanguard'],gift:null,perks:['berserker.1','brute.2','survivor.3','vanguard.4','hunter.ogre']});
      const rv=X.G.rivals&&X.G.rivals[0]&&X.G.rivals[0].roster[0];if(rv)Object.assign(rv,{bg:'hunter',race:'human',perks:['shield.1a','lightarmor.1b'],pp:0});
      ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=14;X.store.set(X.SAVEKEY,JSON.stringify(g));
-     const r=X.readSave();ok(r.state==='ok'&&r.v===14&&r.g.v===X.SAVEVER&&X.SAVEVER===15,'a version 14 save was not migrated to 15');const [A,H,H2,W]=r.g.roster;
+     const r=X.readSave();ok(r.state==='ok'&&r.v===14&&r.g.v===X.SAVEVER&&X.SAVEVER>=15,'a version 14 save was not migrated to 15+');const [A,H,H2,W]=r.g.roster;
      ok(A.perks.join()==='vanguard.1,medarmor.1,medarmor.2,sword.cap'&&A.pp===3,'v15: weapon tree perks refunded, armor halves merged (both halves: one point back), the weapon capstone kept: '+A.perks.join()+' pp '+A.pp);
      ok(H.trees.join()==='marksman,scout,survivor,hunter'&&H.perks.join()==='marksman.1,scout.2,hunter.gob,hunter.wolf,lightarmor.3'&&H.pp===1,'v15: a hunter with quarry perks keeps the hunter tree in place of an unused style tree: '+H.trees.join());
      ok(H2.trees.join()==='marksman,scout,survivor,skirmisher'&&H2.pp===0,'v15: a hunter without quarry perks keeps its trees');

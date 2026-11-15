@@ -562,7 +562,7 @@ function waPennant(P,x,y,w,h,bn,f,dir){const A=bn?bn.A:['f','g','h'],C=bn?bn.C:[
 const WAOX={b:['..........l.','.........lHl','..HHHHHHHHH0','.jHHHHHHHHHk','.jjHHHHHHjj.'],la:['.j.j....j.j.','.j.j....j.j.'],lb:['..jj.....jj.','.j..j..j...j']};
 const WACART=['..lllllllllll....','.llllllllllllm...','lllmllllmlllmmn..','llllllllllllmmn..','mmmmmmmmmmmmmnn..','kkkkkkkkkkkkkkkkj','jjjjjjjjjjjjjjjji'];
 function waWheel(P,x,y,f){P.s(x,y,f&1?['.iii.','i.k.i','ik.ki','i.k.i','.iii.']:['.iii.','ik.ki','i.a.i','ik.ki','.iii.'])}
-function waCaravanPaint(P,k,f,moving,bn){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,up=i=>moving&&((f+i)&3)===1?1:0;
+function waCaravanPaint(P,k,f,moving,bn,gd){const B=P.h-4,cx=P.w>>1,st=i=>moving?((f+i)&1):0,up=i=>moving&&((f+i)&3)===1?1:0;
  // wagon behind (left), ox in front (right), the drover walks beside the ox
  const wx=cx-15,wy=B-11+up(3)*0;P.s(wx,wy,WACART);for(let i=2;i<12;i+=4)P.p(wx+i,wy,'m');
  P.p(wx+3,wy+2,'c');P.p(wx+4,wy+2,'c');P.p(wx+3,wy+3,'b');P.p(wx+4,wy+3,'b');   // a brass lantern hook / painted mark
@@ -571,9 +571,17 @@ function waCaravanPaint(P,k,f,moving,bn){const B=P.h-4,cx=P.w>>1,st=i=>moving?((
  waFigure(P,WAOX,cx+9,B,st(0),up(0));
  P.s(wx+13,wy-3,['.HH.','HssH','.ks.','kkkk']);   // the drover on the bench
  if(bn){P.r(wx+1,wy-7,1,8,'j');P.p(wx+1,wy-8,'d');waPennant(P,wx+1,wy-7,5,3,bn,moving?f:f>>1,-1)}   // the owner's pennant on the tailboard
+ if(typeof gd==='string'&&gd[0]==='g'){waCaravanGuards(P,cx,B,+gd[1]||1,+gd[2]||0,+gd[3]||0,st,up,bn);P.outline();return}   // the guard detail (42-caravans.js): 'g' tier figures captain
  if(k>=2){const gd=waFigure(P,WAFIG.co,cx-19,B+1,st(2),up(2),{'5':'j',c:'k',q:'p',p:'o'});waWeapon(P,'spear',gd)}
  if(k>=3){const gd=waFigure(P,WAFIG.co,cx+18,B+1,st(3),up(3),{'5':'j',c:'k',q:'p',p:'o'});waWeapon(P,'spear',gd)}
  P.outline()}
+/* the caravan's guards beside the wagon, by the quality its town could pay for: militia in brown with spears and a hunting bow (tier 1-2),
+   guards in the owner's colours (else steel grey) with shields and crossbows (3+), and a captain with a plumed helm and a sword (cap) */
+function waCaravanGuards(P,cx,B,t,n,cap,st,up,bn){const A=bn?bn.A:['4','o','p'],C=bn?bn.C:['m','l','r'];
+ const mil={'5':'j',c:'k',q:'p',p:'o'},hir={'5':'H','7':'i',c:'k',q:'p',p:'o'},liv={'5':A[1],'7':A[0],c:C[1],q:'q',p:'p'},kit=t<=1?mil:t===2?hir:liv;
+ const spots=[[cx-19,B+1],[cx+18,B+1],[cx-4,B+2]],wp=t<=2?['spear','bow','spear']:['shield','bow','sword'];
+ for(let i=0;i<Math.min(3,n);i++){const isCap=cap&&i===2,b=waFigure(P,WAFIG.co,spots[i][0],spots[i][1],st(2+i),up(2+i),isCap?Object.assign({},liv,{q:'q',p:'q'}):kit);waWeapon(P,isCap?'sword':wp[i],b);
+  if(isCap){P.p(b.x0+3,b.y-1,C[1]);P.p(b.x0+2,b.y-2,C[2]);P.p(b.x0+1,b.y-2,C[1]);P.p(b.x0+1,b.y-3,C[2])}}}
 
 /* ---- house patrol: mounted knights in the house's caparison, the lead under the house banner ---- */
 const WAKNIGHT={b:['.....qq........','....qrqp.......','....q0qp.......','...SPRPS.......','...PPPPP....kk.','....PPs....kHHj','.kHHRPPRHHkHHj0','kHHHPPPPPHHHjH.','HkHHPPPPPHj..j.','.jHHSSSSSj.....'],
@@ -670,7 +678,7 @@ function waMercPaint(P,k,f,moving,bn){const B=P.h-4,cx=P.w>>1,F=WAFIG.co,n=clamp
   if(i===0&&k>=3){P.p(bx.x0+3,bx.y-1,C[1]);P.p(bx.x0+2,bx.y-2,C[2]);P.p(bx.x0+1,bx.y-2,C[1]);P.p(bx.x0+1,bx.y-3,C[2])}});
  P.outline()}
 function drawGoalPx(q,x,y,o){const gl=o.goal,k=clamp(Math.round(+o.str||1),1,3),f=waRM()?0:o.frame|0,mv=!!o.moving&&!waRM(),dir=o.dir<0?-1:1;let key,paint,w=48,h=40;
- if(gl==='caravan'){const bn=waBnOf(o.house);key='car'+k+(bn?bn.sig:'-');paint=P=>waCaravanPaint(P,k,f&3,mv,bn)}
+ if(gl==='caravan'){const bn=waBnOf(o.house),gd=typeof o.guard==='string'?o.guard:'';key='car'+k+gd+(bn?bn.sig:'-');paint=P=>waCaravanPaint(P,k,f&3,mv,bn,gd)}
  else if(gl==='patrol'){const bn=waBnOf(o.house);key='pat'+k+(bn?bn.sig:'-');paint=P=>waPatrolPaint(P,k,f&3,mv,bn);h=44}
  else if(gl==='merc'){const bn=waBnOf(o.house),kk=clamp(Math.round(+o.str||1)+(o.n>8?1:0),1,4);key='mrc'+kk+(bn?bn.sig:'-');paint=P=>waMercPaint(P,kk,f&3,mv,bn);w=52;h=44}
  else{const fk=WAFIG[o.f]?o.f:'bandit';key='raid'+fk+k;paint=P=>waRaidPaint(P,fk,k,f&3,mv)}

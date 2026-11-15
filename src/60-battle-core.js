@@ -113,7 +113,8 @@ const wkey=w=>w?w.id||'@'+(w.n||w.wt||'w'):'@fist';
 // Every weapon the unit carries starts the battle loaded.
 function initLoad(u){u.ld={};for(const w of [u.wpn,u.m?altWeapon0(u):u.wpnAlt])if(w&&w.reload)u.ld[wkey(w)]=true;u.loaded=true;return u}
 function altWeapon0(u){const m=u.m,id=m&&m.eq&&(u.hand==='b'?m.eq.w:m.eq.b);if(!id||!ITEMS[id]||ITEMS[id].k!=='w')return null;return calc(m,{hand:u.hand==='b'?'w':'b'}).wpn}
-const EDGE=[BH-1,0];                                                    // each side's own edge row: withdrawing and fleeing units leave from it
+const EDGE=[BH-1,0,0];   // side 2: caravan guards turned on the company (42-caravans.js) leave by the foe's edge
+                                                    // each side's own edge row: withdrawing and fleeing units leave from it
 const FREEAB={id:'aoo',n:'aoo',wpn:1,mult:1,melee:1};                   // the free attack: zone of control, riposte, spear wall, a retreat
 function initUnit(u){const d=(k,v)=>{if(u[k]===undefined||u[k]===null)u[k]=v};
  d('lvl',1);d('hp',1);d('hpMax',u.hp);d('arm',0);d('armMax',u.arm);d('helm',0);d('helmMax',u.helm);d('apMax',9);d('ap',u.apMax);d('fat',0);d('fatMax',9999);
@@ -227,7 +228,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  const rv=o.rival?battleRival(o.rival):null,rf=rv?rivalField(rv):null;if(o.rival&&!(rf&&rf.length)){o.rival=null;if(!FACT[o.f])o.f='bandit'}else if(rv){o.rival=rv.id;if(!FACT[o.f])o.f=rv.id}
  const pv=battlePreview(o),bk=pv.bk,dep={};if(Array.isArray(o.deploy))for(const d of o.deploy)if(d&&!dep[d.id]&&Number.isInteger(d.c)&&Number.isInteger(d.r)&&inb(d.c,d.r)&&deployRow(d.r))dep[d.id]={c:d.c,r:d.r};
  const ctr=boardCenter(),b={opts:o,bk,P:BIO[bk],tiles:pv.tiles,units:[],order:[],round:0,turns:0,cur:null,sel:null,targets:null,reach:null,busy:true,over:false,stuck:false,fled:false,result:null,onEnd:o.onEnd||null,
-  reserves:G.roster.filter(m=>!f.includes(m)),gone:[],rout:[false,false],fledN:[0,0],resRound:0,retreat:false,synced:false,
+  reserves:G.roster.filter(m=>!f.includes(m)),gone:[],rout:[false,false,false],fledN:[0,0,0],resRound:0,retreat:false,synced:false,
   log:'',floats:[],shots:[],cam:{x:ctr.x,y:ctr.y,tx:ctr.x,ty:ctr.y,z:1}};
  // B.auto is a live switch: turning it on while the company is waiting for orders hands the turn to the AI at once.
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
@@ -239,7 +240,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  if(o.fabled&&typeof fabledSpawn==='function')fabledSpawn(el,o);   // fabled warriors mixed into the enemy side (o.fabled: ids)
  const eu=place(el,DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
  b.rival=o.rival||null;if(o.ambush)for(const u of eu)u.unready=1;   // an ambush (o.ambush, from a parley): the company acts first in round 1, the foe starts unready
- b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&(Array.isArray(o.roster)||o.boss.fabled||(Array.isArray(o.boss.phases)&&EN[o.boss.id]&&EN[o.boss.id].boss))?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();if(b.realm&&typeof realmStart==='function')realmStart(b);
+ b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&(Array.isArray(o.roster)||o.boss.fabled||(Array.isArray(o.boss.phases)&&EN[o.boss.id]&&EN[o.boss.id].boss))?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);if((o.cv||o.cvNames)&&typeof cvSetup==='function')cvSetup(b,o,used);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();if(b.realm&&typeof realmStart==='function')realmStart(b);
  mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${battleFoeN(o)} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} ${b.rival?'swords':'foes'}.`);nextTurn();return b}
 /* (A fabled boss, or a phased boss (o.boss.phases) whose EN entry is a boss already (def.boss: the crisis bosses), skips the contract-boss upgrade of objSetup,
    CTR_BOSSK: it is boss-sized as it stands; bossSetup (21-fabled.js) marks it and runs its phases.)
@@ -325,15 +326,15 @@ const canWithdraw=u=>!!(B&&!B.over&&u&&u.alive&&u.r===EDGE[u.side]&&!u.rooted&&u
 async function withdraw(u){const b=B;if(!b||!canWithdraw(u))return false;const ui=!b.busy;if(ui){b.busy=true;b.sel=null;b.targets=null;b.reach=null}u.ap-=AB.withdraw.ap;let held=false;
  const foe=zocFoe(u);if(foe){foe.aoo=1;if(await freeAttack(foe,u,'zoc')){if(u.alive)float(u,'Halted','#ffd27a');held=true}}if(B!==b)return false;
  if(!held&&u.alive)leaveField(u,'withdraw');if(ui){b.busy=false;afterAction()}return u.gone==='withdraw'}
-const canRetreat=()=>!!(B&&!B.over&&!B.retreat&&B.units.some(u=>u.alive&&u.side===0));
+const canRetreat=()=>!!(B&&!B.over&&!B.retreat&&B.units.some(u=>u.alive&&u.side===0&&!u.ally));
 /* soundRetreat(): the whole company quits the field. Units with no foe adjacent leave at once; engaged units take one free attack
    from every foe next to them, then leave if they live. The battle ends as a retreat (result.fled). Returns true when sounded. */
 async function soundRetreat(){const b=B;if(!canRetreat())return false;b.retreat=true;b.fled=true;b.busy=true;b.sel=null;b.targets=null;b.reach=null;b.reserves=[];say('The retreat is sounded.');
- for(const u of b.units.filter(u=>u.alive&&u.side===0)){for(const e of adjFoes(u)){if(B!==b)return true;if(u.alive)await freeAttack(e,u,'retreat')}if(B!==b)return true;if(u.alive)leaveField(u,'retreat')}
+ for(const u of b.units.filter(u=>u.alive&&u.side===0&&!u.ally)){for(const e of adjFoes(u)){if(B!==b)return true;if(u.alive)await freeAttack(e,u,'retreat')}if(B!==b)return true;if(u.alive)leaveField(u,'retreat')}
  checkEnd();return true}
 /* ---- Reserves ---- */
 function reserveTile(){const b=B,r=EDGE[0];for(const c of COLS)if(b.tiles[key(c,r)].t!=='block'&&!unitAt(c,r))return key(c,r);return -1}
-const canCallReserve=()=>!!(B&&!B.over&&!B.retreat&&B.reserves.length&&B.resRound!==B.round&&B.units.filter(u=>u.alive&&u.side===0).length<MAXFIELD&&reserveTile()>=0);
+const canCallReserve=()=>!!(B&&!B.over&&!B.retreat&&B.reserves.length&&B.resRound!==B.round&&B.units.filter(u=>u.alive&&u.side===0&&!u.ally).length<MAXFIELD&&reserveTile()>=0);
 /* callReserve(m, k?): brings reserve m (a merc from B.reserves, or its id) onto a free tile of the company's edge row (tile key k,
    or the free one nearest the middle). One reserve a round, and only while fewer than MAXFIELD company units stand on the field.
    The newcomer acts from the next round. Returns its unit, or null. */
@@ -517,6 +518,7 @@ function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.k
  if(t.m){t.down=B.opts.yield?true:rnd()<downCh(t);if(t.down)inflictInjury(t,head,!B.opts.yield&&rnd()<PERMCH*injK(t),true)}   // a duel to yielding (o.yield): nobody dies   // struck down and alive: always at the price of an injury (a rival's merc too)
  say(`${t.name} ${t.m&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
  for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
+ if(t.grd&&typeof cvGuardDown==='function')cvGuardDown(t,src);   // a caravan guard falls: struck down by the company, the caravan turns on it (42-caravans.js)
  if(t.side===1&&B.rival)checkRout(1)}
 /* hurt(t,dmg,ign,src,o): applies damage. The armor of the struck location soaks first (o.head: the helmet, else body armor);
    `ign` is the share that pierces it; o.pierce skips armor altogether; head hits do HEADMULT to hitpoints.
@@ -668,13 +670,13 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
     if(a.chain){let last=t;const hit=[t];for(let i=0;i<a.chain&&B===b;i++){const n=b.units.filter(o=>o.alive&&o.side!==u.side&&!hit.includes(o)&&mdist(o,last)<=3).sort((x,y)=>mdist(x,last)-mdist(y,last))[0];if(!n)break;FX.shot(last,n,'#c9a8ff',22,22);await strike(u,n,a,{splash:.6,auto:1,noShot:1});hit.push(n);last=n}}}}}}
  await sleep(120);if(B!==b)return;b.busy=false;afterAction()}
 function afterAction(){if(checkEnd())return;if(!B.cur.alive||B.cur.mor===0){nextTurn();return}computeReach();FX.ui()}
-function computeReach(){const u=B.cur;B.reach=null;if(u&&u.side===0&&u.alive&&!u.rooted&&u.ap>=2)B.reach=dijkstra(u,u.ap)}
+function computeReach(){const u=B.cur;B.reach=null;if(u&&u.side===0&&!u.ally&&u.alive&&!u.rooted&&u.ap>=2)B.reach=dijkstra(u,u.ap)}
 // True once the battle is decided. The first time, it locks the battle and schedules endBattle (at once in instant mode).
 // A side is beaten when nobody of it is left standing on the field: the dead, the fled and the withdrawn all count as gone.
 // A battle objective (b.obj: escort, hold, siege; objCheck in 16-contracts.js) can decide it first: the VIP falls, the rounds are held, the leader dies.
-function checkEnd(){const b=B;if(!b||b.over)return true;const p=b.units.some(u=>u.alive&&u.side===0&&!u.vip),e=b.units.some(u=>u.alive&&u.side===1);let win=p;
+function checkEnd(){const b=B;if(!b||b.over)return true;const p=b.units.some(u=>u.alive&&u.side===0&&!u.vip&&!u.ally),e=b.units.some(u=>u.alive&&u.side!==0&&!u.vip);let win=p;
  if(p&&e){const r=b.obj&&typeof objCheck==='function'?objCheck(b):null;if(r===null)return false;win=r}else if(b.obj)b.obj.state=p?'won':'lost';
- b.over=true;b.busy=true;if(!p&&b.units.some(u=>u.side===0&&u.gone&&!u.vip))b.fled=true;battleSync();const done=()=>{if(B===b)endBattle(win)};if(SPEEDF>0)setTimeout(done,700*SPEEDF);else done();return true}
+ b.over=true;b.busy=true;if(!p&&b.units.some(u=>u.side===0&&u.gone&&!u.vip&&!u.ally))b.fled=true;battleSync();const done=()=>{if(B===b)endBattle(win)};if(SPEEDF>0)setTimeout(done,700*SPEEDF);else done();return true}
 async function nextTurn(){const b=B;if(!b||checkEnd())return;
  if(b.opts.turnCap&&b.turns>=b.opts.turnCap){b.over=true;b.busy=true;b.stuck=true;battleSync();if(b.onEnd)b.onEnd({stuck:true,win:false,rounds:b.round,turns:b.turns});return}
  b.turns++;let u=null;
@@ -694,7 +696,7 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
  { const rg=b.realm&&b.realm.noRegen?0:(u.flags&&u.flags.regenHP||0)+bestAdj(u,'medAura');if(rg>0&&u.hp<u.hpMax){const h0=u.hp;u.hp=Math.min(u.hpMax,u.hp+rg);float(u,'+'+(u.hp-h0),'#9bd96f');FX.emit('heal',{t:u,n:u.hp-h0})} }
  if(u.st.stun){u.st.stun=0;if(typeof monStunned==='function')monStunned(u);float(u,'Stunned','#ffd27a');await sleep(420);if(B!==b)return;return nextTurn()}
  if(moraleTurn(u)){await sleep(u.side===1?200:60);if(B!==b)return;await fleeTurn(u);if(B!==b||b.over)return;return nextTurn()}
- if(u.side===1||b.auto){await sleep(u.side===1?260:60);if(B!==b)return;await aiTurn(u);if(B!==b||b.over)return;return nextTurn()}
+ if(u.side!==0||u.ally||b.auto){await sleep(u.side!==0||u.ally?260:60);if(B!==b)return;await aiTurn(u);if(B!==b||b.over)return;return nextTurn()}
  b.busy=false;computeReach();FX.ui()}
 // Hands the company's current turn to the AI (used when B.auto is switched on mid-turn).
 async function autoKick(){const b=B;if(!b||b.over||b.busy||!b.cur||b.cur.side!==0||!b.cur.alive)return;b.busy=true;b.sel=null;b.targets=null;b.reach=null;FX.ui();

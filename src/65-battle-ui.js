@@ -1,4 +1,4 @@
-function endTurn(){if(B&&!B.busy&&!B.over&&B.cur.side===0)nextTurn()}
+function endTurn(){if(B&&!B.busy&&!B.over&&B.cur.side===0&&!B.cur.ally)nextTurn()}
 /* ---- adapters over the Phase 5 rules: every reader works whether or not a rule is loaded, and never throws ---- */
 const SHV={rev:0};                                                    // bumped whenever unit state may have changed: cached overlays re-read their unit
 function shStatuses(u){let L=null;try{if(typeof statusList==='function')L=statusList(u);else if(typeof unitStatuses==='function')L=unitStatuses(u)}catch(e){}
@@ -64,7 +64,7 @@ function shWhyNot(u,a){if(!u||!a)return'';try{if(canUse(u,a)&&!shLocked(u,a))ret
  if(a.needs&&u.wpn&&u.wpn.wt!==a.needs)return'Needs a '+a.needs+' in hand';if(a.two&&!(u.wpn&&u.wpn.two))return'Needs a two-handed weapon in hand';
  if(a.shield)return shSlung(u)?'Shield slung: a two-handed weapon is in hand':'No intact shield';
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.withdraw)return'Only from your own edge of the field';return'Not usable now'}
-function endTurn(){if(B&&!B.busy&&!B.over&&B.cur.side===0)nextTurn()}
+function endTurn(){if(B&&!B.busy&&!B.over&&B.cur.side===0&&!B.cur.ally)nextTurn()}
 /* Sound the retreat: the text says what the rules will do (soundRetreat in 60-battle-core.js, the crowns in 68-battle-flow.js). */
 function retreat(){if(!B||B.busy||B.over)return;const us=B.units.filter(u=>u.alive&&u.side===0),eng=us.filter(u=>B.units.some(e=>e.alive&&e.side!==u.side&&mdist(e,u)===1)),lost=typeof fleeCost==='function'?fleeCost():G.crowns-Math.floor(G.crowns*.9),src=B.opts&&B.opts.src||{};
  const hasR=typeof soundRetreat==='function';let p;
@@ -149,7 +149,7 @@ function planInfo(){const p=planOK();if(!p)return null;if(PLN.reach!==B.reach||P
  PLN.cache.set(ck,I);return I}
 // The hit chance from the planned tile (for the board's pills), or null.
 function planHit(t,a){const p=planOK();if(!p)return null;return planSim(B.cur,p,()=>{let blk=false;try{blk=typeof losInfo==='function'&&losInfo(B.cur,t,a).blocked}catch(e){}return blk?-1:hitChance(B.cur,t,a)})}
-function battleTap(mx,my,touch){if(!B||B.busy||B.over||B.cur.side!==0)return;const u=B.cur,k=pickKey(mx,my),plan=planOK();logClose();
+function battleTap(mx,my,touch){if(!B||B.busy||B.over||B.cur.side!==0||B.cur.ally)return;const u=B.cur,k=pickKey(mx,my),plan=planOK();logClose();
  if(k<0){fcClear();B.sel=null;B.targets=null;planClear();updateBUI();return}const c=k%BW,r=(k/BW)|0,t=unitAt(c,r),aim=aimAt(k);
  if(aim&&aim.blocked){fcShow(aim,false);if(aim.lock){say(SH_LOCKTXT+': '+u.name+' cannot shoot. Swap to a sidearm or step away.');fxLockPopSafe(u)}else if(aim.unl)say(u.name+'\'s '+shWName(shHand(u)).toLowerCase()+' is not loaded: reload first.');else say('No line of fire to '+t.name+'.');updateBUI();return}
  if(aim){if(SET.confirm&&!(FC.armed&&FC.k===k&&FC.id===aim.a.id)){fcShow(aim,true);updateBUI();return}fcClear();planClear();useAbility(u,aim.a,k);return}
@@ -157,7 +157,8 @@ function battleTap(mx,my,touch){if(!B||B.busy||B.over||B.cur.side!==0)return;con
  if(B.sel){if(B.targets.has(k)){planClear();useAbility(u,abilityInfo(u,B.sel),k);return}
   if(plan&&t){const I=planInfo();if(I&&I.sel&&I.sel.has(k)){say(t.name+' is in reach from the planned tile: tap that tile again to move there first.');updateBUI();return}}
   B.sel=null;B.targets=null;if(plan&&k===plan.k){planGo();return}updateBUI();return}
- if(t&&t.side===1){const a=abilityInfo(u,'attack'),I=plan&&planInfo(),far=mdist(u,t)>a.rng;
+ if(t&&t.grd&&t.side===0&&typeof cvTapGuard==='function'&&cvTapGuard(u,t,k))return;   // a caravan guard: tap twice to strike him (42-caravans.js)
+ if(t&&t.side!==0){const a=abilityInfo(u,'attack'),I=plan&&planInfo(),far=mdist(u,t)>a.rng;
   if(far&&I&&I.atk&&I.atk.has(k))say(t.name+' is in reach from the planned tile: tap that tile again to move there first.');
   else say(unitLine(t)+(far?', out of reach':'')+'.');updateBUI();return}
  if(t&&t.side===0){if(t===u&&planClear()){updateBUI();return}say(unitLine(t)+'.');return}
@@ -222,7 +223,7 @@ function abHint(id){abPeek=id;clearTimeout(abPeekT);abPeekT=setTimeout(()=>{abPe
 function orderHTML(u){return orderParts(u).join('')}
 // the turn order as pieces: the round, the objective chip, the unit acting, then the rest (each one whole element, or '')
 function orderParts(u){const tok=(x,cls)=>{const hp=Math.max(0,Math.round(100*x.hp/x.hpMax)),m=shMor(x),fl=m===0,tele=B.tele&&B.tele.length&&B.tele.some(q=>q.u===x);
-  return'<button class="oc s'+x.side+' '+cls+(fl?' flee':m===1?' brk':'')+(tele?' tele':'')+'" onclick="focusUnit('+x.id+')" aria-label="'+esc(x.name)+', '+x.hp+' of '+x.hpMax+' hitpoints'+(shLoaded(x)===false?', unloaded':'')+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')+'" title="'+esc(x.name)+(fl?' (fleeing)':'')+'">'+port(x,32)
+  return'<button class="oc s'+(x.ally?'a':x.side)+' '+cls+(fl?' flee':m===1?' brk':'')+(tele?' tele':'')+'" onclick="focusUnit('+x.id+')" aria-label="'+esc(x.name)+', '+x.hp+' of '+x.hpMax+' hitpoints'+(shLoaded(x)===false?', unloaded':'')+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')+'" title="'+esc(x.name)+(fl?' (fleeing)':'')+'">'+port(x,32)
    +(fl?'<span class="omk">'+pic('morale-0',16,'flag')+'</span>':tele?'<span class="omk">'+pic('telegraph',16,'a-burst')+'</span>':'')+(x.side===1&&x.m&&x.rival&&typeof rivalMiniHTML==='function'?'<span class="orv">'+rivalMiniHTML(x.rival,16)+'</span>':'')+(shLoaded(x)===false?'<span class="oul" title="Unloaded">'+shUnlMark()+'</span>':'')+'<i class="ohp'+(hp<34?' low':'')+'"><b style="width:'+hp+'%"></b></i></button>'};
  const rest=B.order.filter(x=>x&&x.alive);
  const P=['<span class="rnd" title="Round '+B.round+'"><small>RND</small>'+B.round+'</span>',objChipHTML(),tok(u,'cur')];for(const x of rest)P.push(tok(x,''));return P}
@@ -270,11 +271,11 @@ function shWrongHand(u,id){if(typeof useBlock!=='function')return false;let r=''
  return /^Needs a |^Not with a ranged weapon|^Shield slung|^Nothing to reload/.test(r)}
 function barIds(u){const ids=['attack'];if(AB.reload&&(shReloadW(shHand(u))||(u.abs||[]).includes('reload')))ids.push('reload');for(const id of u.abs||[])if(id!=='attack'&&id!=='swap'&&AB[id]&&!AB[id].swap&&!ids.includes(id)&&!shWrongHand(u,id))ids.push(id);
  if(AB.withdraw&&!ids.includes('withdraw')&&u.r===shEdge(u))ids.push('withdraw');return ids}
-function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side===0&&!B.auto&&u.mor!==0;fcCheck();planOK();
+function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side===0&&!u.ally&&!B.auto&&u.mor!==0;fcCheck();planOK();
  const op=orderParts(u),oh=op.join(''),ch=cardHTML(u);   // written together with the bars below (setHTMLs)
  const bl=$('blog');if(bl&&bl.textContent!==(B.log||''))bl.textContent=B.log||'';
  let hdr='',h='',dense=false;
- if(!mine)h='<div class="await s'+u.side+'"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><b>'+esc(u.name)+'</b><span>'+(u.mor===0?'fleeing':u.side===0?'auto':'acting')+'</span></div>';
+ if(!mine)h='<div class="await s'+(u.ally?'a':u.side)+'"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><b>'+esc(u.name)+'</b><span>'+(u.mor===0?'fleeing':u.side===0&&!u.ally?'auto':u.ally?'ally':'acting')+'</span></div>';
  else{const ids=barIds(u),I=planInfo(),P=I&&B.plan;let show=B.sel||(FC.t?FC.id:null)||(ids.includes(abPeek)?abPeek:null);dense=ids.length>6;
   const swapOK=AB.swap&&(shAlt(u)||shCanSwap(u));if(abPeek==='swap'&&swapOK&&!show)show='swap';
   if(show){const sa=abilityInfo(u,show),pw=P?(show==='swap'?I.swap&&I.swap.why:I.ab[show]&&I.ab[show].why)||'':'',why=B.sel===show||FC.t?'':pw||shWhyNot(u,sa);

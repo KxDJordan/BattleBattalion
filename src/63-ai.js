@@ -126,6 +126,7 @@ function aiProfile(u){let role=u.role;
  if(aiStalled()){P.care=0;P.shy=0;P.form=0;P.high=0;P.back=1;P.adv=Math.max(P.adv,6)}   // deadlock: nobody has bled for a while, so everyone closes in
  return P}
 async function aiTurn2(u){const b=B;if(!b||!u||!u.alive)return;
+ if(u.ally)return aiRun(u,aiProfile(u),null);   // a caravan guard fighting beside the company (42-caravans.js): its own judgement, not the company's plan
  if(u.side===0&&b.opts.pilot==='naive')return AI_NAIVE(u);
  if(u.side===0)return AI_SENSIBLE(u);
  if(u.m)return aiRun(u,aiProfile(u),aiRivalPlan(u));   // a rival company's merc: the engine with its own gear's role and the rival's plan

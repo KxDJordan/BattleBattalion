@@ -382,12 +382,14 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  let pglow=false;for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!vis(o.x,o.y))continue;pglow=true;wvPush(y,wvSprite('P'+o.realm+fs%12,'P'+o.realm,'site',{kind:'portal',realm:o.realm,size:1,frame:fs%12,night:night>.5}),x,false)}
  for(const o of G.parties){const x=o.x/WVU,y=o.y/WVU;let b=WV.bd.get(o.id);if(!b){if(WV.bd.size>200)WV.bd.clear();b={x:o.x,dir:(o.tx||0)<o.x?-1:1,t:-1e9};WV.bd.set(o.id,b)}
   if(Math.abs(o.x-b.x)>.02){b.dir=o.x<b.x?-1:1;b.t=now}else if(o.x!==b.x||Math.abs((o.y-(b.y||0)))>.02)b.t=now;b.x=o.x;b.y=o.y;
-  if(!inV(x,y)||!vis(o.x,o.y))continue;const mv=now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
+  if(o.clash&&typeof cvOf==='function'){const cl=cvOf(o);if(cl)b.dir=o.x<cl.x?1:-1}   // a clash (42-caravans.js): the two face each other and fight on the spot
+  if(!inV(x,y)||!vis(o.x,o.y))continue;const mv=!!o.clash||now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
   if(o.f==='east'&&WVE.on){wvPush(y,wvEastBand(o,str,f,b.dir,mv),x,true);continue}   // a host of the Shogunate (77-east-art.js)
   if(o.goal==='merc'){const rv=wvRivalArt(o.f),sz=rv.n>8?'L':'s';   // a rival company under its own banner (41-worldart.js waMercPaint); the banner's colours are part of the key
    wvPush(y,wvSprite('Bm'+rv.sig+str+sz+b.dir+(mv?'m':'s')+f,'Bm'+rv.sig+str+sz+b.dir,'band',{f:o.f,str,n:rv.n,frame:f,dir:b.dir,moving:mv,goal:'merc',house:rv.bn}),x,true);continue}
   const hf=o.f==='free'||!!lkHouse(o.f),gl=o.goal==='caravan'||o.goal==='patrol'||o.goal==='raid'?o.goal:hf?'patrol':'',hs=gl==='patrol'||gl==='caravan'?lkHouse(o.f):null;
-  wvPush(y,wvSprite('B'+gl+o.f+str+b.dir+(mv?'m':'s')+f,'B'+gl+o.f+str+b.dir,'band',{f:o.f,str,frame:f,dir:b.dir,moving:mv,goal:gl,house:hs}),x,true)}
+  const gk=gl==='caravan'&&typeof cvFigKey==='function'?cvFigKey(o):'';   // the guards beside the wagon (42-caravans.js)
+  wvPush(y,wvSprite('B'+gl+o.f+str+gk+b.dir+(mv?'m':'s')+f,'B'+gl+o.f+str+gk+b.dir,'band',{f:o.f,str,frame:f,dir:b.dir,moving:mv,goal:gl,house:hs,guard:gk}),x,true)}
  {if(Math.abs(p.x-WV.lx)>.02){WV.dir=p.x<WV.lx?-1:1}WV.lx=p.x;const mv=!!G.moving&&!sheetOpen,f=fs%12,n=G.roster.length;wvPush(p.y/WVU+.01,wvSprite('C'+n+WV.dir+(mv?'m':'s')+f,'C'+n+WV.dir,'co',{n,frame:f,dir:WV.dir,moving:mv}),p.x/WVU,true)}
  for(let i=1;i<WSN;i++){const s=WSL[i];let j=i-1;while(j>=0&&(WSL[j].y>s.y||(WSL[j].y===s.y&&WSL[j].i>s.i))){WSL[j+1]=WSL[j];j--}WSL[j+1]=s}
  // the edge of sight: the radius eases every frame; the rim canvas is made here so that it follows the radius on skipped frames too
@@ -398,7 +400,8 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
   rc=wvRing(R);rD=Math.round(rc.width*k*sc)/sc;rX=Math.round((p.x/WVU-rD/2)*sc)/sc;rY=Math.round((p.y/WVU-rD/2)*sc)/sc}
  const wk=G.weather&&G.weather.kind,wx=!!(wk&&wk!=='clear'&&WVA.wx),wind=wx?Math.sin(G.day*1.7+Math.floor(G.hour/6)):0,dots=!!(G.moving&&G.path.length);
  // the draw list (see WSG)
- let live=dots||(wx&&!reduced)||(pglow&&!reduced);WSG.n=0;
+ const cvOn=typeof cvDrawMap==='function'&&Array.isArray(G.clashes)&&G.clashes.some(c=>inV(c.x/WVU,c.y/WVU)&&vis(c.x,c.y));
+ let live=dots||(wx&&!reduced)||(pglow&&!reduced)||(cvOn&&!reduced);WSG.n=0;
  wsg(W_);wsg(H_);wsg(sc);wsg(bx);wsg(by);wsg(dpr);wsg(night);wsg(WCH.tk);wsg(WCH.frev);wsg(reduced);wsg(wk);wsg(wind);
  for(let cy=cy0-1;cy<=cy1+1;cy++)for(let cx=cx0-1;cx<=cx1+1;cx++){const ch=wchAt(cx,cy);wsg(ch);if(ch){wsg(ch.ver);wsg(ch.comp)}}
  for(let i=0;i<WSN;i++){const s=WSL[i],e=s.e;wsg(e);wsg(s.x);wsg(s.y);wsg(s.snap);if(WCH.ton&&!e.raw&&e.tk!==WCH.tk)live=true}
@@ -423,6 +426,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  {const R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++)wvMark(R[i].x/WVU,R[i].y/WVU,'waypoint');
   if(G.moving&&G.path.length&&!G.dest){const e=G.path[G.path.length-1];wvMark(e.x/WVU,e.y/WVU,'dest')}
   if(c){for(let i=0;i<WV.mkn;i++)wvMark(WV.mks[i].x,WV.mks[i].y,'contract');if(turnin>=0&&WV.mk&&inV(G.towns[turnin].x/WVU,G.towns[turnin].y/WVU))wvMark(WV.mk.x,WV.mk.y,'turnin')}}
+ if(cvOn){g.save();try{cvDrawMap(g,sc,bx,by,vis,now,reduced)}catch(e){wvFail('clash',e)}g.restore()}   // clashes: the fight over the two parties (42-caravans.js)
  if(insW){const r=Math.round(insW.r/WVU),x=Math.round(insW.x/WVU),y=Math.round(insW.y/WVU),L=Math.max(2,r>>1),on=reduced||(now/260|0)&1;g.fillStyle=PAL['0'];
   for(let k=0;k<2;k++){const o=k?0:1;for(let sx=-1;sx<=1;sx+=2)for(let sy=-1;sy<=1;sy+=2){const ex=x+sx*r,ey=y+sy*r;g.fillRect(Math.min(ex,ex-sx*L)+o,ey+o,L+1,1);g.fillRect(ex+o,Math.min(ey,ey-sy*L)+o,1,L+1)}g.fillStyle=PAL[on?'r':'d']}}
  // soft light: town windows and camp fire at night, rifts always
@@ -713,7 +717,10 @@ const ELL={ok:false,sh:null,shB:null,r0:null,r1:null,r0B:null,r1B:null};
 function ellInit(){ELL.ok=true;ELL.sh=ellSpr(16,7,'0');ELL.shB=ellSpr(28,12,'0');ELL.r0=ellSpr(20,9,'5',1);ELL.r1=ellSpr(20,9,'g',1);ELL.r0B=ellSpr(32,14,'5',1);ELL.r1B=ellSpr(32,14,'g',1);
  const mix=(sh,rg)=>{const c=mkCanvas(rg.width,rg.height),q=c.getContext('2d');q.globalAlpha=.42;q.drawImage(sh,(rg.width-sh.width)>>1,(rg.height-sh.height)>>1);q.globalAlpha=.85;q.drawImage(rg,0,0);return c};   // shadow + side ring in one blit for a unit standing still
  ELL.c0=mix(ELL.sh,ELL.r0);ELL.c1=mix(ELL.sh,ELL.r1);ELL.c0B=mix(ELL.shB,ELL.r0B);ELL.c1B=mix(ELL.shB,ELL.r1B);
- ELL.shW=ellSpr(54,24,'0');ELL.r0W=ellSpr(62,28,'5',1);ELL.r1W=ellSpr(62,28,'g',1);ELL.c0W=mix(ELL.shW,ELL.r0W);ELL.c1W=mix(ELL.shW,ELL.r1W);return ELL}
+ ELL.shW=ellSpr(54,24,'0');ELL.r0W=ellSpr(62,28,'5',1);ELL.r1W=ellSpr(62,28,'g',1);ELL.c0W=mix(ELL.shW,ELL.r0W);ELL.c1W=mix(ELL.shW,ELL.r1W);
+ ELL.rA=ellSpr(20,9,'x',1);ELL.rAB=ellSpr(32,14,'x',1);ELL.rAW=ellSpr(62,28,'x',1);ELL.cA=mix(ELL.sh,ELL.rA);ELL.cAB=mix(ELL.shB,ELL.rAB);ELL.cAW=mix(ELL.shW,ELL.rAW);return ELL}   // allies (caravan guards, 42-caravans.js): a mana-blue ring
+function ellRing(E,u,wide,big){return u.ally?(wide?E.rAW:big?E.rAB:E.rA):wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0}
+function ellComb(E,u,wide,big){return u.ally?(wide?E.cAW:big?E.cAB:E.cA):wide?(u.side?E.c1W:E.c0W):big?(u.side?E.c1B:E.c0B):u.side?E.c1:E.c0}
 function unitTop(u){if(typeof sheetTop==='function'){const t=sheetTop(u);if(t>0)return t}const mi=umon(u);if(mi.kind)return mi.top;if(typeof unitSpriteBox==='function'){try{const b=unitSpriteBox(u);if(b&&b.h>0)return b.h}catch(e){}}return u.def&&u.def.big?48:32}
 // Sprites are built on first use; warming one unit a frame at the start of a battle keeps that off the action frames.
 // Passes: every unit's idle frames in every facing first (a rotation needs them all at once), then walk and hit, then the rest.
@@ -731,10 +738,10 @@ function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.de
  if(!s){try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}}if(!s||!s.cv||!s.cv.width)return false;
  const mi=umon(u),wide=mi.size>1,big=!wide&&(u.def&&u.def.big||mi.bigSh),x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=wide?E.shW:big?E.shB:E.sh;
  if(mi.fly&&u.alive&&v.pL>0){const k=Math.max(.45,1-v.pL/140);g.globalAlpha=v.pA*.42;const w=Math.round(sh.width*k),h=Math.round(sh.height*k);g.drawImage(sh,x-(w>>1),gy-(h>>1),w,h);   // a flier: its shadow shrinks with height, the side ring stays on the ground
-  if(u.alive){const rg=wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
- else if(u.alive&&v.pA>.99&&v.pSh>.99){const c=wide?(u.side?E.c1W:E.c0W):big?(u.side?E.c1B:E.c0B):u.side?E.c1:E.c0;g.drawImage(c,x-(c.width>>1),gy-(c.height>>1))}
+  if(u.alive){const rg=ellRing(E,u,wide,big);g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
+ else if(u.alive&&v.pA>.99&&v.pSh>.99){const c=ellComb(E,u,wide,big);g.drawImage(c,x-(c.width>>1),gy-(c.height>>1))}
  else{g.globalAlpha=v.pA*v.pSh*.42;g.drawImage(sh,x-(sh.width>>1),gy-(sh.height>>1));
-  if(u.alive){const rg=wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
+  if(u.alive){const rg=ellRing(E,u,wide,big);g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
  g.globalAlpha=v.pA;const sk=s.k||1,sw=s.cv.width/sk,sh2=s.cv.height/sk;   // an HD figure (k 2, 73h-unitshd.js) is blitted at half size
  if(s.smooth)g.imageSmoothingEnabled=true;g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay,sw,sh2);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay,sw,sh2)}
  if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);g.drawImage(silOf(s.cv,'r'),x-s.ax,y-s.ay,sw,sh2)}
@@ -764,7 +771,7 @@ function drawUnitOld(u,v){const sc=(u.def&&u.def.big?1.35:1)/2,x=(u.sx+v.pX)/2,y
 function drawUnit(u,v){v.drawn=true;if(HAVE.sprite&&drawUnitPx(u,v))return;drawUnitOld(u,v)}
 /* fallback overlay (no 74-anim.js): armor over health as pixel bars, status pips, a marker over the acting unit */
 const OO={cur:false,big:false,tgt:false,bars:true,wide:false,top:0,exact:false};
-function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBarsOn();let ty=y-(u.armMax?7:5);if(bars){g.fillStyle=PAL['0'];g.fillRect(bx-1,ty-1,w+2,u.armMax?7:4);
+function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||!!u.ally||allyBarsOn();let ty=y-(u.armMax?7:5);if(bars){g.fillStyle=PAL['0'];g.fillRect(bx-1,ty-1,w+2,u.armMax?7:4);
  if(u.armMax){g.fillStyle=PAL.o;g.fillRect(bx,ty,w,2);g.fillStyle=PAL.q;g.fillRect(bx,ty,Math.ceil(w*u.arm/u.armMax),2);ty+=3}
  g.fillStyle=PAL.f;g.fillRect(bx,ty,w,2);if(v.hpLag>u.hp){g.fillStyle=PAL.e;g.fillRect(bx,ty,Math.ceil(w*Math.min(1,v.hpLag/u.hpMax)),2)}g.fillStyle=PAL[u.side?'g':'A'];g.fillRect(bx,ty,Math.ceil(w*u.hp/u.hpMax),2)}
  let px=bx;const py=y-(u.armMax?12:10),dot=c=>{g.fillStyle=PAL['0'];g.fillRect(px,py,4,4);g.fillStyle=PAL[c];g.fillRect(px+1,py+1,2,2);px+=5};
@@ -774,7 +781,7 @@ function drawOverlayOld(u,v,x,y,cur){const w=16,bx=x-8,bars=u.side!==0||allyBars
 function allyBarsOn(){return!(typeof SET==='object'&&SET&&SET.allyBars===false)&&(typeof shAllyBars!=='function'||shAllyBars())}
 function drawUnitOverlays(){const us=B.units,ab=allyBarsOn(),cam=B.cam;OO.exact=cam.z===cam.zt&&BKX===1&&cam.s===Math.round(cam.s);   // whole-number scale: the overlay may blit its cached bars
  for(let i=0;i<us.length;i++){const u=us[i];if(!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;const cur=u===B.cur;
-  if(HAVE.over){OO.cur=cur;const mi=umon(u);OO.big=!!(u.def&&u.def.big)||mi.size>1;OO.wide=mi.size>1;OO.top=mi.kind?mi.top:0;OO.tgt=!!(B.targets&&unitTiles(u).some(q=>B.targets.has(key(q[0],q[1]))));OO.bars=ab||u.side!==0;try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
+  if(HAVE.over){OO.cur=cur;const mi=umon(u);OO.big=!!(u.def&&u.def.big)||mi.size>1;OO.wide=mi.size>1;OO.top=mi.kind?mi.top:0;OO.tgt=!!(B.targets&&unitTiles(u).some(q=>B.targets.has(key(q[0],q[1]))));OO.bars=ab||u.side!==0||!!u.ally;try{drawUnitOverlayPx(g,u,v.ox,v.oy,OO);continue}catch(e){artFail('over',e);tfArt()}}
   drawOverlayOld(u,v,v.ox,v.oy,cur)}g.globalAlpha=1;
  /* objective marks (phase 7): the escorted VIP wears a gold shield, the siege leader a red crown; both bob unless motion is reduced */
  const ob=B.obj;if(ob&&(ob.vip||ob.leader)){for(const [u,rows,key] of [[ob.vip,OBJMK.vip,'objvip'],[ob.leader,OBJMK.lead,'objlead']]){if(!u||!u.alive)continue;const v=VIS.get(u);if(!v||!v.drawn)continue;
@@ -796,7 +803,7 @@ function unitAtBoard(bx,by){if(!B)return null;const R=viewEnsure(),us=B.units,x=
 function pickAtBoard(bx,by){const k=tileAtBoard(bx,by),u=unitAtBoard(bx,by);if(!u)return k;const uk=key(u.c,u.r);if(k<0||k===uk)return uk;
  if(usize(u)>1&&occupies(u,k%BW,(k/BW)|0))return k;                                                            // any tile of a big unit's footprint picks it
  if(unitAt(k%BW,(k/BW)|0))return V.dp[k]>udepth(u,V)?k:uk;
- const act=B.sel?!!(B.targets&&B.targets.has(k)):!!(B.reach&&B.reach.has(k)&&!B.busy),uact=B.sel?!!(B.targets&&B.targets.has(uk)):u.side===1;
+ const act=B.sel?!!(B.targets&&B.targets.has(k)):!!(B.reach&&B.reach.has(k)&&!B.busy),uact=B.sel?!!(B.targets&&B.targets.has(uk)):u.side!==0;
  return act&&!uact&&by/2<u.sy/2-12?k:uk}
 
 /* ---- overlays: reach, range outline, heights (cached per diagonal); targets, cursor, path (live) ---- */
@@ -854,7 +861,7 @@ const HC={t:0,n:0,u:[],p:[],c:[]};
 function drawHitChances(){const u=B.cur;if(!u||u.side!==0||B.busy||B.auto||!u.alive){HC.n=0;return}
  if(now-HC.t>180){HC.t=now;HC.n=0;const a=abilityInfo(u,B.sel||'attack');
   if(PL.k>=0&&PL.I&&typeof planHit==='function'){const S=B.sel?PL.I.sel:PL.I.atk;if(S&&a.tgt==='enemy')for(const q of S){const t=unitAt(q%BW,(q/BW)|0);if(!t||HC.n>=24)continue;const h=planHit(t,a);if(h==null)continue;HC.u[HC.n]=t;HC.c[HC.n]=h<0?'':h>=75?'A':h<45?'h':'d';HC.p[HC.n++]=h<0?'':h+'%'}}
-  else if(a.tgt==='enemy')for(let i=0;i<B.units.length;i++){const t=B.units[i];if(t.alive&&t.side===1&&mdist(u,t)<=a.rng&&!(a.needShieldT&&!t.shield)){let blk=false;try{blk=typeof losInfo==='function'&&losInfo(u,t,a).blocked}catch(e){}
+  else if(a.tgt==='enemy')for(let i=0;i<B.units.length;i++){const t=B.units[i];if(t.alive&&t.side!==0&&!t.vip&&mdist(u,t)<=a.rng&&!(a.needShieldT&&!t.shield)){let blk=false;try{blk=typeof losInfo==='function'&&losInfo(u,t,a).blocked}catch(e){}
     const h=blk?0:hitChance(u,t,a);HC.u[HC.n]=t;HC.c[HC.n]=blk?'':h>=75?'A':h<45?'h':'d';HC.p[HC.n++]=h+'%'}}}
  for(let i=0;i<HC.n;i++){const t=HC.u[i],v=VIS.get(t);if(!t.alive||!v||!v.drawn)continue;
   if(!HC.c[i]){const c=typeof anSprite==='function'?anSprite('los-blocked'):null;if(c&&!(BM.los&&BM.tg===t))g.drawImage(c,v.ox-9,v.oy-(HAVE.over?27:34));continue}
