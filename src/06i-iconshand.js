@@ -190,7 +190,7 @@ const IHD_DRAW={
   P.fill((x,y,X,Y)=>{const h1=ihdAx(16,16.5,16,8)(x,y),h2=ihdAx(16,16.5,22,16.5)(x,y);if((h1[0]>=-.5&&h1[0]<=h1[2]&&Math.abs(h1[1])<.9)||(h2[0]>=-.5&&h2[0]<=h2[2]&&Math.abs(h2[1])<.9))return IHD_INK;return null});
   P.put(16,16,ihdR(['g'])[0]);ihdBall(P,16,3.4,1.9,IHR.brass);ihdGlint(P,8,10,0)},
  star(P){ihdFacets(P,ihdStar(16,17,14.5,6.2,5,-Math.PI/2),16,17,IHR.brass,{k:1});P.fill((x,y,X,Y)=>{const o=P.get(X,Y);if(!o)return null;const a=Math.atan2(y-17,x-16)+Math.PI/2,f=((a*5/(2*Math.PI))%1+1)%1;return f<.5?ihdLit(o,.12):ihdShd(o,.12)});ihdGlint(P,13,10,1)},
- xp(P){ihdFacets(P,ihdStar(16,16,14.5,4.2,4,-Math.PI/2),16,16,IHR.brass);P.fill((x,y,X,Y)=>{const o=P.get(X,Y);if(!o)return null;const a=Math.atan2(y-16,x-16)+Math.PI/2,f=((a*4/(2*Math.PI))%1+1)%1;return f<.5?ihdLit(o,.16):ihdShd(o,.14)});ihdGlint(P,16,16,2)},
+ xp(P){ihdFacets(P,ihdStar(16,16,14.5,4.6,4,-Math.PI/2),16,16,IHR.brass,{base:.7,k:.8});P.fill((x,y,X,Y)=>{const o=P.get(X,Y);if(!o)return null;const a=Math.atan2(y-16,x-16)+Math.PI/2,f=((a*4/(2*Math.PI))%1+1)%1;return f<.5?ihdLit(o,.16):ihdShd(o,.14)});ihdGlint(P,16,16,2)},
  skull(P){const m=(x,y)=>(Math.pow((x-16)/11.5,2)+Math.pow((y-13)/10.5,2)<=1)||(Math.abs(x-16)<7.2&&y>=18&&y<27.5);
   ihdBlob(P,m,IHR.vellum,{d:5,amb:.16});
   P.fill((x,y,X,Y)=>{for(const ex of [11,21]){const q=Math.pow((x-ex)/3.4,2)+Math.pow((y-15.5)/3,2);if(q<=1)return ihdMix(IHD_INK,[40,20,20],q*.4)}if(Math.abs(x-16)<1.4&&y>19&&y<22.5&&Math.abs(x-16)<(y-18.6)*.6)return IHD_INK;
@@ -200,7 +200,7 @@ const IHD_DRAW={
  auto(P){for(const [a0,a1,ex,ey,dir] of [[3.5,6.0,27.2,12,1],[0.35,2.85,4.8,20,-1]]){P.part(Q=>{Q.fill((x,y,X,Y)=>{const dx=x-16,dy=y-16,rho=Math.hypot(dx,dy);let a=Math.atan2(dy,dx);if(a<0)a+=Math.PI*2;if(a<a0||a>a1||Math.abs(rho-10)>2.1)return null;
      return ihdPick(IHR.brass,.6-(rho-10)*.12*(dy<0?1:-1)+(dy<0?.14:-.1),X,Y)});const pts=dir>0?[[ex-5,ey-1],[ex+4,ey-1],[ex-.5,ey+6]]:[[ex-4,ey+1],[ex+5,ey+1],[ex+.5,ey-6]];ihdBlob(Q,(x,y)=>ihdIn(pts,x,y),IHR.brass,{d:2,amb:.25})})}},
  shieldwall(P){ihdHeater(P,2.5,3,17,23,IHR.verd);P.part(Q=>{ihdHeater(Q,12.5,7,17.5,23.5,IHR.steel);Q.fill((x,y,X,Y)=>{const o=Q.get(X,Y);if(!o)return null;if((Math.abs(x-21.2)<1.3&&y>11&&y<25)||(Math.abs(y-15.5)<1.2&&Math.abs(x-21.2)<5))return ihdPick(IHR.brass,x<21.2||y<15.5?.88:.5,X,Y);return null})});ihdGlint(P,6,6,1)},
- 'ab-bash'(P){ihdHeater(P,2.5,4,17,24,IHR.verd);P.fill((x,y,X,Y)=>{const o=P.get(X,Y);if(!o)return null;return Math.hypot(x-11,y-13)<2.6?ihdPick(IHR.brass,(x+y<24)?.9:.5,X,Y):null});
+ 'ab-bash'(P){ihdHeater(P,2.5,4,17,24,IHR.verd);P.fill((x,y,X,Y)=>{const o=P.get(X,Y);if(!o)return null;return (Math.abs(x-11)<1.2&&Math.abs(y-13.5)<4.5)||(Math.abs(y-12.5)<1.2&&Math.abs(x-11)<4)?ihdPick(IHR.brass,(x<11||y<12.5)?.9:.5,X,Y):null});
   P.part(Q=>{ihdFacets(Q,ihdStar(24.5,15,8.6,3.2,8,0),24.5,15,ihdR(['b','c','d','e','r']),{table:2})});ihdGlint(P,25,15,1);ihdGlint(P,6,7,1)},
  'ab-parry'(P){ihdSword(P,27,27,9,9,{gw:3.6,bw:1.4,glint:false});P.part(Q=>{ihdSword(Q,4,28,27,5,{blade:IHR.brass})});ihdGlint(P,16,16,2)},
 };
