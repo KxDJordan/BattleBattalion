@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=14;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=15;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -103,8 +103,37 @@ const MIGRATE={
  /* v14: phase 8B endgame. Portal worlds replace the three-battle rift run (G.portalRun, none under way: an old G.dun is dropped and its
     rift stays open), dungeons appear over time (G.dungeons, none yet: they open from the save's day on), every merc keeps a record of
     endgame deeds (m.deeds {}), the legendary drops found so far (G.legend {}). */
- 13:g=>{g.portalRun=null;g.dungeons=[];delete g.dun;if(!svObj(g.legend))g.legend={};if(Array.isArray(g.roster))g.roster.forEach(m=>{if(svObj(m)&&!svObj(m.deeds))m.deeds={}});return g}
+ 13:g=>{g.portalRun=null;g.dungeons=[];delete g.dun;if(!svObj(g.legend))g.legend={};if(Array.isArray(g.roster))g.roster.forEach(m=>{if(svObj(m)&&!svObj(m.deeds))m.deeds={}});return g},
+ /* v15: masteries merged. The 14 weapon trees became the one Weapon mastery tree (one perk a family): every perk learned in an old weapon
+    tree ('sword.1a' ... 'shield.3b') is taken back and its point returned (weapon capstones '<family>.cap' keep their ids and stay). The armor
+    trees have one perk a tier: either half of an old tier ('lightarmor.2a' / '.2b') becomes the merged perk ('lightarmor.2'); a merc who
+    owned both halves gets one point back. The Monster hunter tree is no longer an extra tree of some backgrounds but one of the 4 a merc
+    carries: a merc of a background that had it (hunter, poacher, witch hunter, wildling, the Beast slayer) who learned quarry perks keeps
+    it in m.trees, in place of a style tree it has no perks in (else as a 5th); the Beast slayer always keeps it; anyone else's trees
+    stay as they were. Perks of trees the merc may not learn are then refunded (refundTrees), as the loader would. The company's mercs, recruits waiting in towns and the
+    rival companies' swords alike; G.refund / G.note 'refund' list the company's swords who got points back (as in v8). */
+ 14:g=>{const out=[],fix=(m,own)=>{if(!svObj(m)||!Array.isArray(m.perks))return;m.perks=m.perks.filter(id=>typeof id==='string');const n=migrateMastery(m);
+   if(n&&own)out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})};
+  if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
+  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(m=>fix(m,false))});
+  if(out.length){const L=Array.isArray(g.refund)?g.refund:[];for(const x of out){const o=L.find(y=>svObj(y)&&y.name===x.name);if(o)o.n=Math.max(0,Math.floor(svNum(o.n,0)))+x.n;else L.push(x)}   // one line a sword (a v7 save gets both refunds)
+   g.refund=L;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
 };
+/* migrateMastery(m): one merc of a v14 save to the merged masteries (v15, above). Returns the points given back. Draws no randomness. */
+const OLDWT=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'],OLDHT=['hunter','poacher','witchhunter','wildling','slayer'];
+function migrateMastery(m){let n=0;const keep=[],seen={};
+ for(const id of m.perks){let x=/^([a-z]+)\.([1-9])([ab])$/.exec(id),k=id;
+  if(x&&OLDWT.includes(x[1])){n++;continue}                                       // an old weapon tree perk: refunded
+  if(x&&/^(light|med|heavy)armor$/.test(x[1]))k=x[1]+'.'+x[2];                   // an old armor half: the merged perk of its tier
+  if(seen[k]){n++;continue}seen[k]=1;keep.push(k)}                                // both halves owned: one point back
+ m.perks=keep;
+ if(OLDHT.includes(m.bg)&&MAST.hunter){if(!Array.isArray(m.trees))m.trees=[];const hp=keep.some(id=>id==='hunter.cap'||!!(typeof QUARRY==='object'&&QUARRY[id]));
+  if((hp||m.bg==='slayer')&&!m.trees.includes('hunter')){const used=new Set(keep.map(id=>String(id).split('.')[0]));
+   let i=-1;for(let j=m.trees.length-1;j>=0;j--){const T=MAST[m.trees[j]];if(T&&T.kind==='style'&&!used.has(m.trees[j])){i=j;break}}
+   if(i>=0)m.trees[i]='hunter';else{const g=m.trees.findIndex(k=>MAST[k]&&MAST[k].kind==='gift');if(g>=0)m.trees.splice(g,0,'hunter');else m.trees.push('hunter')}}}
+ if(n)m.pp=Math.max(0,Math.floor(svNum(m.pp,0)))+n;
+ if(BG[m.bg])n+=refundTrees(m);   // a merged perk of an armor tree (or a quarry perk of a hunter tree) the merc may not learn: back too
+ if(typeof syncMast==='function')syncMast(m);return n}
 // The traits an old merc gets in the v9 migration (and a merc record that has none): rolled from its background by a stream seeded by its id.
 function migrateTraits(m){return rollTraits(m.bg,mulberry(((svNum(m.id,0)|0)^0x7a175)>>>0))}
 // One merc of a version 4 save to talents (v5). Draws no game randomness: the top-up trees come from a stream seeded by the merc's id.
@@ -126,7 +155,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  for(const k of ['hp','fat','init','ms','rs','md','rd'])if(!svFin(m.base[k]))return false;
  if(!Array.isArray(m.trees)&&!Array.isArray(m.perks))migrateMerc(m);                      // an unmigrated record (written by older code)
  { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
-   const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||k===m.gift||(m.fabled&&MAST[k].kind==='fabled'));
+   const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||MAST[k].kind==='hunter'||k===m.gift||(m.fabled&&MAST[k].kind==='fabled'));
    if(!m.trees.some(k=>MAST[k].kind==='style')){const r=mulberry((svNum(m.id,0)|0)^0x7a1e57);m.trees=rollTrees(m.bg,r).concat(m.trees)}
    // perks only of the trees the merc has (mercTrees: its style trees and gift, its background's weapon and armor trees); a perk of a
    // weapon or armor tree it may not learn is refunded (refundTrees), anything else unreadable is dropped

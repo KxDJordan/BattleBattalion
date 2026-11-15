@@ -64,9 +64,14 @@ section('the Monster hunter tree');
    ok(p.d.includes('half that to hit, rounded down'),k+': the to-hit rule in the text');
    ok(X.perkById(k)&&X.perkById(k).kind==='hunter','perkById knows '+k)});
   ok(Object.keys(Q).length===9,'nine quarries');for(const e of ['wyvern','whatch'])ok(!X.QUARRYOF[e]&&X.EN[e],e+' is never a quarry');
-  for(const b of ['slayer','hunter','poacher','witchhunter','wildling'])ok(X.BG[b].ht&&X.hunterTrees({bg:b}).join()==='hunter',b+' may learn it');
-  for(const b of Object.keys(X.BG))if(!['slayer','hunter','poacher','witchhunter','wildling'].includes(b))ok(!X.hunterTrees({bg:b}).length,b+' may not');
-  X.seedRng(SEED);fresh(SEED);const h=X.newMerc('hunter'),s=X.newMerc('sellsword');
+  // one of the 4 trees: drawn by rollTrees for a background with hw (the Beast slayer always), read from m.trees
+  for(const b of ['slayer','hunter','poacher','witchhunter','wildling'])ok(X.BG[b].hw>=.5&&X.BG[b].pool.includes('hunter'),b+' draws it often');ok(X.BG.slayer.hw===1,'the slayer always');
+  for(const b of Object.keys(X.BG))ok(X.BG[b].pool.includes('hunter')===!!X.BG[b].hw&&(!X.BG[b].hw||X.BG[b].hw<=1),b+': hunter in the pool exactly when hw');
+  ok(X.hunterTrees({bg:'sellsword',trees:['vanguard','hunter']}).join()==='hunter'&&!X.hunterTrees({bg:'hunter',trees:['marksman']}).length,'hunterTrees reads m.trees');
+  X.seedRng(SEED);fresh(SEED);
+  { const r=X.mulberry(77),cnt={};for(const b of ['slayer','hunter','witchhunter','woodcutter','sellsword']){let n=0;for(let i=0;i<400;i++){const t=X.rollTrees(b,r);ok(t.length===4&&new Set(t).size===4&&t.filter(k=>X.MAST[k].kind==='style').length>=3,'rollTrees: 4 trees, at least 3 style: '+b);if(t.includes('hunter'))n++}cnt[b]=n/400}
+    ok(cnt.slayer===1&&Math.abs(cnt.hunter-X.BG.hunter.hw)<.1&&Math.abs(cnt.witchhunter-X.BG.witchhunter.hw)<.1&&cnt.woodcutter>0&&cnt.woodcutter<.3&&cnt.sellsword===0,'rollTrees draws the hunter tree at its weight: '+JSON.stringify(cnt)) }
+  let h=null;for(let i=0;i<40&&!h;i++){const q=X.newMerc('hunter');if(q.trees.includes('hunter'))h=q}const s=X.newMerc('sellsword');ok(h&&h.trees.filter(k=>X.MAST[k].kind==='style').length===3,'a hunter with the hunter tree carries 3 style trees beside it');
   ok(X.mercTrees(h).some(x=>x.key==='hunter'&&x.kind==='hunter')&&!X.mercTrees(s).some(x=>x.key==='hunter'),'mercTrees: the hunter has it, the sellsword not');
   ok(JSON.stringify(h.slain)==='{}','a new merc starts with an empty tally');
   h.pp=3;X.gainXP(h,X.XPT[3]-h.xp);ok(X.canLearn(h,'hunter.wolf')&&!X.canLearn(h,'hunter.dead'),'level 3: tiers 1-3 open, tier 4 not yet');
@@ -132,7 +137,7 @@ await (async()=>{let n=0,hits=0,kills=0;const ri0=k=>5+k;
 section('the Solo: Beast Slayer origin');
 { const O=X.ORIGINS.slayer;ok(O&&O.solo&&O.roster.join()==='slayer'&&O.n==='Solo: Beast Slayer'&&O.rule&&O.d,'ORIGINS.slayer');
   ok(!/if he falls/.test(X.ORIGINS.noble.rule)&&/if the heir falls/.test(X.ORIGINS.noble.rule),'the noble rule is neutral: '+X.ORIGINS.noble.rule);
-  const B=X.BG.slayer;ok(B.w===0&&B.noHire&&B.ht&&B.at.length>=1&&B.at.length<=2&&B.wt.length<=5&&B.pool.length>=6,'BG.slayer shape');
+  const B=X.BG.slayer;ok(B.w===0&&B.noHire&&B.hw===1&&B.pool.includes('hunter')&&B.at.length>=1&&B.at.length<=2&&B.wt.length<=5&&B.pool.length>=6,'BG.slayer shape');
   for(let s=0;s<6;s++){const G=fresh(SEED+40+s,'slayer'),m=G.roster[0];ok(G.origin==='slayer'&&G.roster.length===1&&m.bg==='slayer'&&m.field,'one sword, the slayer');
    ok(m.lvl===3&&m.pp===3&&m.traits.includes('beastwise')&&X.traitsValid(m.traits),'level 3, three points, Beast-wise: '+m.traits);
    ok(m.eq.w==='boarspear'&&m.eq.b==='huntxbow'&&m.eq.a==='leather'&&m.eq.h==='cap','the hunting kit');

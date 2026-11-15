@@ -35,7 +35,8 @@ function coRole(m,s){const w=s.wpn||FIST,a=ITEMS[m.eq.a],g=tlGift(m),r=g?MAST[g]
 function coTreeStrip(m,O){O=O||tlOpts(m);let h='',sep=false;
  for(const x of tlTrees(m)){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key);
   if(x.kind==='armor'){const ac=tlTreeArm(x.key),on=ac&&ac===tlArmClass(m);if(!n&&!on)continue;if(!sep){sep=true;h+='<i class="co-sep" aria-hidden="true"></i>'}h+=`<span class="co-w co-a${n?' on':''}${on?' worn':''}${m.lvl<tlTierLv('armor',1)?' lk':''}" title="${x.tree.n}: armor tree${on?', worn now':', works only in '+(ac?TL_ARMN[ac].toLowerCase():'its')+' armor'}">${coIc(tlTreeIcon(x.key))}${n?`<b>${n}</b>`:''}</span>`;continue}
-  if(x.kind==='weapon'){if(!sep){sep=true;h+='<i class="co-sep" aria-hidden="true"></i>'}h+=`<span class="co-w${n?' on':''}${m.lvl<tlTierLv('weapon',1)?' lk':''}" title="${x.tree.n}: weapon tree, opens at level ${tlTierLv('weapon',1)}">${coIc(tlTreeIcon(x.key))}${n?`<b>${n}</b>`:''}</span>`;continue}
+  if(x.kind==='weapon'){if(!sep){sep=true;h+='<i class="co-sep" aria-hidden="true"></i>'}for(const o of O.filter(o=>o.key===x.key&&!o.cap)){const w=o.perk.wt;
+    h+=`<span class="co-w${o.owned?' on':''}${m.lvl<o.need?' lk':''}" title="${htmlEsc(o.perk.n)}: ${(TL_WTN[w]||w).toLowerCase()} mastery${o.owned?', learned':', opens at level '+o.need}">${coIc(tlPerkIcon(o))}</span>`}continue}
   h+=`<span class="co-m${r?' g-'+r:''}${x.kind==='hunter'?' k-hunt':''}${n?'':' z'}" title="${x.kind==='gift'?tlGiftLabel(x.key)+' (gift)':x.kind==='hunter'?x.tree.n+': '+n+' of '+tlTiers(x.tree).length+' quarries learned':x.tree.n}">${coIc(tlTreeIcon(x.key))}${n||''}</span>`}
  return h}
 function coCard(m,i){const s=calc(m),hp=Math.min(m.hp,s.hp),w=ITEMS[m.eq.w],bk=ITEMS[m.eq.b],a=ITEMS[m.eq.a],hl=ITEMS[m.eq.h],cd=cpCond(m),inj=cpInj(m),g=tlGift(m);
@@ -138,7 +139,7 @@ function coDoll(){if(coDollU!==null)return coDollU;coDollU='';try{const L=ptL();
   coDollU=pxURL('co:doll',ptOut(L).map(r=>r.join('')),1)||''}catch(e){}return coDollU}
 function coStat(m,s,k){const t=m.tal[k]||0,cd=cpCond(m);let v=k==='brv'?coBrv(m,s):k==='helm'?cd.hM:k==='arm'?(ITEMS[m.eq.a]?cd.aM:s.arm):s[k],cur=k==='hp'?Math.min(m.hp,v):k==='arm'&&ITEMS[m.eq.a]?cd.a:k==='helm'?cd.h:v;
  if(typeof v!=='number'||!isFinite(v))v=cur=0;const hurt=cur<v;
- return`<div class="cst${hurt&&k!=='hp'?' worn':''}" data-stat="${k}" data-v="${hurt?cur+'/'+v:v}" role="button" tabindex="0">${coStatIc(k)}<span>${coStatName(k)}${pnStars(t)}</span><b>${hurt?cur+'<small>/'+v+'</small>':v}</b>${pnBar(100*cur/(STATMAX[k]||100),k==='hp'?'hp':hurt?'worn':'st')}</div>`}
+ return`<div class="cst${hurt&&k!=='hp'?' worn':''}" data-stat="${k}" data-v="${hurt?cur+'/'+v:v}${(k==='md'||k==='rd')&&s.initDef?' (+'+s.initDef+' from initiative)':''}" role="button" tabindex="0">${coStatIc(k)}<span>${coStatName(k)}${pnStars(t)}</span><b>${hurt?cur+'<small>/'+v+'</small>':v}</b>${pnBar(100*cur/(STATMAX[k]||100),k==='hp'?'hp':hurt?'worn':'st')}</div>`}
 function coStatKeys(m,s){const ks=['hp','arm'];if(m.eq.h||cpHasHelms())ks.push('helm');ks.push('fat','init','ms','rs','md','rd');if(coBrv(m,s)!==null)ks.push('brv');return ks}
 /* condition line under the doll: piece, points left of its full value, a meter */
 function coArmChip(m){const c=tlArmClass(m),n=tlArmKeys(m).filter(k=>tlTreeArm(k)===c)[0];
@@ -199,13 +200,24 @@ function coHunterTrees(m,T,O){const hk=T.filter(x=>x.kind==='hunter');if(!hk.len
   for(let t=1;t<=nt;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c${tlTierLv('hunter',t)>lv?' lk':''}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
   h+='</div></div></div>'}
  return h}
-/* the armor-class trees: like the weapon trees, columns by the level each tier opens (2 / 5 / 8); the class worn now is lit */
+/* the Weapon mastery tree (kind 'weapon', MAST.weapons): one cell per weapon family the background allows, each with its one perk and the
+   family's name; the family in hand (or the raised shield) is lit. All open at tlTierLv('weapon', 1). */
+function coWeaponTree(m,wk,O,wLv){const lv=m.lvl;if(!wk.length)return`<div class="tg-wh lk">${coIc('swords')}<b>Weapon mastery</b><span>None for a ${BG[m.bg].n.toLowerCase()}${RACE[m.race]&&RACE[m.race].noWt?' of this blood':''}</span></div>`;
+ const s=calc(m),inW=s.wpn&&s.wpn.wt,up=!!(s.shield&&s.shield.raised);let h='';
+ for(const x of wk){const L=O.filter(o=>o.key===x.key),n=L.filter(o=>o.owned).length;
+  h+=`<div class="tg-sec tg-wpn" style="--tgc:${Math.max(4,L.length)}"><div class="tg-wh${lv<wLv?' lk':''}">${coIc(lv<wLv?'lock':'swords')}<b>${htmlEsc(x.tree.n)}</b><span title="${htmlEsc(x.tree.d||'')}">${lv<wLv?'Opens at level '+wLv+' · ':''}one mastery a weapon · works only with that weapon in hand</span>${n?`<em class="tg-acw">${n} learned</em>`:''}</div>`;
+  h+=`<div class="tg-tree k-weapon" data-tree="${x.key}"><div class="tg-row">`;
+  for(const o of L){const w=o.perk.wt,on=w==='shield'?up:w===inW;
+   h+=`<div class="tg-c tg-wc${o.need>lv?' lk':''}${on?' hand':''}" title="${htmlEsc((TL_WTN[w]||w)+(on?': in hand now':''))}">${tgNode(m,o)}<small>${htmlEsc(TL_WTN[w]||w)}</small></div>`}
+  h+='</div></div></div>'}
+ return h}
+/* the armor-class trees: one column a tier, by the level it opens (2 / 5 / 8, and 11 for the light armor tree); the class worn now is lit */
 function coArmorTrees(m,T,O,cols){const ak=T.filter(x=>x.kind==='armor');if(!ak.length)return`<div class="tg-wh tg-ah lk">${coIc('armor')}<b>Armor trees</b><span>${tlArmNote(m)}</span></div>`;const lv=m.lvl,aLv=tlTierLv('armor',1),cur=tlArmClass(m),
-  at=Math.max(1,...ak.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/at));
- let h=`<div class="tg-sec"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span title="${tlArmNote(m)}; ${ak.length>1?'each works':'it works'} only in armor of its class">${lv<aLv?'Open at level '+aLv+'. ':''}${tlArmNote(m,1)}: ${ak.length>1?'each works':'works'} only in its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
+  at=Math.max(1,...ak.map(x=>tlTiers(x.tree).length)),span=1;   // one column a tier (the section's own grid: 3, or 4 with the light armor tree)
+ let h=`<div class="tg-sec" style="--tgc:${at}"><div class="tg-wh tg-ah${lv<aLv?' lk':''}">${coIc(lv<aLv?'lock':'armor')}<b>Armor trees</b><span title="${tlArmNote(m)}; ${ak.length>1?'each works':'it works'} only in armor of its class">${lv<aLv?'Open at level '+aLv+'. ':''}${tlArmNote(m,1)}: ${ak.length>1?'each works':'works'} only in its class</span><em class="tg-acw${cur?' '+cur:''}" title="${cur?'Wearing '+TL_ARMN[cur].toLowerCase()+' armor':'No body armor: no armor tree works'}">${coIc(cur?'armor-'+cur:'armor-light')}${cur?TL_ARMN[cur]:'None'}</em></div>`;
  h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:at},(_,j)=>{const need=tlTierLv('armor',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
  for(const x of ak){const on=tlTreeArm(x.key)===cur;h+=`<div class="tg-tree k-armor${on?' worn':' off'}" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
-  for(let t=1;t<=at;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('armor',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
+  for(let t=1;t<=at;t++){const L=O.filter(o=>o.key===x.key&&o.tier===t);if(!L.length){h+='<div class="tg-c tg-none" aria-hidden="true"></div>';continue}h+=`<div class="tg-c w${tlTierLv('armor',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
   h+='</div></div>'}
  return h+'</div>'}
 function tgAbFacts(p){const a=p.ab&&AB[p.ab];if(!a)return'';const f=['Ability'];if(a.ap!=null)f.push(a.ap+' AP');else if(a.wpn)f.push('weapon AP');if(a.fat)f.push(a.fat+' fatigue');if(a.cost)f.push(a.cost[1]+' '+(RESN[a.cost[0]]||a.cost[0]));if(a.rng>1)f.push('range '+a.rng);return f.join(' · ')}
@@ -222,13 +234,7 @@ function coTalents(m,i){const O=tlOpts(m),Og=O.filter(o=>!o.cap),T=tlTrees(m),lv
   for(let t=1;t<=cols;t++){const L=Og.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c${tlTierLv(x.kind,t)>lv?' lk':''}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
   h+='</div></div>'}
  h+='</div>';   // each section is its own sticky-header scope
- if(wk.length){const wt=Math.max(1,...wk.map(x=>tlTiers(x.tree).length)),span=Math.max(1,Math.floor(cols/wt));
-  h+=`<div class="tg-sec"><div class="tg-wh${lv<wLv?' lk':''}">${coIc(lv<wLv?'lock':'swords')}<b>Weapon trees</b><span>${lv<wLv?'Open at level '+wLv:'Work only while a weapon of the family is in hand'}</span></div>`;
-  h+=`<div class="tg-hd w" aria-hidden="true"><span class="tg-hl">Lv</span>${Array.from({length:wt},(_,j)=>{const need=tlTierLv('weapon',j+1);return`<span class="tg-hc${need>lv?' lk':need===lv?' new':''}" style="grid-column:span ${span}"><b>${TG_ROM[j]}</b><small>Lv ${need}</small></span>`}).join('')}</div>`;
-  for(const x of wk){h+=`<div class="tg-tree k-weapon" data-tree="${x.key}">${tgTreeHead(m,x,O)}<div class="tg-row">`;
-   for(let t=1;t<=wt;t++){const L=Og.filter(o=>o.key===x.key&&o.tier===t);h+=`<div class="tg-c w${tlTierLv('weapon',t)>lv?' lk':''}" style="grid-column:span ${span}">${L.map(o=>tgNode(m,o)).join('')}</div>`}
-   h+='</div></div>'}h+='</div>'}
- else h+=`<div class="tg-wh lk">${coIc('swords')}<b>Weapon trees</b><span>None for a ${BG[m.bg].n.toLowerCase()}${RACE[m.race]&&RACE[m.race].noWt?' of this blood':''}</span></div>`;
+ h+=coWeaponTree(m,wk,Og,wLv);
  h+=coHunterTrees(m,T,Og)+coArmorTrees(m,T,Og,cols)+coCapTrees(m,T,O)+'</div>';
  let foot;
  if(coAuto===m.id)foot=`<span class="mt-foot">${coIc('auto',32)}<div><b>Auto build</b><small>Spend ${pts} point${pts===1?'':'s'} on a build that suits ${htmlEsc(m.name)} as ${(/^[AEIOU]/.test(coRole(m,calc(m)))?'an ':'a ')+coRole(m,calc(m)).toLowerCase()}. Learned perks stay learned.</small></div></span><button type="button" class="pn-btn" onclick="coAutoAsk(0)">Cancel</button><button type="button" class="pn-btn pri" onclick="coAutoLearn(${i})">Spend</button>`;
@@ -238,16 +244,16 @@ function coTalents(m,i){const O=tlOpts(m),Og=O.filter(o=>!o.cap),T=tlTrees(m),lv
     gift=o.kind==='gift'&&!O.some(q=>q.key===o.key&&q.owned)?`<small class="tg-wake">Awakens ${RESN[tlGiftRes(o.key)]||'the gift'}: the first perk of this tree grants its base pool.</small>`:'',
     qi=o.kind==='hunter'&&tlQuarryOf(o)?tlQuarryInfo(m,tlQuarryOf(o)):null,
     quarry=qi?`<small class="tg-wake tg-qline">${coIc(tlQuarryIcon(qi.key))}<span><b>${htmlEsc(qi.n)}</b>: ${tlQuarryLine(qi)}. Stack cap ${qi.cap} kills (+${qi.dmgMax}% damage, +${qi.hitMax} to hit).</span></small>`:'',
-    wpn=o.kind==='weapon'?`<small class="tg-wake">Works while a ${(TL_WTN[o.tree.wt]||o.tree.n).toLowerCase()} is in hand.</small>`:o.kind==='armor'?(()=>{const ac=tlTreeArm(o.key),cur=tlArmClass(m);return`<small class="tg-wake">Works only while wearing ${ac?TL_ARMN[ac].toLowerCase():'that class of'} armor${ac&&cur===ac?': worn now':'. Now wearing '+(cur?TL_ARMN[cur].toLowerCase()+' armor':'none')}.</small>`})():'';
-   foot=`<span class="mt-foot">${coIc(tlPerkIcon(o),32)}<div><b>${p.n}<em class="${st}">${tag}</em></b><small class="tg-at">${o.cap?'Final mastery · Lv '+o.need+' · ':'Tier '+o.tier+' · '}${o.kind==='gift'?tlGiftLabel(o.key):o.tree.n}${o.kind==='weapon'||o.kind==='armor'||o.kind==='hunter'?' · Lv '+o.need:''}${p.ab?' · '+tgAbFacts(p):''}</small><small>${p.d||''}</small>${o.cap?`<small class="tg-wake cap-why">${o.open?'Opened by '+htmlEsc(typeof capHow==='function'?capHow(o.key).toLowerCase():'a deed')+'.':htmlEsc(o.why||'Sealed by an endgame deed')+'.'}</small>`:''}${gift}${quarry}${wpn}</div></span>
+    wpn=o.kind==='weapon'?`<small class="tg-wake">${(o.perk.wt||o.tree.wt)==='shield'?'Works only while a shield is raised.':'Works only while a '+(TL_WTN[o.perk.wt||o.tree.wt]||o.tree.n).toLowerCase()+' is in hand.'}</small>`:o.kind==='armor'?(()=>{const ac=tlTreeArm(o.key),cur=tlArmClass(m);return`<small class="tg-wake">Works only while wearing ${ac?TL_ARMN[ac].toLowerCase():'that class of'} armor${ac&&cur===ac?': worn now':'. Now wearing '+(cur?TL_ARMN[cur].toLowerCase()+' armor':'none')}.</small>`})():'';
+   foot=`<span class="mt-foot">${coIc(tlPerkIcon(o),32)}<div><b>${p.n}<em class="${st}">${tag}</em></b><small class="tg-at">${o.cap?'Final mastery · Lv '+o.need+' · ':o.kind==='weapon'?'':'Tier '+o.tier+' · '}${o.kind==='gift'?tlGiftLabel(o.key):o.tree.n}${o.kind==='weapon'||o.kind==='armor'||o.kind==='hunter'?' · Lv '+o.need:''}${p.ab?' · '+tgAbFacts(p):''}</small><small>${p.d||''}</small>${o.cap?`<small class="tg-wake cap-why">${o.open?'Opened by '+htmlEsc(typeof capHow==='function'?capHow(o.key).toLowerCase():'a deed')+'.':htmlEsc(o.why||'Sealed by an endgame deed')+'.'}</small>`:''}${gift}${quarry}${wpn}</div></span>
 <button type="button" class="pn-btn pri" ${st==='can'?'':'disabled'} onclick="learn(${i},'${o.id}')">Learn</button>`}}
  return{detail:h,foot,key:'m'+m.id}}
 function coTrees(m,i){return coTalents(m,i)}
 /* the final mastery tier (25-legend.js): one capstone row per tree, sealed until the merc's deed opens it (capWhy), then open at its level */
 function coCapTrees(m,T,O){const C=O.filter(o=>o.cap);if(!C.length)return'';const nOpen=new Set(C.filter(o=>o.open).map(o=>o.key)).size,nT=new Set(C.map(o=>o.key)).size;
- let h=`<div class="tg-sec tg-cap"><div class="tg-wh${nOpen?'':' lk'}">${coIc(nOpen?'star':'lock')}<b>Final mastery</b><span>One capstone a tree, sealed until an endgame deed opens it (portal worlds and dungeons) · ${nOpen} of ${nT} open</span></div><div class="tg-capl">`;
+ let h=`<div class="tg-sec tg-cap"><div class="tg-wh${nOpen?'':' lk'}">${coIc(nOpen?'star':'lock')}<b>Final mastery</b><span>One capstone a tree (a weapon each in the weapon tree), sealed until an endgame deed opens it (portal worlds and dungeons) · ${nOpen} of ${nT} open</span></div><div class="tg-capl">`;
  for(const x of T){const L=C.filter(o=>o.key===x.key);if(!L.length)continue;const o0=L[0],why=o0.open?(m.lvl<o0.need?'Opens at level '+o0.need:'Open'):(typeof capHow==='function'?capHow(x.key):'Sealed');
-  h+=`<div class="tg-capr${o0.open?' open':''}" data-cap="${x.key}">${L.map(o=>tgNode(m,o)).join('')}<span class="tg-capm"><b>${htmlEsc(L.map(o=>o.perk.n).join(' / '))}</b><small>${htmlEsc((x.kind==='gift'?tlGiftLabel(x.key):x.tree.n)+' · '+(o0.open?why:'Sealed: '+why.toLowerCase()))}</small></span></div>`}
+  h+=`<div class="tg-capr${o0.open?' open':''}" data-cap="${x.key}">${L.map(o=>tgNode(m,o)).join('')}<span class="tg-capm"><b>${htmlEsc(L.length>2?L.length+' capstones, one a weapon':L.map(o=>o.perk.n).join(' / '))}</b><small>${htmlEsc((x.kind==='gift'?tlGiftLabel(x.key):x.tree.n)+' · '+(o0.open?why:'Sealed: '+why.toLowerCase()))}</small></span></div>`}
  return h+'</div></div>'}
 /* the deeds row on the character sheet: each endgame deed with its count, and how many final tiers it opens */
 function coDeeds(m){if(typeof deedList!=='function')return'';const L=deedList(m),C=typeof capOptions==='function'?capOptions(m):[],open=new Set(C.filter(o=>o.open).map(o=>o.key)).size,all=new Set(C.map(o=>o.key)).size;
@@ -259,11 +265,13 @@ function coLevel(m,i){if(!m.rolls){m.rolls={};lvSel=[]}
  for(const k in ROLL)h+=`<div class="pn-pick${lvSel.includes(k)?' on':''}${lvSel.length>=3&&!lvSel.includes(k)?' dimmed':''}" role="button" tabindex="0" data-pick="${k}" aria-pressed="${lvSel.includes(k)}" onclick="lvPick(${i},'${k}')"><b>${coStatIc(k)}+${m.rolls[k]}</b>${pnStars(m.tal[k]||0)}<span>${coStatName(k)}</span><small>now ${typeof m.base[k]==='number'?m.base[k]:0}</small></div>`;
  h+='</div>';
  return{detail:h,key:'l'+m.id,foot:`<span class="pn-fl"><span class="pn-count">${[0,1,2].map(j=>`<i class="${j<lvSel.length?'on':''}"></i>`).join('')}</span><small>${lvSel.length} of 3 chosen</small></span><button type="button" class="pn-btn pri" ${lvSel.length===3?'':'disabled'} onclick="lvConfirm(${i})">Raise attributes</button>`}}
-/* what reaching level L opens: a new tier of every style and gift tree, a weapon tier at 3 / 6 / 9 */
-function coLvTiers(L){const out=[],arm=tlArmTrees().length>0;for(let t=1;t<=9;t++){if(tlTierLv('style',t)===L)out.push({kind:'style',t});if(tlTierLv('weapon',t)===L&&t<=3)out.push({kind:'weapon',t});if(arm&&tlTierLv('armor',t)===L&&t<=3)out.push({kind:'armor',t})}return out}
-function coLvOpens(L,m){const T=coLvTiers(L),hk=m?tlTrees(m).find(x=>x.kind==='hunter'):null,hq=hk?tlTiers(hk.tree).findIndex((_,j)=>tlTierLv('hunter',j+1)===L):-1;if(!T.length&&hq<0)return'';
+/* what reaching level L opens: a new tier of every style and gift tree, the weapon masteries at 3, an armor tier at 2 / 5 / 8 (11: light only) */
+function coLvTiers(L,m){const out=[],at=m?tlTrees(m).filter(x=>x.kind==='armor'):tlArmTrees().map(k=>({tree:MAST[k]})),na=Math.max(0,...at.map(x=>tlTiers(x.tree).length)),
+  nw=m?Math.max(0,...tlTrees(m).filter(x=>x.kind==='weapon').map(x=>tlTiers(x.tree).length)):1;
+ for(let t=1;t<=9;t++){if(tlTierLv('style',t)===L)out.push({kind:'style',t});if(tlTierLv('weapon',t)===L&&t<=nw)out.push({kind:'weapon',t});if(tlTierLv('armor',t)===L&&t<=na)out.push({kind:'armor',t})}return out}
+function coLvOpens(L,m){const T=coLvTiers(L,m),hk=m?tlTrees(m).find(x=>x.kind==='hunter'):null,hq=hk?tlTiers(hk.tree).findIndex((_,j)=>tlTierLv('hunter',j+1)===L):-1;if(!T.length&&hq<0)return'';
  const hp=hq>=0?(tlTiers(hk.tree)[hq]||[])[0]:null,hQ=hp?tlQuarryOf({perk:hp,id:hp.id}):null;
- return`<div class="pn-p tg-lvup">${hp?`<span class="tg-tag hunt">${coIc(hQ?tlQuarryIcon(hQ):tlTreeIcon(hk.key))}${hQ?'Quarry opens: '+htmlEsc(QUARRY[hQ].n):'Hunter tier '+TG_ROM[hq]+' opens'}</span>`:''}${T.map(x=>x.kind==='armor'?`<span class="tg-tag w a">${coIc('armor')}${x.t===1?'Armor trees open':'Armor tier '+TG_ROM[x.t-1]+' opens'}</span>`:x.kind==='weapon'?`<span class="tg-tag w">${coIc('swords')}${x.t===1?'Weapon trees open':'Weapon tier '+TG_ROM[x.t-1]+' opens'}</span>`:`<span class="tg-tag">${coIc('level')}New tier unlocked: tier ${TG_ROM[x.t-1]}</span>`).join('')}</div>`}
+ return`<div class="pn-p tg-lvup">${hp?`<span class="tg-tag hunt">${coIc(hQ?tlQuarryIcon(hQ):tlTreeIcon(hk.key))}${hQ?'Quarry opens: '+htmlEsc(QUARRY[hQ].n):'Hunter tier '+TG_ROM[hq]+' opens'}</span>`:''}${T.map(x=>x.kind==='armor'?`<span class="tg-tag w a">${coIc('armor')}${x.t===1?'Armor trees open':'Armor tier '+TG_ROM[x.t-1]+' opens'}</span>`:x.kind==='weapon'?`<span class="tg-tag w">${coIc('swords')}${x.t===1?'Weapon masteries open':'Weapon tier '+TG_ROM[x.t-1]+' opens'}</span>`:`<span class="tg-tag">${coIc('level')}New tier unlocked: tier ${TG_ROM[x.t-1]}</span>`).join('')}</div>`}
 function coSlotView(m,i,k){const cur=m.eq[k],want=k==='b'?'w':k,list=G.stash.map((id,j)=>[id,j]).filter(([id])=>ITEMS[id]&&ITEMS[id].k===want),N={w:'Weapons',b:'Weapons',s:'Shields',a:'Armor',h:'Helmets'};
  let h=`<div class="pn-kick">${htmlEsc(m.name)}, ${k==='b'?'backup weapon':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
  <div class="pn-gear cur${cur?'':' none'}">${cur?pnItemIcon(cur,32):coIc(coSlotIcon(k),32)}<span class="pn-rmain"><span class="pn-rt">${cur?pnItemName(cur)+pnFamedTag(cur):'Nothing equipped'}${cur?coGripTag(cur):''}</span><span class="pn-rs">${cur?coItemDesc(cur)+coWornNote(m,k):k==='w'?'Fighting with bare fists':k==='b'?'No sidearm to swap to':k==='h'?'Bare-headed: a blow to the head lands in full':'Empty '+SLOTN[k].toLowerCase()+' slot'}</span></span><span class="pn-slot">${k==='b'?'At the hip':'In use'}</span></div>`;

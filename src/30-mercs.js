@@ -56,7 +56,8 @@ function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)
     shield:{id,look,hp,md,rd,raised,guard,wallB,spike}|null (md/rd are what it adds when raised; slung with a two-handed weapon in hand;
            guard/wallB/spike from the item: Cover for allies beside it, the Shield wall bonus, the Spiked bash roll),
     hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand; armor perks idle:
-    another weight class worn), acl (armorClass: light medium heavy), aw (armor + helmet weight = their fatigue), inj:[ids]} */
+    another weight class worn), acl (armorClass: light medium heavy), aw (armor + helmet weight = their fatigue),
+    initDef (melee and ranged defense from Quicksilver: floor(flags.initDef x init), already inside md and rd), inj:[ids]} */
 /* Armor weight classes for the armor trees: light = no body armor, a robe, or at most ACLASS.light armor points; medium = at most
    ACLASS.medium; heavy = more. A famed piece keeps the class of the item it was made from. armorClass(m) takes a merc, or a battle unit
    (its merc's armor; an enemy by its armor maximum). */
@@ -70,13 +71,13 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
  const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();if(wpn.reload)wpn.reload=Object.assign({},wpn.reload);
  const sh=ITEMS[eq.s]&&ITEMS[eq.s].k==='s'?ITEMS[eq.s]:null,raised=!!sh&&!wpn.two;let shHpOff=0;
  for(const id of (Array.isArray(m.perks)?m.perks:legacyPerks(m.mast))){const P=perkById(id);if(!P)continue;const p=P.perk,T=P.tree;
-  // weapon trees work only with their family in hand; the shield tree only while a shield is raised (its shield hitpoints count whenever one is carried)
-  if(T.kind==='weapon'&&(T.wt==='shield'?!raised:T.wt!==wpn.wt)){s.off.push(id);if(T.wt==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}
+  // weapon mastery perks work only with their family in hand (p.wt); the shield's only while a shield is raised (its shield hitpoints count whenever one is carried)
+  const pw=p.wt||T.wt;if(T.kind==='weapon'&&pw&&(pw==='shield'?!raised:pw!==wpn.wt)){s.off.push(id);if(pw==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}
   if(T.kind==='armor'&&T.aw!==acl){s.off.push(id);continue}   // armor trees: only in body armor of their weight class
   s.perks.push(id);
   if(p.st)for(const q in p.st)s[q]=(s[q]||0)+p.st[q];if(p.ab&&AB[p.ab]&&!s.abs.includes(p.ab))s.abs.push(p.ab);
   if(p.flag)s.flags[p.flag]=1;if(p.mod)for(const q in p.mod)s.flags[q]=(s.flags[q]||0)+p.mod[q];
-  if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
+  if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.fat){wpn.fat=Math.max(0,(wpn.fat||0)+x.fat);wpn.fatCut=(wpn.fatCut||0)-x.fat}if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
    if(x.hit)wpn.hit=(wpn.hit||0)+x.hit;if(x.stun)wpn.stun=(wpn.stun||0)+x.stun;if(x.spell)wpn.spell=(wpn.spell||0)+x.spell;if(x.crush)wpn.crush=(wpn.crush||0)+x.crush;
    if(x.rld&&wpn.reload)wpn.reload.ap=Math.max(2,wpn.reload.ap+x.rld)}
   if(T.kind==='gift'&&T.res){const R=s.res[T.res]||(s.res[T.res]={max:GIFTBASE,regen:GIFTREGEN});if(p.res)R.max+=p.res;if(p.regen)R.regen+=p.regen}}
@@ -91,6 +92,7 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
  if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  for(const T of traitsOf(m)){if(T.st)for(const k in T.st)s[k]=(s[k]||0)+T.st[k];if(T.flag)s.flags[T.flag]=1;if(T.mod)for(const q in T.mod)s.flags[q]=(s.flags[q]||0)+T.mod[q]}   // traits
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}
+ if(s.flags.initDef){s.initDef=Math.floor(s.flags.initDef*Math.max(0,s.init));s.md+=s.initDef;s.rd+=s.initDef}else s.initDef=0;   // Quicksilver (light armor): a share of the initiative as defense
  if(s.hp<5)s.hp=5;if(s.fat<20)s.fat=20;s.ap=clamp(Math.round(s.ap),4,12);return s}
 function gainXP(m,x){m.xp+=x;while(m.lvl<MAXLV&&m.xp>=XPT[m.lvl+1]){m.lvl++;m.pp++;m.pend++}}
 function fielded(){let f=G.roster.filter(m=>m.field);if(!f.length){G.roster.slice(0,MAXFIELD).forEach(m=>m.field=true);f=G.roster.filter(m=>m.field)}return f.slice(0,MAXFIELD)}

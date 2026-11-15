@@ -249,13 +249,13 @@ function campReport(hours){const r=cpRepair(),t=cpRepairText(r),h=hours===undefi
    perkById, giftVariant, weaponTrees, mercStyle, tierLevel, equipRules). Each prefers the rules' own function and
    falls back to reading MAST and the merc directly (old m.mast saves, tier-less trees), so every screen still
    runs while the rules move. Nothing here touches the DOM or the seeded RNG. */
-const TL_WTN={sword:'Sword',axe:'Axe',mace:'Mace',dagger:'Dagger',spear:'Spear',bow:'Bow',staff:'Staff',fist:'Fist'};
+const TL_WTN={sword:'Sword',axe:'Axe',mace:'Mace',hammer:'Hammer',dagger:'Dagger',spear:'Spear',polearm:'Polearm',greatsword:'Greatsword',bow:'Bow',crossbow:'Crossbow',flintlock:'Firearm',staff:'Staff',fist:'Fist',shield:'Shield'};
 const TL_STYN={melee:'Melee',ranged:'Ranged',caster:'Caster',support:'Support'};
 function tlTry(f,d){try{const v=f();return v===undefined?d:v}catch(e){return d}}
 function tlKind(T){return!T?'style':T.kind||(T.wt?'weapon':T.res?'gift':'style')}
 /* a tree's tiers as [[perk,...],...]; old trees (p:[...]) read as one perk a tier */
 function tlTiers(T){if(!T)return[];if(Array.isArray(T.tiers))return T.tiers.map(t=>Array.isArray(t)?t:[t]);return Array.isArray(T.p)?T.p.map(p=>[p]):[]}
-function tlTierLv(kind,t){if(typeof tierLevel==='function'){const v=tlTry(()=>tierLevel(kind,t),null);if(cpNum(v))return v}return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}
+function tlTierLv(kind,t){if(typeof tierLevel==='function'){const v=tlTry(()=>tierLevel(kind,t),null);if(cpNum(v))return v}return kind==='weapon'?3*t:kind==='armor'?3*t-1:t}   // weapon: its one tier at 3
 /* ---- armor-class trees (MAST kind 'armor': lightarmor medarmor heavyarmor, tiers at 2 / 5 / 8, active only while wearing that class).
    Classes are normalised to 'light' | 'medium' | 'heavy' (null = unarmored). The rules' armorClass(m) decides; the fallback reads body armor points. ---- */
 const TL_ARMN={light:'Light',medium:'Medium',heavy:'Heavy'},TL_ARMK=['light','medium','heavy'];
@@ -280,9 +280,9 @@ function tlRes(m){const g=tlGift(m);if(g&&MAST[g].res)return MAST[g].res;if(type
 function tlStyle(m){if(typeof mercStyle==='function'){const s=tlTry(()=>mercStyle(m),null);if(s)return s}const b=BG[m.bg]||{};return b.style||'melee'}
 /* the gift label: "Aura: Archer's way" */
 function tlGiftLabel(g){const T=MAST[g];if(!T)return'';const r=T.res&&typeof RESN!=='undefined'?RESN[T.res]:'';return r&&T.n.indexOf(r)!==0?r+': '+T.n:T.n}
-/* the weapon families this merc's background allows (minus its race's), and the weapon tree key of each */
+/* the weapon families this merc's background allows (minus its race's), and the weapon tree key of each (MAST.weapons holds them all) */
 function tlWtAllowed(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[];return(Array.isArray(b.wt)?b.wt:[]).filter(w=>!no.includes(w))}
-function tlWtKey(w){if(MAST[w]&&tlKind(MAST[w])==='weapon')return w;for(const k in MAST)if(tlKind(MAST[k])==='weapon'&&MAST[k].wt===w)return k;return null}
+function tlWtKey(w){if(MAST[w]&&tlKind(MAST[w])==='weapon')return w;for(const k in MAST)if(tlKind(MAST[k])==='weapon'&&(MAST[k].wt===w||(MAST[k].tiers||[]).some(t=>t.some(p=>p&&p.wt===w))))return k;return null}
 function tlWeaponKeys(m){if(typeof weaponTrees==='function'){const L=tlTry(()=>weaponTrees(m),null);if(Array.isArray(L))return L.map(x=>typeof x==='string'?(MAST[x]?x:tlWtKey(x)):x&&x.key).filter(k=>k&&MAST[k])}
  return tlWtAllowed(m).map(tlWtKey).filter(Boolean)}
 function tlStyleKeys(m){const g=tlGift(m);if(Array.isArray(m.trees))return m.trees.filter(k=>MAST[k]&&k!==g&&tlKind(MAST[k])!=='gift'&&tlKind(MAST[k])!=='weapon');return m.mast?Object.keys(m.mast).filter(k=>MAST[k]&&!MAST[k].res):[]}

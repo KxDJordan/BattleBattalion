@@ -623,6 +623,13 @@
 #pn .tg-tree.k-armor.off .tg-th>.pxi,#pn .tg-tree.k-armor.off .tg-th>.pn-i{opacity:.6}
 #pn .tg-tree.k-armor.off .tg-n:not(.got):not(.sel){filter:saturate(.55) brightness(.85)}
 #pn .tg-tag.w.a{background:#1f3a33;color:#c8d0d8}
+#pn .tg-c.tg-none{background:none;box-shadow:none}
+#pn .tg-wpn .tg-tree.k-weapon{margin-top:2px}
+#pn .tg-tree.k-weapon .tg-row{box-shadow:-4px 0 0 #6a7a84;margin-left:4px}
+#pn .tg-c.tg-wc{gap:1px;padding:3px 1px 2px}
+#pn .tg-c.tg-wc>small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:.78em;line-height:1}
+#pn .tg-c.tg-wc.hand{background:#1f3a33;box-shadow:inset 0 0 0 2px var(--verd)}
+#pn .tg-c.tg-wc.hand>small{color:#9fe0cd}
 #pn .co-w.co-a.worn{box-shadow:0 2px 0 var(--verd)}
 #pn .pn-chip.ac-chip{color:#c8d0d8;box-shadow:inset 0 -2px 0 #4d5a5c}
 #pn .pn-chip.ac-chip.light{color:#d6c39a;box-shadow:inset 0 -2px 0 #7a5a38}

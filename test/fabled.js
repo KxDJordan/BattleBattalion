@@ -84,21 +84,16 @@ section('personal trees');
   // vsBoss reads in the forecast
   const u=X.mkMercUnit(X.fabledMerc('ysolde'),0);ok(u.flags.vsBoss>0,'Riftbane flag');
   console.log('owner-only learning, refunds, repair: ok') }
-section('earning and recruiting');
-{ const G=fresh(SEED+2);G.renown=0;ok(!X.fabledEarn('aldric').ok&&X.fabledEarn('aldric').text.length>5,'renown condition readable and unmet');ok(!X.fabledCan('aldric').ok,'cannot hire unearned');
-  G.renown=400;ok(X.fabledEarn('aldric').ok,'Renowned earns Aldric');const c=X.fabledCan('aldric');ok(c.ok,'Aldric can be hired: '+c.why);
-  const n=G.roster.length,cr=G.crowns,m=X.fabledJoin('aldric');ok(m&&m.fabled==='aldric'&&G.roster.length===n+1&&G.crowns===cr-X.fabledCost('aldric')&&X.fabledState('aldric')==='joined','fabledJoin');
-  ok(!X.fabledJoin('aldric')&&X.fabledFor({k:'boss'})!=='aldric','a joined fabled is gone from the world');
-  G.amb.st.wins=29;ok(!X.fabledEarn('jin').ok,'deed short');G.amb.st.wins=30;ok(X.fabledEarn('jin').ok,'thirty wins earn Jin');
-  ok(!X.fabledEarn('brannoc').ok,'quarry short');G.roster[0].slain={'hunter.ogre':2};ok(X.fabledEarn('brannoc').ok,'two ogres earn Brannoc');
-  ok(!X.fabledEarn('korvak').ok&&X.fabledEarn('korvak').duel,'Korvak waits for a duel');
-  ok(!X.fabledEarn('hakon').ok&&!X.fabledCan('hakon').ok,'Hakon never joins');
-  const ti=X.fabledTown('jin');ok(ti>=0&&ti<G.towns.length&&X.fabledTown('jin')===ti,'a fixed town');ok(X.fabledOffers(ti).some(o=>o.id==='jin'),'offered in that town');
+section('never for hire');
+{ const G=fresh(SEED+2);G.renown=2000;G.crowns=99999;G.amb.st.wins=99;G.roster[0].slain={'hunter.ogre':9};
+  ok(ids.every(id=>!X.fabledCan(id).ok&&X.fabledCan(id).why.length>3),'nobody can be hired, whatever the renown, deeds or purse');
+  const n=G.roster.length;ok(ids.every(id=>!X.fabledJoin(id))&&G.roster.length===n&&ids.every(id=>X.fabledState(id)!=='joined'),'fabledJoin never adds one');
+  ok(G.towns.every((t,i)=>X.fabledOffers(i).length===0),'no tavern offers them');ok(ids.every(id=>!X.fabledDuelCan(id).ok&&!X.fabledDuel(id)),'no duels for a place in the company');
+  ok(X.fabledFor({k:'boss'}),'still met on the field');ok(ids.every(id=>X.FABLED[id].where.some(w=>w!=='recruit')),'every fabled can still be met somewhere');
   // solo
-  const S=fresh(SEED+3);S.origin=Object.keys(X.ORIGINS).find(k=>X.ORIGINS[k].solo);ok(S.origin&&X.isSolo(),'a solo origin');S.renown=2000;S.amb.st.wins=99;
-  ok(ids.every(id=>!X.fabledCan(id).ok&&!X.fabledJoin(id)),'never join a solo run');ok(X.fabledOffers(0).length===0&&X.fabledFor({k:'recruit'})===null,'nothing offered to a solo run');
-  ok(X.fabledFor({k:'boss'}),'but can still be fought');
-  console.log('renown, deeds, quarry, duels, solo gate, towns: ok') }
+  const S=fresh(SEED+3);S.origin=Object.keys(X.ORIGINS).find(k=>X.ORIGINS[k].solo);ok(S.origin&&X.isSolo(),'a solo origin');S.renown=2000;
+  ok(ids.every(id=>!X.fabledCan(id).ok&&!X.fabledJoin(id)),'never join a solo run');ok(X.fabledFor({k:'boss'}),'but can still be fought');
+  console.log('never for hire: ok') }
 section('fabledFor');
 { const G=fresh(SEED+4),s=X.rngState(),a=X.fabledFor({k:'crisis',crisis:'barbarian'});ok(a==='hakon'&&X.rngState()===s,'the barbarian crisis gets Hakon, no rnd');
   ok(X.FABLED[X.fabledFor({k:'east'})].east,'an eastern host gets an eastern warrior');ok(X.fabledFor({k:'crisis',crisis:'deadmarch'})==='ulfgar'||X.FABLED[X.fabledFor({k:'crisis',crisis:'deadmarch'})].crisis.includes('deadmarch'),'dead march');
@@ -132,17 +127,14 @@ section('boss phases');
   ok(b2.boss&&b2.boss.u.eid===en,'an EN boss');b2.round=2;X.bossRound(b2);ok(X.bossStatus().enraged,'enraged on its round');X.B=null;X.mode='world';
   console.log('thresholds, summons, enrage, heal, bossStatus: ok') }
 section('duels');
-{ const G=fresh(SEED+7);G.renown=200;ok(X.fabledDuelCan('grimhild').ok,'a duel can be offered');const champ=G.roster[0];X.makeVeteran(champ,15);champ.base.ms+=80;champ.base.md+=60;champ.hp=X.calc(champ).hp;
-  let won=false;for(let i=0;i<6&&!won;i++){X.seedRng(SEED+i);const r=await X.autoBattle({f:'bandit',fabled:['grimhild'],fabledOnly:1,duel:'grimhild',yield:1,deploy:[{id:champ.id}],turnCap:3000,src:{type:'fabled',id:'grimhild'}});
-   ok(r&&!r.stuck&&r.foes===1,'a duel is one against one');ok(X.fabledState('grimhild')!=='dead'&&G.roster.includes(champ),'nobody dies in a duel');if(r.win)won=true;X.settleBattle(r.win);champ.hp=X.calc(champ).hp}
-  ok(won&&X.fabledEarn('grimhild').ok&&X.fabledCan('grimhild').ok,'a duel won earns her');console.log('duels to yielding: ok') }
+{ const G=fresh(SEED+7);G.renown=2000;ok(ids.every(id=>!X.fabledDuelCan(id).ok),'no duel is offered');console.log('no duels: ok') }
 section('rival champions');
 { const G=fresh(SEED+8);ok(Array.isArray(G.rivals)&&G.rivals.length,'rivals exist');const s=X.rngState();G.day=40;X.fabledDay();ok(X.rngState()===s,'fabledDay draws no rnd');
   const champs=G.rivals.filter(r=>r.roster.some(m=>m.fabled));ok(champs.length>=1,'a rival takes a fabled champion');const r=champs[0],m=r.roster.find(x=>x.fabled);
   ok(X.fabledState(m.fabled)==='rival:'+r.id&&X.rivalField(r).includes(m),'state and the field');ok(X.fabledFor({k:'boss',exclude:[]})!==m.fabled||true,'');
   r.roster=r.roster.filter(x=>x!==m);r.alive=false;X.fabledDay();ok(X.fabledState(m.fabled)==='met','a champion whose company is gone is free again');console.log(champs.length+' rival champions: ok') }
 section('save round trip');
-{ const G=fresh(SEED+9);G.renown=400;const m=X.fabledJoin('aldric');X.fabledSet('hakon','dead',{how:'test'});G.stash.push('fb:wolfaxe');ok(X.save(),'save');
+{ const G=fresh(SEED+9);G.renown=400;const m=X.fabledMerc('aldric',{join:1});G.roster.push(m);X.fabledSet('aldric','joined');X.fabledSet('hakon','dead',{how:'test'});G.stash.push('fb:wolfaxe');ok(X.save(),'save');
   X.G=null;X.mode='title';X.continueGame();const H=X.G;const m2=H.roster.find(x=>x.fabled==='aldric');
   ok(m2&&JSON.stringify(m2.perks)===JSON.stringify(m.perks)&&m2.eq.w==='fb:oathkeeper','the fabled merc comes back with perks and gear');
   ok(X.fabledState('aldric')==='joined'&&X.fabledState('hakon')==='dead'&&H.fabled.hakon.how==='test'&&H.stash.includes('fb:wolfaxe'),'G.fabled and named gear survive');

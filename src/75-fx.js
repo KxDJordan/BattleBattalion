@@ -662,10 +662,10 @@ function fxLockScan(){if(typeof shLocked!=='function'||!B||!B.units)return;const
    craft (volley, double shot, headshot, through-shots, crippling shot, mark), and the melee / support arts. */
 const S_N0=40,S_AARW=40,S_SUN=41,S_CONC=42,S_SEEK=43,S_ARCV=44,S_BIND=45,S_STARP=46,S_SPIRIT=47,S_PRESS=48,S_VOLLEY=49,S_QUAKE=50,S_PALM=51,S_STORM=52,S_RUNE=53,S_DECAP=54,S_KICK=55,S_MULTI=56,S_STAR=57,S_SHATTER=58;
 const FX_ID={aarrow:'aarrow',carrow:'carrow',sunarrow:'sunarrow',pvolley:'pvolley',farrow:'farrow',iarrow:'iarrow',tarrow:'tarrow',tempest:'tempest',seeker:'seeker',avolley:'avolley',
- bindshot:'bindshot',starpierce:'starpierce',spiritarrow:'spirit',pparrow:'pparrow',volley:'volley',doubleshot:'dshot',headshot:'headshot',pshot:'pshot',cripple:'cripple',mark:'mark',breath:'breath',
- flurry:'multi',hundred:'multi',fistflurry:'multi',earthsplit:'quake',staffquake:'quake',palm:'palm',shatter:'palm',overload:'overload',dragon:'dragon',runeedge:'runeedge',blinkstrike:'blinkstr',
- manashield:'manashield',starfall:'starfall',avatar:'avatar',rage:'rage',decap:'decap',axeexec:'decap',kick:'kick',dragonkick:'dkick',lotus:'lotus',surge:'surge',secwind:'secwind',
- bandage:'bandage',triage:'bandage',tumble:'tumble',vault:'tumble',vanish:'vanish',bastion:'bastion',phalanx:'phalanx',parry:'parry',masterstroke:'master',bladedance:'round',whirl:'round',cleave:'round'};
+ bindshot:'bindshot',starpierce:'starpierce',spiritarrow:'spirit',pparrow:'pparrow',volley:'volley',headshot:'headshot',pshot:'pshot',mark:'mark',breath:'breath',
+ flurry:'multi',hundred:'multi',earthsplit:'quake',staffquake:'quake',palm:'palm',shatter:'palm',overload:'overload',dragon:'dragon',runeedge:'runeedge',blinkstrike:'blinkstr',
+ manashield:'manashield',starfall:'starfall',avatar:'avatar',rage:'rage',decap:'decap',kick:'kick',lotus:'lotus',surge:'surge',secwind:'secwind',
+ bandage:'bandage',triage:'bandage',tumble:'tumble',vanish:'vanish',bastion:'bastion',phalanx:'phalanx',parry:'parry',masterstroke:'master',whirl:'round',cleave:'round'};
 const FX_BOWAB=ab=>ab.needs==='bow'||(ab.wpn&&B&&B.cur&&B.cur.wpn&&B.cur.wpn.wt==='bow');
 const FX_HINT2={swap:()=>'swapk',volley:()=>'volley',leap:()=>'tumble',multi:()=>'multi',quake:()=>'quake',heal:ab=>ab.party?'lotus':'bandage',mark:()=>'mark',rage:()=>'rage',
  pierce:ab=>FX_BOWAB(ab)?'pshot':'stab',storm:ab=>FX_BOWAB(ab)?'tarrow':'overload',aura:ab=>ab.tgt==='self'?'avatar':FX_BOWAB(ab)?'aarrow':null,flame:ab=>FX_BOWAB(ab)?'farrow':null,
@@ -795,8 +795,8 @@ const S_A0=70,S_HAMMER=70,S_BELL=71,S_DEMO=72,S_BOLT=73,S_HEART=74,S_BALL=75,S_S
 const T_SMOKE=40;
 Object.assign(FXG,{flash:['...e...','.e.y.e.','..yey..','eyereye','..yey..','.e.y.e.','...e...'],flash1:['..E.E..','.EyyyE.','EyerrE.','.Eyyy E','..E.E..'].map(r=>r.replace(/ /g,'.')),
  dent:['.rqqp.','rq00po','q0..0o','p0..0o','.oooo.'],bell:['..d..','.dcd.','.dcb.','dccbb','.0.0.']});
-Object.assign(FX_ID,{xaim:'xshot',xpin:'xshot',xheart:'xshot',blast:'gshot',fdeafen:'gshot',fexecute:'gshot',batter:'batter',ringblow:'ringblow',demolish:'demolish',hsmash:'hsmash',
- hook:'hook',trip:'hook',reap:'polereap',glaivecut:'glaivecut',gswing:'gswing',mordhau:'mordhau',spikebash:'spikebash',reload:'reload',scharge:'charge',fortress:'guard',halfsword:'stab',gsweep:'round'});
+Object.assign(FX_ID,{xaim:'xshot',xheart:'xshot',blast:'gshot',fexecute:'gshot',batter:'batter',hsmash:'hsmash',
+ hook:'hook',trip:'hook',reap:'polereap',gswing:'gswing',spikebash:'spikebash',reload:'reload',halfsword:'stab',});
 function fxW(u){return u&&u.wpn||FXO_NIL}
 function fxIsRangedW(w){if(!w)return false;if(typeof isRangedW==='function')try{return isRangedW(w)}catch(e){}return w.wt==='bow'||w.wt==='crossbow'||w.wt==='flintlock'}
 function fxIsHammer(u){const w=fxW(u);return w.wt==='hammer'}

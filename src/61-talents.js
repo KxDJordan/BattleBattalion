@@ -1,11 +1,13 @@
 /* ================= TALENTS =================
    The talent API (the trees themselves are MAST in 10-data.js). A merc carries
-     m.trees  [tree keys] fixed at creation: 4 style trees from BG[bg].pool, plus its gift tree when it has one
+     m.trees  [tree keys] fixed at creation: 4 trees from BG[bg].pool (style trees, and for a background with BG[bg].hw maybe the
+              Monster hunter tree in place of the 4th: rollTrees), plus its gift tree when it has one
      m.gift   the gift tree key (a MAST entry of kind 'gift') or null; chosen from the gift and BG[bg].style (giftKey)
      m.perks  [perk ids] learned, in order;  m.pp unspent perk points (one a level, level 1 included)
-   Weapon trees are not stored: weaponTrees(m) = BG[bg].wt minus RACE[race].noWt.
+   The Weapon mastery tree is not stored: every merc whose background allows a weapon family has it (weaponTrees(m) -> ['weapons']),
+   and of its perks (one per family, perk.wt) only those of weaponTypes(m) = BG[bg].wt minus RACE[race].noWt are listed or learnable.
    Armor trees are not stored either: armorTrees(m) = BG[bg].at (1 or 2 of lightarmor medarmor heavyarmor); their tier t opens at level 3t-1.
-   Tier t of a style or gift tree opens at level t, of a weapon tree at level 3t; any open perk can be bought with a point.
+   Tier t of a style, gift or hunter tree opens at level t, the weapon tier at level 3; any open perk can be bought with a point.
    The first perk learned in the gift tree awakens the gift (calc() then grants its pool).
    m.mast is a derived, read-only mirror {treeKey: perks owned} kept for older UI code; nothing in the rules reads it.
    Uses no randomness except rollTrees() at recruitment (seeded). */
@@ -17,11 +19,11 @@ const PERKIX={};for(const k in MAST)MAST[k].tiers.forEach((tier,ti)=>tier.forEac
 for(const k in MAST){const T=MAST[k];if(T.cap&&Array.isArray(T.cap.tiers))T.cap.tiers.forEach(tier=>tier.forEach(p=>{if(!PERKIX[p.id])PERKIX[p.id]={perk:p,tree:T,key:k,tier:T.tiers.length+1,kind:T.kind,cap:true}}))}
 function perkNeed(P){return P&&P.cap?(P.tree.cap&&P.tree.cap.lvl)||(typeof capNeed==='function'?capNeed(P.kind):10):tierLevel(P.kind,P.tier)}
 const capOK=(m,k)=>typeof capOpen==='function'&&capOpen(m,k);
-function capOptions(m){const own=new Set(m&&Array.isArray(m.perks)?m.perks:[]),out=[];if(!m)return out;
+function capOptions(m){const own=new Set(m&&Array.isArray(m.perks)?m.perks:[]),out=[];if(!m)return out;const wts=weaponTypes(m);
  for(const {key,tree,kind} of mercTrees(m)){const C=tree.cap;if(!C||!Array.isArray(C.tiers))continue;const need=C.lvl||10,open=capOK(m,key),why=typeof capWhy==='function'?capWhy(m,key):'';
-  for(const tier of C.tiers)for(const p of tier)out.push({id:p.id,perk:p,key,tree,tier:tree.tiers.length+1,kind,cap:true,owned:own.has(p.id),open,why,unlocked:open&&(m.lvl||1)>=need,need})}
+  for(const tier of C.tiers)for(const p of tier)if(perkFor(m,p,wts))out.push({id:p.id,perk:p,key,tree,tier:tree.tiers.length+1,kind,cap:true,owned:own.has(p.id),open,why,unlocked:open&&(m.lvl||1)>=need,need})}
  return out}
-// The level at which tier t (1-based) of a tree of this kind opens: style, gift and hunter t, weapon 3t (3 6 9), armor 3t-1 (2 5 8).
+// The level at which tier t (1-based) of a tree of this kind opens: style, gift and hunter t, weapon 3t (its one tier: 3), armor 3t-1 (2 5 8 11).
 function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:kind==='fabled'?3*t-2:t}
 /* Armor trees: a merc may learn only its background's (BG[bg].at: 1 or 2 of ARMORT, display order light medium heavy); a perk of one
    works only while the body armor worn is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off).
@@ -29,10 +31,12 @@ function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:kind=
 const ARMORT=['lightarmor','medarmor','heavyarmor'].filter(k=>MAST[k]&&MAST[k].kind==='armor');
 function armorTrees(m){const b=m&&BG[m.bg],ok=b&&Array.isArray(b.at)?b.at:[];return ARMORT.filter(k=>ok.includes(k))}
 const isArmorPerk=id=>!!(PERKIX[id]&&PERKIX[id].kind==='armor');
-/* refundTrees(m): takes back every learned perk of a weapon or armor tree the merc may not learn (its background or race does not
-   allow it) and returns the points to m.pp. Returns how many perks were refunded. Used by the v8 save migration and the loader. */
-function refundTrees(m){if(!m||!Array.isArray(m.perks))return 0;const ok=new Set(weaponTrees(m).concat(armorTrees(m),hunterTrees(m),fabledTrees(m)));let n=0;
- m.perks=m.perks.filter(id=>{const P=PERKIX[id];if(P&&(P.kind==='weapon'||P.kind==='armor'||P.kind==='hunter'||P.kind==='fabled')&&!ok.has(P.key)){n++;return false}if(P&&P.cap&&!capOK(m,P.key)){n++;return false}return true});   // a capstone whose deed the merc lacks is refunded too
+/* refundTrees(m): takes back every learned perk of a weapon, armor, hunter or fabled tree the merc may not learn (its background or race
+   does not allow the weapon family or armor class; the hunter tree is not one of its trees) and returns the points to m.pp. Returns how
+   many perks were refunded. Used by the v8 and v15 save migrations and the loader. */
+function refundTrees(m){if(!m||!Array.isArray(m.perks))return 0;const ok=new Set(weaponTrees(m).concat(armorTrees(m),hunterTrees(m),fabledTrees(m))),wts=weaponTypes(m);let n=0;
+ m.perks=m.perks.filter(id=>{const P=PERKIX[id];if(P&&(P.kind==='weapon'||P.kind==='armor'||P.kind==='hunter'||P.kind==='fabled')&&!ok.has(P.key)){n++;return false}
+  if(P&&P.perk.wt&&!wts.includes(P.perk.wt)){n++;return false}if(P&&P.cap&&!capOK(m,P.key)){n++;return false}return true});   // a capstone whose deed the merc lacks is refunded too
  if(n)m.pp=Math.max(0,Math.floor(Number(m.pp)||0))+n;return n}
 // {perk, tree, key, tier, kind} for a perk id, or null.
 function perkById(id){return PERKIX[id]||null}
@@ -43,10 +47,15 @@ function giftKey(res,style){const V=GIFTV[res];return V?V[style]||V.melee:null}
 function giftVariant(m,res){if(!m)return null;if(!res&&m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift')return m.gift;const r=res||mercRes(m);return r?giftKey(r,mercStyle(m)):null}
 // True once the gift is awakened (a perk of the gift tree is learned).
 function giftAwake(m){const g=m&&m.gift;return!!(g&&Array.isArray(m.perks)&&m.perks.some(id=>PERKIX[id]&&PERKIX[id].key===g))}
-// Weapon tree keys the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order.
-function weaponTrees(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w)&&MAST[w])}
+// The weapon families whose mastery perks the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order.
+function weaponTypes(m){const b=m&&BG[m.bg]||{},no=m&&RACE[m.race]&&RACE[m.race].noWt||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w))}
+// The weapon tree keys the merc has: ['weapons'] when its background allows a weapon family, else [].
+function weaponTrees(m){return MAST.weapons&&weaponTypes(m).length?['weapons']:[]}
+// True when perk p (a MAST perk) is listed for merc m: a weapon mastery perk only for the families weaponTypes(m) allows.
+const perkFor=(m,p,wts)=>!p.wt||(wts||weaponTypes(m)).includes(p.wt);
 /* ---- Monster hunter (MAST.hunter, QUARRY in 10-data.js) ----
-   hunterTrees(m) -> ['hunter'] for a merc whose background has BG[bg].ht (Beast slayer, hunter, poacher, witch hunter, wildling), else [].
+   hunterTrees(m) -> ['hunter'] for a merc that carries it in m.trees (one of its 4 trees: rollTrees draws it for a background with BG[bg].hw,
+   the Beast slayer always), else [].
    enKey(def) -> the EN id of an enemy definition (a unit's u.def), or null.  quarryOf(u|def|enId) -> the QUARRY key of that foe, or null.
    slainOf(m, k) -> how many of quarry k the merc has slain (m.slain, counted always).  countSlain(u, t): called when u lands the killing
    blow on t: +1 to u.m.slain[quarry] (any merc, a rival's too; never for wyverns or other mercs). Returns the key or null.
@@ -59,7 +68,7 @@ function weaponTrees(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt
    that id may learn it (fabledTrees(m) -> [key] or []). Tiers open at levels 1 4 7 10 (tierLevel). refundTrees takes back such perks
    from anyone else. */
 function fabledTrees(m){const id=m&&m.fabled,k=id&&typeof FABLED==='object'&&FABLED[id]?FABLED[id].tree:null;return k&&MAST[k]&&MAST[k].kind==='fabled'&&MAST[k].owner===id?[k]:[]}
-function hunterTrees(m){const b=m&&BG[m.bg];return b&&b.ht&&MAST.hunter?['hunter']:[]}
+function hunterTrees(m){return m&&Array.isArray(m.trees)&&m.trees.includes('hunter')&&MAST.hunter?['hunter']:[]}
 let _ENK=null;
 function enKey(def){if(!def||typeof EN!=='object')return null;if(!_ENK){_ENK=new Map();for(const k in EN)_ENK.set(EN[k],k)}return _ENK.get(def)||null}
 function quarryOf(x){if(!x)return null;if(typeof x==='string')return QUARRYOF[x]||null;if(x.m)return null;const k=x.def?enKey(x.def)||x.eid||null:enKey(x);return k&&QUARRYOF[k]||null}
@@ -72,8 +81,8 @@ function quarryInfo(m,k){const Q=QUARRY[k];if(!Q)return null;const slain=slainOf
 const QV0={key:null,dmg:0,hit:0,n:'',tag:''};
 function quarryVs(u,t){const m=u&&u.m;if(!m||!Array.isArray(m.perks)||!t)return QV0;const k=quarryOf(t);if(!k||!m.perks.includes(k))return QV0;const I=quarryInfo(m,k);
  return{key:k,dmg:I.dmg/100,hit:I.hit,n:I.n,tag:I.tag,slain:I.slain}}
-// Every tree the merc has, in display order: (a fabled warrior's personal tree first), style trees, the gift, weapon trees, armor trees, the Monster hunter tree. [{key, tree, kind}]
-function mercTrees(m){const out=[],tr=Array.isArray(m.trees)?m.trees:[];
+// Every tree the merc has, in display order: (a fabled warrior's personal tree first), style trees, the gift, the weapon tree, armor trees, the Monster hunter tree (from m.trees). [{key, tree, kind}]
+function mercTrees(m){const out=[],tr=Array.isArray(m&&m.trees)?m.trees:[];
  for(const k of tr)if(MAST[k]&&MAST[k].kind==='style')out.push({key:k,tree:MAST[k],kind:'style'});
  const g=m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift'?m.gift:null;if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
  for(const k of weaponTrees(m))out.push({key:k,tree:MAST[k],kind:'weapon'});
@@ -81,17 +90,20 @@ function mercTrees(m){const out=[],tr=Array.isArray(m.trees)?m.trees:[];
  for(const k of hunterTrees(m))out.push({key:k,tree:MAST[k],kind:'hunter'});
  for(const k of fabledTrees(m))out.unshift({key:k,tree:MAST[k],kind:'fabled'});return out}
 // Every perk of every tree the merc has: [{id, perk, key, tree, tier, kind, owned, unlocked, need (level)}]
-function perkOptions(m){const own=new Set(Array.isArray(m.perks)?m.perks:[]),out=[];
- for(const {key,tree,kind} of mercTrees(m))tree.tiers.forEach((tier,ti)=>{const need=tierLevel(kind,ti+1);for(const p of tier)out.push({id:p.id,perk:p,key,tree,tier:ti+1,kind,owned:own.has(p.id),unlocked:(m.lvl||1)>=need,need})});
+function perkOptions(m){const own=new Set(Array.isArray(m.perks)?m.perks:[]),out=[],wts=weaponTypes(m);
+ for(const {key,tree,kind} of mercTrees(m))tree.tiers.forEach((tier,ti)=>{const need=tierLevel(kind,ti+1);for(const p of tier)if(perkFor(m,p,wts))out.push({id:p.id,perk:p,key,tree,tier:ti+1,kind,owned:own.has(p.id),unlocked:(m.lvl||1)>=need,need})});
  return out}
-function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(m.perks)||m.perks.includes(id))return false;if((m.lvl||1)<perkNeed(P))return false;if(P.cap&&!capOK(m,P.key))return false;return mercTrees(m).some(x=>x.key===P.key)}
+function canLearn(m,id){const P=PERKIX[id];if(!m||!P||!(m.pp>0)||!Array.isArray(m.perks)||m.perks.includes(id))return false;if((m.lvl||1)<perkNeed(P))return false;if(P.cap&&!capOK(m,P.key))return false;if(!perkFor(m,P.perk))return false;return mercTrees(m).some(x=>x.key===P.key)}
 // Spends a point on perk id. Awakens the gift on its first perk; hitpoints gained are healed at once. Returns true when learned.
 function learnPerk(m,id){if(!canLearn(m,id))return false;const hp0=calc(m).hp;m.perks.push(id);m.pp--;const hp1=calc(m).hp;if(hp1>hp0)m.hp=Math.min(hp1,(m.hp||0)+hp1-hp0);else m.hp=Math.min(m.hp,hp1);syncMast(m);return true}
 // Older UI code reads m.mast; keep it a mirror of m.perks.
 function syncMast(m){if(!m)return;const o={};for(const k of (Array.isArray(m.trees)?m.trees:[]))if(MAST[k])o[k]=0;for(const id of (m.perks||[])){const P=PERKIX[id];if(P&&P.key in o)o[P.key]++}m.mast=o}
-// 4 style trees drawn from the background pool. r: a random source (default the seeded game stream).
-function rollTrees(bg,r){const pool=(BG[bg]&&BG[bg].pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice();
- if(r){for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=pool[i];pool[i]=pool[j];pool[j]=t}}else shuffle(pool);return pool.slice(0,4)}
+/* rollTrees(bg, r?): the 4 trees a recruit carries, drawn from the background pool: 4 style trees, or for a background with BG[bg].hw
+   (its pool lists 'hunter') 3 style trees and the Monster hunter tree with chance hw (1: always, no draw). r: a random source (default
+   the seeded game stream). */
+function rollTrees(bg,r){const b=BG[bg],pool=(b&&b.pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice(),R=r||rnd;
+ if(r){for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=pool[i];pool[i]=pool[j];pool[j]=t}}else shuffle(pool);
+ const hw=b&&b.hw>0&&MAST.hunter&&b.pool.includes('hunter')?b.hw:0;return hw&&(hw>=1||R()<hw)?pool.slice(0,3).concat(['hunter']):pool.slice(0,4)}
 /* autoLearn(m): spends every point on a sensible build for the merc's role: the gift first (awakened at once), then the
    highest open tier that suits its style, gear and weapons; abilities it could not use with its gear are passed over.
    Deterministic (no randomness). Returns the ids learned. */
@@ -99,11 +111,11 @@ function mercTags(m){const t=new Set([mercStyle(m)]),w=ITEMS[m.eq&&m.eq.w],a=ITE
  if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&m.eq.s&&!(w&&w.two))t.add('shield');if(!a||a.fat<=10)t.add('light');
  if(m.gift&&MAST[m.gift])t.add(MAST[m.gift].style);return t}
 function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,rngd=isRangedW(w),bow=wt==='bow',two=!!(w&&w.two),
-  sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
+  sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two,pw=p.wt||T.wt;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
  let s=o.tier*10+(o.cap?40:0);if(o.kind==='gift')s+=giftAwake(m)?18:60;if(o.kind==='fabled')s+=80;   // a fabled warrior's own tree comes first
- if(o.kind==='weapon')s+=T.wt==='shield'?(up?14:swUp?4:-25):T.wt===wt?14:T.wt===swt?4:-25;
+ if(o.kind==='weapon')s+=pw==='shield'?(up?14:swUp?4:-25):pw===wt?20:pw===swt?4:-25;   // the mastery of the weapon in hand first
  if(o.kind==='armor'){if(T.aw!==armorClass(m))return s-200;s+=20;const md=p.mod||{};   // only the tree of the armor worn; within it, what suits the merc
-  if(md.fleet&&!rngd)s-=6;if(p.flag==='slip'&&rngd)s+=4;if(md.steelWall&&rngd)s-=8;if(p.flag==='ironLung')s+=4;if(md.armRegen)s+=3}
+  if(md.fleet&&!rngd)s-=4;if(p.flag==='slip'&&rngd)s+=4;if(md.steelWall&&rngd)s-=4;if(md.ironLung)s+=4;if(md.armRegen)s+=3;if(md.initDef)s+=4}
  if(o.kind==='hunter'){const I=quarryInfo(m,o.id);return 4+o.tier*3+(I?Math.min(I.slain,I.cap)*4:0)}   // worth it once the merc has a tally of that quarry
  if((T.aff||[]).some(a=>tags.has(a)))s+=12;
  const a=p.ab&&AB[p.ab];if(a){s+=3;if(a.needs&&!needsOK(a,wt))s-=needsOK(a,swt)?12:45;if(a.two&&!two)s-=45;if(a.shield&&!up)s-=swUp?12:45;if(a.noBow&&rngd)s-=20;if(a.tgt==='ally'||a.party)s+=tags.has('support')?6:0}
