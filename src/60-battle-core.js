@@ -416,10 +416,21 @@ function losInfo(u,t,a){const kind=shotKind(u,t,a);if(!kind||!B)return{blocked:f
  for(const [uc,ur] of unitTiles(u))for(const [tc,tr] of unitTiles(t)){const L=losLine(u,t,uc,ur,tc,tr,kind),d=Math.abs(uc-tc)+Math.abs(ur-tr);
   if(!best||(best.blocked&&!L.blocked)||(best.blocked===L.blocked&&(L.cover<best.cover||(L.cover===best.cover&&d<bd)))){best=L;bd=d}}return best}
 function losLine(u,t,uc,ur,tc,tr,kind){const out={blocked:false,cover:0,ff:[]};let pc=uc,pr=ur,qc=tc,qr=tr;if(key(tc,tr)<key(uc,ur)){pc=tc;pr=tr;qc=uc;qr=ur}
- const dc=qc-pc,dr=qr-pr,n=Math.max(Math.abs(dc),Math.abs(dr)),top=Math.max(T(u).h,T(t).h)+1;let cov=0,seen=null;
+ const dc=qc-pc,dr=qr-pr,n=Math.max(Math.abs(dc),Math.abs(dr)),top=Math.max(T(u).h,T(t).h)+1,fromU=pc===uc&&pr===ur;let cov=0,seen=null;
  for(let i=1;i<n;i++){const c=Math.round(pc+dc*i/n),r=Math.round(pr+dr*i/n),tl=B.tiles[key(c,r)];if(tl.t==='block'||tl.h>top){out.blocked=true;continue}
-  const x=unitAt(c,r);if(x&&x!==u&&x!==t){if((x.sz||1)>1){if(seen&&seen.includes(x))continue;(seen||(seen=[])).push(x)}cov++;if(x.side===u.side)out.ff.push(x)}}
+  const x=unitAt(c,r);if(x&&x!==u&&x!==t){if((x.sz||1)>1){if(seen&&seen.includes(x))continue;(seen||(seen=[])).push(x)}cov++;
+   if(x.side===u.side&&ffInLine(u,t,x,fromU?i:n-i,n,tl.h))out.ff.push(x)}}
  if(kind===1){out.ff=[];return out}if(T(u).h>T(t).h)cov--;out.cover=clamp(cov,0,2);return out}
+/* Which ally in the line a missed shot can stray into (ffInLine): the arrow leaves the shooter low and comes down on the target, so
+   only the ally right in front of the shooter (the first tile) or right in front of the target (the last tile) is in its path; the
+   middle of the line is overhead. An ally in front of a shooter who stands higher (1+ step) is shot over; one in front of the target
+   but lower than the target is under the arrow's fall. Flat shots (crossbows, firearms, spells, aura waves) keep the whole line, with
+   the same step-down rule for the ally in front of the shooter. i: the ally's tile counted from the shooter (1..n-1). */
+function ffInLine(u,t,x,i,n,h){const hu=T(u).h,ht=T(t).h,front=i===1,back=i===n-1;
+ if(front&&hu>=h+1&&!back)return false;                               // shooting down over the ally at your feet
+ const bow=!!(u.wpn&&(u.wpn.wt==='bow'||u.wpn.wt==='sling'))&&!u.wpn.reload;   // an arcing shot: bows (and slings)
+ if(!bow)return !(front&&hu>=h+1);
+ if(front)return true;if(back)return h>=ht;return false}
 const morOf=u=>MORFX[u.mor==null?3:u.mor]||MORFX[3];
 // Chance in percent that u's ability a hits t: 100 for abilities that cannot miss, else 5..95.
 /* Talent terms in the hit chance (all 0 without the perks): +15 against a marked foe; the defender's adjDef (an ally next to it) or
