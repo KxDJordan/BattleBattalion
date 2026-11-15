@@ -229,18 +229,23 @@ function statI(icon,svg,val,cls,title,col){return'<span class="si '+cls+'" title
 function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>(x.key!=='unloaded'||shLoaded(u)===null)&&x.key!=='tired');   // the weapon carries the unloaded badge; Tired has its own marker by the stamina
  for(let i=0;i<L.length&&i<6;i++)h+=SH_VALST[L[i].key]?stVal(L[i].key,L[i].turns|0):stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
 /* unit chip: name, level, morale (flag icon in the state's colour) with resolve, statuses; hitpoints, head and body armor, shield, stamina, gifts; action pips */
-function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u),P=B.plan&&B.plan.u===u?B.plan:null,keep=P?u.ap-P.cost:u.ap;let pips='';for(let i=0;i<n;i++)pips+='<i class="'+(i<u.ap?'on':'')+(i>=keep&&i<u.ap?' pl':'')+(i>=u.apMax?' x':'')+'"></i>';
+function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u),P=B.plan&&B.plan.u===u?B.plan:null,keep=P?u.ap-P.cost:u.ap;const pc=v=>Math.max(0,Math.min(100,v/n*100)).toFixed(1)+'%';
+ const apBar='<span class="ub ap'+(P?' plan':'')+(u.ap>u.apMax?' over':'')+'" title="Action points '+u.ap+' of '+u.apMax+(P?': the planned move spends '+P.cost+', '+P.left+' left':'')+'"><span class="ubk">AP</span><span class="ubt"><i style="width:'+pc(P?Math.max(0,keep):u.ap)+'"></i>'+(P&&keep<u.ap?'<em style="left:'+pc(Math.max(0,keep))+';width:'+pc(u.ap-Math.max(0,keep))+'"></em>':'')+'<s style="--n:'+n+'"></s></span><b>'+(P?Math.max(0,keep)+'<small>/'+u.ap+'</small>':u.ap)+'</b></span>';
  let h='<span class="uport s'+u.side+'">'+port(u,32)+'</span><div class="ubody"><div class="uname"><b>'+esc(u.name)+'</b>'+(mine||u.m?'<small class="ulv'+(mine?'':' foe')+'" title="Level '+u.lvl+(u.m&&!mine&&typeof BG==='object'&&BG[u.m.bg]?' '+BG[u.m.bg].n.toLowerCase():'')+'">'+u.lvl+'</small>':'')+(!mine&&u.m&&u.rival&&typeof rivalMiniHTML==='function'?'<span class="urv">'+rivalMiniHTML(u.rival,16)+'</span>':'')+chipArms(u)+chipStatuses(u)+(u.m?chipTraits(u):'')+'</div><div class="ustats">'+statI('hp','heart',u.hp,'hp','Hitpoints '+u.hp+' of '+u.hpMax);
  if(u.helmMax>0)h+=statI('helmet','shield',u.helm,'arm hd'+(u.helm<=0?' out':''),'Head armor '+u.helm+' of '+u.helmMax);
  if(u.armMax>0)h+=statI('armor','shield',u.arm,'arm'+(u.arm<=0?' out':''),'Body armor '+u.arm+' of '+u.armMax);
  if(u.shpMax>0){const sl=shSlung(u),ok=u.shield||sl;const sn=shShieldName(u);h+=statI(!ok?'st-splitshield':sl?'slung':shShieldIcon(u),'shield',ok?u.shp:0,'arm sh'+(ok?'':' out')+(sl?' sl':''),!ok?sn+' split':sl?sn+' slung on the back ('+u.shp+' of '+u.shpMax+'): no defence and no shield skills while a two-handed weapon is in hand':sn+' raised: '+u.shp+' of '+u.shpMax)}
- h+='</div><div class="urow"><div class="pips'+(P?' plan':'')+'" title="Action points '+u.ap+(P?': the planned move spends '+P.cost+', '+P.left+' left':'')+'">'+pips+'</div>';
+ h+='</div><div class="urow">'+apBar;
  if(m>=0)h+='<span class="umor m'+m+'" style="--sc:'+SH_MORC[m]+'" title="'+shMorN(m)+(brv!=null?': resolve '+brv:'')+'">'+pic('morale-'+m,16,'flag')+(brv!=null?'<b>'+brv+'</b>':'')+'</span>';
  else if(u.fearless)h+='<span class="umor" style="--sc:#c8d0d8" title="Fearless: never tests morale">'+pic('resolve',16,'flag')+'</span>';
  if(mine)h+=chipRetinue();
- if(u.fatMax<=999)h+=statI('fatigue','drop',u.fatMax-u.fat,'fat'+(shTired(u)?' tired':''),'Stamina left: fatigue '+u.fat+' of '+u.fatMax)+tiredMark(u);
- for(const k in u.res)h+=statI(k,'gem',u.res[k].cur,'res',RESN[k]+' '+u.res[k].cur+' of '+u.res[k].max,RESC[k]);
- return h+'</div></div>'}
+ let bars='';
+ if(u.fatMax<=999){const left=Math.max(0,u.fatMax-u.fat),pf=P&&P.fat?Math.min(left,P.fat):0;bars+=resBar('fatigue','drop',left,u.fatMax,'fat'+(shTired(u)?' tired':''),'Stamina left: '+left+' of '+u.fatMax+' (fatigue '+u.fat+')'+(pf?': the planned move costs '+pf:''),null,pf)+tiredMark(u)}
+ for(const k in u.res)bars+=resBar(k,'gem',u.res[k].cur,u.res[k].max,'res r-'+k,RESN[k]+' '+u.res[k].cur+' of '+u.res[k].max,RESC[k]);
+ return h+'</div>'+(bars?'<div class="ubars">'+bars+'</div>':'')+'</div>'}
+/* a labelled bar on the unit chip: icon, track (fill = cur/max, an optional planned spend blinking at its end), the number */
+function resBar(icon,svg,cur,max,cls,title,col,plan){const p=v=>(max>0?Math.max(0,Math.min(100,v/max*100)):0).toFixed(1)+'%',keep=Math.max(0,cur-(plan||0));
+ return'<span class="ub '+cls+'" title="'+esc(title)+'"'+(col?' style="--c:'+col+'"':'')+'>'+pic(icon,16,svg)+'<span class="ubt"><i style="width:'+p(keep)+'"></i>'+(plan?'<em style="left:'+p(keep)+';width:'+p(cur-keep)+'"></em>':'')+'</span><b>'+cur+'</b></span>'}
 /* the weapon in hand (and, small, the backup) on the chip's name row; a lock when a bow in hand is pinned by an adjacent foe */
 function chipArms(u){const w=shHand(u),a=shAlt(u);if(!w&&!a)return'';const lk=shLocked(u),ld=shLoaded(u),rc=ld===false?shReloadCost(u,w):null;
  return'<span class="uwp'+(lk?' lk':'')+(ld===false?' unl':'')+'" title="'+esc('In hand: '+shWName(w)+(ld===false?' (unloaded: reload'+(rc?' for '+rc.ap+' AP':'')+')':ld?' (loaded)':'')+(a?' · backup: '+shWName(a)+(shLoaded(u,a)===false?' (unloaded)':''):'')+(lk?' · '+SH_LOCKTXT:''))+'"><span class="uwh">'+pic(shWIcon(w),16,'sword')+(ld===false?shUnlMark():'')+'</span>'+(a?'<i>'+pic(shWIcon(a),16,'sword')+'</i>':'')+(lk?pic('ranged-lock',16,'a-burst'):'')+'</span>'}

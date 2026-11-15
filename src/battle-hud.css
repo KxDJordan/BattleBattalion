@@ -278,3 +278,18 @@
 #bboss .bb-bar em{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:#f3d98b}
 #bboss .bb-tx{display:block;margin-top:3px;font-size:.72rem;line-height:1.15;color:var(--dim)}#bboss .bb-tx.bad{color:#ff8a3c}
 @media (max-height:420px){#bboss{padding:3px 6px 4px}#bboss .bb-ti{display:none}}
+
+/* ---- chip bars: action points, stamina, gifts (Mana, Aura, Qi, Chi): icon or label, track, number ---- */
+.ub{--c:#d1a94e;display:flex;align-items:center;gap:3px;flex:1 1 0;min-width:64px;height:16px;font-family:'Jersey 15',serif;font-size:.9rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:var(--c)}
+.ub .ic,.ub .pxi{flex:none;width:14px;height:14px}
+.ub>b{flex:none;min-width:16px;text-align:right;color:#e9e0c9;font-weight:600}.ub>b small{color:#8a9a95;font-size:.75em}
+.ubk{flex:none;font-size:.7rem;font-weight:700;letter-spacing:.04em;color:#d1a94e}
+.ubt{position:relative;flex:1 1 auto;min-width:28px;height:6px;background:#0b1514;box-shadow:0 0 0 1px #0b1514,inset 0 0 0 1px #2c4440;overflow:hidden}
+.ubt>i{position:absolute;left:0;top:0;bottom:0;background:var(--c);box-shadow:inset 0 1px 0 #fff5,inset 0 -1px 0 #0005}
+.ubt>em{position:absolute;top:0;bottom:0;background:#c4493f;box-shadow:inset 0 1px 0 #ef8a78;animation:hud-blink 1s steps(1,end) infinite}
+.ubt>s{position:absolute;inset:0;text-decoration:none;background:repeating-linear-gradient(90deg,transparent 0 calc(100%/var(--n) - 1px),#0b1514 calc(100%/var(--n) - 1px) calc(100%/var(--n)))}
+.ub.ap{flex:1 1 auto;min-width:90px}.ub.ap.over .ubt>i{background:#fff4c8}
+.ub.fat{--c:#a98455}.ub.fat.tired{--c:#c4493f}
+.ubars{display:flex;align-items:center;gap:8px;height:16px}
+.urow .umor{margin-left:2px}
+@media (prefers-reduced-motion:reduce){.ubt>em{animation:none}}#app.rm .ubt>em{animation:none}
