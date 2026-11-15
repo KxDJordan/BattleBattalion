@@ -38,6 +38,7 @@ PNOWN.dice=['................','................','...0000000000...','..0rrrrrrr
 function pnHasPx(n){return typeof pxIcon==='function'&&typeof iconRows==='function'&&!!iconRows(n)}
 function pnIcon(k,cls,size){const n=PNPX[k]||k,c='pn-i px'+(cls?' '+cls:'');size=size||16;
  if(pnHasPx(n))return pxIcon(n,size,c);
+ if(PNOWN[k]&&typeof pkHas==='function'&&pkHas('pa-'+k)&&hdArt()){const u=pkURL('pa-'+k);if(u)return`<i class="${c}" style="width:${size}px;height:${size}px;background-image:url(${u});image-rendering:auto" aria-hidden="true"></i>`}   // the painted twin (06pa-ui.js) at Detail High
  if(PNOWN[k]){const u=pxURL('pn:'+k,PNOWN[k],1);if(u)return`<i class="${c}" style="width:${size}px;height:${size}px;background-image:url(${u})" aria-hidden="true"></i>`}
  if(!PICON[k])return typeof pxIcon==='function'?pxIcon(n,size,c):'';
  return`<svg class="pn-i${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${PICON[k]||''}</svg>`}
