@@ -117,6 +117,7 @@ function brOpens(a,b){const out=[],R=['I','II','III','IV','V','VI','VII','VIII',
 /* the battle objective's outcome, one line (escort / hold / siege, and a named foe) */
 function brObjLine(res){let t='';if(res.objK==='escort')t=res.vip&&res.vip.alive?`<p class="good">${res.vip.name} came through (${res.vip.hp}/${res.vip.hpMax}).</p>`:`<p class="bad">The ${(res.vip?res.vip.name:'wagon').toLowerCase()} is lost.</p>`;
  else if(res.objK==='hold'&&res.obj==='won'&&res.win)t=`<p class="good">The line held for ${res.rounds-1} rounds. The raiders give it up.</p>`;else if(res.objK==='siege'&&res.win)t='<p class="good">The siege lines are broken.</p>';
+ if(res.cv){const c=res.cv;t+=c.turned?`<p class="bad">The company turned on the caravan${c.by?' ('+c.by+' struck the first guard down)':''}.</p>`:`<p class="${c.alive?'good':'bad'}">The caravan's guards: ${c.alive} of ${c.n0} still stand${c.wagon?'':', and the wagon burned'}.</p>`}   // a clash beside a caravan (42-caravans.js)
  if(res.boss)t+=res.boss.slain?`<p class="good">${res.boss.name} is dead.</p>`:'';return t}
 /* the results dialog: outcome, spoils, then one line per sword that has something to report */
 function brIcon(n,sz){return typeof cpIcon==='function'?cpIcon(n,sz||16):''}

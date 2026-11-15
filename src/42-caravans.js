@@ -126,6 +126,16 @@ function cvBattle(cl){if(!cl)return null;const C=cvParty(cl.c),R=cvParty(cl.r);i
 // attacking a caravan outright: its guards as the town hired them (the company fights them, so they are foes)
 function cvCaravanBattle(p){const g=cvGuardOf(p),ids=cvGuardIds(g,Math.max(1,g.n));return{f:FACT[p.f]?p.f:'bandit',mult:p.mult,foes:ids,cvNames:g.t,src:{type:'party',id:p.id,goal:'caravan',pf:p.f}}}
 
+// the map readout (82-inspect.js worldCard) for a caravan, a band in a clash, or a band carrying plunder; '' for anything else
+function cvCard(e){if(!e||!G)return'';const esc=s=>typeof htmlEsc==='function'?htmlEsc(s):String(s),lab=typeof partyLabel==='function'?partyLabel(e):'',cl=cvOf(e),hos=typeof partyHostile==='function'&&partyHostile(e);
+ const sw=s=>s===1?'weaker than the company':s===2?'about an even match for the company':'stronger than the company',st=typeof partyStrength==='function'?partyStrength(e):2;
+ const fight=q=>{const C=cvParty(q.c),R=cvParty(q.r),own=C?cvOwnerName(C):'',F=R&&FACT[R.f];return`<div class="ins-note"><span class="ins-bad">${e.goal==='caravan'?`Under attack by ${esc(F?F.n.toLowerCase():'raiders')}`:`Falling on a caravan of ${esc(own)}`}</span>: the guards at ${Math.round(q.gh*100)}%, the raiders at ${Math.round(q.rh*100)}%. ${cvOdds(q)}</div><div class="ins-note">Tap to march there and choose: intervene on the guards' side, or back off.</div>`};
+ if(e.goal==='caravan'){const g=cvGuardOf(e),gd=e.cargo&&typeof GOODS==='object'&&GOODS[e.cargo.good]?GOODS[e.cargo.good].n:'';
+  return`<div class="ins-h"><b class="ins-n">${esc(lab)}</b><span class="ins-tag ${cl?'foe':'ally'}">${cl?'Ambushed':'Caravan'}</span></div><div class="ins-sub">${esc(cvGuardLine(e))}</div>`
+   +`<div class="ins-note">${g.n>0?'The guards are '+sw(st):'Nobody to stop a robber'}.${gd?' Carrying '+esc(gd.toLowerCase())+(e.cargo.crowns?' and a strongbox':'')+'.':''}</div>`
+   +(cl?fight(cl):e.esc?`<div class="ins-note ins-good">Under the company's escort: be at ${esc(G.towns[e.to]?G.towns[e.to].name:'its town')} when it arrives for ${e.esc.pay} crowns.</div>`:`<div class="ins-note">They will not attack you. Tap them nearby to choose whether to strike (it costs standing with ${esc(typeof lkFacName==='function'?lkFacName(e.f):factName(e.f))}).</div>`)}
+ if(cl)return`<div class="ins-h"><b class="ins-n">${esc(lab)}</b><span class="ins-tag foe">${hos?'Hostile':'Raiders'}</span></div><div class="ins-sub">${st===1?'A small band, weaker than the company':st===2?'A warband, about an even match':'A large host, stronger than the company'}</div>`+fight(cl);
+ return''}
 /* ---- the battle: guards beside the company (startBattle -> cvSetup, killUnit -> cvGuardDown) ---- */
 function cvNameUnit(u,t){const n=cvGuardName(u.eid,t);u.name=u.rank>=1.5?(u.rank>=2.75?'Elite ':'Veteran ')+n.toLowerCase():n}
 function cvCost(id){const e=HOUSEUNITS.find(x=>x[0]===id);return e?e[1]:25}
@@ -214,7 +224,7 @@ function cvClashFx(q,sx,sy,k,t,still,seed){const ph=still?.5:((t+seed*137)%760)/
  // dust kicked up at their feet
  for(let i=0;i<4;i++){const p2=still?.4:((t/900+i*.25+seed*.13)%1),dx=(i-1.5)*7*k+Math.sin(i*2.1+seed)*3*k,dy=24*k-p2*7*k,r=(2+p2*4)*k;q.globalAlpha=(1-p2)*.45;q.fillStyle=i&1?'#b9ad8f':'#8a7f62';q.beginPath();q.arc(sx+dx,sy+dy,r,0,6.283);q.fill()}
  // a dark badge with a pulsing red rim so it reads on any ground
- const R=px*.62,pul=still?0:Math.sin(t/180)*.5+.5;q.globalAlpha=.78;q.fillStyle='#0b1514';q.beginPath();q.arc(sx,sy,R,0,6.283);q.fill();
+ const R=px*.62,pul=still?0:Math.sin(t/180)*.5+.5;q.globalAlpha=.9;q.fillStyle='#0b1514';q.beginPath();q.arc(sx,sy,R+k*.8,0,6.283);q.fill();q.fillStyle='#e9e0c9';q.beginPath();q.arc(sx,sy,R-k*.3,0,6.283);q.fill();
  q.globalAlpha=.65+.35*pul;q.strokeStyle=hit?'#ffd27a':'#c4493f';q.lineWidth=Math.max(1.5,k*.9);q.beginPath();q.arc(sx,sy,R+k*(.6+pul*.8),0,6.283);q.stroke();
  // the swords: drawn back, then swung together (a jolt on the blow)
  if(ic){const sw=still?0:ph<.18?-.05+ph*.3:Math.sin((ph-.18)/.82*Math.PI)*.32,sc=hit?1.12-ph*.6:1,bob=still?0:Math.round(Math.sin(ph*6.283)*k*.8);
@@ -226,4 +236,4 @@ function cvClashFx(q,sx,sy,k,t,still,seed){const ph=still?.5:((t+seed*137)%760)/
  q.restore()}
 // the map's clashes: called with the world transform (art px) set; vis(x,y) = can the company see it. Returns true when one was drawn (keeps the frame live).
 function cvDrawMap(q,sc,bx,by,vis,t,still){const L=G&&G.clashes;if(!Array.isArray(L)||!L.length)return false;let n=0;
- for(const cl of L){if(!vis(cl.x,cl.y))continue;const ax=cl.x/WVU,ay=cl.y/WVU;cvClashFx(q,Math.round(bx+ax*sc),Math.round(by+(ay-34)*sc),sc,t,still,cl.id%7);n++}return n>0}
+ for(const cl of L){if(!vis(cl.x,cl.y))continue;const ax=cl.x/WVU,ay=cl.y/WVU;cvClashFx(q,Math.round(bx+ax*sc),Math.round(by+(ay-27)*sc),sc,t,still,cl.id%7);n++}return n>0}

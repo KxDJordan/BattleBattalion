@@ -384,7 +384,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
   if(Math.abs(o.x-b.x)>.02){b.dir=o.x<b.x?-1:1;b.t=now}else if(o.x!==b.x||Math.abs((o.y-(b.y||0)))>.02)b.t=now;b.x=o.x;b.y=o.y;
   if(o.clash&&typeof cvOf==='function'){const cl=cvOf(o);if(cl)b.dir=o.x<cl.x?1:-1}   // a clash (42-caravans.js): the two face each other and fight on the spot
   if(!inV(x,y)||!vis(o.x,o.y))continue;const mv=!!o.clash||now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
-  if(o.f==='east'&&WVE.on){wvPush(y,wvEastBand(o,str,f,b.dir,mv),x,true);continue}   // a host of the Shogunate (77-east-art.js)
+  if(o.f==='east'&&WVE.on&&o.goal!=='caravan'){wvPush(y,wvEastBand(o,str,f,b.dir,mv),x,true);continue}   // a host of the Shogunate (77-east-art.js)
   if(o.goal==='merc'){const rv=wvRivalArt(o.f),sz=rv.n>8?'L':'s';   // a rival company under its own banner (41-worldart.js waMercPaint); the banner's colours are part of the key
    wvPush(y,wvSprite('Bm'+rv.sig+str+sz+b.dir+(mv?'m':'s')+f,'Bm'+rv.sig+str+sz+b.dir,'band',{f:o.f,str,n:rv.n,frame:f,dir:b.dir,moving:mv,goal:'merc',house:rv.bn}),x,true);continue}
   const hf=o.f==='free'||!!lkHouse(o.f),gl=o.goal==='caravan'||o.goal==='patrol'||o.goal==='raid'?o.goal:hf?'patrol':'',hs=gl==='patrol'||gl==='caravan'?lkHouse(o.f):null;
