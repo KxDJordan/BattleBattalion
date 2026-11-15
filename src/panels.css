@@ -765,3 +765,4 @@
 .ch-dr em{font-style:normal;font-family:'Jersey 15',monospace;font-size:1rem;color:#ffc069;min-width:1ch;text-align:right}
 .ch-ddn{font-size:.74rem;color:#b9a3c0;margin:3px 0 0}
 .fmd-lines.in.lgd i,.fmd-lines.lgd li{border-color:#9a4fc8;background:#3a1430;color:#ffc069;white-space:normal}
+@media (min-width:900px) and (max-width:1279px) and (min-height:600px){#pn .fm{gap:10px}#pn .fm-cell{height:62px}#pn .fm-tok{width:48px;height:48px}}   /* tablets (iPad, iPad Pro): 16 tiles too narrow for 64px figures */

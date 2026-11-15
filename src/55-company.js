@@ -103,8 +103,8 @@ function fmTap(i,ptrClick){if(ptrClick)return;   // pointer taps arrive through 
 function fmSlotOf(m){const o=formation().find(o=>o.m===m);return o?{row:o.row,col:o.col}:{row:0,col:0}}
 function fmCell(row,col){if(FM.pick==null)return;fmPlace(FM.pick,row,col)}
 function fmTok(m,i,size){return`<span class="fm-tok${FM.pick===i?' sel':''}" role="button" tabindex="0" data-fm="${i}" aria-label="${htmlEsc(m.name)}${FM.pick===i?', picked':''}" onclick="event.stopPropagation();fmTap(${i},event.detail)">${portraitHTML(m,size||32)}</span>`}
-function coFormation(){if(fmAnySet())fmCommit();const F=formation(),n=fmCols(),big=typeof innerWidth==='number'&&innerWidth>=1100&&innerHeight>=600,sz=big?64:32;
- const row=r=>{let h=`<div class="fmd-row${r?' back':''}">`;for(let c=0;c<n;c++){const o=F.find(o=>o.row===r&&o.col===c);
+function coFormation(){if(fmAnySet())fmCommit();const F=formation(),n=fmCols(),W=typeof innerWidth==='number'?innerWidth:0,Hh=typeof innerHeight==='number'?innerHeight:0,sz=Hh>=600&&W>=1280?64:Hh>=600&&W>=900?48:32;
+ const row=r=>{let h=`<div class="fm-row${r?' back':''}">`;for(let c=0;c<n;c++){const o=F.find(o=>o.row===r&&o.col===c);
    h+=`<div class="fm-cell${FM.pick!=null?' can':''}" data-cell="${r}:${c}" role="button" tabindex="0" aria-label="${r?'Back':'Front'} row, tile ${c+1}${o?', '+htmlEsc(o.m.name):''}" onclick="fmCell(${r},${c})">${o?fmTok(o.m,G.roster.indexOf(o.m),sz):''}</div>`}return h+'</div>'};
  const res=G.roster.map((m,i)=>[m,i]).filter(([m])=>!m.field),p=FM.pick!=null?G.roster[FM.pick]:null;
  let info;if(p){const s=calc(p);info=`${portraitHTML(p,32)}<p><b>${htmlEsc(p.name)}</b> <span class="dim">Level ${p.lvl} ${BG[p.bg].n.toLowerCase()}, ${coRole(p,s).toLowerCase()}</span><small>${p.field?'Tap a tile to move, or another sword to trade places.':'Tap a tile to field this sword there.'}</small></p>
