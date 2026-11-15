@@ -54,7 +54,9 @@ function phCapture(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  const c0=phSnap(C);if(P.under)P.under(C);const under=phDiff(c0,C);const c1=phSnap(C);if(P.prop)ptProp(C,P);const prop=phDiff(c1,C);
  const sh=ptShield(P),wp=ptWeapon(P),torso=P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P);
  ptOver(C,torso);if(sh)ptOver(C,sh);if(wp)ptOver(C,wp);
- const hd=ptHead(P,R),L=hd.L,E=hd.E,tag=new Uint8Array(1024),mark=(A,t)=>{for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(L[y][x]!==A[y][x])tag[y*32+x]=t};
+ const hd=ptHead(P,R),L=hd.L,E=hd.E,tag=new Uint8Array(1024),mark=(A,t)=>{for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(L[y][x]!==A[y][x])tag[y*32+x]=t},
+  // pixels a step writes even with the colour already there (a grey helm over grey hair): run it once more over a sentinel copy
+  wr=(t,fn)=>{const S=L.map(r=>r.map(k=>k==='.'?'.':'~'));try{fn(S)}catch(e){}for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=S[y][x];if(k!=='~'&&k!=='.')tag[y*32+x]=t}};
  // skin base vs features vs marks
  {const base=phSkinBase(P,E),nm=ptHead(Object.assign({},P,{marks:{}}),R).L;
   for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=L[y][x];if(k==='.')continue;const i=y*32+x;tag[i]=k!==nm[y][x]?PHT.mark:k!==base[y][x]?PHT.feat:PHT.skin}}
@@ -62,17 +64,19 @@ function phCapture(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  if(P.hairBack){P.hairBack(L,E);mark(s,PHT.hback);s=phSnap(L)}
  ptHair(L,P,E,R);mark(s,PHT.hair);s=phSnap(L);
  if((P.ears==='elf'&&P.hat!=='hood')||P.ears==='gob'){ptEars(L,P,E);mark(s,PHT.ears);s=phSnap(L)}
- ptBeard(L,P,E);mark(s,PHT.beard);s=phSnap(L);
+ wr(PHT.beard,S=>ptBeard(S,P,E));ptBeard(L,P,E);mark(s,PHT.beard);s=phSnap(L);
+ if(P.hat)wr(PHT.hat,S=>ptHat(S,P,E));
  if(P.liv&&(P.liv.mt||P.liv.ac)&&P.hat){const B=L.map(r=>r.slice());ptHat(L,P,E);const mm=/coif|kettle|nasal|great|barbute|spangen|sallet|bascinet|armet/.test(P.hat)?ptLivMap(P.liv.mt):null,ac=P.liv.ac,pm=ac&&P.hat==='great'?{f:ac[0],g:ac[1],h:ac[2]}:null;
   for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=L[y][x];if(k===B[y][x])continue;if(mm&&mm[k])L[y][x]=mm[k];else if(pm&&pm[k])L[y][x]=pm[k]}}
  else ptHat(L,P,E);
  if(P.famH&&P.hat){const ey=P.ey||14;for(let y=ey-3;y>=E.y0-6;y--){let n=0;for(let x=8;x<24;x++){const k=L[y]&&L[y][x];if(k&&k!=='.'&&k!==P.skin[0]&&k!==P.skin[1]&&k!==P.skin[2]&&!(P.hairC&&P.hairC.includes(k))){n++}}if(n>=8){for(let x=8;x<24;x++){const k=L[y][x];if(k!=='.'&&k!==P.skin[0]&&k!==P.skin[1])L[y][x]=x<16?'d':'c'}L[y][11]='e';break}}}
  mark(s,PHT.hat);s=phSnap(L);
- ptVeil(L,P,E);mark(s,PHT.veil);s=phSnap(L);
+ if(P.veil)wr(PHT.veil,S=>ptVeil(S,P,E));ptVeil(L,P,E);mark(s,PHT.veil);s=phSnap(L);
  if(P.marks&&P.marks.soot){ptSoot(L,P,E);mark(s,PHT.soot);s=phSnap(L)}
  if(P.over){P.over(L,E);mark(s,PHT.over)}
  const head=phSnap(L);ptOver(C,ptOut(L));
  const c2=phSnap(C);if(P.top)P.top(C,E);const top=phDiff(c2,C);
+ if(P.top){const S=ptL('~');try{P.top(S,E)}catch(e){}for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(S[y][x]!=='~')top[y][x]=C[y][x]}   // every pixel it writes, even one already that colour
  let gem=null;if(P.gem){const g=PT_RESK[P.gem];if(g){const c3=phSnap(C);ptSt(C,PT_GEM,0,0,{a:g[0],b:g[1]});gem=phDiff(c3,C)}}
  return{rows:C.map(r=>r.join('')),bg,under,prop,torso,sh,wp,head,tag,E,top,gem}}
 /* the bare head shape and ears (the first lines of ptHead), to tell features from skin */
@@ -83,10 +87,11 @@ function phSkinBase(P,E){const L=ptL(),sk=P.skin,h=P.head,n=h.w.length;
 function phBuf(){return new Uint32Array(4096)}
 const PH_OL=phP(11,21,20);
 /* paint one layer: K/T from phS2x; shade(i,X,Y,k,t) -> colour. Outline: 1 HD px ring outside the layer (4-neighbour) */
-function phLay(D,K,T,shade,ol){const N=64;
+let PH_O=null,PH_ID=0;   // which layer owns each HD pixel (phBust), for cast shadows
+function phLay(D,K,T,shade,ol){const N=64,O=PH_O,id=PH_ID;
  if(ol!==false)for(let Y=0;Y<N;Y++)for(let X=0;X<N;X++){const i=Y*N+X;if(K[i])continue;
-  if((X>0&&K[i-1])||(X<N-1&&K[i+1])||(Y>0&&K[i-N])||(Y<N-1&&K[i+N]))D[i]=ol||PH_OL}
- for(let Y=0;Y<N;Y++)for(let X=0;X<N;X++){const i=Y*N+X,k=K[i];if(!k)continue;const c=shade(i,X,Y,k,T?T[i]:0);if(c)D[i]=c}}
+  if((X>0&&K[i-1])||(X<N-1&&K[i+1])||(Y>0&&K[i-N])||(Y<N-1&&K[i+N])){D[i]=ol||PH_OL;if(O)O[i]=id}}
+ for(let Y=0;Y<N;Y++)for(let X=0;X<N;X++){const i=Y*N+X,k=K[i];if(!k)continue;const c=shade(i,X,Y,k,T?T[i]:0);if(c){D[i]=c;if(O)O[i]=id}}}
 /* metal families: 5 keys dark..light -> a 9-step ramp, a lookup set and a luminance -> ramp index map.
    Steel and brass always; a livery finish (ptLivMap) adds its own. A 32 dither / checker in a family becomes a gradient at HD. */
 const PHF=new Map();
@@ -226,7 +231,7 @@ function phTorso(D,P,cap){const g=phStrip(phGrid(cap.torso)),{K}=phS2x(g,null),N
   metal=a==='mail'||a==='scale'||a==='plate'||a==='lamellar'||a==='coat',gen=phGen(K,seed,{cloth:!metal,leather:1,brush:a==='plate',fam:phLivFam(P)},g),SR=phSkinRamp(sk),
   FM=phLivFam(P)||PH_FST,tone=phTone(g,FM.set),ST=FM.ramp,stIdx=FM.idx;
  phLay(D,K,null,(i,X,Y,k)=>{const ch=String.fromCharCode(k);
-  if(sk.includes(ch)&&ch!=='0'){   // neck / bare skin: a cylinder lit from the left
+  if((ch===sk[0]||ch===sk[1]||ch===sk[2])&&(a==='bare'||(a!=='void'&&((Y<50&&X>=25&&X<=38)||(Y<58&&Math.abs(X-31.5)<(58-Y)*.85))))){   // neck, open collar, bare chest: a cylinder lit from the left
    const u=(X-32)/14;let v=4.6-u*2.2-(Y<46?0:.4);if(Y>0&&K[i-N]&&!sk.includes(String.fromCharCode(K[i-N])))v-=1;
    if(X<N-1&&!K[i+1])v-=.8;return SR[clamp(phDi(v,X,Y),0,6)]}
   if(metal&&FM.set[ch]&&ch!==FM_0(FM)&&(a==='mail'||a==='scale'||a==='lamellar')){let v=stIdx(tone(X,Y));
@@ -254,12 +259,28 @@ function phBack(D,bg){const N=64,a=phK(bg[0]),b=phK(bg[1]),c=bg[2]?phK(bg[2]):0;
 /* a flat 32 overlay (frame, gem, under) drawn at 2x, keeping its lines */
 function phFlat(D,L,bev){const N=64;for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=L[y][x];if(k==='.')continue;const c=phK(k);if(!c)continue;
  for(let j=0;j<2;j++)for(let i=0;i<2;i++){const X=x*2+i,Y=y*2+j;D[Y*N+X]=bev&&k!=='0'?phSh(c,(i===0&&j===0)?1:(i===1&&j===1)?-.5:0):c}}}
+/* the fabled gilt frame (ptFabled's P.top border) at HD: dark rim, lit inner bead (top/left) and shaded (bottom/right), studs, a cast shadow inside */
+function phFrame(D,T){let full=true;for(let i=0;i<32&&full;i++)if(T[0][i]==='.'||T[31][i]==='.'||T[i][0]==='.'||T[i][31]==='.')full=false;if(!full)return false;
+ const N=64,rim=phK('b'),lo=phK('a'),hi=phK('d'),mid=phK('c'),st=phK('e');
+ for(let Y=0;Y<N;Y++)for(let X=0;X<N;X++){const e=Math.min(X,Y,63-X,63-Y);if(e>2)continue;const i=Y*N+X,tl=X<=Y?X<63-Y:Y<63-X;   // tl: the top or left side
+  if(e===0)D[i]=(X+Y)&1?lo:rim;else if(e===1){const a=(X===1||X===62)?Y:X,stud=(a%8)===4;D[i]=stud?st:tl?hi:mid}else D[i]=phSh(D[i],tl?-1.4:-1)}
+ for(const [X,Y] of [[0,0],[63,0],[0,63],[63,63],[1,1],[62,1],[1,62],[62,62]])D[Y*N+X]=st;
+ const T2=T.map((r,y)=>r.map((k,x)=>x===0||y===0||x===31||y===31?'.':k));phFlat(D,T2,1);return true}
+/* the carried gift's corner gem (PT_GEM, 7x7 at 0,0) as a cut stone at HD: table, four facets, outline, a sparkle */
+function phGem(D,g){const N=64,a=phK(g[0]),b=phK(g[1]),hi=phMix(a,phK('r'),.45),o=phK('0');
+ for(let Y=0;Y<14;Y++)for(let X=0;X<14;X++){const dx=X-6.5,dy=Y-6.5,d=Math.abs(dx)+Math.abs(dy);if(d>7)continue;let c;
+  if(d>6)c=o;else if(d<2.6)c=dx+dy<0?hi:a;else if(dx<0&&dy<0)c=hi;else if(dx>=0&&dy<0)c=a;else if(dx<0)c=phMix(a,b,.45);else c=b;D[Y*N+X]=c}
+ D[4*N+4]=phK('r');D[3*N+5]=phK('r');D[5*N+3]=phMix(hi,phK('r'),.5)}
 /* ---- bust ---- */
 function phLayer(D,L,seed,o){if(!L)return;const g=phStrip(phGrid(L));let n=0;for(let i=0;i<1024;i++)if(g[i]){n=1;break}if(!n)return;const {K}=phS2x(g,null);phLay(D,K,null,phGen(K,seed,o,g))}
-function phBust(P){const cap=phCapture(P),D=phBuf(),seed=P.seed>>>0;
- phBack(D,cap.bg);phFlat(D,cap.under);phLayer(D,cap.prop,seed+1);
- phTorso(D,P,cap);phLayer(D,cap.sh,seed+2);phLayer(D,cap.wp,seed+3,{brush:1});
- phHead(D,P,cap);phFlat(D,cap.top,1);if(cap.gem)phFlat(D,cap.gem,1);
+function phBust(P){const cap=phCapture(P),D=phBuf(),seed=P.seed>>>0,O=PH_O=new Uint8Array(4096);
+ try{phBack(D,cap.bg);phFlat(D,cap.under);PH_ID=1;phLayer(D,cap.prop,seed+1);
+ PH_ID=2;phTorso(D,P,cap);PH_ID=3;phLayer(D,cap.sh,seed+2);phLayer(D,cap.wp,seed+3,{brush:1});
+ PH_ID=4;phHead(D,P,cap)}finally{PH_O=null;PH_ID=0}
+ // the head casts a soft shadow on the neck and collar below it
+ for(let X=0;X<64;X++){let b=-1;for(let Y=63;Y>=0;Y--)if(O[Y*64+X]===4){b=Y;break}if(b<0)continue;
+  for(let j=1;j<=4;j++){const Y=b+j;if(Y>63)break;const i=Y*64+X;if(O[i]!==2)continue;D[i]=phSh(D[i],j<=2?-1:-.5)}}
+ if(!phFrame(D,cap.top))phFlat(D,cap.top,1);if(cap.gem){const g=PT_RESK[P.gem];if(g)phGem(D,g);else phFlat(D,cap.gem,1)}
  return{D,rows:cap.rows}}
 /* monsters and beasts: one 32 image (backdrop + figure) -> scale2x + generic materials over an HD backdrop */
 function phImage(rows,bg){const D=phBuf();phBack(D,bg);const fig=rows.map((r,y)=>r.split('').map((k,x)=>{const b=(x+y>38||y>=29)?bg[1]:bg[0];return k===b?'.':k}));
@@ -287,7 +308,7 @@ function phPNG(D,W,H){if(typeof btoa!=='function')return'';const cols=[],seen=ne
  st=head('IEND',0);crc(st);
  let bin='';for(let i=0;i<o;i+=8192)bin+=String.fromCharCode.apply(null,B.subarray(i,Math.min(o,i+8192)));return'data:image/png;base64,'+btoa(bin)}
 /* ---- public: HD data URL for anything portraitURL takes ('' => use the low bust) ---- */
-function ptHDURL(x){if(typeof document==='undefined')return'';let key=null;const mk=ptMonKey(x);
+function ptHDURL(x){if(typeof document==='undefined')return'';let key=null;let mk=null;try{mk=ptMonKey(x);if(mk&&!ptMon(x))mk=null}catch(e){mk=null}   // monster art only where 76-monsters.js paints one
  try{key=mk?'mon:'+mk:ptKey(x)}catch(e){key=null}if(!key)return'';let u=PTHD.url.get(key);if(u!==undefined)return u;u='';const t0=typeof performance==='object'?performance.now():0;
  try{let D=null;
   if(mk){const cv=ptMon(x);const rows=phRowsOfCanvas(cv);if(rows){const b=rows[0][0],al=b==='3';D=phImage(rows,al?['3','2']:['f','1'])}}
