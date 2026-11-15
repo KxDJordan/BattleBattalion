@@ -734,9 +734,9 @@ function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.de
  else{g.globalAlpha=v.pA*v.pSh*.42;g.drawImage(sh,x-(sh.width>>1),gy-(sh.height>>1));
   if(u.alive){const rg=wide?(u.side?E.r1W:E.r0W):big?(u.side?E.r1B:E.r0B):u.side?E.r1:E.r0;g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
  g.globalAlpha=v.pA;const sk=s.k||1,sw=s.cv.width/sk,sh2=s.cv.height/sk;   // an HD figure (k 2, 73h-unitshd.js) is blitted at half size
- g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay,sw,sh2);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay,sw,sh2)}
+ if(s.smooth)g.imageSmoothingEnabled=true;g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay,sw,sh2);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay,sw,sh2)}
  if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);g.drawImage(silOf(s.cv,'r'),x-s.ax,y-s.ay,sw,sh2)}
- g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
+ g.imageSmoothingEnabled=false;g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
 /* fallback figure (no 73-units.js): the old vector stand-in, cached at device resolution */
 function drawUnitArt(q,u){const d=u.def||{},F=u.side===1?FACT[u.f]:null,body=u.side===0?'#2f7868':F.col,skin=u.side===0?'#e3bf9c':F.skin;q.strokeStyle='#0b1514';q.lineWidth=1.5;q.lineJoin='round';
  if(d.quad){q.fillStyle=body;q.beginPath();q.ellipse(0,-9,15,9,0,0,7);q.fill();q.stroke();q.fillStyle='rgba(255,255,255,.14)';q.beginPath();q.ellipse(-3,-12,9,4,0,0,7);q.fill();q.fillStyle=skin;q.beginPath();q.arc(12,-16,6,0,7);q.fill();q.stroke()}
