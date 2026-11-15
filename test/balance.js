@@ -183,8 +183,8 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  if(FABON)for(const [f,pr,id,boss] of FABS)for(const pilot of ['naive','sensible']){const j=add('fab',f,pr,pilot,NA);j.fab={ids:[id],boss,mult:FABM}}
  // Crisis update: the crisis boss fights as 18-crises.js stages them (a typical crisis strength: mult as at str 1.3 and a half-built camp), with the
  // fabled warrior crFabled would bring, at the late profiles. Reported, not judged (target for the crises: sensible 55..75% at L12x12).
- const CRB=[['Bone Throne','dead',{f:'dead',mult:1.4,fixed:['bthrone','necrolt'],boss:'bthrone',er:16,fabled:'ulfgar',obj:'siege'}],['Warchief','horde',{f:'horde',mult:1.3,fixed:['hchief','hstd'],boss:'hchief',er:14,fabled:'korvak'}],
-  ['Huscarl champions','barb',{f:'barb',mult:1.4,fixed:['barbhus','barbhus','barbskald'],boss:'barbhus'}],['Emperor','barb',{f:'barb',mult:1.25,fixed:['emperor','barbhus'],boss:'emperor',er:16,fabled:'hakon'}]].filter(x=>FACT[x[1]]&&X0.EN[x[2].boss]);
+ const CRB=[['Bone Throne','dead',{f:'dead',mult:.66,fixed:['bthrone','necrolt'],boss:'bthrone',er:16,fabled:'ulfgar',obj:'siege'}],['Warchief','horde',{f:'horde',mult:.89,fixed:['hchief','hstd','hstd','obrute'],boss:'hchief',er:14,fabled:'korvak'}],
+  ['Huscarl champions','barb',{f:'barb',mult:1.31,fixed:['barbhus','barbhus','barbhus','barbskald','barbz','barbz'],boss:'barbhus'}],['Emperor','barb',{f:'barb',mult:.89,fixed:['emperor','barbhus'],boss:'emperor',er:16,fabled:'hakon'}]].filter(x=>FACT[x[1]]&&X0.EN[x[2].boss]);   // the stage setups of 18-crises.js (crBossMult / crChampMult at a typical crisis)
  const CRON=!has('--no-crisis')&&(!only||only.split(',').includes('crisis'));
  if(CRON)for(const [n,f,C] of CRB)for(const pr of ['L8x9','L12x12'])for(const pilot of ['naive','sensible']){const j=add('crb',f,pr,pilot,NA);j.cr=C;j.tag=n}
  // identical jobs (same battles) are run once
