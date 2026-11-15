@@ -502,6 +502,12 @@ function ptTorsoCraft(L,P,inT,top){const V=P.av,sk=P.skin;
  else if(c==='spines')for(const x of[3,6,9,22,25,28]){const y=top(x);if(y<32){ptS(L,x,y-1,'l');ptS(L,x,y-2,x<16?'r':'m')}}}
 /* crafted helmets on the bust */
 function ptHatCraft(L,P,E){const t=P.hat,ey=P.ey||14;
+ if(t==='lgcrown'){ptFullHelm(L,P,E,'great');const y0=E.y0-2,hw0=P.head.w[3];for(let x=16-hw0;x<=15+hw0;x++){ptS(L,x,y0-1,x<16?'d':'c');if(!((x-16+hw0)%3))ptS(L,x,y0-2,'c'),ptS(L,x,y0-3,(x-16+hw0)%6?'d':'e')}
+  ptS(L,15,y0-2,'d');ptS(L,16,y0-2,'d');ptS(L,15,y0-3,'E');ptS(L,16,y0-3,'K');ptS(L,15,y0-4,'c');for(let x=16-hw0;x<=15+hw0;x++)if(ptG(L,x,y0)==='.')ptS(L,x,y0,'b');return true}   // the Dread Crown (25-legend.js)
+ if(t==='lgoni'){ptFullHelm(L,P,E,'barbute');const hw0=P.head.w[3],sk=new Set(P.skin||[]);
+  for(let y=E.y0;y<32;y++)for(let x=16-hw0;x<=15+hw0;x++){const g=ptG(L,x,y);if(sk.has(g))ptS(L,x,y,x>=15+hw0-1?'f':y<=ey?'h':'g')}
+  ptS(L,14,ey,'E');ptS(L,17,ey,'E');for(let x=14;x<=17;x++)ptS(L,x,ey+4,(x&1)?'0':'r');
+  for(const s of[0,1]){const X=x=>s?31-x:x,yh=E.y0-2;ptS(L,X(16-hw0),yh,'b');ptS(L,X(16-hw0-1),yh-1,'c');ptS(L,X(16-hw0-1),yh-2,'d');ptS(L,X(16-hw0-2),yh-3,'e')}return true}   // the Oni's Face
  if(t==='tuskbarbute'){ptFullHelm(L,P,E,'barbute');const hw0=P.head.w[3]+1;for(const s of[0,1]){const X=x=>s?31-x:x;ptS(L,X(16-hw0-1),ey+3,s?'m':'l');ptS(L,X(16-hw0-2),ey+2,s?'m':'l');ptS(L,X(16-hw0-2),ey+1,'r');ptS(L,X(16-hw0-3),ey,s?'l':'r')}return true}
  if(t==='wyvcrest'){ptFullHelm(L,P,E,'great');const y0=E.y0-2;for(let x=15;x<=22;x++)for(let y=y0-4;y<y0;y++)if(ptG(L,x,y)!=='.'&&ptG(L,x,y)!=='0')L[y][x]='.';
   for(let i=0;i<9;i++){const x=12+i,h=i<5?1+(i>>1):3-((i-5)>>1);for(let j=1;j<=h;j++)ptS(L,x,y0-j,j===h?'h':i<4?'g':'f')}for(let x=11;x<=21;x++)ptS(L,x,y0,'K');return true}

@@ -154,16 +154,16 @@ const LEGENDS=[
   'The iron crown of the warlord who conquered the Barrow Kings. Fear does not pass beneath it, and those who march with its wearer stand taller.'],
  ['oniface','kawari|kabuto|armet','The Oni’s Face',{arm:280,fat:12},{n:'Demon visage',d:'Head hits on you are 20% less likely; a kill steadies you (+15 to the morale roll)',mod:{headDef:20,killMor:15}},
   'A war-mask hammered in the likeness of a demon that, so they say, sat for the smith. Blades slide from its brow.'],
- ['sunwall','heater2|heater','The Sunwall',{md:32,rd:30,hp:120,fat:12},{n:'Shelter of the sun',d:'While raised: shots on you lose 30%; allies beside you are covered (−10 to be shot)',mod:{deflect:.3,guard:10}},
+ ['sunwall','heater2|heater','The Sunwall',{md:32,rd:30,hp:120,fat:12,look:'heater_lgsun'},{n:'Shelter of the sun',d:'While raised: shots on you lose 30%; allies beside you are covered (−10 to be shot)',mod:{deflect:.3,guard:10}},
   'The shield that held the gate of Solmere for forty days. Arrows break on its gilded face like rain on a roof.'],
- ['mirrorshield','dwarfround|round3|heater2','The Mirror of Vey',{md:28,rd:28,hp:110,fat:10},{n:'Turned blow',d:'While raised: a foe whose weapon hit lands on you in melee loses 10 hitpoints (through armor; never kills); every blow loses 10%',thorns:10,mod:{shieldDr:.1}},
+ ['mirrorshield','dwarfround|round3|heater2','The Mirror of Vey',{md:28,rd:28,hp:110,fat:10,look:'round_lgmirror'},{n:'Turned blow',d:'While raised: a foe whose weapon hit lands on you in melee loses 10 hitpoints (through armor; never kills); every blow loses 10%',thorns:10,mod:{shieldDr:.1}},
   'A round shield polished like still water. Those who strike at its bearer see themselves, and feel it.']];
 function lgBase(s){for(const b of String(s).split('|'))if(ITEMS[b]&&!ITEMS[b].famed&&!ITEMS[b].legend)return b;return null}
 function lgBuild(L){const [key,bs,n,st,power,lore]=L,base=lgBase(bs);if(!base)return null;const B=ITEMS[base],it=Object.assign({},B);
  if(B.d)it.d=B.d.slice();if(B.reload)it.reload=Object.assign({},B.reload);if(B.sk)it.sk=B.sk.slice();if(B.spike)it.spike=B.spike.slice();
  for(const k in st)it[k]=Array.isArray(st[k])?st[k].slice():st[k];
  const price=Math.round((B.price*3+6000)/100)*100;
- Object.assign(it,{n,tier:6,legend:1,uniq:1,famed:1,base,mods:{},price,look:'lg_'+key,lore,power:Object.assign({},power),from:null,day:null});delete it.east;delete it.craft;delete it.icon;return it}
+ Object.assign(it,{n,tier:6,legend:1,uniq:1,famed:1,base,mods:{},price,look:st.look||'lg_'+key,lore,power:Object.assign({},power),from:null,day:null});delete it.east;delete it.craft;delete it.icon;return it}
 const LEGENDIDS=[];
 for(const L of LEGENDS){const it=lgBuild(L);if(it){ITEMS['lg:'+L[0]]=it;LEGENDIDS.push('lg:'+L[0])}}
 function isLegend(id){const it=ITEMS[id];return!!(it&&it.legend)}

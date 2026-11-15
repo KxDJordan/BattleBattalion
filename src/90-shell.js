@@ -7,9 +7,11 @@
      SET.deploy   true: the deployment screen before each battle
      SET.theme    key of THEMES (08-frames.js): UI colours and the pixel frames, applied live (applyTheme)
      SET.allyBars true: allies' HP and armor bars show on the battle board (the battle HUD toggles it with setOpt('allyBars', v))
+     SET.vol / SET.music / SET.sfx  0..1 master, music and effects (ambience rides on effects) volumes; SET.mute true: silent (26-audio.js)
    reducedMotion() is true when either SET.motion==='reduce' or the device asks for it; #app carries class .rm then. */
 const SETKEY='wyrdmarch_settings_v1';
-const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,awake:true};
+const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,awake:true,vol:.8,music:.6,sfx:.8,mute:false};
+const setVol=v=>typeof v==='number'&&isFinite(v)?Math.round(Math.max(0,Math.min(1,v))*100)/100:null;
 let _setConfirmUser=false,_rmq=null;
 function coarsePointer(){try{return!!window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
 function reducedMotion(){let dev=false;try{dev=!!(_rmq&&_rmq.matches===true)}catch(e){}return SET.motion==='reduce'||dev}
@@ -18,11 +20,12 @@ function applyMotion(){const rm=reducedMotion();try{const a=$('app');if(a)a.clas
 function loadSettings(){SET.confirm=coarsePointer();
  try{const o=JSON.parse(storeGet(SETKEY)||'null');if(o&&typeof o==='object'){if(o.speed===1||o.speed===.35)SET.speed=o.speed;
    if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy;
-   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.awake==='boolean')SET.awake=o.awake}}catch(e){}
+   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.awake==='boolean')SET.awake=o.awake;
+   for(const k of ['vol','music','sfx']){const v=setVol(o[k]);if(v!=null)SET[k]=v}if(typeof o.mute==='boolean')SET.mute=o.mute}}catch(e){}
  SPEEDF=SET.speed;
  try{_rmq=window.matchMedia('(prefers-reduced-motion: reduce)');const f=()=>applyMotion();if(_rmq.addEventListener)_rmq.addEventListener('change',f);else if(_rmq.addListener)_rmq.addListener(f)}catch(e){_rmq=null}
  applyMotion();applyTheme(SET.theme)}
-function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,awake:SET.awake};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
+function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,awake:SET.awake,vol:SET.vol,music:SET.music,sfx:SET.sfx,mute:SET.mute};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
 function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=SET.speed}
  else if(k==='deploy'){SET.deploy=!!v}
  else if(k==='confirm'){SET.confirm=!!v;_setConfirmUser=true;if(typeof fcClear==='function')fcClear()}
@@ -30,6 +33,8 @@ function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=
  else if(k==='theme'){SET.theme=typeof THEMES!=='undefined'&&THEMES[v]?v:'verdigris';applyTheme(SET.theme)}
  else if(k==='awake'){SET.awake=!!v;if(SET.awake)wakeOn();else wakeOff()}
  else if(k==='allyBars'){SET.allyBars=!!v;try{if(typeof _allyBars!=='undefined')_allyBars=SET.allyBars}catch(e){}}
+ else if(k==='mute'){SET.mute=!!v;if(!SET.mute&&typeof AUDIO!=='undefined')AUDIO.unlock();if(typeof AUDIO!=='undefined')AUDIO.apply()}
+ else if(k==='vol'||k==='music'||k==='sfx'){const x=setVol(+v);if(x!=null)SET[k]=x;if(typeof AUDIO!=='undefined')AUDIO.apply()}
  saveSettings();settingsRefresh();if(mode==='battle'&&B)updateBUI()}
 /* ---- themes: CSS colours rewritten through themeHex (08-frames.js), frames rebuilt, the title and town redrawn ----
    The build's stylesheet text is kept once; each theme is a fresh copy of it with every colour mapped (alpha suffixes kept). */
@@ -49,7 +54,12 @@ function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();
  const seg=(k,opts,cur)=>'<div class="seg" role="radiogroup">'+opts.map(o=>'<button class="pxb sm'+(o[0]===cur?' on':'')+'" role="radio" aria-checked="'+(o[0]===cur)+'" onclick="'+(k==='full'?'settingsFull()':'setOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')')+'">'+o[1]+'</button>').join('')+'</div>';
  const row=(icon,svg,t,d,ctl,cls)=>'<div class="setr'+(cls?' '+cls:'')+'"><span class="seti">'+pic(icon,32,svg)+'</span><div class="sett"><b>'+t+'</b><small>'+d+'</small></div>'+ctl+'</div>';
  const themes=typeof THEMES==='undefined'?'':'<div class="thg" role="radiogroup" aria-label="Colour theme">'+Object.keys(THEMES).map(t=>'<button class="pxb sm thb'+(t===SET.theme?' on':'')+'" role="radio" aria-checked="'+(t===SET.theme)+'" onclick="setOpt(\'theme\',\''+t+'\')">'+themeSwatch(t)+'<span>'+THEMES[t].n+'</span></button>').join('')+'</div>';
+ const vol=(k,t,d)=>'<div class="setr setv'+(SET.mute?' off':'')+'"><span class="seti">'+pic(k==='music'?'ab-chant':k==='sfx'?'ab-slash':'ab-warcry',32,'play')+'</span><div class="sett"><b>'+t+'</b><small>'+d+'</small></div>'
+  +'<label class="vol"><input type="range" min="0" max="100" step="5" value="'+Math.round((SET[k]==null?.8:SET[k])*100)+'" aria-label="'+t+'" oninput="setVolume(\''+k+'\',this.value)" onchange="setVolume(\''+k+'\',this.value,1)"'+(SET.mute?' disabled':'')+'><output id="vo-'+k+'">'+Math.round((SET[k]==null?.8:SET[k])*100)+'</output></label></div>';
+ const snd=row('ab-chant','play','Sound','Music and sounds made by the game itself'+(typeof AUDIO!=='undefined'&&AUDIO.ok===false&&_auNoCtx()?' (this browser has no sound)':''),seg('mute',[[false,'On'],[true,'Off']],SET.mute===true))
+  +vol('vol','Volume','Everything together')+vol('music','Music','The tunes of road, town and battle')+vol('sfx','Effects','Blows, spells, footsteps, the wind and the town');
  return'<div class="row sp seth"><h2>Settings</h2><button class="pri" onclick="closeSheet()">Done</button></div><div class="setl">'
+ +snd
  +row('fast','fast','Battle speed','How quickly foes and comrades act',seg('speed',[[1,'Normal'],[.35,'Fast']],SET.speed===.35?.35:1))
  +row('swords','sword','Confirm attacks','First tap shows the forecast, second tap strikes',seg('confirm',[[true,'On'],[false,'Off']],!!SET.confirm))
  +row('company','company','Deployment','Place your swords before each battle',seg('deploy',[[true,'On'],[false,'Off']],SET.deploy!==false))
@@ -60,6 +70,10 @@ function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();
  +(fs?row('fullscreen','full','Fullscreen','Hide the browser frame',seg('full',[[true,'On'],[false,'Off']],full)):'')
  +'</div><p class="dim setn">Kept on this device, apart from the company\'s save.</p>'}
 function settingsSheet(){sheet(settingsHTML())}
+function _auNoCtx(){try{return!(window.AudioContext||window.webkitAudioContext)}catch(e){return true}}
+// a volume slider: applied live while dragged (no re-render, so the drag is never broken), saved when let go; a soft tick previews effects
+let _volT=0;function setVolume(k,v,done){const x=setVol(+v/100);if(x==null||!(k==='vol'||k==='music'||k==='sfx'))return;SET[k]=x;try{const o=$('vo-'+k);if(o)o.textContent=Math.round(x*100)}catch(e){}
+ if(typeof AUDIO!=='undefined'){AUDIO.unlock();AUDIO.apply();if(k!=='music'&&done)AUDIO.play('confirm')}clearTimeout(_volT);_volT=setTimeout(saveSettings,done?0:400)}
 function settingsOpen(){try{const b=$('sheetBody');return!!(sheetOpen&&b&&b.querySelector&&b.querySelector('.setl'))}catch(e){return false}}
 function settingsRefresh(){if(!settingsOpen())return;const b=$('sheetBody'),st=b.scrollTop;b.innerHTML=settingsHTML();b.scrollTop=st}
 function settingsFull(){toggleFullscreen();setTimeout(settingsRefresh,60);setTimeout(settingsRefresh,400)}
@@ -91,7 +105,7 @@ function wirePress(){try{document.addEventListener('pointerdown',e=>{if(reducedM
 
 /* ---- modal dialog ---- */
 let _closing=false,_uiMode='';
-function sheet(h,cls){const b=$('sheetBody'),s=$('sheet'),was=sheetOpen;b.className=cls||'';b.innerHTML=h;s.classList.remove('hidden');b.scrollTop=0;sheetOpen=true;
+function sheet(h,cls){const b=$('sheetBody'),s=$('sheet'),was=sheetOpen;b.className=cls||'';b.innerHTML=h;s.classList.remove('hidden');b.scrollTop=0;sheetOpen=true;if(typeof AUDIO!=='undefined')try{AUDIO.sheet(cls)}catch(e){}
  if(Wipe.job&&Wipe.job.close)Wipe.stop();
  b.classList.remove('in');s.classList.remove('swin','swap');void b.offsetWidth;b.classList.add('in');s.classList.add(was?'swap':'swin')}
 function closeSheet(quiet){const s=$('sheet'),was=sheetOpen&&!s.classList.contains('hidden');let rc=null;
@@ -170,7 +184,7 @@ function costPopRender(force){const e=CP.el;if(!e||e.hidden)return;const k=costP
 function costPopPlace(){const e=CP.el,b=CP.from;if(!e||e.hidden)return;const hud=$('hud'),hr=hud?hud.getBoundingClientRect():{bottom:40},vw=innerWidth,br=b&&b.getBoundingClientRect?b.getBoundingClientRect():{left:12};
  const rail=$('wbar'),rx=rail&&!rail.classList.contains('hidden')&&rail.getBoundingClientRect().width?rail.getBoundingClientRect().left:vw,w=e.offsetWidth,left=clamp(Math.round(br.left-8),6,Math.max(6,rx-w-6));e.style.left=left+'px';e.style.top=Math.round(hr.bottom+4)+'px';e.style.maxHeight=Math.max(160,innerHeight-hr.bottom-12)+'px'}
 function costPopClose(refocus){const e=CP.el;if(!e||e.hidden)return;e.hidden=true;document.querySelectorAll('#hud .hud-tap').forEach(b=>b.setAttribute('aria-expanded','false'));if(refocus&&CP.from&&CP.from.focus)try{CP.from.focus({preventScroll:true})}catch(er){}CP.from=null}
-function chromeTick(){if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world'){worldChrome();rivalWonCheck();runShellTick()}
+function chromeTick(){if(typeof AUDIO!=='undefined')try{AUDIO.tick()}catch(e){}if(mode==='battle'&&B&&B.cur){if(B.auto&&!B.busy&&!B.over&&B.cur.side===0&&!sheetOpen)nextAuto();else updateBUI()}else if(mode==='world'){worldChrome();rivalWonCheck();runShellTick()}
  if(typeof tutTick==='function')tutTick();
  if(CP.el&&!CP.el.hidden){if(mode!=='world'||sheetOpen)costPopClose(false);else costPopRender(false)}}
 

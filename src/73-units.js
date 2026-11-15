@@ -175,7 +175,7 @@ const US_EBOW={hankyu:{bow:6,bowR:'blk',wrap:1,bands:1},yumi:{bow:9,bowR:'blk',a
 const US_LK={n:-1,dup:null,c:new Map()};
 function usItemsN(){let n=0;if(typeof ITEMS!=='undefined')for(const k in ITEMS)n++;return n}
 function usLookDup(){const n=usItemsN();if(US_LK.n!==n){US_LK.n=n;US_LK.c.clear();const d={},o={};for(const k in ITEMS){const I=ITEMS[k];if(I.famed||!I.look)continue;d[I.look]=(d[I.look]||0)+1}for(const k in d)if(d[k]>1)o[k]=1;US_LK.dup=o}return US_LK.dup}
-function usFamedBase(id){const I=typeof ITEMS!=='undefined'&&ITEMS[id];return I&&I.famed&&I.base&&ITEMS[I.base]&&I.base!==id?I.base:null}
+function usFamedBase(id){const I=typeof ITEMS!=='undefined'&&ITEMS[id];return I&&I.famed&&!I.legend&&I.base&&ITEMS[I.base]&&I.base!==id?I.base:null}
 function usLookOf(id){const b=usFamedBase(id);if(b)return usLookOf(b);const I=typeof ITEMS!=='undefined'&&ITEMS[id];if(!I)return String(id);const dup=usLookDup();return I.look&&!dup[I.look]?I.look:id}
 function usTierN(id){const I=ITEMS[id];if(I&&I.tier)return clamp(I.tier|0,1,5);const p=(I&&I.price)||0;return p<150?1:p<450?2:p<1100?3:p<2400?4:5}
 /* the sprite weapon an item id draws as: hand-built shapes for the first-generation looks, generated ones for the rest */
@@ -334,7 +334,7 @@ function usShieldAt(look,cx,top,k,col,inside){const G=usShG(look,k),V=usShVar(lo
  if(V.boss==='spike'){usGrp=2;usPart();usGrp=0;usP(cx,my,USR.plate,1);usP(cx-1,my,USR.iron);usP(cx+1,my,USR.iron,-1);usP(cx,my-1,USR.iron,1);usP(cx,my+1,USR.iron,-1);if(big){usP(cx,my-2,USR.plate,1);usP(cx+1,my-1,USR.plate)}
   if(V.spikes||f==='spiked'){usPart();usP(cx,top-1,USR.plate,1);usP(cx,top+H,USR.plate,-1);if(V.spikes){usP(cx-n-1,my,USR.plate,0);usP(cx+n+1,my,USR.plate,-1);if(big){usP(cx,top-2,USR.plate,1);usP(cx-n-2,my,USR.plate)}}}}
  return G}
-function usShield(type,cx,cy,col,inside){if(usCrk&&!inside){usCrk=0;usShield(type,cx,cy,col,inside);usCrk=1;usShCrack(type,cx,cy);return}const G=usShG(type,1);usGl=!inside&&type.slice(-1)==='*'?1:0;usShieldAt(type,cx,cy-((G.H-1)>>1),1,col||usCloth('red'),inside);usGl=0}
+function usShield(type,cx,cy,col,inside){if(usCrk&&!inside){usCrk=0;usShield(type,cx,cy,col,inside);usCrk=1;usShCrack(type,cx,cy);return}const G=usShG(type,1);usGl=!inside&&(type.slice(-1)==='*'||!!(US_SHV[type]&&US_SHV[type].lg))?1:0;usShieldAt(type,cx,cy-((G.H-1)>>1),1,col||usCloth('red'),inside);usGl=0}
 function usShCrack(type,cx,cy){const G=usShG(type,1),n=G.H,top=cy-((n-1)>>1);usGrp=2;usPart(1);usGrp=0;for(let j=0;j<n;j++){const r=G.r[j],x=cx+((j%3)===1?0:-1)+(j>n/2?1:0);if(x>=cx+r[0]&&x<=cx+r[1])usP(x,top+j,'0')}
  const r0=G.r[0];usE(cx+r0[1],top);if(n>4){usE(cx+r0[1],top+1);usP(cx+G.r[n-2][0],top+n-2,'0')}}
 /* a shield's look key (its own `look`, unique per item; famed: the base's) */
@@ -744,7 +744,7 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
  if(bowA&&v)drawW();
  if(wFar){if(!aimF){if(!bowA)drawW();drawWA(1)}pauld(wslot,1)}else{drawOA(1);pauld(oslot,1)}
  if(!S.float)usLegs(S,A,v,P,nearL);
- usGl=S.av&&S.av.gold?1:0;usTorso(S,A,v,P,x0,ty);usSkirt(S,A,v,P,x0,ty);usGl=0;
+ usGl=S.av&&(S.av.gold||S.av.lg)?1:0;usTorso(S,A,v,P,x0,ty);usSkirt(S,A,v,P,x0,ty);usGl=0;
  if(S.cape&&v===1){usPart();const cr=S.cape;for(let y=ty;y<=-3+(P.kneel?2:0);y++){const e=y>ty+th?1:0;for(let x=x0-e+(y===ty?1:0);x<=x1+e-(y===ty?1:0);x++)if(y<-3||((x+y)&1))usP(x,y,cr,b.big?(((x-x0)%5===2&&y>ty+1)?1:((x-x0)%5===3&&y>ty+3)?-1:0):((x===x0+2||x===x1-2)&&y>ty+2?-1:0))}
   if(b.big&&S.trimR){usP(x0+1,ty,S.trimR);usP(x0+2,ty,S.trimR,-1);usP(x1-1,ty,S.trimR,-1);usP(x1-2,ty,S.trimR);if(S.capeFn)S.capeFn(ctx)}}
  if(S.quiver){usPart();if(v){for(let i=0;i<th-1;i++){const x=x0+1+Math.round(i*.5);usP(x,ty+i,USR.dleather);usP(x+1,ty+i,USR.dleather,-1)}usP(x0,ty-1,'l');usP(x0+1,ty-1,'g');usP(x0,ty-2,'l')}else{usP(x0,ty-1,USR.dleather);usP(x0-1,ty-2,'l');usP(x0,ty-2,'g')}}
@@ -861,7 +861,7 @@ Object.assign(US_HV,{craft_ogrehelm:'ogreskull',craft_tuskhelm:'tuskbarbute',cra
 Object.assign(US_SHV,{targe_serpent:{dev:'scales',field:'serp',rim:'dleather',boss:'brass',alt:'serp'},round_heart:{dev:'rings',field:'heart',rim:'dwood',boss:'none',alt:'heart',leaf:1},
  kite_wyvern:{dev:'scales',field:'wyv',rim:'iron',boss:'spike',alt:'wyv'}});
 /* sprite headgear for the crafted helmets (called from usHatBg) */
-function usHatCraft(S,v,x0,y0,er){const t=S.hat,b=S.b,hw=b.hw,hh=b.hh,R=USR;
+function usHatCraft(S,v,x0,y0,er){const t=S.hat,b=S.b,hw=b.hw,hh=b.hh,R=USR;if(t==='lgcrown'||t==='lgoni')return usHatLegend(S,v,x0,y0,er);
  if(t==='tuskbarbute'){S.hat='barbute';try{usHat(S,v,x0,y0,er)}finally{S.hat=t}usPart();const fx=v?x0+hw:x0+hw-1,sx=v?x0-1:x0;
   for(const [x,d] of[[sx,-1],[v?x0+hw:fx,1]]){usP(x,y0+er+2,R.ivory,0);usP(x+d,y0+er+1,R.ivory,1);usP(x+d,y0+er,R.ivory,1)}return true}
  if(t==='wyvcrest'){S.hat='great';const ac=S.accR,rs=S.res;S.accR=R.wyv;S.res=null;try{usHat(S,v,x0,y0,er)}finally{S.hat=t;S.accR=ac;S.res=rs}usPart();
@@ -871,12 +871,63 @@ function usHatCraft(S,v,x0,y0,er){const t=S.hat,b=S.b,hw=b.hw,hh=b.hh,R=USR;
    usPart();usP(x0+hw+1,y0+3,R.ivory,0);usP(x0+hw+1,y0+2,R.ivory,1);usP(x0+hw,y0+1,R.ivory,1);usP(x0-1,y0+3,R.ivory,0);usP(x0-2,y0+2,R.ivory,1)}
   else{usF(x0+2,y0-1,'n');usF(x0+hw-3,y0,'n');usF(x0+3,y0+1,'n')}return true}
  return false}
-function usArmCraft(S,A,v,x0,x1,ty,th,fc){const V=S.av,c=V.cr,y1=ty+th-1;
+function usArmCraft(S,A,v,x0,x1,ty,th,fc){const V=S.av,c=V.cr,y1=ty+th-1;if(c&&c.slice(0,2)==='lg'){usArmLegend(S,A,v,x0,x1,ty,th,fc);return}
  if(c==='feathers'){usPart(1);for(let x=x0-1;x<=x1+1;x++){usP(x,ty+((x&1)?1:2),USR.white,(x&1)?0:-1)}}
  else if(c==='leaves'){usF(x0+1,ty+2,'A');usF(x0+2,ty+3,'B');usF(x1-1,ty+4,'A');usF(x1-2,ty+5,'B');usF(x0+1,y1-1,'B')}
  else if(c==='bones'){if(v===0){usPart();usP(fc,ty+2,USR.ivory,1);usP(fc-1,ty+3,USR.ivory,0);usP(fc+1,ty+3,USR.ivory,-1);usP(x0+1,ty+5,USR.ivory,0)}}
  else if(c==='spines'){usPart();for(let x=x0+1;x<=x1-1;x+=2)usP(x,ty-1,USR.ivory,1)}}
 
+/* ================= LEGENDARY GEAR (25-legend.js: legend:1, look 'lg_<key>'; shields 'heater_lgsun' / 'round_lgmirror') =================
+   Weapons: a hand-built base re-cut in a legendary material plus their own cells (US_LGW: b base, m ramp remap, x extra cells
+   [i ('t' = the tip, 't+1'...), off, ramp or PAL key, bias, group], o field overrides); W.famed lights the glint, which runs white and
+   violet for a merc who carries a legendary piece (S.lgd). Armor through US_AV (lg:1 glows; cr 'lg*' painters below), helmets as two new
+   hats (lgcrown, lgoni), shields through US_SHV (lg:1). Icons follow from the same painters, framed in 06-icons.js. */
+Object.assign(USR,{lgSun:usRamp('Yyder',2),lgStorm:usRamp('DXxF',2),lgBlood:usRamp('0fgh',2),lgEmber:usRamp('fKEy',2),lgStar:usRamp('DCFr',1),lgNight:usRamp('0GDC',2),
+ lgVerd:usRamp('BwAe',2),lgJade:usRamp('7Zz6',2),lgMoon:usRamp('oJqr',2),lgRoyal:usRamp('DCr',1)});
+const US_LGW={
+ lg_dawnbringer:{b:'runeblade',m:{plate:'lgSun',brass:'gold',dleather:'red'},x:[[1,-2,'gold',1,1],[1,3,'gold',-1,1],[-3,0,'E',0,0],[4,0,'r',1,2],[7,1,'e',0,2]]},
+ lg_grudgebearer:{b:'lordaxe',m:{plate:'lgEmber',dwood:'blk',wood:'blk',brass:'gold'},x:[[-1,0,'gold',0,0],['t+1',0,'lgEmber',1,2]]},
+ lg_widowmaker:{b:'greataxe',m:{plate:'lgBlood',dwood:'blk',wood:'blk',iron:'blk'},x:[[-2,0,'h',0,0]]},
+ lg_lastmercy:{b:'rondel',m:{plate:'lgNight',brass:'gold',dleather:'blk'},x:[[4,0,'F',0,2],[-3,0,'C',0,0]]},
+ lg_oathbreaker:{b:'mace',m:{plate:'blk',iron:'blk',brass:'lgEmber',dwood:'blk',wood:'blk'},x:[['t+1',0,'E',1,2],['t',0,'y',0,2]]},
+ lg_worldhammer:{b:'warmaul',m:{plate:'bronze',iron:'bronze',dwood:'blk',wood:'blk'},x:[['t-1',0,'z',0,2],['t-2',0,'6',0,2]]},
+ lg_heartseeker:{b:'warspear',m:{plate:'lgVerd',brass:'gold',dwood:'dleather'},x:[['t-2',1,'gold',-1,2],['t-2',-1,'gold',1,2]]},
+ lg_skyrender:{b:'glaive',m:{plate:'lgStar',brass:'gold',dwood:'blk',wood:'blk'},x:[['t-1',1,'F',0,2]]},
+ lg_kingsblade:{b:'runegreat',m:{plate:'lgMoon',brass:'gold',dleather:'blk'},x:[[1,-3,'gold',1,1],[1,4,'gold',-1,1],[-3,0,'x',0,0],[6,0,'x',0,2]]},
+ lg_starfall:{b:'warbow',o:{bowR:'gold',recurve:1,nock:'gold',wrap:'blue'}},
+ lg_wyrmbane:{b:'arbalest',m:{dwood:'blk',wood:'blk',iron:'lgBlood',brass:'gold'}},
+ lg_thunderclap:{b:'musket',m:{dwood:'red',wood:'red',iron:'gold',brass:'lgStorm'},x:[[2,0,'F',1,1]]},
+ lg_starweaver:{b:'focus',m:{wood:'blk',dwood:'blk',brass:'gold'},o:{gem:1,gemR:'lgStar'},x:[['t+1',0,'C',1,2],['t',1,'F',0,2],['t',-1,'F',0,2]]},
+ lg_kusanagi:{b:'katana3',m:{ice:'lgJade',plate:'lgJade',brass:'gold',red:'blk'},x:[[5,0,'6',0,2]]},
+ lg_raijin:{b:'daikyu',o:{bowR:'lgStorm',nock:'gold',wrap:'gold'}},
+ lg_stormcleaver:{b:'odachi',m:{plate:'lgStorm',brass:'gold',red:'blk'},x:[[6,0,'F',0,2],[10,0,'r',0,2]]}};
+for(const k in US_LGW)US_WHAND[k]=k;
+function usLegendW(id){const D=US_LGW[id],B=usWdef(D.b),rev=new Map();for(const n in USR)rev.set(USR[n],n);const m=D.m||{};
+ const c=B.c.map(q=>{let r=q[2];if(r&&typeof r==='object'){const n=rev.get(r);if(n&&m[n])r=USR[m[n]]}return[q[0],q[1],r,q[3],q[4]]});let tip=B.tip||0;for(const q of B.c)if(q[0]>tip)tip=q[0];
+ if(D.x)for(const e of D.x){let i=e[0];if(typeof i==='string')i=tip+(+(i.slice(1))||0);c.push([i,e[1],USR[e[2]]||e[2],e[3]|0,e[4]|0])}c.sort((a,b)=>a[4]-b[4]);
+ const o=Object.assign({},D.o||{});if(o.bowR&&!USR[o.bowR])delete o.bowR;if(o.gemR)delete o.gemR;return Object.assign({},B,{id,c,famed:1,lg:1},o)}
+{const w0=usWdef;usWdef=function(id){if(US_LGW[id]&&!US_W[id])return US_W[id]=usLegendW(id);return w0(id)}}
+Object.assign(US_AV,{
+ lg_aegisplate:{k:'plate',body:'gold',tex:'flute',trim:'white',lg:1,cr:'lgsun',pm:{o:'b',p:'c',q:'d',r:'e'},A:{paul:'gold',shin:'gold',boot:'gold',fore:'gold'}},
+ lg_shadowweave:{k:'leather',body:'lgNight',tex:'diamond',collar:1,lg:1,cr:'lgstars',pm:{i:'G',j:'D',k:'C',a:'0'},A:{fore:'lgNight'}},
+ lg_pilgrimmantle:{k:'mail',trim:'white',mantle:1,lg:1,cr:'lgcross'},
+ lg_thousandbattles:{k:'lamellar',body:'lgBlood',trim:'gold',lg:1,cr:'lglace',pm:{o:'f',p:'K',q:'g',r:'h'},A:{paul:'lgBlood',shin:'lgBlood',fore:'lgBlood'}}});
+Object.assign(US_HV,{lg_dreadcrown:'lgcrown',lg_oniface:'lgoni'});
+Object.assign(US_SHV,{heater_lgsun:{dev:'cross',field:'gold',rim:'white',boss:'brass',alt:'white',lg:1},round_lgmirror:{dev:'rings',field:'white',rim:'gold',boss:'steel',alt:'lgStar',lg:1}});
+/* the two legendary helmets (called from usHatCraft) */
+function usHatLegend(S,v,x0,y0,er){const t=S.hat,hw=S.b.hw,R=USR;
+ if(t==='lgcrown'){S.hat='great';const ac=S.accR;S.accR=R.blk;try{usHat(S,v,x0,y0,er)}finally{S.hat=t;S.accR=ac}usPart();
+  for(let x=0;x<hw;x++)usP(x0+x,y0-2,R.gold,x<(hw>>1)?1:0);for(let x=0;x<hw;x+=2)usP(x0+x,y0-3,R.gold,1);usP(x0+(hw>>1),y0-4,R.gold,1);if(v===0){usF(x0+(hw>>1),y0-3,'E');usF(x0+1,y0-2,'g')}return true}
+ if(t==='lgoni'){S.hat='kabuto';try{usHat(S,v,x0,y0,er)}finally{S.hat=t}usPart();
+  const hx=[x0,x0+hw-1];for(const x of hx){usP(x,y0-2,R.gold,1);usP(x+(x===x0?-1:1),y0-3,R.gold,1);usP(x+(x===x0?-1:1),y0-4,R.gold,0)}
+  if(v===0){usPart();const hh=S.b.hh;for(let y=er+1;y<hh;y++)for(let x=2;x<hw;x++)usP(x0+x,y0+y,R.red,x>hw-2?-1:y===er+1?1:0);usF(x0+hw-2,y0+er+1,'E');usF(x0+hw-4,y0+er+1,'E');for(let x=3;x<hw-1;x+=2)usF(x0+x,y0+hh-2,'r');usF(x0+hw-1,y0+er+3,'f')}return true}
+ return false}
+/* torso details of the legendary armor (called from usArmCraft) */
+function usArmLegend(S,A,v,x0,x1,ty,th,fc){const c=S.av.cr,y1=ty+th-1;
+ if(c==='lgsun'){if(v===0){usF(fc,ty+2,'E');usF(fc-1,ty+3,'y');usF(fc+1,ty+3,'y');usF(fc,ty+3,'r');usF(fc,ty+4,'y')}else{usF(fc,ty+2,'e');usF(fc,ty+3,'d')}}
+ else if(c==='lgstars'){usF(x0+1,ty+2,'F');usF(x1-1,ty+4,'C');usF(x0+2,y1-2,'C');if(v===0)usF(fc,ty+1,'r')}
+ else if(c==='lgcross'){usPart();for(let y=ty+1;y<y1;y++)usP(fc,y,USR.white,0);for(let x=fc-1;x<=fc+1;x++)usP(x,ty+3,USR.white,0);usF(fc,ty+3,'g')}
+ else if(c==='lglace'){for(let y=ty+1;y<y1;y+=2)usF(x0+1+((y>>1)&1),y,'c');if(v===0){usF(fc,ty+2,'d');usF(fc,ty+1,'c')}}}
 /* ---- looks: mercs from the portrait spec, enemies per type ---- */
 const US_WMAP={knife:'knife',rondel:'rondel',club:'club',mace:'mace',shortsword:'shortsword',arming:'arming',runeblade:'runeblade',handaxe:'handaxe',waraxe:'waraxe',greataxe:'greataxe',spear:'spear',warspear:'warspear',pike:'pike',shortbow:'shortbow',warbow:'warbow',staff:'staff',focus:'focus',riftedge:'riftedge',
  mallet:'warhammer',warhammer:'pickhammer',maul:'maul',warmaul:'warmaul',bill:'bill',halberd:'halberd',glaive:'glaive',greatsword:'greatsword',zweihander:'zweihander',runegreat:'runegreat',
@@ -917,7 +968,7 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
  usSetAlt(S,alt);
  S.res=typeof mercRes==='function'?mercRes(m):null;S.quiver=S.wd.cls==='bow'||S.altCls==='bow';
  if(S.shield||S.slung){const k=usShLook(eq.s);if(S.shield)S.shield=k;else S.slung=k}
- S.famed=!!(S.wd&&S.wd.famed)||!!(S.av&&S.av.gold)||/\*$/.test(S.shield||'')||S.famH;usLookSpec(S,P);usLivery(S,m);return S}
+ S.famed=!!(S.wd&&S.wd.famed)||!!(S.av&&(S.av.gold||S.av.lg))||/\*$/.test(S.shield||'')||!!(US_SHV[S.shield]&&US_SHV[S.shield].lg)||S.famH;S.lgd=['w','a','h','s'].some(k=>ITEMS[k==='w'?wid:eq[k]]&&ITEMS[k==='w'?wid:eq[k]].legend);usLookSpec(S,P);usLivery(S,m);return S}
 /* the sashimono: a banner pole up the back with a narrow flag and the mon (fl: the flag ramp, mk: the mon's key, big: a gilt finial) */
 function usSashi(c,fl,mk,big){if(c.lie)return;const S=c.S,dir=c.v?1:-1,x=c.v?((c.x0+c.x1)>>1)+1:c.x0+1,top=c.hy0-(big?9:8),y1=c.ty+3,sw=c.st==='walk'?(c.fr&1):0;usPart();for(let y=top;y<=y1;y++)usP(x,y,USR.dwood,y===top?1:0);
  if(big){usPart();usP(x,top-1,USR.gold,1);usP(x+dir,top-2,USR.gold);usP(x-dir,top-2,USR.gold,1)}
@@ -1102,7 +1153,7 @@ function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=u
 function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?performance.now():0,S=L.S,v=face>=2?1:0,mir=face===1||face===2,d=US_DIM[L.big];
  usBegin(L.big);usCrk=S.shCrack?1:0;
  try{if(S.kind==='quad')usQuad(S.Q,v,mir,st,fr);else if(S.kind==='spider')usSpider(v,mir,st,fr);else usHuman(S,v,mir,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.err){US.err=1;console.error('unit sprite',L.key,st,fr,e)}}
- const cv=usResolve(usG,L.big||S.armor==='plate');let gl=null;if(S.famed&&st!=='death'){const Z=usG.Z,w=usG.w,a=[],on=i=>i>=0&&i<Z.length&&Z[i]&&usGL[Z[i]];for(let i=0;i<Z.length;i++)if(on(i)&&(!on(i-1)||!on(i+1)||!on(i-w)||!on(i+w)))a.push(i);if(a.length){a.sort((p,q)=>(p%w-((p/w)|0))-(q%w-((q/w)|0)));gl={a,w}}}
+ const cv=usResolve(usG,L.big||S.armor==='plate');let gl=null;if(S.famed&&st!=='death'){const Z=usG.Z,w=usG.w,a=[],on=i=>i>=0&&i<Z.length&&Z[i]&&usGL[Z[i]];for(let i=0;i<Z.length;i++)if(on(i)&&(!on(i-1)||!on(i+1)||!on(i-w)||!on(i+w)))a.push(i);if(a.length){a.sort((p,q)=>(p%w-((p/w)|0))-(q%w-((q/w)|0)));gl={a,w,lg:!!S.lgd}}}
  US.builds++;if(t0)US.ms+=performance.now()-t0;return{cv,ax:d.ax,ay:d.ay,gl}}
 /* famed gear glints: a gold highlight runs along the famed weapon / armor / shield every ~1.5 s (4 precomputed frames per sprite frame, built on demand); still under reduced motion */
 function usRM(){try{if(typeof reduced!=='undefined'&&reduced)return true;if(typeof SET!=='undefined'&&SET&&SET.motion==='reduce')return true}catch(e){}return false}
@@ -1110,7 +1161,7 @@ const US_GLN=4,US_GLP=14,US_GLMS=110;
 function usGlint(o){if(!o||!o.gl||!o.cv||usRM())return o;const t=typeof performance!=='undefined'?performance.now():Date.now(),ph=Math.floor(t/US_GLMS)%US_GLP;if(ph>=US_GLN)return o;const v=o.gv||(o.gv=[]);return v[ph]||(v[ph]=usGlintFrame(o,ph))}
 function usGlintFrame(o,ph){const c=pxCanvas(o.cv.width,o.cv.height);if(!c)return o;const q=c.getContext('2d');q.drawImage(o.cv,0,0);let im;try{im=q.getImageData(0,0,c.width,c.height)}catch(e){return o}
  const d=im.data,A=o.gl.a,w=o.gl.w,dg=i=>i%w-((i/w)|0),d0=dg(A[0]),d1=dg(A[A.length-1]),mid=d0+(d1-d0)*(ph+.5)/US_GLN,rgb=US.rgb||(US.rgb=usRGB());
- for(const i of A){const k=Math.abs(dg(i)-mid);if(k>1)continue;const j=i*4;if(d[j+3]===0)continue;const cc=rgb[k<.75?'e':'d'];d[j]=cc[0];d[j+1]=cc[1];d[j+2]=cc[2]}q.putImageData(im,0,0);return{cv:c,ax:o.ax,ay:o.ay}}
+ for(const i of A){const k=Math.abs(dg(i)-mid);if(k>1)continue;const j=i*4;if(d[j+3]===0)continue;const cc=rgb[o.gl.lg?(k<.75?'r':'C'):k<.75?'e':'d'];d[j]=cc[0];d[j+1]=cc[1];d[j+2]=cc[2]}q.putImageData(im,0,0);return{cv:c,ax:o.ax,ay:o.ay}}
 function usMon(u,face,state,frame){if(!u||!u.def||u.m||typeof monsterSpritePx!=='function')return null;try{return monsterSpritePx(u,face,state,frame)||null}catch(e){return null}}   // monster art (76-monsters.js) draws its own enemies first
 function unitSpritePx(u,face,state,frame){const M=usMon(u,face,state,frame);if(M)return M;const L=usLook(u),n=UNIT_FRAMES[state];if(!n){state='idle'}const nf=UNIT_FRAMES[state];
  face=((face|0)%4+4)%4;frame=((frame|0)%nf+nf)%nf;const i=face*US_NF+US_OFF[state]+frame;const o=L.fr[i]||(L.fr[i]=usBuild(L,face,state,frame));return o.gl?usGlint(o):o}

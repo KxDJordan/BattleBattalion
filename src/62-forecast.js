@@ -47,7 +47,9 @@
      quarry     null, or {key, tag ('Ogre-slayer'), n ('Ogres'), slain, dmg (percent, to a tenth: 12.5), hit, text ('Ogre-slayer: +12.5% damage, +3 to hit')}
      kb.ch, pull.ch and a stun's ch are halved by Rolling with it; Unshakable drops the stun and the shake; Immovable makes kb.ch 0.
    o is strike()'s option bag: {splash:.7} for blast/arc secondaries, {auto:1} for arcs and strays that always hit,
-   {free:...} for free attacks. */
+   {free:...} for free attacks.
+   Endgame (24-endgame.js): realm {k, n, notes:[text]} | null (the portal realm's rules on this strike; spellK is inside spellMult already);
+   lines [{k,t}] legendary powers (legendFcLines, 25-legend.js). */
 // The damage one roll does before armor: the same dmgAfter() strike() calls (talent bonuses, executioner, splash, height, reduction).
 function fcDamage(u,t,a,roll,o){if(a.noDmg)return 0;return dmgAfter(u,t,a,a.magic?roll*spellMult(u):roll*(a.mult||1),o)}
 // hurt() without the hurting: what `dmg` takes from hitpoints and from the armor of the struck location.
@@ -92,4 +94,10 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const kn=a.kb||u.kbN||0,imm=kbImmune(t),rl=1-((t.flags&&t.flags.roll)||0);if(kn)f.kb={n:kn,ch:imm?0:(a.kb?1:u.kbCh||0)*rl,crash:a.crash||u.crashD||0};if(a.pull)f.pull={n:a.pull,ch:imm||mdist(u,t)<=1?0:rl};
  if(kind===2&&!o.free&&!sure&&los.ff.length){const ch=(100-f.hit)*FFCH/los.ff.length;f.ff=los.ff.map(x=>({t:x,ch}))}
  f.riposte=!sure&&!o.free&&!a.magic&&mdist(u,t)===1&&buffSum(t,'rip')>0&&canFree(t);
+ f.realm=fcRealm(u,a);   // a portal realm's say in this strike (24-endgame.js), already inside the figures
+ f.lines=typeof legendFcLines==='function'?legendFcLines(u,t,a):[];   // legendary powers (25-legend.js): [{k,t}] for the HUD
  return f}
+/* realm: null, or {k, n, notes:[text]}: the Glass Wastes' mana storm (spells +30%, inside dmg*) and backlash (the caster's own hitpoints),
+   the Hollow's darkness (the reach is capped: the target is within it), the Ashen Reach's halved healing. */
+function fcRealm(u,a){const R=B&&B.realm;if(!R)return null;const L=[];if(a.magic&&R.spellK)L.push(`Mana storm: +${Math.round((R.spellK-1)*100)}% spell damage`);if(a.magic&&R.backlash)L.push(`Backlash: the caster loses ${Math.max(3,Math.round(u.hpMax*R.backlash))} hitpoints`);
+ if(R.sight&&a.tgt==='enemy')L.push(`Darkness: reach at most ${R.sight} tiles`);if(R.healK!=null&&a.heal)L.push('No mending: heals do half');return{k:R.k,n:R.n,notes:L}}

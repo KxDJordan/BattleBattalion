@@ -52,6 +52,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    if(Array.isArray(L)){const herb=typeof followerHas==='function'&&followerHas('herbalist'),by={};
     for(const x of L){if(!x||typeof x.key!=='string'||!(x.n>0))continue;if(typeof PARTS!=='undefined'&&!PARTS[x.key])continue;by[x.key]=(by[x.key]||0)+Math.floor(x.n)}
     if(!G.parts||typeof G.parts!=='object')G.parts={};for(const k in by){let n=by[k];if(herb&&rnd()<.5)n++;G.parts[k]=(G.parts[k]||0)+n;res.parts.push({key:k,n})}}}}
+ if(b.fixedSide&&typeof egBane==='function')res.bane=egBane(b);   // endgame: the killing blow on an elite or boss is a deed (24-endgame.js)
  if(typeof fabledResolve==='function')fabledResolve(b,res,win);   // fabled warriors: permanent death, named gear, duels (21-fabled.js)
  if(typeof ambEvent==='function')ambEvent('battle',res);
  if(typeof cpDamageAll==='function'){res.repair=cpDamageAll();res.toolsNeed=Math.ceil(res.repair/cpToolPts());res.tools=cpTools()}
@@ -183,6 +184,8 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
  else if(s.type==='lair'&&typeof ctrBattleEnd==='function'){const c=G.contract;if(c&&!c.failed&&(s.id==null||s.id===c.id)){out.toast=ctrBattleEnd(c,win,B0res)||null}}
  else if(s.type==='twist'){if(!win&&G.contract&&G.contract.id===s.id&&typeof ctrFail==='function'){/* a lost ambush costs the cargo */const c=G.contract;if(c.type==='deliver'||c.type==='escort'||c.type==='relic'){ctrFail(c,'Lost the cargo to an ambush');out.toast='Contract failed: the cargo is lost'}}}
  else if(s.type==='lair'){const c=G.contract;if(c&&c.type==='hunt'&&!c.done){if(win){c.done=true;if(typeof ambEvent==='function')ambEvent('lair',{f:c.f,diff:c.diff});out.toast='Contract done. Return to '+G.towns[c.town].name+' for pay'}else{G.contract=null;G.renown=Math.max(0,G.renown-5);out.toast='Contract failed'}}}
+ else if(s.type==='portal'&&typeof portalSettle==='function')return Object.assign(out,portalSettle(s,win,B0res));   // a portal world's node fight (24-endgame.js)
+ else if(s.type==='dungeon'&&typeof dungeonSettle==='function')return Object.assign(out,dungeonSettle(s,win,B0res));
  else if(s.type==='dun'&&G.dun){const d=G.dun;
   if(!win){G.dun=null;out.toast='The rift spits you back out'}
   else if(d.stage<2){d.stage++;G.roster.forEach(m=>{const mx=calc(m).hp;m.hp=Math.min(mx,m.hp+Math.round(mx*.15))});return{kind:'dunNext',stage:d.stage,realm:d.realm}}
@@ -196,6 +199,7 @@ function fleeEncounter(o){const c0=G.crowns;G.crowns=Math.floor(G.crowns*.9);con
 function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
  if(out.kind==='wiped'&&typeof runEnd==='function'){try{runEnd('wipe')}catch(e){}}
  if(out.kind==='wiped'){sheet((out.solo?`<h2>The hunt is over</h2><p>The slayer is dead, and nobody rides on in their name. The hunt lasted ${out.days} days.</p>`:`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p>`)+`<button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
+ if(typeof egAfterSheet==='function'&&/^(portal|dgn)/.test(out.kind)){egAfterSheet(out);save();return out}   // portal worlds and dungeons: their own sheets (79-endgame-art.js)
  if(out.kind==='dunNext'){sheet(`<h2>${BIO[out.realm].n}</h2><p>${out.stage===1?'The path winds deeper. The air tastes of iron.':'A throne of fused stone. Something vast stirs upon it.'}</p><p class="dim">The company catches its breath (+15% HP). Battle ${out.stage+1} of 3.</p><button class="pri" onclick="dunBattle()">Press on</button>`);return out}
  if(out.kind==='dunDone'){let msg=`<h2>The rift collapses</h2><p>The tyrant falls and the tear in the world seals behind you. You carry out <span class="coin">${out.pay} crowns</span> of strange gold and a rift-forged blade.</p>`;
   if(out.ended)msg+=`<p class="good">The last of the three rifts is closed. The Sundering is over, though lesser rifts may still open.</p>`;
@@ -209,6 +213,7 @@ function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=
 // Headless: fight o to the end with the AI on both sides and no result sheet. Resolves with the result record
 // (result.stuck is set if o.turnCap was hit), or null if nobody can be fielded. Follow with settleBattle(result.win).
 function autoBattle(o){return new Promise(done=>{const p=Object.assign({},o,{auto:true,quiet:true,onEnd:done});battleSnap(p);if(!startBattle(p))done(null)})}
-function portalSheet(id){const p=G.portals.find(p=>p.id===id);if(!p)return;sheet(`<h2>A rift to ${BIO[p.realm].n}</h2><p>The tear hums. Beyond it lies another world: three battles with no rest, ending in a tyrant. Wounds carry over between fights.</p><div class="row"><button class="pri" style="flex:1" onclick="enterRift(${id})">Step through</button><button onclick="closeSheet()">Not yet</button></div>`)}
-function enterRift(id){const p=G.portals.find(p=>p.id===id);if(!p)return;G.dun={id:p.id,stage:0,realm:p.realm};dunBattle()}
+function portalSheet(id){if(typeof egPortalSheet==='function')return egPortalSheet(id);const p=G.portals.find(p=>p.id===id);if(!p)return;sheet(`<h2>A rift to ${BIO[p.realm].n}</h2><p>The tear hums. Beyond it lies another world: three battles with no rest, ending in a tyrant. Wounds carry over between fights.</p><div class="row"><button class="pri" style="flex:1" onclick="enterRift(${id})">Step through</button><button onclick="closeSheet()">Not yet</button></div>`)}
+// Entering a rift opens its portal world (24-endgame.js portalBegin, the node map in 79-endgame-art.js). The old three-battle run (G.dun) is gone; dunBattle stays for old callers.
+function enterRift(id){const p=G.portals.find(p=>p.id===id);if(!p)return null;const run=typeof portalBegin==='function'?portalBegin(id):null;if(run){if(typeof egMapShow==='function')egMapShow();return run}G.dun={id:p.id,stage:0,realm:p.realm};dunBattle();return null}
 function dunBattle(){const d=G.dun;if(!d)return;engage({f:'void',mult:[1,1.3,1][d.stage]||1,biome:d.realm,fixed:d.stage===2?['tyrant']:null,src:{type:'dun'}})}

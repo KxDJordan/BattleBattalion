@@ -29,7 +29,9 @@ function dpTraits(bk){const P=BIO[bk],obj=({tree:'trees',rock:'rocks',crystal:'c
  t.push(P.amp<1.5?['Flat ground','Little high ground to hold']:P.amp<3?['Rolling ground','Some high ground: +10 to hit downhill']:['Steep ground','High ground matters: +10 to hit downhill']);
  t.push(P.block<.05?['Open field','Few '+obj+' to block the way']:P.block<.1?['Scattered '+obj,obj[0].toUpperCase()+obj.slice(1)+' block movement here and there']:['Thick with '+obj,'Many tiles are blocked']);
  if(P.rgh>=.15)t.push(['Boggy footing','Much rough ground: +1 AP a step']);else if(P.rgh>=.08)t.push(['Rough patches','Some rough ground: +1 AP a step']);
- if(P.haz)t.push(['Burning ground','Hazard tiles wound whoever stands on them']);return t}
+ if(P.haz)t.push(['Burning ground','Hazard tiles wound whoever stands on them']);
+ if(typeof realmLines==='function')for(const r of realmLines(bk))t.push(r);   // a portal realm's rules (24-endgame.js)
+ return t}
 function dpStart(o){const p=Object.assign({},o);if(typeof battleSnap==='function')battleSnap(p);return startBattle(p)}
 /* entry point */
 function deployBattle(o){o=o||{};if(o.auto||o.quiet||!dpCan()||!dpWanted()||!G||!G.roster||!G.roster.length)return dpStart(o);
@@ -175,8 +177,8 @@ function dpFabledHTML(o){const L=typeof fabledPreview==='function'?fabledPreview
  return`<div class="dp-sec"><span>${o.duel?'A duel to yielding':'Fabled'}</span><i>${L.length===1?'a named warrior':L.length+' named warriors'}</i></div><div class="dp-foes">${L.map(x=>`<span class="dp-en sure fabled" title="${x.n}, ${x.title}">${typeof portraitHTML==='function'&&typeof fabledMerc==='function'?portraitHTML(fabledMerc(x.id),32):''}<b>Lv ${x.lvl}</b><small>${x.n}, ${x.title}</small></span>`).join('')}</div>`}
 function dpFoeHTML(o){if(DP.rv&&o.rival)return dpRivalHTML(o);const fb=dpFabledHTML(o);if(o.fabledOnly)return fb;return fb+dpFoeHTML0(o)}
 function dpFoeHTML0(o){const F=FACT[o.f]||{n:'Foes',units:[]},L=DP.foes,por=id=>id&&typeof portraitHTML==='function'?portraitHTML(id,32):`<span class="dp-unk">?</span>`;
- if(L){const tot=L.reduce((a,x)=>a+x.n,0);
-  return`<div class="dp-sec"><span>They field</span><i>${tot} foe${tot===1?'':'s'}</i></div><div class="dp-foes">${L.map(x=>`<span class="dp-en" title="${x.id?EN[x.id].n:'Unknown'}">${por(x.id)}<b>×${x.n}</b><small>${x.id?EN[x.id].n:'Unseen'}</small></span>`).join('')}</div>`}
+ if(L){const tot=L.reduce((a,x)=>a+x.n,0),fx=Array.isArray(o.roster);   // a fixed roster (endgame): exactly as listed, the same for every company
+  return`<div class="dp-sec"><span>${fx?'A fixed host':'They field'}</span><i>${tot} foe${tot===1?'':'s'}${fx?', made for veterans':''}</i></div><div class="dp-foes">${L.map(x=>`<span class="dp-en" title="${x.id?EN[x.id].n:'Unknown'}">${por(x.id)}<b>×${x.n}</b><small>${x.id?EN[x.id].n:'Unseen'}</small></span>`).join('')}</div>`}
  const fx=(o.fixed||[]).filter(id=>EN[id]),ids=fx.concat(F.units.map(u=>u[0]).filter(id=>EN[id]&&!fx.includes(id)));
  return`<div class="dp-sec"><span>Scouts report</span><i>${dpStrength(o)}</i></div><div class="dp-foes">${ids.map(id=>`<span class="dp-en${fx.includes(id)?' sure':''}" title="${EN[id].n}">${por(id)}<b>${fx.includes(id)?'×1':'?'}</b><small>${EN[id].n}</small></span>`).join('')}</div>`}
 function dpLandHTML(bk,tod){const P=BIO[bk],wx=G.weather&&typeof WTHR!=='undefined'&&WTHR[G.weather.kind]&&!DPREALMSKY[bk]?WTHR[G.weather.kind].n:'',todN=({dawn:'Dawn',day:'Day',dusk:'Dusk',night:'Night'})[tod]||'Day';

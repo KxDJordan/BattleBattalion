@@ -80,6 +80,11 @@ function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&M
    if(I){h+=`<div class="ins-ab ins-pk ins-q${I.max?' max':''}" title="${htmlEsc(I.n+': '+I.slain+' slain, +'+I.dmg+'% damage, +'+I.hit+' to hit (cap '+I.cap+' kills)')}">${insIc(icn)}<div><b>${p.n}</b><i>${I.slain} slain</i><span>+${I.dmg}% dmg${I.hit?', +'+I.hit+' hit':''}${I.max?' (full)':''}</span></div></div>`;continue}}
   h+=`<div class="ins-ab ins-pk${idle?' idle':''}" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b>${idle?`<i>${why}</i>`:''}<span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
  return h}
+/* legendary pieces a merc unit carries (25-legend.js): each power, lit while it counts (the weapon in hand, a raised shield, armor and helmet) */
+function insLegend(u){const m=u&&u.m;if(!m||!m.eq)return'';let h='';
+ for(const k of ['w','b','s','a','h']){const id=m.eq[k],it=ITEMS[id];if(!it||!it.legend||!it.power)continue;const on=k==='w'||k==='b'?u.wid===id:k==='s'?!!u.shield:true;
+  h+=`<div class="ins-ab ins-lg${on?'':' idle'}" title="${htmlEsc(it.lore||'')}">${insIc('it-'+id)}<div><b>${htmlEsc(it.n)}</b><i>${htmlEsc(it.power.n)}${on?'':k==='s'?' · slung: idle':' · not in hand: idle'}</i><span>${htmlEsc(it.power.d)}</span></div></div>`}
+ return h}
 function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor=typeof shMor==='function'?shMor(u):-1,brv=typeof shBrv==='function'?shBrv(u):null;
  const rv=!pl&&m&&typeof lkRival==='function'?lkRival(u.rival||(typeof B!=='undefined'&&B&&B.rival)||u.f):null;   // a rival company's sword: their banner, level and background
  let h=`<div class="ins-h"><b class="ins-n">${typeof htmlEsc==='function'?htmlEsc(u.name):u.name}</b><span class="ins-tag ${pl?'ally':'foe'}${rv?' rv':''}">${pl?'Level '+u.lvl:rv?(typeof rivalMiniHTML==='function'?rivalMiniHTML(rv,16):'')+'Level '+u.lvl+' · '+(typeof lkRivalShort==='function'?htmlEsc(lkRivalShort(rv)):''):FACT[u.f]?FACT[u.f].n:'Foe'}</span></div>`;
@@ -100,13 +105,14 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  for(const b of u.buffs||[])if(!b.key&&!b.foe&&!b.indom)r+=`<div class="ins-ab ins-s gd">${insIc('buff')}<div><b>Bolstered</b><span>${buffText(b)}</span></div></div>`;
  if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd">${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
  const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;
+ const lg=insLegend(u);if(lg)r+=`<div class="ins-hd lgd">Legendary</div>`+lg;
  if(m){const tl=insTalents(m);if(tl)r+=`<div class="ins-hd">Talents</div>`+tl}
  if(m){const tr=insMercTraits(m),rt=pl?insRetinue():'';if(tr||rt)r+=`<div class="ins-hd">Traits</div>`+tr+rt}
  const ab=m?insAbChips(u):insAbs(u),tr=m?'':insTraits(u);if(ab||tr)r+=`<div class="ins-hd">${m?'Abilities':'What it does'}</div>`+tr+ab;
  let note=`Stands on ${tileName(tl).toLowerCase()}, height ${tl.h}.`;
  if(!pl&&cur&&cur.side===0&&cur.alive&&!B.auto){const a=abilityInfo(cur,B.sel||'attack');if(a.tgt==='enemy'){const dist=mdist(cur,u),los=typeof shLos==='function'?shLos(cur,u,a):null;
    note=(dist>a.rng?`Out of reach of ${cur.name}'s ${a.n} (${dist} tiles, reach ${a.rng}).`:los&&los.blocked?`<b class="ins-bad">No line of fire</b> from ${cur.name}: something stands in the way.`
-    :`<b class="ins-hit">${hitChance(cur,u,a)}%</b> to hit with ${a.n} from ${cur.name}${los&&los.cover?` (${los.cover} in the way: −${los.cover*(typeof COVERPEN==='number'?COVERPEN:15)})`:''}.${los&&los.ff&&los.ff.length?` <span class="ins-bad">A miss can stray into ${los.ff.map(x=>x.name).join(', ')}.</span>`:''}`)+' '+note}}
+    :`<b class="ins-hit">${hitChance(cur,u,a)}%</b> to hit with ${a.n} from ${cur.name}${typeof legendFcLines==='function'?legendFcLines(cur,u,a).map(x=>` <span class="ins-lgd">${x.t}.</span>`).join(''):''}${los&&los.cover?` (${los.cover} in the way: −${los.cover*(typeof COVERPEN==='number'?COVERPEN:15)})`:''}.${los&&los.ff&&los.ff.length?` <span class="ins-bad">A miss can stray into ${los.ff.map(x=>x.name).join(', ')}.</span>`:''}`)+' '+note}}
  const tele=B.tele&&B.tele.find(x=>x.u===u);if(tele)note=`<b class="ins-bad">${tele.n||'An attack'} lands on the marked tiles at the start of its next turn.</b> `+note;
  note=`<div class="ins-note">${note}</div>`;
  return r?`<div class="ins-c2"><div class="ins-col">${h}${note}</div><div class="ins-col ins-r">${r}</div></div>`:h+note}

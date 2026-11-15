@@ -6453,8 +6453,15 @@ function icHandW(look){const H=IC_HANDW[look];if(!H||!icHas(H[0]))return null;le
  if(H[1])for(let y=H[2];y<=H[3];y++)raw[y]=raw[y].map(k=>H[1][k]||k);if(H[4])for(const [x,y,k] of H[4])raw[y][x]=k;return _icOutline(raw.map(r=>r.join('')))}
 function icItemRows(id){const I=typeof ITEMS==='object'&&ITEMS&&ITEMS[id];if(!I||typeof usWeaponIconRows!=='function')return null;
  if(I.k==='w'&&typeof usLookOf==='function'){const h=icHandW(usLookOf(id));if(h)return usFamedBase(id)?icFamedFrame(h):h}
+ if(I.legend){const b=I.k==='w'?usWeaponIconRows(usWpnOf(id)):I.k==='s'?usShieldIconRows(id):I.k==='a'?usArmorIconRows(id):I.k==='h'?usHelmIconRows(id):null;return b?icLegendFrame(b):null}   // legendary (25-legend.js): its own art in an ember-and-violet frame
  if(I.famed&&I.base&&ITEMS[I.base]&&I.base!==id){const k=ITEMS[I.base].k,b=k==='w'?usWeaponIconRows(usWpnOf(id)):k==='s'?usShieldIconRows(id):k==='a'?usArmorIconRows(id):k==='h'?usHelmIconRows(id):icItemRows(I.base);return b?icFamedFrame(b):null}
  if(I.k==='w')return usWeaponIconRows(usWpnOf(id));if(I.k==='s')return usShieldIconRows(id);if(I.k==='a')return usArmorIconRows(id);if(I.k==='h')return usHelmIconRows(id);return null}
+/* the legendary frame: violet edges with ember corners and white-blue sparks, so a legendary icon never reads as famed gold */
+function icLegendFrame(rows){const o=rows.map(r=>r.split(''));const S=(x,y,k)=>{if(o[y]&&o[y][x]!==undefined)o[y][x]=k},E=(x,y)=>o[y]&&(o[y][x]==='.'||o[y][x]==='0');
+ for(let i=0;i<16;i++){const c=i<2||i>13?'E':(i&1)?'C':'D';if(E(i,0))S(i,0,c);if(E(i,15))S(i,15,i<2||i>13?'K':'D');if(E(0,i))S(0,i,c);if(E(15,i))S(15,i,i<2||i>13?'K':'D')}
+ S(0,0,'y');S(15,0,'E');S(0,15,'E');S(15,15,'K');
+ for(const [x,y,k] of [[2,2,'r'],[13,2,'F'],[2,13,'F'],[13,13,'C']])if(o[y][x]==='.'){S(x,y,k);if(k==='r'){if(o[y][x+1]==='.')S(x+1,y,'C');if(o[y+1][x]==='.')S(x,y+1,'C')}}
+ if(o[1][1]==='.')S(1,1,'E');if(o[14][14]==='.')S(14,14,'D');return o.map(r=>r.join(''))}
 function icFamedFrame(rows){const o=rows.map(r=>r.split(''));const S=(x,y,k)=>{if(o[y]&&o[y][x]!==undefined)o[y][x]=k};
  for(let i=0;i<16;i++){const c=i<3||i>12?'d':(i&1)?'c':'b';if(o[0][i]==='.'||o[0][i]==='0')S(i,0,c);if(o[15][i]==='.'||o[15][i]==='0')S(i,15,i<8?'b':'a');if(o[i][0]==='.'||o[i][0]==='0')S(0,i,c);if(o[i][15]==='.'||o[i][15]==='0')S(15,i,i<8?'b':'a')}
  S(0,0,'e');S(15,0,'d');S(0,15,'c');S(15,15,'b');

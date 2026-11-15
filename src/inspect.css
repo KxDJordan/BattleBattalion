@@ -73,3 +73,9 @@
 #inspect .ins-pk.ins-q i{flex:none;margin:0 4px;color:#ef8a78}
 #inspect .ins-pk.ins-q span{color:#ffd9d0}
 #inspect .ins-pk.ins-q.max span{color:#f3d98b}
+/* legendary gear in the unit card (25-legend.js) */
+#inspect .ins-hd.lgd{color:#ffc069}
+#inspect .ins-ab.ins-lg{padding:3px 4px;background:linear-gradient(#2c1430,#1a0f1e);box-shadow:inset 2px 0 0 #c77dff}
+#inspect .ins-ab.ins-lg b{color:#ffc069}
+#inspect .ins-ab.ins-lg.idle{opacity:.6}
+#inspect .ins-lgd{color:#d9a6ff}

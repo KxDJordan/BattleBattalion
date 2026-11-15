@@ -65,7 +65,7 @@ function makeContext(){const els=new Map(),store=new Map(),warns=[];
    if(!getters.has(k))getters.set(k,vm.runInContext(`(()=>typeof ${k}==='undefined'?undefined:${k})`,ctx));return getters.get(k)()},
   set(t,k,v){if(k in t){t[k]=v;return true}if(!setters.has(k))setters.set(k,vm.runInContext(`(v=>{${k}=v})`,ctx));setters.get(k)(v);return true}});
  for(const n of ['newGame','continueGame','closeSheet','sheet','toast','setUI','startBattle','save','loadSave','seedRng','rnd','shuffle','rngState','setRngState',
-   'worldTick','goTo','advanceTime','afterBattle','settleBattle','resolveBattle','autoBattle','enterRift','dunBattle','portalSheet','gainXP','newMerc','calc','fielded',
+   'worldTick','goTo','advanceTime','afterBattle','settleBattle','resolveBattle','autoBattle','enterRift','dunBattle','portalSheet','portalNext','portalGo','portalEvent','portalBegin','portalRetreat','dungeonDay','dungeonEnter','egRepair','gainXP','newMerc','calc','fielded',
    'openTown','hire','buyItem','sellItem','buyFood','innRest','acceptContract','genContract','equip','levelSheet','lvPick','lvConfirm',
    'mercTrees','perkOptions','canLearn','learnPerk','perkById','giftVariant','weaponTrees','mercStyle','mercRes','autoLearn','tierLevel','equipRules','rangedLocked','swapWeapons','altWeapon','useBlock','migrateMerc',
    'abilityInfo','canUse','validTargets','useAbility','aiTurn','nextTurn','place','centerOut','genBattleMap','readSave','saveStatus','migrateSave',
@@ -168,10 +168,12 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    G.roster.forEach(m=>{if(!m.hero){m.hero=1;m.base.hp+=120;m.base.ms+=35;m.base.rs+=35;m.base.md+=25;m.base.rd+=25;m.base.brv+=80}});closeAll(X)}   // fixture: heroes for the rift, so that this walk through the campaign does not hang on the balance of the day
   if(G.crisis&&!flags.dungeon&&G.portals.length&&rifts<8){rifts++;G.roster.forEach(m=>{m.hp=X.calc(m).hp});const p=G.portals[0];
    let r;do{r=await march(X,p.x,p.y,{type:'portal',id:p.id},log);closeAll(X)}while(r==='lair');if(r==='wiped')return r;ok(dist(G.p,p)<8,'march did not reach the rift');closeAll(X);   // (a contract lair on the way is cleared in passing)
-   X.enterRift(p.id);ok(X.mode==='battle'&&G.dun&&G.dun.stage===0,'the rift did not open a battle');
-   for(let stage=0;stage<3;stage++){const f=await fight(X,log);if(f.out.kind==='wiped')return'wiped';if(!f.res.win){ok(G.dun===null,'a lost rift kept its dungeon state');break}
-    if(stage<2){ok(f.out.kind==='dunNext'&&G.dun.stage===stage+1,'rift stage did not advance');closeAll(X);X.dunBattle();ok(X.mode==='battle','next rift battle did not start')}
-    else{ok(f.out.kind==='dunDone'&&G.dun===null&&!G.portals.some(q=>q.id===p.id)&&G.stash.includes('riftedge')&&G.crisis.closed>=1,'rift was not closed properly');flags.dungeon=true}}
+   X.enterRift(p.id);const run=G.portalRun;ok(X.mode==='world'&&run&&run.id===p.id&&run.nodes.length>=5&&run.nodes.length<=7,'the rift did not open its portal world');   // the node map (24-endgame.js)
+   for(let step=0;step<8&&G.portalRun;step++){const nx=X.portalNext();ok(nx.length>0,'a portal node map with no way on');const pick=nx.find(i=>G.portalRun.nodes[i].k==='rest')??nx[0],k=G.portalRun.nodes[pick].k,r=X.portalGo(pick);ok(r,'could not step onto a portal node');
+    if(k==='event'){X.portalEvent(false);continue}if(r.kind!=='fight')continue;ok(X.mode==='battle'&&X.B&&Array.isArray(X.B.opts.roster)&&X.B.realm,'a portal fight did not start with its fixed roster and realm');
+    const f=await fight(X,log);if(f.out.kind==='wiped')return'wiped';if(!f.res.win){ok(G.portalRun===null&&f.out.kind==='portalLost'&&G.portals.some(q=>q.id===p.id),'a lost portal fight kept its run or closed the rift');break}
+    if(k!=='boss'){ok(f.out.kind==='portalNext'&&G.portalRun&&G.portalRun.nodes[pick].done,'a won portal node was not marked');closeAll(X)}
+    else{ok(f.out.kind==='portalDone'&&G.portalRun===null&&!G.portals.some(q=>q.id===p.id)&&G.stash.includes('riftedge')&&G.crisis.closed>=1,'rift was not closed properly');flags.dungeon=true}}
    closeAll(X)}
   const c=G.contract;
   if(c&&c.type==='deliver'){const m0=mark();if(await town(c.to)==='wiped')return'wiped';if(G.contract===null&&paid(m0,c.pay))flags.deliver=true;else fail('delivery was not paid')}

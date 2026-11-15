@@ -41,19 +41,22 @@ function pnIcon(k,cls,size){const n=PNPX[k]||k,c='pn-i px'+(cls?' '+cls:'');size
  if(PNOWN[k]){const u=pxURL('pn:'+k,PNOWN[k],1);if(u)return`<i class="${c}" style="width:${size}px;height:${size}px;background-image:url(${u})" aria-hidden="true"></i>`}
  if(!PICON[k])return typeof pxIcon==='function'?pxIcon(n,size,c):'';
  return`<svg class="pn-i${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${PICON[k]||''}</svg>`}
-function itemIconName(id){let it=ITEMS[id];if(!it)return'fist';if(it.famed&&it.base&&ITEMS[it.base]){id=it.base;it=ITEMS[id]}if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
+function itemIconName(id){let it=ITEMS[id];if(!it)return'fist';if(it.legend&&pnHasPx('it-'+id))return'it-'+id;if(it.famed&&it.base&&ITEMS[it.base]){id=it.base;it=ITEMS[id]}if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
 if(it.k==='t')return typeof tgIcon==='function'?tgIcon(id):'stash';if(it.k==='s')return'shield';if(it.k==='h')return'helmet';if(it.k==='a')return it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy';return it.wt||'sword'}
 function pnItemIcon(id,size){const n=itemIconName(id);return pnFamedWrap(id,pnHasPx(n)||PNOWN[n]?pnIcon(n,'',size):pnIcon(n.indexOf('armor')===0?'armor':({mace:'axe',dagger:'sword',fist:'sword'})[n]||n,'',size))}
 /* ---- famed items in every list: a gold glow around the icon (.famed wrapper), a gold name, a Famed tag, the improvements ---- */
 const TIERN=['','I','II','III','IV','V'];
-function pnFamedWrap(id,html){const it=ITEMS[id];return it&&it.famed?`<span class="famed" title="Famed">${html}</span>`:html}
+function pnFamedWrap(id,html){const it=ITEMS[id];return it&&it.legend?`<span class="famed lgd" title="Legendary">${html}</span>`:it&&it.famed?`<span class="famed" title="Famed">${html}</span>`:html}
 // the item's name for a list or a heading: famed names in gold (big: with the base item's name under it)
-function pnItemName(id,big){const it=ITEMS[id];if(!it)return'';if(!it.famed)return it.n;const B=ITEMS[it.base];
+function pnItemName(id,big){const it=ITEMS[id];if(!it)return'';if(!it.famed)return it.n;if(it.legend)return`<span class="fmd-n lgd-n">${it.n}</span>${big?`<small class="fmd-of">Legendary ${(itemKind(id).replace(/^Legendary /,''))}</small>`:''}`;const B=ITEMS[it.base];
  return`<span class="fmd-n">${it.n}</span>${big&&B?`<small class="fmd-of">${B.n}</small>`:''}`}
-function pnFamedTag(id){return ITEMS[id]&&ITEMS[id].famed?'<span class="fmd-tag">Famed</span>':''}
+function pnFamedTag(id){return ITEMS[id]&&ITEMS[id].legend?'<span class="fmd-tag lgd-tag">Legendary</span>':ITEMS[id]&&ITEMS[id].famed?'<span class="fmd-tag">Famed</span>':''}
 // the detail block of a famed item: the tag, its flavour, the improvements over the base
-function pnFamedBlock(id){const it=ITEMS[id];if(!it||!it.famed)return'';const L=typeof famedLines==='function'?famedLines(id):[];
+function pnFamedBlock(id){const it=ITEMS[id];if(!it||!it.famed)return'';if(it.legend)return pnLegendBlock(id);const L=typeof famedLines==='function'?famedLines(id):[];
  return`<div class="fmd-box">${pnFamedTag(id)}<p class="pn-p dim">${typeof famedFlavour==='function'?famedFlavour(id):''}</p>${L.length?`<ul class="fmd-lines">${L.map(x=>`<li data-fm="${x.k}">${x.t}</li>`).join('')}</ul>`:''}</div>`}
+/* a legendary piece (25-legend.js): the tag, its power (name and exact rule), its legend; where it was won */
+function pnLegendBlock(id){const it=ITEMS[id],P=it.power||{},R=typeof G==='object'&&G&&G.legend&&G.legend[id];
+ return`<div class="fmd-box lgd-box">${pnFamedTag(id)}<div class="lgd-pw">${pnIcon('star','',16)}<span><b>${P.n||'Power'}</b><small>${P.d||''}</small></span></div><p class="pn-p lgd-lore">${it.lore||''}</p>${R?`<p class="pn-p dim lgd-from">Won${R.from?' from '+R.from:''} on day ${R.day}.</p>`:''}</div>`}
 // itemFacts with the rows a famed item improves over its base marked (class fmd-up)
 function pnFamedFacts(id){const it=ITEMS[id],F=itemFacts(id);if(!it||!it.famed||!ITEMS[it.base])return F;const B={};itemFacts(it.base).filter(Boolean).forEach(([k,v])=>B[k]=String(v));
  return F.map(r=>r&&B[r[0]]!==undefined&&B[r[0]]!==String(r[1])?[r[0],`<span class="fmd-up">${r[1]}</span>`]:r&&B[r[0]]===undefined?[r[0],`<span class="fmd-up">${r[1]}</span>`]:r)}
@@ -87,7 +90,7 @@ function itemFacts(id){if(ITEMS[id]&&ITEMS[id].k==='t')return pnTgFacts(id);cons
  if(i.k==='s')return[['Melee defense','+'+i.md],['Ranged defense','+'+i.rd],['Shield hitpoints',i.hp||48],['Fatigue','−'+i.fat],i.guard?['Covers allies','−'+i.guard+' to be shot']:null,i.wallB?['Shield wall','+'+i.wallB]:null,i.spike?['Spiked bash',i.spike[0]+'–'+i.spike[1]]:null];
  if(i.k==='h')return[['Head armor',i.arm],['Fatigue','−'+(i.fat||0)],...df(i),['Guards','Blows to the head']];return[['Armor',i.arm],['Fatigue','−'+i.fat],...df(i)]}
 const ITKIND={dagger:'Dagger',mace:'Mace',sword:'Sword',axe:'Axe',spear:'Spear',bow:'Bow',staff:'Staff',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Firearm'};
-function itemKind(id){const i=ITEMS[id],k=i.k==='t'?'Trade good':i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.famed?'Famed '+k.toLowerCase():k}
+function itemKind(id){const i=ITEMS[id],k=i.k==='t'?'Trade good':i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.legend?'Legendary '+k.toLowerCase():i.famed?'Famed '+k.toLowerCase():k}
 
 function pnSheetUp(){const s=$('sheet');return!!(s&&!s.classList.contains('hidden')&&s.getClientRects().length)}
 function pnAssert(){if(!PN.id)return;sheetOpen=true;if(G&&PN.town)G.townOpen=true}
@@ -288,7 +291,7 @@ function tlTrees(m){if(typeof mercTrees==='function'){const L=tlTry(()=>mercTree
  const out=tlStyleKeys(m).map(k=>({key:k,tree:MAST[k],kind:'style'})),g=tlGift(m);if(g)out.push({key:g,tree:MAST[g],kind:'gift'});
  tlWeaponKeys(m).forEach(k=>out.push({key:k,tree:MAST[k],kind:'weapon'}));return out}
 /* every perk of every tree the merc has: [{id,perk,key,tree,tier,kind,owned,unlocked,need}] */
-function tlOpts(m){if(typeof perkOptions==='function'&&!tlLegacy(m)){const L=tlTry(()=>perkOptions(m),null);if(Array.isArray(L)&&L.length)return L.map(o=>Object.assign({},o,{kind:o.kind||tlKind(o.tree||MAST[o.key]),tree:o.tree||MAST[o.key],need:cpNum(o.need)?o.need:tlTierLv(o.kind||tlKind(MAST[o.key]),o.tier)}))}
+function tlOpts(m){if(typeof perkOptions==='function'&&!tlLegacy(m)){const L=tlTry(()=>perkOptions(m),null),C=typeof capOptions==='function'?tlTry(()=>capOptions(m),[]):[];if(Array.isArray(L)&&L.length)return L.concat(Array.isArray(C)?C:[]).map(o=>Object.assign({},o,{kind:o.kind||tlKind(o.tree||MAST[o.key]),tree:o.tree||MAST[o.key],need:cpNum(o.need)?o.need:tlTierLv(o.kind||tlKind(MAST[o.key]),o.tier)}))}
  const own=Array.isArray(m.perks)?m.perks.map(String):[],out=[];
  tlTrees(m).forEach(({key,tree,kind})=>{const legacy=tlLegacy(m)&&!Array.isArray(tree.tiers),n=legacy?(m.mast[key]|0):0;
   tlTiers(tree).forEach((ps,ti)=>ps.forEach((p,j)=>{const t=ti+1,id=tlPid(key,p,t,j),need=tlTierLv(kind,t);

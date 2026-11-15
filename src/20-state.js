@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=13;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=14;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -99,7 +99,11 @@ const MIGRATE={
     no fabled warriors met yet (G.fabled {}); Normal difficulty, not ironman; a run record (G.run) with what can still be counted. */
  12:g=>{if(typeof g.crisisKind!=='string')g.crisisKind=svObj(g.crisis)?'sunder':runCrisisPick(g.seed);
   if(!svObj(g.fabled))g.fabled={};if(typeof g.diff!=='string')g.diff='normal';g.ironman=false;if(!svObj(g.run))g.run=runNew(g);
-  if(typeof eastInit==='function'&&Array.isArray(g.towns)&&g.towns.length>=2)eastInit(g);return g}
+  if(typeof eastInit==='function'&&Array.isArray(g.towns)&&g.towns.length>=2)eastInit(g);return g},
+ /* v14: phase 8B endgame. Portal worlds replace the three-battle rift run (G.portalRun, none under way: an old G.dun is dropped and its
+    rift stays open), dungeons appear over time (G.dungeons, none yet: they open from the save's day on), every merc keeps a record of
+    endgame deeds (m.deeds {}), the legendary drops found so far (G.legend {}). */
+ 13:g=>{g.portalRun=null;g.dungeons=[];delete g.dun;if(!svObj(g.legend))g.legend={};if(Array.isArray(g.roster))g.roster.forEach(m=>{if(svObj(m)&&!svObj(m.deeds))m.deeds={}});return g}
 };
 // The traits an old merc gets in the v9 migration (and a merc record that has none): rolled from its background by a stream seeded by its id.
 function migrateTraits(m){return rollTraits(m.bg,mulberry(((svNum(m.id,0)|0)^0x7a175)>>>0))}
@@ -191,6 +195,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(typeof g.origin!=='string'||(typeof ORIGINS==='object'&&ORIGINS&&!ORIGINS[g.origin]&&g.origin!=='free'))g.origin='free';
  // phase 8: the East, fabled warriors, the run (difficulty, ironman, stats), each validated by its owner's helper when present
  if(typeof eastRepair==='function')eastRepair(g);g.fabled=svObj(g.fabled)?g.fabled:{};if(typeof fabledRepair==='function')fabledRepair(g);
+ if(typeof egRepair==='function')egRepair(g);else{g.portalRun=null;g.dungeons=Array.isArray(g.dungeons)?g.dungeons:[]}   // phase 8B: portal run, dungeons, deeds (24-endgame.js; it calls legendRepair)
  if(typeof runRepair==='function')runRepair(g);else{g.diff=['story','normal','hard','brutal'].includes(g.diff)?g.diff:'normal';g.ironman=!!g.ironman}
  if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.

@@ -398,7 +398,7 @@ Object.assign(STATUS,{
 const MORN=['Fleeing','Breaking','Wavering','Steady','Confident'],
  MORFX=[{hit:-30,def:-20},{hit:-20,def:-10},{hit:-10,def:-5},{hit:0,def:0},{hit:10,def:5}];
 /* ---- Combat constants ---- */
-const HEADCH=25,HEADMULT=1.5,COVERPEN=15,FFCH=.3,FFDMG=.75,HEAVYHIT=.25,INJCH=.5,DOWNCH=.5,PERMCH=.35,TOOLPTS=15,TOOLPRICE=3,BLEEDDMG=6;
+const HEADCH=25,HEADMULT=1.5,COVERPEN=15,FFCH=.3,FFDMG=.75,HEAVYHIT=.25,INJCH=.5,DOWNCH=.85,PERMCH=.2,TOOLPTS=15,TOOLPRICE=3,BLEEDDMG=6;
 /* ---- Injuries: m.inj=[{id,days}], days left (-1 = permanent). loc 'h' comes from head hits, 'b' from body hits.
    st is added to the merc's stats in calc(m) (dmg is a fraction of damage dealt); days is the healing time rolled for a fresh one. ---- */
 const INJ={
