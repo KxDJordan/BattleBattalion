@@ -183,9 +183,9 @@ function anBarsPaint(q,X,Y,w,bh,helm,arm,ah,aa,hw,lw,low,foe,sw,scol){const x0=X
   if(low){q.fillStyle=PAL['r'];q.fillRect(hx,hy,hw,1)}
   q.fillStyle=PAL[foe?'f':'7'];for(let i=4;i<hw;i+=4)q.fillRect(hx+i-1,hy+1,1,1)}
  if(sw){q.fillStyle=PAL['0'];q.fillRect(x0+w+2,top+bh-7,3,7);q.fillStyle=PAL['3'];q.fillRect(x0+w+3,top+bh-6,1,5);q.fillStyle=PAL[scol?'E':'k'];q.fillRect(x0+w+3,top+bh-1-sw,1,sw)}}   // shield hitpoints: a wooden pip beside the bars
-/* Detail High: the same bars drawn at device pixels (not art pixels): a dark frame, then head armor (brass), body armor (steel) and
-   hitpoints (green for the company, red for foes) as exact fractions, each with a lit top edge and a shaded bottom, the lost-hitpoints
-   lag in pale, a tick every tenth, the low-health blink, and the shield's wooden pip beside them. Same footprint as the art-pixel bars. */
+/* Detail High: the same simple bars drawn at device pixels (not art pixels): a dark frame, then head armor (brass), body armor (steel)
+   and hitpoints (two-tone green for the company, red for foes) as exact fractions in flat colours, the lost-hitpoints lag in pale, the
+   low-health blink, and the shield's wooden pip beside them. Same footprint and colours as the art-pixel bars. */
 function anBarsHD(q,x0,top,w,bh,F){const T=q.getTransform(),sx=Math.hypot(T.a,T.b)||1,sy=Math.hypot(T.c,T.d)||1,X=(x,y)=>T.a*x+T.c*y+T.e,Y=(x,y)=>T.b*x+T.d*y+T.f,R=Math.round;
  const fx=R(X(x0,top)),fy=R(Y(x0,top)),fw=R((w+2)*sx),fh=Math.max(5,R(bh*sy)),p=Math.max(1,R(sx*.45)),g=Math.max(1,R(sy*.3));
  q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=false;
@@ -196,12 +196,8 @@ function anBarsHD(q,x0,top,w,bh,F){const T=q.getTransform(),sx=Math.hypot(T.a,T.
   q.fillStyle=k==='p'?PAL['2']:PAL['3'];q.fillRect(ix,yy,iw,hh);
   const fr=k==='h'?F.helm:k==='a'?F.arm:F.hp,fw2=fr>0?Math.max(1,R(iw*Math.min(1,fr))):0;
   if(k==='p'&&F.lag>fr){const lw=R(iw*Math.min(1,F.lag));q.fillStyle=PAL['e'];q.fillRect(ix+fw2,yy,lw-fw2,hh)}
-  if(fw2){const c=k==='h'?['c','e','b']:k==='a'?['q','r','p']:F.low?['r','r','q']:F.foe?['g','h','f']:['5','6','7'];
-   q.fillStyle=PAL[c[0]];q.fillRect(ix,yy,fw2,hh);
-   if(hh>=3){q.fillStyle=PAL[c[1]];q.fillRect(ix,yy,fw2,Math.max(1,R(hh*.3)));q.fillStyle='rgba(0,0,0,.28)';q.fillRect(ix,yy+hh-Math.max(1,R(hh*.25)),fw2,Math.max(1,R(hh*.25)))}
-   else{q.fillStyle=PAL[c[1]];q.fillRect(ix,yy,fw2,1)}
-   q.fillStyle='rgba(255,255,255,.5)';q.fillRect(ix+fw2-1,yy,1,hh);   // the bright leading edge
-   if(k==='p'&&iw>=40){q.fillStyle='rgba(0,0,0,.35)';for(let j=1;j<10;j++){const tx=ix+R(iw*j/10);if(tx<ix+fw2-1)q.fillRect(tx,yy+R(hh*.5),1,hh-R(hh*.5))}}}
+  if(fw2){const c=k==='h'?['c','c']:k==='a'?['q','q']:F.low?['r','r']:F.foe?['h','g']:['6','5'];   // flat fills in the art bars' colours
+   q.fillStyle=PAL[c[0]];q.fillRect(ix,yy,fw2,hh);if(c[1]!==c[0]){const hb=R(hh/2);q.fillStyle=PAL[c[1]];q.fillRect(ix,yy+hb,fw2,hh-hb)}}
   y+=wt*u+g}
  if(F.sh!=null){const px=R(X(x0+w+2,top)),pw=Math.max(3,R(3*sx)),ph=Math.max(6,R(7*sy)),py=fy+fh-ph;
   q.fillStyle=PAL['0'];q.fillRect(px,py,pw,ph);const ih=ph-2,iw2=pw-2;q.fillStyle=PAL['3'];q.fillRect(px+1,py+1,iw2,ih);
