@@ -419,7 +419,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      ok(s.inj.length===m0.m.inj.length&&s.ms===m0.m.base.ms+dms+(s.ms-m0.m.base.ms-dms)&&X.calc(Object.assign(X.clone(m0.m),{inj:[]})).ms===s.ms-dms,'calc() must apply injuries');
      m0.m.inj=[];m0.ms=ms0;m0.hpMax=hpM;X.hurt(m0,5,1,e0,{loc:1});ok(m0.m.inj.length===0,'a light hit must not injure');
      let down=0,perm=0,dead=0;for(let i=0;i<300;i++){m1.alive=true;m1.down=false;m1.hp=1;m1.m.inj=[];X.hurt(m1,60,1,e0,{loc:1});if(m1.down){down++;ok(m1.m.inj.length===1,'being struck down and living must cost an injury');if(m1.m.inj[0].days<0)perm++}else{dead++;ok(m1.m.inj.length===0,'the dead take no injuries')}}
-     ok(down>120&&down<180&&perm>20&&perm<down*.6,'struck-down survival should be about half, some of it maimed: '+down+'/300, '+perm+' permanent');
+     {const want=300*X.DOWNCH;ok(Math.abs(down-want)<30&&perm>20&&perm<down*.6,`struck-down survival should be about DOWNCH (${X.DOWNCH}), some of it maimed: `+down+'/300, '+perm+' permanent')}   // follows the balance agent\'s DOWNCH
      const I=X.INJ,ids=Object.keys(I),T=ids.filter(id=>!I[id].perm),Pm=ids.filter(id=>I[id].perm);ok(T.length>=14&&Pm.length>=7&&ids.every(id=>I[id].n&&I[id].d&&I[id].st&&Object.keys(I[id].st).length&&(I[id].loc==='h'||I[id].loc==='b')&&(I[id].perm||I[id].days[0]>=1)),'the injury table is incomplete');
      // strategic side: calc, daily healing, the temple
      X.G.roster=X.clone(roster);const G=X.G,m=G.roster[0];m.inj=[];const c0=X.calc(m);ok(X.addInjury(m,'brokenribs',2)&&X.addInjury(m,'missingeye')&&X.addInjury(m,'brokenribs',3)===null&&X.addInjury(m,'nope')===null,'addInjury() is wrong');

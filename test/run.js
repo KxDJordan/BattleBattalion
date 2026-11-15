@@ -157,7 +157,7 @@ section('tutorial');
 section('v12 -> v13 migration');
 { X.store.clear();X.slotUse(0);const G=fresh(SEED+60);ok(X.save(),'save');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=12;
   for(const k of ['diff','ironman','fabled','run','crisisKind','tut','east'])delete g[k];g.towns.forEach(t=>{delete t.east;delete t.eastPrev0});
-  X.store.set(X.SAVEKEY,JSON.stringify(g));let r=X.readSave();ok(r.state==='ok'&&r.v===12&&r.g.v===X.SAVEVER&&X.SAVEVER===13,'a v12 save migrates to 13');
+  X.store.set(X.SAVEKEY,JSON.stringify(g));let r=X.readSave();ok(r.state==='ok'&&r.v===12&&r.g.v===X.SAVEVER&&X.SAVEVER>=13,'a v12 save migrates to the current version');
   const m=r.g;ok(m.diff==='normal'&&m.ironman===false&&m.fabled&&typeof m.fabled==='object'&&m.run&&m.run.battles>=0&&typeof m.crisisKind==='string'&&m.crisisKind,'the v13 fields '+JSON.stringify({d:m.diff,i:m.ironman,f:m.fabled,k:m.crisisKind}));
   ok(r.g.crisisKind===X.readSave().g.crisisKind,'the crisis kind is deterministic');
   if(typeof X.CRISES==='object'&&X.CRISES)ok(!!X.CRISES[m.crisisKind],'a known crisis');
@@ -165,6 +165,6 @@ section('v12 -> v13 migration');
   const g2=JSON.parse(JSON.stringify(g));g2.crisis={closed:1,total:3,ended:false};X.store.set(X.SAVEKEY,JSON.stringify(g2));r=X.readSave();ok(r.state==='ok'&&r.g.crisisKind==='sunder','a crisis under way stays the Sundering');
   const g3=JSON.parse(JSON.stringify(g));g3.v=13;g3.diff='impossible';g3.ironman='yes';g3.run={battles:-3,kills:'x',crisis:'maybe'};X.store.set(X.SAVEKEY,JSON.stringify(g3));r=X.readSave();
   ok(r.state==='ok'&&r.g.diff==='normal'&&r.g.ironman===true&&r.g.run.battles===0&&r.g.run.kills===0&&r.g.run.crisis===null,'v13 fields are repaired');
-  X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.v===13,'the migrated company plays');closeAll(X);
+  X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.v===X.SAVEVER,'the migrated company plays');closeAll(X);
   console.log('v12 -> v13: crisis kind, fabled, difficulty, ironman, run record, the East; repair of bad v13 fields: ok') }
 console.log('\nrun systems: all ok');process.exit(0)

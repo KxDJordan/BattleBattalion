@@ -197,8 +197,11 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   return false};
  // the deploy screen's withdraw: a band the company did not choose to fight, met hurt, thin or outmatched, is declined (10% of the purse)
  {const eng=X.ctx.engage;X.ctx.engage=function(o){const s=o&&o.src||{};if(s.type==='party'&&!s.cr&&(hpFrac()<.6||field().length<3||(o.mult||1)>appetite()+.3)){st.fled=(st.fled||0)+1;X.fleeEncounter(o);return null}return eng.apply(this,arguments)}}
+ // the ledger: crowns in and out by kind (the game's own functions, wrapped)
+ st.led={};for(const [fn,k] of [['newDay','wages'],['afterBattle','battle'],['ctrTurnIn','contracts'],['ctrAccept','contracts'],['buyItem','gear'],['hire','hire'],['buyFood','food'],['innRest','inn'],['sellItem','sales'],['sellTrade','sales'],['templeTreat','temple'],['buyTools','tools'],['campTrain','drill'],['fleeEncounter','withdraw'],['eventTick','events'],['evtPick','events']]){const f=X.ctx[fn];if(typeof f!=='function')continue;
+  X.ctx[fn]=function(){const c0=G()?G().crowns:0;const r=f.apply(this,arguments);const g=G();if(g){const d=g.crowns-c0;if(d)st.led[k]=(st.led[k]||0)+d}return r}}
  const injured=()=>G().roster.filter(m=>(m.inj||[]).some(j=>j.days>0)).length;
- const needRest=()=>hpFrac()<.8||injured()>G().roster.length/3;
+ const needRest=()=>hpFrac()<.8||injured()>G().roster.length/2;
  // recover: the nearest friendly town, the inn until whole (at most four days), then hire
  const recover=async()=>{const i=nearestTown(true);const r=await goTown(i);if(r==='wiped')return'wiped';const g=G();if(dist(g.p,g.towns[i])>3)return'away';
   for(let k=0;k<12&&needRest()&&g.crowns>g.roster.length*10+50&&g.day<=days;k++){X.openTown(i);closeAll();X.innRest();st.innN++;closeAll();snap()}inTown(i);return i};
@@ -239,6 +242,7 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   console.log(pad('day',5)+lp('crowns',8)+lp('food',6)+lp('men',5)+lp('lvl',6)+lp('gear',6)+lp('renown',8)+lp('tier',5)+lp('power',7)+lp('dead',6)+lp('ctr',5)+lp('fights',8)+lp('won',5)+'  crisis       east');
   for(const w of r.rows)console.log(pad(w.day,5)+lp(w.crowns,8)+lp(w.food,6)+lp(w.n,5)+lp(w.lvl.toFixed(1),6)+lp(w.gear.toFixed(2),6)+lp(w.renown,8)+lp(w.rt,5)+lp(w.power,7)+lp(w.deaths,6)+lp(w.ctr,5)+lp(w.battles,8)+lp(w.won,5)+'  '+pad(w.crisis,12)+' '+w.east);
   console.log(`  hired ${r.hired} (${r.spentHire} cr), bought ${r.bought} pieces (${r.spentGear} cr), inn rests ${r.innN}, camp hours ${r.campH|0}, drills ${r.trainN}, contracts failed ${r.ctrFail}, withdrew ${r.fled|0}, peak crowns ${r.peakCrowns}, longest starving ${r.maxStarve} days, finale ${r.finale.join(', ')||'-'}; ~${est(r).toFixed(1)} h of play (${r.battles} battles, ${(r.rounds/Math.max(1,r.battles)).toFixed(1)} rounds each) [${(r.ms/1000).toFixed(0)} s]`);
+  console.log('  ledger: '+Object.keys(r.led).sort((a,b)=>r.led[b]-r.led[a]).map(k=>k+' '+r.led[k]).join(', '));
   if(has('--verbose'))console.log('  '+r.log.join('\n  '));
   const tag=`${R.origin}/${R.diff}/${R.seed}`;
   if(R.diff==='normal'&&r.wiped&&r.wiped<40)bad.push(tag+': wiped out on day '+r.wiped);
