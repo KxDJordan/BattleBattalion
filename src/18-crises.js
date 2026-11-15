@@ -290,7 +290,7 @@ sunder:{n:'The Sundering',f:'void',icon:'mana',d:'The sky splits. Rifts tear ope
  onBeat(){},
  marks(){return G.portals.filter(p=>seenAt(Math.floor(p.x/TS),Math.floor(p.y/TS))).map(p=>({x:p.x,y:p.y,kind:'rift',label:'A rift to '+(BIO[p.realm]?BIO[p.realm].n:'elsewhere'),f:'void'}))},
  line(){const c=G.crisis;return`Rifts closed: ${c.closed} of ${c.total}`},
- sheet(){const c=G.crisis;return`<p>The sky splits. Rifts have torn open across the land and riftspawn pour through them.</p><p class="dim">Each rift leads to another world: three battles with no rest between them, and a tyrant at the end. Close three rifts to end the Sundering. Every rift left open feeds the doom, and every twelve days a new one tears open.</p>${c?`<p>Rifts closed: <b>${c.closed} of ${c.total}</b>. Open now: <b>${G.portals.length}</b>.</p>`:''}`}},
+ sheet(){const c=G.crisis;return`<p>The sky splits. Rifts have torn open across the land and riftspawn pour through them.</p><p class="dim">Each rift opens on another world: a short road of five to seven places (fights, elites, shrines, spoils), under that world's own rules, and a named tyrant at its end. Wounds carry from one fight to the next, and turning back costs dear. Close three rifts to end the Sundering. Every rift left open feeds the doom, and every twelve days a new one tears open.</p>${c?`<p>Rifts closed: <b>${c.closed} of ${c.total}</b>. Open now: <b>${G.portals.length}</b>.</p>`:''}`}},
 
 /* ---------- the Dead March: graveyards raise hosts each night; lieutenants lead them; the Bone Throne commands them ---------- */
 deadmarch:{n:'The Dead March',f:'dead',icon:'skull',d:'The graveyards empty. Risen hosts march on the towns, led by necromancer lieutenants, and somewhere the Bone Throne calls them.',

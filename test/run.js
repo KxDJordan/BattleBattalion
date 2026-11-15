@@ -58,7 +58,7 @@ section('difficulty');
   ok(X.DIFF.story.budget<1&&X.DIFF.story.pay>1&&X.DIFF.story.death<1&&X.DIFF.brutal.budget>X.DIFF.hard.budget&&X.DIFF.brutal.death>X.DIFF.hard.death&&X.DIFF.brutal.pay<X.DIFF.hard.pay,'the levels are ordered');
   X.G=null;ok(X.diffK('pay')===1&&X.diffK('nope')===1,'no company: factor 1');
   for(const k of ['story','normal','hard','brutal']){const G=fresh(SEED+1,{diff:k});ok(G.diff===k&&X.diffK('pay')===X.DIFF[k].pay&&X.diffK('budget')===X.DIFF[k].budget,k+': G.diff and diffK');
-   ok(G.crisisDay===Math.max(6,Math.round(18*X.DIFF[k].crisisDay)),k+': the crisis day is scaled ('+G.crisisDay+')')}
+   ok(G.crisisDay===Math.max(6,Math.round(26*X.DIFF[k].crisisDay)),k+': the crisis day is scaled ('+G.crisisDay+')')}
   const G=fresh(SEED+2,{diff:'nonsense'});ok(G.diff==='normal','an unknown level is normal');
   // the same notice under two levels: the pay follows DIFF.pay
   const pays={};for(const k of ['normal','story','brutal']){const G=fresh(SEED+3);G.diff=k;X.seedRng(SEED+33);const c=X.genContract2(G.towns[0],0);pays[k]=c.pay}

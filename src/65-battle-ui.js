@@ -348,6 +348,8 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
   if(ig>=.35&&(t.armMax>0||t.helmMax>0))st+='<span class="sd" style="--sc:#f3d98b" title="Armor pierce: '+Math.round(ig*100)+'% of the damage goes past armor">'+pic('ab-puncture',16,'a-burst')+'<b>'+Math.round(ig*100)+'%</b></span>'}
  if(a.wpn&&shBowAb(u,a)&&shLoaded(u)===true){const rc=shReloadCost(u);st+='<span class="sd" style="--sc:#b9ad8f" title="Fires, then must be reloaded'+(rc?' ('+rc.ap+' AP)':'')+'">'+pic('ab-reload',16,'a-burst')+'<b>'+(rc?rc.ap:'')+'</b></span>'}
  const ov=fcOver(u,t,a);if(ov)st+=ov;
+ if(f.realm&&Array.isArray(f.realm.notes)&&f.realm.notes.length)st+='<span class="sd" style="--sc:#c9a6ff" title="'+htmlEsc(f.realm.n+': '+f.realm.notes.join('; '))+'">'+pic('ab-riftstep',16,'a-burst')+'</span>';   // realm rules (portal worlds)
+ if(Array.isArray(f.lines))for(const L of f.lines)if(L&&L.t)st+='<span class="sd" style="--sc:#e8a7ff" title="'+htmlEsc(L.t)+'">'+pic(L.k==='leech'?'ab-mend':L.k==='chain'?'ab-bolt':L.k==='thorns'?'shield':'star',16,'a-burst')+'</span>';   // legendary powers
  st+=fcMon(u,t,a);
  if(f.kill)st+='<span class="fck'+(f.sure?' sure':'')+'" title="'+(f.sure?'A hit kills':'A strong hit kills')+'">'+pic('skull',16,'skull')+'<b>'+(f.sure?'Kills':'Lethal')+'</b></span>';
  for(const s of f.statuses||[])st+=stIcon(s.k,s.n,s.ch<1?Math.round(s.ch*100)+'%':s.n>1?s.n:'');

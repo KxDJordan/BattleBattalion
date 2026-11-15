@@ -7,7 +7,7 @@ function createCampaign(opts){opts=opts||{};const wk=setWorldSize(opts.wsize),AK
   if(w.towns.length>=NT-2&&w.size>=1500*AK)break}
  W=best;G={seed:W.seed,nid:1,towns:placeTowns()};G.sites=worldSites(W,G.nid);G.nid+=G.sites.length;
  const name=cleanName(opts.name);
- Object.assign(G,{v:SAVEVER,name,wsize:wk,banner:bannerFix(Object.assign({},opts.banner||{},{name}),name),day:1,hour:8,crowns:1200,food:50,tools:20,renown:0,roster:[],stash:['spear','buckler'],parties:[],portals:[],contract:null,crisis:null,crisisDay:26,diff:DIFF[opts.diff]?opts.diff:'normal',ironman:!!opts.ironman,fabled:{},dun:null,grace:4,healAcc:0,zoom:1,path:[],route:[],moving:false,dest:null,town:null,note:null,fog:null,
+ Object.assign(G,{v:SAVEVER,name,wsize:wk,banner:bannerFix(Object.assign({},opts.banner||{},{name}),name),day:1,hour:8,crowns:1200,food:50,tools:20,renown:0,roster:[],stash:['spear','buckler'],parties:[],portals:[],contract:null,crisis:null,crisisDay:26,diff:DIFF[opts.diff]?opts.diff:'normal',ironman:!!opts.ironman,fabled:{},dun:null,portalRun:null,dungeons:[],grace:4,healAcc:0,zoom:1,path:[],route:[],moving:false,dest:null,town:null,note:null,fog:null,
   weather:{kind:'clear',t:0,dur:10},p:{x:G.towns[0].x,y:G.towns[0].y+.65*TS}});
  if(!okAt(G.p.x,G.p.y))G.p.y=G.towns[0].y;fogStart();
  ['sellsword','squire','hunter','acolyte'].forEach(b=>{const m=newMerc(b);m.field=true;G.roster.push(m)});
