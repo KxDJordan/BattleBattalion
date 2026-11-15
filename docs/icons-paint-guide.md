@@ -80,6 +80,8 @@ Parts (local: base at 0,0, pointing up):
 `pkStar(g,x,y,r,mat,n,ri)`, `pkSparkle(g,x,y,r,mat)`, `pkSwirl(g,x,y,r,mat,turns)`, `pkScroll(g,x,y,w,h,mat)`,
 `pkSwoosh(g,cx,cy,r,a0,a1,w,mat)` (cut trail), `pkBadgeBack(g,tone,{x,w,r,t})` (rounded-square frame used by traits and status squares).
 Shared drawings: `PK_HEART` (path), `pkHelmGreat(g,mat,band)`, `pkHeaterCross(g,mat,crossMat)`.
+`PK_DYN`: resolvers `(name) => painter | null` that `pkHas` asks for names made at run time (package C uses it for famed
+items `it-f:N` and any gear item without a spec); a hit is stored in PAINT.
 
 ### Examples
 
