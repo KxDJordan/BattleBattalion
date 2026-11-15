@@ -712,3 +712,12 @@
 #pn .ch-fab{display:inline-block;padding:0 4px;margin-right:2px;color:#1b1608;background:var(--brass);letter-spacing:.08em}
 #pn .ch-fti{margin-top:1px;font-size:.82rem;font-style:italic;color:#f3d98b;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #pn .fx-ew{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#ef8a78}
+/* ---- stat tooltips (58-stattips.js): tap a stat on the roster, character sheet or tavern ---- */
+.st-tip{position:fixed;z-index:9000;max-width:280px;padding:8px 10px 9px;background:var(--panel);color:var(--vellum);border:2px solid var(--brass);box-shadow:0 0 0 2px #000,4px 4px 0 rgba(0,0,0,.45);font-size:13px;line-height:1.35;pointer-events:none}
+.st-tip[hidden]{display:none}
+.st-tip b{display:flex;align-items:center;justify-content:flex-start;text-align:left;gap:6px;font-family:var(--pxfont);font-weight:400;font-size:16px;color:var(--brass-l);margin-bottom:3px}
+.st-tip .st-v{color:var(--vellum);margin-left:auto}
+.st-tip p{margin:0;color:var(--vellum);text-align:left}
+[data-stat]{cursor:help}
+@media (prefers-reduced-motion:no-preference){.st-tip:not([hidden]){animation:stTipIn .12s ease-out}}
+@keyframes stTipIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
