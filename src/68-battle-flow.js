@@ -38,7 +38,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
  G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
  if(b.rival)rivalResolve(b,res,win);   // the rival company's dead, wounded and fled; its purse, gear and a beaten sword who asks to join
  if(win)res.cargo=caravanCargo(b.opts.src);
- if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=e.def&&e.def.xp||(e.m?rivalXP(e.m):0));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
+ if(win){const en=b.units.filter(u=>u.side===1);en.forEach(e=>res.xp+=Math.round((e.def&&e.def.xp||(e.m?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
   surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
   res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
@@ -195,7 +195,10 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
  return out}
 // Rules: the company declines a battle it has not yet joined. The same price as sounding the retreat in one: a tenth of the
 // crowns dropped on the run, and whatever settleBattle() makes of a lost fight of that kind (a hunt is forfeit, a rift closes).
-function fleeEncounter(o){const c0=G.crowns;G.crowns=Math.floor(G.crowns*.9);const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
+const XPRANK=.3;   // battle XP: a veteran foe (rank L = log2 of its rank multiplier, enemyInit) teaches more, +30% a doubling
+const FLEEK={k:.1,per:50};   // a withdrawal or a retreat drops a tenth of the purse on the run, at most FLEEK.per crowns a sword
+function fleeCost(){const c0=Math.max(0,G.crowns|0);return Math.min(c0-Math.floor(c0*(1-FLEEK.k)),FLEEK.per*Math.max(1,G.roster.length))}
+function fleeEncounter(o){const c0=G.crowns;G.crowns=c0-fleeCost();const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
 function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
  if(out.kind==='wiped'&&typeof runEnd==='function'){try{runEnd('wipe')}catch(e){}}
  if(out.kind==='wiped'){sheet((out.solo?`<h2>The hunt is over</h2><p>The slayer is dead, and nobody rides on in their name. The hunt lasted ${out.days} days.</p>`:`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p>`)+`<button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}

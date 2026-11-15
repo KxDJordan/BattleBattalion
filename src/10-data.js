@@ -867,7 +867,7 @@ const EN={
    FACT[f].units: [enemy id, budget cost]. rank: [g, cap, h?, base?], how the faction's quality follows the budget (see foeRank in 64-foes.js). */
 const FACT={
  gob:{n:'Goblins',g:'G',col:'#7a9a3c',skin:'#9fc25a',lair:'Burn out a goblin warren',units:[['gob',10],['gobarch',12],['gobsham',20]],rank:[.5,1.25],loot:['knife','shortbow','buckler','spear']},
- undead:{n:'Restless dead',g:'U',col:'#b9b39a',skin:'#e4e0cf',lair:'Put the restless dead to rest',units:[['skel',15],['zomb',14],['skelhal',21],['necro',30]],rank:[.3,1.4,0,17],loot:['shortsword','kite','spear','mail','bill','halberd']},
+ undead:{n:'Restless dead',g:'U',col:'#b9b39a',skin:'#e4e0cf',lair:'Put the restless dead to rest',units:[['skel',17],['zomb',16],['skelhal',22],['necro',30]],rank:[.3,1.4,0,17],loot:['shortsword','kite','spear','mail','bill','halberd']},
  beast:{n:'Beasts',g:'B',col:'#6b5137',skin:'#8a6b49',lair:'Clear a den of beasts',units:[['wolf',21],['wolf',21],['spider',20],['bear',58]],rank:[.38,1.2,.3],loot:[]},
  orc:{n:'Orcs',g:'O',col:'#4f6b46',skin:'#7c9b62',lair:'Break an orc warcamp',units:[['orcy',38],['orcw',62],['obrute',60],['orcl',105]],rank:[.46,1.6,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','mallet','spiked']},
  bandit:{n:'Brigands',g:'R',col:'#5a5a66',skin:'#d9b99a',lair:'Root out a brigand hideout',units:[['thug',20],['bmark',25],['bxbow',32],['braid',44],['blead',71]],rank:[.5,.75,.3,19],loot:['shortsword','club','padded','leather','shortbow','mace','heater','lightxbow','crossbow','roundshield','pistol']},
@@ -903,14 +903,14 @@ Object.assign(EN,{
  elder:{n:'Elder ent',hp:300,arm:180,helm:120,ms:68,md:0,rd:30,init:65,ap:8,d:[54,78],big:1,kbImm:1,xp:700,role:'boss',brv:99,fearless:1,lead:1,max:1,sub:'ent',fireWeak:.5,regen:.06,abs:['groots','limbcrush','barkskin','grove']},
  ogre:{n:'Ogre',hp:185,arm:60,helm:35,ms:62,md:0,rd:0,init:85,d:[50,76],w:'maul',wap:5,big:1,kb:1,kbCh:.3,xp:380,role:'line',brv:70,abs:['ohurl','osweep']},
  aogre:{n:'Armored ogre',hp:200,arm:200,helm:150,ms:64,md:4,rd:6,init:75,d:[54,80],w:'warmaul',wap:5,big:1,kb:1,kbCh:.3,xp:520,role:'line',brv:80,abs:['oslam','ohurl']},
- wyvern:{n:'Wyvern',size:2,fly:1,hp:6000,arm:260,helm:200,ms:85,md:14,rd:10,init:120,ap:14,d:[165,220],ign:.45,xp:2400,role:'boss',boss:1,endgame:1,brv:99,fearless:1,abs:['wbite','wsting','wbuffet','wdive']},
+ wyvern:{n:'Wyvern',size:2,fly:1,hp:5600,arm:260,helm:200,ms:85,md:14,rd:10,init:120,ap:14,d:[150,200],ign:.45,xp:2400,role:'boss',boss:1,endgame:1,brv:99,fearless:1,abs:['wbite','wsting','wbuffet','wdive']},
  whatch:{n:'Wyvern hatchling',fly:1,hp:85,arm:30,helm:20,ms:62,md:16,rd:16,init:135,ap:10,d:[22,34],xp:200,role:'flanker',brv:70,abs:['hsting']}
 });
 Object.assign(FACT,{
- serpent:{n:'Serpents',g:'S',col:'#5d7a3a',skin:'#a7b85a',tier:'mid',biomes:['swamp','desert'],spawn:{d0:7,d1:2,gate:.04},lair:'Clear a serpent nest',units:[['adder',14],['adder',14],['viper',17],['gserp',62]],rank:[.56,1.25,.3],solo:[46.5,1.5],loot:['dirk','seax','stiletto','rondel','shortbow','padded','leather','cap'].filter(id=>ITEMS[id])},
- ent:{n:'Ents',g:'E',col:'#4d5f2e',skin:'#7f6a45',tier:'mid',biomes:['forest'],lair:'Burn out a blighted grove',units:[['thorn',18],['thorn',18],['ent',80],['elder',130]],rank:[.4,1.2,.25,19],loot:['witchstave','sigilrobe','longbow','recurve','staff','focus','robe','warbow'].filter(id=>ITEMS[id])},
- ogre:{n:'Ogres',g:'T',col:'#7a6a4a',skin:'#b59a72',tier:'mid',biomes:['hills','mountains','plains'],lair:'Break an ogre camp',units:[['ogre',76],['ogre',76],['aogre',96],['gob',10]],rank:[.42,1.25,.25,19],solo:[3,6.2],loot:['spikedclub','morningstar','bellmace','knighthammer','lamellar','sallet','maul','warmaul','scale'].filter(id=>ITEMS[id])},
- wyvern:{n:'Wyverns',g:'W',col:'#6b4a3a',skin:'#a8604a',tier:'end',biomes:['mountains','snow','hills'],lair:'Slay the wyvern of {place}',units:[['wyvern',400],['whatch',40]],rank:[.4,1,.2],loot:['gothic','armet','greatbow','windlass','heater2','plate','arbalest','runegreat'].filter(id=>ITEMS[id]),
+ serpent:{n:'Serpents',g:'S',col:'#5d7a3a',skin:'#a7b85a',tier:'mid',biomes:['swamp','desert'],spawn:{d0:7,d1:2,gate:.04},lair:'Clear a serpent nest',units:[['adder',11],['adder',11],['viper',13],['gserp',50]],rank:[.6,.95,.3],solo:[37.5,1.2],loot:['dirk','seax','stiletto','rondel','shortbow','padded','leather','cap'].filter(id=>ITEMS[id])},
+ ent:{n:'Ents',g:'E',col:'#4d5f2e',skin:'#7f6a45',tier:'mid',biomes:['forest'],lair:'Burn out a blighted grove',units:[['thorn',16],['thorn',16],['ent',72],['elder',120]],rank:[.4,1.1,.25,19],loot:['witchstave','sigilrobe','longbow','recurve','staff','focus','robe','warbow'].filter(id=>ITEMS[id])},
+ ogre:{n:'Ogres',g:'T',col:'#7a6a4a',skin:'#b59a72',tier:'mid',biomes:['hills','mountains','plains'],lair:'Break an ogre camp',units:[['ogre',62],['ogre',62],['aogre',80],['gob',10]],rank:[.42,.75,.25,19],solo:[2.5,5.1],loot:['spikedclub','morningstar','bellmace','knighthammer','lamellar','sallet','maul','warmaul','scale'].filter(id=>ITEMS[id])},
+ wyvern:{n:'Wyverns',g:'W',col:'#6b4a3a',skin:'#a8604a',tier:'end',biomes:['mountains','snow','hills'],lair:'Slay the wyvern of {place}',units:[['wyvern',400],['whatch',40]],rank:[.34,1,.2],loot:['gothic','armet','greatbow','windlass','heater2','plate','arbalest','runegreat'].filter(id=>ITEMS[id]),
   build(budget,mult){const n=mult>=1.15?2:mult>=.9?1:0,L=['wyvern'];for(let i=0;i<n;i++)L.push('whatch');return L}}
 });
 FACT.gob.tier='early';FACT.bandit.tier='early';FACT.beast.tier='early';FACT.undead.tier='mid';FACT.orc.tier='mid';FACT.void.tier='crisis';

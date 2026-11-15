@@ -26,7 +26,7 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
 const SRC=ARGV.includes('--srcdir')?path.resolve(ARGV[ARGV.indexOf('--srcdir')+1]):path.join(__dirname,'..','src'),SEED=+arg('--seed',20261113),TURNCAP=4000;
-const FACS=['gob','undead','beast','orc','bandit','void'],XFAC=['free','east','dead','horde','barb'],XPROF={east:['L4x6','L8x9','L12x12'],dead:['L4x6','L8x9','L12x12'],horde:['L4x6','L8x9','L12x12'],barb:['L4x6','L8x9','L12x12']},MONF=['serpent','ent','ogre'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=8,KSOLO=40;   // companies per profile; slayers per solo profile (one sword: its rolled stats, traits and trees weigh more)
+const FACS=['gob','undead','beast','orc','bandit','void'],XFAC=['free','east','dead','horde','barb'],XPROF={east:['L4x6','L8x9','L12x12'],dead:['L4x6','L8x9','L12x12'],horde:['L4x6','L8x9','L12x12'],barb:['L4x6','L8x9','L12x12']},MONF=['serpent','ent','ogre'],BIOMES=['plains','forest','hills','swamp','desert','snow'],KCOMP=16,KSOLO=40;   // companies per profile; slayers per solo profile (one sword: its rolled stats, traits and trees weigh more)
 /* ---------- company profiles ---------- */
 // role -> level-up stat picks and gear by tier [L4, L8, L12] (b: the sidearm). Perks are spent by the game's own autoLearn(m)
 // on the trees the merc rolled from its background pool, after the gear is on (autoLearn reads the weapons and the shield).
@@ -187,8 +187,9 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  if(FABON)for(const [f,pr,id,boss] of FABS)for(const pilot of ['naive','sensible']){const j=add('fab',f,pr,pilot,NA);j.fab={ids:[id],boss,mult:FABM}}
  // Crisis update: the crisis boss fights as 18-crises.js stages them (a typical crisis strength: mult as at str 1.3 and a half-built camp), with the
  // fabled warrior crFabled would bring, at the late profiles. Reported, not judged (target for the crises: sensible 55..75% at L12x12).
- const CRB=[['Bone Throne','dead',{f:'dead',mult:.66,fixed:['bthrone','necrolt'],boss:'bthrone',er:16,fabled:'ulfgar',obj:'siege'}],['Warchief','horde',{f:'horde',mult:.89,fixed:['hchief','hstd','hstd','obrute'],boss:'hchief',er:14,fabled:'korvak'}],
-  ['Huscarl champions','barb',{f:'barb',mult:1.31,fixed:['barbhus','barbhus','barbhus','barbskald','barbz','barbz'],boss:'barbhus'}],['Emperor','barb',{f:'barb',mult:.89,fixed:['emperor','barbhus'],boss:'emperor',er:16,fabled:'hakon'}]].filter(x=>FACT[x[1]]&&X0.EN[x[2].boss]);   // the stage setups of 18-crises.js (crBossMult / crChampMult at a typical crisis)
+ const CRC={str:1.3,camp:{str:50}},crM=(fn,x,d)=>typeof X0[fn]==='function'?X0[fn](CRC,x):d;   // a typical crisis: the mults straight from 18-crises.js
+ const CRB=[['Bone Throne','dead',{f:'dead',mult:crM('crBossMult',.03-.08,.66),fixed:['bthrone','necrolt'],boss:'bthrone',er:16,fabled:'ulfgar',obj:'siege'}],['Warchief','horde',{f:'horde',mult:crM('crBossMult',.13,.84),fixed:['hchief','hstd','hstd','obrute'],boss:'hchief',er:14,fabled:'korvak'}],
+  ['Huscarl champions','barb',{f:'barb',mult:crM('crChampMult',0,1.31),fixed:['barbhus','barbhus','barbhus','barbskald','barbz','barbz'],boss:'barbhus'}],['Emperor','barb',{f:'barb',mult:crM('crBossMult',.18,.89),fixed:['emperor','barbhus'],boss:'emperor',er:16,fabled:'hakon'}]].filter(x=>FACT[x[1]]&&X0.EN[x[2].boss]);   // the stage setups of 18-crises.js (crBossMult / crChampMult at a typical crisis)
  const CRON=!has('--no-crisis')&&(!only||only.split(',').includes('crisis'));
  if(CRON)for(const [n,f,C] of CRB)for(const pr of ['L8x9','L12x12'])for(const pilot of ['naive','sensible']){const j=add('crb',f,pr,pilot,NA);j.cr=C;j.tag=n}
  // identical jobs (same battles) are run once

@@ -82,6 +82,11 @@ section('generation');
   const a=(()=>{const G=fresh(SEED+3);return J(X.ctrBoard(G.towns[1],4))})(),b=(()=>{const G=fresh(SEED+3);return J(X.ctrBoard(G.towns[1],4))})();ok(a===b,'boards replay from the seed');
   console.log('10 types x 4 towns generate and repair; boards over 60 days: '+J(kinds)+'; '+h+'/100 single notices are hunts: ok') }
 
+section('pay');
+{ const G=fresh(SEED+5);const d0=G.day,p0=X.ctrPayBase(2);G.day=d0+60;ok(X.ctrPayBase(2)===p0,'pay must not follow the day: '+p0+' / '+X.ctrPayBase(2));G.day=d0;
+  const pw0=X.companyPower(),R=G.roster;R.forEach(m=>{m.lvl+=6});ok(X.companyPower()>pw0&&X.ctrPayBase(2)>p0,'pay rises with the company\'s strength');R.forEach(m=>{m.lvl-=6});
+  ok(X.ctrPayBase(4)>X.ctrPayBase(2),'pay rises with the danger');const rn=G.renown;G.renown=2000;ok(X.ctrPayBase(2)>p0,'pay rises with renown');G.renown=rn;
+  console.log('pay '+p0+' (diff 2, power '+pw0+'): follows strength, renown and danger, never the day: ok')}
 section('completion');
 { for(const k of TYPES){const G=fresh(SEED+10+TYPES.indexOf(k));if(!G.rep)G.rep={free:0};const c=make(G,k);c.emp=c.emp in G.rep?c.emp:'free';G.rep[c.emp]=G.rep[c.emp]||0;
    const ti=complete(G,c),r0=G.rep[c.emp],cr=G.crowns,rn=G.renown,q=X.ctrTurnInAt(ti);ok(q&&q.pay===c.pay,'ctrTurnInAt '+k);ok(!X.ctrTurnInAt((ti+1)%G.towns.length),'only at its town');

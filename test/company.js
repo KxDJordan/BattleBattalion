@@ -82,7 +82,7 @@ section('recruits by tier');
 { const G=fresh(SEED+2),t=G.towns[0],rare=Object.keys(X.BG).filter(k=>X.BG[k].w<=1);
   const roll=(r,n)=>{G.renown=r;G.retinue=[];const L=[];for(let i=0;i<n;i++){X.stockTown(t);L.push(...t.recruits)}return L};
   const lo=roll(0,60),hi=roll(1200,60),D=X.RENOWN[5];
-  ok(lo.length===240&&lo.every(m=>m.lvl===1),'an unknown company sees only green recruits');
+  ok(lo.length===300&&lo.every(m=>m.lvl===1),'an unknown company sees only green recruits');
   const vets=hi.filter(m=>m.lvl>1);ok(vets.length>hi.length*.3&&vets.length<hi.length*.8,'a legendary company sees some veterans: '+vets.length+' of '+hi.length);
   ok(vets.every(m=>m.lvl>=D.lv[0]&&m.lvl<=D.lv[1]&&m.pend===0&&m.pp===0&&m.perks.length===m.lvl&&m.xp>=X.XPT[m.lvl]&&m.hp===X.calc(m).hp),'veterans: level in range, stats rolled, perks learned by autoLearn');
   { const v=vets[0],g=lo.find(m=>m.bg===v.bg);ok(!g||X.recruitCost(v)>X.recruitCost(g),'a veteran costs more than a green one of its background') }
@@ -110,7 +110,7 @@ section('followers');
   // cook: wounds mend 25% faster on the road
   { const run=q=>{G.retinue=q?['cook']:[];G.roster.forEach(m=>m.hp=1);G.healAcc=0;X.advanceTime(8);return G.roster[0].hp};const a=run(0),b=run(1);ok(b>a,'cook: '+a+' -> '+b+' hitpoints in 8 hours') }
   // recruiter: a quarter off, one more recruit
-  { const t=G.towns[1];off();X.stockTown(t);const m=t.recruits[0],c0=X.recruitCost(m);ok(t.recruits.length===4,'four recruits');on('recruiter');ok(X.recruitCost(m)===Math.round(c0*.75/5)*5,'recruiter: a quarter off');X.stockTown(t);ok(t.recruits.length===5,'recruiter: five recruits');
+  { const t=G.towns[1];off();X.stockTown(t);const m=t.recruits[0],c0=X.recruitCost(m);ok(t.recruits.length===5,'five recruits');on('recruiter');ok(X.recruitCost(m)===Math.round(c0*.75/5)*5,'recruiter: a quarter off');X.stockTown(t);ok(t.recruits.length===6,'recruiter: six recruits');
     G.roster=G.roster.slice(0,4);X.openTown(1);closeAll(X);X.openTown(1);const r=t.recruits[0],cost=X.hireCost(r),c1=G.crowns;X.hire(0);ok(G.crowns===c1-cost&&G.roster.includes(r),'hire pays the recruiter’s price');G.townOpen=false;closeAll(X) }
   // cartographer: +15% on roads
   { const N=X.WN*X.WN,W=X.W;let i0=-1;for(let i=0;i<N;i++)if(W.road[i]&&W.ok[i]){const x=i%X.WN,y=(i/X.WN)|0;if(W.road[i]&2&&W.road[i+1]&2&&W.road[i+2]&2){i0=i;break}}

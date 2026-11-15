@@ -66,16 +66,16 @@ function shWhyNot(u,a){if(!u||!a)return'';try{if(canUse(u,a)&&!shLocked(u,a))ret
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.withdraw)return'Only from your own edge of the field';return'Not usable now'}
 function endTurn(){if(B&&!B.busy&&!B.over&&B.cur.side===0)nextTurn()}
 /* Sound the retreat: the text says what the rules will do (soundRetreat in 60-battle-core.js, the crowns in 68-battle-flow.js). */
-function retreat(){if(!B||B.busy||B.over)return;const us=B.units.filter(u=>u.alive&&u.side===0),eng=us.filter(u=>B.units.some(e=>e.alive&&e.side!==u.side&&mdist(e,u)===1)),lost=G.crowns-Math.floor(G.crowns*.9),src=B.opts&&B.opts.src||{};
+function retreat(){if(!B||B.busy||B.over)return;const us=B.units.filter(u=>u.alive&&u.side===0),eng=us.filter(u=>B.units.some(e=>e.alive&&e.side!==u.side&&mdist(e,u)===1)),lost=typeof fleeCost==='function'?fleeCost():G.crowns-Math.floor(G.crowns*.9),src=B.opts&&B.opts.src||{};
  const hasR=typeof soundRetreat==='function';let p;
  if(!hasR)p='<p>The company breaks off and scatters.</p>';
  else if(!eng.length)p='<p>No sword is locked in melee: all '+us.length+' leave the field at once, alive.</p>';
  else p='<p>'+(us.length-eng.length?(us.length-eng.length)+' of your swords are free and leave at once. ':'')+'<b class="bad">'+eng.length+' '+(eng.length===1?'is':'are')+' engaged</b>: each takes a free blow from every foe beside '+(eng.length===1?'it':'them')+' first, then leaves if still standing.</p><p class="dim">Engaged: '+eng.map(u=>esc(u.name)).join(', ')+'.</p>';
- const cost=[];if(src.type==='lair')cost.push('the contract fought here is forfeit');else if(src.type==='dun')cost.push('the rift throws you out');if(lost>0)cost.push('you drop a tenth of your crowns on the run (<span class="coin">'+lost+'</span>)');
+ const cost=[];if(src.type==='lair')cost.push('the contract fought here is forfeit');else if(src.type==='dun')cost.push('the rift throws you out');if(lost>0)cost.push('you drop up to a tenth of your crowns on the run (<span class="coin">'+lost+'</span>)');
  cost.push('nobody earns xp or loot');
  sheet('<h2>Sound the retreat?</h2>'+p+'<p>'+cost.join(', ').replace(/^./,c=>c.toUpperCase())+'.</p>'+(hasR?'<p class="dim">One sword can also slip away alone: stand on your own edge of the field and use Withdraw.</p>':'')
   +'<div class="row"><button class="warn" onclick="closeSheet();doRetreat()">Sound the retreat</button><button class="pri" style="flex:1" onclick="closeSheet()">Fight on</button></div>')}
-function doRetreat(){if(!B||B.over)return;G.crowns=Math.floor(G.crowns*.9);fcClear();
+function doRetreat(){if(!B||B.over)return;G.crowns=typeof fleeCost==='function'?G.crowns-fleeCost():Math.floor(G.crowns*.9);fcClear();
  if(typeof soundRetreat==='function'){try{const p=soundRetreat();if(p&&p.catch)p.catch(()=>{});updateBUI();return}catch(e){}}
  B.over=true;B.busy=true;B.fled=true;endBattle(false)}
 /* Reserves: who waits behind the line, and the one tap that brings a sword in (callReserve). */

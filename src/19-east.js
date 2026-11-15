@@ -30,7 +30,7 @@
    by 'east'); when the siege runs out the town falls or the host breaks. Breaking it on the field (worldBattleEnd -> townSiegeEnd) frees the town. */
 
 /* ---- tuning ---- */
-const EW={minDay:30,thr:120,lateDay:45,lateThr:70,hardDay:60,waves:3,gap:7,len:[5,7],cap:36,mult:[1.05,1.25,1.45],hosts:[2,2,3],
+const EW={minDay:30,thr:120,lateDay:45,lateThr:70,hardDay:60,waves:3,gap:7,len:[5,7],cap:36,mult:[.95,1.1,1.25],hosts:[2,2,3],
  pay:{houses:1500,east:2600},renown:{win:60,lose:20,out:15},rep:{side:-45,ally:25,houseSide:-30}};
 const EASTN={roots:['Akane','Kurogane','Hoshino','Shirakawa','Tsukiyama','Kagero','Asahi','Mizuchi'],
  lords:['Lord Akechi Tadamasa','Lady Hoshino Kiyo','Lord Kurogane Ietsugu','Lord Shirakawa Munenori','Lady Tsukiyama Sen','Lord Asahi Nagahide'],

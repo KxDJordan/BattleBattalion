@@ -91,12 +91,12 @@ function buildEnemies(f,budget,fixed,mult){if(typeof FACT[f].build==='function'&
  while(list.length<floor)list.push(U[0][0]);return list}
 /* Solo runs (ORIGINS[k].solo: one sword) fight bands sized for one. Tuned with test/balance.js (the solo table: the slayer at level 3, 6, 9).
    SOLOBUD: what the one sword adds to the enemy budget, base + lvl a level up to level knee, late a level after it (a company merc adds
-   12 + 5 a level), or the faction's own line FACT[f].solo = [base, a level] where its bands do not follow the common one (a serpent nest
+   MERCBUD), or the faction's own line FACT[f].solo = [base, a level] where its bands do not follow the common one (a serpent nest
    is never just two hatchlings; an ogre's strength barely follows the budget at all). SOLOMAX: the most foes such a
    band brings. SOLOFLOOR: a band that bought one foe brings a second with the chance leftover / (SOLOFLOOR x the cheapest foe's cost).
    A monster band (tier 'mid') too poor for its lead monster is that monster alone (buildEnemies). */
 let SOLOFLOOR=1,SOLOMAX=2;
-const SOLOBUD={base:6,lvl:7,knee:6,late:4};   // 27 at level 3, 48 at 6, 60 at 9, 72 at 12 (a company merc: 27 42 57 72)
+const SOLOBUD={base:6,lvl:7,knee:6,late:4};   // 27 at level 3, 48 at 6, 60 at 9, 72 at 12 (a company merc, mercBud: 25 44 63 85)
 /* ---- Units ----
    A battle unit (both sides): side, name, lvl, hp/hpMax, arm/armMax (body armor), helm/helmMax (head armor), ap/apMax, fat/fatMax,
    init, ms, rs, md, rd, brv (resolve), mor (morale 0..4), fearless, wpn, abs, res, flags, dmgB, buffs, st (status turns), alive,
@@ -185,8 +185,10 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
    is the one previewed (startBattle then rolls neither again). */
 // Foes scale with the company's strength, not the calendar: each sword adds by level, times gearK for its kit (gearPower 2.3 = starting
 // kit: x1; tier 3 ~x1.19, tier 4 ~x1.31, tier 5 ~x1.40). A company that does not improve its gear does not face harder bands.
-const GEARK=.13;function gearK(m){const g=typeof gearPower==='function'?gearPower(m):2.3;return 1+GEARK*Math.max(0,g-2.3)}
-function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?12+m.lvl*5:sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*runK('budget')}   // difficulty: diffK('budget')
+const MERCBUD={base:7.5,lvl:5.6,sq:.07};   // what a company merc adds to the enemy budget: base + lvl a level + sq a level squared (13.2 at level 1, 31 at 4, 57 at 8, 85 at 12), times gearK (the company's strength: levels and gear, never the day). Level 1 is forgiving on purpose: a struck-down recruit lives only 30% of the time
+const mercBud=L=>MERCBUD.base+MERCBUD.lvl*L+MERCBUD.sq*L*L;
+const GEARK=.06;function gearK(m){const g=typeof gearPower==='function'?gearPower(m):2.3;return 1+GEARK*Math.max(0,g-2.3)}
+function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?mercBud(m.lvl):sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*runK('budget')}   // difficulty: diffK('budget')
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
 /* ---- Fixed rosters (Phase 8B endgame, CONTRACT.md): o.roster = [{id, n?, lvl?, elite?, at?:{c,r}, name?, hpK?}] is the enemy side exactly as

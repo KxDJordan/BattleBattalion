@@ -202,7 +202,7 @@ section('solo bands');
   ok(Math.abs(X.battleBudget({f:'serpent'})-(X.FACT.serpent.solo[0]+3*X.FACT.serpent.solo[1])*dk*X.BUDGETK)<1e-9,'serpents follow their own solo line');
   for(let i=0;i<40;i++){X.seedRng(SEED+i);const L=X.buildEnemies('ogre',X.battleBudget({f:'ogre'}),null,1);ok(L.length===1&&L[0]==='ogre','an ogre band against one sword at level 3 is one ogre: '+L.join())
    X.seedRng(SEED+i);const W=X.buildEnemies('beast',B3,null,1);ok(W.length>=1&&W.length<=X.SOLOMAX,'a beast band of 1..'+X.SOLOMAX+': '+W.join())}
-  G.origin='free';const Bc=X.battleBudget({f:'beast'});ok(Math.abs(Bc-(12+5*3)*dk*X.BUDGETK)<1e-9,'a company keeps 12 + 5 a level');
+  G.origin='free';const Bc=X.battleBudget({f:'beast'});ok(Math.abs(Bc-X.mercBud(3)*dk*X.BUDGETK)<1e-9,'a company keeps mercBud (MERCBUD: base + lvl a level + sq a level squared)');
   X.seedRng(SEED);const L=X.buildEnemies('ogre',Bc,null,1);ok(!L.includes('ogre'),'a company that poor meets the goblins, as before: '+L.join());
   G.origin='slayer';G.day=day0;console.log('solo budget lines, the lone ogre, at most '+X.SOLOMAX+' foes; companies unchanged: ok') }
 console.log('\nOK');process.exit(0)})().catch(e=>fail(e&&e.stack||e));
