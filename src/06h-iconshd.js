@@ -104,8 +104,9 @@ function ihdSheet(){if(ICHD.st)return ICHD.st;if(typeof document==='undefined'||
 function icHdUse(n,force){if(typeof document==='undefined')return;
  if(!force&&!ICHD.lo.has(n)){ICHD.lo.add(n);if(!ICHD.boot.has(n)&&Object.prototype.hasOwnProperty.call(ICONS,n)){ICHD.lo.add(n);icCss(n)}}   // icons other files set without icCss() (crisis gear) get their 16 px rule too
  const hd=hdArt();if(ICHD.st&&ICHD.st.disabled===hd)ICHD.st.disabled=!hd;if(!hd)return;const rows=Object.prototype.hasOwnProperty.call(ICONS,n)?ICONS[n]:null;if(!rows||!Array.isArray(rows)||!rows.length)return;
- const d=ICHD.done.get(n);if(d===rows||(force&&d===undefined))return;ICHD.done.set(n,rows);const st=ihdSheet();if(!st)return;
- const u=ihdURL(n,rows);if(!u||u.slice(0,5)!=='data:')return;const rule='.pxi-'+icCls(n)+'{background-image:url('+u+')}';
+ const pf=typeof pkHas==='function'&&pkHas(n)?PAINT[n]:null,mark=pf||rows;   // 06p-iconspaint.js: a painted icon wins over the HD pixel one (and is smoothed, not pixelated)
+ const d=ICHD.done.get(n);if(d===mark||(force&&d===undefined))return;ICHD.done.set(n,mark);const st=ihdSheet();if(!st)return;
+ const u=pf?pkURL(n):ihdURL(n,rows);if(!u||u.slice(0,5)!=='data:')return;const rule='.pxi-'+icCls(n)+'{background-image:url('+u+')'+(pf?';image-rendering:auto!important':'')+'}';
  try{st.sheet.insertRule(rule,st.sheet.cssRules.length)}catch(e){st.appendChild(document.createTextNode(rule))}}
 /* Detail switch: Low hides the HD sheet; High shows it and paints every icon on screen that has no HD rule yet */
 function ihdOnScreen(){if(typeof document==='undefined'||!document.querySelectorAll)return;const cls=new Map();for(const n in ICONS)cls.set('pxi-'+icCls(n),n);
