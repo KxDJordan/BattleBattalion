@@ -98,8 +98,8 @@ function crisisDay(news){if(!G)return;news=news||[];crisisInit(G);const c=G.cris
   if(c.ended||C.ended(G)){crisisEnd(true);return}
   const age=G.day-c.day;c.str=Math.round(clamp(1+age*.018,1,2.3)*Math.sqrt(crDiff('budget'))*100)/100;
   let dm=0;try{dm=+C.day(G,news)||0}catch(e){if(typeof console!=='undefined')console.warn('crisis day failed',e)}
-  c.doom=clamp(Math.round((c.doom+dm)*10)/10,0,CRK.doomLose);crSieges(news);crHousesAct(news);crRivalsAct(news);
-  if(C.ended(G))crisisEnd(true);else if(c.doom>=CRK.doomLose)crisisEnd(false)}
+  c.doom=clamp(Math.round((c.doom+dm)*10)/10,0,CRK.doomLose);const doomed=c.doom>=CRK.doomLose;crSieges(news);crHousesAct(news);crRivalsAct(news);   // doom 100 today is lost today, whatever the rivals rout afterwards
+  if(C.ended(G))crisisEnd(true);else if(doomed||c.doom>=CRK.doomLose)crisisEnd(false)}
  else{try{if(C.after)C.after(G,news)}catch(e){}crSieges(news)}
  G.parties=G.parties.filter(p=>!p.gone)}
 // ends the crisis: a victory (rewards, the title, the trophy) or a defeat (the scar). A late victory after a defeat heals the scar.
