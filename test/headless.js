@@ -1052,7 +1052,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    X.seedRng(SEED+4500);X.newGame(true);closeAll(X);const G=X.G;
    { const pool=(p,d)=>X.factionPool({power:p,day:d,crisis:false}),has=(L,f)=>L.find(e=>e.f===f);
      const start=pool(X.companyPower(),2);ok(!has(start,'wyvern')&&!has(start,'ent')&&!has(start,'ogre')&&has(start,'gob')&&has(start,'bandit'),'a new company must meet only early factions: '+start.map(e=>e.f).join());
-     const mid=pool(60,20),late=pool(140,40),endg=pool(240,90);ok(has(mid,'ent')&&has(mid,'ogre')&&has(mid,'serpent')&&!has(mid,'wyvern'),'mid factions come with strength');
+     const mid=pool(60,20),late=pool(130,40),endg=pool(240,90);ok(has(mid,'ent')&&has(mid,'ogre')&&has(mid,'serpent')&&!has(mid,'wyvern'),'mid factions come with strength');
      ok(has(late,'wyvern')&&has(endg,'wyvern')&&has(late,'wyvern').minD>has(endg,'wyvern').minD&&has(late,'wyvern').minD>=15&&has(endg,'wyvern').minD<=8,'wyverns start far out and come closer: '+[has(late,'wyvern').minD,has(endg,'wyvern').minD]);
      ok(has(mid,'ent').minD>has(endg,'ent').minD&&has(mid,'ent').biomes.includes('forest')&&has(late,'wyvern').w<has(endg,'wyvern').w,'mid factions come closer and more often');
      const F=X.worldFields(),dist=(x,y)=>F.td[Math.floor(y/X.TS)*X.WN+Math.floor(x/X.TS)];let far=[],near=[];

@@ -19,7 +19,7 @@
            crisisFacts() crisisDay(news) startCrisis() crisisEnd(won) crisisSheet() crisisLine() crisisMarks() crisisOutcome() crisisNews()
            crTownHeld(i) townOwner(i) crTownSheet(i) crPartyBattle(p,o) crisisBattleEnd(s,win) crSiteSheet(s) crAssault(k) */
 const CRKEYS=['sunder','deadmarch','horde','barbarian'];
-const CRK={start:26,doomLose:100,hostCap:4,siegeDays:3,fallDoom:6,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
+const CRK={start:26,doomLose:100,esc:.012,hostCap:4,siegeDays:3,fallDoom:6,freeDoom:-6,beatDoom:-1.5,ltDoom:-7,renown:150,crowns:1500};
 const CRTITLE={sunder:'Sealers of the Sky',deadmarch:'Breakers of the Bone Throne',horde:'Bane of the Great Horde',barbarian:'Emperor-Slayers'};
 const CRTROPHY={sunder:'crshard',deadmarch:'crbonecrown',horde:'crwartusk',barbarian:'crempcrown'};
 const CR_LTN=['Morvane the Unburied','Sister Ashgrave','Old Hollowmouth','Corvus Pale','the Widow Marrow','Bishop Sallow'];
@@ -49,9 +49,9 @@ Object.assign(EN,{
   crph:[{at:.66,n:'The war-horn',say:'The Emperor sounds the war-horn. Berserkers come howling over the palisade.',summon:['barbz','barbz','barbax']},{at:.33,n:'The last oath',say:'Bleeding, the Emperor swears on his crown: he will not fall alone.',enrage:{dmg:.3,ms:10,md:5,ap:2},heal:.12}]}
 });
 Object.assign(FACT,{
- dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',18],['zomb',17],['skelhal',25],['necro',34],['gknight',62]],rank:[.32,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
- horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',13],['gobarch',16],['orcy',50],['orcw',80],['obrute',80],['hstd',78]],rank:[.44,.8,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
- barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',64],['barbax',46],['barbhound',33],['barbskald',55],['barbhus',115]],rank:[.46,.8,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
+ dead:{n:'The Dead March',g:'U',col:'#8a8f7a',skin:'#e4e0cf',tier:'crisis',crisis:'deadmarch',biomes:null,lair:'Break a risen host',units:[['skel',19],['zomb',18],['skelhal',24],['necro',33],['gknight',58]],rank:[.36,1.4,0,17],loot:['shortsword','kite','mail','halberd','bill','scale'].filter(id=>ITEMS[id])},
+ horde:{n:'The Great Horde',g:'O',col:'#5e7a3a',skin:'#7c9b62',tier:'crisis',crisis:'horde',biomes:null,lair:'Break a horde war band',units:[['gob',11],['gobarch',14],['orcy',50],['orcw',80],['obrute',80],['hstd',78]],rank:[.44,.65,.3,19],loot:['handaxe','waraxe','greataxe','leather','scale','maul','spiked'].filter(id=>ITEMS[id])},
+ barb:{n:'Barbarians',g:'B',col:'#8a5a3a',skin:'#e0b48e',tier:'crisis',crisis:'barbarian',biomes:null,lair:'Break a barbarian war party',units:[['barbz',56],['barbax',40],['barbhound',33],['barbskald',55],['barbhus',115]],rank:[.44,.8,.3,19],loot:['handaxe','waraxe','greataxe','roundshield','leather','mail','scale','spear'].filter(id=>ITEMS[id])}
 });
 if(FACT.void)FACT.void.crisis='sunder';
 // situations of a town in a crisis (prices, recruits, contracts, prosperity; drawn on the world by 41-worldart.js)
@@ -96,10 +96,10 @@ function crisisDay(news){if(!G)return;news=news||[];crisisInit(G);const c=G.cris
  if(!c.k)c.k='sunder';const C=CRISES[c.k];if(!C)return;crEnsure();
  if(!c.fin){
   if(c.ended||C.ended(G)){crisisEnd(true);return}
-  const age=G.day-c.day;c.str=Math.round(clamp(1+age*.018,1,2.3)*Math.sqrt(crDiff('budget'))*100)/100;
+  const age=G.day-c.day;c.str=Math.round(clamp(1+age*CRK.esc,1,2.3)*Math.sqrt(crDiff('budget'))*100)/100;
   let dm=0;try{dm=+C.day(G,news)||0}catch(e){if(typeof console!=='undefined')console.warn('crisis day failed',e)}
-  c.doom=clamp(Math.round((c.doom+dm)*10)/10,0,CRK.doomLose);crSieges(news);crHousesAct(news);crRivalsAct(news);
-  if(C.ended(G))crisisEnd(true);else if(c.doom>=CRK.doomLose)crisisEnd(false)}
+  c.doom=clamp(Math.round((c.doom+dm)*10)/10,0,CRK.doomLose);const doomed=c.doom>=CRK.doomLose;crSieges(news);crHousesAct(news);crRivalsAct(news);   // doom 100 today is lost today, whatever the rivals rout afterwards
+  if(C.ended(G))crisisEnd(true);else if(doomed||c.doom>=CRK.doomLose)crisisEnd(false)}
  else{try{if(C.after)C.after(G,news)}catch(e){}crSieges(news)}
  G.parties=G.parties.filter(p=>!p.gone)}
 // ends the crisis: a victory (rewards, the title, the trophy) or a defeat (the scar). A late victory after a defeat heals the scar.
@@ -355,7 +355,7 @@ horde:{n:'The Great Horde',f:'horde',icon:'swords',d:'Orc and goblin tribes gath
  after(G,news){const c=G.crisis;if(c.won)return;if(G.day%5===0&&crHosts('horde').length<3){const L=crTownsNear(c.camp.x,c.camp.y,3,i=>crTargeted(i));if(L.length)crHost('horde',c.camp.x,c.camp.y,L[0],{cr:'band',spd:8})}},
  stages(G,i){const c=G.crisis,m=crCampMult(c),bk=crBiomeAt(c.camp.x,c.camp.y);
   if(i===0)return crBattle('horde','camp',{f:'horde',mult:m,obj:{k:'siege'},biome:bk});
-  return crFabled(crBattle('horde','chief',{f:'horde',mult:crBossMult(c,.18),fixed:['hchief','hstd','hstd','obrute'],boss:crBoss('hchief',c.chief.n,'Warchief of the Great Horde',10),biome:bk}),{boss:1})},
+  return crFabled(crBattle('horde','chief',{f:'horde',mult:crBossMult(c,.13),fixed:['hchief','hstd','hstd','obrute'],boss:crBoss('hchief',c.chief.n,'Warchief of the Great Horde',10),biome:bk}),{boss:1})},
  onBattle(G,s,win){const c=G.crisis;if(s.what!=='camp'&&s.what!=='chief')return;if(!c.as)c.as={stage:s.what==='chief'?1:0};
   if(!win){c.as=null;return}if(s.what==='camp'){c.camp.str=Math.max(30,c.camp.str-25);crAssaultWon(2);return}
   c.chief.alive=false;c.closed=1;c.as=null;worldNews(`${c.chief.n}, warchief of the Great Horde, is dead`);if(c.fin&&c.lost)crisisEnd(true)},
@@ -391,7 +391,7 @@ barbarian:{n:'The Barbarian War',f:'barb',icon:'swords',d:'A Barbarian Emperor h
  after(G,news){const c=G.crisis;if(c.won)return;if(G.day>=c.next){crRaid(news);c.next=G.day+6}crRaidStep(news)},
  stages(G,i){const c=G.crisis,m=crCampMult(c),bk=crBiomeAt(c.camp.x,c.camp.y);
   if(i===0)return crBattle('barbarian','palisade',{f:'barb',mult:m,obj:{k:'siege'},biome:bk});
-  if(i===1)return (crBattle('barbarian','champions',{f:'barb',mult:crChampMult(c),fixed:['barbhus','barbhus','barbhus','barbskald','barbz','barbz'],boss:crBoss('barbhus',c.champs[0],'Huscarl of the Emperor'),biome:bk}),{});
+  if(i===1)return crBattle('barbarian','champions',{f:'barb',mult:crChampMult(c),fixed:['barbhus','barbhus','barbhus','barbskald','barbz','barbz'],boss:crBoss('barbhus',c.champs[0],'Huscarl of the Emperor'),biome:bk});
   return crFabled(crBattle('barbarian','emperor',{f:'barb',mult:crBossMult(c,.18),fixed:['emperor','barbhus'],boss:crBoss('emperor',c.emp.n,'Emperor of the North',16),biome:bk}),{boss:1})},
  onBattle(G,s,win){const c=G.crisis;if(!['palisade','champions','emperor'].includes(s.what))return;if(!c.as)c.as={stage:['palisade','champions','emperor'].indexOf(s.what)};
   if(!win){c.as=null;c.camp.str=Math.min(100,c.camp.str+5);return}

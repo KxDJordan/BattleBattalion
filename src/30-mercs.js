@@ -117,7 +117,7 @@ function repairAll(maxTools){const have=Math.max(0,Math.floor(typeof G.tools==='
 function hasInjury(m,id){return Array.isArray(m.inj)&&m.inj.some(j=>j.id===id)}
 // Adds injury id to the merc (days: healing time, ignored for permanent ones). Returns the record, or null if it is unknown or already carried.
 function addInjury(m,id,days){const I=INJ[id];if(!I||hasInjury(m,id))return null;if(!Array.isArray(m.inj))m.inj=[];
- const j={id,days:I.perm?-1:Math.max(1,Math.round(typeof days==='number'?days:I.days[0]))};m.inj.push(j);return j}
+ const j={id,days:I.perm?-1:Math.max(1,Math.round(typeof days==='number'?days:I.days[0]))};m.inj.push(j);if(typeof m.hp==='number'&&typeof calc==='function'){try{m.hp=Math.min(m.hp,calc(m).hp)}catch(e){}}return j}   // a wound that lowers the hitpoints lowers what is left of them too (saves clamp it the same way)
 // Rolls a fresh injury (seeded): head or body by where the blow fell, permanent or not. Returns its id, or null when nothing new fits.
 function rollInjury(m,head,perm,slow){const have=id=>hasInjury(m,id),all=Object.keys(INJ).filter(id=>!!INJ[id].perm===!!perm&&!have(id));
  let pool=all.filter(id=>INJ[id].loc===(head?'h':'b'));if(!pool.length)pool=all;if(!pool.length)return null;

@@ -129,9 +129,12 @@ const run=(seed,path)=>{const G=fresh(seed);const d1=snap(G),h=[];
   const B=Bp.G;ok(B.parties.some(p=>p.hunt&&p.f==='h0')||B.rep.h0>-40,'a hostile house hunts the company');
   // over a handful of seeds: wars, sieges, raids, booms and towns changing hands all happen somewhere
   const seen={war:0,take:0,raided:0,siege:0,boom:0,famine:0,festival:0,plague:0};
-  for(let s=0;s<8;s++){const R=run(SEED+100+s,'A'),g=R.G,d1own=JSON.parse(R.d1).own;if(g.news.some(n=>/at war/.test(n.t)))seen.war++;if(g.towns.some((t,i)=>t.own!==d1own[i]))seen.take++;
+  // every headline of the run, not only the last WSIM.news kept in G.news (a war declared early scrolls out of it by day 30)
+  const told=[],wn0=X.ctx.worldNews;X.ctx.worldNews=function(t){told.push(String(t));return wn0.apply(this,arguments)};
+  for(let s=0;s<8;s++){told.length=0;const R=run(SEED+100+s,'A'),g=R.G,d1own=JSON.parse(R.d1).own;if(told.some(t=>/at war/.test(t))||g.news.some(n=>/at war/.test(n.t)))seen.war++;if(g.towns.some((t,i)=>t.own!==d1own[i]))seen.take++;
    for(const n of g.news){if(/raided/.test(n.t))seen.raided++;if(/besieges/.test(n.t))seen.siege++}
    for(const k of ['boom','famine','festival','plague'])if(g.towns.some(t=>t.sit.some(x=>x.k===k))||g.news.some(n=>n.t.indexOf(X.SITS[k].n)>=0))seen[k]++}
+  X.ctx.worldNews=wn0;
   console.log('over 8 seeds (runs with something):',JSON.stringify(seen));
   ok(seen.war>=1&&seen.raided>=2&&seen.siege>=1,'wars, sieges and raids happen within 30 days');ok(seen.take>=1,'some town changes hands within 30 days on some seed');
   console.log(`day 30: ${JSON.stringify(goals)}, ${G.nests.length} nests (str ${G.nests.map(n=>n.str).join(', ')}), ${G.wars.length} wars, news: ${A.news.slice(-3).map(n=>n.t).join(' | ')}: ok`) }

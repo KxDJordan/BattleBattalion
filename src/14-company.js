@@ -16,11 +16,11 @@
    Known is there by day 5-8. Legendary (1000) is a late campaign: the crisis rifts, five-skull hunts and a dozen ambitions. */
 const RENOWN=[
  {n:'Unknown',  min:0,   diff:2,ft:'early',dw:[3,2,0,0,0],pay:1,   lv:[1,1],vet:0,  slots:1,rare:.35,d:'Nobody has heard of the banner yet.'},
- {n:'Known',    min:50,  diff:3,ft:'mid',  dw:[2,3,1,0,0],pay:1.1, lv:[2,3],vet:.15,slots:2,rare:.6, d:'Innkeepers know the name and boards post grave work.'},
- {n:'Respected',min:150, diff:3,ft:'mid',  dw:[1,3,2,0,0],pay:1.25,lv:[2,4],vet:.25,slots:2,rare:1,  d:'Captains ask for the company by name.'},
- {n:'Renowned', min:330, diff:4,ft:'late', dw:[0,2,3,1,0],pay:1.45,lv:[3,5],vet:.35,slots:3,rare:1.5,d:'Lords send for the company with deadly work.'},
- {n:'Famed',    min:600, diff:5,ft:'end',  dw:[0,1,3,2,1],pay:1.7, lv:[3,7],vet:.45,slots:4,rare:2.2,d:'Songs are sung of it in every tavern.'},
- {n:'Legendary',min:1000,diff:5,ft:'end',  dw:[0,1,2,3,2],pay:2,   lv:[4,9],vet:.55,slots:5,rare:3,  d:'A name that wins battles before they start.'}];
+ {n:'Known',    min:50,  diff:3,ft:'mid',  dw:[2,3,1,0,0],pay:1.1, lv:[2,3],vet:.3,slots:2,rare:.6, d:'Innkeepers know the name and boards post grave work.'},
+ {n:'Respected',min:150, diff:3,ft:'mid',  dw:[1,3,2,0,0],pay:1.25,lv:[3,5],vet:.4,slots:2,rare:1,  d:'Captains ask for the company by name.'},
+ {n:'Renowned', min:330, diff:4,ft:'late', dw:[0,2,3,1,0],pay:1.45,lv:[4,7],vet:.5,slots:3,rare:1.5,d:'Lords send for the company with deadly work.'},
+ {n:'Famed',    min:600, diff:5,ft:'end',  dw:[0,1,3,2,1],pay:1.7, lv:[5,9],vet:.55,slots:4,rare:2.2,d:'Songs are sung of it in every tavern.'},
+ {n:'Legendary',min:1000,diff:5,ft:'end',  dw:[0,1,2,3,2],pay:2,   lv:[6,10],vet:.65,slots:5,rare:3,  d:'A name that wins battles before they start.'}];
 const FT_RANK={early:0,mid:1,late:2,end:3};
 const DIFFN=['Light','Serious','Grave','Deadly','Dire'];
 function cmpG(g){return g||G}

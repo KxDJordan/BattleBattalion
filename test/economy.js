@@ -5,7 +5,8 @@
 //   in a town: turn in the contract (openTown does), rest at the inn when hurt, the temple for long wounds, tools and repairs, sell loot,
 //   level-ups (hp/skill/defence picks) and perks (autoLearn), hire to 12 while the purse allows (a reserve for a week of wages), buy gear
 //   upgrades for the swords who gain most (within its trees: same weapon kind, armor class it trains), food for ten days, take the
-//   best-paying contract whose fights are within its strength (contract mult <= the company's appetite, lower when hurt or thin);
+//   best-paying contract whose fights are within its strength (contract mult <= the company's appetite, lower when hurt or thin, and
+//   light jobs only while its best eight are green: a struck-down sword lives 30% of the time);
 //   on the road: fight what comes (the game's own encounters, sensible pilot), hunt weak bands near it when idle, camp when hurt far from
 //   town, drill in camp (campTrain) when it has the crowns; the Eastern War: picks the houses' side; the crisis: hunts its hosts and
 //   breaks its sieges near, and when the company is strong (or the doom is high) goes for the end: rifts (portal runs), the throne,
@@ -85,14 +86,14 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   if(g.note==='crisisNext'){g.note=null;did=true}
   if(X.sheetOpen){closeAll();did=true}return did};
  // the battle in progress, to its end (the AI on both sides: the company with the sensible pilot)
- const fight=async()=>{const b=X.B;b.opts.turnCap=TURNCAP;const n0=G().roster.length,ids=new Set(G().roster.map(m=>m.id)),hp0=hpFrac(),u0=b.units.filter(u=>u.side===0).length,e0=b.units.filter(u=>u.side===1).length;
+ const fight=async()=>{const b=X.B;b.opts.turnCap=TURNCAP;const armF=(()=>{let a=0,m=0;for(const u of b.units)if(u.side===0&&u.armMax){a+=u.arm;m+=u.armMax}return m?Math.round(100*a/m):100})(),lv0=(()=>{const P=b.units.filter(u=>u.side===0&&u.m);return P.length?(P.reduce((s,u)=>s+u.m.lvl,0)/P.length).toFixed(1):'-'})();const n0=G().roster.length,ids=new Set(G().roster.map(m=>m.id)),hp0=hpFrac(),u0=b.units.filter(u=>u.side===0).length,e0=b.units.filter(u=>u.side===1).length;
   const res=b.result||await new Promise(r=>{b.onEnd=r;b.auto=true});
   {const P=b.units.filter(u=>u.side===0&&u.m);st.ko=(st.ko||0)+P.filter(u=>!u.alive&&!u.gone).length;st.kod=(st.kod||0)+P.filter(u=>!u.alive&&!u.gone&&!u.down).length}
   st.battles++;if(res.win&&!res.stuck)st.won++;else st.lost++;st.rounds+=res.rounds||0;if(res.stuck)st.stuckN++;
   const out=X.afterBattle(res.win&&!res.stuck?1:0);await tick();
   const g=G();if(!g.roster.length||(out&&out.kind==='wiped')){st.wiped=g.day;return'wiped'}
   const now=new Set(g.roster.map(m=>m.id));for(const id of ids)if(!now.has(id))st.deaths++;
-  if(st.log.length<400)st.log.push(`d${g.day} ${b.opts.f}${b.opts.mult?'x'+(+b.opts.mult).toFixed(2):''} ${res.win?'W':'L'} r${res.rounds} -${n0-g.roster.length} (hp${Math.round(hp0*100)} ${u0}v${e0} dead${res.dead?res.dead.length:'?'} down${res.down?res.down.length:'?'})${b.opts.src&&b.opts.src.type?' '+b.opts.src.type+(b.opts.src.what?':'+b.opts.src.what:''):''}`);
+  if(st.log.length<4000)st.log.push(`d${g.day} ${b.opts.f}${b.opts.mult?'x'+(+b.opts.mult).toFixed(2):''} ${res.win?'W':'L'} r${res.rounds} -${n0-g.roster.length} (hp${Math.round(hp0*100)} arm${armF} L${lv0} ${u0}v${e0} dead${res.dead?res.dead.length:'?'} down${res.down?res.down.length:'?'})${b.opts.src&&b.opts.src.type?' '+b.opts.src.type+(b.opts.src.what?':'+b.opts.src.what:''):''}`);
   return out&&out.kind||'world'};
  // march to (x,y); fights on the way are fought; follow: re-aim at a moving party
  const march=async(x,y,dest,o)=>{o=o||{};if(!X.goTo(x,y,dest||null))return'nopath';let n=0,fights=0;
@@ -127,7 +128,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   return true};
  const levelUps=()=>{const g=G();for(let i=0;i<g.roster.length;i++){const m=g.roster[i];let n=0;
    while(m.pend>0&&n++<20){X.levelSheet(i);if(!m.rolls)break;const bow=X.calc(m).wpn&&['bow','crossbow','firearm','throw'].includes(X.calc(m).wpn.wt);X.lvSel=[];for(const k of bow?['hp','rs','rd']:['hp','ms','md'])X.lvPick(i,k);const p=m.pend;X.lvConfirm(i);if(m.pend===p)break}
-   if(m.pp>0)X.autoLearn(m)}closeAll();if(has('--dbg')){const p=g.roster.reduce((s,m)=>s+(m.pend|0),0),q=g.roster.reduce((s,m)=>s+(m.pp|0),0);if((p||q)&&st.log.length<400)st.log.push(`d${g.day} unspent: ${p} level-ups, ${q} perk points`)}};
+   if(m.pp>0)X.autoLearn(m)}closeAll();if(has('--dbg')){const p=g.roster.reduce((s,m)=>s+(m.pend|0),0),q=g.roster.reduce((s,m)=>s+(m.pp|0),0);if((p||q)&&st.log.length<4000)st.log.push(`d${g.day} unspent: ${p} level-ups, ${q} perk points`)}};
  const shop=(t)=>{const g=G();if(!t.stock)return;
   // sell the loot that nobody wears (keep a little: none) - trade goods too
   if(typeof X.sellTrade==='function')X.sellTrade();
@@ -161,19 +162,22 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   for(let k=0;k<40&&g.food<g.roster.length*10;k++){const f=g.food;if(g.crowns<X.mkFoodPrice()+50)break;X.buyFood();if(g.food<=f)break}
   closeAll()};
  // the company's appetite: the strongest contract fight (mult of an even fight) it will take
- const appetite=()=>{const g=G(),f=field().length,hp=hpFrac();let a=1.05;if(f<4)a=.5;else if(f<6)a=.9;if(hp<.75)a-=.2;if(meanLvl()>=6&&f>=9)a+=.12;if(g.diff==='hard'||g.diff==='brutal')a-=.05;return a};
+ const top8=()=>{const L=G().roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,8);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0};
+ // a struck-down sword lives only 30% of the time (DOWNCH): a green company takes the light jobs, a seasoned core the even ones
+ const appetite=()=>{const g=G(),f=field().length,hp=hpFrac();let a=top8()<3?.85:top8()>=6&&f>=9?1.05:.95;if(f<4)a=.5;else if(f<6)a=Math.min(a,.85);if(hp<.75)a-=.2;if(g.diff==='hard'||g.diff==='brutal')a-=.05;return a};
  const ctrMult=c=>{let mx=0;for(const s of c.stages||[])if(s.k==='go'&&s.fight)mx=Math.max(mx,X.ctrMult(c.diff,s.fight.k||1)*(s.fight.boss?1.2:1));return mx};
  const ctrLen=(c,t)=>{let d=0,p=t;for(const s of c.stages||[]){const q=s.k==='town'?g2().towns[s.ti]:s;if(q){d+=dist(p,q);p=q}}return d};
  const g2=()=>G();
  const pickContract=(i)=>{const g=G(),t=g.towns[i];if(g.contract||!t.contracts||X.twHostile(i))return false;const A=appetite();let bj=-1,bv=0;
   t.contracts.forEach((c,j)=>{if(c.rtook)return;const m=ctrMult(c);if(m>A)return;const L=ctrLen(c,t);if(c.due!=null&&c.due-g.day<L/10+1)return;const v=c.pay/(L/8+1+(m>0?1.5:0));if(v>bv){bv=v;bj=j}});
-  if(bj<0){if(st.log.length<400)st.log.push(`d${g.day} no contract at ${t.name} (A ${A.toFixed(2)}): `+t.contracts.map(c=>c.type+c.diff+'x'+ctrMult(c).toFixed(2)+'/'+c.pay).join(' '));return false}
-  const c=t.contracts[bj];X.acceptContract(bj);closeAll();if(st.log.length<400)st.log.push(`d${g.day} take ${c.type} d${c.diff} x${ctrMult(c).toFixed(2)} pay ${c.pay} (crowns ${g.crowns}, wages ${X.companyWages()}/day, men ${g.roster.length})`);return !!g.contract};
+  if(bj<0){if(st.log.length<4000)st.log.push(`d${g.day} no contract at ${t.name} (A ${A.toFixed(2)}): `+t.contracts.map(c=>c.type+c.diff+'x'+ctrMult(c).toFixed(2)+'/'+c.pay).join(' '));return false}
+  const c=t.contracts[bj];X.acceptContract(bj);closeAll();if(st.log.length<4000)st.log.push(`d${g.day} take ${c.type} d${c.diff} x${ctrMult(c).toFixed(2)} pay ${c.pay} (crowns ${g.crowns}, wages ${X.companyWages()}/day, men ${g.roster.length})`);return !!g.contract};
  const doContract=async()=>{const g=G();for(let guard=0;guard<10&&g.contract;guard++){const c=g.contract,s=X.ctrStage(c);if(!s)break;
    if(s.k==='town'){const r=await march(g.towns[s.ti].x,g.towns[s.ti].y,{type:'town',i:s.ti});if(r==='wiped')return'wiped';closeAll();X.openTown(s.ti);if(!g.contract)st.ctr++;closeAll();return s.ti}
    if(s.fight&&hpFrac()<.85){const r0=await restUp(.9,c.due!=null?Math.max(0,(c.due-g.day-dist(g.p,s)/8-1)*24):48);if(r0==='wiped')return'wiped'}
+   if(s.fight&&(hpFrac()<.6||field().length<3)){X.ctrAbandon();st.ctrFail++;if(st.log.length<4000)st.log.push(`d${g.day} abandon ${c.type}: too hurt (hp${Math.round(hpFrac()*100)})`);break}   // a sensible captain does not walk the wounded into a lair
    const st0=c.stage,r=await march(s.x,s.y,null);if(r==='wiped')return'wiped';if(r==='time')return'time';
-   if(g.contract===c&&c.stage===st0&&r!=='fought'){const tg=X.ctrTargetAt(g.p.x,g.p.y);if(tg){X.ctrArrive(g.p.x,g.p.y);if(X.mode==='battle'){const k=await fight();if(k==='wiped')return'wiped';await afterFight(k)}closeAll()}else{X.goTo(s.x,s.y,null)}}
+   if(g.contract===c&&c.stage===st0&&r!=='fought'&&r!=='lost'&&hpFrac()>=.6){const tg=X.ctrTargetAt(g.p.x,g.p.y);if(tg){X.ctrArrive(g.p.x,g.p.y);if(X.mode==='battle'){const k=await fight();if(k==='wiped')return'wiped';await afterFight(k)}closeAll()}else{X.goTo(s.x,s.y,null)}}
    if(g.contract===c&&c.failed){st.ctrFail++;break}}
   if(!g.contract)return null;if(g.contract.failed){g.contract=null;st.ctrFail++}return null};
  const nearestTown=(skipHeld)=>{const g=G();let b=0,bd=1e9;g.towns.forEach((t,i)=>{if(skipHeld&&X.crTownHeld&&X.crTownHeld(i))return;if(X.twHostile(i))return;const d=dist(t,g.p);if(d<bd){bd=d;b=i}});return b};
@@ -182,7 +186,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
  const huntBand=async(maxMult,maxD)=>{const g=G();const L=g.parties.filter(p=>!p.gone&&X.partyHostile(p)&&dist(p,g.p)<maxD&&(p.mult||1)<=maxMult&&!(p.cr&&p.siegeT!=null&&false)).sort((a,b)=>dist(a,g.p)-dist(b,g.p));
   if(!L.length)return false;const p=L[0];const b0=st.battles;const r=await march(p.x,p.y,null,{follow:p.id,maxD:maxD+4,stopOnFight:true});return r==='wiped'?'wiped':st.battles>b0};
  // rest on the spot (camp) until the company is whole again, at most h hours
- const restUp=async(to,h)=>{const g=G();let t=0;if(has('--dbg')&&st.log.length<400)st.log.push(`d${g.day} rest hp ${hpFrac().toFixed(2)} `+g.roster.map(m=>m.hp+'/'+X.calc(m).hp).join(' '));while(hpFrac()<to&&t<h){X.campRest(6);t+=6;st.campH=(st.campH||0)+6;closeAll();snap();if(sheets()&&X.mode==='battle'){const k=await fight();if(k==='wiped')return'wiped';await afterFight(k)}if(g.day>days)break}return'ok'};
+ const restUp=async(to,h)=>{const g=G();let t=0;if(has('--dbg')&&st.log.length<4000)st.log.push(`d${g.day} rest hp ${hpFrac().toFixed(2)} `+g.roster.map(m=>m.hp+'/'+X.calc(m).hp).join(' '));while(hpFrac()<to&&t<h){X.campRest(6);t+=6;st.campH=(st.campH||0)+6;closeAll();snap();if(sheets()&&X.mode==='battle'){const k=await fight();if(k==='wiped')return'wiped';await afterFight(k)}if(g.day>days)break}return'ok'};
  const topLvl=n=>{const L=G().roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,n);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0};
  const strong=()=>topLvl(8)>=7&&field().length>=9;
  // the crisis: hosts first, the end when ready
@@ -194,11 +198,11 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
    if(site&&(k!=='horde'||g.day>=(c.gather||0)+6||c.campSeen)){const r=await march(site.x,site.y,null);if(r==='wiped')return'wiped';closeAll();if(dist(g.p,site)<2.5&&hpFrac()>.85&&field().length>=8){st.finale.push('d'+g.day+' '+k);
      if(k==='deadmarch')X.crThroneFight();else X.crAssault(k);if(X.mode==='battle'){const k2=await fight();if(k2==='wiped')return'wiped';if(await afterFight(k2)==='wiped')return'wiped'}closeAll()}return true}}
   // hosts near (sieges first)
-  const H=g.parties.filter(p=>p.cr&&!p.gone&&X.partyHostile(p)&&dist(p,g.p)<22&&(p.mult||1)<=appetite()+.1).sort((a,b)=>(a.siegeT!=null?-10:0)+dist(a,g.p)-((b.siegeT!=null?-10:0)+dist(b,g.p)));
+  const H=g.parties.filter(p=>p.cr&&!p.gone&&X.partyHostile(p)&&dist(p,g.p)<22&&(p.mult||1)<=appetite()).sort((a,b)=>(a.siegeT!=null?-10:0)+dist(a,g.p)-((b.siegeT!=null?-10:0)+dist(b,g.p)));
   if(H.length&&hpFrac()>.7){const b0=st.battles;const r=await march(H[0].x,H[0].y,null,{follow:H[0].id,maxD:26,stopOnFight:true});if(r==='wiped')return'wiped';return st.battles>b0}
   return false};
  // the deploy screen's withdraw: a band the company did not choose to fight, met hurt, thin or outmatched, is declined (10% of the purse)
- {const eng=X.ctx.engage;X.ctx.engage=function(o){const s=o&&o.src||{};if(s.type==='party'&&(hpFrac()<.6||field().length<3||(o.mult||1)>appetite()+.15)){st.fled=(st.fled||0)+1;X.fleeEncounter(o);return null}return eng.apply(this,arguments)}}
+ {const eng=X.ctx.engage;X.ctx.engage=function(o){const s=o&&o.src||{};if(s.type==='party'&&(hpFrac()<.6||field().length<3||(o.mult||1)>appetite()+.05)){st.fled=(st.fled||0)+1;X.fleeEncounter(o);return null}return eng.apply(this,arguments)}}
  // the ledger: crowns in and out by kind (the game's own functions, wrapped)
  st.led={};for(const [fn,k] of [['newDay','wages'],['afterBattle','battle'],['ctrTurnIn','contracts'],['ctrAccept','contracts'],['buyItem','gear'],['hire','hire'],['buyFood','food'],['innRest','inn'],['sellItem','sales'],['sellTrade','sales'],['templeTreat','temple'],['buyTools','tools'],['campTrain','drill'],['fleeEncounter','withdraw'],['eventTick','events'],['evtPick','events']]){const f=X.ctx[fn];if(typeof f!=='function')continue;
   X.ctx[fn]=function(){const c0=G()?G().crowns:0;const r=f.apply(this,arguments);const g=G();if(g){const d=g.crowns-c0;if(d)st.led[k]=(st.led[k]||0)+d}return r}}

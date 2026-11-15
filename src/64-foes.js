@@ -53,7 +53,7 @@ function foeBleed(u,n){hurt(u,n,1,null,{pierce:1})}
      x = pm^(g(1+h log2 pm))  x  (budget / what MAXFOES average foes cost, if more than 1)^cap,   pm = budget per fielded merc / FOE_RANK.base,   [g, cap, h, base?] = FACT[f].rank (base: the faction's own FOE_RANK.base)
    and with it hp x^.hp, damage x^.dmg, armor x^.arm and .ms / .md points of skill / defense per doubling.
    A company's level, the days passed, the band's strength (mult) and BUDGETK all reach the foes this way. */
-function foeBudget(o){if(typeof battleBudget==='function')return battleBudget(o);let b=0;(typeof battleField==='function'?battleField(o):fielded()).forEach(m=>b+=12+m.lvl*5);return b*(o&&o.mult||1)*(1+G.day*.008)*BUDGETK}
+function foeBudget(o){if(typeof battleBudget==='function')return battleBudget(o);let b=0;(typeof battleField==='function'?battleField(o):fielded()).forEach(m=>b+=typeof mercBud==='function'?mercBud(m.lvl):12+m.lvl*5);return b*(o&&o.mult||1)*BUDGETK}
 function foeRank(f){const b=B;if(!b||!FACT[f])return 1;if(b.frank&&b.frank.f===f)return b.frank.x;
  const U=FACT[f].units;let avg=0;U.forEach(u=>avg+=u[1]);avg/=U.length;let bud=foeBudget(b.opts);
  for(const id of b.opts.fixed||[]){const e=U.find(u=>u[0]===id);bud-=e?e[1]:0}
