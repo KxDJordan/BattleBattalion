@@ -483,14 +483,16 @@ function drawBandPx(q,x,y,o){if(!waInit())return;o=o||{};const gl=o.goal;if(gl==
    Absent (old saves, no banner module): the brass and verdigris pennant as before. Recomputed only when the banner changes. */
 const WABN={sig:null,v:null};
 function waBannerOf(){const G0=typeof G!=='undefined'?G:null,b0=G0&&G0.banner;if(!b0||typeof BANNERC!=='object')return null;let b=b0;try{if(typeof bannerFix==='function')b=bannerFix(b0)}catch(e){}
- const sig=b.c1+'.'+b.c2+'.'+b.emblem;if(WABN.sig===sig)return WABN.v;const ramp=k=>{const c=BANNERC[k];return c&&Array.isArray(c.r)?c.r:PAL[k]?[k,k,k]:null},A=ramp(b.c1);
+ const sig=b.c1+'.'+b.c2+'.'+b.emblem+(b.div&&b.div!=='plain'?'.'+b.div+b.c3:'');if(WABN.sig===sig)return WABN.v;const ramp=k=>{const c=BANNERC[k];return c&&Array.isArray(c.r)?c.r:PAL[k]?[k,k,k]:null},A=ramp(b.c1);
  let v=null;if(A){const C=ramp(b.c2===b.c1?'l':b.c2)||['m','l','r'],E=typeof EMBLEMS==='object'&&EMBLEMS[b.emblem]?EMBLEMS[b.emblem].r:null;
   let em=null;if(E){const n=E.length,m=8,pick={'#':3,'+':2,'-':1,'=':2};em=[];for(let y=0;y<m;y++){let r='';for(let x=0;x<m;x++){let best='.',bw=0;for(let j=0;j<2;j++)for(let i=0;i<2;i++){const ch=(E[y*2+j]||'')[x*2+i]||'.',w=pick[ch]||0;if(w>bw){bw=w;best=ch}}r+=best}em.push(r)}}
-  v={A,C,em,sig}}WABN.sig=sig;WABN.v=v;return v}
+  v={A,C,em,sig,D:b.div&&b.div!=='plain'?ramp(b.c3):null,dv:b.div}}WABN.sig=sig;WABN.v=v;return v}
 function waBanner(P,x,y,bn,f){const W=14,H=10,A=bn.A,C=bn.C;
  for(let i=0;i<W;i++){const yo=((i+(f&3))>>2)&1,xx=x-1-i;for(let j=0;j<H;j++){if(i===W-1&&j>=3&&j<=H-4)continue;if(i>=W-2&&(j===H>>1))continue;
-   const bd=j===0||j===H-1||i===W-1||i===W-2&&(j<3||j>H-4);P.p(xx,y+j+yo,bd?(j===H-1||i>=W-2?C[0]:C[1]):(j===1?A[2]:j>=H-2?A[0]:A[1]))}}
+   const bd=j===0||j===H-1||i===W-1||i===W-2&&(j<3||j>H-4);const F=bn.D&&waBnDiv(bn,i,j,W,H)?bn.D:A;P.p(xx,y+j+yo,bd?(j===H-1||i>=W-2?C[0]:C[1]):(j===1?F[2]:j>=H-2?F[0]:F[1]))}}
  if(bn.em){const ox=x-1-3,oy=y+1;for(let j=0;j<8;j++)for(let i=0;i<8;i++){const ch=bn.em[j][i];if(ch==='.')continue;const fi=3+(7-i),yo=((fi+(f&3))>>2)&1;P.p(ox-(7-i),oy+j+yo,ch==='-'?C[0]:ch==='+'?C[2]:ch==='='?A[0]:C[1])}}}
+/* is flag cell (i from the pole, j down) in the banner's division (46-banner.js BNDIV)? A bordure is the ring inside the border */
+function waBnDiv(bn,i,j,W,H){if(bn.dv==='bordure')return i===1||i===W-3||j===1||j===H-2;return typeof bnDivAt==='function'&&bnDivAt(bn.dv,(i+.5)/W,(j+.5)/H)}
 function drawCompanyPx(q,x,y,o){if(!waInit())return;o=o||{};const n=Math.max(1,o.n|0),k=n<=3?1:n<=6?2:n<=9?3:4,fs=n<=5?2:n<=10?3:4,f=waRM()?0:o.frame|0,bn=waBannerOf(),s=waBandSprite('co',k,f,o.dir<0?-1:1,!!o.moving&&!waRM(),{k,fs,bn});
  waShadow(q,x,y,10+k*8,6);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}
 
@@ -549,10 +551,10 @@ function worldKeyColor(t,river,road){return road?(t===7?'n':t===6?'j':'m'):river
    All sprites are cached per variant (waSprite); nothing is allocated per frame. */
 const WABNS=new Map();
 function waBnOf(b0){if(!b0||typeof BANNERC!=='object')return null;let b=b0;try{if(typeof bannerFix==='function')b=bannerFix(b0)}catch(e){}
- const sig=b.c1+'.'+b.c2+'.'+b.emblem;let v=WABNS.get(sig);if(v!==undefined)return v;const ramp=k=>{const c=BANNERC[k];return c&&Array.isArray(c.r)?c.r:PAL[k]?[k,k,k]:null},A=ramp(b.c1);
+ const sig=b.c1+'.'+b.c2+'.'+b.emblem+(b.div&&b.div!=='plain'?'.'+b.div+b.c3:'');let v=WABNS.get(sig);if(v!==undefined)return v;const ramp=k=>{const c=BANNERC[k];return c&&Array.isArray(c.r)?c.r:PAL[k]?[k,k,k]:null},A=ramp(b.c1);
  v=null;if(A){const C=ramp(b.c2===b.c1?'l':b.c2)||['m','l','r'],E=typeof EMBLEMS==='object'&&EMBLEMS[b.emblem]?EMBLEMS[b.emblem].r:null;
   let em=null;if(E){const m=8,pick={'#':3,'+':2,'-':1,'=':2};em=[];for(let y=0;y<m;y++){let r='';for(let x=0;x<m;x++){let best='.',bw=0;for(let j=0;j<2;j++)for(let i=0;i<2;i++){const ch=(E[y*2+j]||'')[x*2+i]||'.',w=pick[ch]||0;if(w>bw){bw=w;best=ch}}r+=best}em.push(r)}}
-  v={A,C,em,sig}}if(WABNS.size>40)WABNS.clear();WABNS.set(sig,v);return v}
+  v={A,C,em,sig,D:b.div&&b.div!=='plain'?ramp(b.c3):null,dv:b.div}}if(WABNS.size>40)WABNS.clear();WABNS.set(sig,v);return v}
 /* a small pennant (w x h) in a banner's colours, swallowtail, waving with f; dir 1 flies right */
 function waPennant(P,x,y,w,h,bn,f,dir){const A=bn?bn.A:['f','g','h'],C=bn?bn.C:['m','l','r'];
  for(let i=0;i<w;i++){const yo=((i+(f&3))>>1)&1;for(let j=0;j<h;j++){if(i===w-1&&j===(h>>1)&&h>2)continue;const k=j===0?A[2]:j===h-1?A[0]:A[1];P.p(x+dir*(1+i),y+j+yo,k)}}

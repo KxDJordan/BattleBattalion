@@ -1,0 +1,6 @@
+/* banner pickers (46-banner.js bnPickHTML): divisions and shapes as small flags */
+.ncs-dvs{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:4px}
+#sheetBody .ncs-dv{min-height:54px;padding:2px 0}
+.ncs-dv .bnr{width:30px;height:40px;filter:drop-shadow(2px 2px 0 #0b151499)}
+.ncs-shs{grid-template-columns:repeat(4,minmax(46px,72px))}
+@media (max-height:440px){#sheetBody .ncs-dv{min-height:48px}.ncs-dv .bnr{width:27px;height:36px}}

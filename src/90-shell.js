@@ -243,7 +243,7 @@ function confirmNew(){const st=saveStatus(),nm=st.name?htmlEsc(st.name):'This co
    NCS holds the choices while the dialog is open. Cosmetic dice use Math.random (never the game stream). */
 const NCNAMES=['The Ashen Banner','The Grey Wolves','The Brass Lanterns','The Sundered Oath','Kestrel Company','The Black Hollow','The Last Pennant','Thornmarch Swords','The Hollow Crowns',
  'The Saltmarsh Irregulars','The Iron Ravens','The Lantern Guard','The Oathless','The Ninefold Shield','The Cinder Company','The Wayward Spears','The Stag Riders','The Long Road Company'];
-const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',origin:'free',diff:'normal',iron:false,tut:false,slot:0,open:false};
+const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',bn:{c1:'5',c2:'c',emblem:'swords',div:'plain',c3:'l',shape:'swallow'},origin:'free',diff:'normal',iron:false,tut:false,slot:0,open:false};
 /* origins (events agent's ORIGINS): icon, name, the story, and the one rule each, picked in the setup dialog */
 const NCORIC={slayer:'or-slayer',free:'or-free',deserters:'or-deserters',noble:'or-noble',academy:'or-academy',beast:'or-hunters',hunters:'or-hunters',pilgrims:'or-pilgrims'};
 function ncOrigins(){return typeof ORIGINS==='object'&&ORIGINS?Object.keys(ORIGINS):[]}
@@ -253,7 +253,7 @@ function ncOriginHTML(){const L=ncOrigins();if(!L.length)return'';const U=k=>typ
  <div class="ncs-ord">${pnIcon(ncOrIcon(NCS.origin),'',32)}<div><b>${htmlEsc(O.n)}</b><p>${htmlEsc(O.d||'')}</p>${O.rule?`<p class="ncs-rule"><i>Rule</i>${htmlEsc(O.rule)}</p>`:''}${typeof O.crowns==='number'?`<p class="ncs-orf">${pnIcon('coin','',16)}${O.crowns} crowns${Array.isArray(O.roster)?` · ${O.roster.length} swords`:''}</p>`:''}</div></div>`}
 function ncRand(a){return a[Math.floor(Math.random()*a.length)]}
 function newCompanySetup(){let st=saveStatus();if(st.state!=='none'){const f=slotFree();if(f<0){if(st.state==='newer'||st.state==='corrupt'){saveNotice(st);return}ncFull();return}slotUse(f);st=saveStatus()}
- NCS.slot=SLOT;NCS.name=ncRand(NCNAMES);NCS.wsize='small';NCS.origin='free';NCS.diff='normal';NCS.shape='continent';NCS.biomes='temperate';NCS.iron=false;NCS.mods='random';NCS.modPick=[];NCS.tut=typeof tutWanted==='function'?tutWanted():false;const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.open=true;
+ NCS.slot=SLOT;NCS.name=ncRand(NCNAMES);NCS.wsize='small';NCS.origin='free';NCS.diff='normal';NCS.shape='continent';NCS.biomes='temperate';NCS.iron=false;NCS.mods='random';NCS.modPick=[];NCS.tut=typeof tutWanted==='function'?tutWanted():false;const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.bn={c1:d.c1,c2:d.c2,emblem:d.emblem,div:'plain',c3:typeof bnC3==='function'?bnC3(d.c1,d.c2):'l',shape:'swallow'};NCS.open=true;
  sheet(`<div class="row sp seth ncs-h"><h2>Raise a company</h2><button onclick="ncCancel()">Back</button></div>
 <div class="ncs"><div class="ncs-l"><div class="ncs-flag" id="ncsFlag"></div>
  <label class="ncs-nl" for="ncsName">Company name</label><div class="ncs-name"><input id="ncsName" type="text" maxlength="${NAMEMAX}" autocomplete="off" spellcheck="false" value="${htmlEsc(NCS.name)}" oninput="ncName(this.value)" onkeydown="if(event.key==='Enter'){this.blur()}"><button class="pxb sm icon" aria-label="Suggest a name" title="Suggest a name" onclick="ncDice()">${pnIcon('dice','',16)}</button></div>
@@ -269,18 +269,17 @@ function ncCancel(){NCS.open=false;if(mode==='title')closeSheet(true);else menuS
 function ncName(v){NCS.name=String(v||'').slice(0,NAMEMAX);ncFlag()}
 function ncDice(){let n=NCS.name;for(let i=0;i<6&&n===NCS.name;i++)n=ncRand(NCNAMES);NCS.name=n;const e=$('ncsName');if(e)e.value=n;ncFlag()}
 function ncSet(k,v){if(k==='c1'&&v===NCS.c2)NCS.c2=NCS.c1;else if(k==='c2'&&v===NCS.c1)NCS.c1=NCS.c2;NCS[k]=v;ncDraw()}
-function ncShuffle(){const ks=Object.keys(BANNERC);NCS.c1=ncRand(ks);do{NCS.c2=ncRand(ks)}while(NCS.c2===NCS.c1);NCS.emblem=ncRand(Object.keys(EMBLEMS));ncDraw()}
-function ncFlag(){const f=$('ncsFlag');if(!f)return;const b={name:NCS.name,c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem};
- f.innerHTML=`${bannerHTML(b,128,'ncs-big')}<div class="ncs-cap"><b>${htmlEsc(cleanName(NCS.name))}</b><small>${BANNERC[NCS.c2].n} ${EMBLEMS[NCS.emblem].n.toLowerCase()} on ${BANNERC[NCS.c1].n.toLowerCase()}</small></div>`;
+/* the banner choices (NCS.bn: its own object, as NCS.shape is the map's shape) */
+function ncBn(k,v){const B=NCS.bn;if(/^c[123]$/.test(k))bnSetCol(B,k,v);else if(k==='emblem'&&EMBLEMS[v]||k==='div'&&BNDIV[v]||k==='shape'&&BNSHAPE[v])B[k]=v;NCS.c1=B.c1;NCS.c2=B.c2;NCS.emblem=B.emblem;ncDraw()}
+function ncShuffle(){const B=NCS.bn;bnRoll(B);NCS.c1=B.c1;NCS.c2=B.c2;NCS.emblem=B.emblem;ncDraw()}
+function ncFlag(){const f=$('ncsFlag');if(!f)return;const b=Object.assign({},NCS.bn,{name:NCS.name});
+ f.innerHTML=`${bannerHTML(b,128,'ncs-big')}<div class="ncs-cap"><b>${htmlEsc(cleanName(NCS.name))}</b><small>${htmlEsc(bnBlazon(b))}</small></div>`;
  const g=$('ncsGoSub');if(g)g.textContent=`${typeof ORIGINS==='object'&&ORIGINS&&ORIGINS[NCS.origin]&&NCS.origin!=='free'?ORIGINS[NCS.origin].n+', ':''}${WORLDSZ[NCS.wsize].name}${NCS.shape&&NCS.shape!=='continent'&&typeof MAPSHAPES==='object'&&MAPSHAPES[NCS.shape]?' '+MAPSHAPES[NCS.shape].n.toLowerCase():NCS.shape==='random'?' random':''} world${NCS.biomes&&NCS.biomes!=='temperate'&&typeof MAPBIOMES==='object'&&MAPBIOMES[NCS.biomes]?', '+MAPBIOMES[NCS.biomes].n.toLowerCase():''} · ${DIFF[NCS.diff].n}${NCS.mods==='none'?' · no twists':NCS.mods==='pick'&&NCS.modPick&&NCS.modPick.length?' · '+NCS.modPick.length+' twist'+(NCS.modPick.length>1?'s':''):''}${NCS.iron?' · Ironman':''} · book ${NCS.slot+1}`}
 function ncDraw(){const o=$('ncsOpts');if(!o)return;const st=o.scrollTop;
- const sw=(k,c)=>`<button class="ncs-sw${NCS[k]===c?' on':''}" role="radio" aria-checked="${NCS[k]===c}" title="${BANNERC[c].n}" aria-label="${BANNERC[c].n}" onclick="ncSet('${k}','${c}')"><i style="background:linear-gradient(180deg,${PAL[BANNERC[c].r[2]]} 0 25%,${PAL[BANNERC[c].r[1]]} 25% 75%,${PAL[BANNERC[c].r[0]]} 75%)"></i></button>`;
  o.innerHTML=ncOriginHTML()+ncDiffHTML()+(typeof ncShapeHTML==='function'?ncShapeHTML():'')+(typeof ncModsHTML==='function'?ncModsHTML():'')+`<div class="ncs-sec"><b>Land</b><small>${WORLDSZ[NCS.wsize].note}</small></div><div class="ncs-sizes" role="radiogroup" aria-label="World size">${Object.keys(WORLDSZ).map(k=>{const z=WORLDSZ[k];return`<button class="ncs-size${NCS.wsize===k?' on':''}" role="radio" aria-checked="${NCS.wsize===k}" onclick="ncSet('wsize','${k}')"><b>${z.name}</b><small>${z.n}×${z.n} · ${z.towns} towns</small></button>`}).join('')}</div>
- <div class="ncs-sec"><b>Field</b><small>${BANNERC[NCS.c1].n}</small><button class="pxb sm ncs-rnd" onclick="ncShuffle()" title="Roll a banner">${pnIcon('dice','',16)}<span>Roll</span></button></div><div class="ncs-sws" role="radiogroup" aria-label="Field colour">${Object.keys(BANNERC).map(c=>sw('c1',c)).join('')}</div>
- <div class="ncs-sec"><b>Charge</b><small>${BANNERC[NCS.c2].n}: the border and the emblem</small></div><div class="ncs-sws" role="radiogroup" aria-label="Charge colour">${Object.keys(BANNERC).map(c=>sw('c2',c)).join('')}</div>
- <div class="ncs-sec"><b>Emblem</b><small>${EMBLEMS[NCS.emblem].n}</small></div><div class="ncs-ems" role="radiogroup" aria-label="Emblem">${Object.keys(EMBLEMS).map(e=>`<button class="ncs-em${NCS.emblem===e?' on':''}" role="radio" aria-checked="${NCS.emblem===e}" title="${EMBLEMS[e].n}" aria-label="${EMBLEMS[e].n}" onclick="ncSet('emblem','${e}')">${emblemHTML(e,NCS.c2,NCS.c1,32)}</button>`).join('')}</div>`;
+ ${bnPickHTML(NCS.bn,'ncBn','ncShuffle')}`;
  o.scrollTop=st;ncFlag()}
-function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:{c1:NCS.c1,c2:NCS.c2,emblem:NCS.emblem},origin:NCS.origin,diff:NCS.diff,shape:NCS.shape,biomes:NCS.biomes,ironman:NCS.iron,tutorial:NCS.tut,slot:NCS.slot,mods:typeof ncModsOpt==='function'?ncModsOpt():undefined})}
+function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:Object.assign({},NCS.bn),origin:NCS.origin,diff:NCS.diff,shape:NCS.shape,biomes:NCS.biomes,ironman:NCS.iron,tutorial:NCS.tut,slot:NCS.slot,mods:typeof ncModsOpt==='function'?ncModsOpt():undefined})}
 
 /* ---- how to play, credits ---- */
 function howSheet(){const r=(ic,svg,t,d)=>`<div class="how-r">${ic==='map'?'<i class="pxi pxi-map s32" aria-hidden="true"></i>':pic(ic,32,svg)}<div><b>${t}</b><p>${d}</p></div></div>`;
