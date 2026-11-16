@@ -150,13 +150,13 @@ function eliteFcHTML(u,t,a,f){if(!t||!t.elite||!a||a.noDmg)return'';let h='';con
  if(f&&f.kill){if(eliteHas(t,'volatile'))h+=sd('el-volatile','#ff8a3c','Volatile: it explodes when it dies, '+eliteBoomDmg(t)+' to everyone beside it',eliteBoomDmg(t));
   if(eliteHas(t,'splitting'))h+=sd('el-splitting','#9bd96f','Splitting: two lesser copies rise when it dies')}
  return h}
-/* the mark over the unit: a small gold-rimmed badge left of its bars (painted at device pixels on Detail High; a 7x7 pixel diamond on Low) */
-const EL_MARK=['...0...','..0d0..','.0dcb0.','0dcgcb0','.0bcb0.','..0b0..','...0...'],EL_MARK2=['...0...','..0d0..','.0dee0.','0deced0','.0ded0.','..0d0..','...0...'];
+/* the mark over the unit: a small gold-rimmed badge left of its bars (painted at device pixels on Detail High, about 5 art px; a 5x5 pixel diamond on Low) */
+const EL_MARK=['..0..','.0g0.','0ghg0','.0g0.','..0..'],EL_MARK2=['..0..','.0d0.','0ded0','.0d0.','..0..'];
 let EL_MC=null,EL_MC2=null;
-function eliteMark(q,u,x0,top,bh,o){const two=u.elite.length>1,cy=top+(bh>>1)-1,cx=x0-5;
- if(typeof hdArt==='function'&&hdArt()&&typeof pkCanvas==='function'){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(9,Math.min(Math.round(9*sy),Math.round(18*(typeof dpr==='number'?dpr:1)))),c=pkCanvas(two?'el-mark2':'el-mark',N);
+function eliteMark(q,u,x0,top,bh,o){const two=u.elite.length>1,hd=typeof hdArt==='function'&&hdArt(),cy=hd?top+bh-1.6:top+(bh>>1)-1,cx=hd?x0-2.5:x0-4;   // Detail High: beside the slim hitpoint bar
+ if(typeof hdArt==='function'&&hdArt()&&typeof pkCanvas==='function'){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(6,Math.min(Math.round(5*sy),Math.round(10*(typeof dpr==='number'?dpr:1)))),c=pkCanvas(two?'el-mark2':'el-mark',N);
   if(c){q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;q.drawImage(c,Math.round(T.a*cx+T.c*cy+T.e-N/2),Math.round(T.b*cx+T.d*cy+T.f-N/2));q.restore();return}}
- const c=two?EL_MC2||(EL_MC2=px(EL_MARK2)):EL_MC||(EL_MC=px(EL_MARK));if(c)q.drawImage(c,Math.round(cx-3),Math.round(cy-3))}
+ const c=two?EL_MC2||(EL_MC2=px(EL_MARK2)):EL_MC||(EL_MC=px(EL_MARK));if(c)q.drawImage(c,Math.round(cx-2),Math.round(cy-2))}
 /* ---- icons: 16 px pixel fallbacks (Detail Low) and paintings (Detail High) ---- */
 const EL_PX={
  'el-mark':['................','................','................','.......00.......','......0dd0......','.....0dccb0.....','....0dcggcb0....','...0dcgghgcb0...','...0bcggggcb0...','....0bcggcb0....','.....0bccb0.....','......0bb0......','.......00.......','................','................','................'],
