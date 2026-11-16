@@ -211,10 +211,10 @@ function fogLoad(str){if(!W)return false;const N=WN*WN;W.seen.fill(0);W.fogKey=-
 
 /* ---- weather ---- */
 function weatherBiome(){const t=G&&W?tileAt(G.p.x,G.p.y):1;return WTHRBIO[BIOKEY[t]]?BIOKEY[t]:'plains'}
-function rollWeather(){const tab=WTHRBIO[weatherBiome()];let tot=0;for(const e of tab)tot+=e[1];let v=rnd()*tot,kind=tab[0][0];for(const e of tab){if(v<e[1]){kind=e[0];break}v-=e[1]}
+function rollWeather(){const tab=typeof runModWeather==='function'?runModWeather(weatherBiome()):WTHRBIO[weatherBiome()];let tot=0;for(const e of tab)tot+=e[1];let v=rnd()*tot,kind=tab[0][0];for(const e of tab){if(v<e[1]){kind=e[0];break}v-=e[1]}
  G.weather={kind,t:0,dur:Math.round((kind==='clear'?8+rnd()*14:3+rnd()*9)*10)/10}}
 function stepWeather(h){const w=G.weather;if(!w||!WTHR[w.kind]||!svFin(w.t)||!svFin(w.dur)){rollWeather();return}w.t+=h;
- if(w.t>=w.dur||!WTHRBIO[weatherBiome()].some(e=>e[0]===w.kind))rollWeather()}      // the hours run out, or the company walked into a land where this weather does not happen
+ if(w.t>=w.dur||!(typeof runModWeather==='function'?runModWeather(weatherBiome()):WTHRBIO[weatherBiome()]).some(e=>e[0]===w.kind))rollWeather()}      // the hours run out, or the company walked into a land where this weather does not happen
 
 /* ---- bands, days, the crisis ---- */
 function patrolPts(x,y){const bio=tileAt(x,y),pts=[{x:Math.round(x),y:Math.round(y)}];let last=pts[0];
@@ -244,6 +244,7 @@ function factionPool(ctx){ctx=ctx||{};const power=ctx.power!=null?ctx.power:comp
  for(const f in FACT){const F=FACT[f],tier=F.tier||'early';if(F.house)continue;if(tier==='crisis'){if((ctx.crisis!=null?ctx.crisis:G&&G.crisis)&&crFactLive(f))out.push({f,w:F.crisis==='sunder'?.5:.3,minD:0,startD:0,tier,biomes:null});continue}
   const S=Object.assign({},SPAWNT[tier]||SPAWNT.early,F.spawn||{});if(prog<S.gate)continue;const t=S.gate<1?(prog-S.gate)/(1-S.gate):1;
   const minD=Math.round(S.d0+(S.d1-S.d0)*t);out.push({f,w:Math.round((S.w0+(S.w1-S.w0)*t)*1000)/1000,minD,dmin:Math.max(4,minD),dmax:Math.max(4,minD)+(tier==='end'?8:6),startD:tier==='early'?0:Math.max(0,Math.round(16*(1-prog/.6))),tier,biomes:tier==='early'?null:F.biomes||null})}
+ if(typeof runModPool==='function')runModPool(out);   // the run's twists (27-runmods.js)
  return out}
 // a crisis faction roams as plain bands only while its crisis is under way (or scarred the land); riftspawn: the Sundering
 function crFactLive(f){const k=FACT[f]&&FACT[f].crisis||'sunder',c=G&&G.crisis;if(!c)return false;if((c.k||'sunder')!==k)return Array.isArray(G.crScar)&&G.crScar.some(s=>s.k===k);return !c.ended||(c.lost&&!c.won)||k==='sunder'}
@@ -276,11 +277,11 @@ function spawnParty(f){let pos=null;
  if(!f&&G.crisis&&(G.crisis.k||'sunder')==='sunder'&&rnd()<2/7)f='void';
  if(!f){const r=rollFaction({x:G.p.x,y:G.p.y,minT:9,maxT:26,crisis:false});if(r){f=r.f;pos={x:r.x,y:r.y}}}
  if(!f)f=pick(['gob','bandit','beast','undead']);if(!pos)pos=randOk(G.p.x,G.p.y,9,26);
- const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5,goal:'roam'};setPatrol(p);G.parties.push(p);return p}
+ const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5,goal:'roam'};if(typeof runModF==='function')p.mult*=runModF('mult',f,1);setPatrol(p);G.parties.push(p);return p}
 // Wages: wageOf(m) (14-company.js: background, traits, paymaster). Rations: one a sword a day, 0.8 with the quartermaster (G.foodAcc keeps the fraction).
 function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();let wage=0;if(typeof companyWages==='function')wage=companyWages();else G.roster.forEach(m=>wage+=BG[m.bg].wage);G.crowns-=wage;let msg=`Day ${G.day}: paid ${wage} crowns in wages`;
  if(G.crowns<0){G.crowns=0;if(G.roster.length>1&&rnd()<.35){const m=G.roster.splice(ri(0,G.roster.length-1),1)[0];msg=`Day ${G.day}: unpaid, ${m.name} deserted`}else msg=`Day ${G.day}: you cannot pay the men`}
- {const qm=typeof followerHas==='function'&&followerHas('quarter');if(qm){const e=G.roster.length*.8+(G.foodAcc||0),n=Math.floor(e+1e-9);G.foodAcc=Math.max(0,e-n);G.food-=n}else G.food-=G.roster.length}if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
+ {const qm=typeof followerHas==='function'&&followerHas('quarter'),rk=typeof runModK==='function'?runModK('ration',1):1;if(qm||rk!==1){const e=G.roster.length*(qm?.8:1)*rk+(G.foodAcc||0),n=Math.floor(e+1e-9);G.foodAcc=Math.max(0,e-n);G.food-=n}else G.food-=G.roster.length}if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
  const news=worldDay();                                                     // the living world: parties with goals, nests, towns, wars (below)
  wsKeepBands();                                                             // the land near the company stays as busy as ever
  if(news.length)msg+='. '+news[0];toast(msg);if(typeof ambTick==='function')ambTick()}
@@ -351,7 +352,7 @@ function wsSpawnCaravan(a,b){const A=G.towns[a],r=wsRoute(a,b);if(!A||!r)return 
 function wsSpawnPatrol(h,hunt){const L=houseTowns(h.id);if(!L.length)return null;let a=h.seat,b=L[ri(0,L.length-1)];if(hunt){a=L.reduce((m,i)=>Math.hypot(G.towns[i].x-G.p.x,G.towns[i].y-G.p.y)<Math.hypot(G.towns[m].x-G.p.x,G.towns[m].y-G.p.y)?i:m,L[0])}
  if(G.towns[a].own!==h.id)a=L[0];const A=G.towns[a],r=!hunt&&a!==b?wsRoute(a,b):null;
  return wsAdd({x:A.x,y:A.y+(okAt(A.x,A.y+TS)?TS:0),f:h.id,goal:'patrol',from:a,to:hunt?undefined:b,hunt:hunt?1:undefined,legs:0,mult:Math.round((hunt?.8:.8+(HPERS[h.pers].patrols?.15:0))*100+rnd()*30)/100,pts:r?wsCopy(r):[{x:Math.round(A.x),y:Math.round(A.y+(okAt(A.x,A.y+TS)?TS:0))}]})}   // a house of one town (or a hunt) has no road to walk: it keeps a one-point patrol
-function wsSpawnRaid(f,x,y,to,mult,home){const T0=G.towns[to];if(!T0)return null;const r=wsPathTo(x,y,T0.x,T0.y);if(!r)return null;return wsAdd({x,y,f,goal:'raid',to,mult:mult||.8,home:home!=null?home:null,pts:r})}
+function wsSpawnRaid(f,x,y,to,mult,home){const T0=G.towns[to];if(!T0)return null;if(typeof runModF==='function')mult=(mult||.8)*runModF('mult',f,1);const r=wsPathTo(x,y,T0.x,T0.y);if(!r)return null;return wsAdd({x,y,f,goal:'raid',to,mult:mult||.8,home:home!=null?home:null,pts:r})}
 /* ---- arrival at the end of a route; returns true when the party leaves the map ---- */
 function wsArrive(p){if(p.cr&&typeof crArrive==='function'&&crArrive(p))return !!p.gone;const T0=G.towns[p.to];
  if(p.goal==='caravan'){if(T0)T0.pros=clamp(svNum(T0.pros,50)+3,0,100);const A=G.towns[p.from];if(A)A.pros=clamp(svNum(A.pros,50)+1,0,100);if(p.esc&&typeof cvEscArrive==='function')cvEscArrive(p);p.gone=1;return true}
@@ -374,21 +375,21 @@ function nestClear(id,out){const n=G.nests&&G.nests.find(q=>q.id===id);if(!n)ret
  if(out&&d)out.rep.push({f:own,n:d});G.renown+=Math.round(4+n.str*4);worldNews(`A ${FACT[n.f].n.toLowerCase()} nest near ${G.towns[ti].name} was cleared`);return true}
 function wsNestSpot(){const F=worldFields();if(!F)return null;for(let a=0;a<80;a++){const x=ri(3,WN-4),y=ri(3,WN-4),i=y*WN+x;if(!W.ok[i]||F.td[i]<6)continue;const px=(x+.5)*TS,py=(y+.5)*TS;
   if(G.nests.some(q=>Math.hypot(q.x-px,q.y-py)<9*TS)||Math.hypot(px-G.p.x,py-G.p.y)<8*TS)continue;return{x:px,y:py}}return null}
-function wsNests(news){const day=G.day,fs=['gob','bandit','beast'];if(day>=12)fs.push('orc','undead');
+function wsNests(news){const day=G.day,fs=['gob','bandit','beast'];if(day>=12)fs.push('orc','undead');if(typeof runModNestFs==='function')runModNestFs(fs);
  for(const n of G.nests){n.str=Math.round(Math.min(WSIM.nestMax,n.str+WSIM.nestGrow+day*.0012)*100)/100;n.n=svNum(n.n,0)+1;
   let bands=0;for(const p of G.parties)if(p.home===n.id)bands++;
   if(bands<1+Math.floor(n.str)&&n.n>=Math.max(2,Math.round(7-n.str*1.5))){n.n=0;const mult=Math.round((.55+n.str*.22)*100)/100;
    if(n.str>=2&&rnd()<.55){const ti=nearestTown(n.x,n.y);const p=wsSpawnRaid(n.f,n.x,n.y,ti,mult,n.id);if(p&&Math.hypot(n.x-G.p.x,n.y-G.p.y)<WSIM.live*TS*1.5)news.push(`${FACT[n.f].n} march out of their nest toward ${G.towns[ti].name}`)}
    else{const pos=randOk(n.x,n.y,1,3),p=wsAdd({x:pos.x,y:pos.y,f:n.f,goal:'nest',home:n.id,mult});setPatrol(p)}}}
- const maxN=Math.round(2+WN/32);if(G.nests.length<maxN&&rnd()<.16){const pos=wsNestSpot();if(pos){const f=pick(fs);G.nests.push({id:G.nid++,x:pos.x,y:pos.y,f,str:1,day,n:0})}}}
+ const maxN=Math.round(2+WN/32);if(G.nests.length<maxN&&rnd()<.16*(typeof runModK==='function'?runModK('nests',1):1)){const pos=wsNestSpot();if(pos){const f=pick(fs);G.nests.push({id:G.nid++,x:pos.x,y:pos.y,f,str:1,day,n:0})}}}
 
 /* ---- towns: situations, prosperity ---- */
 function wsTowns(news){G.towns.forEach((t,i)=>{const keep=[],ended=[];for(const s of t.sit){s.days--;(s.days>0?keep:ended).push(s)}t.sit=keep;
   for(const s of ended)if(s.k==='siege'){const r=wsSiegeEnd(i,s);if(r)news.push(r)}wsTownsTail(t,i)});
  G.towns.forEach((t,i)=>{if(t.sit.length>=2)return;const p=svNum(t.pros,50),has=k=>t.sit.some(s=>s.k===k),roll=rnd();let k=null;
-  {let acc=0;for(const [kk,w] of [['famine',.012+(p<35?.02:0)],['festival',p>=45?.02:0],['plague',.008],['boom',p>=55?.012+(p>70?.03:0):0]]){acc+=w;if(roll<acc){k=kk;break}}}if(k==='famine'&&has('boom'))k=null;
+  {let acc=0;for(const [kk,w] of [['famine',.012+(p<35?.02:0)],['festival',p>=45?.02:0],['plague',.008],['boom',p>=55?.012+(p>70?.03:0):0]]){acc+=typeof runModK==='function'?w*runModK('sit_'+kk,1):w;if(roll<acc){k=kk;break}}}if(k==='famine'&&has('boom'))k=null;
   if(k&&!has(k)&&!has('siege')){townSitAdd(i,k,ri(SITS[k].dur[0],SITS[k].dur[1]));const l=worldNews(`${SITS[k].n} in ${t.name}`);if(seenAt(Math.floor(t.x/TS),Math.floor(t.y/TS)))news.push(l)}})}
-function wsTownsTail(t,i){let d=0;for(const s of t.sit)if(SITS[s.k])d+=SITS[s.k].pros;const base=38+t.size*10;d+=(base-svNum(t.pros,50))*.04;t.pros=Math.round(clamp(svNum(t.pros,50)+d,0,100)*10)/10}
+function wsTownsTail(t,i){let d=0;for(const s of t.sit)if(SITS[s.k])d+=SITS[s.k].pros;const base=38+t.size*10+(typeof runModK==='function'?runModK('pros',0):0);d+=(base-svNum(t.pros,50))*.04;t.pros=Math.round(clamp(svNum(t.pros,50)+d,0,100)*10)/10}
 /* a siege runs its course: the besieger may take the town (stronger houses, smaller towns, a poor or starving town fall easier) */
 function wsSiegeEnd(i,s){if(s&&s.by==='east')return null;const t=G.towns[i],a=s.by,h=houseById(a);G.parties=G.parties.filter(p=>p.siege!==i);if(!h||t.own===a)return null;
  const def=t.own,atk=houseTowns(a).length*.8+2+rnd()*5,dfn=(isHouse(def)?houseTowns(def).length*.5:1)+t.size+rnd()*4+svNum(t.pros,50)/50;
@@ -401,10 +402,10 @@ function townSiegeEnd(i,how){const s=townSit(i,'siege');if(!s)return false;townS
 /* ---- houses: relations, wars, patrols ---- */
 function wsHouses(news){const H=G.houses;
  for(let a=0;a<H.length;a++)for(let b=a+1;b<H.length;b++){const A=H[a],B1=H[b],k=hrKey(A.id,B1.id),war=atWar(A.id,B1.id),wa=HPERS[A.pers].war+HPERS[B1.pers].war;let v=svNum(G.hrel[k],0);
-  v+=(rnd()-.5)*10-v*.02-wa*1.1+(war?2.6:0);v=Math.round(clamp(v,-100,100)*10)/10;G.hrel[k]=v;
+  v+=(rnd()-.5)*10-v*.02-wa*1.1+(war?2.6:0)-(typeof runModK==='function'?runModK('feud',0):0);v=Math.round(clamp(v,-100,100)*10)/10;G.hrel[k]=v;
   if(!war&&v<=WSIM.warAt){G.wars.push({a:A.id,b:B1.id,day:G.day});news.unshift(worldNews(`${A.n} and ${B1.n} are at war`))}
-  else if(war){const w=G.wars.find(x=>hrKey(x.a,x.b)===k);if(G.day-w.day>=8&&v>=WSIM.peaceAt&&rnd()<.3){G.wars=G.wars.filter(x=>x!==w);G.hrel[k]=Math.max(v,0);news.unshift(worldNews(`${A.n} and ${B1.n} make peace`))}
-   else for(const [x,y] of [[A,B1],[B1,A]])if(rnd()<.22)wsBesiege(x,y.id,news)}}
+  else if(war){const w=G.wars.find(x=>hrKey(x.a,x.b)===k);if(G.day-w.day>=8&&v>=WSIM.peaceAt&&rnd()<.3*(typeof runModK==='function'?runModK('peace',1):1)){G.wars=G.wars.filter(x=>x!==w);G.hrel[k]=Math.max(v,0);news.unshift(worldNews(`${A.n} and ${B1.n} make peace`))}
+   else for(const [x,y] of [[A,B1],[B1,A]])if(rnd()<.22*(typeof runModK==='function'?runModK('siege',1):1))wsBesiege(x,y.id,news)}}
  // warlike and greedy houses sometimes march on a free town nearby
  for(const h of H){const P=HPERS[h.pers];if(G.day>=6&&rnd()<(P.patrols||P.gold?.035:.015))wsBesiege(h,'free',news)}
  // patrols: one or two a house; a house hostile to the company sends riders after it
@@ -418,12 +419,12 @@ function wsBesiege(h,enemy,news){const L=G.towns.map((t,i)=>i).filter(i=>G.towns
  news.unshift(worldNews(`${h.n} besieges ${t.name}`))}
 
 /* ---- trade: caravans between towns that are open to each other ---- */
-function wsTrade(){let n=0;for(const p of G.parties)if(p.goal==='caravan')n++;const want=Math.max(2,Math.round(G.towns.length/3));
+function wsTrade(){let n=0;for(const p of G.parties)if(p.goal==='caravan')n++;const want=Math.max(2,Math.round(G.towns.length/3*(typeof runModK==='function'?runModK('caravans',1):1)));
  for(let k=0;k<2&&n<want;k++){const a=ri(0,G.towns.length-1),A=G.towns[a];if(townSit(a,'siege')||townSit(a,'famine'))continue;
   const L=G.towns.map((t,i)=>i).filter(i=>i!==a&&!townSit(i,'siege')&&houseRelation(A.own,G.towns[i].own)!=='war');if(!L.length)continue;
   L.sort((x,y)=>Math.hypot(G.towns[x].x-A.x,G.towns[x].y-A.y)-Math.hypot(G.towns[y].x-A.x,G.towns[y].y-A.y));const b=L[ri(0,Math.min(3,L.length-1))];if(wsSpawnCaravan(a,b))n++}}
 // a brigand or orc warband out of the wilds raids a town now and then
-function wsRaiders(news){if(rnd()>=.1)return;const ti=ri(0,G.towns.length-1),t=G.towns[ti],f=G.day>=14&&rnd()<.35?'orc':'bandit',pos=randOk(t.x,t.y,8,13);
+function wsRaiders(news){if(rnd()>=.1*(typeof runModK==='function'?runModK('raids',1):1))return;const ti=ri(0,G.towns.length-1),t=G.towns[ti],f=G.day>=14&&rnd()<.35?'orc':'bandit',pos=randOk(t.x,t.y,8,13);
  if(wsSpawnRaid(f,pos.x,pos.y,ti,Math.round((.7+rnd()*.4)*100)/100)&&seenAt(Math.floor(t.x/TS),Math.floor(t.y/TS)))news.push(`${FACT[f].n} are seen on the road to ${t.name}`)}
 
 /* worldDay(): one day of the world, once per G.day (newDay calls it). Returns headline lines for the day's toast. */
@@ -488,7 +489,7 @@ function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNot
  // cut corners only where the straight line is no slower than the planned way (so the company keeps to roads and bridges)
  {let ms=speedAt(p.x,p.y)||.5;const n=Math.min(G.path.length-1,6),mins=[];for(let i=0;i<=n;i++){ms=Math.min(ms,speedAt(G.path[i].x,G.path[i].y)||.5);mins.push(ms)}
   for(let i=n;i>0;i--)if(lineClear(p.x,p.y,G.path[i].x,G.path[i].y,mins[i])){G.path.splice(0,i);tgt=G.path[0];break}}
- const sp=WCO*(speedAt(p.x,p.y)||.5)*weatherFx().spd*(roadAt(p.x,p.y)&&typeof followerHas==='function'&&followerHas('carto')?1.15:1)*dt,dx=tgt.x-p.x,dy=tgt.y-p.y,d=Math.hypot(dx,dy);
+ const sp=WCO*(speedAt(p.x,p.y)||.5)*weatherFx().spd*(typeof runModK==='function'?runModK('march',1):1)*(roadAt(p.x,p.y)&&typeof followerHas==='function'&&followerHas('carto')?1.15:1)*dt,dx=tgt.x-p.x,dy=tgt.y-p.y,d=Math.hypot(dx,dy);
  if(d<=sp){p.x=tgt.x;p.y=tgt.y;G.path.shift();
   if(!G.path.length){if(G.route&&G.route.length>1){G.route.shift();const w=G.route[0];if(!goTo(w.x,w.y,w.dest,true))G.moving=false}else{G.route=[];G.moving=false}}}
  else{p.x+=dx/d*sp;p.y+=dy/d*sp}
@@ -514,7 +515,7 @@ function renderWorldImg(){if(typeof document==='undefined'||!W||typeof worldArtS
  W.img=cv}
 
 /* Every battle the player walks into goes through engage(): a pre-battle screen may take over when deployBattle() exists. */
-function engage(o){return typeof deployBattle==='function'?deployBattle(o):startBattle(o)}
+function engage(o){if(typeof runModBattle==='function')runModBattle(o);return typeof deployBattle==='function'?deployBattle(o):startBattle(o)}
 
 /* ================= CARAVAN CARGO (world agent) =================
    p.cargo = {good, crowns, items:[itemIds], food, tools, salves, parts:{partKey:n}, trade:[{id, n, v}]} rolled from GOODS[good].cargo when
@@ -534,6 +535,7 @@ function cargoRoll(good,r,day){r=r||rnd;const key=GOODS[good]?good:'ale',C=GOODS
  if(C.parts)for(const k in C.parts){if(typeof PARTS!=='undefined'&&!PARTS[k])continue;const n=cgRange(C.parts[k],r);if(n>0)o.parts[k]=n}
  if(C.items){const maxT=clamp((typeof marketTier==='function'?marketTier(2,d):2)+(C.items.tier||0),1,5),pool=cgPool(C.items,maxT),n=cgRange(C.items.n||[1,1],r);for(let i=0;i<n&&pool.length;i++)o.items.push(pool[Math.floor(r()*pool.length)])}
  if(C.trade)for(const [id,a,b] of C.trade){if(!ITEMS[id])continue;const n=cgRange([a,b],r);for(let i=0;i<n;i++)o.trade.push({id,n:ITEMS[id].n,v:ITEMS[id].price})}
+ if(typeof runModK==='function'){const ck=runModK('cargo',1);if(ck!==1)o.crowns=Math.round(o.crowns*ck/10)*10}
  return o}
 function cargoFix(c,id,seed){if(!svObj(c))return null;const good=GOODS[c.good]?c.good:'ale',crowns=Math.max(0,Math.round(svNum(c.crowns,0)));
  if(!('items' in c)&&!('trade' in c)&&!('food' in c)){const o=cargoRoll(good,mulberry((((seed|0)^0x6ca7)+Math.imul(svNum(id,0)|0,2654435761))>>>0),1);o.crowns=crowns;return o}   // a cargo saved before v11: filled from its good
@@ -610,7 +612,7 @@ function rvColours(g){const used=new Set((g.houses||[]).map(h=>h.c1).concat((g.r
 function rvNameFree(g){const have=new Set((g.rivals||[]).map(r=>r.short));const L=RVNAMES.filter(n=>!have.has(n[0]));return L.length?pick(L):[pick(RVNAMES)[0]+' '+ri(2,9),'swords']}
 function rvHome(g){const used=new Set((g.rivals||[]).filter(r=>r.alive).map(r=>r.home)),L=g.towns.map((t,i)=>i).filter(i=>i>0&&!used.has(i));return L.length?pick(L):ri(0,g.towns.length-1)}
 // rivalsInit(g): 2 rival companies in the small world, 3 in larger ones, from the seed alone. Fills only when g.rivals is missing.
-function rivalsInit(g){g=g||G;if(!g||!Array.isArray(g.towns)||g.towns.length<2||Array.isArray(g.rivals))return g;const n=WN<=64?2:3,day=Math.max(1,Math.floor(svNum(g.day,1)));
+function rivalsInit(g){g=g||G;if(!g||!Array.isArray(g.towns)||g.towns.length<2||Array.isArray(g.rivals))return g;const n=(WN<=64?2:3)+(typeof runModK==='function'&&g===G?runModK('rivals',0):0),day=Math.max(1,Math.floor(svNum(g.day,1)));
  {let nid=Math.floor(svNum(g.nid,1));const see=x=>{if(svObj(x)&&svFin(x.id)&&x.id>=nid)nid=Math.floor(x.id)+1};(g.roster||[]).forEach(see);(g.parties||[]).forEach(see);(g.towns||[]).forEach(t=>(t.recruits||[]).forEach(see));g.nid=nid}
  g.rivals=[];g.rvn=0;
  rvWith(g,((g.seed|0)^0x2a17c0de)>>>0,()=>{const pers=shuffle(Object.keys(RVPERS));
@@ -706,7 +708,7 @@ function rvDay(news){if(!Array.isArray(G.rivals))return;const pc=G.contract;
   const r=pick(L);if(r.ctr&&r.ctr.race!=null&&G.contract&&G.contract.id===r.ctr.race)delete G.contract.rival;r.ctr=null;r.hired={by:h.id,until:G.day+ri(8,14)};r.crowns+=250;rvDeed(r,`Took ${h.n}'s coin to hunt ${G.name||'the company'}`);
   const t=`${h.n} pays ${r.n} to hunt the company`;news.unshift(worldNews(t));const p=rivalParty(r);if(p)rvPlan(r,p)}
  // new companies form when the land has room for them
- const n=rivalAlive().length,mx=WN<=64?RV.max-1:RV.max;if(n<mx&&G.towns.length>2&&rnd()<(n<RV.min?RV.form*2.5:RV.form*.5))rvForm(news)}
+ const n=rivalAlive().length,rk=typeof runModK==='function',mx=(WN<=64?RV.max-1:RV.max)+(rk?runModK('rivals',0):0);if(n<mx&&G.towns.length>2&&rnd()<(n<RV.min?RV.form*2.5:RV.form*.5)*(rk?runModK('rvForm',1):1))rvForm(news)}
 
 /* ---- meeting a rival on the road: rivalParley(p) -> {r, title, text, opts:[{k, n, d, cost, ok, why?}]}; rivalParleyDo(p, k) -> {text, fight?}
    k: 'news' trade news (their work, the nearest nest shown on the map; +2 standing, once a day), 'hire' one of their swords for a fee,

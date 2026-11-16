@@ -106,7 +106,7 @@ function crisisDay(news){if(!G)return;news=news||[];crisisInit(G);const c=G.cris
 function crisisEnd(won){const c=G.crisis;if(!c)return;const C=CRISES[c.k];const late=!!c.lost&&won;
  c.ended=true;c.fin=1;if(won){c.won=true;c.late=late;c.wonDay=G.day}else{c.lost=true;c.lostDay=G.day}
  try{won?C.onWin(G,late):C.onLose(G)}catch(e){if(typeof console!=='undefined')console.warn('crisis end failed',e)}
- if(won){const rk=late?.5:1,rn=Math.round(CRK.renown*rk),cr=Math.round(CRK.crowns*rk*(typeof diffK==='function'?crDiff('pay'):1));G.renown+=rn;G.crowns+=cr;c.reward={renown:rn,crowns:cr,item:CRTROPHY[c.k],title:late?null:CRTITLE[c.k]};
+ if(won){const rk=(late?.5:1)*(typeof runModK==='function'?runModK('crisisPay',1):1),rn=Math.round(CRK.renown*rk),cr=Math.round(CRK.crowns*rk*(typeof diffK==='function'?crDiff('pay'):1));G.renown+=rn;G.crowns+=cr;c.reward={renown:rn,crowns:cr,item:CRTROPHY[c.k],title:late?null:CRTITLE[c.k]};
   if(ITEMS[CRTROPHY[c.k]])G.stash.push(CRTROPHY[c.k]);if(!late){if(!Array.isArray(G.titles))G.titles=[];if(!G.titles.includes(CRTITLE[c.k]))G.titles.push(CRTITLE[c.k])}
   if(Array.isArray(G.houses))for(const h of G.houses)if(typeof repGain==='function')repGain(h.id,late?6:12,'Ended '+C.n);
   if(typeof repGain==='function')repGain('free',late?6:12,'Ended '+C.n);

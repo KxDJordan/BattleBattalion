@@ -233,7 +233,7 @@ function fabledEarnOf(id,E){const F=FABLED[id];if(!E)return{ok:false,p:0,goal:1,
  return{ok:false,p:0,goal:1,text:''}}
 function fabledEarn(id){const F=FABLED[id];if(!F)return{ok:false,p:0,goal:1,text:''};return fabledEarnOf(id,F.where.includes('recruit')?F.earn:null)}
 function fabledWage(id){const F=FABLED[id];return F?Math.round((BG[F.bg]?BG[F.bg].wage:20)*2.5+20):0}
-function fabledCost(id){const F=FABLED[id];return F?Math.round((F.cost||3000)*(typeof followerHas==='function'&&followerHas('recruiter')?.85:1)/10)*10:0}
+function fabledCost(id){const F=FABLED[id];return F?Math.round((F.cost||3000)*(typeof followerHas==='function'&&followerHas('recruiter')?.85:1)*(typeof runModK==='function'?runModK('fabled',1):1)/10)*10:0}
 // {ok, why}: can the company take this fabled warrior on now (the earn condition, the purse, room, solo runs: never)
 /* FABLED_HIRE (owner's rule): fabled warriors are never for hire. They are met only as foes, rival champions and bosses; no tavern
    page, no recruit or duel offer. fabledCan is always false, fabledOffers empty, fabledDuelCan closed. A fabled who joined in an older save stays. */

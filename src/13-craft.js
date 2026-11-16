@@ -56,7 +56,7 @@ function partFoes(src){let L=null;if(Array.isArray(src))L=src;else if(src&&typeo
 /* partsDrop(result): the parts stripped from a won battle's dead foes -> [{key, n}] in PARTS order (empty for a loss or a flight).
    result: the battle result (resolveBattle), an array of enemy units / EN ids, or nothing (reads B). Uses the game RNG. */
 function partsDrop(result){if(result&&typeof result==='object'&&!Array.isArray(result)&&(result.win===false||result.fled))return[];
- const got={},K=typeof originK==='function'?originK('parts'):1;   // the Beast hunters origin: every chance x1.5 (17-events.js)
+ const got={},K=(typeof originK==='function'?originK('parts'):1)*(typeof runModK==='function'?runModK('parts',1):1);   // the Beast hunters origin: every chance x1.5 (17-events.js)
  for(const u of partFoes(result)){const k=partEnKey(u),T=k&&PARTDROP[k];if(!T)continue;
   for(const [p,ch] of T){if(!PARTS[p])continue;const c=ch*K;let n=Math.floor(c);const fr=c-n;if(fr>1e-9&&rnd()<fr)n++;if(n>0)got[p]=(got[p]||0)+n}}
  return PARTORDER.filter(p=>got[p]).map(p=>({key:p,n:got[p]}))}
