@@ -717,7 +717,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    { let n=0;for(const bg in X.BG)for(let v=0;v<3;v++){const m=X.newMerc(bg);X.gainXP(m,X.XPT[[3,8,15][v]]);const got=X.autoLearn(m);n++;
       ok(m.pp===0&&got.length===m.lvl&&m.perks.length===m.lvl&&m.perks.every(id=>{const P=X.perkById(id);return m.lvl>=X.tierLevel(P.kind,P.tier)}),'autoLearn must spend every point on open perks: '+bg);
       if(m.gift)ok(X.giftAwake(m)&&m.perks[0].startsWith(m.gift),'autoLearn must awaken the gift first: '+bg);
-      const w=X.ITEMS[m.eq.w];for(const id of m.perks){const a=X.AB[X.perkById(id).perk.ab];if(a&&a.needs&&a.needs!==(w?w.wt:'fist'))ok(m.eq.b&&X.ITEMS[m.eq.b].wt===a.needs||m.lvl>=12,'autoLearn took '+id+' with the wrong weapon: '+bg)}
+      const w=X.ITEMS[m.eq.w];for(const id of m.perks){const a=X.AB[X.perkById(id).perk.ab];if(a&&a.needs&&!X.needsOK(a,w?w.wt:'fist'))ok(m.eq.b&&X.needsOK(a,X.ITEMS[m.eq.b].wt)||m.lvl>=12,'autoLearn took '+id+' with the wrong weapon: '+bg)}
       if(bg==='hunter')ok(m.perks.every(id=>!(X.perkById(id).perk.mod||{}).shieldDef),'a hunter must not learn shield perks')}
      ok(n===Object.keys(X.BG).length*3&&n>=90,'autoLearn fixture') }
    // -- equipment rules (hands) --

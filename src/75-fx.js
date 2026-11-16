@@ -669,7 +669,7 @@ const FX_ID={aarrow:'aarrow',carrow:'carrow',sunarrow:'sunarrow',pvolley:'pvolle
  flurry:'multi',hundred:'multi',earthsplit:'quake',staffquake:'quake',palm:'palm',shatter:'palm',overload:'overload',dragon:'dragon',runeedge:'runeedge',blinkstrike:'blinkstr',
  manashield:'manashield',starfall:'starfall',avatar:'avatar',rage:'rage',decap:'decap',kick:'kick',lotus:'lotus',surge:'surge',secwind:'secwind',
  bandage:'bandage',triage:'bandage',tumble:'tumble',vanish:'vanish',bastion:'bastion',phalanx:'phalanx',parry:'parry',masterstroke:'master',whirl:'round',cleave:'round'};
-const FX_BOWAB=ab=>ab.needs==='bow'||(ab.wpn&&B&&B.cur&&B.cur.wpn&&B.cur.wpn.wt==='bow');
+const FX_BOWAB=ab=>ab.needs==='bow'||(Array.isArray(ab.needs)&&ab.needs.includes('bow'))||(ab.wpn&&B&&B.cur&&B.cur.wpn&&B.cur.wpn.wt==='bow');
 const FX_HINT2={swap:()=>'swapk',volley:()=>'volley',leap:()=>'tumble',multi:()=>'multi',quake:()=>'quake',heal:ab=>ab.party?'lotus':'bandage',mark:()=>'mark',rage:()=>'rage',
  pierce:ab=>FX_BOWAB(ab)?'pshot':'stab',storm:ab=>FX_BOWAB(ab)?'tarrow':'overload',aura:ab=>ab.tgt==='self'?'avatar':FX_BOWAB(ab)?'aarrow':null,flame:ab=>FX_BOWAB(ab)?'farrow':null,
  frost:ab=>FX_BOWAB(ab)?'iarrow':null,chi:ab=>ab.tgt==='self'?'breath':FX_BOWAB(ab)?'spirit':'palm',arcane:ab=>ab.tgt==='self'?'manashield':ab.magic?'starfall':FX_BOWAB(ab)?'seeker':ab.dash?'blinkstr':'runeedge'};

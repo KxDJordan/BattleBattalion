@@ -37,7 +37,7 @@ function shRangedW(w){return!!w&&(!!SH_RW[w.wt]||!!w.ranged)}
 function shBowAb(u,a){if(!a||a.magic)return false;try{if(typeof isRangedAtk==='function')return!!isRangedAtk(u,a)}catch(e){}return a.needs==='bow'||(!!a.wpn&&!!u.wpn&&shRangedW(u.wpn))}
 function shLockedNow(u){if(!u||!u.alive||!B)return false;try{if(typeof rangedLocked==='function')return!!rangedLocked(u)}catch(e){}
  return B.units.some(e=>e.alive&&e.side!==u.side&&!e.gone&&mdist(e,u)===1&&e.mor!==0&&!(e.st&&e.st.stun))}
-function shLocked(u,a){if(!u)return false;if(a){if(!shBowAb(u,a)||a.noBow||(a.needs&&u.wpn&&u.wpn.wt!==a.needs&&a.needs!=='ranged'))return false}else if(!shRangedW(u.wpn))return false;return shLockedNow(u)}
+function shLocked(u,a){if(!u)return false;if(a){if(!shBowAb(u,a)||a.noBow||(a.needs&&u.wpn&&a.needs!=='ranged'&&!needsOK(a,u.wpn.wt)))return false}else if(!shRangedW(u.wpn))return false;return shLockedNow(u)}
 const SH_LOCKTXT='Ranged lock: an enemy is adjacent';
 /* reload weapons (crossbow, flintlock): u.loaded for the weapon in hand, u.ld[weapon id] for the one stowed. null: no reload needed */
 function shReloadW(w){return!!(w&&w.reload)}
@@ -61,7 +61,7 @@ function shWhyNot(u,a){if(!u||!a)return'';try{if(canUse(u,a)&&!shLocked(u,a))ret
  try{if(typeof useBlock==='function'){const r=useBlock(u,a);if(r)return r}}catch(e){}
  if(u.ap<a.ap)return'Needs '+a.ap+' AP ('+u.ap+' left)';if(u.fat+(a.fat||0)>u.fatMax)return'Too tired: '+(u.fatMax-u.fat)+' stamina left';
  if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Needs '+a.cost[1]+' '+(RESN[a.cost[0]]||a.cost[0]);
- if(a.needs&&u.wpn&&u.wpn.wt!==a.needs)return'Needs a '+a.needs+' in hand';if(a.two&&!(u.wpn&&u.wpn.two))return'Needs a two-handed weapon in hand';
+ if(a.needs&&u.wpn&&!needsOK(a,u.wpn.wt))return'Needs a '+needsN(a)+' in hand';if(a.two&&!(u.wpn&&u.wpn.two))return'Needs a two-handed weapon in hand';
  if(a.shield)return shSlung(u)?'Shield slung: a two-handed weapon is in hand':'No intact shield';
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.withdraw)return'Only from your own edge of the field';return'Not usable now'}
 function endTurn(){if(B&&!B.busy&&!B.over&&B.cur.side===0&&!B.cur.ally)nextTurn()}
