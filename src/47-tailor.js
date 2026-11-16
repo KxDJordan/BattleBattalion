@@ -32,7 +32,7 @@ function tlrDraft(m){if(TLR.id!==m.id||!TLR.draft){TLR.id=m.id;TLR.draft=Object.
 function tailorPick(part,k){const {m}=tlrMerc();if(!m)return;const d=tlrDraft(m);if(k)d[part]=k;else delete d[part];renderTown(townNote)}
 function tailorReset(){const {m}=tlrMerc();if(!m)return;TLR.draft=Object.assign({},mercColors(m));renderTown(townNote)}
 function tailorBanner(){const {m}=tlrMerc();if(!m)return;const b=typeof bannerFix==='function'?bannerFix(G.banner):{c1:'5',c2:'c'},d=tlrDraft(m);
- d.cloth=BANNERDYE[b.c1]||d.cloth;d.accent=BANNERDYE[b.c2]||d.accent;renderTown(townNote)}
+ d.cloth=BANNERDYE[b.c1]||(BANNERC[b.c1]&&BANNERC[b.c1].dye)||d.cloth;d.accent=BANNERDYE[b.c2]||(BANNERC[b.c2]&&BANNERC[b.c2].dye)||d.accent;renderTown(townNote)}
 function tlrSet(m,d){const c=colorsFix(d);if(c)m.colors=c;else delete m.colors}
 function tailorApply(){const {m}=tlrMerc();if(!m)return false;const d=tlrDraft(m),c=tailorCost(m,d);if(!c&&JSON.stringify(colorsFix(d))===JSON.stringify(colorsFix(m.colors)))return false;
  if(G.crowns<c){toast('Not enough crowns');return false}G.crowns-=c;tlrSet(m,d);TLR.draft=Object.assign({},mercColors(m));tlrRefresh();toast(`${m.name} is fitted out${c?' for '+c+' crowns':''}`);renderTown(townNote);if(typeof save==='function')save();return true}
