@@ -60,7 +60,10 @@ function battle(o,win){const b=X.startBattle(Object.assign({},o,{quiet:true}));o
  const res=X.resolveBattle(win);const out=X.settleBattle(win);return{b,res,out}}
 // walks c through every stage (fights won); returns the town where it is turned in
 function complete(G,c){c.twist=null;ok(X.ctrAccept(c)&&G.contract===c,'accept '+c.type);let g=0;
- while(!X.ctrDone(c)&&g++<12){const s=X.ctrStage(c);ok(s.k==='go','a go stage before the turn-in');G.p.x=s.x;G.p.y=s.y;const tg=X.ctrTargetAt(s.x,s.y);ok(tg&&tg.c===c,'ctrTargetAt finds the '+c.type+' target');
+ while(!X.ctrDone(c)&&g++<12){const s=X.ctrStage(c);ok(s.k==='go','a go stage before the turn-in');
+  if(s.kind==='escort'){const C=X.escParty(c);ok(C&&C.ctr===c.id,'a live escort has its caravan on the road');ok(X.ctrTargetAt(s.x,s.y)===null,'an escort is not walked to');G.p.x=s.x;G.p.y=s.y;   // test/escort.js covers the march
+   ok(X.ctrMarks(c).some(m=>m.x===s.x&&m.y===s.y),'ctrMarks shows the destination');X.wsArrive(C);G.parties=G.parties.filter(p=>!p.gone);continue}
+  G.p.x=s.x;G.p.y=s.y;const tg=X.ctrTargetAt(s.x,s.y);ok(tg&&tg.c===c,'ctrTargetAt finds the '+c.type+' target');
   ok(X.ctrMarks(c).some(m=>m.x===s.x&&m.y===s.y),'ctrMarks shows the stage');ok(typeof X.ctrStatus(c)==='string'&&X.ctrStatus(c).length>3,'ctrStatus');
   if(s.fight){const o=X.ctrBattle(c);ok(o&&o.src.type==='lair'&&o.f===s.fight.f&&o.mult>0,'ctrBattle options');const r=battle(o,true);ok(r.res.win,'won');ok(typeof r.out.toast==='string','a toast line')}
   else{ok(X.ctrArrive(s.x,s.y),'ctrArrive steps a waypoint');ok(!G.moving,'the march stops')}}
@@ -183,6 +186,6 @@ section('battle objectives');
      X.townPriceK=(i,k)=>k==='buy'?1.5:k==='sell'?.5:k==='food'?2:1;ok(X.mkBuyPrice(id)===Math.round(p*1.5)&&X.mkFoodPrice()===60,'prices follow townPriceK');const cr=G.crowns;X.buyItem(0);ok(G.crowns===cr-Math.round(p*1.5),'buyItem charges the town price');
      X.townHostile=()=>true;const c1=G.crowns;ok(X.buyItem(0)===false&&X.buyFood()===false&&G.crowns===c1,'a hostile town will not trade');X.stockTown(t);ok(t.contracts.length===0,'nor post work');
      X.townPriceK=K0;X.townHostile=H0;X.stockTown(t);ok(t.contracts.length>=1,'board restored');
-     t.sit=[{k:'raided',days:3}];let def=0,base=0;for(let i=0;i<300;i++){if(X.genContract2(t,0).type==='defend')def++}t.sit=[];for(let i=0;i<300;i++){if(X.genContract2(t,0).type==='defend')base++}ok(def>base,'a raided town asks for defenders: '+def+' vs '+base);
+     t.sit=[{k:'raided',days:3}];let def=0,base=0;for(let i=0;i<1500;i++){if(X.genContract2(t,0).type==='defend')def++}t.sit=[];for(let i=0;i<1500;i++){if(X.genContract2(t,0).type==='defend')base++}ok(def>base,'a raided town asks for defenders: '+def+' vs '+base);
      console.log('prices, closed markets and boards, situations shaping the board ('+def+' vs '+base+' defend notices): ok') }
    console.log('\ncontracts test passed')})().catch(e=>fail(e&&e.stack||e)) }

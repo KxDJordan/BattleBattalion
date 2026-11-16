@@ -143,7 +143,7 @@ function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
  {const e=$('hCo'),k=G.name+'|'+JSON.stringify(G.banner);if(e&&k!==_hudCo&&typeof bannerHTML==='function'){_hudCo=k;e.innerHTML=bannerHTML(G.banner,24,'hbn')+`<b>${htmlEsc(companyName())}</b>`;e.title=companyName()}}
  hudCompany();
  if(cb){const c=G.contract;cb.classList.toggle('has',!!c);cb.classList.toggle('done',!!(c&&(c.done||c.type==='deliver')))}
- hudRace(cb);
+ hudRace(cb);hudEscort();
  const zb=$('wbZoom');if(zb)zb.classList.toggle('on',G.zoom!==1&&G.zoom!=null);
  if(typeof drawMinimap!=='function'&&W&&W.img){const m=$('mini');if(!m)return;const x=m.getContext('2d'),k=m.width/WS;x.imageSmoothingEnabled=true;x.drawImage(W.img,0,0,m.width,m.height);
   x.fillStyle='#101d1c';for(const t of G.towns||[])x.fillRect(t.x*k-4,t.y*k-4,8,8);x.fillStyle='#e9e0c9';for(const t of G.towns||[])x.fillRect(t.x*k-2.5,t.y*k-2.5,5,5);
@@ -190,6 +190,14 @@ function chromeTick(){if(typeof AUDIO!=='undefined')try{AUDIO.tick()}catch(e){}i
  if(typeof tutTick==='function')tutTick();
  if(CP.el&&!CP.el.hidden){if(mode!=='world'||sheetOpen)costPopClose(false);else costPopRender(false)}}
 
+/* ---- a live escort (42-caravans.js): one line under the HUD, "Escorting the caravan to X — N leagues left" (tap: the contract) ---- */
+let _hudEsc='';
+function hudEscort(){const c=typeof escCtr==='function'?escCtr():null;let e=$('escLine');const on=!!c&&mode==='world'&&!sheetOpen;
+ if(!on){if(e&&!e.hidden){e.hidden=true;_hudEsc=''}return}
+ if(!e){e=document.createElement('button');e.type='button';e.id='escLine';e.className='esc-line';e.onclick=()=>contractSheet();const app=$('app');if(!app)return;app.appendChild(e)}
+ const st=typeof ctrStatus==='function'?ctrStatus(c):'',k=st+'|'+(G.moving?1:0);if(k===_hudEsc&&!e.hidden)return;_hudEsc=k;e.hidden=false;
+ const i=st.lastIndexOf(', by day '),line=i>0?st.slice(0,i):st;
+ e.innerHTML=`${typeof pic==='function'?pic('goal-caravan',16):''}<span>${htmlEsc(line)}</span>${G.moving?'':'<small>Halted: tap the map to march on</small>'}`}
 /* ---- a rival racing the company for its contract's target (16-contracts.js ctrRace): the Contract button wears their pennant and says so ---- */
 let _hudRace='';
 function hudRace(cb){if(!cb)return;let R=null;if(G.contract&&typeof ctrRace==='function'){try{R=ctrRace(G.contract)}catch(e){R=null}}const k=R?R.r.id+'|'+R.text:'';if(k===_hudRace)return;_hudRace=k;

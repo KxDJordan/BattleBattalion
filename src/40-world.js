@@ -370,6 +370,8 @@ function wsReroad(p){p.rd=1;const T0=G.towns[p.to];if(!T0)return false;const goa
 // a road party far from the company: tiles walked along its points (it stays on the road)
 function wsWalk(p,tiles){let left=tiles*TS;while(left>0&&p.pi<p.pts.length){const q=p.pts[p.pi],d=Math.hypot(q.x-p.x,q.y-p.y);if(d<=left){left-=d;p.x=q.x;p.y=q.y;p.pi++;continue}p.x+=(q.x-p.x)/d*left;p.y+=(q.y-p.y)/d*left;left=0}
  if(p.pi>=p.pts.length){wsArrive(p);return}const q=p.pts[p.pi];p.tx=q.x;p.ty=q.y}
+// any other route (raiders, rival companies): findPath, thinned to a point every 3 tiles
+function wsThin(path){const out=[];for(let i=2;i<path.length-1;i+=3)out.push({x:Math.round(path[i].x),y:Math.round(path[i].y)});if(path.length){const e=path[path.length-1];out.push({x:Math.round(e.x),y:Math.round(e.y)})}return out}
 function wsPathTo(x,y,tx,ty){const P=findPath(Math.floor(x/TS),Math.floor(y/TS),Math.floor(tx/TS),Math.floor(ty/TS));return P&&P.length?wsThin(P):null}
 function wsAdd(o){const p=Object.assign({id:G.nid++,tx:o.x,ty:o.y,pi:0,ch:0},o);if(Array.isArray(p.pts)&&p.pts.length){p.tx=p.pts[0].x;p.ty=p.pts[0].y}G.parties.push(p);return p}
 function wsCopy(r){return r?r.map(q=>({x:q.x,y:q.y})):null}
@@ -506,6 +508,7 @@ function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.li
   if(hostile&&G.grace<=0&&(dp<(p.ch?sight*1.35:sight)||p.hunt)&&!(esc&&escSpare(p,esc))){if(esc&&!p.ch)escRaidNote(p,esc);p.ch=1;tx=G.p.x;ty=G.p.y}   // escorting: only bands a match for the whole escort come (escSpare)
   else if(p.siege||p.siegeT!=null){p.ch=0;tx=p.tx;ty=p.ty}   // a besieging host (a house's, or a crisis host: p.siegeT) stays in its lines
   else if(p.goal==='merc'&&(p.idle||!route)){p.ch=0;continue}   // a rival company between plans stands where it is
+  else if(p.ambE&&!route){p.ch=0;continue}   // a band lying in wait for an escort (42-caravans.js escAmbush) holds its ground
   else if(route){p.ch=0;const q=p.pts[Math.min(p.pi,p.pts.length-1)];if(Math.hypot(q.x-p.x,q.y-p.y)<5){p.pi++;if(p.pi>=p.pts.length){if(wsArrive(p))gone=1;continue}}const q2=p.pts[p.pi];tx=p.tx=q2.x;ty=p.ty=q2.y}
   else{if(p.ch||!Array.isArray(p.pts)||!p.pts.length){p.ch=0;setPatrol(p)}
    else if(Math.hypot(p.tx-p.x,p.ty-p.y)<5){p.pi=(p.pi+1)%p.pts.length;const q=p.pts[p.pi];if(p.pts.length<2||!lineClear(p.x,p.y,q.x,q.y))setPatrol(p);else{p.tx=q.x;p.ty=q.y}}

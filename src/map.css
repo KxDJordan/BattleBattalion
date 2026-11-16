@@ -64,3 +64,11 @@
  #mp .mp-card{font-size:.8rem;padding:3px 7px 4px}
  #mp .mp-foot #mpMarch{min-height:40px}
 }
+
+/* a live escort's line under the HUD (90-shell.js hudEscort) */
+.esc-line{position:absolute;z-index:4;top:calc(42px + var(--sat,0px));left:calc((100% - var(--wrw,0px) - var(--sar,0px)) / 2);transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;
+ border:6px solid #0b1514;background-color:#0b1514;background-clip:padding-box;border-image:var(--pxtip) 18 fill/1 stretch;image-rendering:pixelated;padding:1px 8px;color:var(--vellum,#e9e0c9);
+ font-family:var(--pxfont);font-weight:600;font-size:.85rem;white-space:nowrap;max-width:calc(100% - var(--wrw,0px) - 40px);overflow:hidden;box-shadow:3px 3px 0 #00000080;cursor:pointer}
+.esc-line[hidden]{display:none}
+.esc-line span{overflow:hidden;text-overflow:ellipsis}
+.esc-line small{color:#ecc64f;font-size:.75rem}

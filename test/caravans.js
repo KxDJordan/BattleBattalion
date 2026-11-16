@@ -6,7 +6,9 @@
 // prosperity as wsArrive's opposite), joining a clash (the guards fight on the company's side: ally units, AI-played, outside deployment and
 // the company's dead), killing a guard turns every guard hostile (side 2, foes of the company and still of the raiders), the outcomes and
 // standing (saved with a reward, no guard left and the escort, the wagon burned, robbed, the fight going on after a lost battle), raiders'
-// plunder, the map figure keys, a 60-day world (caravans mostly arrive), and the save round trip with a clash in progress (and v15 -> v16).
+// plunder, the map figure keys, a 45-day world (caravans mostly arrive, and never leave the road), the roads (every route on road tiles,
+// link by link, in every world size; only towns the roads join trade; an old caravan off the road is put back on it), and the save round
+// trip with a clash in progress (and v15 -> v16).
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const ARGV=process.argv.slice(2),SEED=ARGV.includes('--seed')?+ARGV[ARGV.indexOf('--seed')+1]:20261114,SRC=path.join(__dirname,'..','src');
@@ -192,10 +194,37 @@ section('the tap on a guard');
 
 section('a world of caravans');
 { const G=fresh(SEED);let seen=new Set(),cl=new Set(),lost=0;const E0=X.cvEnd;X.cvEnd=function(q,who,qu){if(who==='raiders')lost++;return E0(q,who,qu)};
-  const t0=Date.now();for(let d=0;d<45;d++){keepAlive(G);for(let i=0;i<60;i++){X.advanceTime(.4);X.moveParties(.5);closeAll(X);for(const p of G.parties)if(p.goal==='caravan')seen.add(p.id);for(const q of X.cvList())cl.add(q.id)}}
+  const t0=Date.now();let offRoad=0,looks=0;for(let d=0;d<45;d++){keepAlive(G);for(let i=0;i<60;i++){X.advanceTime(.4);X.moveParties(.5);closeAll(X);for(const p of G.parties)if(p.goal==='caravan'){seen.add(p.id);looks++;if(!X.onRoad(p.x,p.y))offRoad++}for(const q of X.cvList())cl.add(q.id)}
+   if(d%3===0)for(let k=0;k<6;k++){G.p.x=G.towns[(d+k)%G.towns.length].x;G.p.y=G.towns[(d+k)%G.towns.length].y;X.moveParties(.5)}}   // the company stands in different places: caravans near and far
+  ok(!offRoad,`every caravan stays on the road: ${offRoad} of ${looks} positions off it`);
   X.cvEnd=E0;ok(seen.size>=40,'caravans on the roads: '+seen.size);ok(lost<=seen.size*.3,`most caravans arrive: ${lost} of ${seen.size} lost`);ok(cl.size>=1,'and some are ambushed: '+cl.size);
   ok(G.towns.every(t=>t.pros>=0&&t.pros<=100),'prosperity stays in range');console.log(`  45 days: ${seen.size} caravans, ${cl.size} ambushed, ${lost} lost (${Date.now()-t0} ms)`);
   console.log('a world of caravans: ok') }
+
+section('the roads');
+{ // every route a caravan can take runs on road tiles, link by link, in every world size; towns the roads do not join have none
+  const sizes=['small','medium','large','vast'];let pairs=0,linked=0,worlds=0;const t0=Date.now();
+  for(const sz of sizes)for(let k=0;k<(sz==='small'?6:2);k++){X.setWorldSize(sz);X.seedRng(SEED+31*k+sizes.indexOf(sz));X.newGame(true,{wsize:sz});closeAll(X);const G=X.G,W=X.W,WN=X.WN;worlds++;
+   for(let a=0;a<G.towns.length;a++)for(let b=0;b<G.towns.length;b++){if(a===b)continue;pairs++;const r=X.wsRoute(a,b),A=G.towns[a],B=G.towns[b];
+    const L=X.rdTiles(X.rdTile(A.x,A.y),X.rdTile(B.x,B.y));ok(!r===!L,'a route exactly when the roads join the towns');if(!r)continue;linked++;
+    ok(r[0].x===A.x&&r[0].y===A.y&&r[r.length-1].x===B.x&&r[r.length-1].y===B.y,'from town to town');
+    for(let i=1;i<r.length;i++){const p=r[i-1],q=r[i];ok(p.x===q.x||p.y===q.y,'straight runs along the road');const n=Math.round(Math.hypot(q.x-p.x,q.y-p.y)/X.TS);
+     for(let j=0;j<=n;j++){const x=p.x+(q.x-p.x)*j/Math.max(1,n),y=p.y+(q.y-p.y)*j/Math.max(1,n);ok(X.onRoad(x,y),`${sz} world: route ${a}->${b} leaves the road at ${Math.floor(x/X.TS)},${Math.floor(y/X.TS)}`)}
+     if(n>=1){const k0=X.rdTile(p.x,p.y),k1=X.rdTile(q.x,q.y),d=k1-k0,st=Math.sign(d)*(Math.abs(d)>=WN?WN:1);for(let t=k0;t!==k1;t+=st){const j=st===-WN?0:st===1?1:st===WN?2:3;ok(W.road[t]&(1<<j),'and follows the road\'s own links')}}}}
+   // a caravan sets out only between towns the roads join
+   for(let i=0;i<30;i++)X.wsTrade();for(const p of G.parties)if(p.goal==='caravan')ok(X.wsLinked(p.from,p.to)&&p.rd,'trade runs on linked roads only')}
+  X.setWorldSize('small');ok(linked>=pairs*.9,`the road net joins most towns: ${linked} of ${pairs} pairs`);
+  console.log(`  ${worlds} worlds (small, medium, large, vast): ${linked}/${pairs} town pairs joined by road, every route on road tiles (${Date.now()-t0} ms)`);
+  // an old caravan off the road (a save from before the road rule): it is put back on the nearest road to its town, the same way every time
+  const G=fresh(SEED);const c=X.wsSpawnCaravan(0,1);const P=X.findPath(Math.floor(c.x/TS),Math.floor(c.y/TS),Math.floor(G.towns[1].x/TS),Math.floor(G.towns[1].y/TS));
+  const off=X.randOk(G.towns[0].x,G.towns[0].y,2,3);let spot=off;for(let i=0;i<40&&X.onRoad(spot.x,spot.y);i++)spot=X.randOk(G.towns[0].x,G.towns[0].y,2,4);
+  delete c.rd;c.pts=X.wsThin(P);c.pi=0;c.x=spot.x;c.y=spot.y;const c2=X.clone(c);ok(!X.onRoad(c.x,c.y),'off the road');G.p.x=c.x+TS*3;G.p.y=c.y;
+  X.moveParties(.05);ok(c.rd===1&&X.onRoad(c.x,c.y)&&c.pts.every(q=>X.onRoad(q.x,q.y))&&c.pts[c.pts.length-1].x===G.towns[1].x,'re-routed onto the road to its town');
+  ok(Math.hypot(c.x-spot.x,c.y-spot.y)<=4*TS,'from the road nearest to it: '+(Math.hypot(c.x-spot.x,c.y-spot.y)/TS).toFixed(1)+' tiles');
+  const r3=Object.assign({},c2),r4=Object.assign({},c2);X.wsReroad(r3);X.wsReroad(r4);ok(JSON.stringify(r3.pts)===JSON.stringify(r4.pts)&&r3.x===r4.x,'the same way every time');
+  // far from the company the daily step keeps it on the road too
+  const c5=X.wsSpawnCaravan(0,1);G.p.x=G.towns[0].x+60*TS;for(let d=0;d<4&&!c5.gone;d++){X.wsStep(c5);ok(c5.gone||X.onRoad(c5.x,c5.y),'the daily step stays on the road')}
+  console.log('the roads: ok') }
 
 section('saves');
 { const G=fresh(SEED);keepAlive(G);const {c,r,cl}=clashNear(G,1);X.cvHour();cl.bo=1;r.loot=X.cargoRoll('ale',()=>.5,1);
