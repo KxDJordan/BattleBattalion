@@ -154,6 +154,23 @@ function wvSiteOld(q,x,y,o){const R=(k,a,b,w,h)=>{q.fillStyle=PAL[k];q.fillRect(
 function wvBandOld(q,x,y,o,co){const n=co?clamp(Math.ceil((o.n||1)/3),1,4):clamp(o.str||1,1,3),k=co?'5':WVFC[o.f]||'g',bob=o.moving?o.frame&1:0;
  for(let i=0;i<n;i++){const fx=x-n*3+i*6,fy=y-(i&1&&o.moving?1-bob:bob);q.fillStyle=PAL['0'];q.fillRect(fx,fy-9,5,9);q.fillStyle=PAL[k];q.fillRect(fx+1,fy-6,3,5);q.fillStyle=PAL[co?'s':'t'];q.fillRect(fx+1,fy-8,3,2)}
  if(co){const px=x+n*3*(o.dir<0?-1:1);q.fillStyle=PAL['0'];q.fillRect(px-1,y-17,3,17);q.fillStyle=PAL.a;q.fillRect(px,y-16,1,16);q.fillStyle=PAL['0'];q.fillRect(o.dir<0?px-8:px+1,y-17,8,6);q.fillStyle=PAL.c;q.fillRect(o.dir<0?px-7:px+1,y-16,7,4)}}
+/* the contract's destination town (a delivery's, or where the pay waits): a gold ring pulsing out over the ground around it, and while
+   the town is off the screen an arrow at the screen's edge pointing the way. Art units (the world's transform); f: WV.fs. */
+function wvBeacon(x,y,size,f,vx0,vy0,vx1,vy1,sc){const ph=reduced?.35:(f%9)/9,c0=PAL['0'],cy=PAL.y,cw=PAL.l,R0=14+6*size;
+ const ring=(rx,col,a)=>{const ry=rx*.5,n=Math.max(24,Math.round(rx*1.5));g.globalAlpha=a;
+  for(let i=0;i<n;i++){const t=i/n*Math.PI*2,px=Math.round(x+Math.cos(t)*rx),py=Math.round(y+Math.sin(t)*ry);g.fillStyle=c0;g.fillRect(px-1,py-1,4,4)}
+  for(let i=0;i<n;i++){const t=i/n*Math.PI*2,px=Math.round(x+Math.cos(t)*rx),py=Math.round(y+Math.sin(t)*ry);g.fillStyle=col;g.fillRect(px,py,2,2)}g.globalAlpha=1};
+ // the part of the map the player can see: the canvas less the top bar, the order rail on the right and (for the arrow) the minimap
+ const cv=g.canvas,c=cv.getBoundingClientRect(),toX=v=>vx0+(v-c.left)*(vx1-vx0)/Math.max(1,c.width),toY=v=>vy0+(v-c.top)*(vy1-vy0)/Math.max(1,c.height),el=id=>{const e=typeof $==='function'?$(id):null;return e&&e.offsetParent!==null&&!e.classList.contains('hidden')?e.getBoundingClientRect():null};
+ const rail=el('wbar'),bar=el('top')||el('hud'),Lx=vx0,Rx=rail&&rail.left>c.left+c.width*.5?toX(rail.left):vx1,Ty=bar&&bar.bottom<c.top+c.height*.4?toY(bar.bottom):toY(c.top+46),By=vy1;
+ if(x>Lx-R0&&x<Rx+R0*.4&&y>Ty-6&&y<By+R0*.5){ring(R0,cy,.95);ring(R0+ph*14,ph<.5?cw:cy,1-ph*.85);return}
+ // off the screen: an arrow on the edge of what can be seen, bobbing toward the town
+ const ins=(24/Math.max(.5,c.width/Math.max(1,vx1-vx0))),cx=(Lx+Rx)/2,cyy=(Ty+By)/2,dx=x-cx,dy=y-cyy,hw=(Rx-Lx)/2-ins,hh=(By-Ty)/2-ins;if(hw<4||hh<4)return;
+ const k=Math.min(hw/Math.max(1e-6,Math.abs(dx)),hh/Math.max(1e-6,Math.abs(dy))),L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,bob=reduced?0:Math.sin(f/9*Math.PI*2)*2.5;let px=cx+dx*k,py=cyy+dy*k;
+ // the minimap sits over the bottom-left corner: an arrow that would land under it slides up the left edge or right along the bottom
+ const mm=el('mini');if(mm){const pad=ins*.5+13,mx0=toX(mm.left)-pad,mx1=toX(mm.right)+pad,my0=toY(mm.top)-pad,my1=toY(mm.bottom)+pad;if(px>mx0&&px<mx1&&py>my0&&py<my1){if(Math.abs(px-(cx-hw))<1)py=my0;else px=mx1}}
+ const ax=px+ux*bob,ay=py+uy*bob,tri=(s,col)=>{g.fillStyle=col;g.beginPath();g.moveTo(ax+ux*s*1.25,ay+uy*s*1.25);g.lineTo(ax-ux*s*.6-uy*s,ay-uy*s*.6+ux*s);g.lineTo(ax-ux*s*.6+uy*s,ay-uy*s*.6-ux*s);g.closePath();g.fill()};
+ tri(10,c0);tri(7.5,cy);g.fillStyle=c0;g.beginPath();g.arc(ax-ux*2,ay-uy*2,1.6,0,Math.PI*2);g.fill()}
 function wvMarkOld(q,x,y,o){const k=o.kind==='contract'?'g':o.kind==='turnin'?'y':o.kind==='dest'?'l':'5',b=o.kind==='dest'||o.kind==='waypoint'?0:(o.frame>>1&1);y-=b;
  q.fillStyle=PAL['0'];q.fillRect(x-1,y-7,3,7);q.fillRect(x-3,y-5,7,3);q.fillRect(x-2,y-6,5,5);q.fillStyle=PAL[k];q.fillRect(x,y-6,1,5);q.fillRect(x-2,y-4,5,1);q.fillRect(x-1,y-5,3,3)}
 
@@ -415,7 +432,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  for(let i=0;i<WSN;i++){const s=WSL[i],e=s.e;wsg(e);wsg(s.x);wsg(s.y);wsg(s.snap);if(WCH.ton&&!e.raw&&e.tk!==WCH.tk)live=true}
  wsg(rc);wsg(rc?WV.ringR:-1);wsg(rD);wsg(rX);wsg(rY);   // the rim canvas is redrawn in place for a new radius
  {const n0=WSG.n,R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++){wsg(R[i].x);wsg(R[i].y)}wsg(-1);if(dots&&!G.dest){const e=G.path[G.path.length-1];wsg(e.x);wsg(e.y)}wsg(-2);
-  if(c){for(let i=0;i<WV.mkn;i++){wsg(WV.mks[i].x);wsg(WV.mks[i].y)}wsg(-3);if(turnin>=0&&WV.mk&&inV(G.towns[turnin].x/WVU,G.towns[turnin].y/WVU)){wsg(WV.mk.x);wsg(WV.mk.y)}}if(WSG.n>n0+2+(c?1:0))wsg(fs)}   // markers bob with the clock
+  if(c){for(let i=0;i<WV.mkn;i++){wsg(WV.mks[i].x);wsg(WV.mks[i].y)}wsg(-3);if(turnin>=0&&WV.mk&&inV(G.towns[turnin].x/WVU,G.towns[turnin].y/WVU)){wsg(WV.mk.x);wsg(WV.mk.y)}}if(WSG.n>n0+2+(c?1:0)||(c&&turnin>=0))wsg(fs)}   // markers bob with the clock; the destination's beacon and edge arrow pulse
  if(insW){wsg(insW.x);wsg(insW.y);wsg(insW.r);wsg(reduced||(now/260|0)&1)}else wsg(null);
  if(night>.02&&!reduced)for(let i=0;i<G.towns.length;i++){const o=G.towns[i];if(inV(o.x/WVU,o.y/WVU)&&worldSeen(o.x,o.y)){live=true;break}}
  for(let i=0;i<WV.np;i++){const q=WV.plates[i];wsg(q.c);wsg(q.x);wsg(q.y)}
@@ -434,6 +451,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  // markers: route waypoints, the tap destination, the contract
  {const R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++)wvMark(R[i].x/WVU,R[i].y/WVU,'waypoint');
   if(G.moving&&G.path.length&&!G.dest){const e=G.path[G.path.length-1];wvMark(e.x/WVU,e.y/WVU,'dest')}
+  if(c&&turnin>=0&&G.towns[turnin]){const T=G.towns[turnin];try{wvBeacon(T.x/WVU,T.y/WVU,T.size||2,fs,vx0,vy0,vx1,vy1,sc)}catch(e){wvFail('beacon',e)}}
   if(c){for(let i=0;i<WV.mkn;i++)wvMark(WV.mks[i].x,WV.mks[i].y,'contract');if(turnin>=0&&WV.mk&&inV(G.towns[turnin].x/WVU,G.towns[turnin].y/WVU))wvMark(WV.mk.x,WV.mk.y,'turnin')}}
  if(cvOn){g.save();try{cvDrawMap(g,sc,bx,by,vis,now,reduced)}catch(e){wvFail('clash',e)}g.restore()}   // clashes: the fight over the two parties (42-caravans.js)
  if(insW){const r=Math.round(insW.r/WVU),x=Math.round(insW.x/WVU),y=Math.round(insW.y/WVU),L=Math.max(2,r>>1),on=reduced||(now/260|0)&1;g.fillStyle=PAL['0'];
@@ -484,7 +502,7 @@ function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el
  if(G.route&&G.route.length>1)for(let i=1;i<G.route.length;i++)box(ox+tile(G.route[i].x),oy+tile(G.route[i].y),0,'0','5');
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&worldSeen(n.x,n.y))box(ox+tile(n.x),oy+tile(n.y),0,'0','f');
  if(c0)for(const m of lkCtrMarks()){const done=m.kind==='turnin',mx=m.x,my=m.y;
-  const x=ox+tile(mx)+(k>>1),y=oy+tile(my)+(k>>1),r=k+(pulse?th:0);q.fillStyle=PAL['0'];for(let i=-r-th;i<=r+th;i++){const ww=r+th-Math.abs(i);q.fillRect(x-ww,y+i,2*ww+1,1)}q.fillStyle=PAL[done?'y':'g'];for(let i=-r;i<=r;i++){const ww=r-Math.abs(i);q.fillRect(x-ww,y+i,2*ww+1,1)}}
+  const x=ox+tile(mx)+(k>>1),y=oy+tile(my)+(k>>1),r=done?k+th*(pulse?3:2):k+(pulse?th:0);/* the destination town: a larger blinking diamond */q.fillStyle=PAL['0'];for(let i=-r-th;i<=r+th;i++){const ww=r+th-Math.abs(i);q.fillRect(x-ww,y+i,2*ww+1,1)}q.fillStyle=PAL[done?'y':'g'];for(let i=-r;i<=r;i++){const ww=r-Math.abs(i);q.fillRect(x-ww,y+i,2*ww+1,1)}}
  // the view
  {const x0=clamp(X(wcam.x+SR.x/wcam.z),ox,ox+S-th),y0=clamp(Y(wcam.y+SR.y/wcam.z),oy,oy+S-th),x1=clamp(X(wcam.x+(SR.x+SR.w)/wcam.z),ox+th,ox+S),y1=clamp(Y(wcam.y+(SR.y+SR.h)/wcam.z),oy+th,oy+S);
   q.fillStyle=PAL.l;q.fillRect(x0,y0,x1-x0,th);q.fillRect(x0,y1-th,x1-x0,th);q.fillRect(x0,y0,th,y1-y0);q.fillRect(x1-th,y0,th,y1-y0)}
@@ -997,12 +1015,18 @@ function screenRecover(deep){try{if(typeof Layout!=='undefined'&&Layout&&Layout.
  try{resize()}catch(e){}
  if(deep){BGC.key='';try{if(typeof B!=='undefined'&&B&&B.tiles)viewInvalidate()}catch(e){}try{if(typeof WCH!=='undefined')WCH.w=null}catch(e){}
   try{if(typeof MM!=='undefined'&&MM)MM.sig=''}catch(e){}}}
-function screenBack(){screenRecover(true);setTimeout(()=>screenRecover(false),250);setTimeout(()=>screenRecover(false),900)}
+/* iOS can hand the page back magnified (user-scalable is ignored there; an app switch or a turn of the phone while away restores a zoomed
+   page). Rewriting the viewport tag, even to the same limits, makes the browser apply it again and drop back to scale 1. */
+const VPFIX={a:'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no',n:0};
+function vpUnzoom(force){try{const v=window.visualViewport,m=document.querySelector('meta[name="viewport"]');if(!m)return false;if(!force&&!(v&&Math.abs(v.scale-1)>.01))return false;
+ m.setAttribute('content',VPFIX.a+((++VPFIX.n)&1?', shrink-to-fit=no':''));if(window.scrollX||window.scrollY)window.scrollTo(0,0);return true}catch(e){return false}}
+function screenBack(){vpUnzoom(true);screenRecover(true);setTimeout(()=>{vpUnzoom(false);screenRecover(false)},250);setTimeout(()=>screenRecover(false),250);setTimeout(()=>screenRecover(false),900)}
 if(typeof document!=='undefined'&&typeof window!=='undefined'){
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)screenBack()});
  window.addEventListener('pageshow',e=>{if(e.persisted)screenBack()});
  window.addEventListener('focus',()=>screenRecover(false));
- window.addEventListener('orientationchange',()=>setTimeout(()=>screenRecover(true),300));
+ window.addEventListener('orientationchange',()=>setTimeout(()=>{vpUnzoom(false);screenRecover(true)},300));
+ try{if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{if(Math.abs(window.visualViewport.scale-1)>.01)setTimeout(()=>vpUnzoom(false),60)})}catch(e){}
 }
 
 /* ---- the East (19-east.js, 77-east-art.js): eastern towns (t.east, unless the East took them in the war: t.eastPrev0 marks those),

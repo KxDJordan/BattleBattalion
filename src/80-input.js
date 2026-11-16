@@ -16,14 +16,12 @@ function zoomAt(sx,sy,f){if(!(f>0)||!isFinite(f))return;
  if(mode==='battle'&&B)zoomFree(sx,sy,f);
  else if(mode==='world'&&G)worldZoomFree(sx,sy,f)}
 /* ---- world marching ---- */
-const WFRINGE=3;      // how many unexplored tiles a march may end in (the dark just past the edge of the known land)
-// March to open ground. Unexplored ground is allowed only when the way there runs over known land; the route is planned
-// first, so a refusal never tells the player what the dark hides.
+// March to open ground, charted or not: the route is planned over the true land (as a march to a town in the dark is), and a refusal
+// says only that no way is known, never what the dark hides.
 function worldGo(wx,wy,dest){if(!G||!W)return false;
  if(!dest&&!worldSeen(wx,wy)){let path=null;
   if(okAt(wx,wy)){if(typeof routeTo==='function'){const r=routeTo(wx,wy);path=r&&r.path}else path=findPath(Math.floor(G.p.x/TS),Math.floor(G.p.y/TS),Math.floor(wx/TS),Math.floor(wy/TS))}
-  let dark=0;if(path)for(const s of path)if(!worldSeen(s.x,s.y))dark++;
-  if(!path||dark>WFRINGE){toast('Unexplored: no known way there');return false}}
+  if(!path){toast('Unexplored: no known way there');return false}}
  return goTo(wx,wy,dest)!==false}
 function worldTap(wx,wy){const k=worldPick(wx,wy,true);if(!k)return;const p=G.p,at=(x,y)=>Math.hypot(x-p.x,y-p.y)<TS*.12;
  if(k.type==='town'){const t=k.o;if(at(t.x,t.y))openTown(k.i);else goTo(t.x,t.y,{type:'town',i:k.i})}

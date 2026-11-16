@@ -263,7 +263,7 @@ function mpWpFromHit(h){if(h.kind==='town'){const t=G.towns[h.i];return{x:t.x,y:
  if(h.kind==='colo')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'colo',ref:h.id,label:'Colosseum'};
  if(h.kind==='crsite')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'ruin',ref:h.id,label:h.n};
  if(h.kind==='ruin')return{x:h.x,y:h.y,dest:typeof siteSheet==='function'?{type:'site',id:h.id}:null,kind:'ruin',ref:h.id,label:typeof h.n==='string'&&h.n?h.n:'Ruins'};
- return{x:h.x,y:h.y,dest:null,kind:'land',ref:0,label:MPTERR[tileAt(h.x,h.y)]||'Open ground'}}
+ return{x:h.x,y:h.y,dest:null,kind:'land',ref:0,label:h.fog?'Uncharted ground':MPTERR[tileAt(h.x,h.y)]||'Open ground'}}
 function mpSame(a,b){return!!a&&!!b&&a.kind===b.kind&&(a.kind==='land'?Math.hypot(a.x-b.x,a.y-b.y)<TS*.5:a.ref===b.ref)}
 /* add a stop. Returns '' or the reason it was not added. */
 function mapAddStop(w){if(!w)return'none';const last=MP.wps[MP.wps.length-1];if(mpSame(last,w))return'same';
@@ -349,6 +349,10 @@ function mapLabelCheck(){const L=mpLabels(),us=MP.us,k=mpK(),bad=[];let hidden=0
 /* ================= DRAW ================= */
 function mpSpr(q,key,rows,x,y){const c=pxScaled('mps:'+key,rows,MP.us);if(c)q.drawImage(c,Math.round(x),Math.round(y));return c}
 /* sprite with its centre (ax='c') or bottom-centre (ax='b') on a device point */
+// the contract's destination town on the map: a steady gold ring around it and a second one pulsing out (fr: MP.frame)
+function mpDestRing(q,sx,sy,r0,fr,us){const ring=(r,col)=>{const n=Math.max(16,Math.round(r/us*1.1));for(const [c,o,w] of [['0',us,4*us],[col,0,2*us]]){q.fillStyle=PAL[c];
+  for(let i=0;i<n;i++){const t=i/n*Math.PI*2,x=Math.round((sx+Math.cos(t)*r)/us)*us,y=Math.round((sy+Math.sin(t)*r)/us)*us;q.fillRect(x-o,y-o,w,w)}}};
+ ring(r0,'y');const st=typeof reduced!=='undefined'&&reduced?0:fr%3;if(st)ring(r0+st*3*us,st===1?'l':'y')}
 function mpAt(q,key,rows,sx,sy,ax){const us=MP.us,w=rows[0].length,h=rows.length;mpSpr(q,key,rows,sx-Math.floor(w/2)*us,ax==='b'?sy-h*us+us:sy-Math.floor(h/2)*us)}
 function mpFill(q,k,x,y,w,h){q.fillStyle=PAL[k];q.fillRect(x,y,w,h)}
 function mpDots(q,pts,col,phase,seen){const us=MP.us,step=7*us;let acc=phase?step/2:0;
@@ -413,7 +417,7 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
   const S=lkSits(t);for(let j=0;j<S.length&&j<3;j++){const k='sit-'+(S[j].k||S[j]);if(MPS[k])mpSpr(q,k,MPS[k],sx+(hw+1)*us+j*8*us,sy-(hw+5)*us)}});
  if(MP.labels){const L=mpLabels();for(const b of L){if(!b)continue;const c=mpTextCv(G.towns[b.i].name,'0','l',us);if(c)q.drawImage(c,o.x+b.x,o.y+b.y)}}
  /* contract */
- for(const cm of (G.contract?lkCtrMarks():[])){const sx=X(cm.x),sy=Y(cm.y);if(cm.kind==='turnin'){const th=mpTownRows({size:mpTownSize(G.towns[cm.town])}).length;mpAt(q,'turnin',MPS.turnin,sx+6*us,sy-(Math.floor(th/2)+3+(fr&1))*us,'c')}
+ for(const cm of (G.contract?lkCtrMarks():[])){const sx=X(cm.x),sy=Y(cm.y);if(cm.kind==='turnin'){const th=mpTownRows({size:mpTownSize(G.towns[cm.town])}).length;mpDestRing(q,sx,sy,(Math.floor(th/2)+6)*us,fr,us);mpAt(q,'turnin',MPS.turnin,sx+6*us,sy-(Math.floor(th/2)+3+(fr&1))*us,'c')}
   else{mpAt(q,cm.kind==='lair'?'lair':'target',cm.kind==='lair'?MPS.lair:MPS.target,sx,sy,'c');if(fr&1){const r=7*us;q.fillStyle=PAL.g;q.fillRect(sx-r,sy-r,2*us,us);q.fillRect(sx-r,sy-r,us,2*us);q.fillRect(sx+r-us,sy-r,2*us,us);q.fillRect(sx+r,sy-r,us,2*us);q.fillRect(sx-r,sy+r,2*us,us);q.fillRect(sx-r,sy+r-us,us,2*us);q.fillRect(sx+r-us,sy+r,2*us,us);q.fillRect(sx+r,sy+r-us,us,2*us)}}}
  /* selection brackets */
  const s=MP.sel;if(s){const sx=X(s.x),sy=Y(s.y),r=(s.kind==='town'?Math.floor(mpTownRows(G.towns[s.ref]).length/2)+3:6)*us+(fr&1?us:0),L=3*us,br=(x,y,dx,dy)=>{mpFill(q,'0',x-us,y-us,L*1+2*us,3*us);mpFill(q,'0',x-us,y-us,3*us,L+2*us);q.fillStyle=PAL.e;q.fillRect(x,y,L,us);q.fillRect(x,y,us,L)};
@@ -461,11 +465,11 @@ function mpHit(sx,sy){const o=mpOrigin(),k=mpK(),d=MP.d,us=MP.us,R=Math.max(13*d
  for(const s of mpKnownRuins())if(near(s.x,s.y)<R)return{kind:'ruin',id:s.id,x:s.x,y:s.y,n:s.n};
  for(const s of mpCrisisSites())if(near(s.x,s.y)<R)return{kind:'crsite',id:s.id,x:s.x,y:s.y,n:typeof CRSITEN==='object'&&CRSITEN[s.kind]||'A dark place'};
  const wx=(sx-o.x)/k,wy=(sy-o.y)/k;if(wx<0||wy<0||wx>=WN*TS||wy>=WN*TS)return{kind:'off'};
- if(!mpSeenW(wx,wy))return{kind:'fog',x:wx,y:wy};if(!tileAt(wx,wy))return{kind:'sea',x:wx,y:wy};
+ if(!mpSeenW(wx,wy)){const tx=Math.floor(wx/TS),ty=Math.floor(wy/TS),cx=(tx+.5)*TS,cy=(ty+.5)*TS;return okAt(cx,cy)?{kind:'land',x:cx,y:cy,fog:1}:{kind:'fog',x:wx,y:wy}}if(!tileAt(wx,wy))return{kind:'sea',x:wx,y:wy};   // uncharted ground a march can reach is a stop like any other; the route planner (mpLeg) says whether a way runs there
  const tx=Math.floor(wx/TS),ty=Math.floor(wy/TS);return{kind:'land',x:(tx+.5)*TS,y:(ty+.5)*TS}}
 function mpSelOf(w){return{kind:w.kind,ref:w.ref,x:w.x,y:w.y,label:w.label}}
 function mpTap(sx,sy){const h=mpHit(sx,sy);if(h.kind==='off')return;const say=t=>{if(typeof toast==='function')toast(t)};
- if(h.kind==='fog'){say('Uncharted. March closer to map it');return}if(h.kind==='sea'){say('Open water');return}
+ if(h.kind==='fog'){say('Uncharted: no known way there');return}if(h.kind==='sea'){say('Open water');return}
  const w=mpWpFromHit(h);if(!w)return;const why=mapAddStop(w);MP.sel=mpSelOf(w);
  if(why==='blocked'){say('No way through there');if(w.kind==='land')MP.sel=null}else if(why==='full')say('A route holds '+MP.MAXWP+' stops');
  mpSide();MP.dirty=true}
@@ -516,7 +520,7 @@ function mpCrisisNote(){if(!G.crisis||typeof CRISES!=='object'||!CRISES[G.crisis
 function mpTools(){const r=MP.root;if(!r)return;const b=(id,k,l)=>{const e=r.querySelector('#'+id);if(e){e.classList.toggle('on',!!MP[k]);e.setAttribute('aria-pressed',MP[k]?'true':'false')}};
  b('mpTL','labels');b('mpTR','roads');b('mpTK','legend');const L=r.querySelector('#mpLegend');if(L){L.classList.toggle('on',MP.legend);if(MP.legend)L.innerHTML=mpLegendHTML()}}
 function mpCard(){const s=MP.sel,c=G.contract,L=[];let title='Plan a march',tag='',body='';
- if(!s){body='<p class="mp-dim">Tap a town or any charted ground to set a destination. Tap more towns to add stops.</p>'}
+ if(!s){body='<p class="mp-dim">Tap a town or any ground, charted or not, to set a destination. Tap more towns to add stops.</p>'}
  else{const leg=mpLeg(G.p.x,G.p.y,s.x,s.y),here=Math.hypot(G.p.x-s.x,G.p.y-s.y)<TS*.9,dist=Math.max(1,Math.round(Math.hypot(G.p.x-s.x,G.p.y-s.y)/TS));title=s.label;
   if(s.kind==='town'){const t=G.towns[s.ref],i=s.ref;title=t.name;tag=`<span class="pxtag${mpTownSize(t)===3?' gold':''}">${MPSIZE[mpTownSize(t)]}</span>`;
    if(c&&lkCtrMarks().some(m=>m.kind==='turnin'&&m.town===i))L.push('<span class="mp-good">'+mpEsc(lkCtrStatus(c))+'</span>');else if(c&&c.town===i)L.push('Your contract was posted here.');

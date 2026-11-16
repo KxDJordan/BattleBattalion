@@ -70,6 +70,7 @@ function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();
  +(themes?row('banner','banner','Colours',(THEMES[SET.theme]||THEMES.verdigris).d,themes,'wide'):'')
  +row('info','sun','Motion','Auto follows this device'+(reducedMotion()&&SET.motion!=='reduce'?' (it asks for less motion)':''),seg('motion',[['auto','Auto'],['reduce','Reduced']],SET.motion))
  +(fs?row('fullscreen','full','Fullscreen','Hide the browser frame',seg('full',[[true,'On'],[false,'Off']],full)):'')
+ +row('ledger','ledger','Chronicles','Clear the chronicles of every ended march kept on this device ('+(typeof runsAll==='function'?runsAll().length:0)+')','<button class="ghost" onclick="runsClearAsk(\'set\')">Clear</button>')
  +'</div><p class="dim setn">Kept on this device, apart from the company\'s save.</p>'}
 function settingsSheet(){sheet(settingsHTML())}
 function _auNoCtx(){try{return!(window.AudioContext||window.webkitAudioContext)}catch(e){return true}}
