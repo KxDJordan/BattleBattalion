@@ -60,6 +60,7 @@ const CAPS={
  shadow:[['One with the shadows','+10 initiative; every attack that misses you gives +2 more melee and ranged defense until your next turn (with Flow +6 a miss, up to +18; without it +2, up to +6)',{st:{init:10},mod:{flow:2}}]],
  gladiator:[['Darling of the crowd','+10 resolve; Crowd-pleaser heals 5 more on a kill; allies within 3 tiles get +10 resolve on morale checks',{st:{brv:10},mod:{crowdKill:5,brvAura:10}}]],
  champion:[['Champion of the sands','+10 hitpoints, +5 melee defense; Single combat gives a further +5 to hit and +10% damage',{st:{hp:10,md:5},mod:{soloHit:5,soloDmg:.1}}]],
+ dualwield:[['Storm of steel','+8 initiative; with a weapon in each hand: +6 melee defense, and every off-hand blow deals 15% more damage and gets +5 to hit',{st:{init:8},mod:{dwDef:6,dwOffDmg:.15,dwOffHit:5}}]],
  brawler:[['Iron body','+10 hitpoints, +5 melee skill; +15% melee damage against a foe an ally also stands beside',{st:{hp:10,ms:5},mod:{flankDmg:.15}}]],
  mana:[['Archmage','+25% spell damage; +20 mana',{mod:{spellB:.25},res:20}]],
  mana_m:[['Spellblade','+15% spell damage, +10% melee damage; +15 mana',{mod:{spellB:.15,dmgMelee:.1},res:15}]],

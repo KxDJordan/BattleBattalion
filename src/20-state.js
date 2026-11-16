@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=17;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=18;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -126,7 +126,12 @@ const MIGRATE={
     every tree they have learned a perk in stays, the empty slots are drawn afresh from the background's pool. No perk is lost. */
  16:g=>{const fix=m=>{if(svObj(m))rerollRogueTrees(m,g.seed)};if(Array.isArray(g.roster))g.roster.forEach(fix);
   if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});
-  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(fix)});return g}
+  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(fix)});return g},
+ /* v18: Twin blades (11w-dualwield.js). The shield slot m.eq.s may now hold an off-hand weapon (a light one-handed weapon) as well as a
+    shield; the Twin blades tree joined some pools (sellsword, cutthroat, thief, brigand, pit fighter, tumbler, gladiator). Nothing in an
+    older save changes: its shield slots hold shields, its swords keep the trees they carry. The version marks that an older build, which
+    would throw an off-hand weapon away as an unknown shield, must not load this save. */
+ 17:g=>g
 };
 /* rerollRogueTrees(m, seed): a merc whose background may draw a light-blade tree but who has none: keeps the trees it has perks in (and the
    Monster hunter tree), fills the other slots from a fresh roll of its background's pool. Deterministic (its own stream from the world seed
@@ -181,7 +186,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
    // weapon or armor tree it may not learn is refunded (refundTrees), anything else unreadable is dropped
    delete m.armp;if(Array.isArray(m.perks)){m.perks=m.perks.filter(id=>typeof id==='string');refundTrees(m)}
    const have=new Set(mercTrees(m).map(x=>x.key)),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
- if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h','c']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
+ if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h','c']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&(it.k===(k==='b'?'w':k)||(k==='s'&&it.k==='w'&&isOffW(it)))?m.eq[k]:null}   // eq.s: a shield or an off-hand weapon (11w-dualwield.js)
  fixHands(m);
  if(!svObj(m.tal))m.tal={};for(const k in m.tal)if(!svFin(m.tal[k]))delete m.tal[k];
  if(typeof m.name!=='string'||!m.name)m.name='Nameless';if(!RACE[m.race])m.race='human';

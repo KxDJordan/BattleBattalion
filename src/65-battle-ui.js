@@ -48,7 +48,7 @@ function shReloadCost(u,w){w=w||shHand(u);const r=w&&w.reload;if(!r)return null;
 const SH_UNLOADTXT='Unloaded: reload first';
 /* the shield carried: its item (mercs: the equipped one; foes: their def) and a name for its type */
 const SH_LOOK={buckler:'Buckler',round:'Round shield',kite:'Kite shield',heater:'Heater shield',tower:'Tower shield',spiked:'Spiked shield'};
-function shShieldItem(u){if(!u)return null;try{if(u.m&&u.m.eq&&u.m.eq.s)return shItem(u.m.eq.s);const d=u.def&&u.def.shield;if(typeof d==='string')return shItem(d);if(d&&typeof d==='object')return d}catch(e){}return null}
+function shShieldItem(u){if(!u)return null;try{if(u.m&&u.m.eq&&u.m.eq.s){if(ITEMS[u.m.eq.s]&&ITEMS[u.m.eq.s].k!=='s')return null;return shItem(u.m.eq.s)}const d=u.def&&u.def.shield;if(typeof d==='string')return shItem(d);if(d&&typeof d==='object')return d}catch(e){}return null}
 function shShieldName(u){const it=shShieldItem(u);if(it&&it.n)return it.n;return it&&SH_LOOK[it.look]||'Shield'}
 function shShieldIcon(u){const it=shShieldItem(u),lk=it&&it.look||(u.m&&u.m.eq&&u.m.eq.s)||null;if(lk&&typeof icHas==='function'){if(icHas('shield-'+lk))return'shield-'+lk;if(icHas(lk))return lk}return'shield'}
 function shCanSwap(u){try{if(typeof canSwap==='function')return!!canSwap(u)}catch(e){}return!!shAlt(u)}
@@ -353,6 +353,7 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
   rows+=fcLoc('armor','shield','A hit on the body',f.head&&f.body?100-f.headCh:null,f.body,t.arm);
   rows+=fcLoc('helmet','shield','A hit on the head: '+(typeof HEADMULT==='number'?'×'+HEADMULT+' to hitpoints':'more to hitpoints'),f.headCh,f.head,t.helm)}
  else rows+=fcLoc('armor','shield','A hit',null,{hpMin:f.hpMin,hpMax:f.hpMax,armMin:f.armMin,armMax:f.armMax,kill:f.kill,sure:f.sure},t.arm);
+ if(f.off&&!a.noDmg){const O=f.off;rows+='<span class="fcl fco'+(O.sure?' sure':O.kill?' kill':'')+'" title="Then the off hand: '+esc(O.n)+', '+Math.round(O.mult*100)+'% damage, '+O.hit+'% to hit (if the foe still stands)">'+(O.id&&typeof pnItemIcon==='function'?'<span class="fcoi">'+pnItemIcon(O.id,16)+'</span>':pic('dagger',16,'sword'))+'<em>'+O.hit+'%</em><span class="fcd hp">'+pic('hp',16,'heart')+'<b>'+fcRange(O.hpMin,O.hpMax)+'</b></span>'+(O.armMax>0?'<span class="fcd arm" title="Armor lost"><i class="pip"></i><b>'+fcRange(O.armMin,O.armMax)+'</b></span>':'')+(O.kill?pic('skull',16,'skull'):'')+'</span>'}   // Twin blades: the off-hand blow that follows (64w-dualwield.js)
  if(f.pierce)st+='<span class="sd" style="--sc:#f3d98b" title="Bypasses armor altogether">'+pic('ab-puncture',16,'a-burst')+'</span>';
  else{let ig=typeof f.ign==='number'?f.ign:null;if(ig==null&&a.wpn&&!a.magic){try{if(typeof ignOf==='function')ig=ignOf(u,a)}catch(e){}}
   if(ig>=.35&&(t.armMax>0||t.helmMax>0))st+='<span class="sd" style="--sc:#f3d98b" title="Armor pierce: '+Math.round(ig*100)+'% of the damage goes past armor">'+pic('ab-puncture',16,'a-burst')+'<b>'+Math.round(ig*100)+'%</b></span>'}

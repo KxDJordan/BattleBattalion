@@ -474,7 +474,7 @@ function usTex(S){const a=S.armor,t=S.av&&S.av.tex,m3=y=>((y%3)+3)%3;
  if(a==='fur')return(x,y)=>((x*7+y*5)%6<2)?1:((x*3+y*7)%5===0?-1:0);
  if(a==='padded')return(x,y)=>((x%3+3)%3===1)?-1:0;
  return 0}
-function usPoseOf(S,st,fr,v,wslot){const b=S.b,al=b.th-3,W=S.wd,cls=W.cls,oW=wslot==='L'?-1:1,k=b.big?2:1,D=USD;
+function usPoseOf(S0,st,fr,v,wslot){const S=S0.ow&&!S0.shield?Object.assign({},S0,{shield:1}):S0,b=S.b,al=b.th-3,W=S.wd,cls=W.cls,oW=wslot==='L'?-1:1,k=b.big?2:1,D=USD;   // an off-hand weapon is held forward like a shield
  const P={ub:0,ln:0,hx:0,hy:0,lg:[0,0,0,0],kneel:0,lie:0,W:{x:0,y:al-2,o:0,d:D.U},O:{x:0,y:al,o:0,on:null},bow:0,spark:null,drop:0,fr,st};
  const fwdD=v?D.RU2:D.RD2,lowD=v?D.R:D.RD,tilt=oW<0?D.UL2:D.UR2,far=(v===0)===(wslot==='R');
  if(cls==='swing'){P.W.y=al-2;P.W.o=1;P.W.d=oW<0?D.UL2:D.UR2}else if(cls==='fist'){P.W.y=al}else if(cls==='two'){P.W.y=al-1;P.W.d=oW<0?D.UL3:D.UR3}
@@ -731,6 +731,7 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
   if(P.crank){usPart();const cx=oh.x+(aw>>1),cy=oh.y+aw;usP(cx,cy,USR.brass,1);usP(cx+(P.crank===2?1:-1),cy+(P.crank===3?-1:1),USR.iron)}
   usGrp=0};
  const drawWA=far=>usArm(S,A,shx(wslot),sy,wh.x,wh.y,far),drawOA=far=>usArm(S,A,shx(oslot),sy,oh.x,oh.y,far);
+ const drawOW=()=>{if(!S.ow||P.drop||!S.ow.c||!S.ow.c.length)return;const od=oslot==='L'?USD.UL2:USD.UR2,ogx=oh.x+(oslot==='R'?aw:-1),ogy=oh.y;usWeapon(S.ow,ogx,ogy,od,sc,null,st!=='death')};   // Twin blades: the off-hand weapon, mirrored
  const shc=()=>({x:oh.x+(aw>>1)+oOf(oslot)*(v?1:0)+(v?0:1),y:oh.y+(usShFam(S.shield)==='buckler'?0:-1)});
  const pauld=(s,far)=>{if(!A.paul)return;const x=shx(s),o=s==='L'?-1:1,bi=far?-1:0,cxp=x+(aw>>1),sp=S.spikeR||A.paul;usPart();
   if(b.big){for(let xx=x+1;xx<=x+aw-2;xx++)usP(xx,sy-3,A.paul,bi);for(let xx=x;xx<=x+aw-1;xx++)usP(xx,sy-2,A.paul,bi);usRect(x-1,sy-1,x+aw,sy+1,A.paul,bi);for(let xx=x-1;xx<=x+aw;xx++)usP(xx,sy+2,S.trimR||A.paul,bi-(S.trimR?0:1));
@@ -742,7 +743,7 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
  if(S.cape&&v===0){usPart();const cr=S.cape;for(let y=ty+2;y<=-3+(P.kneel?2:0);y++){const e=y>ty+th?1:0;for(let x=x0-e;x<=x1+e;x++)if(y<-3||((x+y)&1))usP(x,y,cr,-1)}}
  if(v===1&&S.shield){const c=shc();usShield(S.shield,c.x+(wFar?1:-1)*(usShFam(S.shield)==='buckler'?1:0),c.y,S.shR,1)}
  if(bowA&&v)drawW();
- if(wFar){if(!aimF){if(!bowA)drawW();drawWA(1)}pauld(wslot,1)}else{drawOA(1);pauld(oslot,1)}
+ if(wFar){if(!aimF){if(!bowA)drawW();drawWA(1)}pauld(wslot,1)}else{drawOW();drawOA(1);pauld(oslot,1)}
  if(!S.float)usLegs(S,A,v,P,nearL);
  usGl=S.av&&(S.av.gold||S.av.lg)?1:0;usTorso(S,A,v,P,x0,ty);usSkirt(S,A,v,P,x0,ty);usGl=0;if(S.coat)usCoat(S,A,v,P,x0,ty);
  if(S.cape&&v===1){usPart();const cr=S.cape;for(let y=ty;y<=-3+(P.kneel?2:0);y++){const e=y>ty+th?1:0;for(let x=x0-e+(y===ty?1:0);x<=x1+e-(y===ty?1:0);x++)if(y<-3||((x+y)&1))usP(x,y,cr,b.big?(((x-x0)%5===2&&y>ty+1)?1:((x-x0)%5===3&&y>ty+3)?-1:0):((x===x0+2||x===x1-2)&&y>ty+2?-1:0))}
@@ -752,7 +753,7 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
  if(S.mid)S.mid(ctx);
  usHead(S,v,hcx,hy0);
  if(v===0&&S.shield&&wFar===false){const c=shc();/* shield on the far arm, held ahead of the body */usShield(S.shield,c.x,c.y,S.shR,0)}
- if(wFar){if(bowA&&!v)drawW();if(aimF){drawWA(1);drawW()}drawOA(0);pauld(oslot,0);if(v===0&&S.shield){const c=shc();usShield(S.shield,c.x-1,c.y,S.shR,0)}}
+ if(wFar){if(bowA&&!v)drawW();if(aimF){drawWA(1);drawW()}drawOW();drawOA(0);pauld(oslot,0);if(v===0&&S.shield){const c=shc();usShield(S.shield,c.x-1,c.y,S.shR,0)}}
  else{if(!bowA)drawW();else if(!v)drawW();drawWA(0);pauld(wslot,0)}
  if(P.drop&&W.c.length){usWeapon(W,x1+3,-1,USD.R,sc,S.res?USR[S.res]:S.gemR,0)}else if(P.drop&&W.cls==='bow'){usPart();for(let i=0;i<=W.bow*2;i++)usP(x1+2+i,-1-(i>1&&i<W.bow*2-1?1:0),USR.wood)}
  if(S.over)S.over(ctx);
@@ -964,7 +965,8 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
  if(/^(hood|great|kettle|cap|straw|nasal|coif|barbute|armcap|spangen|sallet|bascinet|armet)$/.test(S.hat||'')){if(S.hair==='mohawk'||S.hair==='bun'||S.hair==='curly'||S.hair==='mane'||S.hair==='shaggy'||S.hair==='swept')S.hair='short'}
  const wid=H?H.w:eq.w,alt=H?H.a:(eq.b||null);S.wd=usWdef(usWpnOf(wid));
  const two=typeof wid==='string'&&ITEMS[wid]?!!ITEMS[wid].two:!!S.wd.two;
- if(ITEMS[eq.s]){if(two)S.slung=eq.s;else S.shield=eq.s;if(!S.shR)S.shR=usCloth('red')}
+ if(ITEMS[eq.s]&&ITEMS[eq.s].k==='s'){if(two)S.slung=eq.s;else S.shield=eq.s;if(!S.shR)S.shR=usCloth('red')}
+ else if(ITEMS[eq.s]&&ITEMS[eq.s].k==='w'&&typeof dwMainOK==='function'&&typeof wid==='string'&&dwMainOK(ITEMS[wid])){S.ow=usWdef(usWpnOf(eq.s));S.owId=eq.s}   // Twin blades: the off-hand weapon, held where the shield would be (11w-dualwield.js)
  usSetAlt(S,alt);
  S.res=typeof mercRes==='function'?mercRes(m):null;S.quiver=S.wd.cls==='bow'||S.altCls==='bow';
  if(S.shield||S.slung){const k=usShLook(eq.s);if(S.shield)S.shield=k;else S.slung=k}

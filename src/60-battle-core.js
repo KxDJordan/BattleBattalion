@@ -134,7 +134,7 @@ function mkMercUnit(m,side){const s=calc(m),res={},c=armorCond(m),sh=s.shield;fo
  const caster=!!(m.gift&&MAST[m.gift]&&MAST[m.gift].style==='caster'&&giftAwake(m)),tb=unitTraitB(m,s,side?1:0);
  return initLoad(initUnit({side:side?1:0,mor:s.flags.cocky?4:3,m,name:m.name,lvl:m.lvl,hp:Math.max(1,Math.min(m.hp,s.hp)),hpMax:s.hp,arm:c.a,armMax:s.arm,helm:c.h,helmMax:s.helm,apMax:s.ap,ap:s.ap,fat:0,fatMax:Math.max(30,s.fat),init:s.init+tb.init,ms:s.ms+tb.ms,rs:s.rs+tb.rs,md:s.md,rd:s.rd,brv:s.brv+tb.brv,
   wpn:s.wpn,abs:s.abs.slice(),res,flags:s.flags,dmgB:s.dmg,buffs:[],st:{},alive:true,shield:!!sh&&sh.raised,slung:!!sh&&!sh.raised,shp:sh?sh.hp:0,shpMax:sh?sh.hp:0,shb:sh?{md:sh.md,rd:sh.rd}:null,
-  hand:'w',wid:s.wid,alt:s.alt,cld:s,fabled:m.fabled||null,title:m.fabled&&m.title||'',back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null,aw:s.aw||0,acl:s.acl||'light'}))}
+  hand:'w',wid:s.wid,alt:s.alt,cld:s,dw:s.dw||null,fabled:m.fabled||null,title:m.fabled&&m.title||'',back:isRangedW(s.wpn)||caster,shw:sh?sh.wallB:0,spike:sh?sh.spike:null,aw:s.aw||0,acl:s.acl||'light'}))}
 /* ---- Rival companies (CONTRACT.md) ----
    battleRival(id): the rival company record (rivalById from 15-factions.js / 40-world.js, else G.rivals), or null.
    rivalField(r): the mercs it fields, at most MAXRIVAL: those not benched (m.field!==false) first, in roster order; the dead never.
@@ -376,7 +376,7 @@ function swapWeapons(u){if(!canSwap(u))return false;const from=u.wpn;u.ld=Object
   const dh=s.hp-ld.hp;if(dh){u.hpMax=Math.max(1,u.hpMax+dh);if(dh>0)u.hp+=dh;u.hp=Math.min(u.hp,u.hpMax)}u.fatMax=Math.max(30,u.fatMax+s.fat-ld.fat);u.dmgB=(u.dmgB||0)+s.dmg-ld.dmg;u.apMax+=s.ap-ld.ap;
   const shAbs=id=>AB[id]&&AB[id].shield,keep=u.abs.filter(id=>!ld.abs.includes(id));u.abs=s.abs.filter(id=>!shAbs(id)).concat(keep.filter(id=>!s.abs.includes(id)&&!shAbs(id)));
   for(const k in s.res)if(!u.res[k])u.res[k]={cur:0,max:s.res[k].max,regen:s.res[k].regen};
-  u.flags=s.flags;u.wpn=s.wpn;u.hand=hand;u.wid=s.wid;u.alt=s.alt;u.cld=s}
+  u.flags=s.flags;u.wpn=s.wpn;u.hand=hand;u.wid=s.wid;u.alt=s.alt;u.cld=s;u.dw=s.dw||null}   // the off-hand weapon is in use only beside a one-handed melee weapon (11w-dualwield.js)
  else{const w=u.wpn;u.wpn=u.wpnAlt;u.wpnAlt=w;u.abs=u.abs.filter(id=>!(AB[id]&&AB[id].shield))}
  const intact=u.shpMax>0&&u.shp>0&&(u.shield||u.slung),up=!u.wpn.two;
  if(intact&&u.shield&&!up){u.shield=false;u.slung=true;if(u.shb){u.md-=u.shb.md;u.rd-=u.shb.rd}dropBuff(u,'shieldwall');FX.emit('shield',{u,raised:false})}
@@ -387,13 +387,13 @@ function swapWeapons(u){if(!canSwap(u))return false;const from=u.wpn;u.ld=Object
  float(u,u.wpn.n||'Fists','#e9e0c9');FX.emit('swap',{u,from,to:u.wpn});return true}
 // Why u cannot use a now ('' when it can): for the HUD. Mirrors canUse().
 function useBlock(u,a){if(!u||!a)return'Unavailable';if(u.mor===0)return'Fleeing';if(a.swapW&&!canSwap(u))return'No other weapon';
- if(!needsOK(a,u.wpn.wt))return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||needsN(a)+' in hand');if(a.fresh&&u.ap<u.apMax)return'Only as the first action of a turn';if(a.light&&!isLightW(u.wpn))return'Needs a light weapon in hand (a dagger, a one-handed blade of at most '+LIGHTW.fat+' fatigue, or fists)';if(a.offhand&&(u.shield||u.wpn.two))return'Needs a free off hand: no shield raised, no two-handed weapon';if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
+ if(!needsOK(a,u.wpn.wt))return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||needsN(a)+' in hand');if(a.fresh&&u.ap<u.apMax)return'Only as the first action of a turn';if(a.light&&!isLightW(u.wpn))return'Needs a light weapon in hand (a dagger, a one-handed blade of at most '+LIGHTW.fat+' fatigue, or fists)';if(a.offhand&&(u.shield||u.wpn.two||u.dw))return'Needs a free off hand: no shield raised, no off-hand weapon, no two-handed weapon';if(a.dual&&!u.dw)return u.m&&u.cld&&u.cld.dwIdle?'Needs a one-handed melee weapon in hand beside the off-hand weapon':'Needs a weapon in each hand';if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
  if(a.noBow&&isRangedW(u.wpn))return'Not with a ranged weapon in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
  if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(!canFire(u,a))return'Not loaded: reload first';
  if(a.reloadW&&!u.wpn.reload)return'Nothing to reload';if(a.reloadW&&u.loaded!==false)return'Already loaded';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
  if(u.ap<a.ap)return'Not enough AP';if(u.fat+a.fat>u.fatMax)return'Too tired';return''}
-function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;if(a.light&&!isLightW(u.wpn))return false;if(a.offhand&&(u.shield||u.wpn.two))return false;
+function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;if(a.light&&!isLightW(u.wpn))return false;if(a.offhand&&(u.shield||u.wpn.two||u.dw))return false;if(a.dual&&!u.dw)return false;
  if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;
  if(a.noBow&&isRangedW(u.wpn))return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;if(!canFire(u,a))return false;
  if(a.reloadW&&(!u.wpn.reload||u.loaded!==false))return false;return true}
@@ -440,7 +440,7 @@ const morOf=u=>MORFX[u.mor==null?3:u.mor]||MORFX[3];
 const STBONUS={marked:15},WEAKDMG=.25;
 function hasAdj(x,side,not){for(const o of B.units)if(o.alive&&o!==x&&o!==not&&o.side===side&&mdist(o,x)===1)return true;return false}
 function bestAdj(x,k){let v=0;for(const o of B.units)if(o.alive&&o!==x&&o.side===x.side&&o.flags&&o.flags[k]>v&&mdist(o,x)===1)v=o.flags[k];return v}
-const isDuel=(u,a)=>!a.magic&&!u.wpn.two&&!isRangedW(u.wpn)&&!u.shield;
+const isDuel=(u,a)=>!a.magic&&!u.wpn.two&&!isRangedW(u.wpn)&&!u.shield&&!u.dw;   // a free off hand: no shield raised, no off-hand weapon (11w-dualwield.js)
 /* ---- Rogues: the Assassin, Rogue and Shadowdancer trees (MAST in 10-data.js; abilities, statuses and the rest in 64r-rogues.js) ----
    isLightW(w): a light weapon: bare fists, any dagger, or a one-handed melee weapon of at most LIGHTW.fat fatigue (short swords, the
    wakizashi). notActed(t): t still waits for its turn this round (it is in B.order). impaired(t): dazed, blinded, stunned, rooted,
@@ -704,6 +704,7 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
    if(B===b&&u.alive&&(!a.dash||mdist(u,t)===1||u.wpn.rng>=mdist(u,t))){
     if(losInfo(u,t,a).blocked){float(u,'No line of fire','#c8d0d8');FX.emit('blocked',{u,t});await sleep(200)}
     else{const beyond=a.through?lineBeyond(u,t,a.through):[];await strike(u,t,a);for(let i=1;i<(a.hits||1)&&B===b&&t.alive&&u.alive;i++)await strike(u,t,a);
+    if((a.dwOff||a.dwSeq)&&u.dw&&B===b&&typeof dwFollow==='function')await dwFollow(u,t,a);   // Twin blades: the off-hand blows (64w-dualwield.js)
     for(const o of beyond){if(B!==b||!u.alive)break;if(o.alive){FX.shot(t,o,'#e9e0c9',22,22);await strike(u,o,a,{splash:THROUGH,noShot:1})}}
     if(a.aoe)for(const o of b.units.filter(o=>o.alive&&o.side!==u.side&&o!==t&&mdist(o,t)===1)){if(B!==b)break;await strike(u,o,a,{splash:.7})}
     if(a.chain){let last=t;const hit=[t];for(let i=0;i<a.chain&&B===b;i++){const n=b.units.filter(o=>o.alive&&o.side!==u.side&&!hit.includes(o)&&mdist(o,last)<=3).sort((x,y)=>mdist(x,last)-mdist(y,last))[0];if(!n)break;FX.shot(last,n,'#c9a8ff',22,22);await strike(u,n,a,{splash:.6,auto:1,noShot:1});hit.push(n);last=n}}}}}}

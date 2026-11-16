@@ -30,7 +30,7 @@ function coArmorW(m){const a=ITEMS[m.eq.a];return!a?'Unarmored':a.arm<=60?'Light
 function tlGiftStyle(k){const T=MAST[k];return!T?'':T.style||({mana:'caster',chi:'support'})[T.res]||'melee'}
 function coRole(m,s){const w=s.wpn||FIST,a=ITEMS[m.eq.a],g=tlGift(m),r=g?MAST[g].res:null,gs=g?tlGiftStyle(g):'',woke=!!(r&&s.res&&s.res[r]&&s.res[r].max>0);
  if(w.wt==='bow')return'Archer';if((woke&&gs==='caster')||(r==='mana'&&w.wt==='staff'))return'Mage';if(woke&&gs==='support')return'Support';
- if(m.eq.s&&!w.two)return a&&a.arm>=150?'Bulwark':'Shield line';if(w.two)return w.rng>1?'Pikeman':'Striker';if(w.wt==='dagger'||w.wt==='fist')return'Skirmisher';return a&&a.arm>=150?'Man-at-arms':'Fighter'}
+ if(tlOffW(m)&&!w.two&&!isRangedW(w))return'Twin blades';if(m.eq.s&&!w.two&&!tlOffW(m))return a&&a.arm>=150?'Bulwark':'Shield line';if(w.two)return w.rng>1?'Pikeman':'Striker';if(w.wt==='dagger'||w.wt==='fist')return'Skirmisher';return a&&a.arm>=150?'Man-at-arms':'Fighter'}
 /* the merc's trees at a glance: style trees (perks learned), the gift in its colour, then the weapon families it may train */
 function coTreeStrip(m,O){O=O||tlOpts(m);let h='',sep=false;
  for(const x of tlTrees(m)){const n=O.filter(o=>o.key===x.key&&o.owned).length,r=tlGiftRes(x.key);
@@ -148,16 +148,17 @@ function coCondRow(k,id,cur,mx){const it=ITEMS[id];if(!it)return`<div class="pd-
  return`<div class="pd-c${cur<mx?' worn':''}" data-cond="${k}">${k==='h'?coIc('helmet'):pnItemIcon(id,16)}<b>${pnItemName(id)}</b><small>${cur<mx?cur+'/'+mx:mx}</small>${pnBar(mx?100*cur/mx:0,cur<mx?'worn':'ar')}</div>`}
 function coInjList(m){const L=cpInj(m);if(!L.length)return'';
  return`<div class="ch-inj" aria-label="Injuries">${L.map(j=>`<div class="ch-ij${j.perm?' perm':''}" data-inj="${j.id}" title="${j.lore}">${cpInjIcon(j.id)}<span><b>${j.n}</b><small>${j.d}</small></span><em>${cpInjDays(j)}</em></div>`).join('')}</div>`}
+function coSlotN(m,k){return k==='s'&&tlOffW(m)?'Off hand':SLOTN[k]}   // the shield slot holding an off-hand weapon (11w-dualwield.js)
 function coSlotIcon(k){return k==='w'||k==='b'?'fist':k==='s'?'shield':k==='h'?'helmet':'armor-light'}
 function coBanChip(m){const L=m.eq.c&&typeof mercLivery==='function'?mercLivery(m):null;return L&&typeof bannerHTML==='function'?`<span class="pd-ban" title="In the colours: ${coatColoursText(L)}">${bannerHTML(L,32)}</span>`:''}
-function coSlotFit(k){const want=k==='b'?'w':k;return G.stash.filter(x=>ITEMS[x]&&ITEMS[x].k===want).length}
+function coSlotFit(k){return G.stash.filter(x=>ITEMS[x]&&(typeof slotTakes==='function'?slotTakes(k,x):ITEMS[x].k===(k==='b'?'w':k))).length}
 function coSlotBtn(m,i,k,cls){const id=m.eq[k],it=ITEMS[id],fit=coSlotFit(k),on=coView==='slot'&&coSlot===k,e=m.eq,blocked=k==='s'&&!id&&tlTwo(e.w)&&tlTwo(e.b),slung=k==='s'&&tlSlung(m);
  const ic=id?pnItemIcon(id,32):coIc(coSlotIcon(k),32),wsub=x=>`${x.d[0]}–${x.d[1]} · ${x.two?'2H':'1H'}`;
  const name=it?pnItemName(id):blocked?'Both hands full':k==='w'?'Bare fists':k==='b'?'No backup':'No shield',
-  sub=it?(k==='w'||k==='b'?wsub(it):k==='s'?(slung?'<em>Slung</em>':'+'+it.md+' / +'+it.rd):''):k==='b'?'a sidearm to swap to':SLOTN[k];
+  sub=it?(k==='w'||k==='b'?wsub(it):k==='s'?(it.k==='w'?(slung?'<em>Idle</em>':'Off hand · '+it.d[0]+'–'+it.d[1]):slung?'<em>Slung</em>':'+'+it.md+' / +'+it.rd):''):k==='b'?'a sidearm to swap to':k==='s'?'Shield or off hand':SLOTN[k];
  if(k==='c'){const cs=it?itemDesc(id):'over the armor · tailors sell them';return`<button type="button" class="pd-s bk ct${id?'':' none'}${on?' on':''}" data-slot="c" aria-label="Surcoat: ${it?it.n:'none'}. ${fit} in the stash." onclick="slotSheet(${i},'c')"><span>${ic}${fit?`<i>${fit}</i>`:''}</span><b>${it?pnItemName(id):'No surcoat'}</b><small>${'Surcoat · '+cs}</small></button>`}
  if(k==='b')return`<button type="button" class="pd-s bk${id?'':' none'}${on?' on':''}" data-slot="b" aria-label="Backup weapon: ${it?it.n:'empty'}. ${fit} in the stash." onclick="slotSheet(${i},'b')"><span>${ic}${fit?`<i>${fit}</i>`:''}</span><b>${name}</b><small>${it?'Backup · '+wsub(it):'Backup · '+sub}</small></button>`;
- return`<button type="button" class="pd-s${id?'':' none'}${on?' on':''}${slung?' slung':''}${cls?' '+cls:''}" data-slot="${k}" aria-label="${SLOTN[k]}: ${it?it.n:'empty'}${slung?', slung while a two-handed weapon is in hand':''}. ${fit} in the stash." onclick="slotSheet(${i},'${k}')"><span>${ic}${fit?`<i>${fit}</i>`:''}</span>${cls?'':`<b>${name}</b><small>${sub}</small>`}</button>`}
+ return`<button type="button" class="pd-s${id?'':' none'}${on?' on':''}${slung?' slung':''}${cls?' '+cls:''}" data-slot="${k}" aria-label="${coSlotN(m,k)}: ${it?it.n:'empty'}${slung?(it&&it.k==='w'?', idle while the main weapon is in hand':', slung while a two-handed weapon is in hand'):''}. ${fit} in the stash." onclick="slotSheet(${i},'${k}')"><span>${ic}${fit?`<i>${fit}</i>`:''}</span>${cls?'':`<b>${name}</b><small>${sub}</small>`}</button>`}
 function coGiftChips(m,s){const g=tlGift(m),r=g?MAST[g].res:null;let h='';
  for(const k in s.res)if(k!==r)h+=`<span class="pn-chip g-${k}">${coIc(k)}${RESN[k]} ${s.res[k].max} <small>+${s.res[k].regen}</small></span>`;
  if(r){const R=s.res[r],lab=tlGiftLabel(g);h+=R&&R.max>0?`<span class="pn-chip g-${r}" title="${lab}">${coIc(r)}${RESN[r]} ${R.max} <small>+${R.regen}</small></span>`:`<span class="pn-chip g-${r} dorm" title="${lab}: sleeps until a perk of the tree is learned">${coIc(r)}${RESN[r]} sleeps</span>`}
@@ -169,7 +170,7 @@ function coLeft(m,i,s,ask){const cd=cpCond(m),g=tlGift(m),st=tlStyle(m);
 ${coInjList(m)}<div class="pd" aria-label="Equipment">${coSlotBtn(m,i,'w')}<div class="pd-fig" style="background-image:url(${coDoll()})">${coSlotBtn(m,i,'h','helm')}${coSlotBtn(m,i,'a','arm')}</div>${coSlotBtn(m,i,'s')}
 <div class="pd-bkr">${coSlotBtn(m,i,'b')}<button type="button" class="pn-btn sm ico pd-swap" data-swap="1" aria-label="Swap main and backup weapons" title="Swap main and backup" ${m.eq.w||m.eq.b?'':'disabled'} onclick="coSwap(${i})">${coIc('swap')}</button></div>
 <div class="pd-bkr pd-ctr">${coSlotBtn(m,i,'c')}${coBanChip(m)}</div>
-${tlSlung(m)?`<div class="pd-an slung">${coIc('shield')}<span><b>Shield slung</b> <small>while a two-handed weapon is in hand: no defense from it until the backup is drawn</small></span></div>`:''}
+${tlSlung(m)&&tlOffW(m)?`<div class="pd-an slung">${pnItemIcon(m.eq.s,16)}<span><b>Off hand idle</b> <small>a weapon in each hand needs a one-handed melee weapon in the main hand: the off-hand weapon fights again after a swap</small></span></div>`:''}${tlSlung(m)&&!tlOffW(m)?`<div class="pd-an slung">${coIc('shield')}<span><b>Shield slung</b> <small>while a two-handed weapon is in hand: no defense from it until the backup is drawn</small></span></div>`:''}
 <div class="pd-cs">${coCondRow('h',m.eq.h,cd.h,cd.hM)}${coCondRow('a',m.eq.a,cd.a,cd.aM)}</div></div>
 <div class="cst2">${coStatKeys(m,s).map(k=>coStat(m,s,k)).join('')}</div>${typeof traitChips==='function'?`<div class="ch-tr">${pnHead('Traits')}${traitChips(m,{full:1})}</div>`:''}${coDeeds(m)}${coQuarry(m)}`;
  h+=ask?`<div class="ch-ask">Send ${htmlEsc(m.name)} away for good? Their gear returns to the stash.<div><button type="button" class="pn-btn" onclick="coRender()">Keep</button><button type="button" class="pn-btn warn solid" onclick="dismiss(${i})">Dismiss</button></div></div>`
@@ -275,12 +276,13 @@ function coLvTiers(L,m){const out=[],at=m?tlTrees(m).filter(x=>x.kind==='armor')
 function coLvOpens(L,m){const T=coLvTiers(L,m),hk=m?tlTrees(m).find(x=>x.kind==='hunter'):null,hq=hk?tlTiers(hk.tree).findIndex((_,j)=>tlTierLv('hunter',j+1)===L):-1;if(!T.length&&hq<0)return'';
  const hp=hq>=0?(tlTiers(hk.tree)[hq]||[])[0]:null,hQ=hp?tlQuarryOf({perk:hp,id:hp.id}):null;
  return`<div class="pn-p tg-lvup">${hp?`<span class="tg-tag hunt">${coIc(hQ?tlQuarryIcon(hQ):tlTreeIcon(hk.key))}${hQ?'Quarry opens: '+htmlEsc(QUARRY[hQ].n):'Hunter tier '+TG_ROM[hq]+' opens'}</span>`:''}${T.map(x=>x.kind==='armor'?`<span class="tg-tag w a">${coIc('armor')}${x.t===1?'Armor trees open':'Armor tier '+TG_ROM[x.t-1]+' opens'}</span>`:x.kind==='weapon'?`<span class="tg-tag w">${coIc('swords')}${x.t===1?'Weapon masteries open':'Weapon tier '+TG_ROM[x.t-1]+' opens'}</span>`:`<span class="tg-tag">${coIc('level')}New tier unlocked: tier ${TG_ROM[x.t-1]}</span>`).join('')}</div>`}
-function coSlotView(m,i,k){const cur=m.eq[k],want=k==='b'?'w':k,list=G.stash.map((id,j)=>[id,j]).filter(([id])=>ITEMS[id]&&ITEMS[id].k===want),N={w:'Weapons',b:'Weapons',s:'Shields',a:'Armor',h:'Helmets',c:'Surcoats'};
- let h=`<div class="pn-kick">${htmlEsc(m.name)}, ${k==='b'?'backup weapon':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
+function coSlotView(m,i,k){const cur=m.eq[k],want=k==='b'?'w':k,list=G.stash.map((id,j)=>[id,j]).filter(([id])=>ITEMS[id]&&(typeof slotTakes==='function'?slotTakes(k,id):ITEMS[id].k===want)).sort((x,y)=>k==='s'?(ITEMS[x[0]].k==='s'?0:1)-(ITEMS[y[0]].k==='s'?0:1):0),N={w:'Weapons',b:'Weapons',s:'Shields and off-hand weapons',a:'Armor',h:'Helmets',c:'Surcoats'};
+ let h=`<div class="pn-kick">${htmlEsc(m.name)}, ${k==='b'?'backup weapon':k==='s'?'shield or off-hand':SLOTN[k].toLowerCase()} slot</div><div class="pn-h">${N[k]} in the stash</div>
  <div class="pn-gear cur${cur?'':' none'}">${cur?pnItemIcon(cur,32):coIc(coSlotIcon(k),32)}<span class="pn-rmain"><span class="pn-rt">${cur?pnItemName(cur)+pnFamedTag(cur):'Nothing equipped'}${cur?coGripTag(cur):''}</span><span class="pn-rs">${cur?coItemDesc(cur)+coWornNote(m,k):k==='w'?'Fighting with bare fists':k==='b'?'No sidearm to swap to':k==='h'?'Bare-headed: a blow to the head lands in full':k==='c'?'No surcoat: the armor shows bare':'Empty '+SLOTN[k].toLowerCase()+' slot'}</span></span><span class="pn-slot">${k==='b'?'At the hip':'In use'}</span></div>`;
  if(k==='b')h+=`<p class="pn-p dim">The backup rides at the hip. In battle, <b>Swap weapons</b> (2 AP) puts it in hand. A bow cannot shoot with a foe standing next to you: an archer wants a dagger or a sword here.</p>`;
  if(k==='s'&&tlTwo(m.eq.w)&&tlTwo(m.eq.b))h+=`<p class="pn-p warn">${tlEquipRule(m,'s',list.length?list[0][0]:'buckler').why||'Both hands are full: a shield needs a one-handed weapon in one of the two weapon slots'}.</p>`;
  else if(k==='s'&&tlTwo(m.eq.w))h+=`<p class="pn-p dim">A shield is slung while a two-handed weapon is in hand: it gives no defense until the backup is drawn, but its weight still counts.</p>`;
+ if(k==='s')h+=`<p class="pn-p dim">Instead of a shield, a light one-handed weapon (a dagger, a fist weapon, a blade of at most ${typeof DW==='object'?DW.fat:8} fatigue, a hatchet) can go in the off hand, beside a one-handed melee weapon. After every Attack it strikes too: at half its damage and −10 to hit, until the Twin blades tree trains the hand.</p>`;
  if(k==='c')h+=`<p class="pn-p dim">A surcoat is worn over the body armor in the company's colours, its emblem on the chest and the back.</p>`;
  if(!list.length)h+=`<p class="pn-p dim">${k==='c'?'No surcoat in the stash. Every town tailor cuts them.':'Nothing that fits. Buy gear at a market or take it from the fallen.'}</p>`;else h+=pnHead('Tap to equip');
  list.forEach(([id,j])=>{const r=tlEquipRule(m,k,id),drop=(k==='w'||k==='b')&&r.ok&&tlDropsShield(m,k,id);
@@ -326,10 +328,11 @@ function slotSheet(i,k){coSel=G.roster[i].id;coLast=i;coView='slot';coSlot=k;coS
 /* equip(i, slot, stashIndex): slot 'w' main weapon, 'b' backup weapon, 's' shield, 'a' armor, 'h' helmet; stashIndex -1 unequips.
    The rules' equipRules decides what may go where; a refusal is toasted with its reason and nothing changes. */
 function equip(i,k,j){const m=G.roster[i];if(!m)return false;if(!('b' in m.eq))m.eq.b=null;const was=m.eq[k];
- if(j>=0){const id=G.stash[j],want=k==='b'?'w':k;if(!ITEMS[id]||ITEMS[id].k!==want)return false;const r=tlEquipRule(m,k,id);if(!r.ok){if(typeof toast==='function')toast(r.why||'Cannot be equipped');return false}
+ if(j>=0){const id=G.stash[j],want=k==='b'?'w':k;if(!ITEMS[id]||(typeof slotTakes==='function'?!slotTakes(k,id):ITEMS[id].k!==want))return false;const r=tlEquipRule(m,k,id);if(!r.ok){if(typeof toast==='function')toast(r.why||'Cannot be equipped');return false}
   const drop=(k==='w'||k==='b')&&tlDropsShield(m,k,id);G.stash.splice(j,1);if(m.eq[k])G.stash.push(m.eq[k]);m.eq[k]=id;
-  if(drop&&m.eq.s){G.stash.push(m.eq.s);m.eq.s=null;if(typeof toast==='function')toast('Both hands full: the shield goes to the stash')}}
+  if(drop&&m.eq.s){const ow=ITEMS[m.eq.s]&&ITEMS[m.eq.s].k==='w';G.stash.push(m.eq.s);m.eq.s=null;if(typeof toast==='function')toast(ow?'Nothing left to fight beside: the off-hand weapon goes to the stash':'Both hands full: the shield goes to the stash')}}
  else if(m.eq[k]){G.stash.push(m.eq[k]);m.eq[k]=null}
+ {const d=typeof fixHands==='function'?fixHands(m):null;if(d){G.stash.push(d);if(typeof toast==='function')toast(ITEMS[d]&&ITEMS[d].k==='w'?'Nothing left to fight beside: the off-hand weapon goes to the stash':'Both hands full: the shield goes to the stash')}}   // an off-hand weapon needs a one-handed melee weapon beside it
  if((k==='a'||k==='h')&&m.eq[k]!==was&&m.cond&&typeof m.cond==='object'){delete m.cond[k];if(m.cond.a===undefined&&m.cond.h===undefined)delete m.cond}   // a piece from the stash is whole
  mercSheet(i);save();return m.eq[k]!==was}
 let lvSel=[];
