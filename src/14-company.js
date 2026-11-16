@@ -168,6 +168,8 @@ function ambGear(){const mt=clamp(renownTier()+1,2,5),P=Object.keys(ITEMS).filte
 function ambCelHTML(e){const fx=typeof reduced!=='undefined'&&reduced?'':' amb-anim';
  if(e.k==='tier'){const D=renownDef(e.t),L=renownUnlocks(e.t);
   return`<div class="amb-cel tier${fx}"><div class="amb-rays"></div><div class="amb-ic">${pxIcon('renown',48)}</div><div class="amb-kick">Renown tier ${e.t} of ${RENOWN.length}</div><h2 class="amb-h">${G.name?htmlEsc(G.name)+' is ':'The company is '}${D.n}</h2><p class="amb-p">${D.d}</p>${L.length?`<ul class="amb-ul">${L.map(x=>`<li>${pxIcon('check',16)}<span>${x}</span></li>`).join('')}</ul>`:''}<div class="row amb-row"><button class="pri" onclick="ambCelClose()">Onward</button></div></div>`}
+ if(e.k==='first'){if(G.amb.cur)return'';const L=(G.amb.offered||[]).filter(id=>AMBITIONS[id]);
+  return`<div class="amb-cel${fx}"><div class="amb-rays"></div><div class="amb-ic">${pxIcon('ambition',48)}</div><div class="amb-kick">A new banner</div><h2 class="amb-h">Choose an ambition</h2><p class="amb-p">Every company needs something to march for. Take up an ambition: fulfil it for renown, coin and gear, and the next one waits behind it.</p>${L.length?`<div class="amb-chips">${L.map(id=>`<span class="amb-chip">${pxIcon('ambition',16)}${AMBITIONS[id].n}</span>`).join('')}</div>`:''}<div class="row amb-row"><button onclick="ambCelClose()">Later</button><button class="pri" onclick="ambCelClose(1)">Choose an ambition</button></div></div>`}
  const A=AMBITIONS[e.id];if(!A)return'';const R=A.reward||{},chips=[];
  if(R.renown)chips.push(`<span class="amb-chip">${pxIcon('renown',16)}+${R.renown} renown</span>`);if(R.crowns)chips.push(`<span class="amb-chip">${pxIcon('coin',16)}${R.crowns} crowns</span>`);
  if(R.tools)chips.push(`<span class="amb-chip">${pxIcon('tools',16)}${R.tools} tools</span>`);if(e.item&&ITEMS[e.item])chips.push(`<span class="amb-chip it">${typeof pnItemIcon==='function'?pnItemIcon(e.item,16):''}${ITEMS[e.item].n}</span>`);
@@ -206,7 +208,7 @@ function openAmbitions(sel){if(!G)return;if(!G.amb)G.amb=ambNew();ambOffer();if(
   list,listKey:'amb:list',detail,detailKey:'amb:'+ambSel,foot})}
 
 /* ---- saves: validates the progression fields in place (repairSave calls it); also gives defaults to an older company ---- */
-function companyNew(g){g.retinue=[];g.amb=ambNew();g.amb.rt=renownTier(g.renown||0);ambOffer(g);return g}
+function companyNew(g){g.retinue=[];g.amb=ambNew();g.amb.rt=renownTier(g.renown||0);ambOffer(g);g.amb.cel.push({k:'first'});return g}   // a new company is asked for its first ambition with the same card the later ones get
 function companyRepair(g){if(!g||typeof g!=='object')return'';const seen={};
  g.retinue=Array.isArray(g.retinue)?g.retinue.filter(id=>typeof id==='string'&&FOLLOWERS[id]&&!seen[id]&&(seen[id]=1)).slice(0,RENOWN[RENOWN.length-1].slots):[];
  const a=g.amb&&typeof g.amb==='object'&&!Array.isArray(g.amb)?g.amb:{},ids=x=>{const s={};return(Array.isArray(x)?x:[]).filter(id=>typeof id==='string'&&AMBITIONS[id]&&!s[id]&&(s[id]=1))};
