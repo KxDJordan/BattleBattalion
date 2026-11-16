@@ -150,7 +150,7 @@ function houseRelation(a,b){if(a===b)return 'self';if(!humanFact(a)||!humanFact(
    Refuses (ok:false, msg) when the town lacks the building, its markets are closed, or crowns run short. Uses no randomness except the
    time it passes (advanceTime). */
 const BLDK={repairPt:.35,respec0:150,respecPer:60,hallK:1.25,sailBase:40,sailPer:6,sailTiles:22};
-function bldMerc(id){return G&&G.roster?G.roster.find(m=>m.id===id)||null:null}
+function bldMerc(id){return G&&G.roster&&id!=null?G.roster.find(m=>String(m.id)===String(id))||null:null}   // the UI passes ids as text (onclick strings), the roster keeps numbers
 function bldTop(i,f,n){const t=G.towns[i],cap=Math.min(5,(typeof marketTier==='function'?marketTier(t.size,G.day):2)+1);
  return Object.keys(ITEMS).filter(k=>{const it=ITEMS[k];return!it.uniq&&!it.famed&&(it.tier||1)<=cap&&f(it)}).sort((a,b)=>(ITEMS[b].tier||1)-(ITEMS[a].tier||1)||ITEMS[b].price-ITEMS[a].price||(a<b?-1:1)).slice(0,n||6)}
 function bldPrice(i,base,kind){return Math.max(1,Math.round(base*townPriceK(i,kind||'buy')/5)*5)}

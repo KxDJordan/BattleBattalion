@@ -7483,7 +7483,7 @@ function hrKey(a,b){return a<b?a+'|'+b:b+'|'+a}
 function houseRel(a,b){if(a===b)return 100;if(!isHouse(a)||!isHouse(b))return humanFact(a)&&humanFact(b)?0:-100;return svNum(G.hrel&&G.hrel[hrKey(a,b)],0)}
 function atWar(a,b){if(!G||!Array.isArray(G.wars))return false;const k=hrKey(a,b);return G.wars.some(w=>hrKey(w.a,w.b)===k)}
 function houseRelation(a,b){if(a===b)return'self';if(!humanFact(a)||!humanFact(b))return'war';if(atWar(a,b))return'war';const v=houseRel(a,b);return v<-20?'tense':v>45?'ally':'peace'}
-const BLDK={repairPt:.35,respec0:150,respecPer:60,hallK:1.25,sailBase:40,sailPer:6,sailTiles:22};function bldMerc(id){return G&&G.roster?G.roster.find(m=>m.id===id)||null:null}
+const BLDK={repairPt:.35,respec0:150,respecPer:60,hallK:1.25,sailBase:40,sailPer:6,sailTiles:22};function bldMerc(id){return G&&G.roster&&id!=null?G.roster.find(m=>String(m.id)===String(id))||null:null}
 function bldTop(i,f,n){const t=G.towns[i],cap=Math.min(5,(typeof marketTier==='function'?marketTier(t.size,G.day):2)+1);return Object.keys(ITEMS).filter(k=>{const it=ITEMS[k];return!it.uniq&&!it.famed&&(it.tier||1)<=cap&&f(it)}).sort((a,b)=>(ITEMS[b].tier||1)-(ITEMS[a].tier||1)||ITEMS[b].price-ITEMS[a].price||(a<b?-1:1)).slice(0,n||6)}
 function bldPrice(i,base,kind){return Math.max(1,Math.round(base*townPriceK(i,kind||'buy')/5)*5)}
 function harbourList(i){const t=G.towns[i],out=[];if(!t||!townHas(i,'harbour'))return out;G.towns.forEach((o,j)=>{if(j===i||!Array.isArray(o.bld)||!o.bld.includes('harbour'))return;const d=Math.hypot(o.x-t.x,o.y-t.y)/TS;out.push({to:j,n:o.name,days:Math.max(1,Math.ceil(d/BLDK.sailTiles)),cost:bldPrice(i,BLDK.sailBase+G.roster.length*8+d*BLDK.sailPer),closed:townHostile(j)})});return out}
