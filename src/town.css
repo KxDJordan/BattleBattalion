@@ -36,7 +36,7 @@
 @keyframes tv-bob{50%{transform:translateY(-2px)}}
 
 /* arrival notice */
-#tv .tv-note{position:absolute;left:50%;top:calc(var(--sat,0px) + 52px);transform:translateX(-50%);display:none;align-items:center;gap:8px;max-width:min(86%,460px);padding:7px 14px 8px;pointer-events:none;
+#tv .tv-note{position:absolute;z-index:8;left:50%;top:calc(var(--sat,0px) + 96px);   /* below the name and purse boxes and the top row of building labels, above them all in depth */transform:translateX(-50%);display:none;align-items:center;gap:8px;max-width:min(86%,460px);padding:7px 14px 8px;pointer-events:none;
  font-family:'Alegreya Sans',system-ui,sans-serif;font-size:15px;font-weight:700;line-height:1.25;color:#e9e0c9;box-shadow:inset 0 0 0 2px #8a6a2a,inset 0 2px 0 2px #d1a94e,4px 4px 0 #0b151499}
 #tv .tv-note.on{display:flex;animation:tv-note .4s steps(4) both}
 #tv .tv-note p{margin:0}

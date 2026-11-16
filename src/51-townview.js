@@ -500,7 +500,9 @@ function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=
  // the temple's plate sits above its bell: slide it sideways when the town's nameplate or the purse is in the way
  {const ups=[];P.querySelectorAll('.tv-plate.up').forEach(e=>{e.style.marginLeft='';const r=e.getBoundingClientRect();let dx=0;for(const q of [tvRect($('tvName').parentNode),tvRect($('tvRes'))].concat(ups)){if(!q||r.bottom<q.top-2||r.top>q.bottom+4)continue;if(r.left+dx<q.right+8&&r.right+dx>q.left-8)dx+=q.left<vw/2?q.right+8-(r.left+dx):q.left-8-(r.right+dx)}
    if(r.left+dx<6)dx=6-r.left;if(r.right+dx>vw-6)dx=vw-6-r.right;if(dx)e.style.marginLeft=dx+'px';ups.push({left:r.left+dx,right:r.right+dx,top:r.top,bottom:r.bottom})})}
- const N=$('tvNote');N.innerHTML=TV.note?`${TV.paid?tvIcon('coin',32):''}<div>${TV.note}</div>`:'';N.classList.toggle('on',!!TV.note);N.classList.toggle('paid',!!TV.paid)}
+ const N=$('tvNote');N.innerHTML=TV.note?`${TV.paid?tvIcon('coin',32):''}<div>${TV.note}</div>`:'';N.classList.toggle('on',!!TV.note);N.classList.toggle('paid',!!TV.paid);
+ // the note (a contract paid, a town's news) stays a few seconds, then gets out of the way of the street; a new note restarts the clock
+ if(TV.note&&N.dataset.t!==TV.note){N.dataset.t=TV.note;clearTimeout(TV.noteT);const t0=TV.note;TV.noteT=setTimeout(()=>{if(TV.note!==t0)return;TV.note='';TV.paid=false;N.classList.remove('on');N.dataset.t=''},7000)}else if(!TV.note)N.dataset.t=''}
 /* show the scene for the current town. Returns false when there is no real canvas (headless), so the caller falls back to the panel. */
 function tvShow(note){if(!tvCan()||!G||G.town==null||!G.towns[G.town])return false;
  if(typeof panelOpen==='function'&&panelOpen()&&!closePanel(true))return false;
