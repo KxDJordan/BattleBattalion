@@ -71,7 +71,7 @@ function twShut(){if(!twHostile())return false;toast('The market is closed to th
    closes; else the town opens at once. openTown(i) itself never rolls an event (tests and inner calls use it directly). */
 function enterTown(i){if(typeof eventTick==='function'){let r=false;try{r=eventTick('town',{town:i,then:()=>openTown(i)})}catch(e){r=false}if(r)return'event'}openTown(i);return'open'}
 function openTown(i){G.town=i;const t=G.towns[i];if(G.day-t.ref>=2)stockTown(t);let note='';const c=G.contract;
- if(c&&typeof ctrTurnIn==='function'){const r=ctrTurnIn(i);if(r)note=`<p class="good">${r.text}</p>`}
+ if(c&&typeof ctrTurnIn==='function'){const r=ctrTurnIn(i);if(r&&r.betray&&typeof ctrBetrayShow==='function'&&ctrBetrayShow(i))return;if(r&&r.ok)note=`<p class="good">${r.text}</p>`}   // a betrayal: its choice first (16-contracts.js), the town opens after
  else if(c&&((c.type==='deliver'&&c.to===i)||(c.type==='hunt'&&c.done&&c.town===i))){G.crowns+=c.pay;G.renown+=8*c.diff;note=`<p class="good">Contract fulfilled. You are paid ${c.pay} crowns and gain ${8*c.diff} renown.</p>`;G.contract=null;if(typeof ambEvent==='function')ambEvent('contract',c)}
  if(twHostile(i))note+=`<p class="bad">${typeof townHostileWhy==='function'?townHostileWhy(i):'The owner of this town is hostile to the company: its market, tavern and notice board are closed to you.'}</p>`;
  townTab='contracts';townSel={contracts:0,tavern:0,market:'food',temple:0,tailor:0,tav:'rec',ret:null};if(typeof TLR!=='undefined')TLR.draft=null;panelForget('town:');
