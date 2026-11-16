@@ -118,7 +118,7 @@ function closeSheet(quiet){const s=$('sheet'),was=sheetOpen&&!s.classList.contai
  if(!_closing&&typeof closeMap==='function'){_closing=true;try{closeMap(quiet)}catch(e){}_closing=false}
  sheetOpen=false;if(G)G.townOpen=false;if(!quiet)save();
  if(rc&&rc.width>0&&!(Wipe.job&&!Wipe.job.close))Wipe.play('dither',rc,130)}
-let toastT=0;function toast(t){const e=$('toast');e.textContent=t;e.classList.toggle('top',typeof panelOpen==='function'&&!!panelOpen());e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),2600)}
+let toastT=0;function toast(t){const e=$('toast');e.textContent=t;e.classList.toggle('top',(typeof panelOpen==='function'&&!!panelOpen())||(typeof TV!=='undefined'&&!!TV&&!!TV.shown));e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),2600)}
 function setUI(){const w=mode==='world',b=mode==='battle',t=mode==='title';
  $('title').classList.toggle('hidden',!t);
  ['hud','wbar','wmap'].forEach(id=>$(id).classList.toggle('hidden',!w));

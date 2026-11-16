@@ -412,9 +412,20 @@ function wsStep(p){if(p.siege!=null||p.siegeT!=null||p.clash||p.gar!=null)return
 
 /* ---- nests ---- */
 function nestBattle(id){const n=G.nests&&G.nests.find(q=>q.id===id);if(!n)return null;return{f:n.f,mult:Math.round((.7+n.str*.3)*100)/100,src:{type:'nest',id}}}
+// a nest's hoard: what the company carries off when it clears one on its own account (a contract's nest pays through the contract)
+function nestHoard(n){return Math.round(40+55*(+n.str||1))}
+function nestOnContract(id){const c=G&&G.contract;return!!(c&&!c.failed&&c.type==='nest'&&c.nest===id)}
+/* nestSheet(id): standing at a monster nest, the company may attack it (the same fight a nest contract asks for: nestBattle) or leave it */
+function nestSheet(id){const n=G.nests&&G.nests.find(q=>q.id===id);if(!n)return false;const F=FACT[n.f]||{n:'Monster'},ti=typeof waNestTier==='function'?waNestTier(n):1,o=nestBattle(id),m=o?o.mult:1,
+  T=G.towns[nearestTown(n.x,n.y)],ctr=nestOnContract(id),odds=m<.85?'weaker than the company':m<=1.15?'about a match for the company':m<=1.5?'stronger than the company':'far stronger than the company';
+ sheet(`<h2>The ${htmlEsc(F.n.toLowerCase())}${/s$/.test(F.n)?"'":"'s"} nest: ${['a burrow','a lair','a stronghold'][ti-1]||'a lair'}</h2><p>${ti>=2?'It sends bands out, and raiders against the towns nearby. ':'Still small: easiest to clear now. '}It grows stronger every day it stands.</p>
+ <p>What waits inside is <b>${odds}</b> (x${m.toFixed(2)}).</p>
+ <p>Clearing it: <b>+${Math.round(4+(+n.str||1)*4)} renown</b>, standing with ${T?(T.own&&T.own!=='free'&&typeof factName==='function'?htmlEsc(factName(T.own)):'the folk of '+htmlEsc(T.name)):'the nearest town'}${ctr?', and your contract is done':`, and its hoard of about <b>${nestHoard(n)} crowns</b>`}.</p>
+ <div class="row"><button class="pri" style="flex:1" onclick="nestAttack(${id})">Attack the nest</button><button onclick="closeSheet()">Leave it</button></div>`);return true}
+function nestAttack(id){const o=nestBattle(id);if(!o)return null;if(typeof closeSheet==='function')closeSheet(true);G.moving=false;G.route=[];engage(o);return o}
 function nestClear(id,out){const n=G.nests&&G.nests.find(q=>q.id===id);if(!n)return false;G.nests=G.nests.filter(q=>q.id!==id);
  for(const p of G.parties)if(p.home===id&&p.goal==='nest'){p.home=null;p.goal='roam'}const ti=nearestTown(n.x,n.y),own=G.towns[ti].own,d=repGain(own,Math.round(5+n.str*3),'Cleared a nest near '+G.towns[ti].name);
- if(out&&d)out.rep.push({f:own,n:d});G.renown+=Math.round(4+n.str*4);worldNews(`A ${FACT[n.f].n.toLowerCase()} nest near ${G.towns[ti].name} was cleared`);return true}
+ if(out&&d)out.rep.push({f:own,n:d});G.renown+=Math.round(4+n.str*4);if(out&&!nestOnContract(id)){const h=nestHoard(n);G.crowns+=h;out.crowns=(out.crowns||0)+h}worldNews(`A ${FACT[n.f].n.toLowerCase()} nest near ${G.towns[ti].name} was cleared`);return true}
 function wsNestSpot(){const F=worldFields();if(!F)return null;for(let a=0;a<80;a++){const x=ri(3,WN-4),y=ri(3,WN-4),i=y*WN+x;if(!W.ok[i]||F.td[i]<6)continue;const px=(x+.5)*TS,py=(y+.5)*TS;
   if(G.nests.some(q=>Math.hypot(q.x-px,q.y-py)<9*TS)||Math.hypot(px-G.p.x,py-G.p.y)<8*TS)continue;return{x:px,y:py}}return null}
 function wsNests(news){const day=G.day,fs=['gob','bandit','beast'];if(day>=12)fs.push('orc','undead');if(typeof runModNestFs==='function')runModNestFs(fs);
@@ -547,7 +558,7 @@ function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNot
  {const tg=typeof ctrTargetAt==='function'?ctrTargetAt(p.x,p.y):null;if(tg){if(tg.o){G.moving=false;G.route=[];engage(tg.o);return}if(typeof ctrArrive==='function'&&ctrArrive(p.x,p.y)){G.moving=false;G.route=[];return}}
   else{const c=G.contract;if(c&&c.type==='hunt'&&!c.done&&Math.hypot(c.x-p.x,c.y-p.y)<.4*TS){G.moving=false;G.route=[];engage({f:c.f,mult:CTR_DIFFK[clamp(c.diff,1,CTR_DIFFK.length)-1],src:{type:'lair'}});return}}}
  if(!G.moving)arrive()}
-function arrive(){const d=G.dest;G.dest=null;G.tap=null;G.route=[];if(!d)return;if(d.type==='town'){if(typeof crTownSheet==='function'&&crTownHeld(d.i)&&crTownSheet(d.i))return;if(typeof enterTown==='function')enterTown(d.i);else openTown(d.i)}else if(d.type==='portal')portalSheet(d.id);else if(d.type==='site')siteSheet(d.id)}
+function arrive(){const d=G.dest;G.dest=null;G.tap=null;G.route=[];if(!d)return;if(d.type==='town'){if(typeof crTownSheet==='function'&&crTownHeld(d.i)&&crTownSheet(d.i))return;if(typeof enterTown==='function')enterTown(d.i);else openTown(d.i)}else if(d.type==='portal')portalSheet(d.id);else if(d.type==='site')siteSheet(d.id);else if(d.type==='nest')nestSheet(d.id)}
 /* camp(): the Camp button. On the road it halts the march; standing still it opens the camp screen (campOpen, 56-camp.js) in a real page,
    else (headless, no camp screen, or called from inside an open screen) rests at once: campRest(). */
 function camp(){if(G.moving){G.moving=false;G.route=[];return}if(typeof campOpen==='function'&&!sheetOpen&&mode==='world'&&typeof tvCan==='function'&&tvCan()){campOpen();return}return campRest()}

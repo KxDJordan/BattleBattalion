@@ -258,7 +258,7 @@ function mapRouteHours(){let h=0;for(const l of MP.legs)h+=l.hours;return h}
 function mpWpFromHit(h){if(h.kind==='town'){const t=G.towns[h.i];return{x:t.x,y:t.y,dest:{type:'town',i:h.i},kind:'town',ref:h.i,label:t.name}}
  if(h.kind==='portal'){const p=G.portals.find(p=>p.id===h.id);return p?{x:p.x,y:p.y,dest:{type:'portal',id:p.id},kind:'portal',ref:p.id,label:'Rift'}:null}
  if(h.kind==='lair')return{x:h.x,y:h.y,dest:null,kind:'lair',ref:0,label:h.label||'Lair'};
- if(h.kind==='nest')return{x:h.x,y:h.y,dest:null,kind:'nest',ref:h.id,label:'Nest'};
+ if(h.kind==='nest')return{x:h.x,y:h.y,dest:{type:'nest',id:h.id},kind:'nest',ref:h.id,label:'Nest'};
  if(h.kind==='dgn')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'dgn',ref:h.id,label:mpDgnName(h.id)};
  if(h.kind==='colo')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'colo',ref:h.id,label:'Colosseum'};
  if(h.kind==='crsite')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'ruin',ref:h.id,label:h.n};

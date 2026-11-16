@@ -186,6 +186,7 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
  out.cargo=cargoLine(out.world);
  if(B0res&&B0res.rival&&out.world){const rr=B0res.rival;rr.purse=Math.max(0,Math.round(+out.world.crowns||0));rr.renown=Math.max(0,Math.round(+out.world.renown||0));out.rival=rr}
  if(s.type==='nest'&&win){const c=G.contract;if(c&&!c.failed&&c.type==='nest'&&c.nest===s.id&&typeof ctrBattleEnd==='function'){const st=ctrStage(c);if(st&&st.k==='go'&&st.fight)out.toast=ctrBattleEnd(c,true,B0res)}else if(typeof nestClear==='function'&&Array.isArray(G.nests)&&G.nests.some(n=>n.id===s.id))nestClear(s.id)}
+ if(s.type==='nest'&&win&&!out.toast&&out.world&&out.world.crowns>0)out.toast=`The nest is cleared: ${out.world.crowns} crowns of hoard carried off`;   // a nest raided on the company's own account (40-world.js nestSheet)
  if(s.type==='party'){if(win){G.parties=G.parties.filter(p=>p.id!==s.id);G.renown+=3}}
  else if(s.type==='lair'&&typeof ctrBattleEnd==='function'){const c=G.contract;if(c&&!c.failed&&(s.id==null||s.id===c.id)){out.toast=ctrBattleEnd(c,win,B0res)||null}}
  else if(s.type==='twist'){if(!win&&G.contract&&G.contract.id===s.id&&typeof ctrFail==='function'){/* a lost ambush costs the cargo */const c=G.contract;if(c.type==='deliver'||c.type==='escort'||c.type==='relic'){ctrFail(c,'Lost the cargo to an ambush');out.toast='Contract failed: the cargo is lost'}}}

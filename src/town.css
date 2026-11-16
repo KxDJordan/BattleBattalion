@@ -186,7 +186,7 @@
 #pn .amb-ti.on b{color:#f3d98b}
 @media (max-width:700px){#pn .amb-ti{grid-template-columns:auto 1fr}#pn .amb-ti span{grid-column:1/-1}}
 /* the celebration note */
-#sheetBody.amb-sheet{max-width:440px;text-align:center;overflow:hidden}
+#sheetBody.amb-sheet{max-width:440px;text-align:center;overflow-x:hidden;overflow-y:auto}   /* a long list of unlocks scrolls: the button is never cut off */
 .amb-cel{position:relative;padding:6px 4px 2px}
 .amb-cel>*{position:relative}
 .amb-rays{position:absolute!important;left:50%;top:-60px;width:260px;height:260px;margin-left:-130px;pointer-events:none;opacity:.22;
@@ -211,7 +211,8 @@
 @keyframes ambRise{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
 @keyframes ambSpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.amb-anim .amb-ic,.amb-anim .amb-rays,.amb-anim .amb-h{animation:none}}
-@media (max-height:420px){.amb-h{font-size:1.5rem}.amb-ic{margin:0 0 6px}.amb-ic .pxi{width:32px;height:32px}.amb-rays{top:-80px}}
+@media (max-height:420px){.amb-h{font-size:1.5rem}.amb-ic{margin:0 0 6px}.amb-ic .pxi{width:32px;height:32px}.amb-rays{top:-80px}
+ #sheetBody.amb-sheet{max-width:560px}.amb-row{position:sticky;bottom:-2px;z-index:2;margin:0 -4px;padding:6px 4px 2px;background:linear-gradient(transparent,var(--panel) 10px)}.amb-ul{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}.amb-p{margin-bottom:6px}}
 /* parts and the drillmaster in the battle results */
 .br-parts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:6px 0}
 .br-ph{display:inline-flex;align-items:center;gap:4px;font-family:'Jersey 15',sans-serif;font-size:1.05em;color:#d1a94e;margin-right:2px}

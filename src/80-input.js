@@ -26,7 +26,8 @@ function worldGo(wx,wy,dest){if(!G||!W)return false;
 function worldTap(wx,wy){const k=worldPick(wx,wy,true);if(!k)return;const p=G.p,at=(x,y)=>Math.hypot(x-p.x,y-p.y)<TS*.12;
  if(k.type==='town'){const t=k.o;if(at(t.x,t.y))openTown(k.i);else goTo(t.x,t.y,{type:'town',i:k.i})}
  else if(k.type==='portal'){const q=k.o;if(at(q.x,q.y))portalSheet(q.id);else goTo(q.x,q.y,{type:'portal',id:q.id})}
- else if(k.type==='lair'||k.type==='nest')goTo(k.o.x,k.o.y);
+ else if(k.type==='nest'){const n=k.o;if(at(n.x,n.y))nestSheet(n.id);else goTo(n.x,n.y,{type:'nest',id:n.id})}   // a monster nest: march there and choose to attack it
+ else if(k.type==='lair')goTo(k.o.x,k.o.y);
  else if(k.type==='band'){const o=k.o;if(o.clash&&typeof cvTap==='function'&&cvTap(o))return;if(o.ctr&&typeof escParty==='function'&&escParty()===o){goTo(o.x,o.y);return}/* the escorted caravan: march on with it */if(o.goal==='merc'&&Math.hypot(o.x-p.x,o.y-p.y)<TS*1.6&&typeof lkRival==='function'&&lkRival(o.f)){rivalSheet(o);return}if(typeof partyHostile==='function'&&typeof attackParty==='function'&&!partyHostile(o)&&Math.hypot(o.x-p.x,o.y-p.y)<TS*1.6)bandSheet(o);else goTo(o.x,o.y)}
  else if(k.type==='site'){const o=k.o;if(at(o.x,o.y)&&typeof siteSheet==='function')siteSheet(o.id);else goTo(o.x,o.y,{type:'site',id:o.id})}
  else if(k.type==='company'){for(let i=0;i<G.towns.length;i++)if(at(G.towns[i].x,G.towns[i].y)){openTown(i);return}if(G.moving){G.moving=false;if(G.route)G.route=[]}}

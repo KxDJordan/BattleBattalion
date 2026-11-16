@@ -181,10 +181,10 @@ section('the battle\'s measure');
    G=fresh(SEED+40+k);keepAlive(G);const r2=await battle({f:A.f,mult:1,src:{type:'sim'},quiet:true,auto:true});X.settleBattle(r2.win);if(r2.win)pw++}
   console.log(`  escort raids won ${ew}/${N} (wagon kept ${wag}), plain even fights ${pw}/${N}: ${L.join(', ')}`);ok(ew>=N/2-1,'an escort raid is winnable: '+ew+'/'+N) }
 section('arrival, abandon');
-{ const G=fresh(SEED+7);keepAlive(G);const c=escortAt(G,1),C=X.escParty(c),T=G.towns[c.to],ti=c.to;quiet(G,c);const cr=G.crowns,rn=G.renown,pay=c.pay-(c.adv||0);
+{ const G=fresh(SEED+7);keepAlive(G);const c=escortAt(G,1),C=X.escParty(c),T=G.towns[c.to],ti=c.to;quiet(G,c);const cr=G.crowns,rn=G.renown,pay=c.pay-(c.adv||0);const d0=G.day+G.hour/24,wg=typeof X.companyWages==='function'?X.companyWages():G.roster.reduce((t,m)=>t+X.BG[m.bg].wage,0);
   run(()=>G.contract!==c,40000);closeAll(X);
   ok(G.ctrLast&&G.ctrLast.ok&&G.ctrLast.id===c.id,'arrived and paid: '+JSON.stringify(G.ctrLast));ok(near(G.p,T)<.1&&G.town===ti,'the company walked into '+T.name+' beside the wagons');
-  ok(G.crowns>=cr+pay-200&&G.renown>=rn+8*c.diff,'the pay: '+(G.crowns-cr)+' of '+pay);ok(!G.parties.some(p=>p.id===C.id),'the caravan is in');
+  const spent=Math.round(wg*Math.ceil(X.G.day+X.G.hour/24-d0+.01))+60;ok(G.crowns>=cr+pay-spent&&G.renown>=rn+8*c.diff,'the pay: '+(G.crowns-cr)+' of '+pay+' (the march\'s wages '+spent+')');   // the walk's wages come off the payok(!G.parties.some(p=>p.id===C.id),'the caravan is in');
   ok(G.news.some(n=>new RegExp('safe to '+T.name).test(n.t)),'the news') }
 { const G=fresh(SEED+8);keepAlive(G);const c=escortAt(G,0),C=X.escParty(c);for(let i=0;i<40;i++)X.worldTick(.05);const rn=G.renown;
   ok(X.ctrAbandon()&&G.contract===null&&G.ctrLast.why==='Contract abandoned'&&G.renown===Math.max(0,rn-5),'abandoned with the usual price');

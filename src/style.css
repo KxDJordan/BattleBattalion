@@ -161,7 +161,7 @@ button.ghost:not(.pxb){background:#0b1514;color:var(--vellum);box-shadow:inset 0
 .menu .mi.pri,.menu .mi:last-child:nth-child(even){grid-column:1/-1}
 
 /* ================= TOAST ================= */
-#toast{position:absolute;z-index:40;left:var(--tcx,50%);bottom:calc(var(--scb,0px) + 14px);transform:translate(-50%,6px);border:6px solid #0b1514;background-color:#0b1514;background-clip:padding-box;border-image:var(--pxtip) 18 fill/1 stretch;image-rendering:pixelated;
+#toast{position:absolute;z-index:45;left:var(--tcx,50%);bottom:calc(var(--scb,0px) + 14px);transform:translate(-50%,6px);border:6px solid #0b1514;background-color:#0b1514;background-clip:padding-box;border-image:var(--pxtip) 18 fill/1 stretch;image-rendering:pixelated;
  padding:2px 10px;font-family:var(--pxfont);font-weight:600;font-size:.95rem;
  width:max-content;max-width:calc(var(--tcw,100vw) - 20px);text-align:center;opacity:0;transition:opacity .12s steps(3,end),transform .12s steps(3,end);pointer-events:none;box-shadow:4px 4px 0 #00000080}
 #toast.on{opacity:1;transform:translate(-50%,0)}
