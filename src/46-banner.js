@@ -132,22 +132,42 @@ const BNVEC={};
   BNVEC.fleur=[B('b','M16 2.5 Q20.8 8 19.8 14 Q19 18 16 20.5 Q13 18 12.2 14 Q11.2 8 16 2.5 Z',sp,M(bnPath(sp)[0]),'M12.2 21.5 L10.8 27.5 Q13.4 26.2 16 22.6 Q18.6 26.2 21.2 27.5 L19.8 21.5 Z','M14.6 21.5 L16 29.6 L17.4 21.5 Z'),
    B('b2','M9.2 18.2 H22.8 Q23.6 20 22.8 21.8 H9.2 Q8.4 20 9.2 18.2 Z'),L('lc','M16 5.6 V17.4')]}
  /* ---- the newer emblems ---- */
- {const w='M14.2 12.6 Q10.4 9.6 8.2 4 L6.6 7 L5 4.6 L4.4 8.8 L2.6 8 L3 12 L1.8 12.6 Q3.6 18.6 13.6 19 Z';
-  BNVEC.eagle=[B('b',w,M(bnPath(w)[0]),'M13.4 21 L11 28.8 L14.2 27.2 L16 29.6 L17.8 27.2 L21 28.8 L18.6 21 Z',T([13.8,20.6,11.2,24.6],1.8),T([18.2,20.6,20.8,24.6],1.8)),
-   B('b2','M16 8 Q19 8.6 18.8 12 L18.2 21.6 Q16 23.6 13.8 21.6 L13.2 12 Q13 8.6 16 8 Z',E(15.6,6.4,3.1,2.9),'M13 5.2 L9.6 7.4 L13 8.1 Z'),B('c',E(14.9,5.8,.8,.8)),
-   L('lc','M4.6 12.4 L12 15.6 M6.8 9.2 L12.6 13.2 M3.6 15.4 L11.2 17.2 M27.4 12.4 L20 15.6 M25.2 9.2 L19.4 13.2 M28.4 15.4 L20.8 17.2')]}
  BNVEC.bear=[B('b',E(7.6,8.6,4,4),E(24.4,8.6,4,4)),B('b2',E(16,18,11.2,10.2)),B('c',E(7.9,8.9,1.8,1.8),E(24.1,8.9,1.8,1.8)),B('h',E(16,22,5.6,4.4)),
   B('c','M13.4 19.6 Q16 18 18.6 19.6 Q17.6 21.8 16 22 Q14.4 21.8 13.4 19.6 Z',E(11.2,15,1.3,1.5),E(20.8,15,1.3,1.5)),L('l','M16 22 V23.8 M13.4 24.8 Q16 23.4 18.6 24.8')];
- BNVEC.dragon=[B('b','M12.5 15 Q11 8 15.2 2.6 Q16.8 6.4 19.6 6.8 Q21.6 4 24.6 4.8 Q25 8.4 28.2 9.4 Q24.4 15 18.6 18 Z'),
-  B('b2','M2.6 15.4 Q5.4 11 9.4 10.8 L12.6 12.2 Q16 13.8 18.2 17.4 Q22.2 21.2 26.4 20 Q29.4 18.8 29.8 15.6 L31 15.2 Q31.4 21.6 28.4 24.8 Q25.4 27.8 20.6 27.4 Q14.6 26.8 12.4 22.4 L11.6 18.4 L9 17.6 L6 18 L4.2 17.4 Z',
-   'M8.6 11.2 L6 6.6 L10.6 10.6 Z',T([15,23.4,13.6,29],2.4),T([20.6,26,21.2,29.4],2.4),'M29.8 15.8 L28.6 11.8 L31.6 13 Z'),
-  B('c',E(7.4,13.1,.95,.85)),L('lc','M15.2 3.4 Q15.4 10 17.4 16.4 M19.8 7.2 Q19.6 12.2 18.6 16.8 M24.6 5.4 Q22.8 11 19.8 16.4'),L('l','M3.4 15.6 L8.4 15.4')];
  {const tuft='M6.6 4.2 L12.2 9.6 L7 12 Z';
   BNVEC.owl=[B('b',E(16,18.4,10,11.4),tuft,M(bnPath(tuft)[0]),T([12.6,28.6,12,30.4],1.8),T([19.4,28.6,20,30.4],1.8)),B('h',E(11.8,14.2,4.8,4.8),E(20.2,14.2,4.8,4.8)),B('c',E(11.8,14.4,2.3,2.3),E(20.2,14.4,2.3,2.3)),
    B('b2','M14.6 17.8 H17.4 L16 21.8 Z'),L('lc','M10.6 23.2 Q12.8 25 15 23.2 M17 23.2 Q19.2 25 21.4 23.2 M13 26.6 Q15 28.2 17 26.6 M8 17 Q7.6 22 10 26.4 M24 17 Q24.4 22 22 26.4')]}
- BNVEC.serpent=[B('b',T(bnSpline([4.8,28.4, 12,29.2, 21.6,26.6, 24.8,22, 20.6,18, 12,15.8, 8.8,12, 12.4,8, 18.8,7],6),1.6,5)),
-  B('b2','M17.4 5 Q22 2.8 25.8 5 Q27.8 6.8 25.8 8.6 Q22 10.4 17.6 9.2 Z'),B('c',E(22.6,5.8,.9,.9)),L('l','M27.2 6.9 L29.6 6.9 L31 5.6 M29.6 6.9 L31 8.2'),
-  L('lc','M22 25.6 L23.4 27.8 M18 27.2 L19 29.4 M14 28 L14.6 30 M21.2 17.8 L20.4 20 M16.6 16.4 L16 18.8 M12.4 15 L11.4 17.2')];
+ /* the eagle displayed: wings raised, the primaries spread from the pinion like fingers under a band of coverts, head in profile
+    to dexter, a fanned tail and the talons */
+ {const arm=bnQpts(13.8,12.2,11,3.4,3.6,2.8,12),aq=t=>{const u=1-t;return[u*u*13.8+2*u*t*11+t*t*3.6,u*u*12.2+2*u*t*3.4+t*t*2.8]},
+   ts=[1,.8,.6,.42,.24],tips=[[.9,7.4],[.8,11.6],[1.8,15.6],[4.2,19],[7.8,21.4]],F=[],sep=[],f=v=>(+v).toFixed(2);
+  ts.forEach((t,i)=>{const r=aq(t);F.push(T([r[0],r[1],tips[i][0],tips[i][1]],3.6,2.6))});
+  for(let i=0;i<ts.length-1;i++){const a=aq(ts[i]),b=aq(ts[i+1]),rx=(a[0]+b[0])/2,ry=(a[1]+b[1])/2,mx=(tips[i][0]+tips[i+1][0])/2-rx,my=(tips[i][1]+tips[i+1][1])/2-ry;
+   for(const s of [1,-1]){const X=x=>s>0?x:32-x;sep.push(`M${f(X(rx+mx*.4))} ${f(ry+my*.4)} L${f(X(rx+mx*.94))} ${f(ry+my*.94)}`)}}
+  const base='M13.8 12.2 L8 5 L3.6 2.8 L2 8 L2 15 L5 18.6 L8.4 20.2 L12.8 19.4 Z',cov=T(arm,4.6,3.4),
+   leg=[T([14.2,21.2,10.8,24.4],2.4,1.8),T([10.8,24.4,7.8,23.8],1.3,.9),T([10.8,24.4,8.2,26.6],1.3,.9),T([10.8,24.4,10.6,27.6],1.3,.9)],
+   tail='M14.2 20.6 L11.4 28.4 L13.6 27.4 L14.8 29.8 L16 28.2 L17.2 29.8 L18.4 27.4 L20.6 28.4 L17.8 20.6 Z';
+  BNVEC.eagle=[B('b',F,F.map(M),base,M(bnPath(base)[0]),leg,leg.map(M),tail),B('b2',cov,M(cov)),
+   B('b2','M16 9.4 Q19.6 10.4 19.4 14.8 Q19.2 19.6 17.4 22 L14.6 22 Q12.8 19.6 12.6 14.8 Q12.4 10.4 16 9.4 Z',E(16.4,6.8,3,2.9),'M14 5.2 L10.2 6.4 Q10.2 9 12.4 8.6 L14.4 8.6 Z'),
+   B('c',E(15.4,6,.85,.85)),L('l','M10.4 7.1 L13.4 7.4'),
+   L('lc',sep.join(' ')+' M14.2 14.6 Q16 15.8 17.8 14.6 M14.4 17.6 Q16 18.8 17.6 17.6 M16 22.4 V27.4'),
+   L('lh','M12.2 9.6 Q9.8 4 4.4 2.4 M19.8 9.6 Q22.2 4 27.6 2.4')]}
+ /* the dragon rampant to dexter: horned head with open jaws, one bat wing raised behind, a raised foreclaw, the legs, a coiled tail and its barb */
+ {const wing='M15 13.4 L18.8 6.4 Q19.8 4.6 21.6 4 L29 1.2 Q27.4 5.2 30.8 8.4 Q27 10.6 29.6 14.8 Q24.4 13 19.8 15.6 Q17 15.2 15 13.4 Z';
+  BNVEC.dragon=[B('b','M2.2 7.8 Q3.8 5.2 7.6 4.6 L10.4 4.4 Q12.8 5 13 7.6 Q13.4 10.2 15.6 11.4 Q20.6 13.4 21.6 18.6 Q22 22.6 18.6 24 Q14.6 24.4 12.4 21.4 Q10 18 9.6 15 Q9.4 12.6 8 11.4 L5.4 11.6 L2.8 10.6 L6.6 8.8 Z',
+   T(bnQpts(10.2,5.4,12.8,2.6,15.8,1.6,6),2.2,.7),T([11.4,15.2,7.6,16.8,4.8,14.6],2.6,1.8),T([4.8,14.6,3,13.8],1.2,.8),T([4.8,14.6,3.4,16],1.2,.8),
+   T([19,21,17.4,25.6,15.8,28.6],3.6,2.4),T([15.8,28.6,12.6,29.2],2.2,1.4),T([15.6,22.4,12,25,9.6,24.2],2.8,1.8),T([9.6,24.2,8,23],1.2,.8),
+   T(bnSpline([20.4,21.4, 24.6,23.6, 27.4,27.6, 30,26.4, 29.8,23],5),3.4,1.4),'M27.8 23.6 L29.8 19.4 L31.8 23.6 L29.8 22.6 Z'),
+   B('b2',wing),B('c',E(8.8,6.8,.95,.85)),L('l','M3.6 8.4 L6.4 8.8'),
+   L('lc','M21.4 5 L30.2 8.4 M21 5.6 L28.8 14 M10.8 14.4 Q12.2 19.6 16.6 22.6 M13 22.8 Q11.6 23.2 11.2 21.8'),L('lh','M16.4 12.4 L20 5.6 Q21 4.6 28 1.8')]}
+ /* the serpent nowed: a loop knotted in its body, the head raised to dexter with a forked tongue, scales along the back */
+ {const sp=bnSpline([19,6.4, 22.6,8.6, 23.2,13, 20.4,17.6, 15,21, 9.6,21.4, 6.6,17.6, 8,13.4, 12.6,12.6, 17.4,15.4, 21.6,20.4, 24.4,24.8, 22.6,28.6, 17,29.4, 12.4,28, 10,25.6],6),
+   n=sp.length>>1,wd=i=>5-3.8*(i/(n-1)),edge=(i0,i1,s)=>{let d='';for(let i=i0;i<=i1;i++){const a=Math.max(0,i-1),c=Math.min(n-1,i+1);let dx=sp[c*2]-sp[a*2],dy=sp[c*2+1]-sp[a*2+1];const m=Math.hypot(dx,dy)||1,h=wd(i)/2*s;
+     d+=(i===i0?'M':'L')+(sp[i*2]-dy/m*h).toFixed(2)+' '+(sp[i*2+1]+dx/m*h).toFixed(2)+' '}return d},
+   sc=[];for(let i=5;i<n-6;i+=4){const a=i-1,c=i+1;let dx=sp[c*2]-sp[a*2],dy=sp[c*2+1]-sp[a*2+1];const m=Math.hypot(dx,dy)||1;dx/=m;dy/=m;const h=wd(i)*.26,x=sp[i*2],y=sp[i*2+1];
+     sc.push(`M${(x-dy*h-dx*.9).toFixed(2)} ${(y+dx*h-dy*.9).toFixed(2)} L${x.toFixed(2)} ${y.toFixed(2)} L${(x+dy*h-dx*.9).toFixed(2)} ${(y-dx*h-dy*.9).toFixed(2)}`)}
+  BNVEC.serpent=[B('b',T(sp,5,1.2)),B('b2','M18.6 3.6 Q14 2.4 9.6 4.4 Q7.6 5.8 9.4 7.4 Q13.6 9.4 18.4 9.2 Q21.6 8.4 21.4 6.2 Q21 4.2 18.6 3.6 Z'),B('c',E(14.4,5.4,1,.9)),
+   L('l',edge(51,62,1)+edge(51,62,-1)+'M9 6 L5.6 6 L3.6 4.2 M5.6 6 L3.6 7.8'),L('lc',sc.join(' ')),L('lh','M10.6 4.6 Q14 3.4 17.6 4.2')]}
  BNVEC.castle=[B('b','M3 29.6 V11 H4.6 V8.4 H6.6 V11 H7.8 V8.4 H9.8 V11 H11.4 V14.6 H12.6 V12.4 H14.6 V14.6 H17.4 V12.4 H19.4 V14.6 H20.6 V11 H22.2 V8.4 H24.2 V11 H25.4 V8.4 H27.4 V11 H29 V29.6 Z'),
   B('c','M13 29.6 V23.2 Q16 19.4 19 23.2 V29.6 Z','M6.2 17 V14.6 Q7.2 13.2 8.2 14.6 V17 Z','M23.8 17 V14.6 Q24.8 13.2 25.8 14.6 V17 Z'),L('lc','M11.4 14.6 V29.4 M20.6 14.6 V29.4 M3.2 21.4 H11.2 M20.8 21.4 H28.8')];
  BNVEC.key=[B('b',E(16,7.6,5.8,5.8),T([16,12,16,29.4],3.4,3.4,1),'M12.6 12.2 H19.4 V14.8 H12.6 Z','M17.6 21.8 H23 V29.4 H17.6 Z'),B('c',E(16,7.6,2.5,2.5),'M19.8 24.2 H23 V26.4 H19.8 Z')];
@@ -184,6 +204,14 @@ function bnRaster(V){const at=(x,y)=>{let r='.';for(const p of V){if(!p.P)contin
  return g.map((r,y)=>r.map((k,x)=>{if(k!=='#')return k;const ul=!on(x-1,y)||!on(x,y-1),dr=!on(x+1,y)||!on(x,y+1);return ul&&!dr?'+':dr&&!ul?'-':k}).join(''))}
 /* hand-drawn rows where the rasterised shape is too fine at 16 px */
 const BNHAND={wheat:['................','.......+#.......','....+#.+#-.+#...','....+#-+#-+#-...','.....+#+#-#-....','....+#-+#-+#-...','.....+#+#+#-....','....+#-+#-+#-...','.....+#+#+#-....','......+###-.....','......++++-.....','......+###-.....','.....+#-#-#-....','....+#-.#-.#-...','...+#-..#-..#-..','................']};
+/* hand-drawn rows for the dragon, the serpent and the eagle: the same designs as their vector drawings, pixel by pixel */
+Object.assign(BNHAND,{dragon:['................','......+......+#.','..+##+......+##.','.+#=##-....+##-.','.+#--##...+##-#.','..-.+##-.+###-..','....+##-+###-#..','.+#-+#######-...',
+  '..+-+######-....','.....+####-..+..','......+###-.+#-.','...+#-+##-#..#..','......+#-.+-.#..','......+#-..+#-..','....+##-........','................'],
+ serpent:['................','....+##-........','..+##=##+-......','.-.--####+#-....','..........+#-...','..........+#-...','....+##-..+-....','...+-..+#.......',
+  '..+#....+-......','..+#..+-.+#-....','...+##-...+#-...','...........+#-..','...........+#-..','......+-..+#-...','.......+###-....','................'],
+ eagle:['................','.+.....+#.....+.','.#+..++=#-...+#.','.##+..-##-..+##.','.#-#+.+##-.+#-#.','..##-++##-+-##..','.##-##+##-##-##.','.#-##-+--#-##-#.',
+  '..##-#+##-#-##..','.---##+##-##---.','...---+##----...','.....-+##--.....','.....++##--.....','...#+.+#--.#-...','....-.+..-.-....','................']
+});
 for(const [k,n] of BNNEW)if(!EMBLEMS[k])EMBLEMS[k]={n,r:BNHAND[k]||bnRaster(BNVEC[k])};
 /* the painted emblems: generic from BNVEC; the swords and the skull use the kit's own parts */
 const BNEP={swords:(g,M)=>{for(const s of [-1,1])pkSword(g,16+s*6.4,22.4,s*-40,{len:21,w:5.2,mat:M,hilt:M,gripMat:bnShift(M,-1),guard:11,grip:4.6})},
@@ -263,13 +291,21 @@ function bnMat(k){let m=BNMAT.get(k);if(m)return m;const R=(BANNERC[k]||BANNERC.
 /* a ramp one step darker (-1) or lighter (+1) */
 function bnShift(M,d){return d<0?[bnHexMix(M[0],'#000000',.3),M[0],M[1],M[2],M[3]]:[M[1],M[2],M[3],M[4],'#ffffff']}
 function bnShape(P){const p=new Path2D(),b=[1e9,1e9,-1e9,-1e9];for(let Q of P){let ar=0;for(let i=0,j=Q.length-2;i<Q.length;j=i,i+=2)ar+=(Q[j]-Q[i])*(Q[j+1]+Q[i+1]);if(ar<0){const R=[];for(let i=Q.length-2;i>=0;i-=2)R.push(Q[i],Q[i+1]);Q=R}for(let i=0;i<Q.length;i+=2){const x=Q[i],y=Q[i+1];i?p.lineTo(x,y):p.moveTo(x,y);if(x<b[0])b[0]=x;if(y<b[1])b[1]=y;if(x>b[2])b[2]=x;if(y>b[3])b[3]=y}p.closePath()}return{p,b,u:P.length>1?1:0}}
+/* pkFill for a shape of overlapping parts (tubes over a body): the kit's shade and rim bands cut the shape with evenodd, which
+   toggles where the parts overlap, so a union gets its bands from a scratch canvas instead (the union, minus its shifted copy) */
+let BNSCR=null;
+function bnFillU(g,S,M,k){if(!S.u||typeof document!=='object'||!g.canvas||!g.getTransform)return pkFill(g,S,M,{k});pkFill(g,S,M,{k,noShade:1,noRim:1});
+ const W=g.canvas.width,H=g.canvas.height;if(!BNSCR)BNSCR=document.createElement('canvas');if(BNSCR.width!==W||BNSCR.height!==H){BNSCR.width=W;BNSCR.height=H}const q=BNSCR.getContext('2d'),T=g.getTransform();if(!q)return;
+ const band=(sh,col,a)=>{const v=pkVec(g,sh*PK_L[0],sh*PK_L[1]);q.setTransform(1,0,0,1,0,0);q.globalCompositeOperation='source-over';q.clearRect(0,0,W,H);q.setTransform(T);q.fillStyle=col;q.fill(S.p);
+  q.globalCompositeOperation='destination-out';q.translate(v[0],v[1]);q.fill(S.p);q.globalCompositeOperation='source-over';g.save();g.setTransform(1,0,0,1,0,0);g.globalAlpha=a;g.drawImage(BNSCR,0,0);g.restore()};
+ band(k*2.2,M[0],.22);band(k,M[0],.42);band(-k*.75,M[4],.5)}
 /* paint an emblem in the 32-unit box: charge ramp M, field ramp F (cut-outs) */
 function bnEmPaint(g,key,M,F){if(BNEP[key])return BNEP[key](g,M,F);const V=BNVEC[key]||BNVEC.tower;let i=0;
  const Fc=[bnHexMix(F[0],PK.ink,.5),F[0],F[1],F[2],F[3]];
  while(i<V.length){const p=V[i];
   if(p.d){if(p.r==='lh')pkHi(g,p.d,1,.45);else pkLine(g,p.d,p.r==='l'?.95:.8,p.r==='l'?PK.ink:M[1],p.r==='l'?.9:.85);i++;continue}
   const P=[];let j=i;while(j<V.length&&V[j].P&&V[j].r===p.r){P.push.apply(P,V[j].P);j++;if(p.r!=='b')break}i=j;const S=bnShape(P);
-  if(p.r==='b'||p.r==='b2')pkFill(g,S,M,{k:p.r==='b'?1.3:1});else if(p.r==='bd')pkFill(g,S,bnShift(M,-1),{k:1.3});
+  if(p.r==='b'||p.r==='b2')bnFillU(g,S,M,p.r==='b'?1.3:1);else if(p.r==='bd')bnFillU(g,S,bnShift(M,-1),1.3);
   else if(p.r==='h')pkFill(g,S,bnShift(M,1),{k:.7,lw:PK.lw*.7,noShade:0});else if(p.r==='w')pkFill(g,S,bnShift(M,1),{k:.6});
   else if(p.r==='c')pkFill(g,S,Fc,{k:.5,noRim:1,lw:PK.lw*.7})}}
 /* cloth outlines by shape (units); the field box is x 4..44, y 12.5..62 */

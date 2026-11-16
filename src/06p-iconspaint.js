@@ -206,7 +206,7 @@ function pkBadgeBack(g,tone,o){o=o||{};const M=pkMat(PK_TONE[tone]||tone||'brass
  pkLine(g,`M${x+r*.6} ${x+.9} L${x+w-r} ${x+.9}`,.8,M[4],.6)}
 /* ======== render pipeline ======== */
 function pkPx(){const d=typeof window==='object'&&window.devicePixelRatio||1;return d>=2.5?160:d>=1.5?128:96}
-function pkScratch(k,px){let c=PK.scr[k];if(!c||c.width!==px){c=PK.scr[k]=pxCanvas(px,px)}else c.getContext('2d').clearRect(0,0,px,px);return c}
+function pkScratch(k,px){let c=PK.scr[k];if(!c||c.width!==px){c=PK.scr[k]=pxCanvas(px,px)}else{const q=c.getContext('2d');q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,px,px)}return c}
 /* paint PAINT[name] (or a drawing function) at px x px: the drawing, then the outer silhouette line under it, then post effects */
 function pkRender(f,px,noOutline){if(typeof document==='undefined')return null;const t0=typeof performance==='object'?performance.now():0;
  const L=pkScratch('l',px);if(!L)return null;const q=L.getContext('2d');q.setTransform(px/32,0,0,px/32,0,0);PK.u=px/32;PK.post=[];
