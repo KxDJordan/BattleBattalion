@@ -237,7 +237,8 @@ function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan
 function aiStatusVal(k,n,t){const W=t.aiW||10;let v;
  if(k==='stun')v=W*1.1+(t.dive?W*.8:0);else if(k==='root'||k==='webbed')v=t.fly&&k==='root'?W*.5*Math.min(2,n)+(t.dive?W*.6:0):t.wpn.rng>1||t.back?2:W*.35*Math.min(2,n);else if(k==='daze')v=W*.12;else if(k==='bleed')v=5*n;else if(k==='chill')v=W*.3;else if(k==='burn')v=(6+(t.fw?8*t.fw*1.5:0)+(t.def&&t.def.regen&&!(t.st.burn>0)?t.hpMax*t.def.regen*.6:0))*n;else if(k==='poison')v=5*n;else if(k==='hex')v=W*.3;
  else if(k==='marked')v=W*.12*Math.min(2,n);else if(k==='weak')v=W*.2*Math.min(2,n)/2+2;
- else if(k==='venom')v=10*n;else if(k==='web'||k==='grab'||k==='coiled'||k==='entangled')v=4;else v=3;
+ else if(k==='venom')v=10*n;else if(k==='doomed')v=t.st.doomed>0?0:W*.1;else if(k==='blinded')v=W*.35+3;   // the rogues (64r-rogues.js): Death mark, Pocket sand
+else if(k==='web'||k==='grab'||k==='coiled'||k==='entangled')v=4;else v=3;
  return t.st[k]>0?v*.2:v}
 // What a hit with a on t is worth, from forecast(). Cached for the unit's turn.
 function aiHit(u,a,t,S){const id=a.id+'|'+t.id+'|'+t.hp+'|'+t.arm+'|'+(t.helm||0)+'|'+(t.shp||0),C=S.fc;let v=C.get(id);if(v)return v;
@@ -247,10 +248,11 @@ function aiHit(u,a,t,S){const id=a.id+'|'+t.id+'|'+t.hp+'|'+t.arm+'|'+(t.helm||0
  /* The forecast's own arithmetic (fcDamage, fcSoak, headChance) at the low, middle and high roll, for a hit on the body and on
     the head: the same numbers forecast() shows the player, without walking every roll for every candidate. */
  let lo=0,hi=0,ign=1;const cr=typeof crushOf==='function'?crushOf(u,a):0;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];ign=a.ign||.5}else{const wd=a.dmgD||u.wpn.d;lo=wd[0];hi=wd[1];ign=(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)}
+ const bl=typeof bleedOf==='function'?bleedOf(u,a):a.bleed||0,po=typeof poisonOf==='function'?poisonOf(u,a):0;   // a bleed or poison riding on the hit (perks included)
  if(hi>0){const hc=headChance(u,t,a)/100,d0=fcDamage(u,t,a,lo),d1=fcDamage(u,t,a,(lo+hi)/2),d2=fcDamage(u,t,a,hi);
   for(let h=0;h<2;h++){const w=h?hc:1-hc;if(!(w>0))continue;const s0=fcSoak(t,d0,ign,!!h,a.pierce,cr),s1=fcSoak(t,d1,ign,!!h,a.pierce,cr),s2=fcSoak(t,d2,ign,!!h,a.pierce,cr);
    hp+=w*Math.min(t.hp,(s0.hp+2*s1.hp+s2.hp)/4);arm+=w*(s0.arm+2*s1.arm+s2.arm)/4;kill+=w*(s0.hp>=t.hp?1:s2.hp<t.hp?0:(s2.hp-t.hp+1)/(s2.hp-s0.hp+1));
-   if(!t.fearless&&s2.hp>=heavyHit(t))sv+=w*3;if(a.bleed&&s1.hp>0)sv+=w*aiStatusVal('bleed',a.bleed,t)}}
+   if(!t.fearless&&s2.hp>=heavyHit(t))sv+=w*3;if(bl&&s1.hp>0)sv+=w*aiStatusVal('bleed',bl,t);if(po&&s1.hp>0)sv+=w*aiStatusVal('poison',po,t)}}
  if(a.status)for(const k in a.status)sv+=aiStatusVal(k,a.status[k],t);
  if(!a.magic&&u.wpn.stun&&!(a.status&&a.status.stun))sv+=u.wpn.stun*aiStatusVal('stun',1,t);
  if(u.onhit)sv+=u.onhit.ch*aiStatusVal('root',u.onhit.root,t);

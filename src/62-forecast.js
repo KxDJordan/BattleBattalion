@@ -46,6 +46,8 @@
    Monster hunter (61-talents.js quarryVs; already inside hit and the damage figures, here for the HUD):
      quarry     null, or {key, tag ('Ogre-slayer'), n ('Ogres'), slain, dmg (percent, to a tenth: 12.5), hit, text ('Ogre-slayer: +12.5% damage, +3 to hit')}
      kb.ch, pull.ch and a stun's ch are halved by Rolling with it; Unshakable drops the stun and the shake; Immovable makes kb.ch 0.
+   Rogues (64r-rogues.js): the Assassin / Rogue / Shadowdancer terms (rogueHit, rogueDmg, Flow in armorDef, Death mark's and Pocket sand's
+   numbers through the foe auras) are inside hit and the damage figures; poison riding on a light blow (poisonOf) is listed with statuses like bleed.
    o is strike()'s option bag: {splash:.7} for blast/arc secondaries, {auto:1} for arcs and strays that always hit,
    {free:...} for free attacks.
    Endgame (24-endgame.js): realm {k, n, notes:[text]} | null (the portal realm's rules on this strike; spellK is inside spellMult already);
@@ -87,7 +89,9 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const st={},as=u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{};for(const k in as)st[k]={k,n:as[k],ch:1};   // an elite's poison or hex rides on its blows (64e-elites.js)
  { const sc=stunOf(u,a);if(sc&&!(st.stun))st.stun={k:'stun',n:1,ch:Math.min(1,sc)} }
  if(u.onhit){const n=u.onhit.root;if(!st.root)st.root={k:'root',n,ch:u.onhit.ch};else if(n>st.root.n)st.root={k:'root',n,ch:u.onhit.ch}}
- const bl=bleedOf(u,a);if(bl&&n){const pb=posB/n,ph=posH/n,ch=(!useH||ph===1)&&(!useB||pb===1)?1:(useH?f.headCh/100*ph:0)+(useB?(1-f.headCh/100)*pb:0);if(ch>0)st.bleed={k:'bleed',n:Math.max(bl,st.bleed?st.bleed.n:0),ch}}
+ const bl=bleedOf(u,a),po=poisonOf(u,a),pch=n?(()=>{const pb=posB/n,ph=posH/n;return(!useH||ph===1)&&(!useB||pb===1)?1:(useH?f.headCh/100*ph:0)+(useB?(1-f.headCh/100)*pb:0)})():0;
+ if(bl&&pch>0)st.bleed={k:'bleed',n:Math.max(bl,st.bleed?st.bleed.n:0),ch:pch};
+ if(po&&pch>0)st.poison={k:'poison',n:Math.max(po,st.poison?st.poison.n:0),ch:pch};   // Venomed blade (Rogue): poison rides on a hit that reaches hitpoints, like bleeding
  statusConv(t,st);
  if(st.stun){const tf=t.flags||{};if(tf.noStun)delete st.stun;else if(tf.roll>0)st.stun.ch*=1-tf.roll}   // Unshakable, Rolling with it
  for(const k in st)if(st[k].n>0)f.statuses.push(st[k]);

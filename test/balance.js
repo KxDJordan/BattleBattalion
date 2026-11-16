@@ -22,6 +22,12 @@
 // the even-fight table (XFAC; the East and the crisis peoples from L4x6 on, where the war and the crisis meet the company). Every cell
 // shows a 95% interval (±). --full: thousands of battles a cell (--n default 1000, all cores), the per-band judgement: every faction's
 // sensible win rate in every band within FULLBAND (72..92: the 75..90 target with the interval's slack), naive overall < 50%, rivals 55..75%.
+// Rogues update: the light, high-initiative builds (the Assassin, Rogue and Shadowdancer trees) against the classic ones (RPROF). The L8x9 and
+// L12x12 companies with three of their melee swords (the sellsword's hammer, the militia's polearm, the wildling's greataxe) swapped for
+// cutthroats in light gear (ROLES.knife: a dagger, a jack or padded coat, a hood), in two versions that differ ONLY in the cutthroats' four trees:
+// R = assassin shadow rogue skirmisher, C = vanguard duelist skirmisher survivor (same seeds, so the same rolls, traits, gear, maps and foes).
+// Sensible pilot against the six core factions. Judged: R's mean win rate within RGAP (-8..+10 points) of C's: competitive, not dominant.
+// --no-rogues skips it; --only rogues runs only it.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
@@ -45,10 +51,11 @@ const ROLES={
  great:{st:['hp','ms','md'],w:['greatsword','zweihander','zweihander'],b:[null,null,null],s:[null,null,null],a:['leather','mail','scale'],h:['cap','kettle','barbute']},
  xbow:{st:['rs','hp','rd'],w:['lightxbow','crossbow','crossbow'],b:['knife','knife','rondel'],s:[null,null,null],a:['padded','leather','mail'],h:['hood','cap','kettle']},
  gun:{st:['rs','hp','rd'],w:['pistol','pistol','duelpistol'],b:['shortsword','arming','arming'],s:['buckler','kite','kite'],a:['padded','leather','mail'],h:['hood','cap','kettle']},
+ knife:{st:['ms','md','init'],w:['dirk','rondel','stiletto'],b:[null,null,null],s:[null,null,null],a:['jack','padded','padded'],h:['hood','hood','cap']},   // the rogues' comparison (RPROF)
  tower:{st:['hp','ms','md'],w:['shortsword','arming','arming'],b:[null,null,null],s:['tower','tower','steeltower'],a:['leather','mail','plate'],h:['cap','kettle','greathelm']},
  heal:{st:['hp','ms','md'],w:['club','mace','mace'],b:[null,null,null],s:['buckler','kite','heater'],a:['padded','mail','scale'],h:['cap','kettle','barbute']}
 };
-const S=(bg,role,gift)=>({bg,role,gift:gift||null});
+const S=(bg,role,gift,trees)=>({bg,role,gift:gift||null,trees:trees||null});
 const PROFILES=[
  {id:'L1x4',lvl:1,day:2,tier:-1,team:null},                                     // the company a new game starts with, perk points spent
  {id:'L4x6',lvl:4,day:12,tier:0,team:[S('squire','tank','aura'),S('sellsword','axe'),S('militia','spear'),S('acolyte','heal','chi'),S('hunter','bow'),S('hedge','mage','mana')]},
@@ -56,6 +63,10 @@ const PROFILES=[
  {id:'L12x12',lvl:12,day:50,tier:2,team:[S('knight','tank','aura'),S('squire','tower','aura'),S('sellsword','axe'),S('sellsword','hammer'),S('militia','spear'),S('militia','pole'),S('wildling','two','qi'),S('spellblade','gun','qi'),
    S('monk','heal','chi'),S('hunter','bow'),S('hunter','xbow'),S('hedge','mage','mana')]}
 ];
+/* The rogues' comparison (see the header): R<lvl> carries the rogues' trees on its three cutthroats, C<lvl> the classic ones. */
+const RTREES={R:['assassin','shadow','rogue','skirmisher'],C:['vanguard','duelist','skirmisher','survivor']},RSWAP=['hammer','pole','two','axe'],RGAP=[-8,10],RFACS=['gob','undead','beast','orc','bandit','void'];
+const RPROF=[];for(const base of PROFILES.filter(p=>p.id==='L8x9'||p.id==='L12x12'))for(const v of ['R','C']){let n=0;
+ RPROF.push(Object.assign({},base,{id:v+base.lvl,base:base.id,rv:v,team:base.team.map(x=>RSWAP.includes(x.role)&&x.bg!=='knight'&&n<3&&++n?S('cutthroat','knife',null,RTREES[v]):x)}))}
 /* Solo (Beast Slayer) profiles: the Solo origin's one sword at level 3 (the kit ORIGINS.slayer.setup gives), 6 and 9 (the gear a slayer would have
    bought by then), measured as the slayer would really stand at that level: only the quarry tiers open by then (tier t at level t), each
    with a typical tally (soloKills: half the cap of every open tier, none of the rest). Perks: autoLearn, except the SOLOKEEP points a
@@ -105,7 +116,7 @@ function learnAll(X,m){if(typeof X.autoLearn==='function'&&Array.isArray(m.perks
 // The gift the profile asks for (in the variant the background's style gets), or none.
 function setGift(X,m,res){if(!Array.isArray(m.trees)||typeof X.giftKey!=='function')return;const g=res?X.giftKey(res,X.mercStyle(m)):null;
  m.trees=m.trees.filter(k=>!(X.MAST[k]&&X.MAST[k].kind==='gift'));m.gift=g;if(g)m.trees.push(g)}
-function mkMerc(X,spec,P){const R=ROLES[spec.role],m=X.newMerc(spec.bg);m.field=true;setGift(X,m,spec.gift);
+function mkMerc(X,spec,P){const R=ROLES[spec.role],m=X.newMerc(spec.bg);m.field=true;if(spec.trees&&X.BG[spec.bg])m.trees=spec.trees.filter(k=>X.MAST[k]);setGift(X,m,spec.gift);
  const eq={w:R.w[P.tier],b:R.b[P.tier],s:R.s[P.tier],a:R.a[P.tier],h:X.ITEMS[R.h[P.tier]]?R.h[P.tier]:null};m.eq=Object.assign(m.eq||{},eq);
  if(X.ITEMS[eq.w].two&&(!eq.b||X.ITEMS[eq.b].two)&&!(typeof X.fixHands==='function'))m.eq.s=null;if(typeof X.fixHands==='function')X.fixHands(m);
  X.gainXP(m,X.XPT[P.lvl]);let g=0;
@@ -123,9 +134,9 @@ function buildCompany(X,P,seed){if(P.solo)return buildSolo(X,P,seed);X.seedRng(s
  G.stash.length=0;closeAll(X);return X.clone(G.roster)}
 /* ---------- one battle ---------- */
 const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
-async function battle(X,W,job,i){const P=PROFILES.concat(SOLO).find(p=>p.id===job.prof),G=X.G;G.roster=X.clone(W.comp[P.id][i%W.comp[P.id].length]);G.stash=[];G.day=P.day;X.B=null;X.mode='world';
+async function battle(X,W,job,i){const P=PROFILES.concat(SOLO,RPROF).find(p=>p.id===job.prof),G=X.G;G.roster=X.clone(W.comp[P.id][i%W.comp[P.id].length]);G.stash=[];G.day=P.day;X.B=null;X.mode='world';
  if(P.solo){G.origin='slayer';soloPrep(X,G.roster[0],job.f,P)}else G.origin='free';
- X.seedRng((hash(job.f+'|'+P.id)^Math.imul(i+1,2654435761)^SEED)>>>0);
+ X.seedRng((hash(job.f+'|'+(P.base?P.base+'/rogues':P.id))^Math.imul(i+1,2654435761)^SEED)>>>0);   // the rogues' R and C companies fight the very same battles
  const o={f:job.f,mult:1,biome:BIOMES[i%BIOMES.length],pilot:job.pilot,src:{type:'test'},turnCap:TURNCAP};if(job.plan)o.plan=job.plan;
  if(job.f==='rival'){const R=X.clone(W.comp[P.id][(i+3)%KCOMP]);R.forEach((m,k)=>{m.id=900000+k;m.field=true});   // an equal rival: another company of the same profile
   G.rivals=[{id:'rB',n:'The Grey Company',short:'Greys',c1:'k',c2:'w',emblem:'wolf',pers:job.pers||'honour',renown:G.renown||0,crowns:0,home:0,roster:R,stance:0,alive:true,day:G.day,deeds:[]}];o.f='rB';o.rival='rB'}if(job.fixed)o.fixed=job.fixed;if(job.cr){const C=job.cr,d=X.EN[C.boss];G.fabled={};Object.assign(o,{f:C.f,mult:C.mult,fixed:C.fixed.slice(),boss:{id:C.boss,name:d.n,title:'',phases:(d.crph||[]).map(p=>Object.assign({},p)),enrageRound:C.er||0}});if(C.fabled&&X.FABLED[C.fabled])o.fabled=[C.fabled];if(C.obj)o.obj={k:C.obj}}
@@ -141,13 +152,13 @@ if(has('--lib')){module.exports={makeContext,buildCompany,battle,PROFILES,SEED,h
 /* ---------- worker ---------- */
 if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const pump=async()=>{if(busy)return;busy=true;while(q.length){const job=q.shift();
-   try{if(!X){X=makeContext();const {performance}=require('perf_hooks');X.AI_CLOCK=()=>performance.now();W={comp:{}};for(const P of PROFILES.concat(SOLO)){W.comp[P.id]=[];for(let k=0;k<(P.solo?KSOLO:KCOMP);k++)W.comp[P.id].push(buildCompany(X,P,SEED+hash(P.id)%9973+k*101))}}
+   try{if(!X){X=makeContext();const {performance}=require('perf_hooks');X.AI_CLOCK=()=>performance.now();W={comp:{}};for(const P of PROFILES.concat(SOLO,RPROF)){W.comp[P.id]=[];for(let k=0;k<(P.solo?KSOLO:KCOMP);k++)W.comp[P.id].push(buildCompany(X,P,SEED+hash(P.base?P.base+'/rogues':P.id)%9973+k*101))}}
     const r=await runJob(X,W,job);process.send({id:job.id,r})}
    catch(e){process.send({id:job.id,err:String(e&&e.stack||e)})}}busy=false};
  process.on('message',m=>{if(m==='quit')process.exit(0);q.push(m);pump()});return}
 /* ---------- main ---------- */
 (async()=>{const QUICK=has('--quick'),FULL=has('--full'),N=+arg('--n',QUICK?40:FULL?1000:200),NA=+arg('--na',Math.max(20,Math.round(N/(FULL?5:2)))),J=+arg('--jobs',Math.max(1,FULL?os.cpus().length:Math.min(4,os.cpus().length)));
- const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'&&f!=='solo'&&f!=='fabled'&&f!=='crisis'):FACS.concat(MONF,XFAC),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
+ const only=arg('--only',null),RIV=!has('--no-rival')&&(!only||only.split(',').includes('rival')),facs=only?only.split(',').filter(f=>f!=='wyvern'&&f!=='rival'&&f!=='solo'&&f!=='fabled'&&f!=='crisis'&&f!=='rogues'):FACS.concat(MONF,XFAC),profs=arg('--prof',null)?arg('--prof').split(','):PROFILES.map(p=>p.id),T0=Date.now();
  const X0=makeContext(),PLAN=JSON.parse(JSON.stringify(X0.AI_PLAN)),FACT=X0.FACT;
  /* The tactics the sensible pilot is run without, one at a time: name -> what to strip from a plan. */
  const TACTICS={
@@ -170,6 +181,8 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const jobs=[];let jid=0;const add=(kind,f,prof,pilot,n,plan,tag,fixed,foes)=>{const j={id:jid++,kind,f,prof,pilot,n,plan:plan||null,tag:tag||null,fixed:fixed||null,foes:foes||null};jobs.push(j);return j};
  for(const f of facs)for(const p of profOf(f))for(const pilot of ['naive','sensible'])add('main',f,p,pilot,N);
  if(RIV)for(const p of profs)for(const pilot of ['naive','sensible'])add('rival','rival',p,pilot,N);
+ const ROGON=!has('--no-rogues')&&(!only||only.split(',').includes('rogues'));
+ if(ROGON)for(const P of RPROF)for(const f of RFACS)add('rog',f,P.id,'sensible',N);
  const AP=arg('--aprof','L4x6,L8x9,L12x12').split(',').filter(p=>profs.includes(p)||arg('--prof',null)==null);
  if(!has('--no-abl'))for(const t in TACTICS)for(const f of facs.filter(f=>!XFAC.includes(f))){const p=JSON.parse(JSON.stringify(PLAN[f]||{})),before=JSON.stringify(p);TACTICS[t](p);if(JSON.stringify(p)===before)continue;for(const pr of AP.filter(x=>profOf(f).includes(x))){add('abl',f,pr,'sensible',NA,p,t);add('ablbase',f,pr,'sensible',NA,null,t)}}
  const CROSS=FACS.concat(MONF);if(!has('--no-cross'))for(const f of facs.filter(f=>!XFAC.includes(f)))for(const g of (MONF.includes(f)?CROSS:FACS)){for(const pr of AP.filter(x=>profOf(f).includes(x)))add('cross',f,pr,'sensible',NA,PLAN[g],g)}
@@ -235,6 +248,13 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
    console.log(pad(pr,10)+lp(f1(b.foes/b.n),6)+lp(f1(pct(a)),8)+lp(f1(pct(b)),8)+lp(f1((a.rounds+b.rounds)/(a.n+b.n)),8)+lp((a.dead/a.n).toFixed(2),9)+lp((b.dead/b.n).toFixed(2),9)+lp((b.down/b.n).toFixed(2),9));sn+=pct(a);ss+=pct(b);c++}
   sn/=c;ss/=c;console.log(`RIVALS   naive ${f1(sn)}%   sensible ${f1(ss)}%   (target: sensible 55..75%, naive below it)`);
   if(ss<55||ss>75)bad.push('rivals: sensible '+f1(ss)+'% outside 55..75%');if(sn>=ss)bad.push('rivals: naive '+f1(sn)+'% not below sensible '+f1(ss)+'%')}
+ /* ---- the rogues' trees against the classic ones ---- */
+ if(jobs.some(j=>j.kind==='rog')){console.log(`\n== rogues: three cutthroats in light gear with the rogues' trees (R: ${RTREES.R.join(' ')}) or the classic ones (C: ${RTREES.C.join(' ')}); sensible, ${N} battles a cell ==`);
+  console.log(pad('faction',16)+['L8x9','L12x12'].map(b=>lp(b+' R',10)+lp('C',8)+lp('R-C',8)).join(''));const tot={R:0,C:0,n:0},byB={};
+  for(const f of RFACS){let line=pad(FACT[f].n,16);for(const b of ['L8x9','L12x12']){const pr=RPROF.filter(P=>P.base===b),jr=jobs.find(j=>j.kind==='rog'&&j.f===f&&j.prof===(pr.find(P=>P.rv==='R')||{}).id),jc=jobs.find(j=>j.kind==='rog'&&j.f===f&&j.prof===(pr.find(P=>P.rv==='C')||{}).id);
+    if(!jr||!jc){line+=lp('·',26);continue}const r=R(jr),c=R(jc);stuck+=r.stuck+c.stuck;const a=pct(r),d=pct(c);line+=lp(f1(a),10)+lp(f1(d),8)+lp((a-d>=0?'+':'')+f1(a-d),8);tot.R+=a;tot.C+=d;tot.n++;const B0=byB[b]||(byB[b]={R:0,C:0,n:0});B0.R+=a;B0.C+=d;B0.n++}console.log(line)}
+  if(tot.n){const g=(tot.R-tot.C)/tot.n;console.log(`ROGUES   R ${f1(tot.R/tot.n)}%   C ${f1(tot.C/tot.n)}%   R-C ${(g>=0?'+':'')+f1(g)} points   (`+Object.keys(byB).map(b=>`${b}: ${(byB[b].R-byB[b].C>=0?'+':'')+f1((byB[b].R-byB[b].C)/byB[b].n)}`).join(', ')+`; target ${RGAP[0]}..+${RGAP[1]}: competitive, not dominant)`);
+   if(g<RGAP[0]||g>RGAP[1])bad.push(`rogues: the rogues' trees ${(g>=0?'+':'')+f1(g)} points against the classic ones, outside ${RGAP[0]}..+${RGAP[1]}`)}}
  if(stuck)bad.push(stuck+' battles hit the turn cap');
  /* ---- ablation ---- */
  if(jobs.some(j=>j.kind==='abl')){console.log(`\n== tactic ablation: sensible win % with the tactic removed, change against the full plan (${AP.join('+')}, ${NA} battles each) ==`);

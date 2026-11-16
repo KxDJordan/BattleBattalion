@@ -52,6 +52,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    if(Array.isArray(L)){const herb=typeof followerHas==='function'&&followerHas('herbalist'),by={};
     for(const x of L){if(!x||typeof x.key!=='string'||!(x.n>0))continue;if(typeof PARTS!=='undefined'&&!PARTS[x.key])continue;by[x.key]=(by[x.key]||0)+Math.floor(x.n)}
     if(!G.parts||typeof G.parts!=='object')G.parts={};for(const k in by){let n=by[k];if(herb&&rnd()<.5)n++;G.parts[k]=(G.parts[k]||0)+n;res.parts.push({key:k,n})}}}}
+ if(typeof rogueSpoils==='function')rogueSpoils(b,res,win);   // Light fingers and the purses the company's thieves lifted (64r-rogues.js)
  if(b.fixedSide&&typeof egBane==='function')res.bane=egBane(b);   // endgame: the killing blow on an elite or boss is a deed (24-endgame.js)
  if(typeof fabledResolve==='function')fabledResolve(b,res,win);   // fabled warriors: permanent death, named gear, duels (21-fabled.js)
  if(b.cv&&typeof cvResolve==='function')cvResolve(b,res,win);   // the caravan's guards and wagon (42-caravans.js)
@@ -156,6 +157,7 @@ function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'|
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
  h+=brObjLine(res);
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
+ if(typeof brSpoils==='function')h+=brSpoils(res);
  h+=brRival(res);
  h+=brFabled(res);
  if(res.win&&res.cargo){const grid=typeof lkCargoLinesHTML==='function'&&res.cargo.lines?lkCargoLinesHTML(res.cargo.lines):'';h+=`<p class="br-cargo">${brIcon(['cargo','stash'])}<span>The caravan's cargo is yours${!grid&&res.cargo.text?': '+res.cargo.text:''}.</span></p>`+grid}

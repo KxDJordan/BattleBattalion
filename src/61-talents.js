@@ -108,7 +108,7 @@ function rollTrees(bg,r){const b=BG[bg],pool=(b&&b.pool||MUNDANE).filter(k=>MAST
    highest open tier that suits its style, gear and weapons; abilities it could not use with its gear are passed over.
    Deterministic (no randomness). Returns the ids learned. */
 function mercTags(m){const t=new Set([mercStyle(m)]),w=ITEMS[m.eq&&m.eq.w],a=ITEMS[m.eq&&m.eq.a];
- if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&m.eq.s&&!(w&&w.two))t.add('shield');if(!a||a.fat<=10)t.add('light');
+ if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&m.eq.s&&!(w&&w.two))t.add('shield');if(!a||a.fat<=10)t.add('light');if(typeof isLightW==='function'&&isLightW(w||FIST))t.add('lightw');   // lightw: a light weapon in hand (the rogues' trees)
  if(m.gift&&MAST[m.gift])t.add(MAST[m.gift].style);return t}
 function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,rngd=isRangedW(w),bow=wt==='bow',two=!!(w&&w.two),
   sh=!!(m.eq&&m.eq.s),up=sh&&!two,swUp=sh&&!!sw&&!sw.two,pw=p.wt||T.wt;   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
@@ -120,6 +120,9 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
  if((T.aff||[]).some(a=>tags.has(a)))s+=12;
  const a=p.ab&&AB[p.ab];if(a){s+=3;if(a.needs&&!needsOK(a,wt))s-=needsOK(a,swt)?12:45;if(a.two&&!two)s-=45;if(a.shield&&!up)s-=swUp?12:45;if(a.noBow&&rngd)s-=20;if(a.tgt==='ally'||a.party)s+=tags.has('support')?6:0}
  const md=p.mod||{};if(md.downSurv)s+=16;   // Stubborn: with death so near, living through being struck down comes first
+ {const lw=tags.has('lightw'),slw=!!(sw&&typeof isLightW==='function'&&isLightW(sw));   // the rogues' light-weapon perks: only with a light weapon in hand (a light sidearm: a little)
+  if((md.stabDmg||md.wakeDmg||md.lightBleed||md.lightPoison)&&!lw)s-=slw?10:30;if(a&&a.light&&!lw)s-=slw?12:45;
+  if(md.readInit){const ini=calc(m).init;s+=clamp(Math.floor((ini-100)/5),-10,10)}if(p.flag==='quickstep'&&rngd)s-=6}
  if((md.shieldDef||md.shieldHp||md.guard||md.deflect||md.shieldDr)&&!sh)s-=35;if((md.duelHit||md.duelDmg)&&(sh||two||rngd))s-=30;if(md.twoDmg&&!(two&&!rngd))s-=30;
  if((md.dmgRanged||md.coverIgn||md.longShot||p.flag==='noLock')&&!rngd)s-=30;if((md.rngB||p.flag==='eagle')&&!bow)s-=30;if(md.spellB&&!tags.has('caster'))s-=20;if(md.dmgMelee&&rngd)s-=20;
  if(p.st){if(rngd&&p.st.ms)s-=8;if(!rngd&&p.st.rs&&!p.st.ms)s-=12}

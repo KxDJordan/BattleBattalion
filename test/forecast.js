@@ -162,10 +162,12 @@ async function scripted(X,opts){let done=null;const b=X.startBattle(Object.assig
 
 /* ---------- directed sweep: every weapon x ability x armor and helmet state x height x buff x morale x cover, struck for real ---------- */
 // talent flags and mods the sweep puts on attackers (TALU) and targets (TALT); every one changes a number the forecast must match
-const TALU=[['vsHurt',.15],['vsFull',.2],['dmgMelee',.1],['dmgRanged',.15],['twoDmg',.1],['lowHpDmg',.2],['duelHit',6],['duelDmg',.15],['flankDmg',.15],['flank',10],['spellB',.1],['ignB',.15],['headB',10],['bleedOn',2],['splitB',.5],['coverIgn',1],['longShot',1]],
+const TALU=[['vsHurt',.15],['vsFull',.2],['dmgMelee',.1],['dmgRanged',.15],['twoDmg',.1],['lowHpDmg',.2],['duelHit',6],['duelDmg',.15],['flankDmg',.15],['flank',10],['spellB',.1],['ignB',.15],['headB',10],['bleedOn',2],['splitB',.5],['coverIgn',1],['longShot',1],
+  // the rogues' trees (64r-rogues.js): light-weapon, unacted-foe and impaired-foe terms, bleed and poison riding on light blows
+  ['stabDmg',.15],['stabHit',5],['wakeDmg',.2],['lightBleed',2],['lightPoison',2],['dirtyDmg',.2],['dirtyHit',10],['firstHit',10],['firstDmg',.1]],
  TALT=[['adjDef',6],['loneDef',10],['drB',.1],['drRanged',.15],['drMelee',.1],['lastStand',.15],['undying',1],
   // armor trees (light, medium, heavy)
-  ['nimble',1],['fleet',10],['sidestep',.25],['freshDef',8],['dance',5],['brace',.2],['roll',.5],['layerDef',6],['padIgn',1/3],['kbImm',1],['unbowed',.3],['hpSoak',5],['noStun',1]],mates0=new Set();
+  ['nimble',1],['fleet',10],['sidestep',.25],['freshDef',8],['dance',5],['brace',.2],['roll',.5],['layerDef',6],['padIgn',1/3],['kbImm',1],['unbowed',.3],['hpSoak',5],['noStun',1],['flow',4]],mates0=new Set();
 async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X.seedRng(SEED+900);
  const b=X.startBattle({f:'orc',mult:1,biome:'hills',src:{type:'sim'},quiet:true,turnCap:1e9});ok(b,'sweep battle did not start');b.busy=true;DIRECTED=true;
  for(const x of b.units){delete x.elite;x.ward=0}   // the sweep randomises flags itself: elites are covered by the battles above and test/elites.js
@@ -206,6 +208,9 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
   for(const x of [u,t]){x.fat=x.fatMax<999&&R(0,1)===0?R(0,x.fatMax):0}if(R(0,5)===0){u.fatMax=R(40,110);u.fat=R(0,u.fatMax)}
   t.aw=R(0,40);t.mvd=R(0,1);t.dnc=R(0,4);t.ss=R(0,2)===0?1:0;t.brc=R(0,2)===0?1:0;t.undy=R(0,1);if(t.flags.undying&&!t.undy)S.undy++;if(R(0,5)===0){t.st.marked=1;S.marked++}
   for(const x of b.units)if(x!==u&&x!==t){x.flags=R(0,3)===0?{cmd:5}:R(0,3)===0?{guard:8}:R(0,2)===0?{steelWall:.1}:{}}
+  // the rogues: the target still waiting for its turn (Before they wake, Quicker than thought), blinded or marked for death (their numbers through foeAuras)
+  b.order=R(0,1)?[t]:[];if(R(0,4)===0){t.st.blinded=2;S.rg=(S.rg||0)+1}if(R(0,4)===0){t.st.doomed=2;S.rg=(S.rg||0)+1}X.foeAuras();
+  if(u.flags&&(u.flags.stabDmg||u.flags.wakeDmg||u.flags.lightPoison)&&X.isLightW(u.wpn))S.rgL=(S.rgL||0)+1;
   const bt=R(0,5);if(bt===0)t.buffs.push({dr:.5,indom:1,dur:2});else if(bt===1)t.buffs.push({md:15,rd:15,dr:.25,dur:2});else if(bt===2){t.buffs.push({dr:.5,indom:1,dur:2});t.buffs.push({md:15,rd:15,dr:.25,dur:2})}
   t.armMax=P([0,15,60,150,300]);const am=R(0,4);t.arm=am===0?0:am===1?Math.min(t.armMax,R(1,12)):am===2?Math.round(t.armMax*R(10,90)/100):t.armMax;
   t.helmMax=P([0,20,70,140,240]);const hm=R(0,4);t.helm=hm===0?0:hm===1?Math.min(t.helmMax,R(1,12)):hm===2?Math.round(t.helmMax*R(10,90)/100):t.helmMax;
@@ -236,10 +241,10 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  console.log('== strikes with fabled warriors (o.fabled mixed into EN bands, a fabled boss with phases) ==');
  { const st=X.ctx.strike,R={u:0,t:0,ab:new Set()},n1=S.n,ids=Object.keys(X.FABLED);X.ctx.strike=async function(u,t,a,o){if(u.fabled){R.u++;R.ab.add(a.id||a.n)}if(t.fabled)R.t++;return st(u,t,a,o)};
    for(let ti=0;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17);
-    for(let i=0;i<8;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.fabled={};const f2=[ids[(ti*4+i)%ids.length],ids[(ti*4+i+7)%ids.length]];
+    for(let i=0;i<10;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.fabled={};const f2=[ids[(ti*4+i)%ids.length],ids[(ti*4+i+7)%ids.length]];
      X.seedRng(SEED+900+10*ti+i);await scripted(X,{f:facs[(i+ti)%facs.length],mult:.7,fabled:f2,boss:i%2?{fabled:f2[0],phases:[{at:.6,n:'Test phase',summon:[Object.keys(X.EN)[0]],enrage:{dmg:.1}}]}:null,biome:bios[(i+ti)%bios.length],src:{type:'sim'}});nb++}}
    X.ctx.strike=st;X.G.fabled={};ok(R.u>150&&R.t>80,`too few fabled strikes checked (${R.u} by fabled warriors, ${R.t} on them)`);
-   console.log(`32 battles, ${S.n-n1} strikes checked: ${R.u} by fabled warriors (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
+   console.log(`40 battles, ${S.n-n1} strikes checked: ${R.u} by fabled warriors (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
  console.log('== strikes with elite foes (64e-elites.js: Brutal, levels 10 and 14) ==');
  { const st=X.ctx.strike,R={u:0,t:0,mods:new Set()},n1=S.n,d0=X.G.diff;X.ctx.strike=async function(u,t,a,o){if(u.elite){R.u++;u.elite.forEach(k=>R.mods.add(k))}if(t.elite){R.t++;t.elite.forEach(k=>R.mods.add(k))}return st(u,t,a,o)};
    for(let ti=2;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17);
@@ -272,5 +277,6 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  console.log(`talents and arms: ${S.tal} attackers with talent mods, ${S.swap} after a real swap, ${S.wmod} with weapon-tree changes, ${S.weak} weakened; ${S.undy} targets with Undying (${S.undySaved} saved by it), ${S.marked} marked, ${S.slung} slung shields`);
  console.log(`traits: ${S.trU} attackers with trait mods, ${S.trT} targets with traits (${S.lucky} with luck unspent, ${S.luckySaved} saved by it; ${S.bwise} Beast-wise against beasts, ${S.beastwise||0} heavy hits that could not shake them)`);
  ok(S.trU>500&&S.trT>800&&S.lucky>80&&S.luckySaved>3&&S.bwise>150&&(S.beastwise||0)>15,'a trait case was not covered: '+JSON.stringify({trU:S.trU,trT:S.trT,lucky:S.lucky,luckySaved:S.luckySaved,bwise:S.bwise,beastwise:S.beastwise}));
+ console.log(`rogues: ${S.rgL||0} light-weapon attackers with the rogues' mods, ${S.rg||0} blinded or doomed targets`);ok((S.rgL||0)>100&&(S.rg||0)>1000,'the rogues were not covered');
  ok(S.tal>1500&&S.swap>30&&S.wmod>300&&S.weak>300&&S.undy>100&&S.undySaved>5&&S.marked>300&&S.slung>50,'a talents and arms case was not covered: '+JSON.stringify({tal:S.tal,swap:S.swap,wmod:S.wmod,weak:S.weak,undy:S.undy,undySaved:S.undySaved,marked:S.marked,slung:S.slung}));
  finished=true;console.log(`\nOK forecast matches strike() (${((Date.now()-T0)/1000).toFixed(1)}s)`)})();

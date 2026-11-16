@@ -57,11 +57,13 @@ function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)
            guard/wallB/spike from the item: Cover for allies beside it, the Shield wall bonus, the Spiked bash roll),
     hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand; armor perks idle:
     another weight class worn), acl (armorClass: light medium heavy), aw (armor + helmet weight = their fatigue),
-    initDef (melee and ranged defense from Quicksilver: floor(flags.initDef x init), already inside md and rd), inj:[ids]} */
+    initDef (melee and ranged defense from initiative: Quicksilver floor(flags.initDef x init) plus Read the blade, already inside md and rd),
+    readDef (the Read the blade share of it), inj:[ids]} */
 /* Armor weight classes for the armor trees: light = no body armor, a robe, or at most ACLASS.light armor points; medium = at most
    ACLASS.medium; heavy = more. A famed piece keeps the class of the item it was made from. armorClass(m) takes a merc, or a battle unit
    (its merc's armor; an enemy by its armor maximum). */
 const ACLASS={light:60,medium:150};
+const READINIT={from:90,per:8,max:8,cap:20};   // Read the blade (Shadowdancer tree): defense from initiative
 function armorClassOf(id){const it=ITEMS[id];if(!it||it.k!=='a')return'light';const bid=it.famed&&it.base&&ITEMS[it.base]?it.base:id,b=ITEMS[bid];
  if(b.robe||/robe/.test(bid))return'light';const a=b.arm||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}
 function armorClass(m){if(!m)return'light';if(m.m&&m.side!=null)m=m.m;else if(m.side!=null&&!m.eq){const a=m.armMax||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}return armorClassOf(m.eq&&m.eq.a)}
@@ -94,6 +96,7 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
  for(const T of traitsOf(m)){if(T.st)for(const k in T.st)s[k]=(s[k]||0)+T.st[k];if(T.flag)s.flags[T.flag]=1;if(T.mod)for(const q in T.mod)s.flags[q]=(s.flags[q]||0)+T.mod[q]}   // traits
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}
  if(s.flags.initDef){s.initDef=Math.floor(s.flags.initDef*Math.max(0,s.init));s.md+=s.initDef;s.rd+=s.initDef}else s.initDef=0;   // Quicksilver (light armor): a share of the initiative as defense
+ s.readDef=0;if(s.flags.readInit){s.readDef=Math.max(0,Math.min(READINIT.max,Math.floor((s.init-READINIT.from)/READINIT.per),READINIT.cap-s.initDef));s.md+=s.readDef;s.rd+=s.readDef;s.initDef+=s.readDef}   // Read the blade (Shadowdancer): 1 a READINIT.per initiative above READINIT.from, at most READINIT.max, Quicksilver and it at most READINIT.cap
  if(s.hp<5)s.hp=5;if(s.fat<20)s.fat=20;s.ap=clamp(Math.round(s.ap),4,12);return s}
 function gainXP(m,x){m.xp+=x;while(m.lvl<MAXLV&&m.xp>=XPT[m.lvl+1]){m.lvl++;m.pp++;m.pend++}}
 function fielded(){let f=G.roster.filter(m=>m.field);if(!f.length){G.roster.slice(0,MAXFIELD).forEach(m=>m.field=true);f=G.roster.filter(m=>m.field)}return f.slice(0,MAXFIELD)}

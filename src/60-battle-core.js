@@ -258,7 +258,7 @@ function spawnUnit(u){const b=B;if(!b||!u)return null;initUnit(u);const sz=u.sz|
 function unitStatuses(u){const out=[],add=(key,turns)=>{if(!out.some(x=>x.key===key))out.push({key,n:STATUS[key]?STATUS[key].n:key,turns:turns||0})};
  for(const k in u.st)if(u.st[k]>0)add(k,u.st[k]);if(u.rooted&&!(u.st.root>0)&&!(u.st.webbed>0))add('root',0);if(u.dazed&&!(u.st.daze>0))add('daze',0);
  for(const x of u.buffs)add(x.key&&STATUS[x.key]?x.key:x.indom?'indom':'buff',x.dur);if(u.shpMax>0&&!u.shield&&!u.slung)add('splitshield',0);if(u.slung)add('slung',0);if(u.weakened&&!(u.st.weak>0))add('weak',0);if(u.wpn&&u.wpn.reload&&u.loaded===false)add('unloaded',0);
- if(u.ward>0)add('eward',u.ward);{const tp=tiredPen(u),f=u.flags||{};if(tp>0)add('tired',tp);if(f.dance&&u.dnc>0)add('dance',Math.min(15,f.dance*u.dnc));if(f.fleet&&u.mvd)add('fleet',0)}return out}
+ if(u.ward>0)add('eward',u.ward);{const tp=tiredPen(u),f=u.flags||{};if(tp>0)add('tired',tp);if(f.dance&&u.dnc>0)add('dance',Math.min(15,f.dance*u.dnc));if(f.flow&&u.dnc>0)add('flow',f.flow*Math.min(3,u.dnc));if(f.fleet&&u.mvd)add('fleet',0)}return out}
 const statusList=unitStatuses;                                           // alias: the same list under a name no other file defines
 // Gives t status key for n turns (never shortens one it already has) and tells the scene.
 function addStatus(t,key,n){if(!t.alive||!(n>0))return;
@@ -317,7 +317,7 @@ function leaveField(u,why){if(!B||!u.alive)return false;u.alive=false;u.gone=why
    resolveBattle() must count them as survivors, not as casualties. */
 function battleSync(){const b=B;if(!b||b.synced)return;b.synced=true;for(const u of b.units)if(u.side===0&&u.m&&(u.alive||u.gone||u.down))syncMerc(u)}
 // The foe that punishes u for turning its back: adjacent, able, armed for melee and not yet used this round.
-const canFree=e=>e.alive&&!e.st.stun&&e.mor!==0&&!isRangedW(e.wpn);
+const canFree=e=>e.alive&&!e.st.stun&&e.mor!==0&&!isRangedW(e.wpn)&&!(e.st.blinded>0);   // Pocket sand (Rogue): a blinded foe makes no free attacks
 function zocFoe(u){return B.units.find(e=>e.side!==u.side&&mdist(e,u)===1&&canFree(e)&&!e.aoo)||null}
 const FREESAY={zoc:(e,u)=>`${e.name} strikes as ${u.name} turns away.`,riposte:(e,u)=>`${e.name} ripostes.`,spearwall:(e,u)=>`${e.name} meets ${u.name} with the spear.`,retreat:(e,u)=>`${e.name} cuts at ${u.name}'s back.`};
 // One free attack by e on u (zone of control, riposte, spear wall, retreat). Returns true when it hit.
@@ -387,13 +387,13 @@ function swapWeapons(u){if(!canSwap(u))return false;const from=u.wpn;u.ld=Object
  float(u,u.wpn.n||'Fists','#e9e0c9');FX.emit('swap',{u,from,to:u.wpn});return true}
 // Why u cannot use a now ('' when it can): for the HUD. Mirrors canUse().
 function useBlock(u,a){if(!u||!a)return'Unavailable';if(u.mor===0)return'Fleeing';if(a.swapW&&!canSwap(u))return'No other weapon';
- if(!needsOK(a,u.wpn.wt))return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||needsN(a)+' in hand');if(a.fresh&&u.ap<u.apMax)return'Only as the first action of a turn';if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
+ if(!needsOK(a,u.wpn.wt))return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||needsN(a)+' in hand');if(a.fresh&&u.ap<u.apMax)return'Only as the first action of a turn';if(a.light&&!isLightW(u.wpn))return'Needs a light weapon in hand (a dagger, a one-handed blade of at most '+LIGHTW.fat+' fatigue, or fists)';if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
  if(a.noBow&&isRangedW(u.wpn))return'Not with a ranged weapon in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
  if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(!canFire(u,a))return'Not loaded: reload first';
  if(a.reloadW&&!u.wpn.reload)return'Nothing to reload';if(a.reloadW&&u.loaded!==false)return'Already loaded';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
  if(u.ap<a.ap)return'Not enough AP';if(u.fat+a.fat>u.fatMax)return'Too tired';return''}
-function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;
+function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;if(a.light&&!isLightW(u.wpn))return false;
  if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;
  if(a.noBow&&isRangedW(u.wpn))return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;if(!canFire(u,a))return false;
  if(a.reloadW&&(!u.wpn.reload||u.loaded!==false))return false;return true}
@@ -443,6 +443,24 @@ const STBONUS={marked:15},WEAKDMG=.25;
 function hasAdj(x,side,not){for(const o of B.units)if(o.alive&&o!==x&&o!==not&&o.side===side&&mdist(o,x)===1)return true;return false}
 function bestAdj(x,k){let v=0;for(const o of B.units)if(o.alive&&o!==x&&o.side===x.side&&o.flags&&o.flags[k]>v&&mdist(o,x)===1)v=o.flags[k];return v}
 const isDuel=(u,a)=>!a.magic&&!u.wpn.two&&!isRangedW(u.wpn)&&!u.shield;
+/* ---- Rogues: the Assassin, Rogue and Shadowdancer trees (MAST in 10-data.js; abilities, statuses and the rest in 64r-rogues.js) ----
+   isLightW(w): a light weapon: bare fists, any dagger, or a one-handed melee weapon of at most LIGHTW.fat fatigue (short swords, the
+   wakizashi). notActed(t): t still waits for its turn this round (it is in B.order). impaired(t): dazed, blinded, stunned, rooted,
+   webbed or fleeing. quickStep(u): Light step is ready (the first tile u moves this turn costs QSTEP less AP).
+   rogueHit / rogueDmg: the to-hit and damage terms of the tree mods, inside hitChance() and dmgBonus(), so forecast() is exact:
+     stabHit / stabDmg  (Backstab) light weapon, melee, against a foe one of u's allies also stands next to
+     wakeDmg            (Before they wake) light weapon, melee, against a foe that has not acted yet this round
+     firstHit / firstDmg (Quicker than thought) melee, against a foe that has not acted yet this round
+     dirtyHit / dirtyDmg (Low blow) any weapon attack against an impaired foe */
+const LIGHTW={fat:8},QSTEP=2;
+const isLightW=w=>!!w&&(w.wt==='fist'||(!w.two&&!isRangedW(w)&&(w.wt==='dagger'||(w.fat||0)<=LIGHTW.fat)));
+const notActed=t=>!!(B&&Array.isArray(B.order)&&B.order.includes(t));
+const impaired=t=>!!(t&&(t.mor===0||t.dazed||t.st.daze>0||t.st.blinded>0||t.st.stun>0||t.rooted||t.st.root>0||t.st.webbed>0));
+const quickStep=u=>!!(u&&u.flags&&u.flags.quickstep&&!u.qsT);
+function rogueHit(u,t,a){const f=u.flags;if(a.magic||!f||!(f.stabHit||f.firstHit||f.dirtyHit))return 0;const melee=!!a.melee||mdist(u,t)<=1;let v=0;
+ if(melee){if(f.stabHit&&isLightW(u.wpn)&&hasAdj(t,u.side,u))v+=f.stabHit;if(f.firstHit&&notActed(t))v+=f.firstHit}if(f.dirtyHit&&impaired(t))v+=f.dirtyHit;return v}
+function rogueDmg(u,t,a){const f=u.flags;if(a.magic||!f||!(f.stabDmg||f.wakeDmg||f.firstDmg||f.dirtyDmg))return 0;const melee=!!a.melee||mdist(u,t)<=1,lw=melee&&isLightW(u.wpn);let x=0;
+ if(lw&&f.stabDmg&&hasAdj(t,u.side,u))x+=f.stabDmg;if(lw&&f.wakeDmg&&notActed(t))x+=f.wakeDmg;if(melee&&f.firstDmg&&notActed(t))x+=f.firstDmg;if(f.dirtyDmg&&impaired(t))x+=f.dirtyDmg;return x}
 /* Fatigue. tiredPen(u): 0 up to TIRED.from (half) of its maximum fatigue, then 1 point for every 5% more, to TIRED.max at full
    exhaustion (rounded): 50% 0, 60% 2, 75% 5, 90% 8, 100% 10. A tired attacker loses that much to hit (melee, shots and spells alike)
    and a tired target that much defense (it is that much easier to hit). Units that do not tire (fatMax 999 and up: most foes) never
@@ -452,7 +470,7 @@ function tiredPen(u){if(!u||!(u.fatMax>0)||u.fatMax>=999)return 0;const r=(u.fat
 /* Defense t gets from its armor-tree perks against u's ability a (already inside hitChance; forecast().armDef shows it):
    Fleet (moved on its turn, against shots), Fresh legs (fatigue below half), Dancer (misses since its last turn), Layered defense
    (body armor above half). */
-function armorDef(u,t,a){const f=t.flags||{};let v=0;if(!(f.fleet||f.freshDef||f.dance||f.layerDef))return 0;
+function armorDef(u,t,a){const f=t.flags||{};let v=0;if(!(f.fleet||f.freshDef||f.dance||f.layerDef||f.flow))return 0;if(f.flow&&t.dnc>0)v+=f.flow*Math.min(3,t.dnc);   // Flow (Shadowdancer): flow a miss, at most 3 misses
  if(f.fleet&&t.mvd&&!a.magic&&shotKind(u,t,a)===2)v+=f.fleet;if(f.freshDef&&(t.fat||0)<t.fatMax*.5)v+=f.freshDef;if(f.dance&&t.dnc>0)v+=Math.min(15,f.dance*t.dnc);
  if(f.layerDef&&t.armMax>0&&t.arm>t.armMax/2)v+=f.layerDef;return v}
 function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
@@ -462,7 +480,7 @@ function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.mele
  if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
  if(B.auraOn){ch+=bestAdj(u,'cmd');if(!melee)ch-=bestAdj(t,'guard')}
  ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;
- ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit;return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
+ ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit+rogueHit(u,t,a);return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
 // Traits: Hard-headed / Glass-jawed (t.flags.headDef) move it the other way; Steady-handed adds to headB.
 function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0)-((t.flags&&t.flags.headDef)||0),0,100)}
@@ -474,7 +492,7 @@ function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cm
    higher ground -> round(x max(.2, 1 - damage reduction)). */
 function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
  if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.hurtDmg&&u.hpMax>0)x+=f.hurtDmg*Math.floor(10*Math.max(0,1-u.hp/u.hpMax))/10;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
- if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.vsBoss&&isBigFoe(t))x+=f.vsBoss;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
+ if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.vsBoss&&isBigFoe(t))x+=f.vsBoss;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;x+=rogueDmg(u,t,a);if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
 // vsBoss (fabled trees): against a boss, a fabled warrior, a huge (size 2) foe or an EN boss
 const isBigFoe=t=>!!(t&&(t.boss||t.fabled||(t.sz||1)>1||(t.def&&t.def.boss)));
 /* Nimble (light armor): 30% minus 1.5% per point of armor and helmet weight (t.aw), times (0.5 + 0.5 x the share of stamina left),
@@ -501,7 +519,9 @@ const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB
 const rollOf=(u,a)=>a.dmgD||u.wpn.d;
 const crushOf=(u,a)=>a.magic||a.noDmg?0:(a.dmgD?0:u.wpn.crush||0)+(a.crushB||0);
 const stunOf=(u,a)=>a.magic||a.nostun||a.dmgD?0:u.wpn.stun||0;
-const bleedOf=(u,a)=>Math.max(a.bleed||0,a.wpn&&!a.magic&&u.flags&&u.flags.bleedOn||0);
+const bleedOf=(u,a)=>Math.max(a.bleed||0,a.wpn&&!a.magic&&u.flags&&u.flags.bleedOn||0,a.wpn&&!a.magic&&u.flags&&u.flags.lightBleed&&isLightW(u.wpn)?u.flags.lightBleed:0);   // Opening wounds (Assassin)
+// Venomed blade (Rogue): turns of poison a hit that reaches hitpoints leaves (a light weapon in hand), else 0.
+const poisonOf=(u,a)=>Math.max(a.poison||0,a.wpn&&!a.magic&&u.flags&&u.flags.lightPoison&&isLightW(u.wpn)?u.flags.lightPoison:0);
 const splitMult=(u,a)=>(a.smult||1)*(1+(u.flags&&u.flags.splitB||0));
 // Undying: a killing blow leaves t at 1 hitpoint, once per battle.
 // Lucky (trait): the same, once per battle, after Undying is spent (t.lck marks it used).
@@ -511,7 +531,7 @@ function dashSpot(u,t){let best=null,bd=1e9;const s=u.sz||1,st=t.sz||1;
  if(s>1||st>1){for(let r=t.r-s;r<=t.r+st;r++)for(let c=t.c-s;c<=t.c+st;c++){if(fdist(c,r,s,t)!==1||!footFree(c,r,s,u))continue;const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(d<bd){bd=d;best=[c,r]}}return best}
  for(const [x,y] of DIRS){const nc=t.c+x,nr=t.r+y;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr))continue;const d=Math.abs(nc-u.c)+Math.abs(nr-u.r);if(d<bd){bd=d;best=[nc,nr]}}return best}
 function validTargets(u,a){const out=new Set();if(isRangedAtk(u,a)&&rangedLocked(u)||!canFire(u,a))return out;
- if(a.tgt==='enemy')B.units.forEach(t=>{if(t.alive&&t.side!==u.side&&mdist(u,t)<=a.rng&&!(a.dash&&mdist(u,t)>1&&u.wpn.rng<mdist(u,t)&&!dashSpot(u,t))&&!(a.needShieldT&&!t.shield)&&!losInfo(u,t,a).blocked)for(const [c,r] of unitTiles(t))out.add(key(c,r))});   // any tile of a footprint picks the unit
+ if(a.tgt==='enemy')B.units.forEach(t=>{if(t.alive&&t.side!==u.side&&mdist(u,t)<=a.rng&&!(a.dash&&mdist(u,t)>1&&u.wpn.rng<mdist(u,t)&&!dashSpot(u,t))&&!(a.needShieldT&&!t.shield)&&!(a.tgtOK&&!a.tgtOK(u,t))&&!losInfo(u,t,a).blocked)for(const [c,r] of unitTiles(t))out.add(key(c,r))});   // any tile of a footprint picks the unit
  else if(a.tgt==='ally')B.units.forEach(t=>{if(t.alive&&t.side===u.side&&mdist(u,t)<=a.rng&&!(a.noSelf&&t===u))out.add(key(t.c,t.r))});
  else if(a.tgt==='move')for(let r=0;r<BH;r++)for(let c=0;c<BW;c++){const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(!d||d>a.rng)continue;const t=B.tiles[key(c,r)];if((u.sz||1)>1){if(!footFree(c,r,u.sz,u))continue}else if(t.t==='block'||unitAt(c,r))continue;if(!a.leap&&t.h-T(u).h>1)continue;out.add(key(c,r))}
  return out}
@@ -588,7 +608,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
  if(a.split){fly(t);if(!t.shield)return false;damageShield(t,Math.round(ri(u.wpn.d[0],u.wpn.d[1])*splitMult(u,a)),u);await sleep(240);return true}
  if(!o.auto&&!a.sure&&rnd()*100>=hitChance(u,t,a)){let v=null;
   if(!o.free&&shotKind(u,t,a)===2){const ff=losInfo(u,t,a).ff;if(ff.length&&rnd()<FFCH)v=ff[Math.floor(rnd()*ff.length)]}
-  fly(v||t);float(t,'Miss','#c8d0d8');FX.emit('miss',v?{u,t,stray:v}:{u,t});if(t.flags&&t.flags.dance)t.dnc=Math.min(3,(t.dnc||0)+1);await sleep(230);
+  fly(v||t);float(t,'Miss','#c8d0d8');FX.emit('miss',v?{u,t,stray:v}:{u,t});if(t.flags&&(t.flags.dance||t.flags.flow))t.dnc=Math.min(3,(t.dnc||0)+1);await sleep(230);
   if(v){if(v.alive&&u.alive){say(`${u.name}'s shot strays into ${v.name}.`);FX.emit('ff',{u,t:v,from:t});await strike(u,v,a,{auto:1,stray:1,free:'stray',noShot:1,splash:(o.splash||1)*FFDMG})}}
   else if(!o.free&&!a.magic&&d===1&&t.alive&&u.alive&&buffSum(t,'rip'))await freeAttack(t,u,'riposte');
   return false}
@@ -596,12 +616,12 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
  let dmg=0;const ign=a.noDmg?1:ignOf(u,a),wd=rollOf(u,a);if(a.noDmg){}else if(a.magic)dmg=ri(a.magic[0],a.magic[1])*spellMult(u);else dmg=ri(wd[0],wd[1])*(a.mult||1);
  if(!a.noDmg)dmg=dmgAfter(u,t,a,dmg,o);
  let hpd=0;if(dmg>0){const head=rnd()*100<headChance(u,t,a);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1,crush:crushOf(u,a)})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
- if(t.alive){const st=Object.assign({},u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);
+ if(t.alive){const st=Object.assign({},u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);{const po=poisonOf(u,a);if(po&&hpd>0)st.poison=Math.max(st.poison||0,po)}
   for(const k in st)addStatus(t,k,st[k]);
   const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t)&&!o.stray)await knockback(u,t,kb,a.crash||u.crashD||0);
   if(a.pull&&t.alive&&u.alive&&!kbImmune(t))await pullUnit(u,t,a.pull);
   if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1)}
- else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(!t.gone&&u.alive)onKill(u)}
+ else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(a.killAP&&u.alive&&!o.stray){u.ap+=a.killAP;float(u,'+'+a.killAP+' AP','#ffd27a');FX.emit('buff',{t:u})}if(!t.gone&&u.alive)onKill(u)}
  await sleep(240);return true}
 // A hook: t is dragged up to n tiles toward u, along the longer axis, while the next tile is free, walkable and at most 1 step up.
 async function pullUnit(u,t,n){if(mdist(u,t)>1&&rollsWith(t))return;for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){const m=unitCenter(u);let dc=m.c-t.c,dr=m.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
@@ -628,10 +648,10 @@ function dijkstraN(u,max){const s=u.sz||1,fly=canFly(u),D=new Map(),st=key(u.c,u
    let v=cur.cost+2;if(!fly){if(tk||F.blk||F.h-cur.h>1)continue;if(F.h>cur.h)v++;if(F.rough)v++}if(v>max)continue;
    const o=D.get(nk);if(!o||v<o.cost){const e={cost:v,prev:k,h:F.h};if(fly&&(F.blk||tk))e.air=1;D.set(nk,e);open.push(nk)}}}
  return D}
-function dijkstra(u,max){if((u.sz||1)>1||canFly(u))return dijkstraN(u,max);const D=new Map(),st=key(u.c,u.r),occ=new Uint8Array(BW*BH);for(const x of B.units)if(x.alive){if((x.sz||1)>1){for(const [c,r] of unitTiles(x))if(inb(c,r))occ[key(c,r)]=1}else occ[key(x.c,x.r)]=1}D.set(st,{cost:0,prev:-1});const open=[st];
+function dijkstra(u,max){if((u.sz||1)>1||canFly(u))return dijkstraN(u,max);const qs=quickStep(u),D=new Map(),st=key(u.c,u.r),occ=new Uint8Array(BW*BH);for(const x of B.units)if(x.alive){if((x.sz||1)>1){for(const [c,r] of unitTiles(x))if(inb(c,r))occ[key(c,r)]=1}else occ[key(x.c,x.r)]=1}D.set(st,{cost:0,prev:-1});const open=[st];
  while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(D.get(open[i]).cost<D.get(open[bi]).cost)bi=i;const k=open.splice(bi,1)[0],cur=D.get(k);if(cur.done)continue;cur.done=1;const c=k%BW,r=(k/BW)|0;
   for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=key(nc,nr),t=B.tiles[nk];if(t.t==='block'||occ[nk]||t.h-B.tiles[k].h>1)continue;
-   const v=cur.cost+stepCost(u,k,nk);if(v>max)continue;const o=D.get(nk);if(!o||v<o.cost){D.set(nk,{cost:v,prev:k});open.push(nk)}}}return D}
+   const v=cur.cost+(k===st&&qs?Math.max(0,stepCost(u,k,nk)-QSTEP):stepCost(u,k,nk));if(v>max)continue;const o=D.get(nk);if(!o||v<o.cost){D.set(nk,{cost:v,prev:k});open.push(nk)}}}return D}
 function pathTo(D,k){const p=[];for(let x=k;D.get(x)&&D.get(x).prev>=0;x=D.get(x).prev)p.unshift(x);return p}
 /* Walks u along path, one tile at a time. Free attacks are settled here and nowhere else:
    leaving a tile next to a foe draws that foe's free attack (one per foe and round; a hit halts u where it stands);
@@ -639,14 +659,14 @@ function pathTo(D,k){const p=[];for(let x=k;D.get(x)&&D.get(x).prev>=0;x=D.get(x
 // (A flier over a prop is not halted there: it flies on to where it can land. A size-2 unit needs its whole footprint clear.)
 async function walkPath(u,path){const b=B;if(!u.fly)return walkPath0(u,path);const land=[u.c,u.r];await walkPath0(u,path,land);
  if(B===b&&u.alive&&airAt(u)){u.c=land[0];u.r=land[1];FX.emit('move',{u});await sleep(105)}}            // a flier never ends over a prop or a unit
-async function walkPath0(u,path,land){const b=B,sz=u.sz||1,mf=moveFat(u);for(const k of path){if(B!==b||!u.alive)return;const fk=key(u.c,u.r),c=stepCost(u,fk,k);if(u.ap<c||u.fat+mf>u.fatMax)break;if(!canFly(u)&&(sz>1?footUnit(k%BW,(k/BW)|0,sz,u):unitAt(k%BW,(k/BW)|0)))break;
+async function walkPath0(u,path,land){const b=B,sz=u.sz||1,mf=moveFat(u);for(const k of path){if(B!==b||!u.alive)return;const fk=key(u.c,u.r),qs=quickStep(u),c=qs?Math.max(0,stepCost(u,fk,k)-QSTEP):stepCost(u,fk,k);if(u.ap<c||u.fat+mf>u.fatMax)break;   // Light step (Shadowdancer): the first tile of the turn costs QSTEP lessif(!canFly(u)&&(sz>1?footUnit(k%BW,(k/BW)|0,sz,u):unitAt(k%BW,(k/BW)|0)))break;
   const slip=!!(u.flags&&u.flags.slip)&&!u.slipT;u.slipT=1;const foe=slip?null:zocFoe(u);   // Slippery: the first tile left each turn draws no free attack
   if(foe){foe.aoo=1;const hit=await freeAttack(foe,u,'zoc');if(B!==b||!u.alive)return;if(hit&&!airAt(u)){float(u,'Halted','#ffd27a');break}}
   let stop=false;const nc=k%BW,nr=(k/BW)|0;
   for(const s of b.units.filter(s=>s.alive&&s.side!==u.side&&buffSum(s,'sw')&&mdist(s,u)>1&&fdist(nc,nr,sz,s)===1)){if(!canFree(s))continue;
    const hit=await freeAttack(s,u,'spearwall');if(B!==b||!u.alive)return;if(hit&&!airAt(u)){float(u,'Halted','#ffd27a');stop=true;break}dropBuff(s,'spearwall')}
-  if(stop){u.ap=Math.max(0,u.ap-c);break}
-  u.ap-=c;u.fat+=mf;u.mvd=1;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(land&&!airAt(u)){land[0]=nc;land[1]=nr}if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
+  if(stop){u.ap=Math.max(0,u.ap-c);if(qs)u.qsT=1;break}
+  u.ap-=c;if(qs)u.qsT=1;u.fat+=mf;u.mvd=1;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(land&&!airAt(u)){land[0]=nc;land[1]=nr}if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
 /* ---- Ability effects on allies (heal, buff, rally, cleanse, AP) ---- */
 const healRoll=(u,a)=>{const h=ri(a.heal[0],a.heal[1]);return Math.round(h*(1+(u.flags&&u.flags.healB||0))*(B&&B.realm&&B.realm.healK!=null?B.realm.healK:1))};   // the Ashen Reach halves healing
 function healUnit(t,h){const h0=t.hp;t.hp=Math.min(t.hpMax,t.hp+h);float(t,'+'+h,'#9bd96f');FX.emit('heal',{t,n:t.hp-h0})}
@@ -697,7 +717,7 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
   const x=b.order.shift();if(x.alive&&!x.vip)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
  u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;if(u.unready){u.unready=0;u.ap=Math.max(0,u.ap-AMBUSHAP);float(u,'Caught unready','#ffd27a')}u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic
- u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;auraScan();
+ u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;u.qsT=0;auraScan();
  if(u.flags&&u.flags.armRegen>0&&u.armMax>0&&u.arm<u.armMax){const a0=u.arm;u.arm=Math.min(u.armMax,u.arm+u.flags.armRegen);float(u,'Armor +'+(u.arm-a0),'#c8d0d8')}   // Mail mender
  for(const k in u.res)u.res[k].cur=Math.min(u.res[k].max,u.res[k].cur+u.res[k].regen);
  u.buffs=u.buffs.filter(x=>--x.dur>0);if(u.st.chill){u.ap=Math.max(0,u.ap-3);u.st.chill--;float(u,'Chilled','#8fd8ff')}u.rooted=false;if(u.st.root){u.rooted=true;u.st.root--}if(u.st.webbed){u.rooted=true;u.st.webbed--}

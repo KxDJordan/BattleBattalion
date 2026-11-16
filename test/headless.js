@@ -822,6 +822,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const fl=a=>{m.eq.a=a;const s=X.calc(m);return{flags:s.flags,aw:s.aw}};
      b.units.forEach((u,i)=>{put(u,i,11);u.st={};u.buffs=[];u.flags={};u.mor=3;u.fearless=true;u.alive=true;u.fat=0;u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0});X.auraScan();
      put(Pl,5,5);put(e0,6,5);Pl.fat=0;Pl.hp=Pl.hpMax=200;Pl.arm=Pl.armMax=200;Pl.helm=Pl.helmMax=100;const ea=X.abilityInfo(e0,'attack'),g0=X.hitChance(e0,Pl,ea),d0=X.forecast(e0,Pl,ea);
+     const keepSt=()=>{const k={};for(const q of ['ms','rs','md','rd','init','brv','hpMax'])k[q]=Pl[q];return k},PlSt=keepSt();   // the heavy blows below may injure Pl (seeded): its numbers are put back before each class
      // light
      { const L=fl('jack');Pl.flags=L.flags;Pl.aw=L.aw;const nb=Math.round(Math.max(0,30-1.5*L.aw))/100;ok(X.nimbleDr(Pl)===nb&&X.armorDr(Pl)===nb&&X.forecast(e0,Pl,ea).armDr===nb,'Nimble: 30% - 1.5% a point of weight, fresh: '+X.nimbleDr(Pl)+' vs '+nb);
        Pl.fat=Pl.fatMax;ok(X.nimbleDr(Pl)===Math.round(Math.max(0,30-1.5*L.aw)*.5)/100,'Nimble: half when exhausted');Pl.fat=0;ok(X.forecast(e0,Pl,ea).dmgMax<d0.dmgMax,'Nimble takes damage off the forecast');
@@ -835,6 +836,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        const seen=[];X.FX.on=(type,d)=>{if((type==='hit'||type==='miss')&&d.u===e0)seen.push(type)};Pl.ap=9;e0.aoo=0;Pl.slipT=0;await X.walkPath(Pl,[5*BW+4]);ok(Pl.c===4&&!seen.length&&!e0.aoo,'Slippery: no free attack on the first step');
        put(Pl,5,5);Pl.ap=9;e0.aoo=0;await X.walkPath(Pl,[5*BW+4]);ok(seen.length===1,'Slippery: only the first tile of a turn');X.FX.on=(type,d)=>ev.push({type,d});Pl.hp=200;put(Pl,5,5) }
      // medium
+     Object.assign(Pl,PlSt);if(Pl.m)Pl.m.inj=[];
      { const Md=fl('mail');Pl.flags=Md.flags;Pl.aw=Md.aw;Pl.fat=0;Pl.arm=200;ok(X.armorDr(Pl)===.15&&X.forecast(e0,Pl,ea).armDr===.15,'Braced mail: 15% off the first blow');X.hurt(Pl,10,0,e0,{loc:1});ok(Pl.brc===1&&X.armorDr(Pl)===0,'Brace is spent by a hit');Pl.brc=0;
        Pl.arm=200;ok(X.hitChance(e0,Pl,ea)===g0-5,'Layered defense: +5 while the armor is above half');Pl.arm=100;ok(X.hitChance(e0,Pl,ea)===g0,'Layered defense: not at half');Pl.arm=200;
        { const t2=X.clone({}),h0=Pl.hp;Pl.arm=200;X.hurt(Pl,100,.6,e0,{loc:1});const a1=Pl.arm,l1=h0-Pl.hp;Pl.hp=h0;Pl.arm=200;const f0=Pl.flags;Pl.flags=Object.assign({},f0,{padIgn:0});X.hurt(Pl,100,.6,e0,{loc:1});const l2=h0-Pl.hp;Pl.flags=f0;Pl.hp=h0;Pl.arm=200;
@@ -844,6 +846,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        const kbA={id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,status:{stun:1},rng:1,tgt:'enemy'},fk=X.forecast(e0,Pl,kbA);ok(fk.kb&&fk.kb.ch===.5&&fk.statuses.some(s=>s.k==='stun'&&s.ch===.5),'forecast: Rolling with it halves knockback and stun chances');
        Pl.ap=9;Pl.fat=0;put(e0,15,0);await X.walkPath(Pl,[5*BW+4,5*BW+3,5*BW+2]);ok(Pl.c===2&&Pl.fat===3&&X.moveFat(Pl)===1,'Steady footing: 1 fatigue a tile');put(Pl,5,5);put(e0,6,5);
        Pl.arm=150;const res0=Pl.res;Pl.res={mana:{cur:0,max:30,regen:4}};b.order=[Pl];b.busy=true;await X.nextTurn();ok(Pl.arm===153&&b.cur===Pl,'Braced mail: +3 armor at turn start');ok(Pl.res.mana.cur===4,'gift pools still regenerate at turn start');Pl.res=res0;b.busy=true;Pl.arm=200 }
+     Object.assign(Pl,PlSt);if(Pl.m)Pl.m.inj=[];
      // heavy
      { const H=fl('plate');Pl.flags=H.flags;Pl.aw=H.aw;Pl.fat=0;ok(X.kbImmune(Pl),'Immovable');put(Pl,5,5);await X.knockback(e0,Pl,2,0);ok(Pl.c===5&&Pl.r===5,'Immovable: no knockback');
        ok(X.forecast(e0,Pl,{id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,rng:1,tgt:'enemy'}).kb.ch===0,'forecast: Immovable');
