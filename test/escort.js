@@ -98,7 +98,7 @@ section('the march');
   const n0=toasts.length,o=G.towns.find((t,i)=>i!==c.to&&i!==c.town);ok(X.goTo(o.x,o.y,{type:'town',i:G.towns.indexOf(o)})===true,'goTo is answered');
   ok(toasts.length===n0+1&&new RegExp('You are escorting the caravan to '+T.name).test(toasts[n0]),'the notice: '+toasts[n0]);ok(G.moving&&!G.path.length&&!G.dest,'the company does not leave: it marches on with the wagons');
   for(let i=0;i<200;i++)X.worldTick(.05);ok(near(G.p,C)<=X.ESC.tie&&near(G.p,o)>2,'still beside the caravan');
-  X.worldTap(G.towns[c.to].x,G.towns[c.to].y);ok(toasts.length===n0+1,'a tap on the destination (or the caravan) needs no notice');
+  {const n1=toasts.length;X.worldTap(G.towns[c.to].x,G.towns[c.to].y);ok(toasts.length===n1,'a tap on the destination (or the caravan) needs no notice: '+JSON.stringify(toasts.slice(n1)))}
   console.log(`  ${frames} frames beside the wagons, ${near(G.p,G.towns[c.town]).toFixed(1)} leagues out`);
   console.log('the march: ok') }
 
