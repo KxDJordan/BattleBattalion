@@ -60,11 +60,14 @@ const place=(u,c,r)=>{u.c=c;u.r=r};
 const setW=id=>{archer.wpn=Object.assign({},X.ITEMS[id],{id});archer.wid=id};
 const ff=()=>X.losInfo(archer,foe,{wpn:1}).ff.includes(ally);
 setW(bow);place(archer,5,10);place(foe,5,4);
-place(ally,5,9);ok(ff(),'bow: an ally right in front of the archer can be hit');
+place(ally,5,9);ok(!ff(),'bow: an ally right in front of the archer is never hit');
 place(ally,5,7);ok(!ff(),'bow: an ally in the middle of the line is under the arc');
 place(ally,5,5);ok(ff(),'bow: an ally right in front of the target can be hit');
 T[K(5,10)].h=1;place(ally,5,9);ok(!ff(),'bow: shooting down over the ally at your feet');T[K(5,10)].h=0;
 T[K(5,4)].h=1;place(ally,5,5);ok(!ff(),'bow: an ally below a raised target is under the fall');T[K(5,4)].h=0;
 setW(xb);place(ally,5,7);ok(ff(),'crossbow (flat shot): the whole line counts');
-T[K(5,10)].h=1;place(ally,5,9);ok(!ff(),'crossbow: shooting down over the ally at your feet');T[K(5,10)].h=0;
+place(ally,5,9);ok(!ff(),'crossbow: an ally right in front of the shooter is never hit');
+for(const id of [bow,xb]){setW(id);place(foe,5,8);place(ally,5,9);ok(!ff(),id+': at two tiles, the ally between shooter and target is right in front of the shooter: never hit');place(foe,5,4)}
+// the forecast's stray chance: (100 - hit) x FFCH, shared by the allies in the path
+setW(xb);place(ally,5,7);{const f=X.forecast(archer,foe,X.AB.shoot||{wpn:1});ok(f&&f.ff&&f.ff.length===1,'forecast lists the ally in the path');ok(Math.abs(f.ff[0].ch-(100-f.hit)*X.FFCH)<1e-9,'forecast stray chance')}
 console.log('friendly fire follows the arrow: ok\n\nffire test passed');
