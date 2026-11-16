@@ -29,10 +29,10 @@ function tutRepair(g){const t=g.tut;if(!svObj(t)){delete g.tut;return}g.tut={ste
 // the contract type: never on a board, made only here
 if(typeof ctrRegister==='function')ctrRegister('tutorial',{n:'First contract',d:'A small job to learn the trade: drive off the goblins on the road and come back for the pay.',icon:'hint',board:false,w:()=>0,gen:()=>null});
 /* tutStart(g): at new game (85-game.js createCampaign, after the towns are stocked). Draws the camp's place and the contract id from the stream. */
-function tutStart(g){if(!g||!Array.isArray(g.towns)||!g.towns.length||typeof ctrNew!=='function')return null;const t=g.towns[0];
+function tutStart(g){if(!g||!Array.isArray(g.towns)||!g.towns.length||typeof ctrNew!=='function')return null;let ti=0;if(g.p){let bd=1e18;g.towns.forEach((q,i)=>{const d=(q.x-g.p.x)**2+(q.y-g.p.y)**2;if(d<bd){bd=d;ti=i}})}const t=g.towns[ti];   // the town the company starts at (an origin may start elsewhere: the Corsairs' harbour)
  const p=typeof randOk==='function'?randOk(t.x,t.y,3*TS,5*TS):{x:t.x+4*TS,y:t.y};
- const c=ctrNew('tutorial',t,0,1,'Goblins on the road');c.f='gob';c.x=p.x;c.y=p.y;c.pay=Math.round(140*diffK('pay')/10)*10;c.pay0=c.pay;
- c.stages=[{k:'go',x:p.x,y:p.y,kind:'lair',label:'Goblin camp',fight:{f:'gob',k:.55}},ctrHome(0,'Collect the pay')];c.due=g.day+12;c.taken=g.day;c.tickDay=g.day;
+ const c=ctrNew('tutorial',t,ti,1,'Goblins on the road');c.f='gob';c.x=p.x;c.y=p.y;c.pay=Math.round(140*diffK('pay')/10)*10;c.pay0=c.pay;
+ c.stages=[{k:'go',x:p.x,y:p.y,kind:'lair',label:'Goblin camp',fight:{f:'gob',k:.55}},ctrHome(ti,'Collect the pay')];c.due=g.day+12;c.taken=g.day;c.tickDay=g.day;
  g.contract=c;if(typeof ctrSync==='function')ctrSync(c);g.tut={step:'go',cid:c.id,t0:0,done:false};return c}
 function tutSkip(){if(G&&G.tut)G.tut.done=true;storeSet(TUTKEY,'1');tutHide();if(typeof toast==='function')toast('Tutorial skipped: the contract is still yours to finish')}
 function tutFinish(){if(G&&G.tut)G.tut.done=true;storeSet(TUTKEY,'1');tutHide();if(typeof sheet==='function')sheet(`<h2>${runIc('laurel',32)} The trade is learned</h2><p>March, fight, heal, get paid. The rest is choices: which work to take, who to hire, when to run. Contracts wait on the board in every town.</p><p class="dim">Hints are off from now on. How to play (in the menu) has the controls.</p><button class="pri" onclick="closeSheet()">March on</button>`)}

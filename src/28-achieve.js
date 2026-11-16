@@ -131,7 +131,7 @@ Object.assign(ORIGINS,{
  necro:{n:'Necromancers',icon:'or-necro',lock:{ach:'deadmarch'},d:'You walked the field after the Dead March and picked up what the Bone Throne dropped: its books. The dead have a great deal to teach.',
   rule:'Every sword carries the mana gift, awakened, and none fears the restless dead (no Superstitious). Battle XP +25%: the dying teach. Temples charge double, and the free towns distrust you (−15).',
   roster:['gravedigger','cultist','hedge','apothecary'],crowns:700,k:{xp:1.25,temple:2}},
- corsairs:{n:'Corsairs',icon:'or-corsairs',lock:{ach:'rich'},d:'Your ship is at the bottom of the bay and the harbour master has your names. What is left: a crew, cutlasses, and the habit of striking first.',
+ corsairs:{n:'Corsairs',icon:'or-corsairs',lock:{ach:'rich'},d:'Your ship is at the bottom of the bay and the harbour master has your names. What is left: a crew, falchions, and the habit of striking first.',
   rule:'You start at a harbour town. Every fight with a band on the road begins as an ambush: you move first and the foe starts unready (−3 AP). The house that owns the harbour wants you hanged (Hostile).',
   roster:['sailor','sailor','brigand','thief'],crowns:1100,k:{}},
  cultists:{n:'Cultists of the Hollow Star',icon:'or-cultists',lock:{ach:'sunder'},d:'You prayed to the crack in the sky, and something answered. Every one of you came back with a gift. The priests have not forgiven it.',
