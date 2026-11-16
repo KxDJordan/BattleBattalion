@@ -312,12 +312,15 @@ const WSIM={live:30,car:9,pat:10,raid:12,merc:10,hunt:14,nestMax:3.2,nestGrow:.0
 const WSROUTE={caravan:1,patrol:1,raid:1,merc:1};
 function worldNews(t){if(!Array.isArray(G.news))G.news=[];G.news.push({day:G.day,t});if(G.news.length>WSIM.news)G.news.splice(0,G.news.length-WSIM.news);return t}
 function partyHostile(p){if(!p)return false;if(p.goal==='caravan')return false;if(p.goal==='merc')return rivalHostile(rivalById(p.f),p);if(!humanFact(p.f))return true;return !!p.hunt||repTier(p.f).k==='hostile'}
-function partyBattle(p){if(p&&p.goal==='caravan'&&typeof cvCaravanBattle==='function')return cvCaravanBattle(p);   // its guards, as the home town hired them (42-caravans.js)
+function partyBattle(p){if(p&&p.goal==='caravan'&&typeof cvCaravanBattle==='function')return cvCaravanBattle(p);
+ if(p&&p.gar!=null&&typeof grPartyBattle==='function')return grPartyBattle(p);   // a town's garrison: the house's soldiers in its livery (43-garrisons.js)
+ const o0=partyBattle0(p);if(o0&&!o0.livery&&isHouse(o0.f)&&typeof grLivery==='function'){const L=grLivery(o0.f);if(L)o0.livery=L}return o0}   // house soldiers carry the house's livery (o.livery: houseLivery, 46-banner.js)
+function partyBattle0(p){   // its guards, as the home town hired them (42-caravans.js)
  if(p&&p.goal==='merc'){const r=rivalById(p.f);if(r)return{f:p.f,rival:p.f,mult:rvMult(r),src:{type:'party',id:p.id,goal:'merc',pf:p.f}}}const o={f:FACT[p.f]?p.f:'bandit',mult:p.mult,src:{type:'party',id:p.id,goal:p.goal||'roam',pf:p.f}};const r=p&&p.cr&&typeof crPartyBattle==='function'?crPartyBattle(p,o):o;if(p&&p.fab){const L=Array.isArray(r.fabled)?r.fabled.slice():[];if(!L.includes(p.fab))L.push(p.fab);r.fabled=L.slice(0,2)}return r}   // a fabled leader of a host (p.fab, 19-east.js)
 function partyLabel(p){const f=factName(p.f),T=n=>G.towns[n]?G.towns[n].name:'';if(p.cr&&typeof crHostName==='function'){const n=crHostName(p).replace(/^./,c=>c.toUpperCase());return p.siegeT!=null?`${n}, besieging ${T(p.siegeT)}`:p.back?`${n}, carrying plunder north`:p.cr==='hhost'?`${n}, marching north against the Emperor`:`${n}, bound for ${T(p.to)}`}switch(p.goal){
   case 'merc':return rivalLabel(rivalById(p.f))||f;
   case 'caravan':return`Caravan of ${f==='Free towns'?T(p.from):f}, bound for ${T(p.to)}`;
-  case 'patrol':return p.siege!=null?`The host of ${f} besieging ${T(p.siege)}`:p.hunt?`${f} riders hunting the company`:`Patrol of ${f}`;
+  case 'patrol':if(p.gar!=null&&typeof grLabel==='function')return grLabel(p);return p.siege!=null?`The host of ${f} besieging ${T(p.siege)}`:p.hunt?`${f} riders hunting the company`:`Patrol of ${f}`;
   case 'raid':return`${f} raiders, bound for ${T(p.to)}`;
   case 'nest':return`${f} from a nest`;default:return f}}
 // The player attacks a party that would not attack it: costs standing with its owner (caravans more). Returns the battle options used.
@@ -332,9 +335,11 @@ function worldBattleEnd0(s,win,res){const out={crowns:0,rep:[]};if(!s||!G)return
  if(typeof crisisBattleEnd==='function'&&(s.type==='crisis'||s.type==='party')){let h=false;try{h=crisisBattleEnd(s,win,out)}catch(e){if(typeof console!=='undefined')console.warn('crisisBattleEnd',e)}if(h)return out}
  if(s.type==='nest'){if(win)nestClear(s.id,out);return out}
  if(s.type==='clash'){if(typeof cvBattleEnd==='function')cvBattleEnd(s,win,res,out);return out}
+ if(s.type==='betray'){if(typeof ctrBetrayBattleEnd==='function')ctrBetrayBattleEnd(s,win,out);return out}   // the garrison fight over a betrayed contract's pay (16-contracts.js)
  if(s.type==='escort'){if(typeof escBattleEnd==='function')escBattleEnd(s,win,res,out);return out}   // a raid on the company's escort (42-caravans.js)   // a fight beside a caravan's guards (42-caravans.js)
  if(s.type!=='party')return out;const p=G.parties.find(q=>q.id===s.id);
  if(s.goal==='merc'||(p&&p.goal==='merc')){const r=rivalById(s.pf||(p&&p.f));out.src=s;rvBattleEnd(r,p,win,out,res);delete out.src;return out}
+ if(p&&p.gar!=null&&typeof grPartyEnd==='function')return grPartyEnd(p,win,out);   // the company cut down a town's garrison (43-garrisons.js)
  if(!p||!win)return out;
  const ti=nearestTown(p.x,p.y),own=G.towns[ti]&&G.towns[ti].own;
  if(!humanFact(p.f)){if(svObj(p.loot)){const t=cargoTake(cargoFix(p.loot,p.id,G.seed)||{crowns:0});out.crowns=t.crowns;out.cargo=t}   // plunder carried off a caravan (42-caravans.js)
@@ -390,6 +395,7 @@ function wsSpawnRaid(f,x,y,to,mult,home){const T0=G.towns[to];if(!T0)return null
 /* ---- arrival at the end of a route; returns true when the party leaves the map ---- */
 function wsArrive(p){if(p.cr&&typeof crArrive==='function'&&crArrive(p))return !!p.gone;const T0=G.towns[p.to];
  if(p.goal==='caravan'){if(T0)T0.pros=clamp(svNum(T0.pros,50)+3,0,100);const A=G.towns[p.from];if(A)A.pros=clamp(svNum(A.pros,50)+1,0,100);if(p.esc&&typeof cvEscArrive==='function')cvEscArrive(p);if(p.ctr&&typeof escArrive==='function')escArrive(p);p.gone=1;return true}
+ if(p.goal==='raid'&&typeof grRaidCheck==='function'&&grRaidCheck(p))return false;   // the town's garrison marches out to meet raiders at its gates (43-garrisons.js)
  if(p.goal==='raid'){if(T0){const i=p.to;if(!townSit(i,'siege')){townSitAdd(i,'raided',ri(SITS.raided.dur[0],SITS.raided.dur[1]));T0.pros=clamp(svNum(T0.pros,50)-10,0,100);
     worldNews(`${factName(p.f)} raided ${T0.name}`)}}
   p.goal=p.home!=null?'nest':'roam';p.pts=null;p.pi=0;p.life=4;setPatrol(p);return false}
@@ -397,7 +403,8 @@ function wsArrive(p){if(p.cr&&typeof crArrive==='function'&&crArrive(p))return !
  if(p.goal==='patrol'){p.legs=(p.legs|0)+1;if(p.legs>=3||!Array.isArray(p.pts)){p.gone=1;return true}const t=p.from;p.from=p.to;p.to=t;p.pts.reverse();p.pi=0;return false}
  p.gone=1;return true}
 /* ---- the daily step for one far party: along its route a day's march, or (hunters) toward the company ---- */
-function wsStep(p){if(p.siege!=null||p.siegeT!=null||p.clash)return;   // a party locked in a clash (42-caravans.js) stays where it fights
+function wsStep(p){if(p.siege!=null||p.siegeT!=null||p.clash||p.gar!=null)return;   // a garrison out on a sally moves by the hour (43-garrisons.js grHour)
+   // a party locked in a clash (42-caravans.js) stays where it fights
  if(p.hunt){const dx=G.p.x-p.x,dy=G.p.y-p.y,d=Math.hypot(dx,dy)||1,s=Math.min(d-WSIM.live*.6*TS,WSIM.hunt*TS);if(s>0){const nx=p.x+dx/d*s,ny=p.y+dy/d*s;if(okAt(nx,ny)){p.x=nx;p.y=ny;p.tx=nx;p.ty=ny}}return}
  if(p.idle||!WSROUTE[p.goal]||!Array.isArray(p.pts)||!p.pts.length)return;const tiles=p.spd>0?p.spd:p.goal==='caravan'?WSIM.car:p.goal==='raid'?WSIM.raid:p.goal==='merc'?WSIM.merc:WSIM.pat;
  if(p.goal==='caravan'&&!p.rd&&!wsReroad(p)){p.gone=1;return}if(p.rd){wsWalk(p,tiles);return}   // caravans keep to the road (old ones are put back on it)
@@ -444,7 +451,7 @@ function wsHouses(news){const H=G.houses;
  // warlike and greedy houses sometimes march on a free town nearby
  for(const h of H){const P=HPERS[h.pers];if(G.day>=6&&rnd()<(P.patrols||P.gold?.035:.015))wsBesiege(h,'free',news)}
  // patrols: one or two a house; a house hostile to the company sends riders after it
- for(const h of H){let pat=0,hunt=0;for(const p of G.parties)if(p.f===h.id&&p.goal==='patrol'&&p.siege==null){if(p.hunt)hunt++;else pat++}
+ for(const h of H){let pat=0,hunt=0;for(const p of G.parties)if(p.f===h.id&&p.goal==='patrol'&&p.siege==null&&p.gar==null){if(p.hunt)hunt++;else pat++}
   const want=1+(HPERS[h.pers].patrols?1:0)+(G.wars.some(w=>w.a===h.id||w.b===h.id)?1:0);if(pat<want&&rnd()<.5)wsSpawnPatrol(h,false);
   if(REPK[repTier(h.id).k].hunt&&hunt<2&&rnd()<.6){wsSpawnPatrol(h,true);if(!hunt)news.push(`${h.n} sends riders after the company`)}
   if(!REPK[repTier(h.id).k].hunt)for(const p of G.parties)if(p.f===h.id&&p.hunt)p.gone=1}}
@@ -465,7 +472,7 @@ function wsRaiders(news){if(rnd()>=.1*(typeof runModK==='function'?runModK('raid
 /* worldDay(): one day of the world, once per G.day (newDay calls it). Returns headline lines for the day's toast. */
 function worldDay(){const news=[];worldEnsure();if(G.wsim.day>=G.day)return news;G.wsim.day=G.day;
  if(typeof eastInit==='function'&&G.east==null){try{eastInit(G)}catch(e){}}   // an old save meets the East lazily (19-east.js)
- wsTowns(news);wsHouses(news);wsNests(news);wsTrade();wsRaiders(news);rvDay(news);
+ wsTowns(news);if(typeof grDay==='function')grDay();wsHouses(news);wsNests(news);wsTrade();wsRaiders(news);rvDay(news);
  if(typeof crisisDay==='function'){try{crisisDay(news)}catch(e){if(typeof console!=='undefined')console.warn('crisisDay failed',e)}}   // the run's crisis (18-crises.js)
  if(typeof eastDay==='function'){try{eastDay(news)}catch(e){if(typeof console!=='undefined')console.warn('eastDay failed',e)}}        // the Eastern War (19-east.js): pushes its lines into news
  if(typeof fabledDay==='function'){try{fabledDay()}catch(e){if(typeof console!=='undefined')console.warn('fabledDay failed',e)}}     // fabled warriors (21-fabled.js)
@@ -508,6 +515,7 @@ function nearestTown(x,y){let b=0,bd=1e18;for(let i=0;i<G.towns.length;i++){cons
 // Parties further than WSIM.live tiles from the company are not moved here: worldDay() advances them a day at a time.
 function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.live*TS;let gone=0;const esc=typeof escOn==='function'?escOn():null;
  for(const p of G.parties){const dp=Math.hypot(G.p.x-p.x,G.p.y-p.y);if(dp>live)continue;let tx,ty;if(p.clash)continue;
+  if(p.gar!=null){if(typeof grMove==='function')grMove(p,dt,wf);continue}   // a town's garrison on a sally walks its own way (43-garrisons.js)
   if(p.goal==='caravan'&&!p.rd&&!wsReroad(p)){p.gone=1;gone=1;continue}   // a caravan off the road (an old save) is put back on it   // locked in a clash with a caravan (42-caravans.js): neither side moves
   const hostile=partyHostile(p),route=WSROUTE[p.goal]&&Array.isArray(p.pts)&&p.pts.length>0&&!p.siege&&p.siegeT==null;
   if(hostile&&G.grace<=0&&(dp<(p.ch?sight*1.35:sight)||p.hunt)&&!(esc&&escSpare(p,esc))){if(esc&&!p.ch)escRaidNote(p,esc);p.ch=1;tx=G.p.x;ty=G.p.y}   // escorting: only bands a match for the whole escort come (escSpare)

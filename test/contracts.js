@@ -144,7 +144,8 @@ section('negotiation');
 section('twists');
 { const out=[];for(const k of Object.keys(X.CTWIST)){const T=X.CTWIST[k];ok(T.n&&T.d&&['travel','arrive','battle','turnin'].includes(T.when)&&T.types.length,'CTWIST.'+k+' shape');
    const G=fresh(SEED+90);G.roster[0].res=G.roster[0].res;const c0=make(G,T.types[0]);c0.twist={k,when:T.when,fired:false};
-   if(T.when==='turnin'){X.ctrAccept(c0);c0.stage=c0.stages.length-1;X.ctrSync(c0);if(G.rep&&c0.emp in G.rep)G.rep[c0.emp]=0;const cr=G.crowns,r=X.ctrTurnIn(X.ctrTurnInTown(c0));ok(r&&r.ok&&G.crowns-cr<c0.pay&&/steward/.test(r.text),'betrayal pays short: '+J(r));out.push(k+' (pays '+(G.crowns-cr)+' of '+c0.pay+')');continue}
+   if(T.when==='turnin'){X.ctrAccept(c0);c0.stage=c0.stages.length-1;X.ctrSync(c0);if(G.rep&&c0.emp in G.rep)G.rep[c0.emp]=0;const cr=G.crowns,r=X.ctrTurnIn(X.ctrTurnInTown(c0));ok(r&&!r.ok&&r.betray&&G.crowns===cr&&G.contract===c0&&r.card.opts.length===3,'betrayal stops on a choice: '+J(r&&r.card));
+    const q=X.ctrBetrayPick(0,r.ti);ok(q&&q.ok&&G.crowns-cr===c0.twist.bt.short&&G.contract===null&&/steward/.test(q.turn.text),'accepting pays short');out.push(k+' (pays '+(G.crowns-cr)+' of '+c0.pay+')');continue}
    const card=X.ctrTwistCard(c0);ok(card&&card.text&&card.opts.length>=2,'card '+k);
    card.opts.forEach((o,i)=>{const G2=fresh(SEED+90);const c=make(G2,T.types[0]);c.twist={k,when:T.when,fired:false};X.ctrAccept(c);if(c.type==='bounty'||c.type==='hunt'||c.type==='siege'||c.type==='defend'){}
     const cardi=X.ctrTwistCard(c);if(!cardi.opts[i].ok){ok(X.ctrTwistPick(i,c)===null,'a locked option cannot be picked');return}
@@ -157,6 +158,45 @@ section('twists');
   // cursed cargo bleeds the company daily
   { const G=fresh(SEED+97);const c=make(G,'deliver');c.twist={k:'cursed',when:'travel',fired:false};X.ctrAccept(c);X.ctrTwistPick(0);let hp=0;G.roster.forEach(m=>hp+=m.hp);G.day++;X.ctrDaily();let hp2=0;G.roster.forEach(m=>hp2+=m.hp);ok(hp2<hp,'the curse bites') }
   console.log(out.join(', ')+'; travel / arrive / turn-in timing, the curse: ok') }
+
+section('betrayal: the choice at the turn-in');
+{ // a hunt with the betrayal twist, its work done, standing set; the employer is the town's house unless own says otherwise
+  const setup=(seed,rep,o)=>{o=o||{};const G=fresh(seed);const c=make(G,'hunt');c.twist={k:'betrayal',when:'turnin',fired:false};X.ctrAccept(c);c.stage=c.stages.length-1;X.ctrSync(c);
+   const ti=X.ctrTurnInTown(c);if(o.free){G.towns[ti].own='free';c.emp='free'}if(o.house){G.towns[ti].own=G.houses[0].id;c.emp=G.houses[0].id}if(G.rep&&c.emp in G.rep)G.rep[c.emp]=rep;if(o.weak)G.towns[ti].gar={h:.05};return{G,c,ti}};
+  // the grace: standing 30 or better and the steward pays in full
+  { const {G,c,ti}=setup(SEED+300,30);const cr=G.crowns,r=X.ctrTurnIn(ti);ok(r&&r.ok&&G.crowns-cr===c.pay&&/thinks better/.test(r.text),'standing 30: paid in full: '+J(r&&r.text)) }
+  // the card: three choices, the odds shown are the odds used
+  { const {G,c,ti}=setup(SEED+301,0);const r=X.ctrTurnIn(ti),b=c.twist.bt;ok(r.betray&&b&&b.short===Math.round(b.owed*X.BETRAY.short/10)*10&&b.force>b.owed,'the purse: '+J(b));
+    ok(r.card.opts[1].t.includes(Math.round(b.p*100)+'%')&&b.p===X.ctrBetrayOdds(c).p,'the chance on the card is the chance computed: '+r.card.opts[1].t);
+    ok(r.card.opts.every(o=>o.ok&&o.t&&o.d),'three open choices');ok(X.ctrTurnIn(ti).card.bt===b,'asking again keeps the same odds');
+    const sv=X.clone(c);ok(X.ctrRepair(sv)&&sv.twist.bt.p===b.p&&sv.twist.bt.owed===b.owed,'the odds survive a save') }
+  // odds: renown, standing, the talker and a paymaster raise them
+  { const {G,c}=setup(SEED+302,-20);const p0=X.ctrBetrayOdds(c).p;G.rep[c.emp]=25;const p1=X.ctrBetrayOdds(c).p;G.renown=400;const p2=X.ctrBetrayOdds(c).p;G.retinue=['paymaster'];const p3=X.ctrBetrayOdds(c).p;
+    G.roster[0].bg='noble';G.roster[0].traits=['brave'];const p4=X.ctrBetrayOdds(c).p;ok(p0<p1&&p1<p2&&p2<p3&&p3<p4&&p4<=X.BETRAY.max,'standing, renown, the paymaster, a noble talker: '+[p0,p1,p2,p3,p4]);
+    const L=X.ctrBetrayOdds(c).lines;ok(L.some(x=>/paymaster/.test(x.t))&&L.some(x=>/speaks/.test(x.t)),'the reasons are listed: '+J(L.map(x=>x.t))) }
+  // accept: the short pay, no standing lost (the usual standing for the work is still earned)
+  { const {G,c,ti}=setup(SEED+303,0);X.ctrTurnIn(ti);const b=c.twist.bt,cr=G.crowns,rp=G.rep[c.emp],q=X.ctrBetrayPick(0,ti);ok(q.k==='accept'&&G.crowns-cr===b.short&&G.rep[c.emp]>=rp&&!G.contract,'accept: '+J([q.k,G.crowns-cr,G.rep[c.emp]-rp])) }
+  // argue: one rnd() draw against the odds on the card; success pays all, failure the short pay and BETRAY.fail standing
+  { let won=0,lost=0,N=60,psum=0;for(let k=0;k<N;k++){const {G,c,ti}=setup(SEED+400+k,(k%7)*6-15);X.ctrTurnIn(ti);const b=c.twist.bt,cr=G.crowns,rp=G.rep[c.emp];psum+=b.p;
+     const s0=X.rngState(),want=X.rnd()<b.p;X.setRngState(s0);const g1=X.clone(G),q=X.ctrBetrayPick(1,ti);ok(q.k===(want?'won':'lost'),'the roll is the one shown: '+J([q.k,want,b.p]));
+     if(want){won++;ok(G.crowns-cr===b.owed,'argued and won: all of it')}else{lost++;ok(G.crowns-cr===b.short,'argued and lost: the short pay');ok(q.fx.some(x=>x.c==='bad'&&/standing/.test(x.t)),'and standing lost: '+J(q.fx))}
+     // the same state again: the same outcome
+     X.G=g1;X.setRngState(s0);const q2=X.ctrBetrayPick(1,X.ctrTurnInTown(X.G.contract));ok(q2&&q2.k===q.k&&q2.pay===q.pay,'deterministic')}
+    const exp=psum/N;ok(won>0&&lost>0&&Math.abs(won/N-exp)<.2,`argue: ${won} won of ${N} (expected about ${Math.round(exp*N)})`);console.log(`  argue: ${won}/${N} won, mean odds ${Math.round(exp*100)}%`) }
+  // force, no garrison to stop you: the purse and more, a heavy standing loss; from below 0 it turns the house hostile and shuts the town
+  { const {G,c,ti}=setup(SEED+304,10,{weak:1});X.ctrTurnIn(ti);const b=c.twist.bt;ok(!b.guard,'a broken garrison does not bar the way');const cr=G.crowns,rp=X.repOf(c.emp),q=X.ctrBetrayPick(2,ti);
+    ok(q.k==='force'&&G.crowns-cr===b.force&&b.force>b.owed&&!G.contract,'force: the whole purse and more: '+(G.crowns-cr));const d=X.repOf(c.emp)-rp;ok(d<=X.BETRAY.force,'and '+d+' standing (no goodwill for the work)') }
+  { const {G,c,ti}=setup(SEED+305,-15,{weak:1});ok(!X.townHostile(ti),'open before');X.ctrTurnIn(ti);const b=c.twist.bt;ok(b.loss===X.BETRAY.forceLow,'already below 0: the heavier loss');X.ctrBetrayPick(2,ti);
+    ok(X.repTier(c.emp).k==='hostile'&&X.townHostile(ti),'the house turns hostile and the town closes: '+X.repOf(c.emp)) }
+  // force with the garrison home in strength: a battle against the house's soldiers; won -> the purse; lost -> nothing, the contract closes
+  for(const win of [true,false]){const {G,c,ti}=setup(SEED+306,5,{house:1});G.towns[ti].size=3;G.towns[ti].pros=70;X.ctrTurnIn(ti);const b=c.twist.bt;ok(b.guard>=X.BETRAY.guard,'a strong garrison bars the way: '+b.guard);
+    const cr=G.crowns,q=X.ctrBetrayPick(2,ti);ok(q.k==='fight'&&q.fight&&q.fight.src.type==='betray'&&q.fight.f===c.emp&&Array.isArray(q.fight.foes)&&q.fight.foes.length>=2,'the garrison fights: '+J(q.fight));
+    ok(G.contract===c&&X.ctrTurnIn(ti)===null,'no pay while the fight is on');if(X.houseById(c.emp))ok(q.fight.livery&&q.fight.livery.c1,'in the house livery: '+J(q.fight.livery));
+    const h0=X.grH(ti),r=battle(q.fight,win);ok(win?G.crowns-cr-(r.res.crowns|0)===b.force&&!G.contract:G.crowns-cr-(r.res.crowns|0)===0&&!G.contract&&G.ctrLast&&!G.ctrLast.ok,(win?'won: the purse':'lost: unpaid')+' '+(G.crowns-cr));ok(X.grH(ti)<h0,'the garrison is bloodied')}
+  // the card on screen (the event card), and its choice through the card
+  { const {G,c,ti}=setup(SEED+307,0);X.sheetOpen=false;X.openTown(ti);ok(X.sheetOpen&&X.EVS.cur&&X.EVS.cur.id==='ctr-betrayal'&&G.contract===c,'openTown shows the betrayal card first');
+    const cr=G.crowns;X.evtPick(0);ok(G.crowns-cr===c.twist.bt.short&&!G.contract,'the card pays');X.evtClose();ok(G.town===ti,'and the town opens');closeAll(X) }
+  console.log('grace, odds, accept, argue, force, force against the garrison, the card: ok') }
 
 section('battle objectives');
 { const G=fresh(SEED+100);

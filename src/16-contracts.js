@@ -203,6 +203,9 @@ function ctrFail(c,why){if(!c||c.failed)return;c.failed=true;c.done=false;{const
 function ctrAbandon(){const c=G.contract;if(!c)return false;ctrFail(c,'Contract abandoned');return true}
 // acting: pays out at town ti. {ok, pay, renown, text}
 function ctrTurnIn(ti){const q=ctrTurnInAt(ti);if(!q)return null;const c=q.c;
+ if(ctrBetrayBites(c)){ctrBetrayState(c,ti,q.pay);return{ok:false,betray:true,c,ti,card:ctrBetrayCard(c,ti)}}   // the betrayal's choice comes first (ctrBetrayPick)
+ if(c.twist&&c.twist.bf)return null;   // the garrison fight for the pay is under way (ctrBetrayBattleEnd)
+ if(c.twist&&c.twist.fired&&svObj(c.twist.res)&&!c.twist.paid){c.twist.paid=1;q.pay=Math.max(0,Math.round(svNum(c.twist.res.pay,q.pay)));c.twistText=String(c.twist.res.text||'');if(c.twist.pick===2)q.rep=0}   // pay taken by force earns no goodwill
  if(c.twist&&!c.twist.fired&&c.twist.when==='turnin'){const tw=CTWIST[c.twist.k];c.twist.fired=true;const r=tw.apply(c)||{};if(r.pay!=null)q.pay=r.pay;if(r.text)ctrNote(c,r.text);c.twistText=r.text||''}
  const bonus=c.bonus||0;G.crowns+=q.pay+bonus;G.renown+=q.renown;ctrRepGain(c.emp,q.rep,'Contract fulfilled');if(c.outbid)ctrRepGain(c.outbid,-3,'Refused their offer');
  G.contract=null;G.ctrLast={id:c.id,title:c.title,ok:true,day:G.day};if(typeof ambEvent==='function')ambEvent('contract',c);if(typeof runOnContract==='function')runOnContract(c);if(CTYPES[c.type]&&typeof CTYPES[c.type].onTurnIn==='function')try{CTYPES[c.type].onTurnIn(c,ti)}catch(e){}
@@ -263,9 +266,84 @@ const CTWIST={
     {t:'Seal it with the gift',d:gifted?`${gifted.name} binds it: no curse, −15 hitpoints for ${gifted.name}.`:'Needs a gifted sword.',req:()=>!!gifted,go:()=>{gifted.hp=Math.max(1,gifted.hp-15);return{text:`${gifted.name} works through the night. The whispering stops.`}}},
     {t:'Dump it in a ditch',d:`The contract fails: −${4+2*c.diff} reputation, −5 renown.`,go:()=>{ctrFail(c,'Dumped the cargo');return{text:'Better poor than haunted.'}}}]}}},
  betrayal:{n:'Betrayal',d:'The employer will not pay in full.',when:'turnin',types:['hunt','beast','nest','patrol','defend','bounty','siege','relic','escort','deliver'],
-  apply(c){const rep=ctrRep(c.emp),pay=Math.max(0,c.pay-(c.adv||0));if(rep>=30)return{text:'The steward begins to haggle over the pay, then thinks better of it.',pay};
-   const half=Math.round(pay*.6/10)*10;ctrRepGain(c.emp,-2,'A dispute over pay');return{text:`The steward pays only ${half} of the ${pay} crowns owed, and his guards are watching.`,pay:half}}}
+  apply(c){const pay=Math.max(0,c.pay-(c.adv||0));return{text:'The steward begins to haggle over the pay, then thinks better of it.',pay}}}   // the grace (standing >= BETRAY.grace); below it: the choice (ctrBetrayCard)
 };
+/* ---- betrayal at the turn-in: the choice sheet ----
+   ctrTurnIn(ti) on a contract whose betrayal bites (standing with the employer < BETRAY.grace; at or above it the steward pays in full)
+   pays nothing yet and returns {ok:false, betray:true, c, ti, card}. c.twist.bt = {owed, short, force, p, lines, talk, guard, loss} is fixed
+   the first time it bites (the odds shown are the odds used, across a save too). ctrBetrayPick(i, ti) resolves choice i and completes the turn-in:
+     0 accept: the short pay (BETRAY.short of what is owed), no standing lost.
+     1 argue:  one rnd() draw against bt.p (BETRAY.base, + BETRAY.tier a renown tier above the first, + standing x BETRAY.rep, + the best
+               talker: (resolve - BETRAY.brv0) x BETRAY.brv + background BETRAY.bg + traits BETRAY.tr, + BETRAY.pay with a paymaster;
+               clamped BETRAY.min..max). Success: the full pay. Failure: the short pay and BETRAY.fail standing.
+     2 force:  the whole purse owed plus BETRAY.extra, and BETRAY.force standing (BETRAY.forceLow when already below 0; a proud house doubles
+               it, repGain: so it can turn the house hostile, its markets and board closed as any hostile town's). When the house holds the town in
+               strength (its garrison, 43-garrisons.js grStr >= BETRAY.guard) the garrison bars the way: a battle (src.type 'betray', the house's
+               soldiers in its livery); won: the purse, lost or fled: nothing more and the contract closes. */
+const BETRAY={grace:30,short:.6,extra:.1,base:.22,tier:.06,rep:.005,brv:.006,brv0:45,pay:.08,min:.05,max:.9,fail:-5,force:-20,forceLow:-30,guard:.8,
+ bg:{noble:.12,knight:.08,hedgeknight:.06,caravan:.05,squire:.04,veteran:.04,watchman:.03,witchhunter:.03},tr:{cocky:.04,brave:.03,loyal:.02,craven:-.05,drunkard:-.04}};
+function ctrBetrayBites(c){return!!(c&&c.twist&&c.twist.k==='betrayal'&&!c.twist.fired&&(svObj(c.twist.bt)||ctrRep(c.emp)<BETRAY.grace))}
+// the company's best talker: resolve, background and traits -> {m, k (its share of the odds), why}
+function ctrTalker(){let best=null;for(const m of (G&&G.roster)||[]){const st=typeof calc==='function'?calc(m):{brv:40},brv=svNum(st.brv,40);let k=(brv-BETRAY.brv0)*BETRAY.brv;const bits=[`resolve ${Math.round(brv)}`];
+  const bk=BETRAY.bg[m.bg];if(bk){k+=bk;bits.push(BG[m.bg]?BG[m.bg].n.toLowerCase():m.bg)}for(const t of m.traits||[]){const tk=BETRAY.tr[t];if(tk){k+=tk;bits.push(TRAITS[t]?TRAITS[t].n.toLowerCase():t)}}
+  k=Math.round(k*100)/100;if(!best||k>best.k)best={m,k,why:bits.join(', ')}}return best}
+// the odds of arguing for the full pay -> {p, lines:[{t, v (percent points)}], talker}
+function ctrBetrayOdds(c){const L=[],T=ctrRenownT(),rep=ctrRep(c.emp),tk=ctrTalker();let p=BETRAY.base;L.push({t:'A steward who has made up his mind',v:Math.round(BETRAY.base*100)});
+ if(T>1){const v=BETRAY.tier*(T-1);p+=v;L.push({t:'the company\'s name ('+(typeof renownDef==='function'?renownDef(T).n:'tier '+T)+')',v:Math.round(v*100)})}
+ if(rep){const v=rep*BETRAY.rep;p+=v;L.push({t:`standing ${rep>0?'+':''}${rep}`,v:Math.round(v*100)})}
+ if(tk&&tk.k){p+=tk.k;L.push({t:`${tk.m.name} speaks (${tk.why})`,v:Math.round(tk.k*100)})}
+ if(typeof followerHas==='function'&&followerHas('paymaster')){p+=BETRAY.pay;L.push({t:'the paymaster\'s ledger',v:Math.round(BETRAY.pay*100)})}
+ return{p:Math.round(clamp(p,BETRAY.min,BETRAY.max)*100)/100,lines:L,talker:tk?tk.m:null}}
+// the garrison bars the way when the house holds town ti in strength: its strength, else 0
+function ctrBetrayGuard(c,ti){if(!(typeof isHouse==='function'?isHouse(c.emp):!!ctrHouse(c.emp)))return 0;const t=ctrTown(ti);if(!t||t.own!==c.emp)return 0;const s=typeof grStr==='function'?grStr(ti):(t.size>=2?1:0);return s>=BETRAY.guard?Math.round(s*100)/100:0}
+function ctrBetrayState(c,ti,owed){const tw=c.twist;if(svObj(tw.bt))return tw.bt;const O=ctrBetrayOdds(c),rep=ctrRep(c.emp);
+ tw.bt={owed,short:Math.round(owed*BETRAY.short/10)*10,force:owed+Math.round(owed*BETRAY.extra/10)*10,p:O.p,lines:O.lines,talk:O.talker?O.talker.id:null,guard:ctrBetrayGuard(c,ti),loss:rep<0?BETRAY.forceLow:BETRAY.force};return tw.bt}
+function ctrEsc(s){return typeof htmlEsc==='function'?htmlEsc(String(s)):String(s)}
+// the card: {n, text, opts:[{t, d, ok}], bt}; null unless the betrayal is waiting on a choice
+function ctrBetrayCard(c,ti){c=c||G.contract;if(!c||!c.twist||!svObj(c.twist.bt)||c.twist.fired)return null;const b=c.twist.bt,e=ctrEsc(ctrEmpName(c)),pc=Math.round(b.p*100),t=ctrTown(ti!=null?ti:ctrTurnInTown(c)),
+  lossN=ctrBetrayLossN(c,b.loss),hos=ctrRep(c.emp)+lossN<-40,why=b.lines.map(x=>`${x.t} ${x.v>=0?'+':'−'}${Math.abs(x.v)}%`).join(' · ');
+ return{n:'Betrayal',bt:b,text:`<p>The steward of ${e} counts the coin onto the table and stops at <b>${b.short}</b> of the <b>${b.owed}</b> crowns owed. “The work was slower than promised,” he says. His guards at the door do not look away.</p>`,
+  opts:[{t:`Accept the short pay (${b.short} crowns)`,d:`Swallow it: +${b.short} crowns. Your standing with ${e} is unchanged.`,ok:true},
+   {t:`Argue for the full pay: ${pc}% chance`,d:`Success: all ${b.owed} crowns. Failure: ${b.short} crowns and −${Math.abs(BETRAY.fail)} standing. <span class="ctr-odds">${ctrEsc(why)}</span>`,ok:true},
+   {t:`Take it by force (${b.force} crowns)`,d:(b.guard?`The garrison of ${ctrEsc(t?t.name:'the town')} bars the door: a battle against ${e}'s soldiers. Win: ${b.force} crowns. Lose or flee: nothing more. `:`The whole purse and something for the trouble: +${b.force} crowns. `)+`−${Math.abs(lossN)} standing with ${e}${hos?': they turn hostile, their markets and board closed to you':''}.`,ok:true}]}}
+function ctrBetrayLossN(c,n){const h=ctrHouse(c.emp),P=h&&typeof HPERS==='object'?HPERS[h.pers]:null;return Math.round(n*(P&&P.proud>1?P.proud:1))}
+/* acting: resolves betrayal choice i at town ti -> {ok, k:'accept'|'won'|'lost'|'force'|'fight', text, pay, fx:[{t, c}], fight?, turn? (ctrTurnIn's result)} | null */
+function ctrBetrayPick(i,ti,c){c=c||G.contract;if(!c||!c.twist||!svObj(c.twist.bt)||c.twist.fired)return null;if(ti==null)ti=ctrTurnInTown(c);i=i|0;if(i<0||i>2)return null;const b=c.twist.bt,e=ctrEmpName(c),fx=[];
+ const rg=(n,why)=>{const r0=ctrRep(c.emp);ctrRepGain(c.emp,n,why);const d=ctrRep(c.emp)-r0;if(d)fx.push({t:`${d>0?'+':''}${d} standing with ${e}`,c:d>0?'good':'bad'})};
+ let pay=b.short,k='accept',text='';c.twist.pick=i;
+ if(i===0)text=`You take the ${b.short} crowns without a word. The steward looks almost disappointed.`;
+ else if(i===1){const roll=rnd(),m=b.talk!=null?G.roster.find(x=>x.id===b.talk):null;c.twist.roll=Math.round(roll*1000)/1000;
+  if(roll<b.p){k='won';pay=b.owed;text=`${m?m.name:'Your sergeant'} lays the work out day by day until the steward runs out of excuses. He pays it all.`}
+  else{k='lost';text='The steward will not be moved, and the shouting carries to the hall. You leave with the short pay and a worse name in this house.';rg(BETRAY.fail,'Argued over the pay')}}
+ else{rg(b.loss,'Took the pay by force');
+  if(b.guard){k='fight';c.twist.bf=1;c.twist.fired=true;c.twist.res={pay:b.force,text:'You took the pay from the steward\'s strongbox at sword point.'};ctrNote(c,'Betrayal: took it by force');
+   const src={type:'betray',id:c.id,ti},o=typeof grTownBattle==='function'?grTownBattle(ti,src):{f:c.emp,mult:Math.max(.6,b.guard),src};
+   return{ok:true,k,text:`Steel comes out across the counting table, and the garrison of ${ctrPlace(ctrTown(ti))} pours into the hall.`,pay:0,fx,fight:o}}
+  k='force';pay=b.force;text='Steel comes out across the counting table. The steward unlocks the strongbox with shaking hands.'}
+ c.twist.fired=true;c.twist.res={pay,text};ctrNote(c,'Betrayal: '+['accepted the short pay','argued '+(k==='won'?'and won':'and lost'),'took it by force'][i]);
+ const r=ctrTurnIn(ti);fx.unshift({t:`+${pay} crowns`,c:pay>=b.owed?'good':''});return{ok:!!(r&&r.ok),k,text,pay,fx,turn:r}}
+// the guard fight is over (worldBattleEnd, src.type 'betray'): won -> the purse and the turn-in; lost or fled -> the contract closes unpaid
+function ctrBetrayBattleEnd(s,win,out){const c=G.contract;if(!c||c.id!==s.id||!c.twist||!c.twist.bf)return out;delete c.twist.bf;
+ if(typeof grBetrayHit==='function')grBetrayHit(s.ti,win);
+ if(win){const r=ctrTurnIn(s.ti);if(r&&r.ok){out.betray={win:true,pay:r.pay};if(typeof toast==='function')toast(`The garrison is beaten. You take ${r.pay} crowns from the strongbox.`)}return out}
+ G.contract=null;G.ctrLast={id:c.id,title:c.title,ok:false,why:'Beaten by the garrison',day:G.day};out.betray={win:false};
+ if(typeof toast==='function')toast('Beaten by the garrison: the company leaves without its pay.');return out}
+// shows the card for the contract at town ti: the event card (17-events.js) when it exists, else a sheet. True when shown.
+const CTRBT={ti:null};
+function ctrBetrayShow(ti){const c=G&&G.contract;if(!c)return false;const card=ctrBetrayCard(c,ti);if(!card)return false;G.moving=false;G.route=[];let fight=null;
+ const then=()=>{if(fight){const o=fight;fight=null;if(typeof engage==='function')engage(o);else startBattle(o);return}if(typeof openTown==='function')openTown(ti)};
+ if(typeof eventShow==='function'&&typeof EVENTS==='object'&&EVENTS){const id='ctr-betrayal',tk=card.bt.talk,m=tk!=null?G.roster.find(x=>x.id===tk):null,ctx={c,twist:'betrayal',town:ti,then};if(m)ctx.m=m;
+  EVENTS[id]={n:card.n,art:'twist-betrayal',twist:1,text:()=>card.text,when:()=>0,opts:card.opts.map((o,i)=>({t:o.t,d:o.d,go:()=>{const r=ctrBetrayPick(i,ti,c);if(!r)return'';if(typeof evLog==='function')for(const x of r.fx)evLog(x.t,x.c);if(r.fight)fight=r.fight;return`<p>${r.text}</p>`}}))};
+  try{if(eventShow(id,ctx))return true}catch(e){}}
+ if(typeof sheet!=='function')return false;CTRBT.ti=ti;
+ sheet(`<h2>${card.n}</h2>${card.text}${card.opts.map((o,i)=>`<button type="button" class="${i?'':'pri'}" onclick="ctrBetrayBtn(${i})"><b>${o.t}</b><br><small>${o.d}</small></button>`).join('')}`);return true}
+function ctrBetrayBtn(i){const ti=CTRBT.ti,r=ctrBetrayPick(i,ti);if(!r)return;if(typeof closeSheet==='function')closeSheet(true);if(r.text&&typeof toast==='function')toast(r.text);
+ if(r.fight){if(typeof engage==='function')engage(r.fight);else startBattle(r.fight);return}if(typeof openTown==='function')openTown(ti)}
+function ctrBetrayRepair(tw){const b=tw.bt;if(b!==undefined){if(!svObj(b)||!svFin(b.owed)||!svFin(b.short)||!svFin(b.p))delete tw.bt;
+  else{for(const k of ['owed','short','force'])b[k]=Math.max(0,Math.round(svNum(b[k],b.owed)));b.p=clamp(b.p,0,1);b.guard=Math.max(0,svNum(b.guard,0));b.loss=Math.min(0,Math.round(svNum(b.loss,BETRAY.force)));
+   b.lines=Array.isArray(b.lines)?b.lines.filter(x=>svObj(x)&&typeof x.t==='string'&&svFin(x.v)).slice(0,8):[];if(b.talk!=null&&!svFin(b.talk))b.talk=null}}
+ if(tw.res!==undefined&&(!svObj(tw.res)||!svFin(tw.res.pay)))delete tw.res;if(tw.bf)tw.bf=1;else delete tw.bf;if(tw.paid)tw.paid=1;else delete tw.paid;
+ if(tw.fired&&svObj(tw.bt)&&!tw.res)tw.res={pay:tw.bt.short,text:''}}
 function ctrTwistCard(c){c=c||G.contract;if(!c||!c.twist)return null;const T=CTWIST[c.twist.k];if(!T||T.when==='turnin')return null;
  const A=T.apply(c);return{k:c.twist.k,n:T.n,text:A.text,opts:(A.opts||[]).map(o=>({t:o.t,d:o.d,ok:!o.req||!!o.req(c)})),_A:A}}
 // rules: resolve option i of the current contract's fired twist. -> {text, fight:startBattle options|null}
@@ -334,7 +412,7 @@ function ctrRepair(c,nTowns,towns){if(!svObj(c))return false;if(!CTYPES[c.type])
  if(c.stages[c.stages.length-1].k!=='town')c.stages.push(ctrHome(c.town));
  c.stage=clamp(Math.floor(svNum(c.stage,0)),0,c.stages.length-1);if(!svFin(c.id))c.id=Math.floor(ctrH(Math.round(c.pay)+c.diff*977,c.town)*2147483646)+1;
  if(c.emp==null||typeof c.emp!=='string')c.emp=(towns[c.town]&&towns[c.town].own)||'free';
- c.due=svFin(c.due)?Math.floor(c.due):null;if(c.twist&&(!svObj(c.twist)||!CTWIST[c.twist.k]))c.twist=null;if(c.twist)delete c.twist.card;
+ c.due=svFin(c.due)?Math.floor(c.due):null;if(c.twist&&(!svObj(c.twist)||!CTWIST[c.twist.k]))c.twist=null;if(c.twist){delete c.twist.card;ctrBetrayRepair(c.twist)}
  if(c.neg&&!svObj(c.neg))delete c.neg;c.failed=!!c.failed;
  if(typeof c.rival==='string'&&/^h[0-9]$/.test(c.rival)){c.outbid=c.rival;delete c.rival}if(c.rival!=null&&!/^r[0-9]+$/.test(String(c.rival)))delete c.rival;if(c.outbid!=null&&typeof c.outbid!=='string')delete c.outbid;
  if(svFin(c.rtook))c.rtook=Math.floor(c.rtook);else delete c.rtook;

@@ -72,6 +72,7 @@ function cvTick(h){if(!G||!Array.isArray(G.parties)||!(h>0))return;G.cvAcc=svNum
 function cvHour(){const L=cvList(),cars=[],eo=typeof escOn==='function'?escOn():null;for(const p of G.parties)if(p.goal==='caravan'&&!p.clash&&!p.gone&&!(eo&&eo.p===p))cars.push(p);   // the escorted caravan beside the company: escTick
  if(cars.length){const R=CV.near*TS;for(const r of G.parties){if(!cvRaider(r))continue;for(const c of cars){if(c.clash)continue;const dx=c.x-r.x,dy=c.y-r.y;if(dx>R||dx<-R||dy>R||dy<-R||dx*dx+dy*dy>R*R)continue;
    if(cvStr(c)<=cvStr(r)){cvStart(c,r);break}}}}   // the rule: they attack iff the guards are no stronger than they are
+ if(typeof grHour==='function')grHour();   // town garrisons sally against bands near their walls (43-garrisons.js)
  for(const cl of L.slice())cvStep(cl);
  if(L.length!==cvList().length||G.parties.some(p=>p.gone))G.parties=G.parties.filter(p=>!p.gone)}
 // the band falls on the caravan: both stop side by side, the band on the side it came from
@@ -82,13 +83,13 @@ function cvStart(c,r){const id=G.nid++,side=r.x>=c.x?1:-1;let rx=c.x+side*52,ry=
  if(cvSeen(cl.x,cl.y)){worldNews(line);if(typeof toast==='function')toast(`${F?F.n:'Raiders'} fall on a caravan of ${cvOwnerName(c)}! March there to help the guards.`)}
  else if(seenAt(Math.floor(cl.x/TS),Math.floor(cl.y/TS)))worldNews(line);return cl}
 function cvRng(cl){return mulberry((((G.seed|0)^0x3c4a7a5)+Math.imul(cl.id|0,2654435761)+Math.imul((cl.h|0)+1,40503))>>>0)}
-function cvStep(cl){const C=cvParty(cl.c),R=cvParty(cl.r);if(!C||!R){cvEnd(cl,C?'guards':'raiders',true);return}
+function cvStep(cl){if(cl.g&&typeof grStep==='function')return grStep(cl);const C=cvParty(cl.c),R=cvParty(cl.r);if(!C||!R){cvEnd(cl,C?'guards':'raiders',true);return}
  const r=cvRng(cl),gs=Math.max(.05,cl.gs)*CV.def,rs=Math.max(.05,cl.rs);cl.h=(cl.h|0)+1;
  const dG=Math.min(CV.cap1,CV.K*rs*cl.rh/gs*(.6+.8*r())),dR=Math.min(CV.cap1,CV.K*gs*cl.gh/rs*(.6+.8*r()));
  cl.gh=Math.round(Math.max(0,cl.gh-dG)*1000)/1000;cl.rh=Math.round(Math.max(0,cl.rh-dR)*1000)/1000;
  if(cl.gh<=CV.gBreak)cvEnd(cl,'raiders');else if(cl.rh<=CV.rBreak||cl.h>=CV.maxH)cvEnd(cl,'guards')}
 // who: 'guards' (the caravan goes on) | 'raiders' (the caravan is lost). quiet: a party went missing (no news)
-function cvEnd(cl,who,quiet){const L=cvList(),i=L.indexOf(cl);if(i>=0)L.splice(i,1);const C=cvParty(cl.c),R=cvParty(cl.r);if(C)delete C.clash;if(R)delete R.clash;
+function cvEnd(cl,who,quiet){if(cl.g&&typeof grEnd==='function')return grEnd(cl,who==='guards'?'garrison':who==='raiders'?'band':who,quiet);const L=cvList(),i=L.indexOf(cl);if(i>=0)L.splice(i,1);const C=cvParty(cl.c),R=cvParty(cl.r);if(C)delete C.clash;if(R)delete R.clash;
  const t=cvNear(cl.x,cl.y),F=R&&FACT[R.f],seen=seenAt(Math.floor(cl.x/TS),Math.floor(cl.y/TS)),own=C?cvOwnerName(C):'';
  if(who==='guards'){if(R){R.mult=Math.round(R.mult*Math.max(.3,cl.rh)*100)/100;R.cvCd=G.day+CV.cd;if(R.mult<.3)R.gone=1}
   if(C){const g=Object.assign({},cvGuardOf(C));g.n=clamp(Math.round(g.n*Math.max(.25,cl.gh)),g.n?1:0,8);C.guard=g;C.mult=cvGuardMult(g);if(svObj(C.cargo))C.cargo.crowns=Math.round((C.cargo.crowns||0)*(.7+.3*cl.gh));
@@ -103,11 +104,11 @@ function cvMergeLoot(a,b){const B0=cargoFix(b,0,G.seed)||{crowns:0};if(!svObj(a)
 /* ---- the company and a clash on the map ---- */
 // worldTick: the company walked up to a clash -> the sheet (once; again only after it walked away). True when it stopped the march.
 function cvReach(x,y){const L=G&&G.clashes;if(!Array.isArray(L)||!L.length)return false;for(const cl of L){const d=Math.hypot(cl.x-x,cl.y-y);
-  if(cl.bo){if(d>2*TS)cl.bo=0;continue}if(d<CV.reach*TS&&typeof sheet==='function'&&!sheetOpen){G.moving=false;G.route=[];G.path=[];G.dest=null;G.tap=null;cvSheet(cl.id);return true}}return false}
+  if(cl.bo){if(d>2*TS)cl.bo=0;continue}if(d<CV.reach*TS&&typeof sheet==='function'&&!sheetOpen){G.moving=false;G.route=[];G.path=[];G.dest=null;G.tap=null;cl.bo=1;cvSheet(cl.id);return true}}return false}
 function cvTap(p){const cl=cvOf(p);if(!cl)return false;if(Math.hypot(cl.x-G.p.x,cl.y-G.p.y)<1.6*TS){cvSheet(cl.id);return true}cl.bo=0;goTo(cl.x,cl.y);return true}
 function cvOdds(cl){const q=(cl.gs*CV.def*cl.gh)/Math.max(.01,cl.rs*cl.rh);return q<.6?'The guards will be overrun within hours.':q<.95?'The guards are losing ground.':q<1.15?'It could go either way.':'The guards should hold.'}
 function cvBarHTML(v,cls){const p=clamp(Math.round(v*100),0,100);return`<i class="cv-bar ${cls}"><b style="width:${p}%"></b></i>`}
-function cvSheet(id){const cl=cvById(id);if(!cl||typeof sheet!=='function')return;const C=cvParty(cl.c),R=cvParty(cl.r);if(!C||!R)return;const g=cvGuardOf(C),q=cvQual(g),F=FACT[R.f],T0=G.towns[C.to];
+function cvSheet(id){const cl=cvById(id);if(!cl||typeof sheet!=='function')return;if(cl.g&&typeof grSheet==='function')return grSheet(id);const C=cvParty(cl.c),R=cvParty(cl.r);if(!C||!R)return;const g=cvGuardOf(C),q=cvQual(g),F=FACT[R.f],T0=G.towns[C.to];
  const left=Math.max(g.n?1:0,Math.round(g.n*Math.max(cl.gh,.2))),own=cvOwnerName(C),ic=(n,s)=>typeof lkIc==='function'?lkIc(n,s):'',esc=s=>typeof htmlEsc==='function'?htmlEsc(s):String(s);
  const st=typeof partyStrength==='function'?partyStrength(R):2,sw=typeof lkStrWord==='function'?lkStrWord(st):'';
  sheet(`<div class="bs-hd">${ic('swords',48)}<div><div class="pn-kick">Ambush on the road · ${esc(F?F.n:'Raiders')}</div><h2>${esc(F?F.n:'Raiders')} fall on a caravan of ${esc(own)}</h2>
@@ -120,7 +121,7 @@ function cvSheet(id){const cl=cvById(id);if(!cl||typeof sheet!=='function')retur
 function cvBack(id){const cl=cvById(id);if(cl)cl.bo=1;if(typeof closeSheet==='function')closeSheet();if(typeof toast==='function')toast('The company keeps its distance. The fight goes on.')}
 function cvGo(id){const o=cvBattle(cvById(id));if(typeof closeSheet==='function')closeSheet(true);if(!o)return null;G.moving=false;G.route=[];engage(o);return o}
 // the battle options for joining clash cl (null when it is over): the band as partyBattle makes it, worn down by the fight so far, and the guards in o.cv
-function cvBattle(cl){if(!cl)return null;const C=cvParty(cl.c),R=cvParty(cl.r);if(!C||!R)return null;const o=partyBattle(R),g=cvGuardOf(C);
+function cvBattle(cl){if(!cl)return null;if(cl.g&&typeof grBattle==='function')return grBattle(cl);const C=cvParty(cl.c),R=cvParty(cl.r);if(!C||!R)return null;const o=partyBattle(R),g=cvGuardOf(C);
  o.mult=Math.round(Math.max(.2,R.mult*Math.max(.35,cl.rh))*100)/100;o.src={type:'clash',id:cl.id,c:C.id,r:R.id,pf:R.f};
  const n=g.n>0?clamp(Math.round(g.n*Math.max(cl.gh,.2)),1,g.n):0;
  o.cv={cl:cl.id,c:C.id,f:FACT[C.f]?C.f:'free',t:g.t,cap:g.cap?1:0,n,gm:Math.round(Math.max(.05,cvStr(C)*cl.gh)*100)/100};
@@ -129,7 +130,7 @@ function cvBattle(cl){if(!cl)return null;const C=cvParty(cl.c),R=cvParty(cl.r);i
 function cvCaravanBattle(p){const g=cvGuardOf(p),ids=cvGuardIds(g,Math.max(1,g.n));return{f:FACT[p.f]?p.f:'bandit',mult:p.mult,foes:ids,cvNames:g.t,src:{type:'party',id:p.id,goal:'caravan',pf:p.f}}}
 
 // the map readout (82-inspect.js worldCard) for a caravan, a band in a clash, or a band carrying plunder; '' for anything else
-function cvCard(e){if(!e||!G)return'';const esc=s=>typeof htmlEsc==='function'?htmlEsc(s):String(s),lab=typeof partyLabel==='function'?partyLabel(e):'',cl=cvOf(e),hos=typeof partyHostile==='function'&&partyHostile(e);
+function cvCard(e){if(!e||!G)return'';if(e.gar!=null&&typeof grCard==='function')return grCard(e);{const q=cvOf(e),C=q&&q.g?cvParty(q.c):null;if(C&&typeof grCard==='function')return grCard(C)}   // a garrison and the band it fights (43-garrisons.js)const esc=s=>typeof htmlEsc==='function'?htmlEsc(s):String(s),lab=typeof partyLabel==='function'?partyLabel(e):'',cl=cvOf(e),hos=typeof partyHostile==='function'&&partyHostile(e);
  const sw=s=>s===1?'weaker than the company':s===2?'about an even match for the company':'stronger than the company',st=typeof partyStrength==='function'?partyStrength(e):2;
  const fight=q=>{const C=cvParty(q.c),R=cvParty(q.r),own=C?cvOwnerName(C):'',F=R&&FACT[R.f];return`<div class="ins-note"><span class="ins-bad">${e.goal==='caravan'?`Under attack by ${esc(F?F.n.toLowerCase():'raiders')}`:`Falling on a caravan of ${esc(own)}`}</span>: the guards at ${Math.round(q.gh*100)}%, the raiders at ${Math.round(q.rh*100)}%. ${cvOdds(q)}</div><div class="ins-note">Tap to march there and choose: intervene on the guards' side, or back off.</div>`};
  if(e.goal==='caravan'){const g=cvGuardOf(e),gd=e.cargo&&typeof GOODS==='object'&&GOODS[e.cargo.good]?GOODS[e.cargo.good].n:'';
@@ -142,20 +143,21 @@ function cvCard(e){if(!e||!G)return'';const esc=s=>typeof htmlEsc==='function'?h
 function cvNameUnit(u,t){const n=cvGuardName(u.eid,t);u.name=u.rank>=1.5?(u.rank>=2.75?'Elite ':'Veteran ')+n.toLowerCase():n}
 function cvCost(id){const e=HOUSEUNITS.find(x=>x[0]===id);return e?e[1]:25}
 function cvSetup(b,o,used){if(o.cvNames)for(const u of b.units)if(u.side===1&&CVNM[u.eid])cvNameUnit(u,o.cvNames|0);
- const C=o.cv;if(!svObj(C))return;const ids=cvGuardIds({t:C.t,cap:C.cap,n:8},C.n|0),L=[];let cost=0;for(const id of ids)cost+=cvCost(id);
+ if(o.grNames!=null&&typeof grNameUnit==='function')for(const u of b.units)if(u.side===1){grNameUnit(u,o.grNames|0);if(o.livery)u.livery=o.livery}   // a town's garrison as the foe (43-garrisons.js)
+ const C=o.cv;if(!svObj(C))return;const ids=Array.isArray(C.ids)?C.ids.slice(0,8):cvGuardIds({t:C.t,cap:C.cap,n:8},C.n|0),L=[];let cost=0;for(const id of ids)cost+=cvCost(id);
  const rk=typeof runK==='function'?runK('budget'):1,bud=battleBudget(Object.assign({},o,{mult:C.gm}))/(rk||1),x=cost>0?bud/cost:1;
  for(const id of ids){if(!EN[id])continue;const u=mkEnemy(id,C.f);u.side=0;u.ros=1;u.rx=x>1?Math.min(FOE_RANK.max,Math.pow(x,1/1.15)):1;if(typeof enemyInit==='function')enemyInit(u,id);initUnit(u);
   if(x<1){const k=Math.max(.35,x);u.hp=u.hpMax=Math.max(8,Math.round(u.hpMax*Math.pow(k,.6)));const dk=Math.pow(k,.4);u.wpn.d=[Math.round(u.wpn.d[0]*dk),Math.round(u.wpn.d[1]*dk)];u.dmgK=(u.dmgK||1)*dk}
-  u.side=0;u.ally=1;u.grd=1;u.f=C.f;cvNameUnit(u,C.t);L.push(u)}
- const ow=b.obj&&b.obj.k==='escort'&&b.obj.vip?b.obj.vip:null,w=ow||(typeof objVipUnit==='function'?objVipUnit('wagon'):null);let wp=[];   // an escort: the objective's wagon is the caravan's
+  u.side=0;u.ally=1;u.grd=1;u.f=C.f;if(C.gar&&typeof grNameUnit==='function')grNameUnit(u,C.ti|0);else cvNameUnit(u,C.t);if(C.livery)u.livery=C.livery;L.push(u)}   // a garrison's soldiers wear their house's livery (43-garrisons.js)
+ const ow=b.obj&&b.obj.k==='escort'&&b.obj.vip?b.obj.vip:null,w=ow||(!C.gar&&typeof objVipUnit==='function'?objVipUnit('wagon'):null);let wp=[];   // an escort: the objective's wagon is the caravan's
  if(w){w.cvw=1;w.name='Caravan wagon';wp=ow?[ow]:place([w],7,7,1,b.tiles,used)}
  const gp=ow?place(L,DEPLOY.p.front-2,DEPLOY.p.front-1,-1,b.tiles,used):place(L,5,6,1,b.tiles,used);b.units.push(...(ow?[]:wp),...gp);   // an escort's guards march with the company: they form up just ahead of it
- b.cv={cl:C.cl,c:C.c,f:C.f,t:C.t,n0:gp.length,turned:0,by:null,dead:0,guards:gp,wagon:wp[0]||null,hp0:gp.reduce((a,u)=>a+u.hpMax,0)}}
+ b.cv={cl:C.cl,c:C.c,f:C.f,t:C.t,gar:C.gar?1:0,n0:gp.length,turned:0,by:null,dead:0,guards:gp,wagon:wp[0]||null,hp0:gp.reduce((a,u)=>a+u.hpMax,0)}}
 function cvGuardDown(t,src){const c=B&&B.cv;if(!c)return;c.dead++;if(!c.turned&&src&&src.side===0&&!src.ally&&!src.grd&&!src.vip)cvTurn(src,t)}
 function cvTurn(src,t){const c=B&&B.cv;if(!c||c.turned)return;c.turned=1;c.by=src?src.name:'';
  for(const u of c.guards){if(!u.alive)continue;u.side=2;delete u.ally;float(u,'Hostile!','#ff7a6b')}
- say(`${src?src.name+' cut down '+t.name+'. ':''}You killed a caravan guard: the caravan turns on you!`);
- if(typeof toast==='function')toast('You killed a caravan guard: the caravan turns on you!');if(typeof FX==='object'&&FX.ui)FX.ui()}
+ const ln=c.gar?'You killed a soldier of the garrison: the garrison turns on you!':'You killed a caravan guard: the caravan turns on you!';say(`${src?src.name+' cut down '+t.name+'. ':''}${ln}`);
+ if(typeof toast==='function')toast(ln);if(typeof FX==='object'&&FX.ui)FX.ui()}
 // the player taps a guard: the first tap warns, a second tap on the same guard strikes him with the plain attack
 function cvTapGuard(u,t,k){const a=abilityInfo(u,'attack');if(mdist(u,t)>a.rng||!canUse(u,a)){say(`${t.name}: a caravan guard, fighting on your side. ${unitLine(t)}.`);return true}
  const arm=t.id+':'+B.turns;if(B.cvArm!==arm){B.cvArm=arm;say(`${t.name} is a caravan guard on your side. Tap him again to strike: kill one and the whole caravan turns on you.`);if(typeof updateBUI==='function')updateBUI();return true}
@@ -163,10 +165,10 @@ function cvTapGuard(u,t,k){const a=abilityInfo(u,'attack');if(mdist(u,t)>a.rng||
  if(typeof fcClear==='function')fcClear();if(typeof planClear==='function')planClear();useAbility(u,a,k);return true}
 // resolveBattle: what became of the guards, the wagon and the band -> res.cv
 function cvResolve(b,res,win){const c=b.cv;if(!c)return null;const al=c.guards.filter(u=>u.alive),hp=al.reduce((a,u)=>a+Math.max(0,u.hp),0),R=b.units.filter(u=>u.side===1&&!u.spawned),r0=R.reduce((a,u)=>a+u.hpMax,0),r1=R.filter(u=>u.alive).reduce((a,u)=>a+Math.max(0,u.hp),0);
- res.cv={cl:c.cl,c:c.c,turned:!!c.turned,by:c.by,n0:c.n0,alive:al.length,dead:c.n0-al.length,gh:c.hp0>0?Math.round(hp/c.hp0*1000)/1000:0,rh:r0>0?Math.round(r1/r0*1000)/1000:0,rleft:R.filter(u=>u.alive).length,wagon:!!(c.wagon&&c.wagon.alive)};return res.cv}
+ res.cv={cl:c.cl,c:c.c,turned:!!c.turned,by:c.by,n0:c.n0,alive:al.length,dead:c.n0-al.length,gh:c.hp0>0?Math.round(hp/c.hp0*1000)/1000:0,rh:r0>0?Math.round(r1/r0*1000)/1000:0,rleft:R.filter(u=>u.alive).length,wagon:!!(c.wagon&&c.wagon.alive),g:c.gar?1:0};return res.cv}
 function cvReward(C,n0){return Math.round(clamp(25+(typeof cargoValue==='function'?cargoValue(C.cargo):0)*.12+8*n0,40,450))}
 // worldBattleEnd for src.type 'clash': the world's side of it; out.cv is what the after sheet tells
-function cvBattleEnd(s,win,res,out){const cl=cvById(s.id),rc=res&&res.cv;if(!cl||!rc)return out;const C=cvParty(cl.c),R=cvParty(cl.r),add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
+function cvBattleEnd(s,win,res,out){const cl=cvById(s.id),rc=res&&res.cv;if(!cl||!rc)return out;if(cl.g&&typeof grBattleEnd==='function')return grBattleEnd(s,win,res,out);const C=cvParty(cl.c),R=cvParty(cl.r),add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
  const own=C?cvOwnerName(C):'the caravan',T0=C?G.towns[C.to]:null,F=R&&FACT[R.f],k={cl:cl.id,c:cl.c,own,to:T0?T0.name:'',raiders:F?F.n:'The raiders',alive:rc.alive,dead:rc.dead,n0:rc.n0,turned:rc.turned,by:rc.by,win:!!win,crowns:0,good:null};out.cv=k;
  if(rc.turned&&C){add(C.f,CV.rep.turn,'Attacked a caravan');if(C.ctr)escLost(C,'Turned on the caravan');if(C.f!=='free')for(const h of G.houses)if(h.id!==C.f&&atWar(h.id,C.f))add(h.id,3,'Struck at their enemy')}
  if(win){const L=cvList(),i=L.indexOf(cl);if(i>=0)L.splice(i,1);if(R)R.gone=1;G.renown+=3;
@@ -182,7 +184,7 @@ function cvBattleEnd(s,win,res,out){const cl=cvById(s.id),rc=res&&res.cv;if(!cl|
  return out}
 function cvLost(C){const A=G.towns[C.from],T0=G.towns[C.to];if(A)A.pros=clamp(svNum(A.pros,50)-3,0,100);if(T0)T0.pros=clamp(svNum(T0.pros,50)-1,0,100)}
 // after the battle: the caravan master's word (and the escort offer when no guard is left)
-function cvAfterSheet(k){if(!k||typeof sheet!=='function')return;const ic=(n,s)=>typeof lkIc==='function'?lkIc(n,s):'',esc=s=>typeof htmlEsc==='function'?htmlEsc(s):String(s);let h='',btn=`<button class="pri" onclick="closeSheet()">March on</button>`;
+function cvAfterSheet(k){if(!k||typeof sheet!=='function')return;if(k.g&&typeof grAfterSheet==='function')return grAfterSheet(k);const ic=(n,s)=>typeof lkIc==='function'?lkIc(n,s):'',esc=s=>typeof htmlEsc==='function'?htmlEsc(s):String(s);let h='',btn=`<button class="pri" onclick="closeSheet()">March on</button>`;
  const lost=k.dead>0?`<p class="pn-p dim">${k.dead} of the ${k.n0} guards fell.</p>`:'';
  if(k.k==='saved'||k.k==='alone')h=`<div class="bs-hd">${ic('goal-caravan',48)}<div><div class="pn-kick">Caravan of ${esc(k.own)}</div><h2>The caravan is saved</h2><p>The caravan master counts out <span class="coin">${k.crowns} crowns</span>${k.good?` and hands over ${esc(k.good.toLowerCase())} from the wagons`:''}. ${esc(k.own)} will hear of this.</p></div></div>${lost}`;
  if(k.k==='saved')h+=`<p class="pn-p">${k.alive} guard${k.alive===1?'':'s'} take${k.alive===1?'s':''} up the road again${k.to?' to '+esc(k.to):''}.</p>`;
@@ -212,8 +214,9 @@ function cvRepair(g){if(!g)return;const P=Array.isArray(g.parties)?g.parties:[],
   if(p.ambE!=null&&!svFin(p.ambE))delete p.ambE;if(p.escR!=null&&!svFin(p.escR))delete p.escR;if(p.escN)p.escN=1;else delete p.escN;if(p.rd)p.rd=1;else delete p.rd
   if(svObj(p.loot))p.loot=cargoFix(p.loot,p.id,svNum(g.seed,0));else delete p.loot;if(p.cvCd!=null){if(svFin(p.cvCd))p.cvCd=Math.floor(p.cvCd);else delete p.cvCd}}
  const L=Array.isArray(g.clashes)?g.clashes:[],out=[],used=new Set();
- for(const c of L){if(!svObj(c)||!svFin(c.id))continue;const C=byId.get(c.c),R=byId.get(c.r);if(!C||!R||C.goal!=='caravan'||C===R||used.has(C.id)||used.has(R.id))continue;
-  const n=x=>Math.round(clamp(svNum(x,1),0,1)*1000)/1000;out.push({id:Math.floor(c.id),c:C.id,r:R.id,x:svFin(c.x)?c.x:(C.x+R.x)/2,y:svFin(c.y)?c.y:C.y,gs:Math.max(.05,svNum(c.gs,svNum(C.mult,.5))),rs:Math.max(.05,svNum(c.rs,svNum(R.mult,.8))),gh:n(c.gh),rh:n(c.rh),h:Math.max(0,Math.floor(svNum(c.h,0))),day:Math.floor(svNum(c.day,svNum(g.day,1)))});const q=out[out.length-1];if(c.bo)q.bo=1;if(c.turned)q.turned=1;used.add(C.id);used.add(R.id)}
+ if(typeof grRepair==='function'){grRepair(g);byId.clear();for(const p of g.parties)byId.set(p.id,p)}   // town garrisons out on a sally (43-garrisons.js)
+ for(const c of L){if(!svObj(c)||!svFin(c.id))continue;const C=byId.get(c.c),R=byId.get(c.r);if(!C||!R||(c.g?C.gar==null:C.goal!=='caravan')||C===R||used.has(C.id)||used.has(R.id))continue;
+  const n=x=>Math.round(clamp(svNum(x,1),0,1)*1000)/1000;out.push({id:Math.floor(c.id),c:C.id,r:R.id,x:svFin(c.x)?c.x:(C.x+R.x)/2,y:svFin(c.y)?c.y:C.y,gs:Math.max(.05,svNum(c.gs,svNum(C.mult,.5))),rs:Math.max(.05,svNum(c.rs,svNum(R.mult,.8))),gh:n(c.gh),rh:n(c.rh),h:Math.max(0,Math.floor(svNum(c.h,0))),day:Math.floor(svNum(c.day,svNum(g.day,1)))});const q=out[out.length-1];if(c.g){q.g=1;q.ti=C.gar}if(c.bo)q.bo=1;if(c.turned)q.turned=1;used.add(C.id);used.add(R.id)}
  for(const c of out){byId.get(c.c).clash=c.id;byId.get(c.r).clash=c.id}
  for(const p of P)if(p.clash&&!used.has(p.id))delete p.clash;g.clashes=out;escRepair(g,byId)}
 // v15 -> v16: guards for the caravans on the road, from their home town as it stands (no randomness), no clashes yet
