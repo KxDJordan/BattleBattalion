@@ -515,7 +515,7 @@ function mpCard(){const s=MP.sel,c=G.contract,L=[];let title='Plan a march',tag=
  else{const leg=mpLeg(G.p.x,G.p.y,s.x,s.y),here=Math.hypot(G.p.x-s.x,G.p.y-s.y)<TS*.9,dist=Math.max(1,Math.round(Math.hypot(G.p.x-s.x,G.p.y-s.y)/TS));title=s.label;
   if(s.kind==='town'){const t=G.towns[s.ref],i=s.ref;title=t.name;tag=`<span class="pxtag${mpTownSize(t)===3?' gold':''}">${MPSIZE[mpTownSize(t)]}</span>`;
    if(c&&lkCtrMarks().some(m=>m.kind==='turnin'&&m.town===i))L.push('<span class="mp-good">'+mpEsc(lkCtrStatus(c))+'</span>');else if(c&&c.town===i)L.push('Your contract was posted here.');
-   if(t.own){const h=lkHouse(t.own),rt=lkRepTier(t.own);L.push((h&&typeof bannerHTML==='function'?bannerHTML(h,20,'mp-bn'):'')+'<b>'+mpEsc(lkFacName(t.own))+'</b> <span class="fx-tier t-'+rt.k+'">'+mpEsc(rt.n)+'</span>'+(lkHostile(i)?' <span class="mp-bad">markets closed to you</span>':''))}
+   if(t.own){const h=lkHouse(t.own),rt=lkRepTier(t.own);L.push((h&&typeof bannerHTML==='function'?bannerHTML(typeof bnOf==='function'?bnOf(h):h,20,'mp-bn'):'')+'<b>'+mpEsc(lkFacName(t.own))+'</b> <span class="fx-tier t-'+rt.k+'">'+mpEsc(rt.n)+'</span>'+(lkHostile(i)?' <span class="mp-bad">markets closed to you</span>':''))}
    for(const x of lkSits(t)){const k=x.k||x,S=lkSitDef(k);L.push((typeof pxIcon==='function'?pxIcon(lkSitIcon(k),16):'')+'<b>'+mpEsc(S.n)+'</b>'+(x.days?' <span class="mp-dim">'+x.days+(x.days===1?' day':' days')+' left</span>':''))}
    const v=[t.lastVisit,t.visited,t.seenDay,t.mv].find(x=>typeof x==='number'&&isFinite(x));
    L.push(v!=null?(v>=G.day?'Visited today':'Last visited day '+v)+(Array.isArray(t.contracts)?', '+t.contracts.length+(t.contracts.length===1?' notice':' notices')+' on the board':''):'Not yet visited')}

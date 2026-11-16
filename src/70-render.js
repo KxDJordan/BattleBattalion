@@ -355,7 +355,7 @@ function wsgSame(){const a=WSG.a,b=WSG.b,n=WSG.n;if(n!==WSG.pn)return false;for(
 /* a rival company's art on the world map: its banner and sword count, cached per rival (a new object only when they change) */
 const WVRV=new Map(),WVRV0={sig:'-',bn:null,n:4};
 function wvRivalArt(id){const r=typeof lkRival==='function'?lkRival(id):null;if(!r)return WVRV0;const n=typeof lkRivalSwords==='function'?lkRivalSwords(r):4;let a=WVRV.get(id);
- if(a&&a.c1===r.c1&&a.c2===r.c2&&a.em===r.emblem&&a.n===n)return a;a={c1:r.c1,c2:r.c2,em:r.emblem,n,sig:r.c1+'.'+r.c2+'.'+r.emblem,bn:{name:r.n,c1:r.c1,c2:r.c2,emblem:r.emblem}};WVRV.set(id,a);return a}
+ if(a&&a.c1===r.c1&&a.c2===r.c2&&a.em===r.emblem&&a.dv===r.div&&a.n===n)return a;a={c1:r.c1,c2:r.c2,em:r.emblem,dv:r.div,n,sig:r.c1+'.'+r.c2+'.'+r.emblem+(r.div&&r.div!=='plain'?'.'+r.div+r.c3:''),bn:{name:r.n,c1:r.c1,c2:r.c2,emblem:r.emblem,div:r.div,c3:r.c3,shape:r.shape}};WVRV.set(id,a);return a}
 function wvCovered(){return(typeof TV!=='undefined'&&!!TV&&TV.shown&&!!TV.root&&TV.root.classList.contains('on'))||(typeof MP!=='undefined'&&!!MP&&MP.open&&!!MP.root&&MP.root.classList.contains('on'))}
 // worldVisible for one pass (a frame's list, a minimap paint): the company's sight radius cannot change inside it, so it is taken once
 function wvVisFn(){if(typeof visibleWithin!=='function'||typeof visibleAt!=='function'||typeof visionRadius!=='function')return worldVisible;const r=visionRadius();return(x,y)=>visibleWithin(Math.floor(x/TS),Math.floor(y/TS),r)}

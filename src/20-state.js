@@ -253,7 +253,7 @@ function worldRepair(g){const nT=g.towns.length,okF=f=>f==='free'||(f==='east'&&
 
  if(Array.isArray(g.houses)){const seen={};g.houses=g.houses.filter(h=>svObj(h)&&typeof h.id==='string'&&/^h[0-9]$/.test(h.id)&&!seen[h.id]&&(seen[h.id]=1)&&Number.isInteger(h.seat)&&h.seat>=0&&h.seat<nT);
   for(const h of g.houses){if(typeof h.n!=='string'||!h.n)h.n='House '+h.id;h.n=h.n.slice(0,40);if(typeof h.short!=='string')h.short=h.n.replace(/^House /,'');if(!HPERS[h.pers])h.pers='proud';
-   const b=typeof bannerFix==='function'?bannerFix({c1:h.c1,c2:h.c2,emblem:h.emblem},h.n):h;h.c1=b.c1;h.c2=b.c2;h.emblem=b.emblem}
+   const b=typeof bannerFix==='function'?bannerFix({c1:h.c1,c2:h.c2,emblem:h.emblem},h.n):h;h.c1=b.c1;h.c2=b.c2;h.emblem=b.emblem;if(typeof bnExtraFix==='function')bnExtraFix(h)}
   if(!g.houses.length)delete g.houses}
  for(const t of g.towns){if(!okF(t.own))delete t.own;
   if(Array.isArray(t.bld)){const s={};t.bld=t.bld.filter(k=>typeof k==='string'&&BLD[k]&&!s[k]&&(s[k]=1));for(const k of ['inn','market','tavern','notice'])if(!t.bld.includes(k))t.bld.unshift(k)}else delete t.bld;
@@ -287,7 +287,7 @@ function rivalRepair(g){if(!g)return'';if(g.rivals!==undefined&&!Array.isArray(g
  g.rivals=g.rivals.filter(r=>svObj(r)&&isRivalId(r.id)&&!seen[r.id]&&(seen[r.id]=1)).slice(0,12);
  for(const r of g.rivals){rvn=Math.max(rvn,(+r.id.slice(1))+1);if(typeof r.short!=='string'||!r.short.trim())r.short='Free Lances';r.short=r.short.replace(/[<>&"`\\]/g,'').slice(0,28);
   if(typeof r.n!=='string'||!r.n.trim())r.n='The '+r.short;r.n=r.n.replace(/[<>&"`\\]/g,'').slice(0,40);
-  if(typeof bannerFix==='function'){const b=bannerFix({c1:r.c1,c2:r.c2,emblem:r.emblem},r.n);r.c1=b.c1;r.c2=b.c2;r.emblem=b.emblem}
+  if(typeof bannerFix==='function'){const b=bannerFix({c1:r.c1,c2:r.c2,emblem:r.emblem},r.n);r.c1=b.c1;r.c2=b.c2;r.emblem=b.emblem;if(typeof bnExtraFix==='function')bnExtraFix(r)}
   if(typeof RVPERS!=='object'||!RVPERS[r.pers])r.pers='greedy';r.renown=Math.max(0,svNum(r.renown,0));r.crowns=Math.max(0,Math.round(svNum(r.crowns,0)));if(!ti(r.home))r.home=0;
   r.roster=Array.isArray(r.roster)?r.roster.filter(repairMerc).slice(0,16):[];{const ids={};r.roster=r.roster.filter(m=>!ids[m.id]&&(ids[m.id]=1))}r.roster.forEach((m,i)=>{m.field=i<MAXFIELD});
   r.stance=clamp(Math.round(svNum(r.stance,0)),-100,100);r.alive=!!r.alive&&r.roster.length>0;r.day=Math.max(1,Math.floor(svNum(r.day,1)));

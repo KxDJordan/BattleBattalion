@@ -23,7 +23,7 @@ function fxuBar(f,big){const v=clamp(Math.round(lkRep(f)),-100,100),T=fxuTiers()
  for(let i=0;i<T.length;i++){const a=T[i].min,b=i+1<T.length?T[i+1].min:101,w=(b-a)/201*100;seg+=`<i class="t-${T[i].k}${T[i].k===cur.k?' on':''}" style="width:${w.toFixed(2)}%"${big?` title="${fxuEsc(T[i].n)}"`:''}></i>`}
  return`<span class="fx-bar${big?' big':''}" role="img" aria-label="Standing ${v} of 100, ${fxuEsc(cur.n)}">${seg}<b style="left:${((v+100)/200*100).toFixed(2)}%"></b></span>`}
 function fxuTierChip(f){const t=lkRepTier(f);return`<span class="fx-tier t-${t.k}">${fxuIc('rep-'+t.k,16)}${fxuEsc(t.n)}</span>`}
-function fxuBanner(f,sz){const h=fxuHouse(f);if(h&&typeof bannerHTML==='function')return bannerHTML({name:h.n,c1:h.c1,c2:h.c2,emblem:h.emblem},sz||32);
+function fxuBanner(f,sz){const h=fxuHouse(f);if(h&&typeof bannerHTML==='function')return bannerHTML(typeof bnOf==='function'?bnOf(h):{name:h.n,c1:h.c1,c2:h.c2,emblem:h.emblem},sz||32);
  if(f==='free')return`<i class="fx-free" style="width:${Math.round((sz||32)*.75)}px;height:${sz||32}px">${fxuIc('market',16)}</i>`;return fxuIc('skull',sz||32)}
 function fxuPers(h){const P=typeof HPERS==='object'&&HPERS&&h?HPERS[h.pers]:null;return P||null}
 /* what the tier does in that faction's towns, in plain words */

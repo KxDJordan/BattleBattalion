@@ -645,6 +645,7 @@ function rvNewMerc(r,day){const m=newMerc(rvPickBG()),L=clamp(rvLvl(r.renown,day
 function rvMake(g,nm,pers,c1,c2,home,renown){const id='r'+(g.rvn=(g.rvn|0)+1,g.rvn-1),T=g.towns[home]||g.towns[0],day=Math.max(1,Math.floor(svNum(g.day,1)));
  const r={id,n:'The '+nm[0],short:nm[0],c1,c2,emblem:typeof EMBLEMS==='object'&&EMBLEMS[nm[1]]?nm[1]:'swords',pers,renown,crowns:250+renown*2,home,roster:[],stance:pers==='honour'?5:pers==='cutthroat'?-12:0,
   alive:true,day,deeds:[],ctr:null,hired:null,rest:0,x:T.x,y:T.y};
+ if(typeof bnVariety==='function')Object.assign(r,bnVariety('rival'+id+':'+(g.seed|0),c1,c2,.4));   // flag division and shape: a hash, never rnd()
  const n=clamp(5+Math.floor(renown/60)+ri(0,2),5,12);for(let i=0;i<n;i++)r.roster.push(rvNewMerc(r,day));r.roster.sort((a,b)=>b.lvl-a.lvl||a.id-b.id);r.roster.forEach((m,i)=>m.field=i<MAXFIELD);return r}
 function rvColours(g){const used=new Set((g.houses||[]).map(h=>h.c1).concat((g.rivals||[]).filter(r=>r.alive).map(r=>r.c1),[g.banner&&g.banner.c1||'5']));const ks=Object.keys(typeof BANNERC==='object'?BANNERC:{g:1,x:1});
  const free=ks.filter(k=>!used.has(k)),c1=free.length?pick(free):pick(ks),c2s=ks.filter(k=>k!==c1);return[c1,pick(c2s)]}

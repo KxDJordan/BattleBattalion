@@ -33,7 +33,8 @@ function factionsInit(g,opt){g=g||G;if(!g||!Array.isArray(g.towns)||!g.towns.len
   // seats: the largest towns, spread as far apart as they will go (never the starting town)
   const order=T.map((t,i)=>i).filter(i=>i>0).sort((a,b)=>T[b].size-T[a].size||a-b),seats=[order[0]];
   while(seats.length<nh&&seats.length<order.length){let best=-1,bd=-1;for(const i of order){if(seats.includes(i))continue;let d=1e9;for(const s of seats)d=Math.min(d,Math.hypot(T[i].x-T[s].x,T[i].y-T[s].y));d*=1+.15*T[i].size;if(d>bd){bd=d;best=i}}seats.push(best)}
-  g.houses=seats.map((s,k)=>{const c1=cols[k],c2s=FX_C2.filter(c=>c!==c1);return{id:'h'+k,n:'House '+roots[k],short:roots[k],c1,c2:c2s[R(c2s.length)],emblem:embs[k],seat:s,pers:pers[R(pers.length)]}})}
+  g.houses=seats.map((s,k)=>{const c1=cols[k],c2s=FX_C2.filter(c=>c!==c1),c2=c2s[R(c2s.length)];   // division, second colour and flag shape: a hash of the seed, never r()
+   return Object.assign({id:'h'+k,n:'House '+roots[k],short:roots[k],c1,c2,emblem:embs[k],seat:s,pers:pers[R(pers.length)]},typeof bnVariety==='function'?bnVariety('house'+k+':'+(g.seed|0),c1,c2,.15):{})})}
  const H=g.houses;
  // territory: each town to the nearest seat; a few towns far from any seat (and some at random) stay free
  if(T.some(t=>typeof t.own!=='string')){T.forEach((t,i)=>{let best=null,bd=1e9,second=1e9;for(const h of H){const s=T[h.seat]||T[0],d=Math.hypot(t.x-s.x,t.y-s.y);if(d<bd){second=bd;bd=d;best=h}else if(d<second)second=d}
