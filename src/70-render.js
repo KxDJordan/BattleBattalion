@@ -401,7 +401,8 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  const wk=G.weather&&G.weather.kind,wx=!!(wk&&wk!=='clear'&&WVA.wx),wind=wx?Math.sin(G.day*1.7+Math.floor(G.hour/6)):0,dots=!!(G.moving&&G.path.length);
  // the draw list (see WSG)
  const cvOn=typeof cvDrawMap==='function'&&Array.isArray(G.clashes)&&G.clashes.some(c=>inV(c.x/WVU,c.y/WVU)&&vis(c.x,c.y));
- let live=dots||(wx&&!reduced)||(pglow&&!reduced)||(cvOn&&!reduced);WSG.n=0;
+ const escM=typeof escDrawMap==='function'&&typeof escCtr==='function'&&!!escCtr();   // a live escort: its road and the caravan's ring (42-caravans.js)
+ let live=dots||(wx&&!reduced)||(pglow&&!reduced)||(cvOn&&!reduced)||escM;WSG.n=0;
  wsg(W_);wsg(H_);wsg(sc);wsg(bx);wsg(by);wsg(dpr);wsg(night);wsg(WCH.tk);wsg(WCH.frev);wsg(reduced);wsg(wk);wsg(wind);
  for(let cy=cy0-1;cy<=cy1+1;cy++)for(let cx=cx0-1;cx<=cx1+1;cx++){const ch=wchAt(cx,cy);wsg(ch);if(ch){wsg(ch.ver);wsg(ch.comp)}}
  for(let i=0;i<WSN;i++){const s=WSL[i],e=s.e;wsg(e);wsg(s.x);wsg(s.y);wsg(s.snap);if(WCH.ton&&!e.raw&&e.tk!==WCH.tk)live=true}
@@ -419,6 +420,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=WCH.list[cy*WCH.cols+cx],x=Math.round(bx+ch.x0*sc),y=Math.round(by+ch.y0*sc);g.drawImage(ch.comp,x,y,Math.round(bx+(ch.x0+WVP)*sc)-x,Math.round(by+(ch.y0+WVP)*sc)-y)}
  g.setTransform(sc,0,0,sc,bx,by);
  if(dots)wvPathDots(vx0,vy0,vx1,vy1);
+ if(escM){try{escDrawMap(g,now,reduced)}catch(e){wvFail('escort',e)}}
  for(let i=0;i<WSN;i++){const s=WSL[i];wvDrawSprite(s.e,s.x,s.y,s.snap)}
  if(rc){const D=rD,x=rX,y=rY;g.drawImage(rc,x,y,D,D);g.fillStyle='rgba(16,29,28,'+(WVDIM/255).toFixed(3)+')';
   if(y>vy0)g.fillRect(vx0,vy0,vx1-vx0,y-vy0);if(y+D<vy1)g.fillRect(vx0,y+D,vx1-vx0,vy1-y-D);if(x>vx0)g.fillRect(vx0,y,x-vx0,D);if(x+D<vx1)g.fillRect(x+D,y,vx1-x-D,D)}

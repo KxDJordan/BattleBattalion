@@ -47,6 +47,9 @@ function ctrPickF(t,ti,only){let P=ctrPool(t,ti);if(only){const Q=P.filter(x=>on
  let tot=0;P.forEach(x=>tot+=x.w);let r=rnd()*tot,e=P[P.length-1];for(const x of P){r-=x.w;if(r<=0){e=x;break}}return e}
 function ctrOtherTown(ti,lo,hi){const t=G.towns[ti],L=[];G.towns.forEach((o,i)=>{if(i===ti)return;const d=ctrDist(o,t);if(d>=lo&&d<=hi)L.push(i)});
  if(!L.length){let b=-1,bd=1e9;G.towns.forEach((o,i)=>{if(i!==ti){const d=ctrDist(o,t);if(d<bd){bd=d;b=i}}});return b}return pick(L)}
+// another town the roads join to town ti, lo..hi leagues away (else the nearest the roads join); -1 when no road leads anywhere
+function ctrRoadTown(ti,lo,hi){const t=G.towns[ti],ok=i=>i!==ti&&(typeof wsLinked!=='function'||wsLinked(ti,i)),L=[];G.towns.forEach((o,i)=>{if(!ok(i))return;const d=ctrDist(o,t);if(d>=lo&&d<=hi)L.push(i)});
+ if(!L.length){let b=-1,bd=1e9;G.towns.forEach((o,i)=>{if(ok(i)){const d=ctrDist(o,t);if(d<bd){bd=d;b=i}}});return b}return pick(L)}
 function ctrDue(t,x,y,extra){return G.day+2+Math.ceil(Math.hypot(x-t.x,y-t.y)/TS/10)+(extra||0)}
 // the base of every contract (draws: id)
 function ctrNew(type,t,ti,diff,title){return{type,id:ri(1,2147483646),title,emp:t.own||'free',town:ti,diff,pay:0,adv:0,stage:0,stages:[],twist:null,done:false,failed:false,due:null,day:G.day}}
@@ -73,11 +76,12 @@ const CTYPES={
   w:()=>7.5,
   gen(t,ti){const e=ctrPickF(t,ti);if(!e)return null;const f=e.f,diff=ctrDiff(),pos=ctrLairAt(t,f,e.lo,e.hi),tk=CTR_TIERK[FACT[f].tier]||1,c=ctrNew('hunt',t,ti,diff,ctrTitle(f,t));
    c.f=f;c.x=pos.x;c.y=pos.y;c.pay=ctrPayBase(diff,tk);c.stages=[{k:'go',x:pos.x,y:pos.y,kind:'lair',label:'Lair',fight:{f,k:1}},ctrHome(ti)];c.due=ctrDue(t,pos.x,pos.y,6);return c}},
- escort:{n:'Escort',d:'Guard a caravan wagon on the road. Brigands are waiting where the road is lonely: the wagon must survive.',icon:'contracts',
+ escort:{n:'Escort',d:'March beside a caravan on the road to another town. Raiders who think themselves a match for its guards and the company together will come for the wagons: the wagon must survive.',icon:'contracts',
   w:(t)=>t.size>=2?1:.6,
-  gen(t,ti){const to=ctrOtherTown(ti,8,30);if(to<0)return null;const o=G.towns[to],e=ctrPickF(t,ti,['bandit','gob','orc','beast']),f=e?e.f:'bandit',diff=ctrDiff(),c=ctrNew('escort',t,ti,diff,'Escort a caravan to '+o.name);
-   const a=.45+rnd()*.2;let x=t.x+(o.x-t.x)*a,y=t.y+(o.y-t.y)*a;if(typeof okAt==='function'&&!okAt(x,y)){const p=randOk(x,y,0,2);x=p.x;y=p.y}
-   c.to=to;c.f=f;c.pay=ctrPayBase(diff,1.1);c.stages=[{k:'go',x,y,kind:'road',label:'Ambush ground',fight:{f,k:.95,obj:{k:'escort',vip:'wagon'}}},ctrHome(to,'Deliver the caravan')];c.due=ctrDue(t,o.x,o.y,2);return c}},
+  gen(t,ti){const to=ctrRoadTown(ti,8,30);if(to<0)return null;const o=G.towns[to],e=ctrPickF(t,ti,['bandit','gob','orc','beast']),f=e?e.f:'bandit',diff=ctrDiff(),c=ctrNew('escort',t,ti,diff,'Escort a caravan to '+o.name);
+   const r=typeof wsRoute==='function'?wsRoute(ti,to):null,len=r&&typeof rdLen==='function'?rdLen(r,t.x,t.y,0):ctrDist(o,t)*1.3;   // a live escort (42-caravans.js): the wagons keep to the road
+   c.to=to;c.f=f;c.len0=Math.round(len);c.pay=ctrPayBase(diff,1.1);c.stages=[escStageOf(to),ctrHome(to,'Collect the pay')];c.due=G.day+2+Math.ceil(len/ESC.day)+ESC.slack;return c},
+  onAccept(c){escStart(c,null,true)},onFail(c){escRelease(c)},onTurnIn(c){escRelease(c)}},
  defend:{n:'Defend',d:'Raiders are coming. Be at the gate in time and hold it.',icon:'shield',
   w:()=>.7,
   gen(t,ti){const e=ctrPickF(t,ti,['bandit','orc','gob','undead']),f=e?e.f:'bandit',diff=ctrDiff(),p=ctrBeside(t),c=ctrNew('defend',t,ti,diff,'Hold the gate of '+t.name);
@@ -154,12 +158,13 @@ function ctrStage(c){if(c&&!Array.isArray(c.stages)&&CTYPES[c.type])ctrRepair(c)
  return c&&Array.isArray(c.stages)?c.stages[clamp(c.stage|0,0,c.stages.length-1)]||null:null}
 function ctrDone(c){if(!c||c.failed)return false;const s=ctrStage(c);return!!s&&s.k==='town'&&(c.stage|0)>=c.stages.length-1}
 function ctrMarks(c){c=c||G.contract;if(!c)return[];const s=ctrStage(c),out=[];if(!s)return out;
+ if(s.k==='go'&&s.kind==='escort'){const t=ctrTown(c.to);if(t)out.push({x:t.x,y:t.y,kind:'turnin',label:'Escort the caravan here',town:c.to});return out}   // the caravan itself is drawn with its road (escDrawMap)
  if(s.k==='go'){out.push({x:s.x,y:s.y,kind:s.fight?(s.kind==='lair'||s.kind==='nest'||s.kind==='camp'?'lair':s.kind):'waypoint',label:s.label,f:s.fight?s.fight.f:c.f,stage:c.stage});
   const h=c.stages[c.stages.length-1],t=ctrTown(h.ti);if(t)out.push({x:t.x,y:t.y,kind:'turnin',label:h.label,town:h.ti,later:true})}
  else{const t=ctrTown(s.ti);if(t)out.push({x:t.x,y:t.y,kind:'turnin',label:s.label,town:s.ti})}
  return out}
 function ctrTurnInTown(c){const h=c&&Array.isArray(c.stages)?c.stages[c.stages.length-1]:null;return h&&h.k==='town'?h.ti:c?c.town:-1}
-function ctrTargetAt(x,y){const c=G&&G.contract;if(!c||c.failed)return null;const s=ctrStage(c);if(!s||s.k!=='go')return null;if(Math.hypot(s.x-x,s.y-y)>=.4*TS)return null;
+function ctrTargetAt(x,y){const c=G&&G.contract;if(!c||c.failed)return null;const s=ctrStage(c);if(!s||s.k!=='go'||s.kind==='escort')return null;/* an escort ends when its caravan arrives (escArrive) */if(Math.hypot(s.x-x,s.y-y)>=.4*TS)return null;
  return{c,stage:c.stage,x:s.x,y:s.y,kind:s.kind,label:s.label,fight:!!s.fight}}
 function ctrBattle(c,place){c=c||G.contract;const s=ctrStage(c);if(!s||s.k!=='go'||!s.fight)return null;const F=s.fight;
  const o={f:F.f,mult:ctrMult(c.diff,F.k||1),src:{type:'lair',ctr:1,id:c.id,stage:c.stage}};
@@ -167,7 +172,7 @@ function ctrBattle(c,place){c=c||G.contract;const s=ctrStage(c);if(!s||s.k!=='go
  if(c.twist&&c.twist.fight){o.mult*=c.twist.fight;}
  return o}
 function ctrStatus(c){c=c||G.contract;if(!c)return'';if(c.failed)return'Failed: '+c.title;const s=ctrStage(c),due=c.due!=null?`, by day ${c.due}`:'';
- if(!s)return c.title;if(s.k==='town'){const t=ctrTown(s.ti);return(ctrDone(c)?`${s.label} in ${ctrPlace(t)}`:`${s.label}: ${ctrPlace(t)}`)+(c.type==='deliver'||c.type==='escort'?due:'')}
+ if(!s)return c.title;if(s.k==='go'&&s.kind==='escort'&&typeof escStatus==='function')return escStatus(c)+due;if(s.k==='town'){const t=ctrTown(s.ti);return(ctrDone(c)?`${s.label} in ${ctrPlace(t)}`:`${s.label}: ${ctrPlace(t)}`)+(c.type==='deliver'||c.type==='escort'?due:'')}
  const n=c.stages.filter(x=>x.k==='go').length,i=c.stages.slice(0,c.stage).filter(x=>x.k==='go').length+1;return`${s.label}${n>1?` (${i} of ${n})`:''}: ${CTYPES[c.type]?CTYPES[c.type].n.toLowerCase():'contract'}${due}`}
 function ctrTurnInAt(ti){const c=G&&G.contract;if(!c||!ctrDone(c)||ctrTurnInTown(c)!==ti)return null;
  return{c,pay:Math.max(0,c.pay-(c.adv||0)),renown:Math.round(8*c.diff*(typeof runModK==='function'?runModK('renown',1):1)),rep:3+2*c.diff}}
@@ -193,7 +198,7 @@ function ctrBattleEnd(c,win,res){const s=ctrStage(c);if(!c||!s||s.k!=='go')retur
  ctrAdvance(c);ctrNote(c,'Won the fight at '+s.label);
  if(c.twist&&!c.twist.fired&&c.twist.when==='battle')c.twist.ready=1;
  const h=ctrTown(ctrTurnInTown(c));return ctrDone(c)?`Contract work done. Return to ${ctrPlace(h)} for pay`:ctrStatus(c)}
-function ctrFail(c,why){if(!c||c.failed)return;c.failed=true;c.done=false;const n=4+2*c.diff+(c.adv>0?4:0);ctrRepGain(c.emp,-n,why||'Contract failed');G.renown=Math.max(0,G.renown-5);ctrNote(c,why||'Failed');
+function ctrFail(c,why){if(!c||c.failed)return;c.failed=true;c.done=false;{const T=CTYPES[c.type];if(T&&typeof T.onFail==='function')T.onFail(c)}const n=4+2*c.diff+(c.adv>0?4:0);ctrRepGain(c.emp,-n,why||'Contract failed');G.renown=Math.max(0,G.renown-5);ctrNote(c,why||'Failed');
  if(typeof ambEvent==='function')ambEvent('contractFail',c);if(G.contract===c)G.contract=null;G.ctrLast={id:c.id,title:c.title,ok:false,why:why||'',day:G.day}}
 function ctrAbandon(){const c=G.contract;if(!c)return false;ctrFail(c,'Contract abandoned');return true}
 // acting: pays out at town ti. {ok, pay, renown, text}
@@ -204,9 +209,9 @@ function ctrTurnIn(ti){const q=ctrTurnInAt(ti);if(!q)return null;const c=q.c;
  const adv=c.adv?` (${c.adv} was paid up front)`:'';return{ok:true,c,pay:q.pay+bonus,renown:q.renown,text:`${c.twistText?c.twistText+' ':''}Contract fulfilled. You are paid ${q.pay+bonus} crowns${adv} and gain ${q.renown} renown.`}}
 function ctrAccept(c){if(!c||G.contract||c.rtook)return false;   // a notice a rival company took is no longer open
  const t=ctrTown(c.town);if(t&&Array.isArray(t.contracts)){const i=t.contracts.indexOf(c);if(i>=0)t.contracts.splice(i,1)}
- if(c.neg&&c.neg.gone)return false;c.taken=G.day;c.tickDay=G.day;G.contract=c;if(c.adv>0)G.crowns+=c.adv;ctrSync(c);return true}
+ if(c.neg&&c.neg.gone)return false;c.taken=G.day;c.tickDay=G.day;G.contract=c;if(c.adv>0)G.crowns+=c.adv;ctrSync(c);{const T=CTYPES[c.type];if(T&&typeof T.onAccept==='function')T.onAccept(c)}return true}
 // acting: once a day
-function ctrDaily(){const c=G&&G.contract;if(!c)return null;
+function ctrDaily(){const c=G&&G.contract;if(!c)return null;if(c.type==='escort'&&typeof escCheck==='function'&&escCheck(c))return'lost';
  if(c.curse&&G.roster.length){const m=pick(G.roster);m.hp=Math.max(1,m.hp-8)}
  if(c.due!=null&&G.day>c.due&&(!ctrDone(c)||c.type==='deliver'||c.type==='escort')){const t=c.title;ctrFail(c,'Too late');if(typeof toast==='function')toast('Contract failed: too late for '+t);return'late'}
  if(c.twist&&!c.twist.fired&&c.twist.when==='travel'&&G.day>(c.taken!=null?c.taken:c.day)){c.twist.ready=1}
@@ -235,7 +240,7 @@ function ctrNegotiate(c,ask){if(!c)return{ok:false,c,mood:0,moodN:'angry',msg:'N
 /* ---- twists: rolled when the contract is posted (30%), hidden until they fire. CTWIST[k] = {n, d, when, types, apply(c) ->
    {text, opts:[{t, d, req?(c), go(c)->{text, fight?}}]} | {text, pay?} (turn-in twists resolve at once)} ---- */
 const CTWIST={
- ambush:{n:'Ambush on the road',d:'Brigands who knew your route.',when:'travel',types:['deliver','escort','relic','patrol'],
+ ambush:{n:'Ambush on the road',d:'Brigands who knew your route.',when:'travel',types:['deliver','relic','patrol'],   // an escort's ambush is a real band on the road (escAmbush)
   apply(c){const toll=Math.max(20,Math.round(c.pay*.2/10)*10);return{text:'Figures rise from the ditch ahead: brigands who knew your route. Their captain names a toll.',
    opts:[{t:'Fight them',d:'A battle against brigands (an even match).',go:()=>({text:'Steel it is.',fight:{f:'bandit',mult:.9,src:{type:'twist',id:c.id}}})},
     {t:`Pay the toll (${toll} crowns)`,d:`−${toll} crowns.`,req:()=>G.crowns>=toll,go:()=>{G.crowns-=toll;return{text:'They count the coin twice and melt into the trees.'}}}]}}},
@@ -293,7 +298,8 @@ function objSetup(b,o,used){const ob=o.obj;b.obj=ob?{k:ob.k,rounds:ob.rounds|0,s
   if(u){const K=CTR_BOSSK;u.boss=1;u.name=o.boss.name;u.title=o.boss.title||'';u.hp=u.hpMax=Math.round(u.hpMax*K.hp);u.arm=u.armMax=Math.round((u.armMax||0)*K.arm);if(typeof u.helm==='number'){u.helm=Math.round(u.helm*K.arm);u.helmMax=u.helm}
    u.ms+=K.ms;u.md+=K.md;u.rd+=Math.round(K.md/2);u.dmgB=(u.dmgB||0)+K.dmg;u.brv=Math.max(u.brv||0,90);u.fearless=true;b.bossU=u}}
  if(!ob)return;
- if(ob.k==='escort'){const v=objVipUnit(ob.vip||'wagon');const pl=place([v],DEPLOY.p.back,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used);if(pl.length){b.units.push(v);b.obj.vip=v;b.obj.vipN=v.name}}
+ if(ob.k==='escort'){const v=objVipUnit(ob.vip||'wagon');if(ob.hpK>0&&ob.hpK!==1){const k=clamp(ob.hpK,.5,4);v.hp=v.hpMax=Math.round(v.hpMax*k);v.arm=v.armMax=Math.round(v.armMax*k)}   // hpK: a whole caravan's wagons (42-caravans.js escBattle)
+ const pl=place([v],DEPLOY.p.back,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used);if(pl.length){b.units.push(v);b.obj.vip=v;b.obj.vipN=v.name}}
  if(ob.k==='siege'){const E=b.units.filter(u=>u.side===1);for(const u of E)addBuff(u,{key:'fort',md:OBJ_FORT.md,rd:OBJ_FORT.rd},OBJ_FORT.dur);
   const L=b.bossU||E.find(u=>u.def&&u.def.lead)||E.slice().sort((a,c)=>(c.def&&c.def.xp||0)-(a.def&&a.def.xp||0))[0];if(L){L.leader=1;b.obj.leader=L;b.obj.leaderN=L.name}}}
 // rules: null = the objective does not decide the battle now; true = the company has won; false = lost. Called from checkEnd.
@@ -331,7 +337,8 @@ function ctrRepair(c,nTowns,towns){if(!svObj(c))return false;if(!CTYPES[c.type])
  c.due=svFin(c.due)?Math.floor(c.due):null;if(c.twist&&(!svObj(c.twist)||!CTWIST[c.twist.k]))c.twist=null;if(c.twist)delete c.twist.card;
  if(c.neg&&!svObj(c.neg))delete c.neg;c.failed=!!c.failed;
  if(typeof c.rival==='string'&&/^h[0-9]$/.test(c.rival)){c.outbid=c.rival;delete c.rival}if(c.rival!=null&&!/^r[0-9]+$/.test(String(c.rival)))delete c.rival;if(c.outbid!=null&&typeof c.outbid!=='string')delete c.outbid;
- if(svFin(c.rtook))c.rtook=Math.floor(c.rtook);else delete c.rtook;if(c.rivalWon!=null&&typeof c.rivalWon!=='string')delete c.rivalWon;ctrSync(c);return true}
+ if(svFin(c.rtook))c.rtook=Math.floor(c.rtook);else delete c.rtook;
+ if(c.type==='escort'){if(!ti(c.to))return false;if(c.live)c.live=1;else delete c.live;if(c.cv!=null&&!svFin(c.cv))delete c.cv;if(c.amb!=null&&!svFin(c.amb))delete c.amb;if(c.len0!=null)c.len0=Math.max(0,Math.round(svNum(c.len0,0)))}if(c.rivalWon!=null&&typeof c.rivalWon!=='string')delete c.rivalWon;ctrSync(c);return true}
 // the world's clock (40-world.js advanceTime) calls this with the hours that passed: ctrDaily() once for every day turned
 function ctrTick(h){let c=G&&G.contract;if(!c)return;if(!svFin(c.tickDay))c.tickDay=G.day;for(let g=0;g<40&&c&&G.contract===c&&c.tickDay<G.day;g++){c.tickDay++;ctrDaily();c=G.contract}}
 

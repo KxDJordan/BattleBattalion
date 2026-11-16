@@ -165,7 +165,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
  const top8=()=>{const L=G().roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,8);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0};
  // a struck-down sword lives only 30% of the time (DOWNCH): a green company takes the light jobs, a seasoned core the even ones
  const appetite=()=>{const g=G(),f=field().length,hp=hpFrac();let a=top8()<3?.85:top8()>=6&&f>=9?1.05:.95;if(f<4)a=.5;else if(f<6)a=Math.min(a,.85);if(hp<.75)a-=.2;if(g.diff==='hard'||g.diff==='brutal')a-=.05;return a};
- const ctrMult=c=>{let mx=0;for(const s of c.stages||[])if(s.k==='go'&&s.fight)mx=Math.max(mx,X.ctrMult(c.diff,s.fight.k||1)*(s.fight.boss?1.2:1));return mx};
+ const ctrMult=c=>{let mx=0;for(const s of c.stages||[]){if(s.k==='go'&&s.fight)mx=Math.max(mx,X.ctrMult(c.diff,s.fight.k||1)*(s.fight.boss?1.2:1));if(s.k==='go'&&s.kind==='escort')mx=Math.max(mx,.95)}return mx};   // a live escort: a band at least a match for the guards and the company together will come (an even fight beside the guards)
  const ctrLen=(c,t)=>{let d=0,p=t;for(const s of c.stages||[]){const q=s.k==='town'?g2().towns[s.ti]:s;if(q){d+=dist(p,q);p=q}}return d};
  const g2=()=>G();
  const pickContract=(i)=>{const g=G(),t=g.towns[i];if(g.contract||!t.contracts||X.twHostile(i))return false;const A=appetite();let bj=-1,bv=0;

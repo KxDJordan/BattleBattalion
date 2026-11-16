@@ -373,6 +373,7 @@ function mpDrawBase(q,us,I,z,cw,ch,terr,o,Wp,X,Y,tc,inc,ru){
    for(const ln of lines){const c=mpTextCv(ln,'j','l',us);if(c)q.drawImage(c,o.x+Math.round(inc.x*MP.tp*z-c.width/2),ty);ty+=MPTH*us}}}
  /* the march already under way (brass), then the planned route (madder) */
  if(G.moving&&G.path&&G.path.length&&!MP.wps.length)mpDots(q,[{x:X(G.p.x),y:Y(G.p.y)}].concat(G.path.map(p=>({x:X(p.x),y:Y(p.y)}))),'d',false);
+ {const E=typeof escRoutePts==='function'?escRoutePts():null;if(E)mpDots(q,E.map(p=>({x:X(p.x),y:Y(p.y)})),'y',false)}   /* a live escort: the caravan's road (42-caravans.js) */
  const dseen=new Set();let a={x:X(G.p.x),y:Y(G.p.y)};for(let i=0;i<MP.legs.length;i++){const pts=[a].concat(MP.legs[i].path.map(p=>({x:X(p.x),y:Y(p.y)})));mpDots(q,pts,i&1?'E':'g',false,dseen);a=pts[pts.length-1]}
  /* sites */
  for(const s of ru)mpAt(q,'ruin',MPS.ruin,X(s.x),Y(s.y),'c');
@@ -384,7 +385,7 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
     kept in its own canvas and copied in (one opaque full-canvas copy instead of a few dozen layers each time the blink ticks) */
  const BS=MP.bsA;let n=0;const P=v=>{BS[n++]=v};const tcv=MP.terrOn!==false?mpTerritory():null,inc=mpIncognita(),ru=mpKnownRuins(),mv=!!(G.moving&&G.path&&G.path.length&&!MP.wps.length);
  P(cw);P(ch);P(us);P(I.x);P(I.y);P(I.w);P(I.h);P(o.x);P(o.y);P(z);P(k);P(terr);P(tcv);P(inc);P(MP.terrOn!==false);P(G.p.x);P(G.p.y);P(mv);P(MP.speck);
- if(mv){P(G.path);for(const p of G.path){P(p.x);P(p.y)}}P(MP.legs.length);for(const l of MP.legs){P(l);P(l.path);P(l.path.length)}P(ru.length);for(const r of ru){P(r.x);P(r.y)}
+ if(mv){P(G.path);for(const p of G.path){P(p.x);P(p.y)}}P(MP.legs.length);for(const l of MP.legs){P(l);P(l.path);P(l.path.length)}P(ru.length);for(const r of ru){P(r.x);P(r.y)}{const E=typeof escRoutePts==='function'?escRoutePts():null;P(E?E.length:-1);if(E){P(E[0].x);P(E[0].y)}}
  let same=n===MP.bsN;if(same){const B2=MP.bsB;for(let i=0;i<n;i++)if(BS[i]!==B2[i]){same=false;break}}MP.bsA=MP.bsB;MP.bsB=BS;MP.bsN=n;
  if(same&&MP.bc&&MP.bcOk)q.drawImage(MP.bc,0,0);
  else if(same){if(!MP.bc){MP.bc=pxCanvas(cw,ch);MP.bcq=MP.bc&&MP.bc.getContext('2d')}if(MP.bc&&(MP.bc.width!==cw||MP.bc.height!==ch)){MP.bc.width=cw;MP.bc.height=ch}
