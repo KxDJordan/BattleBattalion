@@ -202,7 +202,8 @@ section('saves');
   X.G=G;const bad=X.clone(G);bad.parties=bad.parties.filter(p=>p.id!==C.id);ok(X.repairSave(bad)===''&&!bad.contract.live,'repaired: the escort is set up again');
   X.G=bad;X.worldTick(.05);const C3=X.escParty(bad.contract);ok(bad.contract.live&&C3&&C3.ctr===c.id&&onRoad(C3.x,C3.y),'the caravan rejoins it on the road') }
 section('old saves');
-{ const G=fresh(SEED+10);keepAlive(G);const t=G.towns[0];let c=null;for(let g=0;g<40&&!c;g++)c=X.CTYPES.escort.gen(t,0);c.twist={k:'ambush',when:'travel',fired:false};
+{ const G=fresh(SEED+12);   // a world where no band falls on the caravan before the company reaches it (that follows the seeded stream)
+keepAlive(G);const t=G.towns[0];let c=null;for(let g=0;g<40&&!c;g++)c=X.CTYPES.escort.gen(t,0);c.twist={k:'ambush',when:'travel',fired:false};
   // the escort as it was: an ambush ground half way, then deliver the caravan
   const o=G.towns[c.to],ax=(t.x+o.x)/2,ay=(t.y+o.y)/2;c.stages=[{k:'go',x:ax,y:ay,kind:'road',label:'Ambush ground',fight:{f:c.f,k:.95,obj:{k:'escort',vip:'wagon'}}},X.ctrHome(c.to,'Deliver the caravan')];delete c.len0;
   c.due=G.day+3;c.taken=G.day;c.tickDay=G.day;G.contract=c;const far=X.randOk(t.x,t.y,3,5);G.p.x=far.x;G.p.y=far.y;

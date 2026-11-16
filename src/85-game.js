@@ -16,7 +16,7 @@ function createCampaign(opts){opts=opts||{};const wk=setWorldSize(opts.wsize),AK
  G.parts={};if(typeof companyNew==='function')companyNew(G);else{G.retinue=[];G.amb={cur:null,done:[],offered:[]}}   // renown tiers, ambitions, the retinue (14-company.js)
  if(typeof factionsInit==='function')factionsInit(G);   // houses, town owners, reputation (15-factions.js): before the origin, which touches reputation
  G.crisisKind=runCrisisPick(G.seed);if(typeof crisisInit==='function')crisisInit(G);   // the run's crisis (18-crises.js)
- if(typeof eastInit==='function')eastInit(G);if(typeof fabledInit==='function')fabledInit(G);   // the East (19-east.js) before the markets are stocked; fabled warriors (21-fabled.js)
+ if(typeof eastInit==='function')eastInit(G);if(typeof colInit==='function')colInit(G);if(typeof fabledInit==='function')fabledInit(G);   // the colosseum (29-colosseum.js) beside the largest towns   // the East (19-east.js) before the markets are stocked; fabled warriors (21-fabled.js)
  G.evt=typeof evtNew==='function'?evtNew():{seen:{},flags:{}};if(typeof originApply==='function')originApply(G,opts.origin);else G.origin='free';   // 17-events.js
  G.crisisDay=Math.max(6,Math.round((G.crisisDay||26)*diffK('crisisDay')));   // difficulty moves the crisis (the origin may already have)
  if(typeof runModsStart==='function')runModsStart(G);   // the twists' start: feuds, purses, prosperity, the crisis day

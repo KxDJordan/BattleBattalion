@@ -64,7 +64,7 @@ function valid(G,why){ok(Array.isArray(G.roster)&&G.roster.length>=1,why+': rost
  if(G.rep)for(const f in G.rep)ok(Number.isFinite(G.rep[f])&&G.rep[f]>=-100&&G.rep[f]<=100,why+': rep '+f)}
 
 section('the catalog');
-{ const K=X.ACHK,A=X.ACH;ok(K.length>=20&&K.length<=30,'20 to 30 achievements ('+K.length+')');
+{ const K=X.ACHK,A=X.ACH;ok(K.length>=20&&K.length<=34,'20 to 34 achievements ('+K.length+')');
   const cats=new Set(X.ACHCAT.map(c=>c[0]));
   for(const k of K){const a=A[k];ok(a.n&&a.d&&a.icon&&cats.has(a.cat)&&typeof a.check==='function',k+': n d icon cat check');
    const ik=X.iconKind(a.icon);ok(ik.icon!=='none'&&ik.kind!=='generic',k+': icon '+a.icon+' is drawn ('+JSON.stringify(ik)+')');
@@ -146,6 +146,8 @@ section('every trigger, from the real hook');
    const cl=X.cvOf(c);ok(cl,'a clash');const out={rep:[]};X.cvBattleEnd({id:cl.id},true,{cv:{alive:2,dead:1,n0:3,turned:false,wagon:true,by:null,gh:1,rh:0}},out);ok(out.cv.k==='saved'&&S().n.cv===5&&has('cv5'),'five caravans saved (cvBattleEnd)')}
   // the temple
   G=fresh(SEED+23);S().n.treat=9;const m=G.roster[0];m.inj=[{id:'cutarm',days:3}];G.crowns=5000;const t=X.cpTreat(m,'cutarm');ok(t.ok&&S().n.treat===10&&has('treat10'),'ten injuries treated (cpTreat -> treatInjury)');
+  // the colosseum (29-colosseum.js colSettle -> achEvent('arena'))
+  G=fresh(SEED+24);{const c=G.colos[0],src={id:c.id,i:0,ep:-1,purse:100,fee:10,ren:1,prize:null};for(let i=0;i<5;i++){ok(!has('arena5'),'not before five wins');X.colSettle(src,true,{})}ok(has('arena5')&&has('arenachamp'),'five arena wins in a row (colSettle)')}
   const missing=X.ACHK.filter(k=>!has(k));ok(!missing.length,'every achievement fired: missing '+missing.join(', '));
   console.log('  all '+X.ACHK.length+' fired from their hooks')}
 

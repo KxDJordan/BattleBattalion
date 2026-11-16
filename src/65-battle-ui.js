@@ -66,7 +66,10 @@ function shWhyNot(u,a){if(!u||!a)return'';try{if(canUse(u,a)&&!shLocked(u,a))ret
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.withdraw)return'Only from your own edge of the field';return'Not usable now'}
 function endTurn(){if(B&&!B.busy&&!B.over&&B.cur.side===0&&!B.cur.ally)nextTurn()}
 /* Sound the retreat: the text says what the rules will do (soundRetreat in 60-battle-core.js, the crowns in 68-battle-flow.js). */
-function retreat(){if(!B||B.busy||B.over)return;const us=B.units.filter(u=>u.alive&&u.side===0),eng=us.filter(u=>B.units.some(e=>e.alive&&e.side!==u.side&&mdist(e,u)===1)),lost=typeof fleeCost==='function'?fleeCost():G.crowns-Math.floor(G.crowns*.9),src=B.opts&&B.opts.src||{};
+// the colosseum (29-colosseum.js): the retreat is a yield; never in a bout sine missione
+function yieldBout(){if(!B||B.busy||B.over)return;const A=B.opts.arena;if(A.noYield){toast('Sine missione: there is no yielding in this bout');return}
+ sheet('<h2>Yield the bout?</h2><p>Raise a finger to the editor: the crowd decides, and it lets a company that fought live. The swords locked in melee take a free blow from every foe beside them as they lower their arms.</p><p>The purse is lost, and the entry with it; the streak ends. No crowns are dropped on the run.</p><div class="row"><button class="warn" onclick="closeSheet();doRetreat()">Yield</button><button class="pri" style="flex:1" onclick="closeSheet()">Fight on</button></div>')}
+function retreat(){if(!B||B.busy||B.over)return;if(B.opts&&B.opts.arena)return yieldBout();const us=B.units.filter(u=>u.alive&&u.side===0),eng=us.filter(u=>B.units.some(e=>e.alive&&e.side!==u.side&&mdist(e,u)===1)),lost=typeof fleeCost==='function'?fleeCost():G.crowns-Math.floor(G.crowns*.9),src=B.opts&&B.opts.src||{};
  const hasR=typeof soundRetreat==='function';let p;
  if(!hasR)p='<p>The company breaks off and scatters.</p>';
  else if(!eng.length)p='<p>No sword is locked in melee: all '+us.length+' leave the field at once, alive.</p>';
@@ -75,7 +78,7 @@ function retreat(){if(!B||B.busy||B.over)return;const us=B.units.filter(u=>u.ali
  cost.push('nobody earns xp or loot');
  sheet('<h2>Sound the retreat?</h2>'+p+'<p>'+cost.join(', ').replace(/^./,c=>c.toUpperCase())+'.</p>'+(hasR?'<p class="dim">One sword can also slip away alone: stand on your own edge of the field and use Withdraw.</p>':'')
   +'<div class="row"><button class="warn" onclick="closeSheet();doRetreat()">Sound the retreat</button><button class="pri" style="flex:1" onclick="closeSheet()">Fight on</button></div>')}
-function doRetreat(){if(!B||B.over)return;G.crowns=typeof fleeCost==='function'?G.crowns-fleeCost():Math.floor(G.crowns*.9);fcClear();
+function doRetreat(){if(!B||B.over)return;if(!(B.opts&&B.opts.arena))G.crowns=typeof fleeCost==='function'?G.crowns-fleeCost():Math.floor(G.crowns*.9);fcClear();
  if(typeof soundRetreat==='function'){try{const p=soundRetreat();if(p&&p.catch)p.catch(()=>{});updateBUI();return}catch(e){}}
  B.over=true;B.busy=true;B.fled=true;endBattle(false)}
 /* Reserves: who waits behind the line, and the one tap that brings a sword in (callReserve). */
@@ -257,7 +260,7 @@ function chipInspect(){try{if(!B||!B.cur||typeof Inspect==='undefined'||typeof u
 function cmdHTML(u,mine){const act=mine&&!B.busy&&!B.over,R=shReserves(),rok=act&&shCanReserve(),canR=typeof canRetreat==='function'?canRetreat():true;
  return'<button class="tg pxb icon '+(SPEEDF<1?'on':'')+'" aria-pressed="'+(SPEEDF<1)+'" aria-label="Fast battle speed" title="Fast" onclick="toggleFast()">'+pic('fast',32,'fast')+'</button>'
  +'<button class="tg pxb icon '+(B.auto?'on':'')+'" aria-pressed="'+!!B.auto+'" aria-label="Auto-battle" title="Auto-battle" '+(B.over?'disabled':'')+' onclick="toggleAuto()">'+pic('auto',32,'auto')+'</button>'
- +'<button class="tg pxb icon warn" aria-label="Sound the retreat" title="Sound the retreat" '+(act&&canR?'':'disabled')+' onclick="retreat()">'+pic('retreat',32,'flag')+'</button>'
+ +'<button class="tg pxb icon warn" aria-label="'+(B.opts&&B.opts.arena?'Yield the bout':'Sound the retreat')+'" title="'+(B.opts&&B.opts.arena?(B.opts.arena.noYield?'Sine missione: no yielding':'Yield the bout'):'Sound the retreat')+'" '+(act&&canR?'':'disabled')+' onclick="retreat()">'+pic('retreat',32,'flag')+'</button>'
  +'<button class="tg pxb icon" aria-label="Settings" title="Settings" onclick="settingsSheet()">'+pic('settings',32,'sun')+'</button>'
  +'<span class="vw">'+(R.length?'<button class="tg pxb icon sm rsvb'+(rok?' rdy':'')+'" aria-label="Reserves: '+R.length+' waiting'+(rok?', one can be called in':'')+'" title="Reserves ('+R.length+')" '+(B.over?'disabled':'')+' onclick="reservesSheet()">'+pic('reserve',16,'flag')+'<em>'+R.length+'</em></button>':'')
  +'<button class="tg pxb icon sm abt '+(shAllyBars()?'on':'')+'" aria-pressed="'+shAllyBars()+'" aria-label="Show allies\' health and armor bars" title="Ally bars (B)" onclick="toggleAllyBars()">'+allyBarsIcon(16)+'</button>'

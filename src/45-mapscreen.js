@@ -106,6 +106,7 @@ const MPS={
  portal2:['..000..','.0CCC0.','0CDDDC0','0CDFDC0','0CDrDC0','0CDDDD0','.0CDD0.','..000..'],
  ruin:['.00....','0qp0.0.','0qp00q0','0qp00p0','0qp00p0','0nnnnn0','.00000.'],
  dgn:['...000...','..0ppp0..','.0pooop0.','0po000op0','0po0gh0p0','0po0gg0o0','0oo0hg0o0','.0000000.'],   // a dungeon (24-endgame.js): a dark door, a red light
+ colo:['.000000000.','0mlmlmlmlm0','0m0m0m0m0m0','0lllllllll0','0m0m0m0m0m0','0nnnnnnnnn0','.000000000.'],   // the colosseum (29-colosseum.js)
  dgnc:['...000...','..0nnn0..','.0nooon0.','0no000on0','0no000n00','0no000o0.','0oo000o0.','.0000000.'],   // a cleared dungeon
  cross:['00...00','0g0.0g0','.0g0g0.','..0g0..','.0g0g0.','0g0.0g0','00...00'],
  nest:['...000...','..0jkj0..','.0jkkjj0.','0jkj00ji0','0jk0000i0','0iiiiiii0','.0000000.'],
@@ -259,6 +260,7 @@ function mpWpFromHit(h){if(h.kind==='town'){const t=G.towns[h.i];return{x:t.x,y:
  if(h.kind==='lair')return{x:h.x,y:h.y,dest:null,kind:'lair',ref:0,label:h.label||'Lair'};
  if(h.kind==='nest')return{x:h.x,y:h.y,dest:null,kind:'nest',ref:h.id,label:'Nest'};
  if(h.kind==='dgn')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'dgn',ref:h.id,label:mpDgnName(h.id)};
+ if(h.kind==='colo')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'colo',ref:h.id,label:'Colosseum'};
  if(h.kind==='crsite')return{x:h.x,y:h.y,dest:{type:'site',id:h.id},kind:'ruin',ref:h.id,label:h.n};
  if(h.kind==='ruin')return{x:h.x,y:h.y,dest:typeof siteSheet==='function'?{type:'site',id:h.id}:null,kind:'ruin',ref:h.id,label:typeof h.n==='string'&&h.n?h.n:'Ruins'};
  return{x:h.x,y:h.y,dest:null,kind:'land',ref:0,label:MPTERR[tileAt(h.x,h.y)]||'Open ground'}}
@@ -287,7 +289,7 @@ function mapRouteTick(){const q=MP.queue;if(!q||!q.length||!G||!G.roster||!G.ros
  if(MP.qBattle)mpQueueGo();else mpQueueStop()}
 function mapRouteQueue(){return MP.queue?MP.queue.slice():[]}
 /* the route already under way, as planner stops (so the map opens showing it) */
-function mpCurrentRoute(){const out=[],lab=d=>d&&d.type==='town'&&G.towns[d.i]?{kind:'town',ref:d.i,label:G.towns[d.i].name}:d&&d.type==='portal'?{kind:'portal',ref:d.id,label:'Rift'}:d&&d.type==='site'&&typeof dgnOf==='function'&&dgnOf(d.id)?{kind:'dgn',ref:d.id,label:mpDgnName(d.id)}:d&&d.type==='site'?{kind:'ruin',ref:d.id,label:(((G.sites||[]).find(s=>s.id===d.id)||{}).n)||'Ruins'}:null;
+function mpCurrentRoute(){const out=[],lab=d=>d&&d.type==='town'&&G.towns[d.i]?{kind:'town',ref:d.i,label:G.towns[d.i].name}:d&&d.type==='portal'?{kind:'portal',ref:d.id,label:'Rift'}:d&&d.type==='site'&&typeof colOf==='function'&&colOf(d.id)?{kind:'colo',ref:d.id,label:'Colosseum'}:d&&d.type==='site'&&typeof dgnOf==='function'&&dgnOf(d.id)?{kind:'dgn',ref:d.id,label:mpDgnName(d.id)}:d&&d.type==='site'?{kind:'ruin',ref:d.id,label:(((G.sites||[]).find(s=>s.id===d.id)||{}).n)||'Ruins'}:null;
  const add=(x,y,d,l)=>{if(!isFinite(x)||!isFinite(y))return;const k=lab(d)||{kind:'land',ref:0,label:l||MPTERR[tileAt(x,y)]||'Open ground'};
   if(k.kind==='land'&&G.contract)for(const m of lkCtrMarks())if(m.kind!=='turnin'&&Math.hypot(m.x-x,m.y-y)<2){k.kind='lair';k.label=m.label||'Lair'}out.push({x,y,dest:d||null,kind:k.kind,ref:k.ref,label:k.label})};
  if(MP.queue&&MP.queue.length){for(const w of MP.queue)add(w.x,w.y,w.dest,w.label);return out}
@@ -355,6 +357,7 @@ function mpDots(q,pts,col,phase,seen){const us=MP.us,step=7*us;let acc=phase?ste
    if(!hit){if(seen)seen.add(gx+','+gy);mpFill(q,'0',x-2*us,y-2*us,4*us,4*us);mpFill(q,col,x-us,y-us,2*us,2*us)}t+=step}acc=(acc+L)%step}}
 function mpContractMark(){const L=G.contract?lkCtrMarks():[];for(const m of L)if(m.kind!=='turnin')return{kind:m.kind,x:m.x,y:m.y};for(const m of L)return{kind:'turnin',x:m.x,y:m.y,town:true};return null}
 function mpKnownPortals(){return(G.portals||[]).filter(p=>mpSeenW(p.x,p.y))}
+function mpKnownColos(){return(Array.isArray(G.sites)?G.sites:[]).filter(s=>s&&s.kind==='colo'&&mpSeenW(s.x,s.y))}
 function mpKnownDungeons(){return(Array.isArray(G.sites)?G.sites:[]).filter(s=>s&&(s.kind==='dgn'||s.kind==='dgnc')&&mpSeenW(s.x,s.y))}
 function mpDgnName(id){const d=typeof dgnOf==='function'?dgnOf(id):null;return d&&typeof DUNGEONS==='object'&&DUNGEONS[d.k]?DUNGEONS[d.k].n:'A dungeon'}
 function mpKnownRuins(){return(Array.isArray(G.sites)?G.sites:[]).filter(s=>s&&(s.kind==='ruin'||!s.kind)&&mpSeenW(s.x,s.y))}
@@ -394,6 +397,7 @@ function mpDraw(){const q=MP.q,us=MP.us,I=MP.inner,z=MP.z,cw=MP.cw,ch=MP.ch;if(!
  q.save();q.beginPath();q.rect(I.x,I.y,I.w,I.h);q.clip();
  for(const p of mpKnownPortals())mpAt(q,fr&1?'portal2':'portal',fr&1?MPS.portal2:MPS.portal,X(p.x),Y(p.y),'c');
  for(const s of mpKnownDungeons())mpAt(q,s.kind,MPS[s.kind],X(s.x),Y(s.y),'c');   // dungeons, open and cleared
+ for(const s of mpKnownColos()){mpAt(q,'colo',MPS.colo,X(s.x),Y(s.y),'c');if(MP.labels){const c=mpTextCv('Colosseum','0','d',us);if(c)q.drawImage(c,Math.round(X(s.x)-c.width/2),Math.round(Y(s.y)+5*us))}}   // the colosseum and its label
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)){const sx=X(n.x),sy=Y(n.y),ti=typeof waNestTier==='function'?waNestTier(n):1;mpAt(q,'nest',MPS.nest,sx,sy,'c');for(let i=0;i<ti;i++){mpFill(q,'0',sx-4*us+i*3*us,sy+4*us,3*us,3*us);mpFill(q,'g',sx-3*us+i*3*us,sy+5*us,us,us)}}
  /* the crisis: its sites (known), the hosts in sight */
  if(typeof crisisMarks==='function'){let CM=[];try{CM=crisisMarks()}catch(e){CM=[]}for(const m of CM){if(m.kind==='crheld'||m.kind==='rift')continue;const sx=X(m.x),sy=Y(m.y);
@@ -453,6 +457,7 @@ function mpHit(sx,sy){const o=mpOrigin(),k=mpK(),d=MP.d,us=MP.us,R=Math.max(13*d
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&mpSeenW(n.x,n.y)&&near(n.x,n.y)<R)return{kind:'nest',id:n.id,x:n.x,y:n.y};
  for(const p of mpKnownPortals())if(near(p.x,p.y)<R)return{kind:'portal',id:p.id};
  for(const s of mpKnownDungeons())if(near(s.x,s.y)<R)return{kind:'dgn',id:s.id,x:s.x,y:s.y,done:s.kind==='dgnc'};
+ for(const s of mpKnownColos())if(near(s.x,s.y)<R)return{kind:'colo',id:s.id,x:s.x,y:s.y};
  for(const s of mpKnownRuins())if(near(s.x,s.y)<R)return{kind:'ruin',id:s.id,x:s.x,y:s.y,n:s.n};
  for(const s of mpCrisisSites())if(near(s.x,s.y)<R)return{kind:'crsite',id:s.id,x:s.x,y:s.y,n:typeof CRSITEN==='object'&&CRSITEN[s.kind]||'A dark place'};
  const wx=(sx-o.x)/k,wy=(sy-o.y)/k;if(wx<0||wy<0||wx>=WN*TS||wy>=WN*TS)return{kind:'off'};
@@ -502,7 +507,7 @@ function mpLegendHTML(){const it=(sw,n)=>`<span class="mp-li">${sw}<b>${n}</b></
   +(typeof SITS==='object'?Object.keys(SITS).filter(k=>MPS['sit-'+k]).map(k=>it(mpSwatch('sit-'+k,MPS['sit-'+k]),mpEsc(SITS[k].n))).join(''):'')
   +(G.crisis&&typeof CRISES==='object'&&CRISES[G.crisis.k]?mpCrisisLegend(it):'')
   +(typeof eastMarks==='function'&&G.east&&G.east.war?it(mpSwatch('east-land',MPS['east-land']),'Eastern landing')+it(mpSwatch('east-siege',MPS['east-siege']),'Eastern siege'):'')
-  +it(mpSwatch('portal',MPS.portal),'Rift')+it(mpSwatch('dgn',MPS.dgn),'Dungeon')+it(mpSwatch('dgnc',MPS.dgnc),'Cleared dungeon')+it(mpSwatch('ruin',MPS.ruin),'Ruin')+it(mpSwatch('pin1',mpPinRows(1)),'Route stop')+'</div>'
+  +it(mpSwatch('portal',MPS.portal),'Rift')+it(mpSwatch('dgn',MPS.dgn),'Dungeon')+it(mpSwatch('dgnc',MPS.dgnc),'Cleared dungeon')+it(mpSwatch('colo',MPS.colo),'Colosseum')+it(mpSwatch('ruin',MPS.ruin),'Ruin')+it(mpSwatch('pin1',mpPinRows(1)),'Route stop')+'</div>'
   +(riv&&road?'':'<div class="mp-ln">* none charted in this land yet</div>')+mpCrisisNote()}
 function mpCrisisLegend(it){const k=G.crisis.k,L=[];const add=(r,n)=>L.push(it(mpSwatch(r,MPS[r]),n));
  if(k==='deadmarch'){add('cr-grave','Risen graveyard');add('cr-throne','The Bone Throne');add('cr-dead','Risen host')}else if(k==='horde'){add('cr-hcamp','Horde camp');add('cr-horde','Horde war band')}else if(k==='barbarian'){add('cr-ecamp','The Emperor\'s Camp');add('cr-barb','Barbarian raiders')}
@@ -525,6 +530,8 @@ function mpCard(){const s=MP.sel,c=G.contract,L=[];let title='Plan a march',tag=
   else if(s.kind==='portal'){tag='<span class="pxtag bad">Rift</span>';const p=G.portals.find(p=>p.id===s.ref),b=p&&typeof BIO!=='undefined'&&BIO[p.realm];title=b&&b.n?'Rift to '+b.n:'A rift';L.push('A portal world: branching paths of fixed fights, rest and treasure, and a tyrant at the end. Made for veterans.')}
   else if(s.kind==='dgn'){const d=typeof dgnOf==='function'?dgnOf(s.ref):null,D=d&&DUNGEONS[d.k];tag=`<span class="pxtag ${d&&d.cleared?'':'bad'}">${d&&d.cleared?'Cleared':'Dungeon'}</span>`;title=D?D.n:'A dungeon';
    if(D)L.push(d.cleared?'The halls lie silent.':`${D.fights.length} fixed fights${d.stage?', '+d.stage+' cleared':''}; its lord is ${mpEsc(D.fights[D.fights.length-1].boss.name)}. Made for veterans.`)}
+  else if(s.kind==='colo'){const c=typeof colOf==='function'?colOf(s.ref):null;tag='<span class="pxtag good">Colosseum</span>';title=c&&typeof colName==='function'?colName(c):'The Colosseum';
+   L.push('Bouts for gold against the arena\'s card: beasts, gladiators, warbands. Every fight a little stronger than the swords you send.');if(c&&c.rec)L.push(`Your record: ${c.rec.w} won, ${c.rec.l} lost${c.rec.streak?', '+c.rec.streak+' in a row':''}.`)}
   else if(s.kind==='ruin'){tag='<span class="pxtag">Ruin</span>';L.push('Old stones, long abandoned.')}
   else{tag='<span class="pxtag">'+mpEsc(MPTERR[tileAt(s.x,s.y)]||'Ground')+'</span>';title='Open ground'}
   body=`<div class="mp-fact"><span>${tag}${here?'You are here':dist+(dist===1?' league':' leagues')}</span></div>`+(here?'':`<div class="mp-fact mp-f2"><span>March</span><b>${leg?mpFmtHours(leg.hours):'No way through'}</b></div>`)+L.map(l=>`<p>${l}</p>`).join('')}

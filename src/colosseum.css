@@ -1,0 +1,50 @@
+/* ================= THE COLOSSEUM (58c-colosseum-ui.js): its sheet, the fight card, the armory, the record ================= */
+#sheetBody.cl-wide{max-width:900px}
+.cl-sheet h2{margin:0 0 2px;color:#fff4c8}
+.cl-sheet .cl-hd{display:flex;gap:10px;align-items:flex-start;padding-bottom:6px;border-bottom:2px solid var(--ink);box-shadow:0 2px 0 var(--brass-d);margin-bottom:6px}
+.cl-sheet .cl-hd>.pxi{flex:none;margin-top:2px}
+.cl-sheet .cl-sub{margin:0 0 2px;color:var(--dim);font-size:.9rem}
+.cl-sheet .cl-title{display:inline-flex;align-items:center;gap:4px;color:#f3d98b}
+.cl-sheet .mk-tabs{display:flex;gap:4px;margin:4px 0 8px}
+.cl-sheet button.mk-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;min-height:38px}
+.cl-sheet button.mk-tab.on{background:var(--raise);box-shadow:inset 0 -3px 0 var(--brass)}
+.cl-card{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:8px}
+.cl-bout{position:relative;padding:8px 9px 9px;background:linear-gradient(#2a2016,#1c1610);border:2px solid #0b1514;box-shadow:inset 0 0 0 2px #6a4a24,inset 0 2px 0 3px #8a6a2a55;border-radius:3px}
+.cl-bout[data-rule="sine"]{box-shadow:inset 0 0 0 2px #7a2a22,inset 0 2px 0 3px #c4493f44}
+.cl-bout[data-rule="champ"]{box-shadow:inset 0 0 0 2px #a8862e,inset 0 2px 0 3px #ecc64f44}
+.cl-bout.done{opacity:.62}
+.cl-bh{display:flex;gap:8px;align-items:flex-start}
+.cl-bh b{color:#fff4c8;font-size:1.05rem}
+.cl-th{color:#e9c88a;font-size:.88rem}
+.cl-bh em{font-style:normal;margin-left:4px}
+.cl-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+.cl-tags i{font-style:normal;font-size:.72rem;padding:0 5px;background:#0b151488;border:1px solid #6a4a24;border-radius:2px;color:#e9e0c9}
+.cl-rd{margin:4px 0 4px;font-size:.82rem;line-height:1.15}
+.cl-foes{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.cl-foe{display:grid;grid-template-columns:32px auto;grid-template-rows:auto auto;column-gap:4px;align-items:center;padding:2px 5px 2px 2px;background:#0b151499;border:1px solid #35554f;border-radius:2px;font-size:.74rem;line-height:1.05;max-width:100%}
+.cl-foe>.pxi,.cl-foe>i:first-child,.cl-foe>span:first-child,.cl-foe>img{grid-row:1/3}
+.cl-foe b{color:#f3d98b}
+.cl-foe i{font-style:normal;color:#e9e0c9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
+.cl-foe em{font-style:normal;color:var(--dim)}
+.cl-foe.champ{border-color:#ecc64f;background:#3a2a0c99}
+.cl-pick{margin:4px 0}
+.cl-pick>span{font-size:.78rem}
+.cl-pick>div{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+.cl-sw{display:flex;align-items:center;gap:3px;min-height:36px;padding:1px 6px 1px 1px;font-size:.74rem}
+.cl-sw.on{background:#3a5a2a;box-shadow:inset 0 0 0 2px #9bd96f}
+.cl-sw i{font-style:normal;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-sw em{font-style:normal;color:var(--dim)}
+.cl-pay{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin:4px 0 6px;font-size:.84rem}
+.cl-pay>span{display:inline-flex;align-items:center;gap:3px}
+.cl-pay b.coin{font-size:1rem}
+.cl-prize{color:#9bd96f}
+.cl-note{margin-top:8px;font-size:.8rem}
+.cl-arm{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px}
+.cl-it{display:flex;gap:6px;align-items:center;padding:5px;background:#0b151488;border:1px solid #35554f;border-radius:2px}
+.cl-it>div{flex:1;min-width:0;display:flex;flex-direction:column;font-size:.8rem}
+.cl-it b{color:#fff4c8;font-size:.92rem}
+.cl-it button{flex:none;display:inline-flex;align-items:center;gap:3px}
+.cl-ladder{margin:4px 0;padding-left:20px}
+.cl-ladder li{margin:2px 0;color:var(--dim)}
+.cl-ladder li.got b{color:#f3d98b}
+@media (max-height:440px){.cl-card{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px}.cl-bout{padding:6px 7px 7px}.cl-rd{display:none}}

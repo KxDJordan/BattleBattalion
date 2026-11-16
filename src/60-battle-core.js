@@ -203,7 +203,7 @@ const rosterX=e=>Math.pow(2,(Math.max(1,+e.lvl||1)-1)/4)*(e.elite?ROSTER.elite:1
 function rosterList(o){const L=o&&Array.isArray(o.roster)?o.roster:null,out=[];if(!L)return null;
  for(const e of L){if(!e||!EN[e.id])continue;const n=clamp(Math.floor(e.n==null?1:+e.n||0),0,MAXFOES);for(let i=0;i<n&&out.length<MAXFOES;i++)out.push(i?Object.assign({},e,{at:null,name:e.name&&n>1?null:e.name}):e)}
  return out}
-function mkRosterUnit(e,f,dk){const u=mkEnemy(e.id,f);u.rx=rosterX(e);u.ros=1;if(typeof enemyInit==='function')enemyInit(u,e.id);initUnit(u);
+function mkRosterUnit(e,f,dk){const u=mkEnemy(e.id,e.f&&FACT[e.f]?e.f:f);u.rx=rosterX(e);u.ros=1;if(typeof enemyInit==='function')enemyInit(u,e.id);initUnit(u);
  if(e.hpK>0){u.hp=u.hpMax=Math.round(u.hpMax*e.hpK)}
  if(dk!==1){u.hp=u.hpMax=Math.round(u.hpMax*Math.pow(dk,ROSTER.dhp));const k=Math.pow(dk,ROSTER.dd);u.wpn.d=[Math.round(u.wpn.d[0]*k),Math.round(u.wpn.d[1]*k)];u.dmgK=(u.dmgK||1)*k}
  {const nm=String(EN[e.id].n).toLowerCase();u.name=e.elite?'Elite '+nm:u.rank>=1.5?'Veteran '+nm:EN[e.id].n}if(e.name)u.name=e.name;   // 'Elite' only for the elite-markedu.elite=e.elite?1:0;
@@ -229,16 +229,16 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  const rv=o.rival?battleRival(o.rival):null,rf=rv?rivalField(rv):null;if(o.rival&&!(rf&&rf.length)){o.rival=null;if(!FACT[o.f])o.f='bandit'}else if(rv){o.rival=rv.id;if(!FACT[o.f])o.f=rv.id}
  const pv=battlePreview(o),bk=pv.bk,dep={};if(Array.isArray(o.deploy))for(const d of o.deploy)if(d&&!dep[d.id]&&Number.isInteger(d.c)&&Number.isInteger(d.r)&&inb(d.c,d.r)&&deployRow(d.r))dep[d.id]={c:d.c,r:d.r};
  const ctr=boardCenter(),b={opts:o,bk,P:BIO[bk],tiles:pv.tiles,units:[],order:[],round:0,turns:0,cur:null,sel:null,targets:null,reach:null,busy:true,over:false,stuck:false,fled:false,result:null,onEnd:o.onEnd||null,
-  reserves:G.roster.filter(m=>!f.includes(m)),gone:[],rout:[false,false,false],fledN:[0,0,0],resRound:0,retreat:false,synced:false,
+  reserves:o.arena?[]:G.roster.filter(m=>!f.includes(m)),gone:[],rout:[false,false,false],fledN:[0,0,0],resRound:0,retreat:false,synced:false,
   log:'',floats:[],shots:[],cam:{x:ctr.x,y:ctr.y,tx:ctr.x,ty:ctr.y,z:1}};
  if(typeof elitePlan==='function')elitePlan(b,o,pv);   // elite modifiers: their share of the budget, before the foes take their rank (64e-elites.js)
  // B.auto is a live switch: turning it on while the company is waiting for orders hands the turn to the AI at once.
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
- if(Array.isArray(o.roster)){b.frank={f:o.f,x:rosterX({lvl:ROSTER.sumLvl})};b.fixedSide=1}   // a fixed roster: summons take a fixed rank, never foeRank
+ if(Array.isArray(o.roster)){b.frank={f:o.f,x:o.sumX>0?o.sumX:rosterX({lvl:ROSTER.sumLvl})};b.fixedSide=1}   // a fixed roster: summons take a fixed rank, never foeRank
  b.realm=typeof realmOf==='function'?realmOf(o.realm):null;   // portal realm rules (24-endgame.js)
  b.east=!!(o.east||(typeof isEast==='function'&&G&&G.p&&isEast(G.p.x,G.p.y)));   // eastern ground: 71-tiles draws eastern props
  B=b;const used=new Set(),pu=place(f.map(m=>{const u=mkPlayerUnit(m),s=m.slot;if(dep[m.id])u.slot=dep[m.id];else if(s&&(s.row===0||s.row===1)&&Number.isInteger(s.col)&&s.col>=0&&s.col<BW)u.slot={c:s.col,r:s.row?DEPLOY.p.back:DEPLOY.p.front};return u}),DEPLOY.p.front,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used),
-  el=o.rival?rf.map(m=>mkRivalUnit(m,rv)):Array.isArray(o.roster)?rosterList(o).map(e=>mkRosterUnit(e,o.f,runK('budget'))):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)});
+  el=o.rival?rf.map(m=>mkRivalUnit(m,rv)):Array.isArray(o.roster)?rosterList(o).map(e=>mkRosterUnit(e,o.f,o.rosterDk>0?o.rosterDk:runK('budget'))):pv.foes.map(id=>{const e=mkEnemy(id,o.f);if(typeof enemyInit==='function')enemyInit(e,id);return initUnit(e)});
  if(o.fabled&&typeof fabledSpawn==='function')fabledSpawn(el,o);   // fabled warriors mixed into the enemy side (o.fabled: ids)
  const eu=place(el,DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
  b.rival=o.rival||null;if(o.ambush)for(const u of eu)u.unready=1;   // an ambush (o.ambush, from a parley): the company acts first in round 1, the foe starts unready
@@ -322,13 +322,13 @@ function zocFoe(u){return B.units.find(e=>e.side!==u.side&&mdist(e,u)===1&&canFr
 const FREESAY={zoc:(e,u)=>`${e.name} strikes as ${u.name} turns away.`,riposte:(e,u)=>`${e.name} ripostes.`,spearwall:(e,u)=>`${e.name} meets ${u.name} with the spear.`,retreat:(e,u)=>`${e.name} cuts at ${u.name}'s back.`};
 // One free attack by e on u (zone of control, riposte, spear wall, retreat). Returns true when it hit.
 async function freeAttack(e,u,why){if(!canFree(e)||!u.alive)return false;say(FREESAY[why](e,u));return strike(e,u,FREEAB,{free:why})}
-const canWithdraw=u=>!!(B&&!B.over&&u&&u.alive&&u.r===EDGE[u.side]&&!u.rooted&&u.ap>=AB.withdraw.ap);
+const canWithdraw=u=>!!(B&&!B.over&&u&&u.alive&&u.r===EDGE[u.side]&&!u.rooted&&u.ap>=AB.withdraw.ap&&!(B.opts&&B.opts.arena));   // the arena's gates are shut
 /* withdraw(u): u leaves the battle alive from its own edge row (2 AP). A foe next to it gets its free attack first; a hit
    holds u on the field. Returns true when u left. Safe to call from the HUD (it then moves the turn on) and from an AI turn. */
 async function withdraw(u){const b=B;if(!b||!canWithdraw(u))return false;const ui=!b.busy;if(ui){b.busy=true;b.sel=null;b.targets=null;b.reach=null}u.ap-=AB.withdraw.ap;let held=false;
  const foe=zocFoe(u);if(foe){foe.aoo=1;if(await freeAttack(foe,u,'zoc')){if(u.alive)float(u,'Halted','#ffd27a');held=true}}if(B!==b)return false;
  if(!held&&u.alive)leaveField(u,'withdraw');if(ui){b.busy=false;afterAction()}return u.gone==='withdraw'}
-const canRetreat=()=>!!(B&&!B.over&&!B.retreat&&B.units.some(u=>u.alive&&u.side===0&&!u.ally));
+const canRetreat=()=>!!(B&&!B.over&&!B.retreat&&B.units.some(u=>u.alive&&u.side===0&&!u.ally)&&!(B.opts&&B.opts.arena&&B.opts.arena.noYield));   // an arena bout: the retreat is a yield, never in one sine missione
 /* soundRetreat(): the whole company quits the field. Units with no foe adjacent leave at once; engaged units take one free attack
    from every foe next to them, then leave if they live. The battle ends as a retreat (result.fled). Returns true when sounded. */
 async function soundRetreat(){const b=B;if(!canRetreat())return false;b.retreat=true;b.fled=true;b.busy=true;b.sel=null;b.targets=null;b.reach=null;b.reserves=[];say('The retreat is sounded.');
@@ -387,13 +387,13 @@ function swapWeapons(u){if(!canSwap(u))return false;const from=u.wpn;u.ld=Object
  float(u,u.wpn.n||'Fists','#e9e0c9');FX.emit('swap',{u,from,to:u.wpn});return true}
 // Why u cannot use a now ('' when it can): for the HUD. Mirrors canUse().
 function useBlock(u,a){if(!u||!a)return'Unavailable';if(u.mor===0)return'Fleeing';if(a.swapW&&!canSwap(u))return'No other weapon';
- if(!needsOK(a,u.wpn.wt))return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||needsN(a)+' in hand');if(a.fresh&&u.ap<u.apMax)return'Only as the first action of a turn';if(a.light&&!isLightW(u.wpn))return'Needs a light weapon in hand (a dagger, a one-handed blade of at most '+LIGHTW.fat+' fatigue, or fists)';if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
+ if(!needsOK(a,u.wpn.wt))return'Needs a '+({fist:'free hand',bow:'bow in hand'}[a.needs]||needsN(a)+' in hand');if(a.fresh&&u.ap<u.apMax)return'Only as the first action of a turn';if(a.light&&!isLightW(u.wpn))return'Needs a light weapon in hand (a dagger, a one-handed blade of at most '+LIGHTW.fat+' fatigue, or fists)';if(a.offhand&&(u.shield||u.wpn.two))return'Needs a free off hand: no shield raised, no two-handed weapon';if(a.two&&!u.wpn.two)return'Needs a two-handed weapon';
  if(a.noBow&&isRangedW(u.wpn))return'Not with a ranged weapon in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
  if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(!canFire(u,a))return'Not loaded: reload first';
  if(a.reloadW&&!u.wpn.reload)return'Nothing to reload';if(a.reloadW&&u.loaded!==false)return'Already loaded';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
  if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
  if(u.ap<a.ap)return'Not enough AP';if(u.fat+a.fat>u.fatMax)return'Too tired';return''}
-function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;if(a.light&&!isLightW(u.wpn))return false;
+function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;if(a.light&&!isLightW(u.wpn))return false;if(a.offhand&&(u.shield||u.wpn.two))return false;
  if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;
  if(a.noBow&&isRangedW(u.wpn))return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;if(!canFire(u,a))return false;
  if(a.reloadW&&(!u.wpn.reload||u.loaded!==false))return false;return true}
@@ -459,6 +459,14 @@ const impaired=t=>!!(t&&(t.mor===0||t.dazed||t.st.daze>0||t.st.blinded>0||t.st.s
 const quickStep=u=>!!(u&&u.flags&&u.flags.quickstep&&!u.qsT);
 function rogueHit(u,t,a){const f=u.flags;if(a.magic||!f||!(f.stabHit||f.firstHit||f.dirtyHit))return 0;const melee=!!a.melee||mdist(u,t)<=1;let v=0;
  if(melee){if(f.stabHit&&isLightW(u.wpn)&&hasAdj(t,u.side,u))v+=f.stabHit;if(f.firstHit&&notActed(t))v+=f.firstHit}if(f.dirtyHit&&impaired(t))v+=f.dirtyHit;return v}
+/* ---- Gladiators: the Gladiator and Arena champion trees (MAST in 10-data.js; abilities, statuses and hooks in 64g-gladiators.js) ----
+   pinned(t): netted, rooted or webbed. alone(u,t): no other ally of u stands next to t. glHit / glDmg: inside hitChance() and dmgBonus():
+     pinHit / pinDmg   (Pinned prey) any weapon attack against a pinned foe
+     soloHit / soloDmg (Single combat) melee, against a foe no other ally of u stands next to */
+const pinned=t=>!!(t&&(t.st.netted>0||t.rooted||t.st.root>0||t.st.webbed>0));
+const alone=(u,t)=>!hasAdj(t,u.side,u);
+function glHit(u,t,a){const f=u.flags;if(a.magic||!f||!(f.pinHit||f.soloHit))return 0;let v=0;if(f.pinHit&&pinned(t))v+=f.pinHit;if(f.soloHit&&(!!a.melee||mdist(u,t)<=1)&&alone(u,t))v+=f.soloHit;return v}
+function glDmg(u,t,a){const f=u.flags;if(a.magic||!f||!(f.pinDmg||f.soloDmg))return 0;let x=0;if(f.pinDmg&&pinned(t))x+=f.pinDmg;if(f.soloDmg&&mdist(u,t)<=1&&alone(u,t))x+=f.soloDmg;return x}
 function rogueDmg(u,t,a){const f=u.flags;if(a.magic||!f||!(f.stabDmg||f.wakeDmg||f.firstDmg||f.dirtyDmg))return 0;const melee=!!a.melee||mdist(u,t)<=1,lw=melee&&isLightW(u.wpn);let x=0;
  if(lw&&f.stabDmg&&hasAdj(t,u.side,u))x+=f.stabDmg;if(lw&&f.wakeDmg&&notActed(t))x+=f.wakeDmg;if(melee&&f.firstDmg&&notActed(t))x+=f.firstDmg;if(f.dirtyDmg&&impaired(t))x+=f.dirtyDmg;return x}
 /* Fatigue. tiredPen(u): 0 up to TIRED.from (half) of its maximum fatigue, then 1 point for every 5% more, to TIRED.max at full
@@ -480,7 +488,7 @@ function hitChance(u,t,a){if(a.sure)return 100;const d=mdist(u,t),melee=!!a.mele
  if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
  if(B.auraOn){ch+=bestAdj(u,'cmd');if(!melee)ch-=bestAdj(t,'guard')}
  ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;
- ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit+rogueHit(u,t,a);return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
+ ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit+rogueHit(u,t,a)+glHit(u,t,a);return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
 // Traits: Hard-headed / Glass-jawed (t.flags.headDef) move it the other way; Steady-handed adds to headB.
 function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0)-((t.flags&&t.flags.headDef)||0),0,100)}
@@ -492,7 +500,7 @@ function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cm
    higher ground -> round(x max(.2, 1 - damage reduction)). */
 function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
  if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.hurtDmg&&u.hpMax>0)x+=f.hurtDmg*Math.floor(10*Math.max(0,1-u.hp/u.hpMax))/10;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
- if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.vsBoss&&isBigFoe(t))x+=f.vsBoss;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;x+=rogueDmg(u,t,a);if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
+ if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.vsBoss&&isBigFoe(t))x+=f.vsBoss;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;x+=rogueDmg(u,t,a)+glDmg(u,t,a);if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
 // vsBoss (fabled trees): against a boss, a fabled warrior, a huge (size 2) foe or an EN boss
 const isBigFoe=t=>!!(t&&(t.boss||t.fabled||(t.sz||1)>1||(t.def&&t.def.boss)));
 /* Nimble (light armor): 30% minus 1.5% per point of armor and helmet weight (t.aw), times (0.5 + 0.5 x the share of stamina left),
@@ -548,7 +556,7 @@ const downBase=t=>Math.max(DOWNCH,(t.flags&&t.flags.downSurv)||0);   // the Surv
 const downCh=t=>t.side===0?clamp(1-(1-downBase(t))*runK('death'),0,1):downBase(t);
 const injK=t=>t.side===0?runK('injury'):1;
 function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.killer=src.name||(src.def&&src.def.n)||'';if(src.m)src.m.kills=(src.m.kills|0)+1}   // the killing blow counts toward the killer's quarry tally (m.slain)
- if(t.m){t.down=B.opts.yield?true:rnd()<downCh(t);if(t.down)inflictInjury(t,head,!B.opts.yield&&rnd()<PERMCH*injK(t),true)}   // a duel to yielding (o.yield): nobody dies   // struck down and alive: always at the price of an injury (a rival's merc too)
+ if(t.m){t.down=B.opts.yield?true:rnd()<(t.side===0&&B.opts.arena&&B.opts.arena.death!=null?clamp(1-(1-downCh(t))*B.opts.arena.death,0,1):downCh(t));if(t.down)inflictInjury(t,head,!B.opts.yield&&rnd()<PERMCH*injK(t),true)}   // a duel to yielding (o.yield): nobody dies   // struck down and alive: always at the price of an injury (a rival's merc too)
  say(`${t.name} ${t.m&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
  for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
  if(t.grd&&typeof cvGuardDown==='function')cvGuardDown(t,src);   // a caravan guard falls: struck down by the company, the caravan turns on it (42-caravans.js)
@@ -621,7 +629,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
   const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t)&&!o.stray)await knockback(u,t,kb,a.crash||u.crashD||0);
   if(a.pull&&t.alive&&u.alive&&!kbImmune(t))await pullUnit(u,t,a.pull);
   if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1)}
- else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(a.killAP&&u.alive&&!o.stray){u.ap+=a.killAP;float(u,'+'+a.killAP+' AP','#ffd27a');FX.emit('buff',{t:u})}if(!t.gone&&u.alive)onKill(u)}
+ else{if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(a.killAP&&u.alive&&!o.stray){u.ap+=a.killAP;float(u,'+'+a.killAP+' AP','#ffd27a');FX.emit('buff',{t:u})}if(a.killRally&&u.alive&&!o.stray&&typeof crowdRally==='function')crowdRally(u,a.killRally,4);if(!t.gone&&u.alive)onKill(u)}
  await sleep(240);return true}
 // A hook: t is dragged up to n tiles toward u, along the longer axis, while the next tile is free, walkable and at most 1 step up.
 async function pullUnit(u,t,n){if(mdist(u,t)>1&&rollsWith(t))return;for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){const m=unitCenter(u);let dc=m.c-t.c,dr=m.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
@@ -720,7 +728,7 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
  u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;u.qsT=0;auraScan();
  if(u.flags&&u.flags.armRegen>0&&u.armMax>0&&u.arm<u.armMax){const a0=u.arm;u.arm=Math.min(u.armMax,u.arm+u.flags.armRegen);float(u,'Armor +'+(u.arm-a0),'#c8d0d8')}   // Mail mender
  for(const k in u.res)u.res[k].cur=Math.min(u.res[k].max,u.res[k].cur+u.res[k].regen);
- u.buffs=u.buffs.filter(x=>--x.dur>0);if(u.st.chill){u.ap=Math.max(0,u.ap-3);u.st.chill--;float(u,'Chilled','#8fd8ff')}u.rooted=false;if(u.st.root){u.rooted=true;u.st.root--}if(u.st.webbed){u.rooted=true;u.st.webbed--}
+ u.buffs=u.buffs.filter(x=>--x.dur>0);if(u.st.chill){u.ap=Math.max(0,u.ap-3);u.st.chill--;float(u,'Chilled','#8fd8ff')}u.rooted=false;if(u.st.root){u.rooted=true;u.st.root--}if(u.st.webbed){u.rooted=true;u.st.webbed--}if(u.st.netted>0)u.rooted=true;   // Netted (64g-gladiators.js): it ticks off with the foes' statuses
  u.dazed=false;if(u.st.daze){u.dazed=true;u.st.daze--}u.weakened=false;if(u.st.weak){u.weakened=true;u.st.weak--}if(u.st.marked)u.st.marked--;
  b.cam.tx=u.sx;b.cam.ty=u.sy-10;FX.emit('turn',{u});FX.ui();
  if(u.st.bleed){u.st.bleed--;hurt(u,BLEEDDMG,1,null,{pierce:1});await sleep(200);if(B!==b)return}

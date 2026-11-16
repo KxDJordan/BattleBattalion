@@ -775,3 +775,28 @@ function waDgn(P,v,lit){const B=P.h-3,cx=20,G0=v===0?['B','w']:v===1?['k','j']:v
  if(lit){const fl=P.flat;P.flat=true;for(let i=0;i<5;i++){const x=cx-6+((waHash(i,v,93)*12)|0),y=B-12-((waHash(i,v,94)*10)|0);P.p(x,y,glow2)}P.flat=fl}}
 {const d1=drawSitePx;drawSitePx=function(q,x,y,o){o=o||{};const k=o.kind;if(k!=='dgn'&&k!=='dgnc')return d1(q,x,y,o);if(!waInit())return;
   const D=waSiteDim(o),v=clamp(o.n|0,0,3),lit=k==='dgn',s=waSprite(k+v,D.w,D.h,D.w>>1,D.h-2,P=>waDgn(P,v,lit));waShadow(q,x,y,D.w-4,7);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}}
+
+/* ================= THE COLOSSEUM on the world map (29-colosseum.js) =================
+   G.sites kind 'colo': an oval amphitheatre of pale stone, three storeys of arches on its near face, the sand and the crowd inside,
+   banners and an awning on the rim, the great gate. Pixel art here (Detail Low, and the world map's own cached sprite); at Detail High
+   70-render.js asks glColoSite (06pg-gladiators.js) for a painted canvas of the same box (WASITE.colo) instead. */
+Object.assign(WASITE,{colo:{w:64,h:46}});
+function waColo(P,night,f){const B=P.h-3,cx=32,rx=28,top=12,ry=8;waGround(P,cx,B-1,30,5,'k','j');
+ // the outer wall
+ P.ell(cx,top+ry,rx,ry,(x,y,a,b)=>b<-.86?'l':b<0?(a<-.5?'l':'m'):null);
+ for(let y=top+ry;y<=B-3;y++){const t=(y-top-ry)/(B-3-top-ry);for(let x=cx-rx;x<=cx+rx;x++){const a=(x+.5-cx)/rx;if(Math.abs(a)>1)continue;const lo=top+ry+Math.round(Math.sqrt(Math.max(0,1-a*a))*6*.9);if(y<top+ry||y>lo+(B-3-top-ry-6))continue;P.p(x,y,a<-.55?'l':a>.6?'n':'m')}}
+ // inside: the far stands and the sand
+ P.ell(cx,top+ry,rx-3,ry-2,(x,y,a,b)=>b<-.25?((x+y)&1?'k':'j'):'c');P.ell(cx,top+ry+2,rx-10,ry-5,(x,y,a,b)=>b<-.6?'d':'c');
+ for(let i=0;i<46;i++){const x=cx-rx+4+((waHash(i,3,301)*(2*rx-8))|0),y=top+2+((waHash(i,4,301)*5)|0);if(P.g(x,y)===WAI.k||P.g(x,y)===WAI.j)P.p(x,y,['g','e','x','r','A','h'][i%6])}
+ P.p(cx-3,top+ry+1,'g');P.p(cx-3,top+ry+2,'0');P.p(cx+3,top+ry+1,'X');P.p(cx+3,top+ry+2,'0');
+ // the near face: three storeys of arches
+ const rowY=[top+ry+2,top+ry+9,top+ry+16];for(let s=0;s<3;s++){const n=12-s,y0=rowY[s];for(let i=0;i<n;i++){const t=(i+.5)/n,a=Math.PI*(1-t),x=Math.round(cx+Math.cos(a)*(rx-1.5)),sy=Math.sin(a),yy=y0+Math.round(sy*3),w=sy>.5?2:1,hh=s===2?4:5;
+   for(let j=0;j<hh;j++)for(let k=0;k<w;k++)P.p(x+k,yy+j+(j===0&&w>1&&k===0?1:0),night?(j>1?'e':'d'):j===0?'n':'0')}
+  for(let x=cx-rx+1;x<=cx+rx-1;x++){const a=(x+.5-cx)/rx,yy=y0+6+Math.round(Math.sqrt(Math.max(0,1-a*a))*3);if(s<2&&P.g(x,yy))P.p(x,yy,a<-.4?'m':'n')}}
+ // the gate, the masts and banners, the awning
+ P.r(cx-2,B-8,5,6,'0');P.r(cx-1,B-7,3,5,night?'e':'1');P.p(cx,B-9,'n');
+ for(const [x,c1,c2] of [[cx-17,'d','c'],[cx+15,'g','f']]){for(let y=top-5;y<=top+1;y++)P.p(x,y,'j');P.s(x+1,top-5,[c1+c1+c1,c2+c2,c2])}
+ P.s(cx-24,top-1,['..hhhhhh....','.hhggggghh..','hggg...gggh.']);
+ P.outline();if(night){const fl=P.flat;P.flat=true;for(let i=0;i<6;i++){const x=cx-22+i*9,y=top+ry-1+((i&1)?1:0);P.p(x,y,(f+i)&1?'y':'E')}P.flat=fl}}
+{const d2=drawSitePx;drawSitePx=function(q,x,y,o){o=o||{};if(o.kind!=='colo')return d2(q,x,y,o);if(!waInit())return;
+  const D=WASITE.colo,night=o.night?1:0,f=(o.frame|0)&3,s=waSprite('colo'+night+(night?f:0),D.w,D.h,D.w>>1,D.h-2,P=>waColo(P,night,f));waShadow(q,x,y,D.w-6,9);q.drawImage(s.cv,Math.round(x)-s.ax,Math.round(y)-s.ay)}}
