@@ -532,6 +532,22 @@ const MAST={
   [perkDef('Read the blade','+1 melee and ranged defense for every 8 initiative above 90 (at most +8; with Quicksilver, at most +20 defense from initiative in all)',{id:'shadow.4',mod:{readInit:1}})],
   [perkDef('Quicker than thought','+10 to hit and +10% damage in melee against a foe that has not acted yet this round',{id:'shadow.5',mod:{firstHit:10,firstDmg:.1}})],
   [perkDef('Untouchable','Ability: once per battle, +25 melee and ranged defense until your next turn (2 AP)',{id:'shadow.6',ab:'untouchable'})]]},
+ /* ---- the gladiators' trees (the colosseum update; rules: 60-battle-core.js glHit / glDmg, abilities, statuses and hooks in 64g-gladiators.js).
+        Ids pinned: gladiator.1-6, champion.1-6. ---- */
+ gladiator:{n:'Gladiator',kind:'style',aff:['melee','support','one'],d:'Blood and sand, for the crowd',tiers:[
+  [perkDef('Crowd-pleaser','+5 resolve. Every kill you make heartens the company: allies within 3 tiles who are below steady regain one step of morale, and you recover 5 hitpoints',{id:'gladiator.1',st:{brv:5},mod:{crowdKill:5}})],
+  [perkDef('Taunt','Ability: jeer at a foe within 4 tiles you can see (2 AP, cannot miss): Taunted until 2 of its turns have passed: −10 melee defense, −10 resolve, and it would rather strike you than anyone else',{id:'gladiator.2',ab:'taunt'})],
+  [perkDef('Throw net','Ability: with no shield raised and no two-handed weapon in hand, cast a weighted net at a foe within 3 tiles (4 AP, melee skill, +5 to hit; not at huge foes): Netted for 2 turns: it cannot move, −10 melee defense and −10 melee skill',{id:'gladiator.3',ab:'netthrow'})],
+  [perkDef('Pinned prey','+15% damage and +10 to hit against a foe that is netted, rooted or webbed',{id:'gladiator.4',mod:{pinDmg:.15,pinHit:10}})],
+  [perkDef('Showstopper','Ability: a flourish to finish it: 130% damage, +10 to hit; a kill gives back 3 AP and lifts every ally within 4 tiles one step of morale, up to confident (5 AP)',{id:'gladiator.5',ab:'showstop'})],
+  [perkDef('Roar of the crowd','Ability: once per battle, play to the crowd (4 AP): you and every ally within 4 tiles regain one step of morale (up to steady) and get +8 melee skill, +5 melee defense and +15 resolve for 2 turns',{id:'gladiator.6',ab:'crowdroar'})]]},
+ champion:{n:'Arena champion',kind:'style',aff:['melee','one','shield'],d:'The one who walks out of the sand',tiers:[
+  [perkDef('Sand-hardened','+8 hitpoints, +3 melee defense, +5 maximum fatigue',{id:'champion.1',st:{hp:8,md:3,fat:5}})],
+  [perkDef('Feint','Ability: a feint to open the guard (2 AP): +15 melee skill until your next turn',{id:'champion.2',ab:'feint'})],
+  [perkDef('Single combat','+10 to hit and +15% damage in melee against a foe that no other ally of yours stands next to',{id:'champion.3',mod:{soloHit:10,soloDmg:.15}})],
+  [perkDef('Hold the sand','You cannot be knocked back or dragged; +8 resolve; take 8% less damage from melee blows',{id:'champion.4',flag:'kbImm',st:{brv:8},mod:{drMelee:.08}})],
+  [perkDef('Iugula','Ability: the crowd’s verdict (5 AP, melee): 100% damage, +10 to hit, +40% armor piercing, and a further +80% against a foe below half health',{id:'champion.5',ab:'iugula'})],
+  [perkDef('Undefeated','+5 melee skill. The first time in a battle a blow leaves you alive below half health, you catch your second wind: recover 20 hitpoints, and +2 AP on your next turn',{id:'champion.6',st:{ms:5},flag:'secondWind'})]]},
  /* ---- gift trees: today's four under their old keys, the variants beside them ---- */
  mana:{n:'Arcana',kind:'gift',res:'mana',style:'caster',aff:['caster'],d:'Awakens Mana for spellcraft',tiers:[
   [perkDef('Arcane bolt','Awakens Mana (30). Ability: a 22–34 magic bolt at 5 tiles',{ab:'bolt'})],[perkDef('Fireball','Ability: 20–32 magic damage at 5 tiles, 70% of it to every foe beside the target, all burn for 2 turns',{ab:'fireball'})],
@@ -664,7 +680,7 @@ Object.assign(BG.acolyte,{style:'support',pool:['medic','bulwark','shieldbearer'
 Object.assign(BG.monk,{style:'melee',pool:['skirmisher','brawler','duelist','survivor','medic','scout','bulwark'],wt:['fist','staff','spear'],at:['lightarmor']});
 Object.assign(BG.spellblade,{style:'melee',pool:['duelist','vanguard','skirmisher','tactician','scout','brute'],wt:['sword','greatsword','staff','dagger','flintlock'],at:['lightarmor','medarmor']});
 Object.assign(BG.wildling,{style:'melee',pool:['berserker','brute','survivor','vanguard','skirmisher','shadow','marksman','brawler'],wt:['axe','mace','hammer','spear','bow'],at:['lightarmor','medarmor']});
-Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor'],wt:['sword','mace','hammer','greatsword','shield'],at:['medarmor','heavyarmor']});
+Object.assign(BG.knight,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','brute','tactician','survivor','champion'],wt:['sword','mace','hammer','greatsword','shield'],at:['medarmor','heavyarmor']});
 BG.hunter.r=[['qi',.2],['aura',.12],['chi',.08],['mana',.05]];      // a hunter's gift, if any, comes as its archery variant
 RACE.human.noWt=[];RACE.elf.noWt=['flintlock','hammer'];RACE.dwarf.noWt=['bow','polearm'];RACE.halforc.noWt=['bow','crossbow','flintlock'];   // weapon masteries a race never learns
 /* ---- More backgrounds (phase 6): every field in one entry. w is the rarity weight in the tavern draw (wpickBG), town (1-3) the
@@ -702,8 +718,8 @@ Object.assign(BG,{
  brigand:{n:'Brigand',cost:210,wage:13,w:4,st:{ms:7,init:4,brv:2,md:-2},r:[['qi',.15],['aura',.06]],gear:['hatchet|club|seax|falchion|spikedclub','jack|hide|leather','-|targe|roundshield','hood|cap|-'],
   style:'melee',pool:['berserker','skirmisher','brawler','duelist','vanguard','scout','assassin','rogue'],wt:['axe','mace','sword','dagger','shield'],at:['lightarmor','medarmor'],
   tr:{greedy:3,cocky:2,bloodthirsty:2,loyal:.3,brave:1.5},look:{hat:'bandana',cloth:'night',accent:'crimson',trim:'',garb:'bandolier',beard:'goatee'}},
- pitfighter:{n:'Pit fighter',cost:300,wage:18,w:2,st:{ms:9,hp:6,init:5,md:-3,brv:6},r:[['qi',.3],['chi',.08]],gear:['spikedclub|knife|-|hatchet','rags|hide','-'],town:2,
-  style:'melee',pool:['brawler','berserker','duelist','survivor','brute','skirmisher','vanguard'],wt:['fist','mace','axe','dagger'],at:['lightarmor','medarmor'],
+ pitfighter:{n:'Pit fighter',cost:300,wage:18,w:2,st:{ms:9,hp:6,init:5,md:-3,brv:6},r:[['qi',.3],['chi',.08]],gear:['spikedclub|knife|-|hatchet|cestus','rags|hide','-'],town:2,
+  style:'melee',pool:['brawler','berserker','duelist','survivor','brute','skirmisher','vanguard','gladiator','champion'],wt:['fist','mace','axe','dagger'],at:['lightarmor','medarmor'],
   tr:{hardhead:3,glassjaw:1.5,cocky:3,tough:2,bloodthirsty:2,craven:.3,fragile:.3},look:{hat:'',cloth:'red',accent:'tan',trim:'',garb:'manica',hair:'mohawk'}},
  veteran:{n:'Retired soldier',cost:520,wage:26,w:2,st:{ms:10,md:6,brv:10,init:-6,fat:-5,hp:2},r:[['aura',.3],['chi',.05]],gear:['warspear|arming|bill|ironmace','mail|brigandine|leather','kite|roundshield','kettle|nasal|coif'],town:2,
   style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','duelist','medic','brute'],wt:['spear','polearm','sword','mace','shield'],at:['medarmor','heavyarmor'],
@@ -727,7 +743,7 @@ Object.assign(BG,{
   style:'melee',pool:['berserker','survivor','brawler','medic','vanguard','bulwark'],wt:['mace','fist','dagger','staff'],at:['lightarmor'],
   tr:{superstitious:3,brave:3,craven:0,tough:2,fragile:0,cocky:0,greedy:0,loyal:2},look:{hat:'cowl',cloth:'bone',accent:'crimson',trim:'',garb:'welts',prop:'scourge',hair:'bald'}},
  sailor:{n:'Sailor',cost:170,wage:12,w:3,st:{fat:8,init:6,md:2,rd:2,hp:2},r:[['qi',.12],['aura',.08]],gear:['seax|hatchet|falchion|boarspear','jack|rags|padded','hood|-|-'],bio:['swamp','plains'],
-  style:'melee',pool:['skirmisher','brawler','duelist','survivor','scout','marksman','berserker','rogue'],wt:['dagger','axe','sword','spear','flintlock'],at:['lightarmor'],
+  style:'melee',pool:['skirmisher','brawler','duelist','survivor','scout','marksman','berserker','rogue','gladiator'],wt:['dagger','axe','sword','spear','flintlock'],at:['lightarmor'],
   tr:{drunkard:3,superstitious:3,athletic:2,dexterous:1.5,asthmatic:.4},look:{hat:'bandana',cloth:'blue',accent:'white',trim:'',garb:'stripes',beard:'chops'}},
  nomad:{n:'Nomad rider',cost:280,wage:15,w:2,st:{rs:8,init:10,md:2,hp:-2},r:[['qi',.2],['aura',.1]],gear:['shortbow|huntbow|recurve','hide|leather|jack','cap|hood'],side:'falchion|seax|knife',bio:['desert','plains','snow'],
   style:'ranged',pool:['marksman','skirmisher','scout','sharpshooter','duelist','survivor','berserker','shadow'],wt:['bow','sword','dagger','spear','axe'],at:['lightarmor','medarmor'],
@@ -742,6 +758,10 @@ Object.assign(BG,{
  acrobat:{n:'Tumbler',cost:210,wage:12,w:2,st:{init:16,md:6,rd:4,hp:-4,fat:6,ms:-3},r:[['chi',.12],['qi',.1]],gear:['knife|shortsword|-','rags|jack','-|hood'],town:2,
   style:'melee',pool:['shadow','skirmisher','duelist','rogue','scout','brawler','survivor'],wt:['dagger','sword','fist','staff'],at:['lightarmor'],
   tr:{athletic:3,dexterous:3,quick:2.5,tiny:1.5,hulking:.2,sluggish:.2,asthmatic:.3,clumsy:0},look:{hat:'band',cloth:'red',accent:'ochre',trim:'',garb:'stripes',hair:'swept'}},
+ /* the arena (29-colosseum.js): a gladiator of the school, bought out of the sand; mostly in the colosseum's own tavern */
+ gladiator:{n:'Gladiator',cost:640,wage:30,w:.5,st:{ms:12,md:6,hp:8,fat:6,brv:8,init:4,rd:-4,rs:-6},r:[['aura',.25],['qi',.15],['chi',.05]],gear:['gladius|gladius|sica|trident|spatha','manica|manica|harness','parma|scutum|-','galea|thraexhelm|-'],town:3,
+  style:'melee',pool:['gladiator','champion','duelist','brawler','vanguard','berserker','survivor','shieldbearer'],wt:['sword','spear','fist','dagger','shield'],at:['lightarmor','medarmor'],
+  tr:{showman:4,cocky:2.5,brave:2,athletic:2,bloodthirsty:1.5,hardhead:1.5,craven:.2,loyal:.6,greedy:1.5,asthmatic:.3},look:{hat:'',cloth:'red',accent:'gold',trim:'gold',garb:'manica',hair:'short'}},
  cultist:{n:'Ex-cultist',cost:380,wage:20,w:1,st:{brv:4,hp:-4,ms:-4},r:[['mana',.7],['chi',.15]],gear:['staff|knife|pilgrim','robe|rags','hood'],town:2,
   style:'caster',pool:['survivor','medic','tactician','skirmisher','scout','berserker','brawler'],wt:['staff','dagger','mace'],at:['lightarmor'],
   tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}}
@@ -803,7 +823,8 @@ const TRAITS={
  superstitious:{n:'Superstitious',good:false,mod:{superst:15},d:'-15 on every morale check when fighting the restless dead, riftspawn or wyverns.'},
  beastwise:{n:'Beast-wise',good:true,flag:'beastwise',d:'Never tests morale against bad news when fighting beasts, serpents, ogres or wyverns (0 checks: it holds 100% steady against them).'},
  nightowl:{n:'Night owl',good:true,flag:'nightowl',d:'In a battle that starts at night (20:00 to 05:00): +5 melee skill, +8 ranged skill, +10 initiative.'},
- cocky:{n:'Cocky',good:false,st:{md:-4},flag:'cocky',d:'Starts every battle Confident (+10 to hit, +5 defense until shaken); -4 melee defense.'}
+ cocky:{n:'Cocky',good:false,st:{md:-4},flag:'cocky',d:'Starts every battle Confident (+10 to hit, +5 defense until shaken); -4 melee defense.'},
+ showman:{n:'Showman',good:true,st:{brv:5},flag:'showman',d:'+5 resolve. Plays to the crowd: in a colosseum bout every kill it makes adds 5% to the purse (up to +25%).'}
 };
 for(const k in TRAITS){const T=TRAITS[k];T.id=k;T.bg={};for(const b in BG){const w=BG[b].tr&&BG[b].tr[k];if(w!=null&&w!==1)T.bg[b]=w}}   // TRAITS[k].bg mirrors BG[b].tr
 // Every ability carries a one-line description: mastery abilities take theirs from the perk that grants them.

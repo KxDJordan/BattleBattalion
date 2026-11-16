@@ -38,7 +38,15 @@ function deployBattle(o){o=o||{};if(o.auto||o.quiet||!dpCan()||!dpWanted()||!G||
  let ok=false;try{ok=dpShow(o)}catch(e){ok=false;try{dpHide()}catch(_){}if(typeof console!=='undefined')console.warn('deployment screen failed: '+(e&&e.message||e))}
  return ok?null:dpStart(o)}
 /* ---- state: DP.at maps a merc id to {i,c} (i = index into dpRows(), c = column) ---- */
-function dpFromFormation(){const at={},rows=dpRows();formation().forEach(x=>{at[x.m.id]={i:x.row?rows.length-1:0,c:x.col}});return at}
+function dpFromFormation(){const at={},rows=dpRows();formation().forEach(x=>{at[x.m.id]={i:x.row?rows.length-1:0,c:x.col}});
+ // a bout with a set number of swords (the colosseum, o.maxField): only the swords it names (o.deploy), on the middle tiles
+ const o=DP.o;if(o&&o.maxField>0&&Array.isArray(o.deploy)&&o.deploy.length){const ids=o.deploy.map(d=>d.id).filter(id=>dpMerc(id)).slice(0,o.maxField),keep={},cols=fmOrder(),taken=(i,c)=>Object.values(keep).some(a=>a.i===i&&a.c===c);
+  for(const id of ids)if(at[id]&&!taken(at[id].i,at[id].c))keep[id]=at[id];
+  for(const id of ids){if(keep[id])continue;let done=false;for(let i=0;i<rows.length&&!done;i++)for(const c of cols)if(!taken(i,c)){keep[id]={i,c};done=true;break}}
+  return keep}
+ return at}
+const dpCap=()=>DP.o&&DP.o.maxField>0?Math.min(MAXFIELD,DP.o.maxField):MAXFIELD;
+const dpCapMsg=()=>dpCap()<MAXFIELD?(dpCap()===1?'This bout is one against one':'This bout is '+dpCap()+' against '+dpCap()):'Twelve is the most you can field';
 function dpMerc(id){return G.roster.find(m=>m.id===id)||null}
 function dpAt(i,c){for(const id in DP.at){const a=DP.at[id];if(a.i===i&&a.c===c)return dpMerc(+id)}return null}
 function dpFielded(){return G.roster.filter(m=>DP.at[m.id])}
@@ -46,10 +54,10 @@ function dpReserves(){return G.roster.filter(m=>!DP.at[m.id])}
 function dpPlace(id,i,c){const m=dpMerc(id);if(!m||!(i>=0&&i<dpRows().length&&c>=0&&c<BW))return;const cur=DP.at[id],o=dpAt(i,c);
  if(o&&o.id===id){DP.pick=null;dpRender();return}
  if(cur){if(o)DP.at[o.id]={i:cur.i,c:cur.c};DP.at[id]={i,c}}
- else{if(o)delete DP.at[o.id];else if(dpFielded().length>=MAXFIELD){toast('Twelve is the most you can field');return}DP.at[id]={i,c}}
+ else{if(o)delete DP.at[o.id];else if(dpFielded().length>=dpCap()){toast(dpCapMsg());return}DP.at[id]={i,c}}
  DP.pick=null;dpRender()}
 function dpBench(id){if(!DP.at[id])return;if(dpFielded().length<=1){toast('Somebody has to fight');return}delete DP.at[id];DP.pick=null;dpRender()}
-function dpField(id){if(DP.at[id])return;if(dpFielded().length>=MAXFIELD){toast('Twelve is the most you can field');return}const m=dpMerc(id);if(!m)return;
+function dpField(id){if(DP.at[id])return;if(dpFielded().length>=dpCap()){toast(dpCapMsg());return}const m=dpMerc(id);if(!m)return;
  const rows=dpRows(),want=fmBack(m)?rows.length-1:0;for(const i of [want,rows.length-1-want])for(const c of fmOrder())if(!dpAt(i,c)){DP.at[id]={i,c};DP.pick=null;dpRender();return}}
 function dpTap(id,ptrClick){if(ptrClick)return;const p=DP.pick;if(p==null||!dpMerc(p)){DP.pick=id;dpRender();return}if(p===id){DP.pick=null;dpRender();return}
  const a=DP.at[id],b=DP.at[p];if(a)dpPlace(p,a.i,a.c);else if(b)dpPlace(id,b.i,b.c);else{DP.pick=id;dpRender()}}
@@ -70,6 +78,7 @@ function dpBegin(){const o=DP.o;if(!o)return;const dep=dpList();if(!dep.length)r
  if(!b&&mode==='world'){if(typeof setUI==='function')setUI()}return b}
 function dpAsk(v){DP.ask=!!v;dpRender()}
 function dpWithdraw(){const o=DP.o;if(!o)return;dpHide();const out=fleeEncounter(o);if(typeof setUI==='function')setUI();
+ if(out&&out.declined){if(typeof colSheet==='function'&&o.src)colSheet(o.src.id);return out}   // a colosseum bout not fought: back to its card
  toast(out.toast?out.toast:out.lost?`The company slips away and drops ${out.lost} crowns on the run`:'The company slips away');save();return out}
 function dpHide(){DP.o=null;DP.raw=null;DP.pv=null;DP.foes=null;DP.rv=null;DP.at=null;DP.pick=null;DP.ask=false;if(DP.drag)dpDragEnd();if(DP.root)DP.root.classList.remove('on','in');sheetOpen=false}
 /* ---- pixel vignette of the field: sky for the hour, far ridge, the biome's ground and its cover, the two banners ---- */
@@ -155,9 +164,9 @@ function dpSide(m){const b=m.eq&&ITEMS[m.eq.b];if(!b)return'';const n=typeof ite
  const ic=typeof pxIcon==='function'?pxIcon(n,16):'';return`<i class="dp-side" title="Backup: ${b.n}">${typeof pnFamedWrap==='function'?pnFamedWrap(m.eq.b,ic):ic}</i>`}
 /* the contract fight's objective as the deployment kicker: escort / hold / siege / a named foe */
 function dpObjKick(o){const b=o.obj,n=o.boss;if(b&&b.k==='escort')return'Escort: keep the caravan wagon alive';if(b&&b.k==='hold')return`Hold for ${b.rounds} rounds or rout them`;if(b&&b.k==='siege')return'Siege: the foe is dug in. Kill its leader';if(n)return`The quarry: ${n.name}`;return''}
-function dpHeadHTML(o,bk,tod){const rv=o.rival&&typeof battleRival==='function'?battleRival(o.rival):null,F=FACT[o.f]&&!rv?FACT[o.f]:{n:typeof battleFoeN==='function'?battleFoeN(o):'Foes'},s=o.src||{},kick=rv?(o.ambush?'Ambush: you strike first, they start unready (−3 AP)':o.duel?'A challenge: banner against banner':'A rival company bars the way'):s.type==='lair'?(dpObjKick(o)||'The lair you were sent to clear'):s.type==='twist'?'An ambush on the road':s.type==='escort'?'They fall on the caravan: keep the wagon alive':s.type==='dun'?`Rift battle ${G.dun?G.dun.stage+1:1} of 3`:'A band bars the way';
+function dpHeadHTML(o,bk,tod){const rv=o.rival&&typeof battleRival==='function'?battleRival(o.rival):null,F=FACT[o.f]&&!rv?FACT[o.f]:{n:typeof battleFoeN==='function'?battleFoeN(o):'Foes'},s=o.src||{},kick=rv?(o.ambush?'Ambush: you strike first, they start unready (−3 AP)':o.duel?'A challenge: banner against banner':'A rival company bars the way'):s.type==='lair'?(dpObjKick(o)||'The lair you were sent to clear'):s.type==='twist'?'An ambush on the road':s.type==='escort'?'They fall on the caravan: keep the wagon alive':s.type==='dun'?`Rift battle ${G.dun?G.dun.stage+1:1} of 3`:s.type==='arena'&&o.arena&&typeof COLRULE==='object'?`The arena: ${COLRULE[o.arena.rule].n}${o.arena.noYield?', no yielding':''}`:'A band bars the way';
  const em=rv&&typeof rivalBannerHTML==='function'?rivalBannerHTML(rv,DP.big?48:32):typeof twEmblem==='function'?twEmblem({type:'hunt',f:o.f},DP.big?48:32):'',lost=G.crowns-Math.floor(G.crowns*.9);
- if(DP.ask){const c=G.contract,why=s.type==='lair'&&c&&!c.done?' The contract is forfeit.':s.type==='twist'&&c&&(c.type==='deliver'||c.type==='escort'||c.type==='relic')?' The cargo is lost and the contract with it.':s.type==='dun'?' The rift spits you back out and must be entered anew.':s.type==='party'?' The band stays on the map.':s.type==='escort'?' The caravan fights on alone: if it is lost, so is the contract.':'';
+ if(DP.ask){const c=G.contract,why=s.type==='lair'&&c&&!c.done?' The contract is forfeit.':s.type==='twist'&&c&&(c.type==='deliver'||c.type==='escort'||c.type==='relic')?' The cargo is lost and the contract with it.':s.type==='dun'?' The rift spits you back out and must be entered anew.':s.type==='arena'?' The bout is not fought, and nothing is paid.':s.type==='party'?' The band stays on the map.':s.type==='escort'?' The caravan fights on alone: if it is lost, so is the contract.':'';
   return`<div class="dp-ask" role="alert">${dpIc('retreat',32)}<p><b>Withdraw before the first blow?</b><small>The company scatters and drops ${lost?`<span class="coin">${lost} crowns</span>`:'nothing'} on the run.${why}</small></p></div>
 <button type="button" class="pxb" id="dpStay" onclick="dpAsk(0)">Stand fast</button><button type="button" class="pxb warn" id="dpGo" onclick="dpWithdraw()">Withdraw</button>`}
  return`<div class="dp-title">${em}<div><span class="dp-kick">${kick}</span><b>${F.n}</b></div></div>
@@ -193,7 +202,7 @@ function dpBotHTML(){const p=DP.pick!=null?dpMerc(DP.pick):null,res=dpReserves()
  if(p){const s=calc(p),on=!!DP.at[p.id],hp=Math.min(p.hp,s.hp),inj=typeof cpInj==='function'?cpInj(p):[];
   info=`${portraitHTML(p,32)}<p><b>${p.name}</b> <span class="dp-dim">Lv ${p.lvl} ${coRole(p,s).toLowerCase()}</span><small>${dpIc('hp')}${hp}/${s.hp} ${dpIc('armor')}${s.arm}${inj.length?' '+dpIc('injury')+inj.map(j=>j.n).join(', '):''} · ${on?'tap a tile, or a comrade to trade places':'tap a tile to field'}</small></p>
 ${on?`<button type="button" class="pxb sm" onclick="dpBench(${p.id})">To reserve</button>`:`<button type="button" class="pxb sm pri" onclick="dpField(${p.id})">Field</button>`}`}
- else info=`<p><b>Set the line</b> <span class="dp-dim">${nf}/${Math.min(MAXFIELD,G.roster.length)}</span><small>Drag a sword to a tile, or tap one and then its place.${DP.pv?' Notches mark higher ground.':''}</small></p>
+ else info=`<p><b>Set the line</b> <span class="dp-dim">${nf}/${Math.min(dpCap(),G.roster.length)}</span><small>Drag a sword to a tile, or tap one and then its place.${DP.pv?' Notches mark higher ground.':''}</small></p>
 <button type="button" class="pxb sm" id="dpReset" ${dpChanged()?'':'disabled'} onclick="dpReset()">Reset</button><button type="button" class="pxb sm" id="dpSwap" onclick="dpSwapRows()">Swap rows</button>`;
  return`<div class="dp-info">${info}</div><div class="dp-res" data-bench="1" aria-label="Reserves"><span>${dpIc('reserve')}Reserves</span>${res.length?res.map(m=>`<span class="dp-bt">${dpTok(m,32)}</span>`).join(''):'<em>None. Drag a sword here to hold it back.</em>'}</div>`}
 function dpRender(all){const r=DP.root,o=DP.o;if(!r||!o)return;const big=innerWidth>=1100&&innerHeight>=600;if(big!==DP.big){DP.big=big;all=true}

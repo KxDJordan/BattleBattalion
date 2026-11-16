@@ -40,6 +40,8 @@ const ACH={
   check:(g,ev)=>achWon(ev)&&(g.diff==='hard'||g.diff==='brutal')&&!(ev.res.dead||[]).length&&(ev.res.foes||0)>=5},
  fabled:{n:'Legends bleed',d:'Kill a fabled warrior in battle.',icon:'rival',cat:'battle',check:(g,ev)=>achWon(ev)&&(ev.res.fabled||[]).some(x=>x&&x.side!==0&&x.fate==='dead')},
  dungeon:{n:'Into the dark',d:'Clear an endgame dungeon to its last hall.',icon:'q-dead',cat:'battle',check:(g,ev)=>ev.name==='dungeon'},
+ arena5:{n:'Blood and sand',d:'Win 5 bouts in a colosseum with one company.',icon:'colosseum',cat:'battle',prog:(S,g)=>[g&&Array.isArray(g.colos)?Math.min(5,Math.max(0,...g.colos.map(c=>c.rec.w))):0,5],check:(g,ev)=>ev.name==='arena'&&ev.wins>=5},
+ arenachamp:{n:'Champion of the sands',d:'Be hailed Champion of a colosseum (10 wins there), or win 5 bouts in a row.',icon:'laurel',cat:'feat',check:(g,ev)=>ev.name==='arena'&&(ev.title>=3||ev.streak>=5)},
  rift:{n:'Riftcloser',d:'Close a rift by killing its tyrant.',icon:'ab-riftstep',cat:'battle',check:(g,ev)=>ev.name==='rift'},
  /* ---- crises and wars ---- */
  sunder:{n:'The sky mended',d:'End the Sundering.',icon:'cr-sunder',cat:'crisis',unlock:'cultists',check:(g,ev)=>ev.name==='crisis'&&ev.win&&ev.k==='sunder'},

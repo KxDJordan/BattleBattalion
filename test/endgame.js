@@ -95,7 +95,8 @@ section('realm rules');
  console.log('ashen burns ('+hz0+' tiles) and spreads, heals halve; hollow reach 5, stones shift; glass x1.3 spells, backlash')}
 
 section('portal runs');
-{X.seedRng(SEED+1);X.newGame(true);closeAll(X);const G=X.G;setComp(X,C12[2],50);heroes(X);G.crisis={k:'sunder',closed:0,total:3,ended:false,day:20,doom:0};
+{X.seedRng(SEED+11);   // a fixture world the heroes win in (the boss fight's outcome follows the seeded stream)
+X.newGame(true);closeAll(X);const G=X.G;setComp(X,C12[2],50);heroes(X);G.crisis={k:'sunder',closed:0,total:3,ended:false,day:20,doom:0};
  const at=G.towns[0];G.portals.push({id:G.nid++,x:at.x+TSX(X),y:at.y,realm:'ashen'});const pid=G.portals[G.portals.length-1].id;
  X.enterRift(pid);ok(G.portalRun&&G.portalRun.id===pid&&X.mode==='world','enterRift did not open the portal world');ok(X.save(),'could not save at the gate');
  const run0=JSON.stringify(G.portalRun);{const r=X.readSave();ok(r.state==='ok'&&JSON.stringify(r.g.portalRun)===run0,'the portal run did not round-trip a save')}

@@ -42,7 +42,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
   surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
   res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<(e.elite&&typeof eliteLootCh==='function'?eliteLootCh(e,.18):.18))res.loot.push(e.elite&&typeof eliteLootPick==='function'?eliteLootPick(e,L):pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
-  {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq&&!ITEMS[k].famed);
+  {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq&&!ITEMS[k].famed&&!ITEMS[k].glad);
    if(!b.rival&&H.length&&L.length&&!L.some(id=>ITEMS[id]&&ITEMS[id].k==='h')){const top=Math.max(...L.map(id=>ITEMS[id]?ITEMS[id].price||0:0)),ok=H.filter(k=>(ITEMS[k].price||0)<=top);
     if(ok.length)en.forEach(()=>{if(rnd()<.07)res.loot.push(pick(ok))})}}
   res.famed=battleFamed(b,en);res.famed.forEach(id=>res.loot.push(id));
@@ -52,6 +52,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    if(Array.isArray(L)){const herb=typeof followerHas==='function'&&followerHas('herbalist'),by={};
     for(const x of L){if(!x||typeof x.key!=='string'||!(x.n>0))continue;if(typeof PARTS!=='undefined'&&!PARTS[x.key])continue;by[x.key]=(by[x.key]||0)+Math.floor(x.n)}
     if(!G.parts||typeof G.parts!=='object')G.parts={};for(const k in by){let n=by[k];if(herb&&rnd()<.5)n++;G.parts[k]=(G.parts[k]||0)+n;res.parts.push({key:k,n})}}}}
+ if(b.arenaKills)res.arenaKills=Object.assign({},b.arenaKills);   // the colosseum's tally of kills (64g-gladiators.js): Showman's share of the purse
  if(typeof rogueSpoils==='function')rogueSpoils(b,res,win);   // Light fingers and the purses the company's thieves lifted (64r-rogues.js)
  if(b.fixedSide&&typeof egBane==='function')res.bane=egBane(b);   // endgame: the killing blow on an elite or boss is a deed (24-endgame.js)
  if(typeof fabledResolve==='function')fabledResolve(b,res,win);   // fabled warriors: permanent death, named gear, duels (21-fabled.js)
@@ -191,6 +192,7 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
  else if(s.type==='lair'){const c=G.contract;if(c&&c.type==='hunt'&&!c.done){if(win){c.done=true;if(typeof ambEvent==='function')ambEvent('lair',{f:c.f,diff:c.diff});out.toast='Contract done. Return to '+G.towns[c.town].name+' for pay'}else{G.contract=null;G.renown=Math.max(0,G.renown-5);out.toast='Contract failed'}}}
  else if(s.type==='portal'&&typeof portalSettle==='function')return Object.assign(out,portalSettle(s,win,B0res));   // a portal world's node fight (24-endgame.js)
  else if(s.type==='dungeon'&&typeof dungeonSettle==='function')return Object.assign(out,dungeonSettle(s,win,B0res));
+ else if(s.type==='arena'&&typeof colSettle==='function')return Object.assign(out,colSettle(s,win,B0res));   // a colosseum bout (29-colosseum.js)
  else if(s.type==='dun'&&G.dun){const d=G.dun;
   if(!win){G.dun=null;out.toast='The rift spits you back out'}
   else if(d.stage<2){d.stage++;G.roster.forEach(m=>{const mx=calc(m).hp;m.hp=Math.min(mx,m.hp+Math.round(mx*.15))});return{kind:'dunNext',stage:d.stage,realm:d.realm}}
@@ -203,11 +205,13 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
 const XPRANK=.3;   // battle XP: a veteran foe (rank L = log2 of its rank multiplier, enemyInit) teaches more, +30% a doubling
 const FLEEK={k:.1,per:50};   // a withdrawal or a retreat drops a tenth of the purse on the run, at most FLEEK.per crowns a sword
 function fleeCost(){const c0=Math.max(0,G.crowns|0);return Math.min(c0-Math.floor(c0*(1-FLEEK.k)),FLEEK.per*Math.max(1,G.roster.length))}
-function fleeEncounter(o){const c0=G.crowns;G.crowns=c0-fleeCost();const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
+// (an arena bout declined at the gate: nothing is paid, nothing fought)
+function fleeEncounter(o){const c0=G.crowns;if(o&&o.src&&o.src.type==='arena')return{kind:'world',toast:null,lost:0,declined:1};G.crowns=c0-fleeCost();const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
 function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
  if(out.kind==='wiped'&&typeof runEnd==='function'){try{runEnd('wipe')}catch(e){}}
  if(out.kind==='wiped'){sheet((out.solo?`<h2>The hunt is over</h2><p>The slayer is dead, and nobody rides on in their name. The hunt lasted ${out.days} days.</p>`:`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p>`)+`<button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
- if(typeof egAfterSheet==='function'&&/^(portal|dgn)/.test(out.kind)){egAfterSheet(out);save();return out}   // portal worlds and dungeons: their own sheets (79-endgame-art.js)
+ if(typeof egAfterSheet==='function'&&/^(portal|dgn)/.test(out.kind)){egAfterSheet(out);save();return out}
+ if(out.kind==='arena'&&typeof colAfterSheet==='function'){colAfterSheet(out);save();return out}   // the colosseum (58c-colosseum-ui.js)
  if(out.kind==='dunNext'){sheet(`<h2>${BIO[out.realm].n}</h2><p>${out.stage===1?'The path winds deeper. The air tastes of iron.':'A throne of fused stone. Something vast stirs upon it.'}</p><p class="dim">The company catches its breath (+15% HP). Battle ${out.stage+1} of 3.</p><button class="pri" onclick="dunBattle()">Press on</button>`);return out}
  if(out.kind==='dunDone'){let msg=`<h2>The rift collapses</h2><p>The tyrant falls and the tear in the world seals behind you. You carry out <span class="coin">${out.pay} crowns</span> of strange gold and a rift-forged blade.</p>`;
   if(out.ended)msg+=`<p class="good">The last of the three rifts is closed. The Sundering is over, though lesser rifts may still open.</p>`;

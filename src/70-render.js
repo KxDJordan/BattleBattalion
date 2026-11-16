@@ -303,12 +303,12 @@ function wvSprite(key,base,kind,o){let e=WSPR.get(key);if(e)return e;{const b=WS
   if(any){e.lit=mkCanvas(w,h);e.lit.getContext('2d').putImageData(im,0,0)}}
  WSPR.set(key,e);return e}
 function wvSprCv(e){if(!WCH.ton||e.raw)return e.c;if(e.tk===WCH.tk)return e.tc;if(e.tc&&WV.tn>=2)return e.tc;WV.tn++;   // a few re-tints a frame; the rest keep the last light for a frame or two
- const w=e.w,h=e.h;if(!e.tc){e.tc=mkCanvas(w,h);e.tq=e.tc.getContext('2d')}const t=e.tc,q=e.tq;
+ const w=e.c.width,h=e.c.height;if(!e.tc){e.tc=mkCanvas(w,h);e.tq=e.tc.getContext('2d')}const t=e.tc,q=e.tq;
  q.globalCompositeOperation='copy';q.drawImage(e.c,0,0);wvTintRect(q,0,0,w,h);q.globalCompositeOperation='destination-in';q.drawImage(e.c,0,0);q.globalCompositeOperation='source-over';if(e.lit)q.drawImage(e.lit,0,0);e.tk=WCH.tk;return t}
 // draws a standing sprite, then puts back the tall parts of the tiles in front of it (tree tops and peaks south of its feet)
 function wvDrawSprite(e,x,y,snap){const sc=WV.sc;if(snap){x=Math.round(x*sc)/sc;y=Math.round(y*sc)/sc}else{x=Math.round(x);y=Math.round(y)}
  const c=wvSprCv(e),dx=x-e.ax,dy=y-e.ay;if(dx>WV.vx1+1||dy>WV.vy1+1||dx+e.w<WV.vx0-1||dy+e.h<WV.vy0-1)return;   // wholly off screen (still lit above, at the same pace)
- g.drawImage(c,dx,dy);if(!WCH.up&&!WCH.side)return;
+ if(e.k>1){g.imageSmoothingEnabled=true;g.drawImage(c,dx,dy,e.w,e.h);g.imageSmoothingEnabled=false}else g.drawImage(c,dx,dy);if(!WCH.up&&!WCH.side)return;   // e.k: a painted sprite at k canvas px an art px (the colosseum at Detail High)
  const mx=Math.floor(x+e.x0),my=Math.floor(y+e.y0),mw=Math.ceil(x+e.x1)-mx,mh=Math.ceil(y+e.y1)-my;if(mw>0&&mh>0)wvBands(g,0,0,mx,my,mw,mh,Math.floor((y-WVTB)/WVT)+1,true)}
 
 /* ---- name plates (own 4x6 capitals; drawn in whole device pixels over the scene) ---- */
@@ -335,6 +335,13 @@ function wvRing(R){if(WV.ringR===R&&WV.ring)return WV.ring;const D=2*R+2,c=WV.ri
 
 /* ---- the frame ---- */
 const WSL=[];let WSN=0;
+// the colosseum (29-colosseum.js): painted at Detail High (06pg-gladiators.js glColoSite: 4 canvas px an art px), else the pixel sprite of 41-worldart.js
+const WCOLO=new Map();
+function wvColoSpr(night){const hd=typeof hdArt==='function'&&hdArt()&&typeof glColoSite==='function',key=(hd?'h':'p')+(night?'n':'d');let e=WCOLO.get(key);if(e)return e;
+ const D=typeof WASITE==='object'&&WASITE.colo?WASITE.colo:{w:64,h:46};
+ if(hd){const K=4,c=glColoSite(D.w,D.h+2,K,night);if(c){e={c,w:D.w,h:D.h+2,ax:D.w>>1,ay:D.h,x0:-(D.w>>1),y0:-D.h,x1:D.w>>1,y1:2,tc:null,tq:null,tk:'',lit:null,raw:false,k:K};WCOLO.set(key,e);return e}}
+ return wvSprite('Rcolo'+(night?'n':'d'),'Rcolo'+(night?'n':'d'),'site',{kind:'colo',size:1,frame:0,night:!!night,n:0})}
+if(typeof onArtChange==='function')onArtChange(()=>WCOLO.clear());
 function wvPush(y,e,x,snap){const s=WSL[WSN]||(WSL[WSN]={y:0,e:null,x:0,snap:false,i:0});s.y=y;s.e=e;s.x=x;s.snap=snap;s.i=WSN++;}
 function wvPathDots(vx0,vy0,vx1,vy1){const p=G.p,P=G.path,ph=reduced?0:(now/70)%7;let lx=p.x/WVU,ly=p.y/WVU,acc=7-ph,n=0;const c0=PAL['0'],c1=PAL.l,D=WV.dots||(WV.dots=new Int16Array(800));
  for(let i=0;i<P.length;i++){const nx=P[i].x/WVU,ny=P[i].y/WVU,dx=nx-lx,dy=ny-ly,L=Math.hypot(dx,dy);if(L<.01)continue;
@@ -373,7 +380,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
    if(WVA.deco){const dk=wvDecoOf(o,i);if(dk){const DO=WV.deco;DO.size=so.size;DO.frame=so.frame;DO.night=so.night;const e2=wvSprite(dk.key+(so.night?'n':'d')+so.frame,dk.key,'deco',DO);wvPush(y+.001,e2,x,false)}}}
   wvPlateAt(o.name,seen?(i===turnin?'d':'l'):'n',seen?'1':'0',x,top-2);if(i===turnin)WV.mk={x,y:top-13}}
  if(WVE.on){const L=WVE.props;for(let i=0;i<L.length;i++){const o=L[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;wvPush(y,wvEastProp(o),x,false)}}   // eastern scenery: static sprites (their entries are in the draw list)
- if(G.sites)for(const o of G.sites){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;wvPush(y,wvSprite('R'+(o.kind||'ruin')+(o.n|0)%4,'R'+(o.kind||'ruin')+(o.n|0)%4,'site',{kind:o.kind||'ruin',size:1,frame:0,night:false,n:o.n}),x,false)}
+ if(G.sites)for(const o of G.sites){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;if(o.kind==='colo'){const e=wvColoSpr(night>.5);wvPush(y,e,x,false);wvPlateAt('Colosseum','d','1',x,y+13);continue}wvPush(y,wvSprite('R'+(o.kind||'ruin')+(o.n|0)%4,'R'+(o.kind||'ruin')+(o.n|0)%4,'site',{kind:o.kind||'ruin',size:1,frame:0,night:false,n:o.n}),x,false)}
  for(let i=0;i<CM.length;i++){const m=CM[i];if(m.kind==='turnin')continue;const x=m.x/WVU,y=m.y/WVU;let top=y-2;
   if(m.kind==='lair'&&inV(x,y)&&vis(m.x,m.y)){const fk=m.f||'bandit',e=wvSprite('L'+fk+WV.f4%4,'L'+fk,'site',{kind:'lair',f:fk,size:c.diff||1,frame:WV.f4%4,night:night>.5});wvPush(y,e,x,false);top=y+e.y0}
   const k=WV.mkn++,Q=WV.mks[k]||(WV.mks[k]={x:0,y:0});Q.x=x;Q.y=top-3}

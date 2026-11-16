@@ -375,7 +375,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    ok(X.hurt(e0,30,.2,m0,{loc:1})===0&&e0.arm===70&&e0.helm===10&&seen('loc')[1].d.head===false,'a body hit must wear body armor only');
    ok(X.hurt(e0,40,.2,m0,{head:true,loc:1})===45&&e0.helm===0,'breaking through a helmet: (40-10) x1.5');ok(X.hurt(e0,20,.2,m0,{head:true})===30&&X.hurt(e0,20,.2,null)===0&&e0.arm===50,'bare head x1.5, plain hurt() goes to body armor');
    ok(X.hurt(e0,20,.2,m0,{pierce:1,loc:1})===20&&e0.arm===50,'a piercing blow must skip armor');
-   { const hs=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='h'&&!X.ITEMS[id].famed&&!X.ITEMS[id].east).map(id=>X.ITEMS[id]).sort((x,y)=>x.price-y.price||x.arm-y.arm);ok(hs.length>=12&&hs.every((h,i)=>h.arm>0&&h.price>0&&h.fat>=0&&(!i||(h.arm>hs[i-1].arm&&h.price>hs[i-1].price&&h.fat>=hs[i-1].fat))),'helmet tiers must rise in armor, weight and price');
+   { const hs=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='h'&&!X.ITEMS[id].famed&&!X.ITEMS[id].east&&!X.ITEMS[id].glad).map(id=>X.ITEMS[id]).sort((x,y)=>x.price-y.price||x.arm-y.arm);ok(hs.length>=12&&hs.every((h,i)=>h.arm>0&&h.price>0&&h.fat>=0&&(!i||(h.arm>hs[i-1].arm&&h.price>hs[i-1].price&&h.fat>=hs[i-1].fat))),'helmet tiers must rise in armor, weight and price');
      const m=X.clone(roster[0]);m.eq.a='mail';m.eq.h=null;delete m.cond;const s0=X.calc(m);m.eq.h='nasal';const s1=X.calc(m);ok(s0.helm===0&&s1.helm===140&&s1.fat===s0.fat-7&&s1.arm===150,'calc() does not count the helmet');
      let u=X.mkPlayerUnit(m);ok(u.helm===140&&u.helmMax===140&&u.arm===150,'a fresh helmet must be whole');m.cond={a:10,h:50};u=X.mkPlayerUnit(m);ok(u.helm===50&&u.arm===10&&u.armMax===150&&u.helmMax===140,'armor condition must carry into battle');
      const c=X.armorCond(m);ok(c.a===10&&c.aMax===150&&c.h===50&&c.hMax===140,'armorCond() is wrong');X.setArmorCond(m,150,140);ok(m.cond===undefined,'whole armor must not keep a condition record');
@@ -460,7 +460,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    A.park();
    { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
        hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
-     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){const bid=it.famed&&it.base?it.base:id,ea=!!(X.ITEMS[bid]&&X.ITEMS[bid].east);   // eastern gear (19-east.js): its own skill lists, up to three
+     for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){const bid=it.famed&&it.base?it.base:id,ea=!!(X.ITEMS[bid]&&(X.ITEMS[bid].east||X.ITEMS[bid].glad));   // eastern and gladiator gear (19-east.js, 11-gladiators.js): their own skill lists, up to three
       ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=(ea?3:2)&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(ea||it.sk.join()===(((X.WSKID&&X.WSKID[bid])||(own[bid]&&own[bid].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
         ok(!!it.reload===it.sk.includes('reload')&&(!it.reload||(X.isRangedW(it)&&it.reload.ap>=2&&it.reload.fat>=0)),'weapon '+id+': reload weapons are ranged and carry the reload skill')}
       if(it.k==='s')ok(it.hp>0&&it.sk.join()===(it.spike?'shieldwall,spikebash':'shieldwall,bash')&&/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look),'shield '+id+' lacks hitpoints, skills or a look')}
@@ -945,7 +945,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      m.traits=['loyal'];ok(X.mercWage(m)===Math.max(1,Math.round(BGS.militia.wage*.9)),'Loyal: -10% wages');m.traits=[] }
    /* -- backgrounds -- */
    const bks=Object.keys(BGS),OLD=['farmhand','militia','hunter','thief','sellsword','squire','hedge','acolyte','monk','spellblade','wildling','knight'],LK=['hat','cloth','accent','trim'];
-   ok(bks.length>=28&&bks.length<=36,'about 30 backgrounds: '+bks.length);ok(OLD.every(k=>BGS[k]),'the twelve first backgrounds keep their keys');
+   ok(bks.length>=28&&bks.length<=38,'about 30 backgrounds: '+bks.length);ok(OLD.every(k=>BGS[k]),'the twelve first backgrounds keep their keys');
    for(const k of bks){const b=BGS[k];ok(b.n&&b.cost>0&&b.wage>0&&(b.noHire?b.w===0:b.w>0&&b.w<=5)&&b.st&&Array.isArray(b.r)&&b.r.every(([r,p])=>X.RESK.includes(r)&&p>0&&p<=1)&&b.r.reduce((s,x)=>s+x[1],0)<=1.0001,'background '+k+': n, cost, wage, rarity, stats, gift odds');
     ok(Array.isArray(b.gear)&&b.gear.length>=2&&b.gear.every(gs=>gs.split('|').every(id=>id==='-'||(X.ITEMS[id]&&!X.ITEMS[id].craft&&!X.ITEMS[id].uniq))),'background '+k+': gear from existing items');
     ok(b.gear.some(gs=>gs.split('|').some(id=>X.ITEMS[id]&&X.ITEMS[id].k==='a')),'background '+k+' starts with no armor');

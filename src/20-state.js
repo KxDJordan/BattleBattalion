@@ -244,6 +244,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(typeof g.origin!=='string'||(typeof ORIGINS==='object'&&ORIGINS&&!ORIGINS[g.origin]&&g.origin!=='free'))g.origin='free';
  // phase 8: the East, fabled warriors, the run (difficulty, ironman, stats), each validated by its owner's helper when present
  if(typeof eastRepair==='function')eastRepair(g);g.fabled=svObj(g.fabled)?g.fabled:{};if(typeof fabledRepair==='function')fabledRepair(g);
+ if(typeof colRepair==='function')colRepair(g);   // the colosseums, their cards and records (29-colosseum.js); old saves get theirs
  if(typeof egRepair==='function')egRepair(g);else{g.portalRun=null;g.dungeons=Array.isArray(g.dungeons)?g.dungeons:[]}   // phase 8B: portal run, dungeons, deeds (24-endgame.js; it calls legendRepair)
  if(typeof runModsRepair==='function')runModsRepair(g);else g.mods=Array.isArray(g.mods)?g.mods:[];   // the run's twists (27-runmods.js)
  if(typeof runRepair==='function')runRepair(g);else{g.diff=['story','normal','hard','brutal'].includes(g.diff)?g.diff:'normal';g.ironman=!!g.ironman}

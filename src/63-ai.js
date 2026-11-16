@@ -237,7 +237,8 @@ function aiPos(X,k){if(X.ps[k]===X.S.stamp)return X.pv[k];const u=X.u,P=X.P,plan
 function aiStatusVal(k,n,t){const W=t.aiW||10;let v;
  if(k==='stun')v=W*1.1+(t.dive?W*.8:0);else if(k==='root'||k==='webbed')v=t.fly&&k==='root'?W*.5*Math.min(2,n)+(t.dive?W*.6:0):t.wpn.rng>1||t.back?2:W*.35*Math.min(2,n);else if(k==='daze')v=W*.12;else if(k==='bleed')v=5*n;else if(k==='chill')v=W*.3;else if(k==='burn')v=(6+(t.fw?8*t.fw*1.5:0)+(t.def&&t.def.regen&&!(t.st.burn>0)?t.hpMax*t.def.regen*.6:0))*n;else if(k==='poison')v=5*n;else if(k==='hex')v=W*.3;
  else if(k==='marked')v=W*.12*Math.min(2,n);else if(k==='weak')v=W*.2*Math.min(2,n)/2+2;
- else if(k==='venom')v=10*n;else if(k==='doomed')v=t.st.doomed>0?0:W*.1;else if(k==='blinded')v=W*.35+3;   // the rogues (64r-rogues.js): Death mark, Pocket sand
+ else if(k==='venom')v=10*n;else if(k==='doomed')v=t.st.doomed>0?0:W*.1;else if(k==='blinded')v=W*.35+3;else if(k==='netted')v=t.fly?W*.3:(t.wpn.rng>1||t.back?3:W*.45*Math.min(2,n))+W*.08;else if(k==='taunted')v=W*.22+2;   // the gladiators (64g-gladiators.js)
+   // the rogues (64r-rogues.js): Death mark, Pocket sand
 else if(k==='web'||k==='grab'||k==='coiled'||k==='entangled')v=4;else v=3;
  return t.st[k]>0?v*.2:v}
 // What a hit with a on t is worth, from forecast(). Cached for the unit's turn.
@@ -277,6 +278,7 @@ function aiPrio(X,t){const u=X.u,P=X.P,plan=X.plan;let p=1;const fo=B.aiFoc&&B.a
  if(fo===t)p+=.15;if(t.back||t.role==='caster'||t.role==='sniper')p*=P.back;if(t.vip)p*=u.side===1?1.7:0;   // foes go for the escorted wagon
  if(plan){const h=plan.hunt&&plan.hunt[t.eid];if(h)p*=h;if(plan.volley&&P.shy&&(t.role==='sniper'||t.role==='caster'||(t.m&&t.back)))p*=1.5;if(plan.cut&&t.hp<t.hpMax*.5)p*=1.25;
   if(plan.outlast&&t.def&&t.def.tire)p*=t.st.winded||t.st.spent?1.3:1}
+ if(u.st&&u.st.taunted>0&&u.tauntBy!=null&&B.units.some(o=>o.id===u.tauntBy&&o.alive))p*=t.id===u.tauntBy?2.4:.4;   // Taunted (64g-gladiators.js): drawn to its taunter
  if(t.st.ward)p*=.6;if(t.mor===0)p*=.5;if(typeof tiredPen==='function'&&t.fatMax<999)p*=1+tiredPen(t)*.012;   // a tired foe is easier to hit and slower to hit back
  return p}
 // Chance (0..1) that a used from tile s hits t; 0 when the shot is blocked from there.

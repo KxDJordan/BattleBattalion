@@ -33,7 +33,7 @@ function genContract0(t,ti){const rep=typeof renownDef==='function'?renownDef().
 /* ---- markets stock by tier: hamlets tier 1-2, towns tier 3 from day 8, cities tier 3 from day 6, 4 from day 16, 5 from day 30 ----
    Famed and unique items are never on the stalls. */
 function marketTier(size,day){size=size||1;day=day||1;if(size>=3)return day>=30?5:day>=16?4:day>=6?3:2;if(size===2)return day>=8?3:2;return day>=20?3:2}
-function marketPool(maxT){return Object.keys(ITEMS).filter(k=>{const i=ITEMS[k];return!i.uniq&&!i.famed&&(i.tier||1)<=maxT})}
+function marketPool(maxT){return Object.keys(ITEMS).filter(k=>{const i=ITEMS[k];return!i.uniq&&!i.famed&&!i.glad&&(i.tier||1)<=maxT})}   // gladiator gear: only the colosseum's armory (29-colosseum.js)
 function stockPick(ids,maxT){const by={};for(const k of ids)(by[ITEMS[k].tier||1]||(by[ITEMS[k].tier||1]=[])).push(k);
  const T=Object.keys(by).map(Number).sort((a,b)=>a-b),w=T.map(t=>t===maxT?1.2:t===maxT-1?2:1.6);let tot=0;w.forEach(x=>tot+=x);let x=rnd()*tot,j=0;for(;j<T.length-1;j++){x-=w[j];if(x<=0)break}
  return pick(by[T[j]])}
@@ -45,7 +45,8 @@ function stockTown(t){t.ref=G.day;t.recruits=[];const D=typeof renownDef==='func
  // eastern stalls (19-east.js): eastStock(t, stock, maxTier) -> the town's stock (eastern gear in eastern markets; may draw rnd)
  if(typeof eastStock==='function'){let X=null;try{X=eastStock(t,t.stock,maxT)}catch(e){X=null}if(Array.isArray(X))t.stock=X.filter(id=>ITEMS[id]&&!ITEMS[id].famed)}
  const keep=typeof rvKeepTaken==='function'?rvKeepTaken(t):[];   // notices a rival company holds stay up, marked as taken
- t.contracts=[];const nC=Math.max(0,townBoardN(t)-keep.length);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}t.contracts=keep.concat(t.contracts)}
+ t.contracts=[];const nC=Math.max(0,townBoardN(t)-keep.length);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}t.contracts=keep.concat(t.contracts);
+ if(typeof colRecruits==='function')colRecruits(t)}   // a colosseum town's tavern: gladiators (29-colosseum.js)
 /* how many notices a board posts: 3, +1 in a city, +1 when the owner is friendly or allied, -1 when cold; none when the town is hostile.
    SITS[k].contracts as a number adds or removes notices. */
 /* the world's recruit and stock factors (situations, prosperity) as a step on the usual count: a small drift keeps it, a famine or a boom moves it */
