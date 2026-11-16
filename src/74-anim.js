@@ -230,6 +230,7 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
   if(!o.exact){anBarsPaint(q,x0,top-3,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol)}
   else{if(s.obK!==k||!s.obC){s.obK=-1;const c=s.obC=anOvCv(s.obC,w+5,bh+3);if(c){anBarsPaint(c.getContext('2d'),0,0,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol);s.obK=k}}
    if(s.obK===k)q.drawImage(s.obC,x0,top-3);else anBarsPaint(q,x0,top-3,w,bh,helm,arm,ah,aa,hw,lx,low,foe,sw,scol)}}
+ if(u.elite&&typeof eliteMark==='function')eliteMark(q,u,x0,top,bh,o);   // the elite mark, left of the bars (64e-elites.js)
  // morale flag and status icons (16x16 native, outlined), packed tighter when there are many
  if(s.rev<0)anStRefresh(u,s,t);
  const n=s.icn>3?3:s.icn;let ty=top;

@@ -104,6 +104,7 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
   r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${val!=null?val:x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
  for(const b of u.buffs||[])if(!b.key&&!b.foe&&!b.indom)r+=`<div class="ins-ab ins-s gd">${insIc('buff')}<div><b>Bolstered</b><span>${buffText(b)}</span></div></div>`;
  if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd">${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
+ if(u.elite&&typeof eliteInsHTML==='function'){const el=eliteInsHTML(u);if(el)r+=`<div class="ins-hd el">Elite</div>`+el}   // elite modifiers, exact (64e-elites.js)
  const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;
  const lg=insLegend(u);if(lg)r+=`<div class="ins-hd lgd">Legendary</div>`+lg;
  if(m){const tl=insTalents(m);if(tl)r+=`<div class="ins-hd">Talents</div>`+tl}
