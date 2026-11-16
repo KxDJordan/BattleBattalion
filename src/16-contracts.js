@@ -298,7 +298,8 @@ function objSetup(b,o,used){const ob=o.obj;b.obj=ob?{k:ob.k,rounds:ob.rounds|0,s
   if(u){const K=CTR_BOSSK;u.boss=1;u.name=o.boss.name;u.title=o.boss.title||'';u.hp=u.hpMax=Math.round(u.hpMax*K.hp);u.arm=u.armMax=Math.round((u.armMax||0)*K.arm);if(typeof u.helm==='number'){u.helm=Math.round(u.helm*K.arm);u.helmMax=u.helm}
    u.ms+=K.ms;u.md+=K.md;u.rd+=Math.round(K.md/2);u.dmgB=(u.dmgB||0)+K.dmg;u.brv=Math.max(u.brv||0,90);u.fearless=true;b.bossU=u}}
  if(!ob)return;
- if(ob.k==='escort'){const v=objVipUnit(ob.vip||'wagon');const pl=place([v],DEPLOY.p.back,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used);if(pl.length){b.units.push(v);b.obj.vip=v;b.obj.vipN=v.name}}
+ if(ob.k==='escort'){const v=objVipUnit(ob.vip||'wagon');if(ob.hpK>0&&ob.hpK!==1){const k=clamp(ob.hpK,.5,4);v.hp=v.hpMax=Math.round(v.hpMax*k);v.arm=v.armMax=Math.round(v.armMax*k)}   // hpK: a whole caravan's wagons (42-caravans.js escBattle)
+ const pl=place([v],DEPLOY.p.back,DEPLOY.p.back,DEPLOY.p.dir,b.tiles,used);if(pl.length){b.units.push(v);b.obj.vip=v;b.obj.vipN=v.name}}
  if(ob.k==='siege'){const E=b.units.filter(u=>u.side===1);for(const u of E)addBuff(u,{key:'fort',md:OBJ_FORT.md,rd:OBJ_FORT.rd},OBJ_FORT.dur);
   const L=b.bossU||E.find(u=>u.def&&u.def.lead)||E.slice().sort((a,c)=>(c.def&&c.def.xp||0)-(a.def&&a.def.xp||0))[0];if(L){L.leader=1;b.obj.leader=L;b.obj.leaderN=L.name}}}
 // rules: null = the objective does not decide the battle now; true = the company has won; false = lost. Called from checkEnd.

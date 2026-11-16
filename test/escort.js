@@ -78,7 +78,7 @@ section('accepting an escort');
   ok(X.ctrMarks(c).length===1&&X.ctrMarks(c)[0].town===c.to,'the map marks the destination');ok(X.ctrTargetAt(T.x,T.y)===null,'walking there alone does nothing');
   // the band of the contract's foe waits ahead, at least a match for the whole escort
   const A=G.parties.find(p=>p.ambE===c.id);ok(A&&A.id===c.amb&&A.f===c.f,'a band of '+c.f+' lies in wait');const es=X.escStr(C);
-  ok(A.mult>=es&&A.mult<=es*1.07+.01,'strength '+A.mult+' against the escort\'s '+es+' (guards '+C.mult+' + the company 1)');
+  ok(A.mult>=es&&A.mult<=es*1.07+.01,'strength '+A.mult+' against the escort\'s '+es);
   let best=1e9,at=0,tot=0;{let px=C.x,py=C.y;for(const q of C.pts){const L=Math.hypot(q.x-px,q.y-py);for(let k=0;k<=8;k++){const x=px+(q.x-px)*k/8,y=py+(q.y-py)*k/8,d=Math.hypot(A.x-x,A.y-y);if(d<best){best=d;at=tot+L*k/8}}tot+=L;px=q.x;py=q.y}}
   ok(best<=1.9*TS&&!onRoad(A.x,A.y)||best<.2*TS,'beside the road: '+(best/TS).toFixed(2)+' tiles off it');ok(at/tot>.4&&at/tot<.7,'ahead, about half way: '+(at/tot).toFixed(2));
   // deterministic: the same seed, the same caravan and band
@@ -107,7 +107,11 @@ section('the march');
 const quiet=(G,c,keep)=>{for(const p of G.parties)if(X.partyHostile(p)&&!(keep&&p.ambE===c.id))p.gone=1;G.parties=G.parties.filter(p=>!p.gone)};
 section('the raid rule: the whole escort');
 { const G=fresh(SEED+2);keepAlive(G);const c=escortAt(G,0),C=X.escParty(c);quiet(G,c);const es=X.escStr(C),e=X.escOn();
-  ok(es===Math.round((C.mult+1)*100)/100&&e.s===es,'the escort\'s strength is the guards\' and the company\'s: '+C.mult+' + 1 = '+es);
+  const sh=X.escGuardShare(C);let cost=0;for(const id of X.cvGuardIds(C.guard))cost+=X.cvCost(id);const bud=X.battleBudget({f:'bandit',mult:1})/X.runK('budget');
+  ok(Math.abs(sh-Math.min(1.5,cost/bud))<.006&&es===Math.round((1+.5*sh)*100)/100&&e.s===es,'the escort\'s strength: the company\'s 1 + half the guards\' share ('+cost+' crowns of guards / '+Math.round(bud)+' budget = '+sh+'): '+es);
+  // a stronger company: the same guards are a smaller share of the escort
+  {const G2=fresh(SEED+2),mil={guard:{n:3,t:1,cap:0,k:1}},s1=X.escGuardShare(mil);G2.roster.forEach(m=>X.gainXP(m,Math.max(0,X.XPT[5]-m.xp)));const s2=X.escGuardShare(mil);
+   ok(s1>0&&s2<s1,'the same guards weigh less beside a stronger company: '+s1+' -> '+s2);X.G=G}
   const band=m=>({id:-1,f:'bandit',mult:m,x:0,y:0});
   ok(X.escSpare(band(es-.01),e)&&!X.escSpare(band(es),e)&&!X.escSpare(band(es+.5),e),'weaker bands leave it alone; a match for it or stronger try');
   ok(!X.escSpare(Object.assign(band(.3),{hunt:1}),e),'a band hunting the company comes anyway');
@@ -168,6 +172,14 @@ section('outcomes');
    console.log(`  fled: the caravan alone ${alive?'beat them off':'was lost'} in ${h} hours`)}
   console.log('outcomes: ok') }
 
+section('the battle\'s measure');
+{ // the waiting band (a match for the company + half the guards' share) against the company, the guards as hired and the wagon:
+  // a hard fight but a fair one. The same companies against a plain even band (mult 1) for comparison.
+  let ew=0,pw=0,wag=0;const N=8,L=[];for(let k=0;k<N;k++){let G=fresh(SEED+40+k);keepAlive(G);const c=escortAt(G,k%4),C=X.escParty(c),A=G.parties.find(p=>p.ambE===c.id),o=X.escBattle(c,C,A);
+   ok(o.cv.gm===X.escGuardShare(C)&&o.obj.hpK===X.ESC.wagon,'the guards fight as hired, the wagon stands for the train');
+   const r=await battle(Object.assign({},o,{quiet:true,auto:true}));X.settleBattle(r.win);if(r.win)ew++;if(r.cv&&r.cv.wagon)wag++;L.push(A.f+' '+A.mult+(r.win?' W':' L'));
+   G=fresh(SEED+40+k);keepAlive(G);const r2=await battle({f:A.f,mult:1,src:{type:'sim'},quiet:true,auto:true});X.settleBattle(r2.win);if(r2.win)pw++}
+  console.log(`  escort raids won ${ew}/${N} (wagon kept ${wag}), plain even fights ${pw}/${N}: ${L.join(', ')}`);ok(ew>=N/2-1,'an escort raid is winnable: '+ew+'/'+N) }
 section('arrival, abandon');
 { const G=fresh(SEED+7);keepAlive(G);const c=escortAt(G,1),C=X.escParty(c),T=G.towns[c.to],ti=c.to;quiet(G,c);const cr=G.crowns,rn=G.renown,pay=c.pay-(c.adv||0);
   run(()=>G.contract!==c,40000);closeAll(X);

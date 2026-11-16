@@ -149,7 +149,7 @@ function cvSetup(b,o,used){if(o.cvNames)for(const u of b.units)if(u.side===1&&CV
   u.side=0;u.ally=1;u.grd=1;u.f=C.f;cvNameUnit(u,C.t);L.push(u)}
  const ow=b.obj&&b.obj.k==='escort'&&b.obj.vip?b.obj.vip:null,w=ow||(typeof objVipUnit==='function'?objVipUnit('wagon'):null);let wp=[];   // an escort: the objective's wagon is the caravan's
  if(w){w.cvw=1;w.name='Caravan wagon';wp=ow?[ow]:place([w],7,7,1,b.tiles,used)}
- const gp=place(L,5,6,1,b.tiles,used);b.units.push(...(ow?[]:wp),...gp);
+ const gp=ow?place(L,DEPLOY.p.front-2,DEPLOY.p.front-1,-1,b.tiles,used):place(L,5,6,1,b.tiles,used);b.units.push(...(ow?[]:wp),...gp);   // an escort's guards march with the company: they form up just ahead of it
  b.cv={cl:C.cl,c:C.c,f:C.f,t:C.t,n0:gp.length,turned:0,by:null,dead:0,guards:gp,wagon:wp[0]||null,hp0:gp.reduce((a,u)=>a+u.hpMax,0)}}
 function cvGuardDown(t,src){const c=B&&B.cv;if(!c)return;c.dead++;if(!c.turned&&src&&src.side===0&&!src.ally&&!src.grd&&!src.vip)cvTurn(src,t)}
 function cvTurn(src,t){const c=B&&B.cv;if(!c||c.turned)return;c.turned=1;c.by=src?src.name:'';
@@ -257,12 +257,15 @@ function cvDrawMap(q,sc,bx,by,vis,t,still){const L=G&&G.clashes;if(!Array.isArra
      the camp button, a tap on the company). Any order to march elsewhere (goTo -> escHold) only resumes the escort, with the notice
      "You are escorting the caravan to X". Further than ESC.tie (after a flight, or a save from far away) any march goes to the wagons first.
      Abandoning the contract (ctrAbandon: the usual failure) releases the company; the caravan goes on alone.
-   Raids: the escort's strength is the guards' (p.mult) plus the company's own, ESC.co = 1 on the scale every band's mult is on (1 = an
-     even fight for the company: the measure parties use against it). escStr(p) = p.mult + 1. A band attempts the raid iff it is balanced
-     with or stronger than the whole escort (band.mult >= escStr x ESC.bal, ESC.bal = 1: the caravans' own rule, cvStr(c) <= r.mult), or it
-     hunts the company (p.hunt). Weaker bands leave the escort alone: they neither chase it (escSpare in moveParties) nor fight it on contact.
+   Raids: the escort's strength is the whole escort's on the scale every band's mult is on (a band's mult = its battle budget over the
+     company's: 1 = an even fight for the company, the measure parties use against it): the company's own ESC.co = 1 plus the guards, measured
+     the same way (escGuardShare: the guards' hire as fielded over the company's budget, at most ESC.gmax = 1.5) and counted at ESC.gk = .5
+     (AI-led guards in the line prove worth about half their hire: test/escort.js measures it). escStr = 1 + .5 x share. A band attempts the
+     raid iff it is balanced with or stronger than the whole escort (band.mult >= escStr x ESC.bal, ESC.bal = 1: the caravans' own rule,
+     cvStr(c) <= r.mult), or it hunts the company (p.hunt). In the battle the guards fight as hired (o.cv.gm = their share: no ranks added). Weaker bands leave the escort alone: they neither chase it (escSpare in moveParties) nor fight it on contact.
      A band that moves to raid says so (escRaidNote: a toast and the news). On contact the battle starts at once (escBattle): the company,
-     the caravan's guards as allies (cvSetup, o.cv) and the wagon (o.obj escort: if it falls the battle is lost) against the band.
+     the caravan's guards as allies (cvSetup, o.cv) and the wagon (o.obj escort: if it falls the battle is lost; it stands for the whole
+     train: ESC.wagon = 1.5 x the contract wagon's hitpoints and armor) against the band.
      Kill a guard: the guards turn (cvTurn) and the contract fails as an attack on the caravan (CV.rep.turn).
    The contract's foe: on accepting, one band of the contract's faction (c.f) lies in wait beside the road ahead (escAmbush: at 45..65% of
      the road, 1..1.75 tiles off it, a private stream seeded by the world seed and the contract id), strength escStr x 1.0..1.06, p.ambE =
@@ -276,11 +279,16 @@ function cvDrawMap(q,sc,bx,by,vis,t,still){const L=G&&G.clashes;if(!Array.isArra
      stands, on the nearest road tile joined to the destination; one band waits ahead as above); one past it is only a turn-in, as before.
    Public: escCtr escParty escOn escStr escSpare escRaidNote escTick escHold escMarch escBattle escBattleEnd escArrive escStart escAmbush
            escRelease escLost escCheck escEnsure escStatus escLeft escRoutePts escDrawMap escRepair */
-const ESC={co:1,bal:1,tie:1.5,lead:.45,amb:{at:[.45,.65],off:[1,1.75],k:[1,1.06]},day:16,slack:3,arr:6};
+const ESC={co:1,gk:.5,gmax:1.5,wagon:1.5,bal:1,tie:1.5,lead:.45,amb:{at:[.45,.65],off:[1,1.75],k:[1,1.06]},day:16,slack:3,arr:6};
 const ESCN={g:null,arr:null};   // the caravan reached its town this frame (escArrive -> escEnter); not saved
 function escCtr(){const c=G&&G.contract;if(!c||c.type!=='escort'||c.failed||!c.live)return null;const s=ctrStage(c);return s&&s.k==='go'&&s.kind==='escort'?c:null}
 function escParty(c){c=c===undefined?escCtr():c;if(!c||!c.live||!G||!Array.isArray(G.parties))return null;const p=cvParty(c.cv);return p&&p.goal==='caravan'&&p.ctr===c.id?p:null}
-function escStr(p){return Math.round((cvStr(p)+ESC.co)*100)/100}
+// the guards measured against the company the way a band is (their hire, as fielded, over the company's battle budget: a band's mult is
+// its budget over the same), at most ESC.gmax; and the escort: the company's 1 plus the guards at ESC.gk of that (AI-led guards in the line
+// prove worth about half their hire beside the company: test/escort.js "the battle's measure")
+function escGuardShare(p){const g=cvGuardOf(p);if(!(g.n>0))return 0;let cost=0;for(const id of cvGuardIds(g))cost+=cvCost(id);const rk=typeof runK==='function'?runK('budget'):1,b=typeof battleBudget==='function'?battleBudget({f:'bandit',mult:1})/(rk||1):0;
+ return b>0?Math.round(clamp(cost/b,0,ESC.gmax)*100)/100:0}
+function escStr(p){return Math.round((ESC.co+ESC.gk*escGuardShare(p))*100)/100}
 // {c, p, s} while the company marches beside its caravan (not in a clash); null otherwise
 function escOn(){const c=escCtr();if(!c)return null;const p=escParty(c);if(!p||p.clash||Math.hypot(p.x-G.p.x,p.y-G.p.y)>ESC.tie*TS)return null;return{c,p,s:escStr(p)}}
 // a band that leaves the escort alone: weaker than the whole escort, and not out hunting the company
@@ -333,8 +341,8 @@ function escHold(wx,wy,dest){const c=escCtr();if(!c)return null;const p=escParty
  if(typeof camOff!=='undefined')camOff.x=camOff.y=0;return true}
 
 /* ---- the raid battle ---- */
-function escBattle(c,C,R){const o=partyBattle(R),g=cvGuardOf(C);o.src={type:'escort',id:c.id,c:C.id,r:R.id,pf:R.f};o.obj={k:'escort',vip:'wagon'};
- o.cv={cl:null,c:C.id,f:FACT[C.f]?C.f:'free',t:g.t,cap:g.cap?1:0,n:clamp(g.n|0,0,8),gm:Math.max(.05,cvStr(C))};return o}
+function escBattle(c,C,R){const o=partyBattle(R),g=cvGuardOf(C);o.src={type:'escort',id:c.id,c:C.id,r:R.id,pf:R.f};o.obj={k:'escort',vip:'wagon',hpK:ESC.wagon};
+ o.cv={cl:null,c:C.id,f:FACT[C.f]?C.f:'free',t:g.t,cap:g.cap?1:0,n:clamp(g.n|0,0,8),gm:Math.max(.05,escGuardShare(C))};return o}   // the guards as hired: their own strength, no more
 function escBattleEnd(s,win,res,out){const c=G.contract,mine=!!c&&c.type==='escort'&&c.id===s.id&&!c.failed,C=cvParty(s.c),R=cvParty(s.r),rc=res&&res.cv,add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
  const own=C?cvOwnerName(C):'the caravan',T0=C?G.towns[C.to]:null,F=R&&FACT[R.f],k={esc:1,c:s.c,own,to:T0?T0.name:'',raiders:F?F.n:'The raiders',alive:rc?rc.alive:0,dead:rc?rc.dead:0,n0:rc?rc.n0:0,turned:!!(rc&&rc.turned),by:rc?rc.by:'',win:!!win,crowns:0};out.cv=k;
  const guards=n=>{if(!C)return;const g=Object.assign({},cvGuardOf(C));g.n=clamp(n|0,0,8);C.guard=g;C.mult=cvGuardMult(g)};
