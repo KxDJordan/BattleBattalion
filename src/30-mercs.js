@@ -129,11 +129,11 @@ function rollInjury(m,head,perm,slow){const have=id=>hasInjury(m,id),all=Object.
    Returns the injuries that healed today: [{m, name, id, n}]. Uses no randomness. */
 function healInjuriesDaily(){const out=[];if(!G||!Array.isArray(G.roster))return out;
  for(const m of G.roster){if(!Array.isArray(m.inj)||!m.inj.length)continue;
-  const step=fHas('surgeon')&&(G.day|0)%2===0?2:1;   // surgeon: an extra day off every other day (1.5 days a day)
+  let step=fHas('surgeon')&&(G.day|0)%2===0?2:1;if(typeof runModHealStep==='function')step=runModHealStep(step);   // plague years: every third day no healing (27-runmods.js)   // surgeon: an extra day off every other day (1.5 days a day)
   m.inj=m.inj.filter(j=>{if(j.days<0)return true;j.days-=step;if(j.days>0)return true;out.push({m,name:m.name,id:j.id,n:INJ[j.id]?INJ[j.id].n:j.id});return false});
   const mx=calc(m).hp;if(m.hp>mx)m.hp=mx}
  return out}
 // Temple price in crowns for treating one injury, or null when it cannot be treated (permanent, or not carried).
-function injuryCost(m,id){const j=Array.isArray(m.inj)&&m.inj.find(j=>j.id===id);if(!j||j.days<0||!INJ[id]||INJ[id].perm)return null;return Math.round((40+20*Math.max(1,j.days))*(typeof originK==='function'?originK('temple'):1))}
+function injuryCost(m,id){const j=Array.isArray(m.inj)&&m.inj.find(j=>j.id===id);if(!j||j.days<0||!INJ[id]||INJ[id].perm)return null;return Math.round((40+20*Math.max(1,j.days))*(typeof originK==='function'?originK('temple'):1)*(typeof runModK==='function'?runModK('temple',1):1))}
 // Pays injuryCost and removes the injury. Returns true when treated; false (nothing changes) when it cannot be treated or paid for.
 function treatInjury(m,id){const cost=injuryCost(m,id);if(cost==null||!(G.crowns>=cost))return false;G.crowns-=cost;m.inj=m.inj.filter(j=>j.id!==id);if(typeof achEvent==='function')achEvent('treat',{id});return true}

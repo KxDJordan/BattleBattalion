@@ -72,7 +72,7 @@ function dismissFollower(id){if(!followerHas(id))return false;G.retinue=G.retinu
 function wageOf(m){if(!m||!BG[m.bg])return 0;let w;
  if(typeof mercWage==='function'){try{w=mercWage(m)}catch(e){w=null}}
  if(typeof w!=='number'||!isFinite(w)){const b=BG[m.bg].wage||0;w=b;if(Array.isArray(m.traits)&&typeof TRAITS==='object'&&TRAITS)for(const k of m.traits){const T=TRAITS[k];if(T&&typeof T.wage==='number'&&isFinite(T.wage))w+=Math.abs(T.wage)<1?b*T.wage:T.wage}}
- return Math.max(0,w*(followerHas('paymaster')?.85:1)*(typeof originK==='function'?originK('wage'):1))}
+ return Math.max(0,w*(followerHas('paymaster')?.85:1)*(typeof originK==='function'?originK('wage'):1)*(typeof runModK==='function'?runModK('wage',1):1))}
 function companyWages(){let w=0;if(G&&G.roster)G.roster.forEach(m=>w+=wageOf(m));return Math.round(w)}
 // hiring price of a recruit: the background's price, a third more per level beyond the first, a quarter off with the recruiter
 function recruitCost(m){if(!m||!BG[m.bg])return 0;const c=BG[m.bg].cost*(1+.35*Math.max(0,(m.lvl||1)-1));return Math.max(5,Math.round(c*(followerHas('recruiter')?.75:1)/5)*5)}

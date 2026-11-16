@@ -1,0 +1,31 @@
+/* ================= RUN MODIFIERS ("twists", 27-runmods.js): the new-company section, the twist cards, the ledger sheet ================= */
+#sheetBody .rm-modes{grid-template-columns:repeat(3,minmax(0,1fr))}
+.rm-note{display:flex;align-items:center;gap:6px;margin:6px 0 0;font-size:.82rem;color:var(--dim);line-height:1.3}
+.rm-note .pxi,.rm-note .pn-i{width:16px;height:16px;flex:none}
+.rm-ors{margin-top:6px}
+#sheetBody .rm-or{min-height:66px}
+#sheetBody .rm-or small{font-size:.66rem;line-height:1.05;color:var(--dim);font-family:'Alegreya Sans',system-ui,sans-serif}
+#sheetBody .rm-or.off{opacity:.42;filter:saturate(.4)}
+#sheetBody .rm-or.t-good:not(.on){box-shadow:inset 0 -3px 0 #3c7f6c}
+#sheetBody .rm-or.t-bad:not(.on){box-shadow:inset 0 -3px 0 #8e3a33}
+#sheetBody .rm-or.t-mixed:not(.on){box-shadow:inset 0 -3px 0 #8a6a2a}
+.rm-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;margin-top:6px}
+.rm-card{display:flex;gap:9px;align-items:flex-start;padding:7px 9px;background:#101d1c;border:2px solid #0b1514;box-shadow:inset 0 0 0 2px #35554f;min-width:0}
+.rm-card.t-good{box-shadow:inset 0 0 0 2px #3c7f6c}.rm-card.t-bad{box-shadow:inset 0 0 0 2px #8e3a33}.rm-card.t-mixed{box-shadow:inset 0 0 0 2px #8a6a2a}
+.rm-card>.pxi,.rm-card>.pn-i{width:32px;height:32px;flex:none}
+.rm-card>div{min-width:0}
+.rm-card b{font-family:var(--pxfont);font-size:1.02rem;color:#fff4c8;font-weight:600}
+.rm-card p{margin:2px 0 0;font-size:.8rem;line-height:1.28;color:var(--dim)}
+.rm-fx{margin:4px 0 0;padding:0;list-style:none;font-size:.8rem;line-height:1.28}
+.rm-fx li{position:relative;padding-left:13px}
+.rm-fx li::before{position:absolute;left:0;top:0;font-weight:700}
+.rm-fx li.g{color:#a9e3cf}.rm-fx li.g::before{content:'+';color:#58b39c}
+.rm-fx li.b{color:#efb2a6}.rm-fx li.b::before{content:'\2212';color:#c4493f}
+.rm-cards.sm{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-bottom:8px}
+.rm-cards.sm .rm-card{padding:5px 7px}.rm-cards.sm .rm-fx{font-size:.76rem}
+.rm-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:6px 0 2px}
+.rm-lk{font:600 .78rem var(--pxfont);letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-right:2px}
+.rm-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px 0 3px;font:600 .8rem var(--pxfont);color:var(--vellum);background:#101d1c;box-shadow:inset 0 0 0 2px #35554f;white-space:nowrap}
+.rm-chip.t-good{box-shadow:inset 0 0 0 2px #3c7f6c}.rm-chip.t-bad{box-shadow:inset 0 0 0 2px #8e3a33}.rm-chip.t-mixed{box-shadow:inset 0 0 0 2px #8a6a2a}
+.rm-chip .pxi,.rm-chip .pn-i{width:16px;height:16px;flex:none}
+@media (max-width:620px),(max-height:420px) and (max-width:700px){.rm-cards{grid-template-columns:minmax(0,1fr)}#sheetBody .rm-modes{grid-template-columns:repeat(3,minmax(0,1fr))}}

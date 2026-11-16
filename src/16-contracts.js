@@ -131,7 +131,7 @@ function ctrHasSit(t,k){return Array.isArray(t&&t.sit)&&t.sit.some(s=>s&&s.k===k
 const CTR_SITW={raided:{defend:2.5,bounty:1.8,hunt:1.2},siege:{siege:6,defend:1.5,deliver:.5},famine:{deliver:2,escort:1.6,hunt:.8},festival:{patrol:1.8,escort:1.3},plague:{relic:1.6,deliver:.6,escort:.5},boom:{escort:1.8,deliver:1.6}};
 function ctrSitK(t,type){let k=1;if(!Array.isArray(t&&t.sit))return k;for(const s of t.sit){if(!s)continue;const S=typeof SITS==='object'&&SITS&&SITS[s.k],C=S&&S.contracts;
   if(C&&typeof C==='object'&&typeof C[type]==='number')k*=C[type];else if(CTR_SITW[s.k]&&CTR_SITW[s.k][type])k*=CTR_SITW[s.k][type]}return k}
-function ctrTypeW(t,ti,type){const T=CTYPES[type];let w=0;try{w=T.w(t,ti)}catch(e){w=0}if(!(w>0))return 0;
+function ctrTypeW(t,ti,type){const T=CTYPES[type];let w=0;try{w=T.w(t,ti)}catch(e){w=0}if(!(w>0))return 0;if(typeof runModF==='function')w*=runModF('ctr',type,1);
  if(typeof townCtrK==='function'){let k=1;try{k=+townCtrK(ti,type)}catch(e){k=1}if(k>=0&&isFinite(k))w*=k;return w}   // the world's factor: situations and the owner's standing
  w*=ctrSitK(t,type);
  const tier=typeof repTier==='function'?repTier(t.own||'free'):null;if(tier&&(tier.k==='friendly'||tier.k==='allied')&&(type==='siege'||type==='beast'||type==='relic'))w*=1.4;return w}
@@ -144,7 +144,7 @@ function genContract2(t,ti,opt){if(!t)return null;if(ti==null||ti<0)ti=G.towns.i
  for(let g=0;g<4&&!c;g++){const W=CTR_KINDS.map(k=>{const n=av?av.filter(x=>x===k).length:0;return ctrTypeW(t,ti,k)*(!n?1:k==='hunt'&&n===1?.25:0)});let tot=0;W.forEach(w=>tot+=w);let r=rnd()*tot,k='hunt';for(let i=0;i<W.length;i++){r-=W[i];if(r<=0&&W[i]>0){k=CTR_KINDS[i];break}}
   try{c=CTYPES[k].gen(t,ti)}catch(e){c=null}}
  if(!c)c=CTYPES.hunt.gen(t,ti);if(!c)return null;
- c.pay=Math.max(10,Math.round(c.pay*ctrRepPayK(c.emp)*(typeof diffK==='function'?diffK('pay'):1)/10)*10);c.pay0=c.pay;   // standing and the run's difficulty (22-run.js)
+ c.pay=Math.max(10,Math.round(c.pay*ctrRepPayK(c.emp)*(typeof diffK==='function'?diffK('pay'):1)*(typeof runModPayK==='function'?runModPayK(c):1)/10)*10);c.pay0=c.pay;   // standing and the run's difficulty (22-run.js)
  if(rnd()<.3){const L=Object.keys(CTWIST).filter(k=>CTWIST[k].types.includes(c.type));if(L.length){const k=pick(L);c.twist={k,when:CTWIST[k].when,fired:false}}}
  ctrSync(c);return c}
 function ctrSync(c){if(!c)return c;c.done=ctrDone(c);return c}
@@ -170,7 +170,7 @@ function ctrStatus(c){c=c||G.contract;if(!c)return'';if(c.failed)return'Failed: 
  if(!s)return c.title;if(s.k==='town'){const t=ctrTown(s.ti);return(ctrDone(c)?`${s.label} in ${ctrPlace(t)}`:`${s.label}: ${ctrPlace(t)}`)+(c.type==='deliver'||c.type==='escort'?due:'')}
  const n=c.stages.filter(x=>x.k==='go').length,i=c.stages.slice(0,c.stage).filter(x=>x.k==='go').length+1;return`${s.label}${n>1?` (${i} of ${n})`:''}: ${CTYPES[c.type]?CTYPES[c.type].n.toLowerCase():'contract'}${due}`}
 function ctrTurnInAt(ti){const c=G&&G.contract;if(!c||!ctrDone(c)||ctrTurnInTown(c)!==ti)return null;
- return{c,pay:Math.max(0,c.pay-(c.adv||0)),renown:8*c.diff,rep:3+2*c.diff}}
+ return{c,pay:Math.max(0,c.pay-(c.adv||0)),renown:Math.round(8*c.diff*(typeof runModK==='function'?runModK('renown',1):1)),rep:3+2*c.diff}}
 function ctrNote(c,txt){(c.log||(c.log=[])).push({day:G.day,t:txt});if(c.log.length>8)c.log.shift()}
 // acting: the company stands on the current stage. Fight, twist card or a stage step. Returns true when it took over.
 function ctrArrive(x,y){const t=ctrTargetAt(x,y);if(!t)return false;const c=t.c,s=ctrStage(c);
