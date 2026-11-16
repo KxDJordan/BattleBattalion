@@ -698,7 +698,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      hu.lvl=9;hu.pp=5;ok(!X.canLearn(hu,'weapons.bow')&&!X.learnPerk(hu,'weapons.bow')&&hu.pp===5,'a half-orc must not learn the bow mastery');
      const hh=X.newMerc('hunter');hh.race='human';ok(X.weaponTypes(hh).join()===X.WTS.filter(w=>X.BG.hunter.wt.includes(w)).join()&&X.weaponTypes(hh).includes('bow')&&X.weaponTrees(hh).join()==='weapons','weapon masteries follow the background');
      hh.trees=['marksman','scout','survivor','skirmisher'];ok(X.mercTrees(hh).map(x=>x.kind).join().replace(/style,?/g,'s').startsWith('ssss'),'mercTrees: style trees first');
-     ok(X.BG.hunter.side&&X.newMerc('hunter').eq.b==='knife','hunters carry a knife as a sidearm') }
+     ok(X.BG.hunter.side&&['knife','huntknife'].includes(X.newMerc('hunter').eq.b),'hunters carry a knife as a sidearm') }
    // -- tiered unlocks, points, gift awakening --
    { const m=X.newMerc('knight');m.gift='aura';m.trees=['vanguard','bulwark','brute','duelist','aura'];m.perks=[];m.race='human';m.eq.w='arming';X.syncMast(m);
      m.lvl=2;m.pp=2;ok(!X.canLearn(m,'vanguard.3')&&!X.learnPerk(m,'vanguard.3')&&m.pp===2,'a tier-3 perk must not open at level 2');
@@ -793,8 +793,9 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    { const AT=['lightarmor','medarmor','heavyarmor'];ok(AT.every(k=>M[k]&&kind(k)==='armor'&&M[k].tiers.length===(k==='lightarmor'?4:3)&&M[k].tiers.every(t=>t.length===1))&&M.lightarmor.aw==='light'&&M.medarmor.aw==='medium'&&M.heavyarmor.aw==='heavy','three armor trees of one perk a tier (3, light armor 4)');
      ok(X.tierLevel('armor',1)===2&&X.tierLevel('armor',2)===5&&X.tierLevel('armor',3)===8&&X.tierLevel('armor',4)===11,'armor tiers open at levels 2, 5, 8 (and 11)');
      ok(AT.every(k=>M[k].tiers.every(t=>t.length===1))&&M.lightarmor.tiers.length===4&&M.medarmor.tiers.length===3&&M.heavyarmor.tiers.length===3,'armor trees: one perk a tier; light armor has a fourth');
-     const ac=id=>{const m={eq:{a:id}};return X.armorClass(m)};
-     ok(ac(null)==='light'&&ac('rags')==='light'&&ac('padded')==='light'&&ac('robe')==='light'&&ac('archrobe')==='light'&&ac('mailrobe')==='light'&&ac('hide')==='medium'&&ac('mail')==='medium'&&ac('brigandine')==='medium'&&ac('lamellar')==='heavy'&&ac('plate')==='heavy','armorClass by armor points (robes are light)');
+     const ac=(id,h)=>{const m={eq:{a:id,h:h||null}};return X.armorClass(m)};
+     ok(ac(null)==='light'&&ac('rags')==='light'&&ac('padded')==='light'&&ac('robe')==='light'&&ac('archrobe')==='light'&&ac('mailrobe')==='light'&&ac('hide','cap')==='medium'&&ac('hide')==='light'&&ac('mail')==='medium'&&ac('brigandine')==='medium'&&ac('lamellar','nasal')==='heavy'&&ac('plate','sallet')==='heavy','armorClass by the weight of body and helmet (robes weigh nothing)');
+     ok(ac('padded','coif')==='light'&&ac('padded','kettle')==='medium'&&ac('mail','sallet')==='medium'&&ac('mail','barbute')==='heavy'&&ac('lamellar')==='medium'&&ac('archrobe','greathelm')==='medium'&&ac('robe','hood')==='light','the helmet counts toward the weight class');
      X.ITEMS['f:armtest']=Object.assign({},X.ITEMS.padded,{famed:1,base:'padded',arm:90});ok(ac('f:armtest')==='light','a famed piece keeps its base class');delete X.ITEMS['f:armtest'];
      const m=X.newMerc('knight');m.race='human';m.perks=[];m.lvl=1;m.pp=1;m.eq.a='plate';const mt=X.mercTrees(m);ok(mt.slice(-2).map(x=>x.key+':'+x.kind).join()==='medarmor:armor,heavyarmor:armor'&&!mt.some(x=>x.key==='lightarmor'),'a knight\'s mercTrees ends with its two armor trees, medium and heavy');
      ok(!X.canLearn(m,'heavyarmor.1'),'armor tier 1 waits for level 2');m.lvl=2;ok(X.canLearn(m,'heavyarmor.1')&&X.canLearn(m,'medarmor.1')&&!X.canLearn(m,'heavyarmor.2'),'armor tier 1 opens at level 2, for each allowed class');

@@ -143,7 +143,7 @@ function coStat(m,s,k){const t=m.tal[k]||0,cd=cpCond(m);let v=k==='brv'?coBrv(m,
 function coStatKeys(m,s){const ks=['hp','arm'];if(m.eq.h||cpHasHelms())ks.push('helm');ks.push('fat','init','ms','rs','md','rd');if(coBrv(m,s)!==null)ks.push('brv');return ks}
 /* condition line under the doll: piece, points left of its full value, a meter */
 function coArmChip(m){const c=tlArmClass(m),n=tlArmKeys(m).filter(k=>tlTreeArm(k)===c)[0];
- return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':': '+tlBgA(m)+' learns no '+TL_ARMN[c].toLowerCase()+' armor tree'):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
+ return`<span class="pn-chip ac-chip${c?' '+c:' none'}" title="${c?'Wears '+TL_ARMN[c].toLowerCase()+' armor (body and helmet weigh '+(typeof armorWeight==='function'?armorWeight(m.eq&&m.eq.a)+armorWeight(m.eq&&m.eq.h):'?')+')'+(n&&MAST[n]?': the '+MAST[n].n+' tree works':': '+tlBgA(m)+' learns no '+TL_ARMN[c].toLowerCase()+' armor tree'):'No body armor: no armor tree works'}">${coIc(c?'armor-'+c:'armor-light')}${c?TL_ARMN[c]+' armor':'Unarmored'}</span>`}
 function coCondRow(k,id,cur,mx){const it=ITEMS[id];if(!it)return`<div class="pd-c none">${coIc(k==='h'?'helmet':'armor-light')}<b>${k==='h'?'No helmet':'No armor'}</b><small>${k==='h'?'head hits land in full':'unarmored'}</small></div>`;
  return`<div class="pd-c${cur<mx?' worn':''}" data-cond="${k}">${k==='h'?coIc('helmet'):pnItemIcon(id,16)}<b>${pnItemName(id)}</b><small>${cur<mx?cur+'/'+mx:mx}</small>${pnBar(mx?100*cur/mx:0,cur<mx?'worn':'ar')}</div>`}
 function coInjList(m){const L=cpInj(m);if(!L.length)return'';

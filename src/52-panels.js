@@ -92,7 +92,9 @@ function pnTgFacts(id){const i=ITEMS[id],G0=typeof GOODS==='object'&&GOODS&&i.go
 function itemFacts(id){if(ITEMS[id]&&ITEMS[id].k==='t')return pnTgFacts(id);if(ITEMS[id]&&ITEMS[id].k==='c'){const i=ITEMS[id];return[['Resolve','+'+(i.brv||0)],i.md?['Melee defense','+'+i.md]:null,i.rd?['Ranged defense','+'+i.rd]:null,i.init?['Initiative','+'+i.init]:null,['Fatigue',i.fat?'−'+i.fat:'0'],['Worn','Over the body armor'],['Colours',typeof coatColoursText==='function'?coatColoursText():'The banner']]}const i=ITEMS[id],rg=typeof isRangedW==='function'&&isRangedW(i),sg=v=>(v<0?'−':'+')+Math.abs(v),df=x=>x.md||x.rd?[x.md?['Melee defense',sg(x.md)]:null,x.rd?['Ranged defense',sg(x.rd)]:null]:[];
  if(i.k==='w')return[['Damage',`${i.d[0]}–${i.d[1]}`],['AP a swing',i.ap],['Fatigue a swing',i.fat],[rg?'Range':'Reach',i.rng>1?i.rng+' tiles':'Adjacent'],['Ignores armor',Math.round(i.ign*100)+'%'],i.hit?['To hit',sg(i.hit)]:null,i.reload?['Reload',i.reload.ap+' AP']:null,i.crush?['Crushes armor','+'+Math.round(i.crush*100)+'%']:null,i.stun?['Stun chance',Math.round(i.stun*100)+'%']:null,i.spell?['Spell damage','+'+Math.round(i.spell*100)+'%']:null,['Grip',i.two?'Two-handed':'One-handed']];
  if(i.k==='s')return[['Melee defense','+'+i.md],['Ranged defense','+'+i.rd],['Shield hitpoints',i.hp||48],['Fatigue','−'+i.fat],i.guard?['Covers allies','−'+i.guard+' to be shot']:null,i.wallB?['Shield wall','+'+i.wallB]:null,i.spike?['Spiked bash',i.spike[0]+'–'+i.spike[1]]:null];
- if(i.k==='h')return[['Head armor',i.arm],['Fatigue','−'+(i.fat||0)],...df(i),['Guards','Blows to the head']];return[['Armor',i.arm],['Fatigue','−'+i.fat],...df(i)]}
+ if(i.k==='h')return[['Head armor',i.arm],['Fatigue','−'+(i.fat||0)],...df(i),['Weight class',pnArmCls(id)],['Guards','Blows to the head']];return[['Armor',i.arm],['Fatigue','−'+i.fat],...df(i),['Weight class',pnArmCls(id)]]}
+// an armor piece's class on its own, and the note that the worn class adds the body and the helmet (armorClassOf in 30-mercs.js)
+function pnArmCls(id){const c=typeof armorPieceClass==='function'?armorPieceClass(id):null,w=typeof armorWeight==='function'?armorWeight(id):0;if(!c)return'—';return(TL_ARMN[c]||c)+' piece · weight '+w+' (worn class counts body and helmet together)'}
 const ITKIND={dagger:'Dagger',mace:'Mace',sword:'Sword',axe:'Axe',spear:'Spear',bow:'Bow',staff:'Staff',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Firearm'};
 function itemKind(id){const i=ITEMS[id],k=i.k==='c'?'Surcoat':i.k==='t'?'Trade good':i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.legend?'Legendary '+k.toLowerCase():i.famed?'Famed '+k.toLowerCase():k}
 
@@ -270,7 +272,7 @@ function tlArmNorm(c){if(c==null||c===false)return null;if(typeof c==='object')c
 function tlArmTrees(){const L=[];for(const k in MAST)if(tlKind(MAST[k])==='armor')L.push(k);return L.sort((a,b)=>TL_ARMK.indexOf(tlTreeArm(a))-TL_ARMK.indexOf(tlTreeArm(b)))}
 function tlTreeArm(key){const T=MAST[key]||{};return tlArmNorm(T.ac||T.cls||T.armor||T.aw||T.wt)||tlArmNorm(key)}
 function tlArmClass(m){if(!m)return null;if(typeof armorClass==='function'){const c=tlTry(()=>armorClass(m),undefined);if(c!==undefined)return tlArmNorm(c)}
- const a=ITEMS[m.eq&&m.eq.a];return!a?null:a.arm<=60?'light':a.arm<=150?'medium':'heavy'}
+ return null}
 /* the armor trees this merc's background allows (BG[bg].at via mercTrees), and a short line naming them */
 function tlArmKeys(m){return tlTrees(m).filter(x=>x.kind==='armor').map(x=>x.key)}
 function tlBgA(m){const n=BG[m.bg]?BG[m.bg].n.toLowerCase():'sword';return(/^[aeiou]/.test(n)?'an ':'a ')+n}

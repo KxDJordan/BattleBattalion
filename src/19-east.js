@@ -46,7 +46,7 @@ Object.assign(EN,{
  samurai:{n:'Samurai',hp:86,arm:110,helm:85,ms:62,md:12,rd:12,init:108,d:[34,48],w:'katana',xp:300,role:'line',brv:72,east:1,abs:['iaido','slash','riposte']},
  taisho:{n:'Samurai general',hp:140,arm:180,helm:140,ms:72,md:16,rd:14,init:112,d:[48,68],w:'katana2',xp:600,role:'caster',brv:90,lead:1,banner:1,max:1,sub:'samurai',east:1,abs:['brally','iaido','riposte']}
 });
-const EASTLOOT=['tanto','wakizashi','katana','suyari','jumonji','hankyu','naginata','jingasa','hachigane','kabuto','tatami','do','kesa'];
+const EASTLOOT=['tanto','kunai','wakizashi','katana','suyari','jumonji','hankyu','naginata','jingasa','hachigane','kabuto','tatami','do','kesa'];
 FACT.east={n:'The Shogunate',g:'K',col:'#c4493f',skin:'#f0c8a0',tier:'early',spawn:{gate:2,d0:0,d1:0},east:1,biomes:null,lair:'Break an eastern war camp',
  units:[['ashi',20],['ashi',20],['ashiy',24],['shinobi',40],['sohei',48],['onna',60],['samurai',74],['taisho',120]],rank:[.5,.85,.3,19],loot:EASTLOOT};
 
@@ -55,6 +55,7 @@ FACT.east={n:'The Shogunate',g:'K',col:'#c4493f',skin:'#f0c8a0',tier:'early',spa
    naginata -> polearm (hook) plus Naginata sweep; yari -> spear (thrust, spear wall; the omi yari impales at reach 2); yumi -> bow. */
 Object.assign(ITEMS,{
  tanto:{k:'w',n:'Tanto',wt:'dagger',d:[16,26],ap:3,fat:4,rng:1,ign:.3,hit:5,price:85,tier:1},
+ kunai:{k:'w',n:'Kunai',wt:'dagger',d:[16,26],ap:3,fat:4,rng:1,ign:.3,price:150,tier:2},   // a shinobi's tool: stabs, and throws on a cord (kthrow)
  yoroidoshi:{k:'w',n:'Yoroi-doshi',wt:'dagger',d:[26,40],ap:3,fat:5,rng:1,ign:.6,hit:10,price:1250,tier:4},
  wakizashi:{k:'w',n:'Wakizashi',wt:'sword',d:[24,34],ap:4,fat:6,rng:1,ign:.25,hit:10,price:240,tier:2},
  katana:{k:'w',n:'Katana',wt:'sword',d:[36,50],ap:4,fat:9,rng:1,ign:.25,hit:10,price:820,tier:3},
@@ -82,14 +83,14 @@ Object.assign(ITEMS,{
  domaru:{k:'a',n:'Do-maru',arm:210,fat:22,price:1900,tier:4},
  oyoroi:{k:'a',n:'O-yoroi',arm:300,fat:33,price:4600,tier:5}
 });
-const EASTITEMS=['tanto','yoroidoshi','wakizashi','katana','katana2','katana3','nodachi','odachi','naginata','naginata2','suyari','jumonji','omiyari','hankyu','yumi','daikyu','bo','jingasa','hachigane','kabuto','menpo','kawari','kesa','tatami','do','domaru','oyoroi'];
+const EASTITEMS=['tanto','kunai','yoroidoshi','wakizashi','katana','katana2','katana3','nodachi','odachi','naginata','naginata2','suyari','jumonji','omiyari','hankyu','yumi','daikyu','bo','jingasa','hachigane','kabuto','menpo','kawari','kesa','tatami','do','domaru','oyoroi'];
 /* the two eastern weapon skills (executed by the common rules: once, mult, hit, bleed, tgt 'aoe', status) */
 Object.assign(AB,{
  iaido:{n:'Iaijutsu',ap:4,fat:16,tgt:'enemy',wpn:1,needs:['sword','greatsword'],fresh:1,mult:1.4,hit:15,bleed:2,fx:'slash',d:'The draw-cut: the blade leaves the scabbard and strikes in one motion. Only as the first action of a turn: 140% damage, +15 to hit, and a wound that reaches flesh bleeds for 2 turns.'},
  nsweep:{n:'Naginata sweep',ap:6,fat:22,tgt:'aoe',wpn:1,needs:'polearm',two:1,mult:.8,hit:5,status:{daze:1},fx:'spin',d:'A wide, low arc of the naginata: strike every adjacent foe at 80% damage, +5 to hit, and leave each one hit dazed.'}
 });
 {const SK={katana:['slash','riposte','iaido'],katana2:['slash','riposte','iaido'],katana3:['slash','riposte','iaido'],wakizashi:['slash','riposte'],nodachi:['halfsword','gswing','iaido'],odachi:['halfsword','gswing','iaido'],
-  naginata:['hook','nsweep'],naginata2:['hook','nsweep'],suyari:['thrust','spearwall'],jumonji:['thrust','spearwall'],omiyari:['impale'],tanto:['puncture'],yoroidoshi:['puncture'],hankyu:['quick'],yumi:['quick'],daikyu:['quick']};
+  naginata:['hook','nsweep'],naginata2:['hook','nsweep'],suyari:['thrust','spearwall'],jumonji:['thrust','spearwall'],omiyari:['impale'],tanto:['puncture'],kunai:['puncture','kthrow'],yoroidoshi:['puncture'],hankyu:['quick'],yumi:['quick'],daikyu:['quick']};
  for(const id of EASTITEMS){const i=ITEMS[id];i.east=1;i.look=i.look||id;if(i.k==='w')i.sk=SK[id]||(typeof WSK==='object'&&WSK[i.wt])||[]}}
 
 /* ---- region ---- */

@@ -353,13 +353,14 @@ function abilityInfo(u,id){const w=u.wpn,fl=u.flags||{},bowR=w.rng+(w.wt==='bow'
  if(B&&B.realm&&B.realm.sight&&a.tgt==='enemy'&&a.rng>B.realm.sight)a.rng=B.realm.sight;   // the Hollow: darkness shortens every shot and spell
  return a}
 /* ---- Arms: the ranged lock and the weapon swap ----
-   A ranged weapon attack is an ability that uses a ranged weapon (RANGEDWT: bow, crossbow, flintlock): a.needs one of them, or a weapon
+   A ranged weapon attack is an ability that uses a ranged weapon (RANGEDWT: bow, crossbow, flintlock): a.needs one of them, a thrown
+   weapon (a.thrown: the kunai's throw), or a weapon
    ability (a.wpn) with one in hand. Spells are not. Reload weapons (wpn.reload) must also be loaded to fire (canFire); reloading is never locked.
    rangedLocked(u): an able foe (alive, not fleeing, not stunned) stands next to u, so it cannot shoot (perk flag noLock lifts it). */
 /* a.needs: one weapon family, or a list of them (needsOK). a.fresh: only as the unit's first action of its turn (all its AP left). */
 const needsOK=(a,wt)=>!a.needs||(Array.isArray(a.needs)?a.needs.includes(wt):a.needs===wt);
 const needsN=a=>Array.isArray(a.needs)?a.needs.join(' or '):a.needs;
-function isRangedAtk(u,a){return!!a&&!a.magic&&((Array.isArray(a.needs)?a.needs.some(w=>RANGEDWT.includes(w)):RANGEDWT.includes(a.needs))||(!!a.wpn&&isRangedW(u.wpn)))}
+function isRangedAtk(u,a){return!!a&&!a.magic&&(!!a.thrown||(Array.isArray(a.needs)?a.needs.some(w=>RANGEDWT.includes(w)):RANGEDWT.includes(a.needs))||(!!a.wpn&&isRangedW(u.wpn)))}
 // False when a would fire a reload weapon that is not loaded.
 const canFire=(u,a)=>!(u.wpn&&u.wpn.reload&&u.loaded===false&&isRangedAtk(u,a));
 function rangedLocked(u){if(!B||!u||!u.alive||(u.flags&&u.flags.noLock))return false;for(const e of B.units)if(e.alive&&e.side!==u.side&&e.mor!==0&&!(e.st&&e.st.stun)&&mdist(e,u)===1)return true;return false}

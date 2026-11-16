@@ -60,7 +60,7 @@ section('catalog');
    if(it.k==='s')ok(/^(buckler|round|kite|heater|tower|spiked|targe|pavise)/.test(it.look)&&it.hp>0&&it.md>0&&it.rd>0,id+': shield look family and numbers');
    if(it.k==='a'||it.k==='h')ok(it.arm>0&&it.fat>=0,id+': armor numbers')}
   const rows=[];
-  for(const f of FAM){const L=plain().filter(id=>I[id].k==='w'&&I[id].wt===f&&!I[id].east&&!I[id].glad),T=new Set(L.map(id=>I[id].tier));ok(L.length>=5&&L.length<=7,f+': '+L.length+' items (5 to 7)');ok(T.size>=4&&T.has(1)&&T.has(5),f+' must span tiers 1 to 5');
+  for(const f of FAM){const L=plain().filter(id=>I[id].k==='w'&&I[id].wt===f&&!I[id].east&&!I[id].glad),T=new Set(L.map(id=>I[id].tier));const mx=f==='dagger'?13:7;ok(L.length>=5&&L.length<=mx,f+': '+L.length+' items (5 to '+mx+')');ok(T.size>=4&&T.has(1)&&T.has(5),f+' must span tiers 1 to 5');
    for(const a of L)for(const b of L)if(I[b].tier>=I[a].tier+2)ok(I[b].price>I[a].price,f+': '+b+' (tier '+I[b].tier+') must cost more than '+a+' (tier '+I[a].tier+')');rows.push(f+' '+L.length)}
   for(const [k,n,min] of [['a','body armor',14],['h','helmets',12],['s','shields',12]]){const L=plain().filter(id=>I[id].k===k),T=new Set(L.map(id=>I[id].tier));ok(L.length>=min,n+': '+L.length+' (need '+min+')');ok(T.size===5,n+' must span tiers 1 to 5');rows.push(n+' '+L.length)}
   ok(['buckler','round','kite','heater','tower','spiked','targe','pavise'].every(l=>plain().some(id=>I[id].k==='s'&&I[id].look.indexOf(l)===0)),'every shield shape is carried');

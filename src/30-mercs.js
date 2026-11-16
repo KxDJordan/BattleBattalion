@@ -65,10 +65,20 @@ function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)
    (its merc's armor; an enemy by its armor maximum). */
 const ACLASS={light:60,medium:150};
 const READINIT={from:90,per:8,max:8,cap:20};   // Read the blade (Shadowdancer tree): defense from initiative
-function armorClassOf(id){const it=ITEMS[id];if(!it||it.k!=='a')return'light';const bid=it.famed&&it.base&&ITEMS[it.base]?it.base:id,b=ITEMS[bid];
- if(b.robe||/robe/.test(bid))return'light';const a=b.arm||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}
-function armorClass(m){if(!m)return'light';if(m.m&&m.side!=null)m=m.m;else if(m.side!=null&&!m.eq){const a=m.armMax||0;return a<=ACLASS.light?'light':a<=ACLASS.medium?'medium':'heavy'}return armorClassOf(m.eq&&m.eq.a)}
-function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a);
+/* The weight class counts the body armor and the helmet together, by their weight (the fatigue they cost): light up to ACLASSW.light,
+   medium up to ACLASSW.medium, heavy beyond. The limits are the heaviest light (6 + 3) and medium (18 + 8) body and helmet, so pieces of
+   one class stay in it and a mix lands between. Robes weigh nothing here (casters' cloth). A famed or legendary piece weighs what the
+   item it was made from weighs. armorWeight(id) one piece; armorPieceClass(id) a piece on its own (the shop's label).
+   armorClassOf(a, h) body a with helmet h (one argument: the body piece on its own); armorClass(m) a merc, or a battle unit (its
+   merc's gear; an enemy by its body and head armor points). */
+const ACLASSW={light:9,medium:26},ACLASSP={a:[6,18],h:[3,8]};
+function armorBase(id){const it=ITEMS[id];if(!it)return null;const bid=it.famed&&it.base&&ITEMS[it.base]?it.base:id;return{id:bid,it:ITEMS[bid]}}
+function armorWeight(id){const r=armorBase(id);if(!r||(r.it.k!=='a'&&r.it.k!=='h'))return 0;if(r.it.k==='a'&&(r.it.robe||/robe/.test(r.id)))return 0;return Math.max(0,+r.it.fat||0)}
+function armorPieceClass(id){const r=armorBase(id);if(!r||(r.it.k!=='a'&&r.it.k!=='h'))return null;const w=armorWeight(id),L=ACLASSP[r.it.k];return w<=L[0]?'light':w<=L[1]?'medium':'heavy'}
+function armorClassOf(id,h){if(arguments.length<2)return armorPieceClass(id)||'light';const w=armorWeight(id)+armorWeight(h);return w<=ACLASSW.light?'light':w<=ACLASSW.medium?'medium':'heavy'}
+function armorClass(m){if(!m)return'light';if(m.m&&m.side!=null)m=m.m;else if(m.side!=null&&!m.eq){const a=(m.armMax||0)+(m.helmMax||0);return a<=ACLASS.light*1.6?'light':a<=ACLASS.medium*1.7?'medium':'heavy'}
+ return armorClassOf(m.eq&&m.eq.a,m.eq&&m.eq.h)}
+function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a,eq.h);
  const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,ap:9,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[],
   hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[],acl,aw:0};
  const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();if(wpn.reload)wpn.reload=Object.assign({},wpn.reload);

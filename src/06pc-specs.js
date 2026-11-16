@@ -13,6 +13,13 @@ const PKC_IT={
  kris:{f:'sw',len:16,w:4.6,grip:5.5,shape:'kris',guard:7.6,fuller:false},
  tanto:{f:'sw',len:14,w:4.2,grip:6,shape:'curve',curve:-.5,gd:'disc',guard:6,wrap:'lacquer',pom:'cap',bl:'silver',hamon:'#ffffff'},
  yoroidoshi:{f:'sw',len:15,w:4.8,grip:6,gd:'disc',guard:6.4,wrap:'lacquer',pom:'cap'},
+ bollock:{f:'sw',len:14,w:4.2,grip:6,gd:'bolster',guard:6.2,gh:3,pom:'ball',gr:'wood'},
+ huntknife:{f:'sw',len:14,w:5,grip:6,shape:'knife',gd:'bar',guard:6,pom:'cap',gr:'leather',fuller:false},
+ baselard:{f:'sw',len:16,w:5,grip:5.6,gd:'bar',guard:9,pom:'cap'},
+ maingauche:{f:'sw',len:16,w:4,grip:5.5,gd:'curve',guard:11,lugs:4},
+ cinquedea:{f:'sw',len:16,w:7.6,grip:5.6,shape:'point',gd:'curve',guard:10,pom:'cap',bl:'steel'},
+ misericorde:{f:'sw',len:17,w:3.2,grip:5.5,shape:'thin',guard:6,gd:'disc',pom:'disc'},
+ kunai:{f:'sw',len:12,w:5.2,grip:6,shape:'leaf',gd:'none',pom:'ring',wrap:'cloth',wrapC:'#2a2a2a',bl:'iron',fuller:false},
  fangknife:{f:'sw',len:14,w:4.6,grip:5.6,shape:'curve',curve:-1.6,bl:'fang',guard:6.4,fit:'bone',fuller:false},
  /* swords */
  oldsword:{f:'sw',len:20,w:4.6,grip:5,guard:11,bl:'iron',notch:1},
