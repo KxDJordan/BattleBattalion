@@ -183,7 +183,8 @@ function findPath(sx,sy,tx,ty){const n=WN,N=n*n;if(sx<0||sy<0||tx<0||ty<0||sx>=n
 function routeTo(wx,wy,from){if(!W||!G||!okAt(wx,wy))return null;const p=from||G.p,path=findPath(Math.floor(p.x/TS),Math.floor(p.y/TS),Math.floor(wx/TS),Math.floor(wy/TS));if(!path)return null;
  let hours=FP.total*TS/WCO*WHRS;if(path.length)path[path.length-1]={x:wx,y:wy};else{path.push({x:wx,y:wy});hours=Math.hypot(wx-p.x,wy-p.y)/(WCO*(speedAt(p.x,p.y)||.5))*WHRS}
  return{path,hours}}
-function goTo(wx,wy,dest,leg){if(!leg)G.route=[];
+function goTo(wx,wy,dest,leg){if(typeof escHold==='function'){const e=escHold(wx,wy,dest);if(e!=null)return e}   // escorting: the company stays with the caravan
+ if(!leg)G.route=[];
  if(!dest&&G.sites){const s=G.sites.find(s=>Math.hypot(s.x-wx,s.y-wy)<.6*TS);if(s){dest={type:'site',id:s.id};wx=s.x;wy=s.y}}
  const r=routeTo(wx,wy);if(!r){G.route=[];toast('No way through there');return false}
  G.path=r.path;G.moving=true;G.dest=dest||null;G.tap={x:wx,y:wy};if(typeof camOff!=='undefined')camOff.x=camOff.y=0;return true}
@@ -325,7 +326,8 @@ function worldBattleEnd(s,win,res){const out=worldBattleEnd0(s,win,res);if(s&&G&
 function worldBattleEnd0(s,win,res){const out={crowns:0,rep:[]};if(!s||!G)return out;const add=(f,n,why)=>{const d=repGain(f,n,why);if(d)out.rep.push({f,n:d})};
  if(typeof crisisBattleEnd==='function'&&(s.type==='crisis'||s.type==='party')){let h=false;try{h=crisisBattleEnd(s,win,out)}catch(e){if(typeof console!=='undefined')console.warn('crisisBattleEnd',e)}if(h)return out}
  if(s.type==='nest'){if(win)nestClear(s.id,out);return out}
- if(s.type==='clash'){if(typeof cvBattleEnd==='function')cvBattleEnd(s,win,res,out);return out}   // a fight beside a caravan's guards (42-caravans.js)
+ if(s.type==='clash'){if(typeof cvBattleEnd==='function')cvBattleEnd(s,win,res,out);return out}
+ if(s.type==='escort'){if(typeof escBattleEnd==='function')escBattleEnd(s,win,res,out);return out}   // a raid on the company's escort (42-caravans.js)   // a fight beside a caravan's guards (42-caravans.js)
  if(s.type!=='party')return out;const p=G.parties.find(q=>q.id===s.id);
  if(s.goal==='merc'||(p&&p.goal==='merc')){const r=rivalById(s.pf||(p&&p.f));out.src=s;rvBattleEnd(r,p,win,out,res);delete out.src;return out}
  if(!p||!win)return out;
@@ -338,23 +340,49 @@ function worldBattleEnd0(s,win,res){const out={crowns:0,rep:[]};if(!s||!G)return
   if(p.siege!=null)townSiegeEnd(p.siege,'broken')}
  G.parties=G.parties.filter(q=>q.id!==p.id);return out}
 
-/* ---- routes: town to town along the roads (findPath), thinned to a point every 3 tiles; cached per world ---- */
-function wsThin(path){const out=[];for(let i=2;i<path.length-1;i+=3)out.push({x:Math.round(path[i].x),y:Math.round(path[i].y)});if(path.length){const e=path[path.length-1];out.push({x:Math.round(e.x),y:Math.round(e.y)})}return out}
-function wsRoute(a,b){if(!W)return null;if(!W.trk||W.trk.n!==G.towns.length)W.trk={n:G.towns.length,m:new Map()};const k=a*64+b;if(W.trk.m.has(k))return W.trk.m.get(k);
- const A=G.towns[a],B0=G.towns[b];let r=null;if(A&&B0){const P=findPath(Math.floor(A.x/TS),Math.floor(A.y/TS),Math.floor(B0.x/TS),Math.floor(B0.y/TS));if(P&&P.length)r=wsThin(P)}W.trk.m.set(k,r);return r}
+/* ---- routes: town to town along the roads ----
+   Caravans and house patrols keep to the road net: rdTiles(s,t) walks W.road's links (a breadth-first search over road tiles only, the
+   neighbours in N E S W order: deterministic), so a route never leaves the road. The points are the road tiles' centres where the road
+   turns (straight runs merged), starting at the home town: a party walking point to point stays on road tiles the whole way.
+   Two towns the roads do not join have no route (null): no caravan runs between them. One search per home town, cached per world (W.rdS). */
+function rdTile(x,y){const tx=Math.floor(x/TS),ty=Math.floor(y/TS);return tx<0||ty<0||tx>=WN||ty>=WN?-1:ty*WN+tx}
+function rdFrom(s){if(!W||!W.road||s<0)return null;if(!W.rdS||W.rdS.n!==WN)W.rdS={n:WN,m:new Map()};const M=W.rdS.m;if(M.has(s))return M.get(s);
+ let prev=null;if(W.road[s]){prev=new Int32Array(WN*WN).fill(-2);prev[s]=-1;const q=[s];for(let h=0;h<q.length;h++){const k=q[h],m=W.road[k],x=k%WN,y=(k/WN)|0;
+   for(let j=0;j<4;j++){if(!(m&(1<<j)))continue;const nx=x+WDX[j],ny=y+WDY[j];if(nx<0||ny<0||nx>=WN||ny>=WN)continue;const n=ny*WN+nx;if(prev[n]!==-2||!W.road[n])continue;prev[n]=k;q.push(n)}}}
+ if(M.size>96)M.clear();M.set(s,prev);return prev}
+// the road tiles from s to t (both ends included), or null when the roads do not join them
+function rdTiles(s,t){const P=rdFrom(s);if(!P||t<0||P[t]===-2)return null;const L=[];for(let k=t;k>=0;k=P[k])L.push(k);return L.reverse()}
+// tiles -> points: every tile centre where the road turns, and the last one
+function rdPts(L){const c=k=>({x:(k%WN+.5)*TS,y:(((k/WN)|0)+.5)*TS}),out=[c(L[0])];for(let i=1;i<L.length;i++){if(i<L.length-1&&L[i+1]-L[i]===L[i]-L[i-1])continue;out.push(c(L[i]))}return out}
+function rdLen(pts,x,y,from){let d=0,px=x,py=y;for(let i=from|0;i<pts.length;i++){d+=Math.hypot(pts[i].x-px,pts[i].y-py);px=pts[i].x;py=pts[i].y}return d/TS}   // tiles still to walk
+function onRoad(x,y){const k=rdTile(x,y);return k>=0&&!!W.road[k]}
+function wsRoute(a,b){if(!W||!G)return null;if(!W.trk||W.trk.n!==G.towns.length)W.trk={n:G.towns.length,m:new Map()};const k=a*4096+b;if(W.trk.m.has(k))return W.trk.m.get(k);
+ const A=G.towns[a],B0=G.towns[b];let r=null;if(A&&B0&&a!==b){const L=rdTiles(rdTile(A.x,A.y),rdTile(B0.x,B0.y));if(L&&L.length>1)r=rdPts(L)}W.trk.m.set(k,r);return r}
+function wsLinked(a,b){return !!wsRoute(a,b)}
+// a caravan off the road (a save from before the road rule): onto the nearest road tile joined to its town, then the road from there.
+// The tile search walks the passable ground in N E S W order from where it stands: no randomness. False when no road leads there (it goes home).
+function wsReroad(p){p.rd=1;const T0=G.towns[p.to];if(!T0)return false;const goal=rdTile(T0.x,T0.y),P=rdFrom(goal);if(!P)return false;
+ const s=rdTile(p.x,p.y);if(s<0)return false;let hit=-1;if(W.road[s]&&P[s]!==-2)hit=s;
+ else{const seen=new Uint8Array(WN*WN),q=[s];seen[s]=1;for(let h=0;h<q.length&&h<6000;h++){const k=q[h],x=k%WN,y=(k/WN)|0;if(W.road[k]&&P[k]!==-2){hit=k;break}
+   for(let j=0;j<4;j++){const nx=x+WDX[j],ny=y+WDY[j];if(nx<0||ny<0||nx>=WN||ny>=WN)continue;const n=ny*WN+nx;if(seen[n]||!W.ok[n])continue;seen[n]=1;q.push(n)}}}
+ if(hit<0)return false;const L=[];for(let k=hit;k>=0;k=P[k])L.push(k);   // P is rooted at the town: walking back from the hit tile is the way there
+ const pts=L.length>1?rdPts(L):[{x:(goal%WN+.5)*TS,y:(((goal/WN)|0)+.5)*TS}];p.x=pts[0].x;p.y=pts[0].y;p.pts=pts.map(q=>({x:q.x,y:q.y}));p.pi=Math.min(1,p.pts.length-1);p.tx=p.pts[p.pi].x;p.ty=p.pts[p.pi].y;return true}
+// a road party far from the company: tiles walked along its points (it stays on the road)
+function wsWalk(p,tiles){let left=tiles*TS;while(left>0&&p.pi<p.pts.length){const q=p.pts[p.pi],d=Math.hypot(q.x-p.x,q.y-p.y);if(d<=left){left-=d;p.x=q.x;p.y=q.y;p.pi++;continue}p.x+=(q.x-p.x)/d*left;p.y+=(q.y-p.y)/d*left;left=0}
+ if(p.pi>=p.pts.length){wsArrive(p);return}const q=p.pts[p.pi];p.tx=q.x;p.ty=q.y}
 function wsPathTo(x,y,tx,ty){const P=findPath(Math.floor(x/TS),Math.floor(y/TS),Math.floor(tx/TS),Math.floor(ty/TS));return P&&P.length?wsThin(P):null}
 function wsAdd(o){const p=Object.assign({id:G.nid++,tx:o.x,ty:o.y,pi:0,ch:0},o);if(Array.isArray(p.pts)&&p.pts.length){p.tx=p.pts[0].x;p.ty=p.pts[0].y}G.parties.push(p);return p}
 function wsCopy(r){return r?r.map(q=>({x:q.x,y:q.y})):null}
-function wsSpawnCaravan(a,b){const A=G.towns[a],r=wsRoute(a,b);if(!A||!r)return null;const good=A.spec&&A.spec.length?A.spec[0]:'ale';
+function wsSpawnCaravan(a,b){const A=G.towns[a],r=wsRoute(a,b);if(!A||!r)return null;const good=A.spec&&A.spec.length?A.spec[0]:'ale';   // the road from a to b, or no caravan
  const g=cvGuardFor(a,rnd());   // the guards the home town can afford (42-caravans.js); the one rnd draw the old random mult took
- return wsAdd({x:A.x,y:A.y,f:A.own||'free',goal:'caravan',from:a,to:b,mult:cvGuardMult(g),guard:g,cargo:cargoRoll(good),pts:wsCopy(r)})}
+ return wsAdd({x:A.x,y:A.y,f:A.own||'free',goal:'caravan',from:a,to:b,mult:cvGuardMult(g),guard:g,cargo:cargoRoll(good),pts:wsCopy(r),rd:1})}
 function wsSpawnPatrol(h,hunt){const L=houseTowns(h.id);if(!L.length)return null;let a=h.seat,b=L[ri(0,L.length-1)];if(hunt){a=L.reduce((m,i)=>Math.hypot(G.towns[i].x-G.p.x,G.towns[i].y-G.p.y)<Math.hypot(G.towns[m].x-G.p.x,G.towns[m].y-G.p.y)?i:m,L[0])}
  if(G.towns[a].own!==h.id)a=L[0];const A=G.towns[a],r=!hunt&&a!==b?wsRoute(a,b):null;
- return wsAdd({x:A.x,y:A.y+(okAt(A.x,A.y+TS)?TS:0),f:h.id,goal:'patrol',from:a,to:hunt?undefined:b,hunt:hunt?1:undefined,legs:0,mult:Math.round((hunt?.8:.8+(HPERS[h.pers].patrols?.15:0))*100+rnd()*30)/100,pts:r?wsCopy(r):[{x:Math.round(A.x),y:Math.round(A.y+(okAt(A.x,A.y+TS)?TS:0))}]})}   // a house of one town (or a hunt) has no road to walk: it keeps a one-point patrol
+ return wsAdd({x:A.x,y:A.y+(okAt(A.x,A.y+TS)?TS:0),f:h.id,goal:'patrol',from:a,to:hunt?undefined:b,hunt:hunt?1:undefined,legs:0,mult:Math.round((hunt?.8:.8+(HPERS[h.pers].patrols?.15:0))*100+rnd()*30)/100,pts:r?wsCopy(r):[{x:Math.round(A.x),y:Math.round(A.y+(okAt(A.x,A.y+TS)?TS:0))}],rd:r?1:undefined})}   // a house of one town (or a hunt) has no road to walk: it keeps a one-point patrol
 function wsSpawnRaid(f,x,y,to,mult,home){const T0=G.towns[to];if(!T0)return null;const r=wsPathTo(x,y,T0.x,T0.y);if(!r)return null;return wsAdd({x,y,f,goal:'raid',to,mult:mult||.8,home:home!=null?home:null,pts:r})}
 /* ---- arrival at the end of a route; returns true when the party leaves the map ---- */
 function wsArrive(p){if(p.cr&&typeof crArrive==='function'&&crArrive(p))return !!p.gone;const T0=G.towns[p.to];
- if(p.goal==='caravan'){if(T0)T0.pros=clamp(svNum(T0.pros,50)+3,0,100);const A=G.towns[p.from];if(A)A.pros=clamp(svNum(A.pros,50)+1,0,100);if(p.esc&&typeof cvEscArrive==='function')cvEscArrive(p);p.gone=1;return true}
+ if(p.goal==='caravan'){if(T0)T0.pros=clamp(svNum(T0.pros,50)+3,0,100);const A=G.towns[p.from];if(A)A.pros=clamp(svNum(A.pros,50)+1,0,100);if(p.esc&&typeof cvEscArrive==='function')cvEscArrive(p);if(p.ctr&&typeof escArrive==='function')escArrive(p);p.gone=1;return true}
  if(p.goal==='raid'){if(T0){const i=p.to;if(!townSit(i,'siege')){townSitAdd(i,'raided',ri(SITS.raided.dur[0],SITS.raided.dur[1]));T0.pros=clamp(svNum(T0.pros,50)-10,0,100);
     worldNews(`${factName(p.f)} raided ${T0.name}`)}}
   p.goal=p.home!=null?'nest':'roam';p.pts=null;p.pi=0;p.life=4;setPatrol(p);return false}
@@ -365,6 +393,7 @@ function wsArrive(p){if(p.cr&&typeof crArrive==='function'&&crArrive(p))return !
 function wsStep(p){if(p.siege!=null||p.siegeT!=null||p.clash)return;   // a party locked in a clash (42-caravans.js) stays where it fights
  if(p.hunt){const dx=G.p.x-p.x,dy=G.p.y-p.y,d=Math.hypot(dx,dy)||1,s=Math.min(d-WSIM.live*.6*TS,WSIM.hunt*TS);if(s>0){const nx=p.x+dx/d*s,ny=p.y+dy/d*s;if(okAt(nx,ny)){p.x=nx;p.y=ny;p.tx=nx;p.ty=ny}}return}
  if(p.idle||!WSROUTE[p.goal]||!Array.isArray(p.pts)||!p.pts.length)return;const tiles=p.spd>0?p.spd:p.goal==='caravan'?WSIM.car:p.goal==='raid'?WSIM.raid:p.goal==='merc'?WSIM.merc:WSIM.pat;
+ if(p.goal==='caravan'&&!p.rd&&!wsReroad(p)){p.gone=1;return}if(p.rd){wsWalk(p,tiles);return}   // caravans keep to the road (old ones are put back on it)
  p.pi+=Math.max(1,Math.round(tiles/3));if(p.pi>=p.pts.length){const q=p.pts[p.pts.length-1];p.x=q.x;p.y=q.y;wsArrive(p);return}const q=p.pts[p.pi];p.x=q.x;p.y=q.y;p.tx=q.x;p.ty=q.y}
 
 /* ---- nests ---- */
@@ -420,7 +449,7 @@ function wsBesiege(h,enemy,news){const L=G.towns.map((t,i)=>i).filter(i=>G.towns
 /* ---- trade: caravans between towns that are open to each other ---- */
 function wsTrade(){let n=0;for(const p of G.parties)if(p.goal==='caravan')n++;const want=Math.max(2,Math.round(G.towns.length/3));
  for(let k=0;k<2&&n<want;k++){const a=ri(0,G.towns.length-1),A=G.towns[a];if(townSit(a,'siege')||townSit(a,'famine'))continue;
-  const L=G.towns.map((t,i)=>i).filter(i=>i!==a&&!townSit(i,'siege')&&houseRelation(A.own,G.towns[i].own)!=='war');if(!L.length)continue;
+  const L=G.towns.map((t,i)=>i).filter(i=>i!==a&&!townSit(i,'siege')&&houseRelation(A.own,G.towns[i].own)!=='war'&&wsLinked(a,i));if(!L.length)continue;   // only along the roads
   L.sort((x,y)=>Math.hypot(G.towns[x].x-A.x,G.towns[x].y-A.y)-Math.hypot(G.towns[y].x-A.x,G.towns[y].y-A.y));const b=L[ri(0,Math.min(3,L.length-1))];if(wsSpawnCaravan(a,b))n++}}
 // a brigand or orc warband out of the wilds raids a town now and then
 function wsRaiders(news){if(rnd()>=.1)return;const ti=ri(0,G.towns.length-1),t=G.towns[ti],f=G.day>=14&&rnd()<.35?'orc':'bandit',pos=randOk(t.x,t.y,8,13);
@@ -439,11 +468,11 @@ function worldDay(){const news=[];worldEnsure();if(G.wsim.day>=G.day)return news
  if(G.day%7===0)for(const f in G.rep){const v=G.rep[f];if(v>0)G.rep[f]=v-1;else if(v<0)G.rep[f]=v+1}
  G.parties=G.parties.filter(p=>!p.gone);if(G.parties.length>WSIM.cap)wsTrim();return news}
 // too many parties: drop the farthest plain bands first
-function wsTrim(){const d=p=>Math.hypot(p.x-G.p.x,p.y-G.p.y);const plain=G.parties.filter(p=>(!p.goal||p.goal==='roam')&&!p.clash).sort((a,b)=>d(b)-d(a)||a.id-b.id);
+function wsTrim(){const d=p=>Math.hypot(p.x-G.p.x,p.y-G.p.y);const plain=G.parties.filter(p=>(!p.goal||p.goal==='roam')&&!p.clash&&!p.ambE).sort((a,b)=>d(b)-d(a)||a.id-b.id);
  const drop=new Set(plain.slice(0,G.parties.length-WSIM.cap).map(p=>p.id));G.parties=G.parties.filter(p=>!drop.has(p.id))}
 /* the old rule, kept for plain bands: those left far behind disperse (at most 2x worldBands() stay), and the land near the company is kept
    at worldBands() of them */
-function wsKeepBands(){const far=34*TS;let near=0,keep=0;const lim=worldBands()*2;G.parties=G.parties.filter(e=>{if(e.goal&&e.goal!=='roam'||e.clash)return true;const d=Math.hypot(e.x-G.p.x,e.y-G.p.y);if(d<far){near++;return true}return ++keep<=lim});
+function wsKeepBands(){const far=34*TS;let near=0,keep=0;const lim=worldBands()*2;G.parties=G.parties.filter(e=>{if(e.goal&&e.goal!=='roam'||e.clash||e.ambE)return true;const d=Math.hypot(e.x-G.p.x,e.y-G.p.y);if(d<far){near++;return true}return ++keep<=lim});
  const want=worldBands()+(G.crisis&&!G.crisis.ended?4:G.crisis?2:0);for(;near<want;near++)spawnParty()}
 function worldBands(){return Math.round(8*Math.sqrt(worldK()))}                     // bands kept near the company: 8 in the small world, a few more in larger ones
 function addPortal(){const pos=randOk(WS/2,WS/2,2,26*WN/64);G.portals.push({id:G.nid++,x:pos.x,y:pos.y,realm:pick(REALMS)})}
@@ -470,9 +499,11 @@ function nearestTown(x,y){let b=0,bd=1e18;for(let i=0;i<G.towns.length;i++){cons
 // Parties with a route (caravans, house patrols, raiders: p.pts walked once, end to end) follow it and arrive (wsArrive); the rest walk
 // their loop. Only parties that are hostile to the company (partyHostile) turn on it, and hunting patrols (p.hunt) seek it out.
 // Parties further than WSIM.live tiles from the company are not moved here: worldDay() advances them a day at a time.
-function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.live*TS;let gone=0;for(const p of G.parties){const dp=Math.hypot(G.p.x-p.x,G.p.y-p.y);if(dp>live)continue;let tx,ty;if(p.clash)continue;   // locked in a clash with a caravan (42-caravans.js): neither side moves
+function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.live*TS;let gone=0;const esc=typeof escOn==='function'?escOn():null;
+ for(const p of G.parties){const dp=Math.hypot(G.p.x-p.x,G.p.y-p.y);if(dp>live)continue;let tx,ty;if(p.clash)continue;
+  if(p.goal==='caravan'&&!p.rd&&!wsReroad(p)){p.gone=1;gone=1;continue}   // a caravan off the road (an old save) is put back on it   // locked in a clash with a caravan (42-caravans.js): neither side moves
   const hostile=partyHostile(p),route=WSROUTE[p.goal]&&Array.isArray(p.pts)&&p.pts.length>0&&!p.siege&&p.siegeT==null;
-  if(hostile&&G.grace<=0&&(dp<(p.ch?sight*1.35:sight)||p.hunt)){p.ch=1;tx=G.p.x;ty=G.p.y}
+  if(hostile&&G.grace<=0&&(dp<(p.ch?sight*1.35:sight)||p.hunt)&&!(esc&&escSpare(p,esc))){if(esc&&!p.ch)escRaidNote(p,esc);p.ch=1;tx=G.p.x;ty=G.p.y}   // escorting: only bands a match for the whole escort come (escSpare)
   else if(p.siege||p.siegeT!=null){p.ch=0;tx=p.tx;ty=p.ty}   // a besieging host (a house's, or a crisis host: p.siegeT) stays in its lines
   else if(p.goal==='merc'&&(p.idle||!route)){p.ch=0;continue}   // a rival company between plans stands where it is
   else if(route){p.ch=0;const q=p.pts[Math.min(p.pi,p.pts.length-1)];if(Math.hypot(q.x-p.x,q.y-p.y)<5){p.pi++;if(p.pi>=p.pts.length){if(wsArrive(p))gone=1;continue}}const q2=p.pts[p.pi];tx=p.tx=q2.x;ty=p.ty=q2.y}
@@ -484,6 +515,7 @@ function moveParties(dt){const sight=bandSight(),wf=weatherFx().spd,live=WSIM.li
  if(gone)G.parties=G.parties.filter(p=>!p.gone)}
 function worldTick(dt){if(!G.roster.length)return;if(G.note&&!sheetOpen){showNote();return}
  if(!sheetOpen&&G.amb&&typeof ambTick==='function'){ambTick();if(G.amb.cel.length&&ambNotify())return}   // a fulfilled ambition or a new renown tier
+ if(typeof escTick==='function'&&escTick(dt))return;   // escorting a caravan: the company marches beside the wagons (42-caravans.js)
  if(!G.moving)return;if(!G.path.length){G.moving=false;return}const p=G.p;let tgt=G.path[0];
  // cut corners only where the straight line is no slower than the planned way (so the company keeps to roads and bridges)
  {let ms=speedAt(p.x,p.y)||.5;const n=Math.min(G.path.length-1,6),mins=[];for(let i=0;i<=n;i++){ms=Math.min(ms,speedAt(G.path[i].x,G.path[i].y)||.5);mins.push(ms)}
