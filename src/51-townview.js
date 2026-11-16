@@ -473,7 +473,7 @@ function tvRoot(){if(TV.root)return TV.root;const r=document.createElement('div'
  TV.root=r;TV.cv=r.querySelector('canvas');TV.g=TV.cv.getContext('2d');return r}
 function tvBadges(t){const hurt=G.roster.filter(m=>m.hp<calc(m).hp).length,c=G.contract;
  return{contracts:TV.paid?{t:'Paid',c:'ok'}:c?{t:'In hand',c:'dim'}:(n=>n?{t:n,c:''}:t.contracts.length?{t:'Taken',c:'dim'}:null)(t.contracts.filter(x=>x&&x.rtook==null).length),
-  tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:lkHostile(G.town)?{t:'Closed',c:'bad'}:null,tailor:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpInjured==='function'?cpInjured().length:0)}}
+  tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:lkHostile(G.town)?{t:'Closed',c:'bad'}:null,tailor:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpTreatable==='function'?cpTreatable().length:0)}}
 function tvRect(e){try{return e.getBoundingClientRect()}catch(_){return null}}
 function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=r.clientWidth||window.innerWidth,vh=r.clientHeight||window.innerHeight;
  const s=Math.max(2,Math.floor(Math.min(vw/300,vh/170))),W=Math.ceil(vw/s),H=Math.ceil(vh/s),tod=tvTod(),bio=tvBiome(t);

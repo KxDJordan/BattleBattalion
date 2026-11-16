@@ -218,6 +218,8 @@ function cpInj(m){if(!m||!Array.isArray(m.inj))return[];const T=typeof INJ!=='un
 function cpInjIcon(id,size){return cpIcon(['inj-'+id,'injury'],size||16)}
 function cpInjDays(j){return j.perm?'Permanent':j.days<=0?'Heals today':j.days===1?'1 day left':j.days+' days left'}
 function cpInjured(){return G&&G.roster?G.roster.filter(m=>cpInj(m).length):[]}
+// the swords the temple can do something for: at least one injury that is not permanent (the temple badges count these)
+function cpTreatable(){return G&&G.roster?G.roster.filter(m=>cpInj(m).some(j=>!j.perm&&cpInjCost(m,j.id)!=null)):[]}
 /* temple price: the rules' injuryCost when it gives one; else 40 crowns plus 15 a day still to heal (permanent wounds cannot be bought off) */
 function cpInjCost(m,id){const j=cpInj(m).find(x=>x.id===id);if(!j)return null;
  if(typeof injuryCost==='function'){let c=null;try{c=injuryCost(m,id)}catch(e){}return cpNum(c)&&c>=0?Math.round(c):null}
