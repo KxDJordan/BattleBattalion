@@ -40,7 +40,7 @@ function newMerc(bg){const b=BG[bg],race=rnd()<.55?'human':pick(['elf','dwarf','
  const tal={};shuffle(Object.keys(base)).slice(0,3).forEach(k=>tal[k]=ri(1,3));
  const trees=rollTrees(bg);let gift=null;
  let x=rnd();for(const [k,p] of (b.r||[])){if(x<p){gift=giftKey(k,b.style||'melee');break}x-=p}   // one resource only
- const eq={w:null,b:null,s:null,a:null,h:null};b.gear.forEach(gs=>{const id=pick(gs.split('|'));if(ITEMS[id])eq[ITEMS[id].k]=id});
+ const eq={w:null,b:null,s:null,a:null,h:null,c:null};b.gear.forEach(gs=>{const id=pick(gs.split('|'));if(ITEMS[id])eq[ITEMS[id].k]=id});
  if(b.side){const id=pick(b.side.split('|'));if(ITEMS[id]&&ITEMS[id].k==='w')eq.b=id}
  if(eq.s&&ITEMS[eq.w]&&ITEMS[eq.w].two)eq.s=null;   // a recruit who carries a two-hander brings no shield
  const traits=rollTraits(bg);
@@ -86,6 +86,7 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
    guard:sh.guard||0,wallB:sh.wallB||0,spike:sh.spike?sh.spike.slice():null};
   if(raised){s.md+=sh.md+sd;s.rd+=sh.rd+sd;if(sh.guard){s.flags.guard=(s.flags.guard||0)+sh.guard;s.flags.shGuard=sh.guard}}}
  if(a){s.arm=a.arm;s.fat-=a.fat;s.md+=a.md||0;s.rd+=a.rd||0}if(h){s.helm=h.arm;s.fat-=h.fat;s.md+=h.md||0;s.rd+=h.rd||0}   // armor and helmets may carry defence (famed rolls)
+ {const c=ITEMS[eq.c];if(c&&c.k==='c'){s.fat-=c.fat||0;s.brv+=c.brv||0;s.md+=c.md||0;s.rd+=c.rd||0;s.init+=c.init||0}}   // the surcoat over the armor (47-tailor.js)
  s.aw=(a?a.fat||0:0)+(h?h.fat||0:0);if(s.flags.ironLung)s.fat+=Math.floor(s.aw/2);   // aw: what armor and helmet weigh (Nimble); Iron lung gives half of it back
  if(typeof legendPow==='function'){if(wi&&wi.power)legendPow(s,wi.power);if(sh&&sh.power&&raised)legendPow(s,sh.power);if(a&&a.power)legendPow(s,a.power);if(h&&h.power)legendPow(s,h.power)}   // legendary powers (25-legend.js): the weapon in hand, a raised shield, armor, helmet
  for(const id of (wpn.sk||[]).concat(raised&&sh.sk||[]))if(AB[id]&&!s.abs.includes(id))s.abs.push(id);

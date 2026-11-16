@@ -42,7 +42,7 @@ function pnIcon(k,cls,size){const n=PNPX[k]||k,c='pn-i px'+(cls?' '+cls:'');size
  if(PNOWN[k]){const u=pxURL('pn:'+k,PNOWN[k],1);if(u)return`<i class="${c}" style="width:${size}px;height:${size}px;background-image:url(${u})" aria-hidden="true"></i>`}
  if(!PICON[k])return typeof pxIcon==='function'?pxIcon(n,size,c):'';
  return`<svg class="pn-i${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${PICON[k]||''}</svg>`}
-function itemIconName(id){let it=ITEMS[id];if(!it)return'fist';if(it.legend&&pnHasPx('it-'+id))return'it-'+id;if(it.famed&&it.base&&ITEMS[it.base]){id=it.base;it=ITEMS[id]}if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
+function itemIconName(id){let it=ITEMS[id];if(!it)return'fist';if(it.k==='c'&&typeof coatIconName==='function')return coatIconName(id);if(it.legend&&pnHasPx('it-'+id))return'it-'+id;if(it.famed&&it.base&&ITEMS[it.base]){id=it.base;it=ITEMS[id]}if(pnHasPx('it-'+id))return'it-'+id;   // each item's own drawing (tier, shield shape)
 if(it.k==='t')return typeof tgIcon==='function'?tgIcon(id):'stash';if(it.k==='s')return'shield';if(it.k==='h')return'helmet';if(it.k==='a')return it.arm<=60?'armor-light':it.arm<=150?'armor-medium':'armor-heavy';return it.wt||'sword'}
 function pnItemIcon(id,size){const n=itemIconName(id);return pnFamedWrap(id,pnHasPx(n)||PNOWN[n]?pnIcon(n,'',size):pnIcon(n.indexOf('armor')===0?'armor':({mace:'axe',dagger:'sword',fist:'sword'})[n]||n,'',size))}
 /* ---- famed items in every list: a gold glow around the icon (.famed wrapper), a gold name, a Famed tag, the improvements ---- */
@@ -77,6 +77,7 @@ function pnEmpty(t){return`<div class="pn-empty">${t}</div>`}
 /* signed comparison chips between an item and what a slot holds now */
 function itemDeltas(id,cur){const a=ITEMS[id],b=cur?ITEMS[cur]:null,out=[],add=(v,u)=>{if(v)out.push({v,u})};
  if(a&&a.k==='t')return out;
+ if(a&&a.k==='c'){add((a.brv||0)-(b&&b.brv||0),'resolve');add((a.md||0)-(b&&b.md||0),'melee def');add((a.rd||0)-(b&&b.rd||0),'ranged def');add((a.init||0)-(b&&b.init||0),'initiative');add((b?b.fat||0:0)-(a.fat||0),'fatigue');return out}
  if(a.k==='w'){const c=b||FIST;add(Math.round((a.d[0]+a.d[1]-c.d[0]-c.d[1])/2),'dmg');add((c.ap||4)-(a.ap||4),'AP');add((a.hit||0)-(c.hit||0),'to hit');add(Math.round(((a.ign||0)-(c.ign||0))*100),'% pierce');add((a.rng||1)-(c.rng||1),'range')}
  else if(a.k==='s'){add(a.md-(b?b.md:0),'melee def');add(a.rd-(b?b.rd:0),'ranged def');add((b?b.fat:0)-a.fat,'fatigue')}
  else{add(a.arm-(b?b.arm:0),a.k==='h'?'head armor':'armor');add((a.md||0)-(b&&b.md||0),'melee def');add((a.rd||0)-(b&&b.rd||0),'ranged def');add((b?b.fat||0:0)-(a.fat||0),'fatigue')}return out}
@@ -86,12 +87,12 @@ function pnDeltaChips(id,cur){if(id===cur)return'<span class="pn-d same">Same</s
 function pnTgWorth(i){const v=+(i.v!=null?i.v:i.price!=null?i.price:i.val!=null?i.val:i.cost)||0;return Math.round(v)}
 function pnTgFacts(id){const i=ITEMS[id],G0=typeof GOODS==='object'&&GOODS&&i.good?GOODS[i.good]:null,made=G0&&typeof G!=='undefined'&&G&&Array.isArray(G.towns)?G.towns.filter(t=>t&&(t.good===i.good||(Array.isArray(t.goods)&&t.goods.includes(i.good)))).map(t=>t.name):[];
  return[['Worth',pnTgWorth(i)+' crowns'],G0?['Trade good',G0.n]:null,made.length?['Made in',made.slice(0,3).join(', ')+(made.length>3?' and '+(made.length-3)+' more':'')]:null,['Sells best','Where it is not made'],['Weight','Rides in the wagons']]}
-function itemFacts(id){if(ITEMS[id]&&ITEMS[id].k==='t')return pnTgFacts(id);const i=ITEMS[id],rg=typeof isRangedW==='function'&&isRangedW(i),sg=v=>(v<0?'−':'+')+Math.abs(v),df=x=>x.md||x.rd?[x.md?['Melee defense',sg(x.md)]:null,x.rd?['Ranged defense',sg(x.rd)]:null]:[];
+function itemFacts(id){if(ITEMS[id]&&ITEMS[id].k==='t')return pnTgFacts(id);if(ITEMS[id]&&ITEMS[id].k==='c'){const i=ITEMS[id];return[['Resolve','+'+(i.brv||0)],i.md?['Melee defense','+'+i.md]:null,i.rd?['Ranged defense','+'+i.rd]:null,i.init?['Initiative','+'+i.init]:null,['Fatigue',i.fat?'−'+i.fat:'0'],['Worn','Over the body armor'],['Colours',typeof coatColoursText==='function'?coatColoursText():'The banner']]}const i=ITEMS[id],rg=typeof isRangedW==='function'&&isRangedW(i),sg=v=>(v<0?'−':'+')+Math.abs(v),df=x=>x.md||x.rd?[x.md?['Melee defense',sg(x.md)]:null,x.rd?['Ranged defense',sg(x.rd)]:null]:[];
  if(i.k==='w')return[['Damage',`${i.d[0]}–${i.d[1]}`],['AP a swing',i.ap],['Fatigue a swing',i.fat],[rg?'Range':'Reach',i.rng>1?i.rng+' tiles':'Adjacent'],['Ignores armor',Math.round(i.ign*100)+'%'],i.hit?['To hit',sg(i.hit)]:null,i.reload?['Reload',i.reload.ap+' AP']:null,i.crush?['Crushes armor','+'+Math.round(i.crush*100)+'%']:null,i.stun?['Stun chance',Math.round(i.stun*100)+'%']:null,i.spell?['Spell damage','+'+Math.round(i.spell*100)+'%']:null,['Grip',i.two?'Two-handed':'One-handed']];
  if(i.k==='s')return[['Melee defense','+'+i.md],['Ranged defense','+'+i.rd],['Shield hitpoints',i.hp||48],['Fatigue','−'+i.fat],i.guard?['Covers allies','−'+i.guard+' to be shot']:null,i.wallB?['Shield wall','+'+i.wallB]:null,i.spike?['Spiked bash',i.spike[0]+'–'+i.spike[1]]:null];
  if(i.k==='h')return[['Head armor',i.arm],['Fatigue','−'+(i.fat||0)],...df(i),['Guards','Blows to the head']];return[['Armor',i.arm],['Fatigue','−'+i.fat],...df(i)]}
 const ITKIND={dagger:'Dagger',mace:'Mace',sword:'Sword',axe:'Axe',spear:'Spear',bow:'Bow',staff:'Staff',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Firearm'};
-function itemKind(id){const i=ITEMS[id],k=i.k==='t'?'Trade good':i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.legend?'Legendary '+k.toLowerCase():i.famed?'Famed '+k.toLowerCase():k}
+function itemKind(id){const i=ITEMS[id],k=i.k==='c'?'Surcoat':i.k==='t'?'Trade good':i.k==='s'?'Shield':i.k==='a'?'Armor':i.k==='h'?'Helmet':ITKIND[i.wt]||'Weapon';return i.legend?'Legendary '+k.toLowerCase():i.famed?'Famed '+k.toLowerCase():k}
 
 function pnSheetUp(){const s=$('sheet');return!!(s&&!s.classList.contains('hidden')&&s.getClientRects().length)}
 function pnAssert(){if(!PN.id)return;sheetOpen=true;if(G&&PN.town)G.townOpen=true}

@@ -744,9 +744,9 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
  if(bowA&&v)drawW();
  if(wFar){if(!aimF){if(!bowA)drawW();drawWA(1)}pauld(wslot,1)}else{drawOA(1);pauld(oslot,1)}
  if(!S.float)usLegs(S,A,v,P,nearL);
- usGl=S.av&&(S.av.gold||S.av.lg)?1:0;usTorso(S,A,v,P,x0,ty);usSkirt(S,A,v,P,x0,ty);usGl=0;
+ usGl=S.av&&(S.av.gold||S.av.lg)?1:0;usTorso(S,A,v,P,x0,ty);usSkirt(S,A,v,P,x0,ty);usGl=0;if(S.coat)usCoat(S,A,v,P,x0,ty);
  if(S.cape&&v===1){usPart();const cr=S.cape;for(let y=ty;y<=-3+(P.kneel?2:0);y++){const e=y>ty+th?1:0;for(let x=x0-e+(y===ty?1:0);x<=x1+e-(y===ty?1:0);x++)if(y<-3||((x+y)&1))usP(x,y,cr,b.big?(((x-x0)%5===2&&y>ty+1)?1:((x-x0)%5===3&&y>ty+3)?-1:0):((x===x0+2||x===x1-2)&&y>ty+2?-1:0))}
-  if(b.big&&S.trimR){usP(x0+1,ty,S.trimR);usP(x0+2,ty,S.trimR,-1);usP(x1-1,ty,S.trimR,-1);usP(x1-2,ty,S.trimR);if(S.capeFn)S.capeFn(ctx)}}
+  if(b.big&&S.trimR){usP(x0+1,ty,S.trimR);usP(x0+2,ty,S.trimR,-1);usP(x1-1,ty,S.trimR,-1);usP(x1-2,ty,S.trimR);if(S.capeFn)S.capeFn(ctx)}if(S.coat)usCoatCape(S,x0,ty)}
  if(S.quiver){usPart();if(v){for(let i=0;i<th-1;i++){const x=x0+1+Math.round(i*.5);usP(x,ty+i,USR.dleather);usP(x+1,ty+i,USR.dleather,-1)}usP(x0,ty-1,'l');usP(x0+1,ty-1,'g');usP(x0,ty-2,'l')}else{usP(x0,ty-1,USR.dleather);usP(x0-1,ty-2,'l');usP(x0,ty-2,'g')}}
  if(!b.big){if(v===1&&(S.altCls==='bow'||S.altCls==='back'||S.slung))usStowBack(S,1,x0,x1,ty,th);if(S.altCls)usStowHip(S,v,x0,x1,ty,th)}
  if(S.mid)S.mid(ctx);
@@ -775,7 +775,7 @@ function usHumanStand(S,v){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.A,al=
  const ctx={S,v,P,x0,x1,ty,hcx:0,hy0:ty-b.hh,fr:2,st:'death',lie:1};
  if(S.back)S.back(ctx);
  usArm(S,A,shx(nearL?'R':'L'),sy,shx(nearL?'R':'L')+(nearL?1:-1),sy+al-1,1);
- if(!S.float)usLegs(S,A,v,P,nearL);usTorso(S,A,v,P,x0,ty);usSkirt(S,A,v,P,x0,ty);
+ if(!S.float)usLegs(S,A,v,P,nearL);usTorso(S,A,v,P,x0,ty);usSkirt(S,A,v,P,x0,ty);if(S.coat)usCoat(S,A,v,P,x0,ty);
  if(S.cape&&v===1){usPart();for(let y=ty;y<=-3;y++)for(let x=x0;x<=x1;x++)usP(x,y,S.cape,0)}
  usHead(S,v,0,ty-b.hh);
  if(S.shield&&v===0)usShield(S.shield,nearL?x1:x0,sy+3,S.shR,0);
@@ -968,7 +968,7 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
  usSetAlt(S,alt);
  S.res=typeof mercRes==='function'?mercRes(m):null;S.quiver=S.wd.cls==='bow'||S.altCls==='bow';
  if(S.shield||S.slung){const k=usShLook(eq.s);if(S.shield)S.shield=k;else S.slung=k}
- S.famed=!!(S.wd&&S.wd.famed)||!!(S.av&&(S.av.gold||S.av.lg))||/\*$/.test(S.shield||'')||!!(US_SHV[S.shield]&&US_SHV[S.shield].lg)||S.famH;S.lgd=['w','a','h','s'].some(k=>ITEMS[k==='w'?wid:eq[k]]&&ITEMS[k==='w'?wid:eq[k]].legend);usLookSpec(S,P);usLivery(S,m);return S}
+ S.famed=!!(S.wd&&S.wd.famed)||!!(S.av&&(S.av.gold||S.av.lg))||/\*$/.test(S.shield||'')||!!(US_SHV[S.shield]&&US_SHV[S.shield].lg)||S.famH;S.lgd=['w','a','h','s'].some(k=>ITEMS[k==='w'?wid:eq[k]]&&ITEMS[k==='w'?wid:eq[k]].legend);usLookSpec(S,P);usLivery(S,m);if(typeof usCoatOfMerc==="function"){S.coat=usCoatOfMerc(m);if(S.coat&&S.mid===usGarb)S.mid=null}return S}
 /* the sashimono: a banner pole up the back with a narrow flag and the mon (fl: the flag ramp, mk: the mon's key, big: a gilt finial) */
 function usSashi(c,fl,mk,big){if(c.lie)return;const S=c.S,dir=c.v?1:-1,x=c.v?((c.x0+c.x1)>>1)+1:c.x0+1,top=c.hy0-(big?9:8),y1=c.ty+3,sw=c.st==='walk'?(c.fr&1):0;usPart();for(let y=top;y<=y1;y++)usP(x,y,USR.dwood,y===top?1:0);
  if(big){usPart();usP(x,top-1,USR.gold,1);usP(x+dir,top-2,USR.gold);usP(x-dir,top-2,USR.gold,1)}
@@ -1133,28 +1133,29 @@ function usHand(u,o){o=o||US_H;let ov=null;try{if(typeof anHandOv==='function')o
  const base=(u.wpn0&&u.wpn0.wt)||(d.w&&ITEMS[d.w]&&ITEMS[d.w].wt)||(d.rng?'bow':'sword'),sw=!!(u.wpn&&u.wpn.wt&&u.wpn.wt!==base&&!d.spell);o.w=sw?d.side:'@main';o.a=sw?'@main':d.side;return o}
 const usHK=x=>x==null?'-':typeof x==='object'?(x.wt||'?')+(x.two?'2':''):String(x);
 function usLd(u){return u&&u.loaded===false?0:1}
-function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+usHK(H.w)+':'+usHK(H.a)+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+usShs(u)+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+usColSig(m)+':'+usLd(u)}
- if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a)+':'+usLd(u);return'x:?'}
+function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+usHK(H.w)+':'+usHK(H.a)+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+usShs(u)+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+usColSig(m)+':'+usLd(u)+':'+usCoatSig(u)}
+ if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a)+':'+usLd(u)+':'+usCoatSig(u);return'x:?'}
 /* what the shield in hand looks like now: 0 whole, 1 cracked (half its hitpoints gone), 2 split (gone); 3 a merc whose shield the foes smashed */
 function usShs(u){if(!u)return 0;if(u.shpMax>0)return!(u.shield||(u.slung&&u.shp>0))?2:u.shp<=u.shpMax*.5?1:0;return u.sund?2:0}
 function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=usHand(u),hw=H.w,ha=H.a,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null,ld=usLd(u);
- if(c&&c.shs===shs&&c.hw===hw&&c.ha===ha&&c.cs===cs&&c.ld===ld&&(!cs||c.sig===usColSig(m))&&(!e||(c.s===e.s&&c.a===e.a&&c.h===e.h)))return c.L;
+ const cv=usCoatSig(u);if(c&&c.cv===cv&&c.shs===shs&&c.hw===hw&&c.ha===ha&&c.cs===cs&&c.ld===ld&&(!cs||c.sig===usColSig(m))&&(!e||(c.s===e.s&&c.a===e.a&&c.h===e.h)))return c.L;
  const key=usLookKey(u);let L=US.looks.get(key);
  if(!L){let S=null;try{S=u.m&&u.m.eq?usMercSpec(u.m,{w:hw,a:ha}):usEnemySpec(usEnKey(u.def)||u.eid,u)}catch(er){S=null}
   if(!S)S={kind:'hum',seed:1,b:US_BUILD.human,skin:usSkin(['s','t','u','i']),armor:'rags',wd:usWdef('fist')};
   if(u.def&&S.kind==='hum'){const main=S.wd;if(hw!=='@main'&&hw){S.wd=usWdef(usWpnOf(hw));S.quiver=S.quiver||main.cls==='bow'}if(ha)usSetAlt(S,ha==='@main'?main:ha)}   // an archer's sidearm: in hand once it has swapped, else at the belt
   if(u.def&&S.kind==='hum'&&u.shpMax>0&&!S.shield&&!(S.wd&&S.wd.two)){S.shield=u.shpMax>=60?'heater':'buckler';if(!S.shR)S.shR=usCloth(u.f==='bandit'?'night':'red')}   // an enemy type that carries a shield in the rules shows one
+  if(u.def&&S.kind==='hum'&&cv&&typeof usHouseDress==='function'){try{S=usHouseDress(S,u,unitCoat(u))}catch(er){}}   // house soldiers in their house's coat and colours (73c-coats.js)
   if(shs===2){S.shield=null;S.slung=null}else if(shs===1&&S.shield)S.shCrack=1;
   const id=u.def?usEnKey(u.def)||u.eid:null;if(id==='wolf')S={kind:'quad',Q:US_WOLF};else if(id==='bear')S={kind:'quad',Q:US_BEAR,b:{big:1}};else if(id==='spider')S={kind:'spider'};
   const big=S.kind==='quad'?(S.Q.big?1:0):S.kind==='spider'?0:(S.b.big?1:0);
   L={key,S,big,fr:new Array(4*US_NF).fill(null)};US.looks.set(key,L);
   if(US.looks.size>160){const k0=US.looks.keys().next().value;US.looks.delete(k0)}}
- L.S.ld=ld;if(u&&typeof u==='object')US.byUnit.set(u,{L,hw,ha,s:e?e.s:0,a:e?e.a:0,h:e?e.h:0,shs,cs,ld,sig:cs?usColSig(m):''});return L}
+ L.S.ld=ld;if(u&&typeof u==='object')US.byUnit.set(u,{L,cv,hw,ha,s:e?e.s:0,a:e?e.a:0,h:e?e.h:0,shs,cs,ld,sig:cs?usColSig(m):''});return L}
 function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?performance.now():0,S=L.S,v=face>=2?1:0,mir=face===1||face===2,d=US_DIM[L.big];
- usBegin(L.big);usCrk=S.shCrack?1:0;
+ usBegin(L.big);usCrk=S.shCrack?1:0;if(S.coat)usCoatHDBegin();else US_EM.on=false;
  try{if(S.kind==='quad')usQuad(S.Q,v,mir,st,fr);else if(S.kind==='spider')usSpider(v,mir,st,fr);else usHuman(S,v,mir,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.err){US.err=1;console.error('unit sprite',L.key,st,fr,e)}}
- if(typeof uhOut==='function'&&uhOn()){const o=uhOut(usG,L.big||S.armor==='plate',d.ax,d.ay,S.famed&&st!=='death',S.lgd);if(o){o.r=ARTHD.rev;US.builds++;if(t0)US.ms+=performance.now()-t0;return o}}   // Detail High: the HD figure (73h-unitshd.js)
- const cv=usResolve(usG,L.big||S.armor==='plate');let gl=null;if(S.famed&&st!=='death'){const Z=usG.Z,w=usG.w,a=[],on=i=>i>=0&&i<Z.length&&Z[i]&&usGL[Z[i]];for(let i=0;i<Z.length;i++)if(on(i)&&(!on(i-1)||!on(i+1)||!on(i-w)||!on(i+w)))a.push(i);if(a.length){a.sort((p,q)=>(p%w-((p/w)|0))-(q%w-((q/w)|0)));gl={a,w,lg:!!S.lgd}}}
+ if(typeof uhOut==='function'&&uhOn()){const o=uhOut(usG,L.big||S.armor==='plate',d.ax,d.ay,S.famed&&st!=='death',S.lgd);if(o){if(US_EM.L.length)usCoatHD(o,d,mir);o.r=ARTHD.rev;US.builds++;if(t0)US.ms+=performance.now()-t0;return o}}   // Detail High: the HD figure (73h-unitshd.js)
+ if(US_EM.L.length)usCoatLo(mir);const cv=usResolve(usG,L.big||S.armor==='plate');let gl=null;if(S.famed&&st!=='death'){const Z=usG.Z,w=usG.w,a=[],on=i=>i>=0&&i<Z.length&&Z[i]&&usGL[Z[i]];for(let i=0;i<Z.length;i++)if(on(i)&&(!on(i-1)||!on(i+1)||!on(i-w)||!on(i+w)))a.push(i);if(a.length){a.sort((p,q)=>(p%w-((p/w)|0))-(q%w-((q/w)|0)));gl={a,w,lg:!!S.lgd}}}
  US.builds++;if(t0)US.ms+=performance.now()-t0;return{cv,ax:d.ax,ay:d.ay,gl,r:ARTHD.rev}}
 /* famed gear glints: a gold highlight runs along the famed weapon / armor / shield every ~1.5 s (4 precomputed frames per sprite frame, built on demand); still under reduced motion */
 function usRM(){try{if(typeof reduced!=='undefined'&&reduced)return true;if(typeof SET!=='undefined'&&SET&&SET.motion==='reduce')return true}catch(e){}return false}

@@ -35,7 +35,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
    row.arm=Math.max(0,c0.a-a);row.helm=Math.max(0,c0.h-h);res.armorLost+=row.arm;res.helmLost+=row.helm;row.hp=m.hp;
    row.inj=unitNewInj(u,snap).map(j=>({id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}));row.inj.forEach(j=>res.injuries.push({name:m.name,id:j.id,n:j.n,d:j.d,days:j.days,perm:j.perm}))}
   rows.set(m,row);res.men.push(row)}
- G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
+ G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h','c'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
  if(b.rival)rivalResolve(b,res,win);   // the rival company's dead, wounded and fled; its purse, gear and a beaten sword who asks to join
  if(win)res.cargo=caravanCargo(b.opts.src);
  if(win){const en=b.units.filter(u=>u.side!==0);en.forEach(e=>res.xp+=Math.round((e.def&&e.def.xp||(e.m?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))*(e.elite&&typeof eliteXpK==='function'?eliteXpK(e):1)));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=(typeof followerHas==='function'&&followerHas('drill')?1.2:1)*(typeof originK==='function'?originK('xp'):1);res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%

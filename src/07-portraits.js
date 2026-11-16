@@ -327,7 +327,7 @@ function ptBust(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  if(bg[2])for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y<16)C[y][x]=bg[2];
  if(P.under)P.under(C);if(P.prop)ptProp(C,P);
  const sh=ptShield(P),wp=ptWeapon(P);
- ptOver(C,P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P));if(sh)ptOver(C,sh);if(wp)ptOver(C,wp);               // shield and weapon are held in front of the body; the head stays on top
+ ptOver(C,P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P));if(P.coat&&typeof ptCoatLayer==="function"){const cl=ptCoatLayer(P);if(cl)ptOver(C,cl);ptCoatEmPaint(C,P)}if(sh)ptOver(C,sh);if(wp)ptOver(C,wp);               // shield and weapon are held in front of the body; the head stays on top
  const hd=ptHead(P,R),L=hd.L,E=hd.E;
  if(P.hairBack)P.hairBack(L,E);
  ptHair(L,P,E,R);if((P.ears==='elf'&&P.hat!=='hood')||P.ears==='gob')ptEars(L,P,E);ptBeard(L,P,E);
@@ -583,7 +583,7 @@ function ptMercSpec(m){const FB=m.fabled&&typeof FABLED==='object'?FABLED[m.fabl
  const w=ITEMS[eq.w];if(w&&typeof usWeaponPtRows==='function'){try{P.wrows=usWeaponPtRows(usWpnOf(eq.w))}catch(e){P.wrows=null}}
  if(w&&!P.wrows){const nw=typeof usWpnOf==='function'&&PT_NEWW[w.wt]?PT_WPNOF[usWpnOf(eq.w)]:null;P.wpn=nw||(eq.w==='riftedge'?'rift':eq.w==='focus'?'focus':eq.w==='pike'?'pike':eq.w==='greataxe'?'axe':eq.w==='club'?'club':w.wt==='axe'?'axe1':w.wt)}
  if(ITEMS[eq.s]){P.shield=typeof usShLook==='function'?usShLook(eq.s):eq.s;P.shC=ptPick(R,['red','blue','green','purple','white'])}
- ptLookBody(P,m,R);if(hid)P.veil=null;ptLivery(P,m);if(P.av&&P.av.ptC){P.clothC=P.av.ptC;P.robeC=P.av.ptC}if(P.shield&&typeof usShieldPtRows==='function'){const c=ptCl(P.shC)||PT_CLOTH.red;try{P.shRows=usShieldPtRows(P.shield,usRamp(c.join(''),1))}catch(e){P.shRows=null}}
+ ptLookBody(P,m,R);if(hid)P.veil=null;ptLivery(P,m);if(typeof usCoatOfMerc==="function")P.coat=usCoatOfMerc(m);if(P.av&&P.av.ptC){P.clothC=P.av.ptC;P.robeC=P.av.ptC}if(P.shield&&typeof usShieldPtRows==='function'){const c=ptCl(P.shC)||PT_CLOTH.red;try{P.shRows=usShieldPtRows(P.shield,usRamp(c.join(''),1))}catch(e){P.shRows=null}}
  if(race==='dwarf'){P.wy=3}
  P.gem=typeof mercRes==='function'?mercRes(m):null;
  if(FB)ptFabled(P,FB,!!hid);
@@ -697,7 +697,7 @@ const PT_BEAST={
  '........0llllllkjmmmmmm0........',
  '.........0lllllllmmmmm0.........',
  '.........0llllllmmmmmm0.........']};
-function ptEnemyRows(id,f){const seed=ptHash('en:'+id),bg=['f','1','g'].slice(0,2),B=o=>ptBust(Object.assign({seed,bg,face:{},marks:{}},o));
+function ptEnemyRows(id,f,co){const seed=ptHash('en:'+id),bg=['f','1','g'].slice(0,2),B=o=>ptBust(typeof ptCoatDress==='function'&&co?ptCoatDress(Object.assign({seed,bg,face:{},marks:{}},o),co):Object.assign({seed,bg,face:{},marks:{}},o));
  const beast=k=>{const C=ptL(bg[0]);for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)C[y][x]=bg[1];ptSt(C,PT_BEAST[k],0,0);return C.map(r=>r.join(''))};
  switch(id){
  case'gob':return B({head:PT_HEAD.gob,skin:PT_SKIN.gob,ears:'gob',ey:14,my:18,build:'slim',armor:'rags',ragC:'brown',face:{eye:3,iris:'0',white:'y',brow:9,nose:5,mouth:5,nolip:1},hat:'cap',wpn:'dagger',wx:-1});
@@ -747,10 +747,10 @@ function ptVoidHelm(L,E){for(let y=E.y0-1;y<=E.y1;y++){const x0=y<E.y0?E.X0(E.y0
 /* ---- public API ---- */
 let PT_HELMS=null;function ptHelmsExist(){if(PT_HELMS===null){PT_HELMS=false;for(const k in ITEMS)if(ITEMS[k].k==='h'){PT_HELMS=true;break}}return PT_HELMS}
 function ptKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?'e:'+x:null;
- const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+(m.fabled?'F'+m.fabled:m.id)+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)}
- if(x.def){for(const k in EN)if(EN[k]===x.def)return'e:'+k;if(x.eid&&EN[x.eid])return'e:'+x.eid}return null}
+ const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+(m.fabled?'F'+m.fabled:m.id)+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)+(typeof coatOf==='function'&&coatOf(m)?':'+coatOf(m)+'|'+mercLivery(m).sig:'')}
+ if(x.def){let k0=null;for(const k in EN)if(EN[k]===x.def){k0=k;break}if(!k0&&x.eid&&EN[x.eid])k0=x.eid;if(!k0)return null;const cs=typeof usCoatSig==='function'?usCoatSig(x):'';return'e:'+k0+(cs?'@'+cs:'')}return null}
 function portraitRows(x){let key=null;try{key=ptKey(x)}catch(e){}if(!key)key='e:?';let r=PTC.rows.get(key);if(r)return r;
- try{if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;r=ptBust(ptMercSpec(m))}else r=ptEnemyRows(key.slice(2),x&&x.f)}catch(e){r=null}
+ try{if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;r=ptBust(ptMercSpec(m))}else{const p=key.slice(2).split('@');r=ptEnemyRows(p[0],x&&x.f,p[1]&&typeof ptUnitCoat==='function'?ptUnitCoat(x):null)}}catch(e){r=null}
  if(!r)r=ptL('2').map(a=>a.join(''));if(PTC.rows.size>PTC.max){PTC.rows.clear();PTC.cv.clear();PTC.url.clear()}PTC.rows.set(key,r);r.key=key;return r}
 /* monster art (76-monsters.js) paints its own enemies' portraits: monsterPortrait(typeId) -> 32x32 canvas or null */
 function ptMonKey(x){if(!x||x.m||typeof monsterPortrait!=='function')return null;if(x.base&&x.eq)return null;if(typeof x==='string')return x;if(x.vip&&typeof MSK==='object'&&MSK[x.vip])return x.vip;if(x.def){if(x.eid&&EN[x.eid]===x.def)return x.eid;for(const k in EN)if(EN[k]===x.def)return k;return x.eid||null}return null}

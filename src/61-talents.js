@@ -132,7 +132,7 @@ function autoLearn(m){const got=[];if(!m||!Array.isArray(m.perks))return got;con
    slot w (main weapon) and b (sidearm) take any weapon; s takes a shield unless both weapons are two-handed; a / h body armor and helmets.
    A shield with a two-handed weapon in the main hand starts every battle slung (raised once a one-handed weapon or nothing is in hand). */
 function equipRules(m,slot,id){const it=ITEMS[id];if(!it)return{ok:false,why:'Unknown item'};const want=slot==='b'?'w':slot;
- if(!['w','b','s','a','h'].includes(slot)||it.k!==want)return{ok:false,why:'That does not go in this slot'};
+ if(!['w','b','s','a','h','c'].includes(slot)||it.k!==want)return{ok:false,why:'That does not go in this slot'};
  const eq=m.eq||{},two=x=>!!(ITEMS[x]&&ITEMS[x].k==='w'&&ITEMS[x].two);
  if(slot==='s'){if(two(eq.w)&&two(eq.b))return{ok:false,why:'Both weapons are two-handed: no hand is free for a shield'};
   if(two(eq.w))return{ok:true,why:'Slung on the back while the two-handed weapon is in hand; raised after a swap',slung:true};return{ok:true,why:''}}

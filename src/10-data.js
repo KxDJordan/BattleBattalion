@@ -175,6 +175,19 @@ Object.assign(ITEMS,{
   hood:1,armcap:1,cap:1,coif:2,spangen:2,kettle:3,nasal:3,sallet:4,barbute:4,bascinet:4,greathelm:5,armet:5};
  for(const id in ITEMS){const i=ITEMS[id];i.tier=T[id]||(i.price<150?1:i.price<450?2:i.price<1100?3:i.price<2400?4:5);if(!i.look)i.look=id}}
 for(const id of ['shortbow','warbow'])ITEMS[id].shot='arrow';
+/* ---- Surcoats (k:'c', worn in m.eq.c over the body armor): sleeveless cloth coats in the wearer's colours: the banner's field (c1)
+   with its charge (c2) and emblem on the chest and the back (the company's for its swords, a house's for its soldiers). Sold only by
+   tailors (47-tailor.js); uniq keeps them off the market stalls and out of loot. Small numbers: resolve, a little weight, the odd
+   point of defense. coat = the cut the art draws: tabard (short, open at the sides), surcoat (long, split at the front), quilted
+   (padded, mid-thigh), mantle (a tabard under a shoulder cape), herald (long and fine, a bordered hem), jinbaori (eastern, open front). */
+Object.assign(ITEMS,{
+ tabard:{k:'c',n:'Tabard',coat:'tabard',brv:3,fat:0,price:70,tier:1,look:'tabard',uniq:1,tailor:1,d:'A short sleeveless tunic in the company colours, open at the sides over the armor.'},
+ surcoat:{k:'c',n:'Surcoat',coat:'surcoat',brv:5,fat:1,price:160,tier:2,look:'surcoat',uniq:1,tailor:1,d:'A long coat of arms worn over the armor, split at the front for the march.'},
+ quiltcoat:{k:'c',n:'Padded surcoat',coat:'quilted',brv:3,md:1,fat:2,price:220,tier:2,look:'quiltcoat',uniq:1,tailor:1,d:'A quilted gambeson cut as a surcoat: it takes the edge off a blow.'},
+ mantletabard:{k:'c',n:'Mantled tabard',coat:'mantle',brv:4,rd:1,fat:1,price:300,tier:3,look:'mantletabard',uniq:1,tailor:1,d:'A tabard under a short shoulder cape that turns the odd arrow.'},
+ heraldcoat:{k:'c',n:'Heraldic coat',coat:'herald',brv:7,rd:1,fat:1,price:650,tier:3,look:'heraldcoat',uniq:1,tailor:1,d:'Fine wool, the charge embroidered large and a bordered hem: the colours worn with pride.'},
+ jinbaori:{k:'c',n:'Jinbaori',coat:'jinbaori',brv:5,init:2,fat:1,price:480,tier:3,look:'jinbaori',uniq:1,tailor:1,east:1,d:'An eastern sleeveless campaign coat with the mon on the back. Only eastern tailors cut it.'}
+});
 const RANGEDWT=['bow','crossbow','flintlock'];
 // A ranged weapon (bow, crossbow, flintlock, or an enemy's ranged attack): it shoots with ranged skill, obeys the ranged lock, takes no free attacks.
 function isRangedW(w){return!!(w&&RANGEDWT.includes(w.wt))}
@@ -187,6 +200,7 @@ Object.assign(WSKID,{falchion:['slash'],estoc:['riposte'],bardiche:['split','rou
 Object.assign(SHIELDHP,{targe:36,steelbuckler:44,pavise:100,kite2:84,heater2:96,dwarfround:90});
 for(const id in ITEMS){const i=ITEMS[id];if(i.k==='w')i.sk=WSKID[id]||WSK[i.wt]||[];else if(i.k==='s'){i.sk=SHIELDSK[id]||['shieldwall','bash'];i.hp=SHIELDHP[id]||48}}
 function itemDesc(id){const i=ITEMS[id];if(i.k==='t')return`Trade good, worth ${i.price} crowns where it is not made (half where it is)`;
+ if(i.k==='c'){const L=[];if(i.brv)L.push('+'+i.brv+' resolve');if(i.md)L.push('+'+i.md+' melee def');if(i.rd)L.push('+'+i.rd+' ranged def');if(i.init)L.push('+'+i.init+' initiative');L.push(i.fat?'−'+i.fat+' fatigue':'no weight');return L.join(', ')}
  if(i.k==='w')return`${i.d[0]}–${i.d[1]} dmg, ${i.ap} AP${i.rng>1?(isRangedW(i)?', range ':', reach ')+i.rng:''}${i.two?', two-handed':''}${i.reload?', reload '+i.reload.ap+' AP':''}${i.crush?', crushes armor (+'+Math.round(i.crush*100)+'%)':''}${i.ign>=.5?', '+Math.round(i.ign*100)+'% through armor':''}${i.spell?', +'+Math.round(i.spell*100)+'% spell dmg':''}`;
  if(i.k==='s')return`+${i.md} melee def, +${i.rd} ranged def, ${i.hp} shield hp, −${i.fat} fatigue${i.wallB?', shield wall +'+i.wallB:''}${i.guard?', covers allies beside it (−'+i.guard+' to be shot)':''}${i.spike?', spiked bash '+i.spike[0]+'–'+i.spike[1]:''}`;
  return`${i.arm} ${i.k==='h'?'head ':''}armor, −${i.fat} fatigue`}

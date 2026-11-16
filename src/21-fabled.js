@@ -184,7 +184,7 @@ function fabledStats(F,L){const g=L-1,b={hp:66+Math.round(3*g),fat:106+2*g,init:
  const Bg=BG[F.bg];if(Bg&&Bg.st)for(const k in Bg.st)b[k]=(b[k]||0)+Bg.st[k];   // the background's edge, as a recruit of it has
  const R=RACE[F.race]||RACE.human;for(const k in R.st)b[k]=(b[k]||0)+R.st[k];for(const k in F.st||{})b[k]=(b[k]||0)+F.st[k];return b}
 function fabledMerc(id,o){const F=FABLED[id];if(!F)return null;o=o||{};const L=clamp(Math.floor(o.lvl||F.lvl),1,typeof MAXLV==='number'?MAXLV:15);
- const eq={w:null,b:null,s:null,a:null,h:null};
+ const eq={w:null,b:null,s:null,a:null,h:null,c:null};
  for(const gid of F.gear){const it=ITEMS[gid];if(!it||(!o.keepGear&&fabledOwned(gid)))continue;/* named gear is unique: what the company holds is not worn again */if(it.k==='w'){if(!eq.w)eq.w=gid;else if(!eq.b)eq.b=gid}else if(['s','a','h'].includes(it.k)&&!eq[it.k])eq[it.k]=gid}
  for(const k in F.eq||{}){const pick0=fabledBase(F.eq[k]);if(pick0&&!eq[k]&&ITEMS[pick0].k===k)eq[k]=pick0}
  const hunt=!!(BG[F.bg]&&BG[F.bg].hw>=.5&&MAST.hunter),   // a fabled hunter, poacher, witch hunter or wildling carries the Monster hunter tree as one of the four

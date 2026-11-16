@@ -52,8 +52,8 @@ function phCapture(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y>38||y>=29)C[y][x]=bg[1];
  if(bg[2])for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(x+y<16)C[y][x]=bg[2];
  const c0=phSnap(C);if(P.under)P.under(C);const under=phDiff(c0,C);const c1=phSnap(C);if(P.prop)ptProp(C,P);const prop=phDiff(c1,C);
- const sh=ptShield(P),wp=ptWeapon(P),torso=P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P);
- ptOver(C,torso);if(sh)ptOver(C,sh);if(wp)ptOver(C,wp);
+ const sh=ptShield(P),wp=ptWeapon(P),torso=P.liv?ptLivTorso(ptTorso(P),P):ptTorso(P),coat=P.coat&&typeof ptCoatLayer==='function'?ptCoatLayer(P):null;
+ ptOver(C,torso);if(coat){ptOver(C,coat);ptCoatEmPaint(C,P)}if(sh)ptOver(C,sh);if(wp)ptOver(C,wp);
  const hd=ptHead(P,R),L=hd.L,E=hd.E,tag=new Uint8Array(1024),mark=(A,t)=>{for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(L[y][x]!==A[y][x])tag[y*32+x]=t},
   // pixels a step writes even with the colour already there (a grey helm over grey hair): run it once more over a sentinel copy
   wr=(t,fn)=>{const S=L.map(r=>r.map(k=>k==='.'?'.':'~'));try{fn(S)}catch(e){}for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=S[y][x];if(k!=='~'&&k!=='.')tag[y*32+x]=t}};
@@ -78,7 +78,7 @@ function phCapture(P){const R=ptRng(P.seed||1),bg=P.bg||['3','2'],C=ptL(bg[0]);
  const c2=phSnap(C);if(P.top)P.top(C,E);const top=phDiff(c2,C);
  if(P.top){const S=ptL('~');try{P.top(S,E)}catch(e){}for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(S[y][x]!=='~')top[y][x]=C[y][x]}   // every pixel it writes, even one already that colour
  let gem=null;if(P.gem){const g=PT_RESK[P.gem];if(g){const c3=phSnap(C);ptSt(C,PT_GEM,0,0,{a:g[0],b:g[1]});gem=phDiff(c3,C)}}
- return{rows:C.map(r=>r.join('')),bg,under,prop,torso,sh,wp,head,tag,E,top,gem}}
+ return{rows:C.map(r=>r.join('')),bg,under,prop,torso,coat,sh,wp,head,tag,E,top,gem}}
 /* the bare head shape and ears (the first lines of ptHead), to tell features from skin */
 function phSkinBase(P,E){const L=ptL(),sk=P.skin,h=P.head,n=h.w.length;
  for(let i=0;i<n;i++){const y=h.y+i,x0=E.X0(y),x1=E.X1(y);ptH(L,x0,x1,y,sk[0]);ptS(L,x1,y,sk[1]);ptS(L,x1-1,y,sk[1]);if(i>n/2-1)ptS(L,x1,y,sk[2]);if(i>=n-3){ptS(L,x1-2,y,sk[1]);ptS(L,x1-1,y,sk[2])}if(i===n-1){ptH(L,x0+1,x1,y,sk[1]);ptH(L,x1-2,x1,y,sk[2])}}
@@ -275,7 +275,7 @@ function phGem(D,g){const N=64,a=phK(g[0]),b=phK(g[1]),hi=phMix(a,phK('r'),.45),
 function phLayer(D,L,seed,o){if(!L)return;const g=phStrip(phGrid(L));let n=0;for(let i=0;i<1024;i++)if(g[i]){n=1;break}if(!n)return;const {K}=phS2x(g,null);phLay(D,K,null,phGen(K,seed,o,g))}
 function phBust(P){const cap=phCapture(P),D=phBuf(),seed=P.seed>>>0,O=PH_O=new Uint8Array(4096);
  try{phBack(D,cap.bg);phFlat(D,cap.under);PH_ID=1;phLayer(D,cap.prop,seed+1);
- PH_ID=2;phTorso(D,P,cap);PH_ID=3;phLayer(D,cap.sh,seed+2);phLayer(D,cap.wp,seed+3,{brush:1});
+ PH_ID=2;phTorso(D,P,cap);if(cap.coat){phLayer(D,cap.coat,seed+5,{cloth:1});if(typeof phCoatEm==='function')phCoatEm(D,P,O)}PH_ID=3;phLayer(D,cap.sh,seed+2);phLayer(D,cap.wp,seed+3,{brush:1});
  PH_ID=4;phHead(D,P,cap)}finally{PH_O=null;PH_ID=0}
  // the head casts a soft shadow on the neck and collar below it
  for(let X=0;X<64;X++){let b=-1;for(let Y=63;Y>=0;Y--)if(O[Y*64+X]===4){b=Y;break}if(b<0)continue;
@@ -313,11 +313,11 @@ function ptHDURL(x){if(typeof document==='undefined')return'';let key=null;let m
  try{let D=null;
   if(mk){const cv=ptMon(x);const rows=phRowsOfCanvas(cv);if(rows){const b=rows[0][0],al=b==='3';D=phImage(rows,al?['3','2']:['f','1'])}}
   else if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;D=phBust(ptMercSpec(m)).D}
-  else{const id=key.slice(2);if(PT_BEAST[id])D=phImage(ptEnemyRows(id,x&&x.f),['f','1']);else D=phEnemy(id,x&&x.f)}
+  else{const p=key.slice(2).split('@'),id=p[0],co=p[1]&&typeof ptUnitCoat==='function'?ptUnitCoat(x):null;if(PT_BEAST[id])D=phImage(ptEnemyRows(id,x&&x.f),['f','1']);else D=phEnemy(id,x&&x.f,co)}
   if(D)u=phPNG(D,64,64)}catch(e){u=''}
  if(PTHD.url.size>PTHD.max)PTHD.url.clear();PTHD.url.set(key,u);if(t0){PTHD.ms+=performance.now()-t0;PTHD.n++}return u}
 /* humanoid foes: ptEnemyRows builds ptBust specs; replay it with ptBust swapped for the HD bust */
-function phEnemy(id,f){let D=null;const B0=ptBust;try{ptBust=P=>{D=phBust(P).D;return B0(P)};ptEnemyRows(id,f)}finally{ptBust=B0}return D}
+function phEnemy(id,f,co){let D=null;const B0=ptBust;try{ptBust=P=>{D=phBust(P).D;return B0(P)};ptEnemyRows(id,f,co)}finally{ptBust=B0}return D}
 /* portraits on screen when Settings > Detail changes: portraitHTML notes which subject each URL shows (bounded), and the
    switch repaints every portrait <img> in the document in place, so screens that are not re-rendered still change */
 const PTHD_SEEN=new Map();

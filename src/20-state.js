@@ -164,7 +164,7 @@ function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
    // weapon or armor tree it may not learn is refunded (refundTrees), anything else unreadable is dropped
    delete m.armp;if(Array.isArray(m.perks)){m.perks=m.perks.filter(id=>typeof id==='string');refundTrees(m)}
    const have=new Set(mercTrees(m).map(x=>x.key)),ps={};m.perks=(Array.isArray(m.perks)?m.perks:[]).filter(id=>perkById(id)&&have.has(perkById(id).key)&&!ps[id]&&(ps[id]=1)) }
- if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
+ if(!svObj(m.eq))m.eq={};for(const k of ['w','b','s','a','h','c']){const it=ITEMS[m.eq[k]];m.eq[k]=it&&it.k===(k==='b'?'w':k)?m.eq[k]:null}
  fixHands(m);
  if(!svObj(m.tal))m.tal={};for(const k in m.tal)if(!svFin(m.tal[k]))delete m.tal[k];
  if(typeof m.name!=='string'||!m.name)m.name='Nameless';if(!RACE[m.race])m.race='human';

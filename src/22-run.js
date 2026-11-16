@@ -87,7 +87,7 @@ function runEnd(kind){if(!G)return null;const s=runSummary(kind);if(!s)return nu
 const HALLKEY='wyrdmarch_hall_v1',HALLMAX=300;
 function hallAll(){let L=null;try{L=JSON.parse(storeGet(HALLKEY)||'[]')}catch(e){L=null}return Array.isArray(L)?L.filter(e=>svObj(e)&&typeof e.name==='string'&&typeof e.k==='string'):[]}
 // what the portrait needs (07-portraits.js ptMercSpec reads id, name, race, bg, eq, colors; mercRes reads trees / perks / gift)
-function hallLook(m){const e=m.eq||{};const o={id:m.id|0,name:String(m.name||'').slice(0,40),race:m.race,bg:m.bg,base:{},eq:{w:e.w||null,b:e.b||null,s:e.s||null,a:e.a||null,h:e.h||null}};
+function hallLook(m){const e=m.eq||{};const o={id:m.id|0,name:String(m.name||'').slice(0,40),race:m.race,bg:m.bg,base:{},eq:{w:e.w||null,b:e.b||null,s:e.s||null,a:e.a||null,h:e.h||null,c:e.c||null}};
  if(m.colors)o.colors=m.colors;if(m.gift)o.gift=m.gift;if(Array.isArray(m.trees))o.trees=m.trees.slice(0,8);if(Array.isArray(m.perks))o.perks=m.perks.slice(0,40);if(m.fabled)o.fabled=m.fabled;return o}
 function hallAdd(m,how,o){if(!m||typeof m!=='object')return null;o=o||{};const R=G?runRec():null,run=R?R.id:'?',k=run+':'+(m.id|0);if(R)R.fallen++;const L=hallAll();if(L.some(e=>e.k===k))return null;   // the record counts every death; the hall keeps one entry a sword
 
