@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=16;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=17;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -120,8 +120,25 @@ const MIGRATE={
    g.refund=L;if(typeof g.note!=='string'||!g.note)g.note='refund'}return g},
  /* v16: caravan guards and clashes (42-caravans.js). Every caravan on the road gets the guard detail its home town affords as it stands
     (cvGuardFor, no randomness: the luck of the hiring is the middle .5) and its strength (p.mult) becomes theirs; no clash is under way. */
- 15:g=>cvMigrate(g)
+ 15:g=>cvMigrate(g),
+ /* v17: the light-blade trees (Assassin, Rogue, Shadowdancer) joined the pools of some backgrounds (thief, brigand, poacher, sailor,
+    beggar, nomad, wildling...). Swords of those backgrounds rolled before then get their style trees rolled again (rerollRogueTrees):
+    every tree they have learned a perk in stays, the empty slots are drawn afresh from the background's pool. No perk is lost. */
+ 16:g=>{const fix=m=>{if(svObj(m))rerollRogueTrees(m,g.seed)};if(Array.isArray(g.roster))g.roster.forEach(fix);
+  if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(fix)});
+  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(fix)});return g}
 };
+/* rerollRogueTrees(m, seed): a merc whose background may draw a light-blade tree but who has none: keeps the trees it has perks in (and the
+   Monster hunter tree), fills the other slots from a fresh roll of its background's pool. Deterministic (its own stream from the world seed
+   and the merc's id; the game stream is untouched). Fabled warriors keep their trees. Returns true when the trees changed. */
+const ROGUET=['assassin','rogue','shadow'];
+function rerollRogueTrees(m,seed){const b=BG[m.bg];if(!b||!Array.isArray(b.pool)||m.fabled||!Array.isArray(m.trees))return false;
+ if(!ROGUET.some(k=>b.pool.includes(k)&&MAST[k])||m.trees.some(k=>ROGUET.includes(k)))return false;
+ const used=new Set();for(const id of (Array.isArray(m.perks)?m.perks:[])){const P=typeof perkById==='function'?perkById(id):null;if(P)used.add(P.key)}
+ const keep=m.trees.filter(k=>used.has(k)||k==='hunter'),n=Math.max(0,4-keep.length);if(!n)return false;
+ const roll=typeof rollTrees==='function'?rollTrees(m.bg,mulberry(((seed|0)^Math.imul((m.id|0)+1,2654435761))>>>0)):[];
+ const add=roll.filter(k=>!keep.includes(k)).slice(0,n);if(!add.length)return false;const before=m.trees.join();m.trees=keep.concat(add);
+ if(typeof syncMast==='function')syncMast(m);return m.trees.join()!==before}
 /* migrateMastery(m): one merc of a v14 save to the merged masteries (v15, above). Returns the points given back. Draws no randomness. */
 const OLDWT=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'],OLDHT=['hunter','poacher','witchhunter','wildling','slayer'];
 function migrateMastery(m){let n=0;const keep=[],seen={};

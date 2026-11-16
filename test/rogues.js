@@ -154,4 +154,15 @@ section('autoLearn and the AI');
    const res=await X.autoBattle({f:['bandit','gob','orc','free','east'][i%5],mult:.6,biome:'plains',pilot:'sensible',src:{type:'test'},turnCap:4000});ok(res&&!res.stuck,'an auto battle ended');n++;if(res.win)wins++;if(res.spoils&&res.spoils.stolen)stolen+=res.spoils.stolen.crowns;X.B=null;X.mode='world'}
   X.ctx.useAbility=u0;X.ctx.foeUse=f0;console.log('AI use over '+n+' battles ('+wins+' won, '+stolen+' crowns lifted): '+JSON.stringify(use));
   for(const id of ['shadowstrike','deathmark','coupdegrace','pickpocket','pocketsand','slipaway','blur','untouchable'])ok(use[id]>0,'the AI never used '+id) }
+section('old saves: thieves and their kin reroll their empty tree slots (v17)');
+{ const G=fresh(SEED+40);const t=X.newMerc('thief');t.trees=['marksman','sharpshooter','skirmisher','scout'];t.perks=['skirmisher.1'];t.pp=0;G.roster.push(t);
+  const v=X.newMerc('vanguard'in X.BG?'vanguard':'militia');const vt=v.trees.join();G.roster.push(v);
+  const g=X.clone(G);g.v=16;g.fog=null;const r=X.readSaveRaw(JSON.stringify(g));ok(r.state==='ok','a v16 save loads: '+r.state+' '+(r.why||''));
+  const t2=r.g.roster.find(m=>m.id===t.id),v2=r.g.roster.find(m=>m.id===v.id);
+  ok(t2.trees.includes('skirmisher')&&t2.perks.includes('skirmisher.1'),'the tree with a learned perk stays, and its perk: '+t2.trees.join());
+  ok(t2.trees.length===4&&t2.trees.join()!==t.trees.join()&&t2.trees.every(k=>X.BG.thief.pool.includes(k)),'the other slots are drawn again from the pool: '+t2.trees.join());
+  ok(v2.trees.join()===vt,'a background without the new trees keeps its trees');
+  const r2=X.readSaveRaw(JSON.stringify(g));ok(r2.g.roster.find(m=>m.id===t.id).trees.join()===t2.trees.join(),'the reroll is deterministic');
+  let got=0;for(let i=0;i<40;i++){const m=X.newMerc('thief');m.id=9000+i;m.trees=['marksman','sharpshooter','skirmisher','scout'];m.perks=[];if(X.rerollRogueTrees(m,G.seed)&&m.trees.some(k=>['assassin','rogue','shadow'].includes(k)))got++}
+  ok(got>=30,'most rerolled thieves draw a light-blade tree: '+got+'/40');console.log('v17 reroll: ok ('+got+'/40 thieves drew one)') }
 console.log('\nOK rogues');process.exit(0)})();

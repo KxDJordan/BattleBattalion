@@ -240,7 +240,7 @@ section('saves');
   // v15 -> v16: guards for the caravans on the road, from their home town, no randomness
   const old=X.clone(G);old.v=15;delete old.clashes;for(const p of old.parties){delete p.clash;if(p.goal==='caravan'){delete p.guard;p.mult=.7}}
   const raw=JSON.stringify(old);X.store.set(X.SAVEKEY,raw);const m1=X.readSave();X.store.set(X.SAVEKEY,raw);const m2=X.readSave();ok(m1.state==='ok'&&m1.v===15,'v15 save reads: '+m1.state+' '+(m1.why||''));
-  ok(m1.g.v===X.SAVEVER&&X.SAVEVER===16&&Array.isArray(m1.g.clashes)&&!m1.g.clashes.length,'migrated: no clashes');
+  ok(m1.g.v===X.SAVEVER&&X.SAVEVER>=16&&Array.isArray(m1.g.clashes)&&!m1.g.clashes.length,'migrated: no clashes');
   ok(m1.g.parties.filter(p=>p.goal==='caravan').every(p=>p.guard&&p.mult===X.cvGuardMult(p.guard)),'old caravans get their guards');ok(JSON.stringify(m1.g.parties)===JSON.stringify(m2.g.parties),'migrating twice: the same');
   console.log('saves: ok') }
 
