@@ -317,11 +317,16 @@ function bnBucket(css,sq){const d=typeof window==='object'&&window.devicePixelRa
 function bnHdSheet(){if(BNHD.st)return BNHD.st;try{const s=document.createElement('style');s.id='bnr-hd';(document.head||document.body).appendChild(s);s.disabled=!hdArt();BNHD.st=s}catch(e){BNHD.st=null}return BNHD.st}
 function bnHdRule(id){const w=BNHD.want.get(id);if(!w||BNHD.done.has(id))return;BNHD.done.add(id);let u='';
  try{const c=w.em?bnEmCanvas(w.em,w.c,w.f,w.px):bnPaintCanvas(w.b,w.px,w.noEm);if(c)u=c.toDataURL()}catch(e){u=''}
- const s=u?bnHdSheet():null;if(!s||!s.sheet)return;try{s.sheet.insertRule(`.bnr.${id}{background-image:url(${u})!important;image-rendering:auto!important}`,s.sheet.cssRules.length)}catch(e){}}
+ if(!u){bnHdFree(id);return}const s=bnHdSheet();if(!s||!s.sheet)return;try{s.sheet.insertRule(`.bnr.${id}{background-image:url(${u})!important;image-rendering:auto!important}`,s.sheet.cssRules.length)}catch(e){}}
+// a painting that failed: drop its hold so the pixel flag shows
+function bnHdFree(id){const s=BNHD.st;if(!s||!s.sheet)return;try{const R=s.sheet.cssRules;for(let i=R.length-1;i>=0;i--)if(R[i].selectorText==='.bnr.'+id)s.sheet.deleteRule(i)}catch(e){}}
+// a flag waiting its turn shows nothing rather than the pixel flag, so it does not flash from low to high resolution (the painted rule, added later, wins)
+function bnHdHold(id){const s=bnHdSheet();if(!s||!s.sheet)return;try{s.sheet.insertRule(`.bnr.${id}{background-image:none!important}`,s.sheet.cssRules.length)}catch(e){}}
 function bnHdTick(){BNHD.raf=0;if(!bnHdOK()){BNHD.q.length=0;return}const t0=performance.now();while(BNHD.q.length&&performance.now()-t0<10)bnHdRule(BNHD.q.shift());if(BNHD.q.length)BNHD.raf=requestAnimationFrame(bnHdTick)}
 function bnHdNeed(id){if(BNHD.done.has(id)||!bnHdOK())return;const now=performance.now();if(now-BNHD.t>80){BNHD.t=now;BNHD.spent=0}
- if(BNHD.spent<16){bnHdRule(id);BNHD.spent+=performance.now()-now;return}
- if(!BNHD.q.includes(id))BNHD.q.push(id);if(!BNHD.raf&&typeof requestAnimationFrame==='function')BNHD.raf=requestAnimationFrame(bnHdTick)}
+ const w=BNHD.want.get(id),big=!!(w&&w.px>=64);                   // a big flag (the setup and banner previews) is always painted at once: it is what the eye is on
+ if(big||BNHD.spent<24){bnHdRule(id);BNHD.spent+=performance.now()-now;return}
+ if(!BNHD.q.includes(id)){BNHD.q.push(id);bnHdHold(id)}if(!BNHD.raf&&typeof requestAnimationFrame==='function')BNHD.raf=requestAnimationFrame(bnHdTick)}
 function bnHdClass(key,w){let id=BNHD.id.get(key);if(!id){if(BNHD.id.size>900){BNHD.id.clear();BNHD.want.clear();BNHD.done.clear();BNHD.q.length=0;if(BNHD.st)try{BNHD.st.textContent=''}catch(e){}}
   id='bh'+(++BNHD.n).toString(36);BNHD.id.set(key,id);BNHD.want.set(id,w)}bnHdNeed(id);return id}
 onArtChange(()=>{const s=BNHD.st;if(s)s.disabled=!hdArt();if(!bnHdOK())return;for(const id of BNHD.want.keys())if(!BNHD.done.has(id)&&!BNHD.q.includes(id))BNHD.q.push(id);
