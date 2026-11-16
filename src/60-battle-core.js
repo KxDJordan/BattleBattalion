@@ -207,8 +207,9 @@ function mkRosterUnit(e,f,dk){const u=mkEnemy(e.id,f);u.rx=rosterX(e);u.ros=1;if
  if(e.hpK>0){u.hp=u.hpMax=Math.round(u.hpMax*e.hpK)}
  if(dk!==1){u.hp=u.hpMax=Math.round(u.hpMax*Math.pow(dk,ROSTER.dhp));const k=Math.pow(dk,ROSTER.dd);u.wpn.d=[Math.round(u.wpn.d[0]*k),Math.round(u.wpn.d[1]*k)];u.dmgK=(u.dmgK||1)*k}
  {const nm=String(EN[e.id].n).toLowerCase();u.name=e.elite?'Elite '+nm:u.rank>=1.5?'Veteran '+nm:EN[e.id].n}if(e.name)u.name=e.name;   // 'Elite' only for the elite-markedu.elite=e.elite?1:0;
+ if(Array.isArray(e.el)&&e.el.length)u.elRos=e.el.slice();   // explicit elite modifiers of a fixed roster entry (64e-elites.js)
  if(e.at&&Number.isInteger(e.at.c)&&Number.isInteger(e.at.r)&&inb(e.at.c,e.at.r))u.slot={c:e.at.c,r:e.at.r};return u}
-function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o),o.fixed,o.mult))
+function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o)*(typeof eliteKeep==='function'?eliteKeep(o):1),o.fixed,o.mult))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
 function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',rv=o.rival?battleRival(o.rival):null,budget=rv||Array.isArray(o.roster)?0:battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);
@@ -230,6 +231,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  const ctr=boardCenter(),b={opts:o,bk,P:BIO[bk],tiles:pv.tiles,units:[],order:[],round:0,turns:0,cur:null,sel:null,targets:null,reach:null,busy:true,over:false,stuck:false,fled:false,result:null,onEnd:o.onEnd||null,
   reserves:G.roster.filter(m=>!f.includes(m)),gone:[],rout:[false,false,false],fledN:[0,0,0],resRound:0,retreat:false,synced:false,
   log:'',floats:[],shots:[],cam:{x:ctr.x,y:ctr.y,tx:ctr.x,ty:ctr.y,z:1}};
+ if(typeof elitePlan==='function')elitePlan(b,o,pv);   // elite modifiers: their share of the budget, before the foes take their rank (64e-elites.js)
  // B.auto is a live switch: turning it on while the company is waiting for orders hands the turn to the AI at once.
  let auto=!!o.auto;Object.defineProperty(b,'auto',{enumerable:true,get(){return auto},set(v){auto=!!v;if(auto&&B===b)autoKick()}});
  if(Array.isArray(o.roster)){b.frank={f:o.f,x:rosterX({lvl:ROSTER.sumLvl})};b.fixedSide=1}   // a fixed roster: summons take a fixed rank, never foeRank
@@ -240,7 +242,7 @@ function startBattle(o){const f=battleField(o);if(!f.length)return null;if(typeo
  if(o.fabled&&typeof fabledSpawn==='function')fabledSpawn(el,o);   // fabled warriors mixed into the enemy side (o.fabled: ids)
  const eu=place(el,DEPLOY.e.front,DEPLOY.e.back,DEPLOY.e.dir,b.tiles,used);
  b.rival=o.rival||null;if(o.ambush)for(const u of eu)u.unready=1;   // an ambush (o.ambush, from a parley): the company acts first in round 1, the foe starts unready
- b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&(Array.isArray(o.roster)||o.boss.fabled||(Array.isArray(o.boss.phases)&&EN[o.boss.id]&&EN[o.boss.id].boss))?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);if((o.cv||o.cvNames)&&typeof cvSetup==='function')cvSetup(b,o,used);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});auraScan();if(b.realm&&typeof realmStart==='function')realmStart(b);
+ b.units=pu.concat(eu);if(typeof objSetup==='function')objSetup(b,o.boss&&(Array.isArray(o.roster)||o.boss.fabled||(Array.isArray(o.boss.phases)&&EN[o.boss.id]&&EN[o.boss.id].boss))?Object.assign({},o,{boss:null}):o,used);else b.obj=null;if(typeof bossSetup==='function')bossSetup(b,o);if((o.cv||o.cvNames)&&typeof cvSetup==='function')cvSetup(b,o,used);b.units.forEach((u,i)=>{u.id=i;const p=tpos(u.c,u.r,T(u).h);u.sx=p.x;u.sy=p.y});if(typeof eliteSetup==='function')eliteSetup(b,o);auraScan();if(b.realm&&typeof realmStart==='function')realmStart(b);
  mode='battle';if(typeof setUI==='function')setUI();if(typeof layoutBattle==='function')layoutBattle();say(`${battleFoeN(o)} in the ${b.P.n.toLowerCase().replace(/^the /,"")}. ${eu.length} ${b.rival?'swords':'foes'}.`);nextTurn();return b}
 /* (A fabled boss, or a phased boss (o.boss.phases) whose EN entry is a boss already (def.boss: the crisis bosses), skips the contract-boss upgrade of objSetup,
    CTR_BOSSK: it is boss-sized as it stands; bossSetup (21-fabled.js) marks it and runs its phases.)
@@ -256,7 +258,7 @@ function spawnUnit(u){const b=B;if(!b||!u)return null;initUnit(u);const sz=u.sz|
 function unitStatuses(u){const out=[],add=(key,turns)=>{if(!out.some(x=>x.key===key))out.push({key,n:STATUS[key]?STATUS[key].n:key,turns:turns||0})};
  for(const k in u.st)if(u.st[k]>0)add(k,u.st[k]);if(u.rooted&&!(u.st.root>0)&&!(u.st.webbed>0))add('root',0);if(u.dazed&&!(u.st.daze>0))add('daze',0);
  for(const x of u.buffs)add(x.key&&STATUS[x.key]?x.key:x.indom?'indom':'buff',x.dur);if(u.shpMax>0&&!u.shield&&!u.slung)add('splitshield',0);if(u.slung)add('slung',0);if(u.weakened&&!(u.st.weak>0))add('weak',0);if(u.wpn&&u.wpn.reload&&u.loaded===false)add('unloaded',0);
- {const tp=tiredPen(u),f=u.flags||{};if(tp>0)add('tired',tp);if(f.dance&&u.dnc>0)add('dance',Math.min(15,f.dance*u.dnc));if(f.fleet&&u.mvd)add('fleet',0)}return out}
+ if(u.ward>0)add('eward',u.ward);{const tp=tiredPen(u),f=u.flags||{};if(tp>0)add('tired',tp);if(f.dance&&u.dnc>0)add('dance',Math.min(15,f.dance*u.dnc));if(f.fleet&&u.mvd)add('fleet',0)}return out}
 const statusList=unitStatuses;                                           // alias: the same list under a name no other file defines
 // Gives t status key for n turns (never shortens one it already has) and tells the scene.
 function addStatus(t,key,n){if(!t.alive||!(n>0))return;
@@ -460,7 +462,7 @@ function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cm
    x(1 + damage buffs + dmgB + the talent bonuses that apply) -> x(1 + executioner/vsHurt) below half health -> x splash -> x1.1 from
    higher ground -> round(x max(.2, 1 - damage reduction)). */
 function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
- if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
+ if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.hurtDmg&&u.hpMax>0)x+=f.hurtDmg*Math.floor(10*Math.max(0,1-u.hp/u.hpMax))/10;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
  if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.vsBoss&&isBigFoe(t))x+=f.vsBoss;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
 // vsBoss (fabled trees): against a boss, a fabled warrior, a huge (size 2) foe or an EN boss
 const isBigFoe=t=>!!(t&&(t.boss||t.fabled||(t.sz||1)>1||(t.def&&t.def.boss)));
@@ -529,13 +531,13 @@ function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.k
    (one blow strips at most unbowed x the location's maximum), and for weapon and spell hits (o.loc) Sidestep (once between its turns a
    blow over sidestep x max hitpoints is halved, after the head multiplier), Juggernaut (hpSoak fewer hitpoints, at least 1); a hit
    spends Brace. Unshakable (noStun): heavy blows do not test morale. */
-function hurt(t,dmg,ign,src,o){o=o||{};const head=!!o.head,pool=head?'helm':'arm',a0=t[pool]||0,tf=t.flags||{};let hpd;
+function hurt(t,dmg,ign,src,o){o=o||{};if(o.loc&&t.ward>0&&typeof eliteWard==='function')dmg=eliteWard(t,dmg);const head=!!o.head,pool=head?'helm':'arm',a0=t[pool]||0,tf=t.flags||{};let hpd;
  if(o.pierce)hpd=dmg;else if(a0>0){let ad=Math.min(a0,o.crush>0?Math.round(dmg*(1+o.crush)):dmg);if(tf.unbowed)ad=Math.min(ad,armCap(t,head));t[pool]=a0-ad;
   hpd=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*(!head&&tf.padIgn?ign*(1-tf.padIgn):ign)-t[pool]*.1),0)}else hpd=dmg;
  if(head)hpd=Math.round(hpd*HEADMULT);
  if(o.loc){if(tf.sidestep&&!t.ss&&hpd>t.hpMax*tf.sidestep){hpd=Math.round(hpd/2);t.ss=1;float(t,'Sidestep','#8fd8ff')}
   if(tf.hpSoak&&hpd>0)hpd=Math.max(1,hpd-tf.hpSoak);if(tf.brace)t.brc=1}
- t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false;if(undy){if(tf.undying&&!t.undy)t.undy=1;else{t.lck=1;lk=true}t.hp=1}float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,lk?'Lucky':'Undying','#ffd27a');FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
+ t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false;if(undy){if(tf.undying&&!t.undy)t.undy=1;else{t.lck=1;lk=true}t.hp=1}if(hpd>0||dmg>0)float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,lk?'Lucky':'Undying','#ffd27a');FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
  if(t.hp<=0){killUnit(t,src||null,head);return hpd}
  if(t.boss&&B.boss)bossHit(t);   // boss phases (21-fabled.js)
  if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH*injK(t))inflictInjury(t,head,false);if(!tf.noStun)moraleCheck(t,30,-1)}   // (moraleCheck skips the Beast-wise against beasts)
@@ -583,7 +585,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
  let dmg=0;const ign=a.noDmg?1:ignOf(u,a),wd=rollOf(u,a);if(a.noDmg){}else if(a.magic)dmg=ri(a.magic[0],a.magic[1])*spellMult(u);else dmg=ri(wd[0],wd[1])*(a.mult||1);
  if(!a.noDmg)dmg=dmgAfter(u,t,a,dmg,o);
  let hpd=0;if(dmg>0){const head=rnd()*100<headChance(u,t,a);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1,crush:crushOf(u,a)})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
- if(t.alive){const st=Object.assign({},a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);
+ if(t.alive){const st=Object.assign({},u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);
   for(const k in st)addStatus(t,k,st[k]);
   const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t)&&!o.stray)await knockback(u,t,kb,a.crash||u.crashD||0);
   if(a.pull&&t.alive&&u.alive&&!kbImmune(t))await pullUnit(u,t,a.pull);

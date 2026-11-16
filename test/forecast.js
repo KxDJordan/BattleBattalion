@@ -8,6 +8,7 @@
 //   - Phase 5: brackets head and body hits separately (helmet against body armor, x1.5 on the head), prices cover into the
 //     hit chance, names every ally a missed shot can stray into, announces ripostes, heavy hits (morale check, injury),
 //     armor-piercing blows and shield damage, and carries both sides' morale.
+//   - Elites: battles at Brutal where elite foes (64e-elites.js: ward, venom, hex, berserk, keen eye, command...) strike and are struck.
 //   - Rivals: battles against a rival mercenary company (startBattle o.rival): rival mercs strike with their own gear, talents and gift
 //     abilities and are struck in their own armor, and every one of those strikes is checked the same way.
 // Two sources of strikes: scripted battles (company uses every ability, enemies use the AI) and a directed
@@ -106,8 +107,8 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
     if(!t.shield){S.splitBroke++;ok(f.shield.brk&&t.shp===0,'the shield broke but the forecast said it could not: '+tag)}else ok(!f.shield.sure,'the forecast promised a broken shield: '+tag)}
    else ok(f.shield===null,'forecast shows shield damage on a unit without a shield: '+tag);return hit}
   ok(f.shield===null&&t.shp===shp0,'a blow that does not split shields damaged one: '+tag);
-  if(!hit){ok(!ev&&t.hp===hp0&&t.arm===arm0&&t.helm===helm0,'a miss did damage: '+tag);ok(!sure,'a strike that cannot miss missed: '+tag);
-   const strays=kids.filter(x=>x.u===u&&x.o.stray),rips=kids.filter(x=>x.u===t&&x.t===u&&x.o.free==='riposte');
+  if(!hit){const strays=kids.filter(x=>x.u===u&&x.o.stray),rips=kids.filter(x=>x.u===t&&x.t===u&&x.o.free==='riposte'),thorn=rips.length&&u.elite&&u.elite.includes('thorns');   // a riposte into a Thorned elite costs the riposter
+   ok(!ev&&(thorn||t.hp===hp0&&t.arm===arm0&&t.helm===helm0),'a miss did damage: '+tag);ok(!sure,'a strike that cannot miss missed: '+tag);
    for(const x of strays)ok(f.ff.some(y=>y.t===x.t),'a shot strayed into an ally the forecast did not name: '+tag);ok(strays.length<=1,'one miss strayed twice: '+tag);
    if(rips.length){S.riposte++;ok(f.riposte,'a riposte the forecast did not announce: '+tag)}else ok(!f.riposte,'the forecast announced a riposte that did not come: '+tag);
    return hit}
@@ -167,6 +168,7 @@ const TALU=[['vsHurt',.15],['vsFull',.2],['dmgMelee',.1],['dmgRanged',.15],['two
   ['nimble',1],['fleet',10],['sidestep',.25],['freshDef',8],['dance',5],['brace',.2],['roll',.5],['layerDef',6],['padIgn',1/3],['kbImm',1],['unbowed',.3],['hpSoak',5],['noStun',1]],mates0=new Set();
 async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X.seedRng(SEED+900);
  const b=X.startBattle({f:'orc',mult:1,biome:'hills',src:{type:'sim'},quiet:true,turnCap:1e9});ok(b,'sweep battle did not start');b.busy=true;DIRECTED=true;
+ for(const x of b.units){delete x.elite;x.ward=0}   // the sweep randomises flags itself: elites are covered by the battles above and test/elites.js
  const R=(a,c)=>X.ri(a,c),P=a=>a[X.ri(0,a.length-1)],BW=X.BW,BH=X.BH,key=(c,r)=>r*BW+c;
  const weapons=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='w').map(id=>X.ITEMS[id]).concat([X.FIST]);
  const abIds=['attack'].concat(Object.keys(X.AB).filter(id=>{const a=X.AB[id];return a.tgt==='enemy'||a.tgt==='aoe'}));
@@ -238,6 +240,12 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
      X.seedRng(SEED+900+10*ti+i);await scripted(X,{f:facs[(i+ti)%facs.length],mult:.7,fabled:f2,boss:i%2?{fabled:f2[0],phases:[{at:.6,n:'Test phase',summon:[Object.keys(X.EN)[0]],enrage:{dmg:.1}}]}:null,biome:bios[(i+ti)%bios.length],src:{type:'sim'}});nb++}}
    X.ctx.strike=st;X.G.fabled={};ok(R.u>150&&R.t>80,`too few fabled strikes checked (${R.u} by fabled warriors, ${R.t} on them)`);
    console.log(`32 battles, ${S.n-n1} strikes checked: ${R.u} by fabled warriors (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
+ console.log('== strikes with elite foes (64e-elites.js: Brutal, levels 10 and 14) ==');
+ { const st=X.ctx.strike,R={u:0,t:0,mods:new Set()},n1=S.n,d0=X.G.diff;X.ctx.strike=async function(u,t,a,o){if(u.elite){R.u++;u.elite.forEach(k=>R.mods.add(k))}if(t.elite){R.t++;t.elite.forEach(k=>R.mods.add(k))}return st(u,t,a,o)};
+   for(let ti=2;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17);
+    for(let i=0;i<8;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.diff='brutal';X.seedRng(SEED+1300+10*ti+i);await scripted(X,{f:facs[(i+ti)%6],mult:1,biome:bios[(i+ti)%bios.length],src:{type:'sim'}});nb++}}
+   X.ctx.strike=st;X.G.diff=d0;ok(R.u>100&&R.t>40&&R.mods.size>=12,`too few elite strikes checked (${R.u} by elites, ${R.t} on them, modifiers ${[...R.mods].join(' ')})`);
+   console.log(`16 battles, ${S.n-n1} strikes checked: ${R.u} by elites, ${R.t} on them (${R.mods.size} modifiers: ${[...R.mods].sort().join(' ')})`) }
  const nBattle=S.n;
  console.log('== directed sweep ==');
  await sweep(X,company(X,TIERS[2],SEED+5),6000);

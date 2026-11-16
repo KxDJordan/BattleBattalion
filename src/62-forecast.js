@@ -54,7 +54,7 @@
 function fcDamage(u,t,a,roll,o){if(a.noDmg)return 0;return dmgAfter(u,t,a,a.magic?roll*spellMult(u):roll*(a.mult||1),o)}
 // hurt() without the hurting: what `dmg` takes from hitpoints and from the armor of the struck location.
 // The armor-tree terms of hurt() are here too (Padded under-layer, Unbowed, Sidestep, Juggernaut): a forecast is always of a weapon or spell hit.
-function fcSoak(t,dmg,ign,head,pierce,crush){if(!(dmg>0))return{hp:0,arm:0};const a0=(head?t.helm:t.arm)||0,tf=t.flags||{};let hp,arm=0;
+function fcSoak(t,dmg,ign,head,pierce,crush){if(t.ward>0&&dmg>0)dmg=Math.max(0,dmg-t.ward);if(!(dmg>0))return{hp:0,arm:0};const a0=(head?t.helm:t.arm)||0,tf=t.flags||{};let hp,arm=0;
  if(pierce)hp=dmg;else if(a0>0){arm=Math.min(a0,crush>0?Math.round(dmg*(1+crush)):dmg);if(tf.unbowed)arm=Math.min(arm,armCap(t,head));
   hp=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*(!head&&tf.padIgn?ign*(1-tf.padIgn):ign)-(a0-arm)*.1),0)}else hp=dmg;
  if(head)hp=Math.round(hp*HEADMULT);if(tf.sidestep&&!t.ss&&hp>t.hpMax*tf.sidestep)hp=Math.round(hp/2);if(tf.hpSoak&&hp>0)hp=Math.max(1,hp-tf.hpSoak);return{hp,arm}}
@@ -84,7 +84,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  f.kill=!f.undying&&f.hpMax>=t.hp;f.sure=!f.undying&&f.hpMin>=t.hp;
  f.shake=!t.fearless&&!(t.flags&&t.flags.noStun)&&!moraleImmune(t)&&f.hpMax>=heavyHit(t)&&!f.sure;   // Beast-wise against beasts: no check
  {const tf=t.flags||{};f.sidestep=!!(tf.sidestep&&!t.ss&&!a.noDmg)}f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
- const st={};for(const k in a.status||{})st[k]={k,n:a.status[k],ch:1};
+ const st={},as=u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{};for(const k in as)st[k]={k,n:as[k],ch:1};   // an elite's poison or hex rides on its blows (64e-elites.js)
  { const sc=stunOf(u,a);if(sc&&!(st.stun))st.stun={k:'stun',n:1,ch:Math.min(1,sc)} }
  if(u.onhit){const n=u.onhit.root;if(!st.root)st.root={k:'root',n,ch:u.onhit.ch};else if(n>st.root.n)st.root={k:'root',n,ch:u.onhit.ch}}
  const bl=bleedOf(u,a);if(bl&&n){const pb=posB/n,ph=posH/n,ch=(!useH||ph===1)&&(!useB||pb===1)?1:(useH?f.headCh/100*ph:0)+(useB?(1-f.headCh/100)*pb:0);if(ch>0)st.bleed={k:'bleed',n:Math.max(bl,st.bleed?st.bleed.n:0),ch}}
