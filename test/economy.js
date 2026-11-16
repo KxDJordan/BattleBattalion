@@ -152,14 +152,14 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
  const inTown=(i)=>{const g=G(),t=g.towns[i];closeAll();if(!g.townOpen||g.town!==i)X.openTown(i);closeAll();if(X.twHostile(i))return;
   // the inn when hurt
   if(hpFrac()<.8&&g.crowns>g.roster.length*10+reserve()*.3){X.innRest();st.innN++;closeAll()}
+  // food for ten days first: a company that cannot eat cannot march (a sensible captain feeds the men before the temple, tools or new hires)
+  for(let k=0;k<40&&g.food<g.roster.length*10;k++){const f=g.food;if(g.crowns<X.mkFoodPrice()+50)break;X.buyFood();if(g.food<=f)break}
   // the temple for long wounds
   if(typeof X.templeTreat==='function')g.roster.forEach((m,mi)=>{for(const j of (m.inj||[]).slice()){if(j.days<0||j.days<4)continue;const c=X.cpInjCost(m,j.id);if(c!=null&&g.crowns-c>reserve())X.templeTreat(mi,j.id)}});closeAll();
   // tools and repairs
   const need=X.repairNeed();if(need.tools>(g.tools|0)&&typeof X.buyTools==='function'){const lots=Math.min(6,Math.ceil((need.tools-(g.tools|0))/10));for(let k=0;k<lots;k++)if(g.crowns-X.toolPrice(10)>reserve())X.buyTools(10)}
   X.repairAll();closeAll();
   levelUps();hireUp(t);shop(t);levelUps();
-  // food for ten days
-  for(let k=0;k<40&&g.food<g.roster.length*10;k++){const f=g.food;if(g.crowns<X.mkFoodPrice()+50)break;X.buyFood();if(g.food<=f)break}
   closeAll()};
  // the company's appetite: the strongest contract fight (mult of an even fight) it will take
  const top8=()=>{const L=G().roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,8);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0};

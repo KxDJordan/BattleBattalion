@@ -206,7 +206,10 @@ const XPRANK=.3;   // battle XP: a veteran foe (rank L = log2 of its rank multip
 const FLEEK={k:.1,per:50};   // a withdrawal or a retreat drops a tenth of the purse on the run, at most FLEEK.per crowns a sword
 function fleeCost(){const c0=Math.max(0,G.crowns|0);return Math.min(c0-Math.floor(c0*(1-FLEEK.k)),FLEEK.per*Math.max(1,G.roster.length))}
 // (an arena bout declined at the gate: nothing is paid, nothing fought)
-function fleeEncounter(o){const c0=G.crowns;if(o&&o.src&&o.src.type==='arena')return{kind:'world',toast:null,lost:0,declined:1};G.crowns=c0-fleeCost();const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;return out}
+function fleeEncounter(o){const c0=G.crowns;if(o&&o.src&&o.src.type==='arena')return{kind:'world',toast:null,lost:0,declined:1};G.crowns=c0-fleeCost();const out=settleBattle(false,o&&o.src||{});out.lost=c0-G.crowns;
+ /* slipping away from a band that hunts the company buys a half-day's head start, not the usual three hours: a hunter tracks the company anywhere, so a short grace
+    let it catch the company again and again, a tenth of the purse each time */
+ const hp=o&&o.src&&o.src.type==='party'&&G.parties.find(q=>q.id===o.src.id);if(hp&&hp.hunt)G.grace=Math.max(G.grace||0,12);return out}
 function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
  if(out.kind==='wiped'&&typeof runEnd==='function'){try{runEnd('wipe')}catch(e){}}
  if(out.kind==='wiped'){sheet((out.solo?`<h2>The hunt is over</h2><p>The slayer is dead, and nobody rides on in their name. The hunt lasted ${out.days} days.</p>`:`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p>`)+`<button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
