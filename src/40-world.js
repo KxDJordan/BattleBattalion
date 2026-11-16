@@ -287,7 +287,7 @@ function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();l
  {const qm=typeof followerHas==='function'&&followerHas('quarter');if(qm){const e=G.roster.length*.8+(G.foodAcc||0),n=Math.floor(e+1e-9);G.foodAcc=Math.max(0,e-n);G.food-=n}else G.food-=G.roster.length}if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
  const news=worldDay();                                                     // the living world: parties with goals, nests, towns, wars (below)
  wsKeepBands();                                                             // the land near the company stays as busy as ever
- if(news.length)msg+='. '+news[0];toast(msg);if(typeof ambTick==='function')ambTick()}
+ if(news.length)msg+='. '+news[0];toast(msg);if(typeof ambTick==='function')ambTick();if(typeof achEvent==='function')achEvent('day')}
 /* ================= THE LIVING WORLD (phase 7) =================
    Parties: {id, x, y, tx, ty, f, mult, goal, from?, to?, cargo?, str?, pts?, pi?, ch?, hunt?, home?, siege?, life?, legs?}
      goal 'roam'    a band walking its loop near where it formed (the old bands; spawnParty)

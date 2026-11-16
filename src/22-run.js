@@ -54,10 +54,11 @@ function runOnBattle(res,b){const R=runRec();if(!R||!res||res._run)return;res._r
  // the fallen of this battle: the merc objects are still on the field units
  const dead=(res.men||[]).filter(r=>r.state==='dead');if(dead.length&&b){const fn=FACT[b.opts&&b.opts.f]?FACT[b.opts.f].n:'the enemy',rv=res.rival&&res.rival.n;
   for(const row of dead){const u=b.units.find(x=>x.side===0&&x.m&&x.m.id===row.id);if(!u)continue;const by=u.killer||u.killedBy||u.lastHitBy||null,byN=typeof by==='string'?by:by&&by.name?by.name:null;
-   hallAdd(u.m,(byN?'Slain by '+byN:'Fell fighting '+(rv||fn))+runWhere(b),{foe:rv||fn})}}}
+   hallAdd(u.m,(byN?'Slain by '+byN:'Fell fighting '+(rv||fn))+runWhere(b),{foe:rv||fn})}}
+ if(typeof achEvent==='function')achEvent('battle',{res,b})}   // achievements (28-achieve.js)
 function slainSum(m){let n=0;if(m&&m.slain&&typeof m.slain==='object')for(const k in m.slain)n+=+m.slain[k]||0;return n}
 function runWhere(b){try{const s=b&&b.opts&&b.opts.src,p=G&&G.p;if(!p||typeof nearestTown!=='function')return'';const t=G.towns[nearestTown(p.x,p.y)];return t?' near '+t.name:''}catch(e){return''}}
-function runOnContract(){const R=runRec();if(R)R.contracts++}
+function runOnContract(){const R=runRec();if(R)R.contracts++;if(typeof achEvent==='function')achEvent('contract')}
 // the crisis outcome; win: a summary of the victory is shown once (the run goes on)
 function runCrisisEnd(win){const R=runRec();if(!R||R.crisis)return false;R.crisis=win?'won':'lost';if(win&&typeof runVictorySheet==='function'&&typeof document!=='undefined')runVictoryLater=1;return true}
 let runVictoryLater=0;

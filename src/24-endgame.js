@@ -153,7 +153,7 @@ function portalSettle(s,win,res){const run=G.portalRun;if(!run)return{kind:'worl
  const p=portalOf(run.id),pay=Math.round(PORTALK.pay*(typeof originK==='function'?originK('rift'):1));G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');
  const E=ENDGAME[run.realm]||{},leg=egLegend('portal',run.realm,E.loot,(res&&res.boss&&res.boss.name)||E.n);
  const alive=new Set((res&&res.men||[]).filter(r=>r.state==='ok').map(r=>r.id)),deeds=[];for(const m of G.roster)if(alive.has(m.id)){egDeed(m,'portal');deeds.push(m.name)}
- if(typeof ambEvent==='function')ambEvent('rift');G.portals=G.portals.filter(q=>q.id!==run.id);G.portalRun=null;G.dun=null;let ended=false;
+ if(typeof ambEvent==='function')ambEvent('rift');if(typeof achEvent==='function')achEvent('rift');G.portals=G.portals.filter(q=>q.id!==run.id);G.portalRun=null;G.dun=null;let ended=false;
  if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total){ended=true;if(typeof crisisEnd==='function'){try{crisisEnd(true)}catch(e){G.crisis.ended=true}}else G.crisis.ended=true;G.crisis.ended=true}}
  if(typeof worldNews==='function'){try{worldNews(`${G.name||'A company'} closed the rift to ${(ENDGAME[run.realm]||{}).n||'another world'}`)}catch(e){}}
  return{kind:'portalDone',realm:run.realm,pay,ended,legend:leg,deeds,boss:res&&res.boss?res.boss.name:''}}
@@ -240,6 +240,7 @@ function dungeonSettle(s,win,res){const d=dgnOf(s.id);if(!d)return{kind:'world',
  let leg=egLegend('dungeon',d.k,D.loot,D.n);if(!leg&&ITEMS[DGNFALL[d.k]]){leg=DGNFALL[d.k];G.stash.push(leg)}
  const alive=new Set((res&&res.men||[]).filter(r=>r.state!=='dead').map(r=>r.id)),deeds=[];for(const m of G.roster)if(alive.has(m.id)){egDeed(m,'dungeon');deeds.push(m.name)}
  if(typeof worldNews==='function'){try{worldNews(`${G.name||'A company'} cleared ${D.n}`)}catch(e){}}
+ if(typeof achEvent==='function')achEvent('dungeon',{k:d.k});   // achievements (28-achieve.js)
  return{kind:'dgnDone',id:d.id,n:D.n,crowns:DGN.crowns,legend:leg,deeds,boss:res&&res.boss?res.boss.name:''}}
 
 /* ---------- saves (20-state.js repairSave calls this; v13 -> v14 adds empty G.portalRun / G.dungeons) ---------- */

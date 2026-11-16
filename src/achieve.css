@@ -1,0 +1,44 @@
+/* ================= ACHIEVEMENTS (28-achieve.js): the notice, the sheet, locked origins in the new-company dialog ================= */
+.ach-note{position:absolute;z-index:60;left:50%;top:calc(var(--sat,0px) + 10px);display:flex;align-items:center;gap:10px;max-width:min(92vw,440px);padding:8px 14px 8px 10px;
+ background:#101d1c;border:2px solid #0b1514;box-shadow:inset 0 0 0 2px #d1a94e,0 0 0 2px #0b1514,4px 4px 0 #0b151499;color:var(--vellum,#e9e0c9);
+ transform:translate(-50%,-140%);opacity:0;transition:transform .28s ease-out,opacity .28s;pointer-events:none;cursor:pointer}
+.ach-note.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.ach-note>.pxi,.ach-note>.pn-i{width:32px;height:32px;flex:none}
+.ach-note span{display:flex;flex-direction:column;min-width:0}
+.ach-note small{font:600 .72rem var(--pxfont);letter-spacing:.14em;text-transform:uppercase;color:#d1a94e;line-height:1}
+.ach-note b{font-family:var(--pxfont);font-size:1.2rem;line-height:1.05;color:#fff4c8}
+.ach-note i{font-style:normal;font-size:.8rem;line-height:1.2;color:var(--dim,#9aa)}
+.ach-note em{display:flex;align-items:center;gap:4px;font-style:normal;font-size:.82rem;font-weight:700;color:#9fe0cd;line-height:1.2}
+.ach-note em .pxi,.ach-note em .pn-i{width:16px;height:16px;flex:none}
+@media (prefers-reduced-motion:reduce){.ach-note{transition:none}}
+
+#sheetBody.ach{max-width:860px}
+.ach-hd{display:flex;align-items:center;gap:10px;margin:2px 0 6px;padding:8px 10px;background:#101d1c;box-shadow:inset 0 0 0 2px #35554f}
+.ach-hd>.pxi,.ach-hd>.pn-i{width:32px;height:32px;flex:none}
+.ach-hd>div{flex:1;min-width:0}.ach-hd b{font-family:var(--pxfont);font-size:1.25rem;color:#fff4c8}
+.ach-hd small{display:block;margin-top:3px;font-size:.8rem;color:var(--dim);line-height:1.25}
+.ach-h{margin:10px 0 4px;font:600 .85rem var(--pxfont);letter-spacing:.12em;text-transform:uppercase;color:var(--brass,#d1a94e)}
+.ach-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:5px}
+.ach-c{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;background:#0e1918;box-shadow:inset 0 0 0 2px #182a28;color:var(--dim)}
+.ach-c>.pxi,.ach-c>.pn-i{width:32px;height:32px;flex:none;filter:grayscale(1) brightness(.6);opacity:.75}
+.ach-c>div{flex:1;min-width:0}
+.ach-c b{display:block;font-family:var(--pxfont);font-size:1.02rem;line-height:1.05;color:#b9ad8f}
+.ach-c p{margin:2px 0 0;font-size:.78rem;line-height:1.25}
+.ach-c.on{background:#1a2a1f;box-shadow:inset 0 0 0 2px #d1a94e;color:var(--vellum,#e9e0c9)}
+.ach-c.on>.pxi,.ach-c.on>.pn-i{filter:none;opacity:1}
+.ach-c.on b{color:#fff4c8}
+.ach-pr{display:block;height:6px;margin:5px 0 1px;background:#0b1514;box-shadow:inset 0 0 0 1px #35554f}
+.ach-pr i{display:block;height:100%;background:#58b39c}
+.ach-pr.big{height:8px;margin:4px 0 0}.ach-pr.big i{background:#d1a94e}
+.ach-pn{display:block;font-size:.72rem;color:var(--dim)}
+.ach-un{display:flex;align-items:center;gap:4px;margin-top:4px;font-size:.76rem;font-weight:700;color:#9fe0cd;line-height:1.15}
+.ach-un .pxi,.ach-un .pn-i{width:16px;height:16px;flex:none}
+.ach-c:not(.on) .ach-un{color:#7d8f86}
+.ach-when{display:block;margin-top:3px;font-size:.72rem;color:#d1a94e}
+
+/* locked origins in the new-company dialog: greyed, a padlock and the achievement that opens them */
+#sheetBody .ncs-or.ncs-lock{background:#0e1918;box-shadow:inset 0 0 0 2px #182a28;color:#7d8f86}
+#sheetBody .ncs-or.ncs-lock>.pxi,#sheetBody .ncs-or.ncs-lock>.pn-i{filter:grayscale(1) brightness(.55);opacity:.7}
+#sheetBody .ncs-or.ncs-lock b{color:#7d8f86}
+.ncs-unl{display:flex;align-items:center;justify-content:center;gap:3px;font-size:.66rem;line-height:1.05;color:#b9ad8f;text-align:center}
+.ncs-unl .pxi,.ncs-unl .pn-i{width:16px;height:16px;flex:none}

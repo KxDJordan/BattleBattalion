@@ -38,7 +38,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
  G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
  if(b.rival)rivalResolve(b,res,win);   // the rival company's dead, wounded and fled; its purse, gear and a beaten sword who asks to join
  if(win)res.cargo=caravanCargo(b.opts.src);
- if(win){const en=b.units.filter(u=>u.side!==0);en.forEach(e=>res.xp+=Math.round((e.def&&e.def.xp||(e.m?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=typeof followerHas==='function'&&followerHas('drill')?1.2:1;res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
+ if(win){const en=b.units.filter(u=>u.side!==0);en.forEach(e=>res.xp+=Math.round((e.def&&e.def.xp||(e.m?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=(typeof followerHas==='function'&&followerHas('drill')?1.2:1)*(typeof originK==='function'?originK('xp'):1);res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
   surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
   res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<.18)res.loot.push(pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
@@ -191,7 +191,7 @@ function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result|
  else if(s.type==='dun'&&G.dun){const d=G.dun;
   if(!win){G.dun=null;out.toast='The rift spits you back out'}
   else if(d.stage<2){d.stage++;G.roster.forEach(m=>{const mx=calc(m).hp;m.hp=Math.min(mx,m.hp+Math.round(mx*.15))});return{kind:'dunNext',stage:d.stage,realm:d.realm}}
-  else{const pay=Math.round((800+G.day*20)*(typeof originK==='function'?originK('rift'):1));G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');if(typeof ambEvent==='function')ambEvent('rift');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
+  else{const pay=Math.round((800+G.day*20)*(typeof originK==='function'?originK('rift'):1));G.crowns+=pay;G.renown+=50;G.stash.push('riftedge');if(typeof ambEvent==='function')ambEvent('rift');if(typeof achEvent==='function')achEvent('rift');G.portals=G.portals.filter(p=>p.id!==d.id);G.dun=null;let ended=false;
    if(G.crisis){G.crisis.closed++;if(!G.crisis.ended&&G.crisis.closed>=G.crisis.total){ended=true;if(typeof crisisEnd==='function'){try{crisisEnd(true)}catch(e){G.crisis.ended=true}}else G.crisis.ended=true;G.crisis.ended=true}}
    return{kind:'dunDone',pay,ended}}}
  return out}
