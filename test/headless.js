@@ -437,7 +437,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      put(e1,4,mid);L=X.losInfo(m0,e0,atk);ok(L.cover===1&&!L.ff.length&&X.hitChance(m0,e0,atk)===base-X.COVERPEN,'a foe in the line must give 1 cover');
      put(e2,5,mid);ok(X.losInfo(m0,e0,atk).cover===2&&X.hitChance(m0,e0,atk)===base-2*X.COVERPEN,'two bodies: 2 cover');put(e3,6,mid);ok(X.losInfo(m0,e0,atk).cover===2,'cover stops at 2');
      put(e3,0,0);tl(KU(m0)).h=1;ok(X.losInfo(m0,e0,atk).cover===1&&X.hitChance(m0,e0,atk)===base+10-X.COVERPEN,'height must take one step off the cover');tl(KU(m0)).h=0;
-     put(e1,0,1);put(e2,0,2);put(m1,4,mid);L=X.losInfo(m0,e0,atk);ok(L.cover===1&&L.ff.length===1&&L.ff[0]===m1,'an ally in the line is cover and at risk');
+     put(e1,0,1);put(e2,0,2);put(m1,4,mid);L=X.losInfo(m0,e0,atk);ok(L.cover===1&&!L.ff.length,'an ally mid-line is cover but under the arrow\'s arc');
+     put(m1,3,mid);L=X.losInfo(m0,e0,atk);ok(L.cover===1&&L.ff.length===1&&L.ff[0]===m1,'an ally right in front of the archer is cover and at risk');
      let f=X.forecast(m0,e0,atk);ok(f.cover===1&&f.ff.length===1&&f.ff[0].t===m1&&Math.abs(f.ff[0].ch-(100-f.hit)*X.FFCH)<1e-9&&!f.blocked,'forecast must show cover and the ally at risk');
      put(m1,0,3);tl(K(4,mid)).t='block';L=X.losInfo(m0,e0,atk);ok(L.blocked&&!X.validTargets(m0,atk).has(KU(e0))&&X.forecast(m0,e0,atk).blocked,'an obstacle must block the shot');
      ev.length=0;m0.ap=9;await X.useAbility(m0,atk,KU(e0));await rest(b);ok(seen('blocked',d=>d.u===m0&&d.t===e0).length===1&&!tries(m0),'a blocked shot must not be loosed');
@@ -449,7 +450,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      A.park();arm(m0,'pike');put(m0,2,mid);put(m1,3,mid);put(e0,4,mid);const imp=ab(m0,'impale');L=X.losInfo(m0,e0,imp);ok(imp.rng===2&&!L.blocked&&L.cover===0&&!L.ff.length&&X.validTargets(m0,imp).has(KU(e0)),'a pike must reach over an ally');
      put(m1,0,3);tl(K(3,mid)).t='block';ok(X.losInfo(m0,e0,imp).blocked&&!X.validTargets(m0,imp).has(KU(e0)),'a pike must not reach through an obstacle');tl(K(3,mid)).t='ground';
      // friendly fire: a missed shot past an ally strays into him about FFCH of the time
-     A.park();arm(m0,'shortbow');m0.rs=-300;put(m0,2,mid);put(m1,4,mid);put(e0,7,mid);tough(m1);tough(e0);ev.length=0;const N=300,hp0=m1.hp;for(let i=0;i<N;i++)await X.strike(m0,e0,ab(m0,'attack'));
+     A.park();arm(m0,'shortbow');m0.rs=-300;put(m0,2,mid);put(m1,3,mid);put(e0,7,mid);tough(m1);tough(e0);ev.length=0;const N=300,hp0=m1.hp;for(let i=0;i<N;i++)await X.strike(m0,e0,ab(m0,'attack'));
      const miss=seen('miss',d=>d.u===m0&&d.t===e0).length,ff=seen('ff',d=>d.u===m0&&d.t===m1).length,hurtN=seen('hit',d=>d.u===m0&&d.t===m1).length;
      ok(miss>N*.85&&ff>miss*.18&&ff<miss*.42&&hurtN===ff&&m1.hp<hp0&&tries(m0,m1)===ff,'stray shots: '+ff+' of '+miss+' misses hit the ally');
      put(m1,0,3);ev.length=0;for(let i=0;i<60;i++)await X.strike(m0,e0,ab(m0,'attack'));ok(!seen('ff').length,'no ally in the line, no friendly fire') }

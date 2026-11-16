@@ -198,6 +198,8 @@ function anBarsPaint(q,X,Y,w,bh,helm,arm,ah,aa,hw,lw,low,foe,sw,scol){const x0=X
    thin rounded lines under the bar (body armor steel, head armor brass), and the raised shield as a small wooden pip only when
    it is damaged. Same width and place as the art-pixel bars; Detail Low keeps those. */
 function anRR(q,x,y,w,h,r){r=Math.max(0,Math.min(r,h/2,w/2));q.beginPath();q.moveTo(x+r,y);q.arcTo(x+w,y,x+w,y+h,r);q.arcTo(x+w,y+h,x,y+h,r);q.arcTo(x,y+h,x,y,r);q.arcTo(x,y,x+w,y,r);q.closePath()}
+// the slim bars' height in art px (hitpoints, plus a line for each damaged armor), so what hangs above sits right on them
+function anBarsH(u,s,helm,arm){let n=0;if(arm&&s.arm<u.armMax)n++;if(helm&&s.helm<u.helmMax)n++;return 2.9+n*1.2}
 function anBarsHD(q,x0,top,w,bh,F){const T=q.getTransform(),sx=Math.hypot(T.a,T.b)||1,sy=Math.hypot(T.c,T.d)||1,X=(x,y)=>T.a*x+T.c*y+T.e,Y=(x,y)=>T.b*x+T.d*y+T.f,R=Math.round;
  const ol=Math.max(1,R(sy*.35)),hh=Math.max(4,R(sy*2.2)),lh=Math.max(2,R(sy*.85)),gap=Math.max(1,R(sy*.35));
  const lines=[];if(F.hasA&&F.arm<.999)lines.push(['a',F.arm]);if(F.hasH&&F.helm<.999)lines.push(['h',F.helm]);
@@ -220,7 +222,9 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  x=Math.round(x);y=Math.round(y);const arm=u.armMax>0,helm=u.helmMax>0,bh=4+(arm?2:0)+(helm?2:0),x0=x-(w>>1)-1,top=y-2-bh,foe=u.side!==0?1:u.ally?2:0;   // 2: an ally (a caravan guard, 42-caravans.js): blue bars
  if(o.tgt){const hw=wide?32:big?20:12,hh=o.top?o.top+(wide?4:0):big?46:30,p=rm?0:((t/170)|0)&1,L=wide?8:big?6:4,X=x-hw-2-p,Y=y-p,c=o.exact?anBrackets(hw,hh,L,p):null;if(c)q.drawImage(c,X,Y);else anBrkPaint(q,X,Y,hw,hh,L,p)}
  // frame with clipped corners; rows from the top: head armor (brass), body armor (steel), hitpoints
- if(!noBars&&typeof hdArt==='function'&&hdArt()){const hp=Math.max(0,Math.min(u.hpMax,s.hp));   // Detail High: device-pixel bars
+ let tI=top;   // where the status squares and the turn chevron sit: just above whatever bars are drawn (the slim HD bars are much lower than the art bars' box)
+ if(noBars)tI=y-2;
+ if(!noBars&&typeof hdArt==='function'&&hdArt()){const hp=Math.max(0,Math.min(u.hpMax,s.hp));tI=y-2-anBarsH(u,s,helm,arm);   // Detail High: device-pixel bars
   anBarsHD(q,x0,top,w,bh,{hasH:helm,hasA:arm,helm:helm?Math.max(0,s.helm)/u.helmMax:0,arm:arm?Math.max(0,s.arm)/u.armMax:0,hp:hp/u.hpMax,lag:Math.max(0,s.lag)/u.hpMax,
    low:hp>0&&hp<u.hpMax*.3&&!rm&&((t/260)|0)&1,foe,sh:u.shpMax>0&&u.shield?u.shp/u.shpMax:null,scol:u.shpMax>0&&u.shp<u.shpMax*.4})}
  else if(!noBars){const hp=Math.max(0,Math.min(u.hpMax,s.hp)),hw=hp>0?Math.max(1,Math.round(w*hp/u.hpMax)):0,lw=Math.min(w,Math.round(w*Math.max(0,s.lag)/u.hpMax)),
@@ -233,10 +237,11 @@ function drawUnitOverlayPx(q,u,x,y,o){if(!u||!u.alive||!q)return;o=o||AN_OV;cons
  if(u.elite&&typeof eliteMark==='function')eliteMark(q,u,x0,top,bh,o);   // the elite mark, left of the bars (64e-elites.js)
  // morale flag and status icons (16x16 native, outlined), packed tighter when there are many
  if(s.rev<0)anStRefresh(u,s,t);
- const n=s.icn>3?3:s.icn;let ty=top;
- if(n){const step=n<3?14:12.5,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=top-15;ty=top-13;
-  if(!(hdArt()&&typeof pkBadgeCanvas==='function'&&anBadges(q,s,n,x,top,step)))for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
- if(o.cur){const bob=rm?0:AN_BOB[((t/140)|0)&3];if(!(hdArt()&&typeof pdChevCanvas==='function'&&anChev(q,foe===1,x+.5,ty-5-bob))){const c=anSprite(foe===1?'chev1':'chev0');if(c)q.drawImage(c,x-4,ty-8-bob)}}}
+ const n=s.icn>3?3:s.icn;let ty=tI;
+ if(n){const step=n<3?14:12.5,ic=s.ic;let ix=x-((n-1)*step>>1)-9;const iy=tI-15;ty=hdArt()&&typeof pkBadgeCanvas==='function'?tI-AN_BADGE-1:tI-13;
+  if(!(hdArt()&&typeof pkBadgeCanvas==='function'&&anBadges(q,s,n,x,tI,step)))for(let i=0;i<n;i++){const c=ic[i];if(c)q.drawImage(c,ix,iy);ix+=step}}
+ s.ovT=ty;   // the top of the overlay (read by the board's objective marks, 70-render.js)
+ if(o.cur){const bob=rm?0:AN_BOB[((t/140)|0)&3];if(!(hdArt()&&typeof pdChevCanvas==='function'&&anChev(q,foe===1,x+.5,ty-7-bob))){const c=anSprite(foe===1?'chev1':'chev0');if(c)q.drawImage(c,x-4,ty-8-bob)}}}
 /* Detail High: the chevron painted at device pixels (pdChevCanvas, 06pd-status.js), centred where the 9x6 pixel chevron was */
-function anChev(q,foe,ax,ay){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(10,Math.round(9.5*sy)),c=pdChevCanvas(foe,N);if(!c)return false;
+function anChev(q,foe,ax,ay){const T=q.getTransform(),sy=Math.abs(T.d)||1,N=Math.max(14,Math.round(13.5*sy)),c=pdChevCanvas(foe,N);if(!c)return false;
  q.save();q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=true;q.drawImage(c,Math.round(T.a*ax+T.c*ay+T.e-N/2),Math.round(T.b*ax+T.d*ay+T.f-N/2));q.restore();return true}
