@@ -212,6 +212,7 @@ function eastEnd(){const v=eastWar();if(!v||v.stage!=='war')return;const held=ea
  else if(side==='east'){if(won){G.renown=eastNum(G.renown,0)+EW.renown.win;G.crowns=eastNum(G.crowns,0)+EW.pay.east;repGain('east',EW.rep.ally,why);eastTitle('Sword of the Shogun')}else G.renown=eastNum(G.renown,0)+EW.renown.lose;
   for(const h of H)if(repOf(h.id)<-30)repGain(h.id,-30-repOf(h.id),'The war is over')}
  else{G.renown=eastNum(G.renown,0)+EW.renown.out}
+ if(typeof achEvent==='function')achEvent('east',{won,side});   // achievements (28-achieve.js)
  if(G.note==null)G.note='eastend'}
 function eastTitle(t){const e=G.east;e.title=t;if(Array.isArray(G.titles)){if(!G.titles.includes(t))G.titles.push(t)}}
 function eastWarChoose(side){const v=eastWar();if(!v||v.stage!=='war'||v.side)return false;if(side!=='houses'&&side!=='east'&&side!=='out')return false;v.side=side;const H=Array.isArray(G.houses)?G.houses:[];

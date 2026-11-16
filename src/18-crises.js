@@ -114,6 +114,7 @@ function crisisEnd(won){const c=G.crisis;if(!c)return;const C=CRISES[c.k];const 
   worldNews(late?`${G.name||'The company'} broke ${C.n} at last`:`${G.name||'The company'} ended ${C.n}`);if(typeof ambEvent==='function'){try{ambEvent('crisis',{k:c.k})}catch(e){}}}
  else{if(!Array.isArray(G.crScar))G.crScar=[];G.crScar.push({k:c.k,day:G.day,t:C.scar});worldNews(C.scar)}
  if(typeof runCrisisEnd==='function'){try{runCrisisEnd(!!won)}catch(e){}}   // the run record (22-run.js)
+ if(typeof achEvent==='function')achEvent('crisis',{win:!!won,k:c.k});   // achievements (28-achieve.js)
  G.note=G.note&&G.note!=='crisisEnd'?G.note:'crisisEnd'}
 // the end of every host that is not besieging anything: parties of the crisis faction leave the map when the crisis is won
 function crDisband(f){for(const p of G.parties)if(p.f===f&&p.cr)p.gone=1}

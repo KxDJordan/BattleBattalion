@@ -171,7 +171,7 @@ function cvBattleEnd(s,win,res,out){const cl=cvById(s.id),rc=res&&res.cv;if(!cl|
   else if(!rc.wagon){k.k='burned';if(C){C.gone=1;cvLost(C);add(C.f,CV.rep.tried,'Fought for a caravan')}worldNews(`A caravan of ${own} was burned in a fight with ${k.raiders.toLowerCase()}`)}
   else if(C){delete C.clash;const g=Object.assign({},cvGuardOf(C));g.n=rc.alive;C.guard=g;C.mult=cvGuardMult(g);const pay=cvReward(C,rc.n0);G.crowns+=pay;k.crowns=pay;
    if(svObj(C.cargo)&&Array.isArray(C.cargo.trade)&&C.cargo.trade.length){const x=C.cargo.trade.shift();if(ITEMS[x.id]){G.stash.push(x.id);k.good=ITEMS[x.id].n}}
-   add(C.f,CV.rep.save,'Saved a caravan from '+k.raiders.toLowerCase());k.k=rc.alive?'saved':'alone';k.pay=Math.round(pay*.8+40);worldNews(`The company saved a caravan of ${own} from ${k.raiders.toLowerCase()}`)}
+   add(C.f,CV.rep.save,'Saved a caravan from '+k.raiders.toLowerCase());k.k=rc.alive?'saved':'alone';k.pay=Math.round(pay*.8+40);if(typeof achEvent==='function')achEvent('caravan');worldNews(`The company saved a caravan of ${own} from ${k.raiders.toLowerCase()}`)}
   G.parties=G.parties.filter(p=>!p.gone)}
  else{k.k='left';cl.gh=Math.round(clamp(cl.gh*rc.gh,0,1)*1000)/1000;cl.rh=Math.round(clamp(cl.rh*rc.rh,0,1)*1000)/1000;if(rc.turned)cl.turned=1;cl.bo=1;
   if(C){const g=Object.assign({},cvGuardOf(C));g.n=rc.alive;C.guard=g;C.mult=cvGuardMult(g)}
