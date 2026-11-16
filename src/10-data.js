@@ -548,6 +548,15 @@ const MAST={
   [perkDef('Hold the sand','You cannot be knocked back or dragged; +8 resolve; take 8% less damage from melee blows',{id:'champion.4',flag:'kbImm',st:{brv:8},mod:{drMelee:.08}})],
   [perkDef('Iugula','Ability: the crowd’s verdict (5 AP, melee): 100% damage, +10 to hit, +40% armor piercing, and a further +80% against a foe below half health',{id:'champion.5',ab:'iugula'})],
   [perkDef('Undefeated','+5 melee skill. The first time in a battle a blow leaves you alive below half health, you catch your second wind: recover 20 hitpoints, and +2 AP on your next turn',{id:'champion.6',st:{ms:5},flag:'secondWind'})]]},
+  /* ---- the twin blades (rules: 11w-dualwield.js the off-hand rules, 64w-dualwield.js abilities and hooks; calc() 30-mercs.js).
+        Dual wielding: a light one-handed weapon in the shield slot (m.eq.s) beside a one-handed melee weapon in hand. Ids pinned: dualwield.1-6. ---- */
+ dualwield:{n:'Twin blades',kind:'style',aff:['melee','dual'],d:'A blade in each hand',tiers:[
+  [perkDef('Off-hand training','With a weapon in each hand: the off-hand blow that follows every Attack strikes at 75% of the off-hand weapon\u2019s damage instead of 50%, and loses its \u221210 to hit',{id:'dualwield.1',flag:'dwTrain'})],
+  [perkDef('Twin strike','Ability: with a weapon in each hand, strike with both (5 AP): the main hand at 100% damage and +10 to hit, then the off hand at 100% and +10 to hit',{id:'dualwield.2',ab:'twinstrike'})],
+  [perkDef('Cross guard','+8 melee defense while you fight with a weapon in each hand: the off-hand blade turns aside what a shield would have',{id:'dualwield.3',mod:{dwDef:8}})],
+  [perkDef('Feint and cut','Ability: with a weapon in each hand, the off-hand blade feints and the main hand cuts (4 AP): 100% damage, +20 to hit; a wound that reaches flesh bleeds for 3 turns',{id:'dualwield.4',ab:'dwfeint'})],
+  [perkDef('Blade flurry','Ability: with a weapon in each hand, three quick blows, main hand, off hand, main hand, at 75% damage and +5 to hit each, while the foe stands (6 AP)',{id:'dualwield.5',ab:'bladeflurry'})],
+  [perkDef('Ambidextrous','+5 melee skill. With a weapon in each hand, the off-hand blow that follows every Attack strikes at the off-hand weapon\u2019s full damage, with no penalty to hit',{id:'dualwield.6',st:{ms:5},flag:'dwAmbi'})]]},
  /* ---- gift trees: today's four under their old keys, the variants beside them ---- */
  mana:{n:'Arcana',kind:'gift',res:'mana',style:'caster',aff:['caster'],d:'Awakens Mana for spellcraft',tiers:[
   [perkDef('Arcane bolt','Awakens Mana (30). Ability: a 22–34 magic bolt at 5 tiles',{ab:'bolt'})],[perkDef('Fireball','Ability: 20–32 magic damage at 5 tiles, 70% of it to every foe beside the target, all burn for 2 turns',{ab:'fireball'})],
@@ -672,8 +681,8 @@ const RACE={human:{n:'Human',st:{}},elf:{n:'Elf',st:{rs:5,init:8,hp:-5}},dwarf:{
 Object.assign(BG.farmhand,{style:'melee',pool:['vanguard','bulwark','brute','survivor','brawler','shieldbearer','medic'],wt:['mace','axe','hammer','polearm','dagger'],at:['lightarmor','medarmor']});
 Object.assign(BG.militia,{style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','skirmisher','marksman'],wt:['spear','polearm','crossbow','dagger','shield'],at:['lightarmor','medarmor'],side:'knife|-'});
 Object.assign(BG.hunter,{style:'ranged',pool:['marksman','sharpshooter','scout','skirmisher','survivor','medic','brawler'],wt:['bow','crossbow','dagger','spear','axe'],at:['lightarmor'],side:'knife'});
-Object.assign(BG.thief,{style:'melee',pool:['rogue','assassin','shadow','skirmisher','duelist','scout','survivor','brawler'],wt:['dagger','sword','fist','crossbow','flintlock'],at:['lightarmor']});
-Object.assign(BG.sellsword,{style:'melee',pool:['vanguard','duelist','brute','bulwark','skirmisher','tactician','berserker','survivor','shieldbearer'],wt:['sword','axe','hammer','spear','shield'],at:['medarmor','heavyarmor'],side:'knife|-|-'});
+Object.assign(BG.thief,{style:'melee',pool:['rogue','assassin','shadow','skirmisher','duelist','scout','survivor','brawler','dualwield'],wt:['dagger','sword','fist','crossbow','flintlock'],at:['lightarmor']});
+Object.assign(BG.sellsword,{style:'melee',pool:['vanguard','duelist','brute','dualwield','skirmisher','tactician','berserker','survivor','shieldbearer'],wt:['sword','axe','hammer','spear','shield'],at:['medarmor','heavyarmor'],side:'knife|-|-'});
 Object.assign(BG.squire,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','tactician','brute'],wt:['sword','greatsword','spear','polearm','shield'],at:['medarmor','heavyarmor']});
 Object.assign(BG.hedge,{style:'caster',pool:['skirmisher','bulwark','medic','scout','survivor','tactician'],wt:['staff','dagger','fist'],at:['lightarmor'],side:'knife|-'});
 Object.assign(BG.acolyte,{style:'support',pool:['medic','bulwark','shieldbearer','tactician','survivor','vanguard','brawler'],wt:['mace','hammer','staff','fist','shield'],at:['medarmor']});
@@ -716,10 +725,10 @@ Object.assign(BG,{
   style:'melee',pool:['vanguard','skirmisher','survivor','tactician','shieldbearer','scout','brute'],wt:['spear','polearm','sword','crossbow','shield'],at:['lightarmor','medarmor'],
   tr:{craven:4,brave:.3,quick:2,greedy:1.5,drunkard:1.5,loyal:.2},look:{hat:'cap',cloth:'red',accent:'grey',trim:'',garb:'tatters',beard:'goatee'}},
  brigand:{n:'Brigand',cost:210,wage:13,w:4,st:{ms:7,init:4,brv:2,md:-2},r:[['qi',.15],['aura',.06]],gear:['hatchet|club|seax|falchion|spikedclub','jack|hide|leather','-|targe|roundshield','hood|cap|-'],
-  style:'melee',pool:['berserker','skirmisher','brawler','duelist','vanguard','scout','assassin','rogue'],wt:['axe','mace','sword','dagger','shield'],at:['lightarmor','medarmor'],
+  style:'melee',pool:['berserker','skirmisher','brawler','duelist','vanguard','scout','assassin','rogue','dualwield'],wt:['axe','mace','sword','dagger','shield'],at:['lightarmor','medarmor'],
   tr:{greedy:3,cocky:2,bloodthirsty:2,loyal:.3,brave:1.5},look:{hat:'bandana',cloth:'night',accent:'crimson',trim:'',garb:'bandolier',beard:'goatee'}},
  pitfighter:{n:'Pit fighter',cost:300,wage:18,w:2,st:{ms:9,hp:6,init:5,md:-3,brv:6},r:[['qi',.3],['chi',.08]],gear:['spikedclub|knife|-|hatchet|cestus','rags|hide','-'],town:2,
-  style:'melee',pool:['brawler','berserker','duelist','survivor','brute','skirmisher','vanguard','gladiator','champion'],wt:['fist','mace','axe','dagger'],at:['lightarmor','medarmor'],
+  style:'melee',pool:['brawler','berserker','duelist','survivor','brute','skirmisher','vanguard','gladiator','dualwield'],wt:['fist','mace','axe','dagger'],at:['lightarmor','medarmor'],
   tr:{hardhead:3,glassjaw:1.5,cocky:3,tough:2,bloodthirsty:2,craven:.3,fragile:.3},look:{hat:'',cloth:'red',accent:'tan',trim:'',garb:'manica',hair:'mohawk'}},
  veteran:{n:'Retired soldier',cost:520,wage:26,w:2,st:{ms:10,md:6,brv:10,init:-6,fat:-5,hp:2},r:[['aura',.3],['chi',.05]],gear:['warspear|arming|bill|ironmace','mail|brigandine|leather','kite|roundshield','kettle|nasal|coif'],town:2,
   style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','duelist','medic','brute'],wt:['spear','polearm','sword','mace','shield'],at:['medarmor','heavyarmor'],
@@ -753,14 +762,14 @@ Object.assign(BG,{
   tr:{lucky:3,fragile:2,drunkard:2.5,craven:2,asthmatic:2,hulking:.2,cocky:.3},look:{hat:'',cloth:'brown',accent:'grey',trim:'',garb:'tatters',hair:'shaggy',beard:'long'}},
  /* the rogues (assassin, rogue and shadowdancer trees): a knife for hire and a fairground tumbler */
  cutthroat:{n:'Cutthroat',cost:260,wage:15,w:2,st:{ms:6,init:10,md:3,hp:-3,brv:-2},r:[['qi',.12],['aura',.06]],gear:['dirk|seax|knife|shortsword','jack|padded|rags','hood|-'],side:'knife|-',town:2,
-  style:'melee',pool:['assassin','rogue','shadow','duelist','skirmisher','scout','survivor','berserker'],wt:['dagger','sword','crossbow','fist'],at:['lightarmor'],
+  style:'melee',pool:['assassin','rogue','shadow','duelist','skirmisher','scout','survivor','berserker','dualwield'],wt:['dagger','sword','crossbow','fist'],at:['lightarmor'],
   tr:{bloodthirsty:2.5,greedy:2,quick:2,cocky:1.5,brave:.7,loyal:.3},look:{hat:'hood',cloth:'black',accent:'crimson',trim:'',garb:'sash'}},
  acrobat:{n:'Tumbler',cost:210,wage:12,w:2,st:{init:16,md:6,rd:4,hp:-4,fat:6,ms:-3},r:[['chi',.12],['qi',.1]],gear:['knife|shortsword|-','rags|jack','-|hood'],town:2,
-  style:'melee',pool:['shadow','skirmisher','duelist','rogue','scout','brawler','survivor'],wt:['dagger','sword','fist','staff'],at:['lightarmor'],
+  style:'melee',pool:['shadow','skirmisher','duelist','rogue','scout','brawler','survivor','dualwield'],wt:['dagger','sword','fist','staff'],at:['lightarmor'],
   tr:{athletic:3,dexterous:3,quick:2.5,tiny:1.5,hulking:.2,sluggish:.2,asthmatic:.3,clumsy:0},look:{hat:'band',cloth:'red',accent:'ochre',trim:'',garb:'stripes',hair:'swept'}},
  /* the arena (29-colosseum.js): a gladiator of the school, bought out of the sand; mostly in the colosseum's own tavern */
  gladiator:{n:'Gladiator',cost:640,wage:30,w:.5,st:{ms:12,md:6,hp:8,fat:6,brv:8,init:4,rd:-4,rs:-6},r:[['aura',.25],['qi',.15],['chi',.05]],gear:['gladius|gladius|sica|trident|spatha','manica|manica|harness','parma|scutum|-','galea|thraexhelm|-'],town:3,
-  style:'melee',pool:['gladiator','champion','duelist','brawler','vanguard','berserker','survivor','shieldbearer'],wt:['sword','spear','fist','dagger','shield'],at:['lightarmor','medarmor'],
+  style:'melee',pool:['gladiator','champion','duelist','brawler','vanguard','berserker','survivor','shieldbearer','dualwield'],wt:['sword','spear','fist','dagger','shield'],at:['lightarmor','medarmor'],
   tr:{showman:4,cocky:2.5,brave:2,athletic:2,bloodthirsty:1.5,hardhead:1.5,craven:.2,loyal:.6,greedy:1.5,asthmatic:.3},look:{hat:'',cloth:'red',accent:'gold',trim:'gold',garb:'manica',hair:'short'}},
  cultist:{n:'Ex-cultist',cost:380,wage:20,w:1,st:{brv:4,hp:-4,ms:-4},r:[['mana',.7],['chi',.15]],gear:['staff|knife|pilgrim','robe|rags','hood'],town:2,
   style:'caster',pool:['survivor','medic','tactician','skirmisher','scout','berserker','brawler'],wt:['staff','dagger','mace'],at:['lightarmor'],

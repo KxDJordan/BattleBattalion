@@ -78,6 +78,8 @@ function pnEmpty(t){return`<div class="pn-empty">${t}</div>`}
 function itemDeltas(id,cur){const a=ITEMS[id],b=cur?ITEMS[cur]:null,out=[],add=(v,u)=>{if(v)out.push({v,u})};
  if(a&&a.k==='t')return out;
  if(a&&a.k==='c'){add((a.brv||0)-(b&&b.brv||0),'resolve');add((a.md||0)-(b&&b.md||0),'melee def');add((a.rd||0)-(b&&b.rd||0),'ranged def');add((a.init||0)-(b&&b.init||0),'initiative');add((b?b.fat||0:0)-(a.fat||0),'fatigue');return out}
+ if(b&&a&&b.k!==a.k&&(a.k==='w'||a.k==='s')&&(b.k==='w'||b.k==='s')){   // the shield slot: a shield against an off-hand weapon (11w-dualwield.js)
+  const sh=a.k==='s'?a:b,sg=a.k==='s'?1:-1;add(sg*(sh.md||0),'melee def');add(sg*(sh.rd||0),'ranged def');const w=a.k==='w'?a:b;add(-sg*Math.round((w.d[0]+w.d[1])/2),'off-hand dmg');return out}
  if(a.k==='w'){const c=b||FIST;add(Math.round((a.d[0]+a.d[1]-c.d[0]-c.d[1])/2),'dmg');add((c.ap||4)-(a.ap||4),'AP');add((a.hit||0)-(c.hit||0),'to hit');add(Math.round(((a.ign||0)-(c.ign||0))*100),'% pierce');add((a.rng||1)-(c.rng||1),'range')}
  else if(a.k==='s'){add(a.md-(b?b.md:0),'melee def');add(a.rd-(b?b.rd:0),'ranged def');add((b?b.fat:0)-a.fat,'fatigue')}
  else{add(a.arm-(b?b.arm:0),a.k==='h'?'head armor':'armor');add((a.md||0)-(b&&b.md||0),'melee def');add((a.rd||0)-(b&&b.rd||0),'ranged def');add((b?b.fat||0:0)-(a.fat||0),'fatigue')}return out}
@@ -325,14 +327,16 @@ function tlGiftRes(key){const T=MAST[key];return T&&T.res||''}
 function tlTwo(id){const it=ITEMS[id];return!!(it&&it.k==='w'&&it.two)}
 function tlGrip(id){const it=ITEMS[id];return it&&it.k==='w'?(it.two?'2H':'1H'):''}
 /* {ok, why}: can item id go into slot ('w' main, 'b' backup, 's' shield, 'a', 'h') of merc m? equipRules decides when present. */
-function tlEquipRule(m,slot,id){const it=ITEMS[id];if(!it)return{ok:false,why:'Unknown item'};const want=slot==='b'?'w':slot;if(it.k!==want)return{ok:false,why:'That does not go in this slot'};
+function tlEquipRule(m,slot,id){const it=ITEMS[id];if(!it)return{ok:false,why:'Unknown item'};const want=slot==='b'?'w':slot;if(it.k!==want&&!(slot==='s'&&it.k==='w'))return{ok:false,why:'That does not go in this slot'};
  if(typeof equipRules==='function'){const r=tlTry(()=>equipRules(m,slot,id),undefined);
   if(r===true||r===null)return{ok:true,why:''};if(r===false)return{ok:false,why:'Cannot be equipped'};if(typeof r==='string')return r?{ok:false,why:r}:{ok:true,why:''};
   if(r&&typeof r==='object'){const why=r.why||r.reason||r.msg||r.err||'';return{ok:r.ok!==false&&!r.err,why,drop:r.drop||null}}}
  const e=m.eq||{};if(slot==='s'&&tlTwo(e.w)&&tlTwo(e.b))return{ok:false,why:'Both hands are full: a shield needs a one-handed weapon in one of the two weapon slots'};return{ok:true,why:''}}
 /* would putting weapon id into slot ('w'|'b') leave a shield with no one-handed weapon to go with? */
-function tlDropsShield(m,slot,id){const e=m.eq||{};if(!e.s||!tlTwo(id))return false;const other=slot==='b'?e.w:e.b;return tlTwo(other)}
-function tlSlung(m){const e=m.eq||{};return!!(e.s&&tlTwo(e.w))}
+function tlDropsShield(m,slot,id){const e=m.eq||{};if(!e.s)return false;if(typeof equipRules==='function'){const r=tlTry(()=>equipRules(m,slot,id),null);return!!(r&&Array.isArray(r.drops)&&r.drops.includes('s'))}if(!tlTwo(id))return false;const other=slot==='b'?e.w:e.b;return tlTwo(other)}
+/* the shield slot holds an off-hand weapon (11w-dualwield.js); tlSlung: a shield slung, or an off-hand weapon idle, with the main weapon in hand */
+function tlOffW(m){const id=m&&m.eq&&m.eq.s;return!!(id&&ITEMS[id]&&ITEMS[id].k==='w')}
+function tlSlung(m){const e=m.eq||{};if(!e.s)return false;if(tlOffW(m))return!(typeof dwMainOK==='function'&&dwMainOK(ITEMS[e.w]));return tlTwo(e.w)}
 /* ================= TRAITS in every UI =================
    trList(m) -> [{key,n,d,good,fx}] from m.traits (rules: TRAITS[key] = {n,d,good,st,flag,mod,wage,opp}); traitsOf(m) when keys are missing.
    traitChips(m,o) -> HTML: o.compact (icons only, battle chip), o.size (16), o.full (icon, name and the exact effects in a list),

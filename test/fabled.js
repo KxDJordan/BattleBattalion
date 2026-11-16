@@ -66,7 +66,7 @@ section('records');
    ok(m.perks.filter(p=>p.indexOf('fab.'+id)===0).length===Math.min(4,1+Math.floor((F.lvl-1)/3)),id+': its own tree learned first');
    ok(F.gear.every(g=>Object.values(m.eq).includes(g)),id+': wears its named gear');
    for(const k of ['hp','ms','md','init'])ok(Number.isFinite(c[k]),id+': '+k);
-   const score=s=>s.hp+Math.max(s.ms,s.rs)+s.md*2+s.rd+s.init*.3;let vs=0;for(let i=0;i<4;i++){const tv=X.newMerc(F.bg);X.makeVeteran(tv,F.lvl);vs+=score(tv.base)/4}const vc={hp:vs,ms:0,rs:0,md:0,rd:0,init:0};
+   const score=s=>s.hp+Math.max(s.ms,s.rs)+s.md*2+s.rd+s.init*.3;let vs=0;for(let i=0;i<12;i++){const tv=X.newMerc(F.bg);X.makeVeteran(tv,F.lvl);vs+=score(tv.base)/12}const vc={hp:vs,ms:0,rs:0,md:0,rd:0,init:0};
    ok(score(m.base)>vs*1.1,id+': clearly stronger than a tavern veteran ('+score(m.base).toFixed(0)+' vs '+score(vc).toFixed(0)+')');
    ok(X.repairMerc(X.clone(m)),id+': a valid merc record');
    const r=X.portraitRows(m);ok(r&&r.length===32&&r.key.indexOf('Ffabled')<0&&/^m:F/.test(r.key),id+': portrait');

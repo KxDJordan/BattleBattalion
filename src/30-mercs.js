@@ -32,7 +32,7 @@ function traitsValid(L){if(!Array.isArray(L)||L.length>2)return false;for(let i=
 function mercWage(m){const b=m&&BG[m.bg];if(!b)return 0;let f=1;for(const T of traitsOf(m))if(T.wage)f+=T.wage;return Math.max(1,Math.round(b.wage*f))}
 /* A merc: {id,name,bg,race,lvl,xp,pp,pend,base:{hp,fat,init,ms,rs,md,rd,brv},tal,trees,gift,perks,traits:[keys],eq:{w,b,s,a,h},hp,field,inj:[{id,days}],cond?:{a,h},slain:{quarryKey:kills}}
    traits: 0-2 TRAITS keys rolled at creation (rollTraits); their st and mods are in calc(m), their battle flags in 60-battle-core.js.
-   base.brv is resolve (morale checks); eq.h a helmet, eq.b a sidearm (any weapon; swapped in battle); cond the armor points left on body (a)
+   base.brv is resolve (morale checks); eq.h a helmet, eq.b a sidearm (any weapon; swapped in battle); eq.s a shield or an off-hand weapon (11w-dualwield.js); cond the armor points left on body (a)
    and head (h), absent = whole; inj the injuries carried (days left, -1 = permanent). trees / gift / perks: see 61-talents.js. */
 function newMerc(bg){const b=BG[bg],race=rnd()<.55?'human':pick(['elf','dwarf','halforc']);
  const base={hp:ri(50,60),fat:ri(90,100),init:ri(98,112),ms:ri(47,56),rs:ri(32,42),md:ri(0,5),rd:ri(0,5),brv:ri(32,44)};
@@ -58,7 +58,8 @@ function mercRes(m){if(!m)return null;if(m.gift&&MAST[m.gift]&&MAST[m.gift].res)
     hand, wid, alt (item ids in hand / the other weapon), perks (active ids), off (weapon perks idle: another family in hand; armor perks idle:
     another weight class worn), acl (armorClass: light medium heavy), aw (armor + helmet weight = their fatigue),
     initDef (melee and ranged defense from initiative: Quicksilver floor(flags.initDef x init) plus Read the blade, already inside md and rd),
-    readDef (the Read the blade share of it), inj:[ids]} */
+    readDef (the Read the blade share of it), inj:[ids],
+    dw (the off-hand weapon object while a weapon is in each hand, else null), dwId (the off-hand item carried), dwIdle (carried, not in use: 11w-dualwield.js)} */
 /* Armor weight classes for the armor trees: light = no body armor, a robe, or at most ACLASS.light armor points; medium = at most
    ACLASS.medium; heavy = more. A famed piece keeps the class of the item it was made from. armorClass(m) takes a merc, or a battle unit
    (its merc's armor; an enemy by its armor maximum). */
@@ -95,6 +96,8 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
  if(eq.b&&ITEMS[eq.b])s.abs.push('swap');
  for(const T of traitsOf(m)){if(T.st)for(const k in T.st)s[k]=(s[k]||0)+T.st[k];if(T.flag)s.flags[T.flag]=1;if(T.mod)for(const q in T.mod)s.flags[q]=(s.flags[q]||0)+T.mod[q]}   // traits
  if(Array.isArray(m.inj))for(const j of m.inj){const I=j&&INJ[j.id];if(!I)continue;s.inj.push(j.id);for(const k in I.st)s[k]+=I.st[k]}
+ {const ow=offItem(m);s.dw=null;s.dwId=ow?eq.s:null;s.dwIdle=false;   // Twin blades (11w-dualwield.js): the off-hand weapon, in use beside a one-handed melee weapon in hand
+  if(ow){if(wi&&dwMainOK(wi)){const o=Object.assign({},ow,{id:eq.s});o.d=ow.d.slice();delete o.sk;delete o.power;s.dw=o;s.md+=s.flags.dwDef||0}else s.dwIdle=true}}
  if(s.flags.initDef){s.initDef=Math.floor(s.flags.initDef*Math.max(0,s.init));s.md+=s.initDef;s.rd+=s.initDef}else s.initDef=0;   // Quicksilver (light armor): a share of the initiative as defense
  s.readDef=0;if(s.flags.readInit){s.readDef=Math.max(0,Math.min(READINIT.max,Math.floor((s.init-READINIT.from)/READINIT.per),READINIT.cap-s.initDef));s.md+=s.readDef;s.rd+=s.readDef;s.initDef+=s.readDef}   // Read the blade (Shadowdancer): 1 a READINIT.per initiative above READINIT.from, at most READINIT.max, Quicksilver and it at most READINIT.cap
  if(s.hp<5)s.hp=5;if(s.fat<20)s.fat=20;s.ap=clamp(Math.round(s.ap),4,12);return s}

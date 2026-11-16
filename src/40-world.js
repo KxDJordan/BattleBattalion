@@ -646,7 +646,7 @@ function rvGear(m,T){const up=(slot,f)=>{const cur=ITEMS[m.eq[slot]],ct=cur?cur.
   if(!L.length)return false;const top=Math.max(...L.map(id=>ITEMS[id].tier||1)),B=L.filter(id=>(ITEMS[id].tier||1)>=top-1);m.eq[slot]=pick(B);return true};
  let n=0;if(m.eq.w&&rnd()<.75&&up('w',(it,c)=>it.k==='w'&&c&&it.wt===c.wt&&!!it.two===!!c.two&&!!it.spell===!!c.spell))n++;
  if(rnd()<.7&&up('a',(it,c)=>it.k==='a'&&(!c||(c.arm<=60?it.arm<=95:it.arm>60))&&!!(it.robe||/robe/.test(it.look||''))===!!(c&&(c.robe||/robe/.test(c.look||'')))))n++;
- if(rnd()<.6&&up('h',it=>it.k==='h'))n++;if(m.eq.s&&rnd()<.5&&up('s',it=>it.k==='s'))n++;
+ if(rnd()<.6&&up('h',it=>it.k==='h'))n++;if(m.eq.s&&ITEMS[m.eq.s]&&ITEMS[m.eq.s].k==='s'&&rnd()<.5&&up('s',it=>it.k==='s'))n++;
  if(typeof fixHands==='function')fixHands(m);if(typeof syncMast==='function')syncMast(m);m.hp=calc(m).hp;return n}
 function rvNewMerc(r,day){const m=newMerc(rvPickBG()),L=clamp(rvLvl(r.renown,day)+ri(-1,1),1,12);if(L>1)makeVeteran(m,L);delete m.vet;rvGear(m,rvGearTier(r.renown,day));
  m.field=r.roster.filter(x=>x.field).length<MAXFIELD;m.slot=null;m.hp=calc(m).hp;return m}

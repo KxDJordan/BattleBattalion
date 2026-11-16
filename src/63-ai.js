@@ -329,6 +329,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
     const hv=p=>{if(nh===1)return(h.v+h.kill*h.kv)*pr;const m=1+(nh-1)*p*(1-h.kill);return(h.v*m+Math.min(1,h.kill*m)*h.kv)*pr};
     if(a.aoe)for(const o of foes)if(o!==t&&mdist(o,t)===1)extra+=aiHit(u,a,o,S).v*.7*.7*aiPrio(X,o);
     if(a.chain){let n=0;for(const o of foes)if(o!==t&&mdist(o,t)<=3)n++;extra+=Math.min(a.chain,n)*h.v*.5}
+    if((a.dwOff||a.dwSeq)&&u.dw&&typeof dwAiExtra==='function')extra+=dwAiExtra(u,a,t,S)*pr;   // Twin blades: the off-hand blows that follow (64w-dualwield.js)
     const bh=a===atk?h:aiHit(u,atk,t,S);
     if(dash){if(!vt.has(key(t.c,t.r)))continue;const p=aiChance(u,a,t,cur),sp=d0>1?dashSpot(u,t):null,end=sp?key(sp[0],sp[1]):cur;
      take(p*(hv(p)+extra)-AI_RISK+follow(u.ap-a.ap,bh.v*pr*(1-p*h.kill)*.6)+aiPos(X,end)-(end!==cur?aoo*.5:0)-tax,cur,a,key(t.c,t.r));continue}

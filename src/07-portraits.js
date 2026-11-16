@@ -582,7 +582,7 @@ function ptMercSpec(m){const FB=m.fabled&&typeof FABLED==='object'?FABLED[m.fabl
  P.ragC=ptPick(R,['tan','brown','tan','green']);P.robeC=bg==='monk'||bg==='acolyte'?'red':ptPick(R,['blue','blue','purple']);
  const w=ITEMS[eq.w];if(w&&typeof usWeaponPtRows==='function'){try{P.wrows=usWeaponPtRows(usWpnOf(eq.w))}catch(e){P.wrows=null}}
  if(w&&!P.wrows){const nw=typeof usWpnOf==='function'&&PT_NEWW[w.wt]?PT_WPNOF[usWpnOf(eq.w)]:null;P.wpn=nw||(eq.w==='riftedge'?'rift':eq.w==='focus'?'focus':eq.w==='pike'?'pike':eq.w==='greataxe'?'axe':eq.w==='club'?'club':w.wt==='axe'?'axe1':w.wt)}
- if(ITEMS[eq.s]){P.shield=typeof usShLook==='function'?usShLook(eq.s):eq.s;P.shC=ptPick(R,['red','blue','green','purple','white'])}
+ if(ITEMS[eq.s]&&ITEMS[eq.s].k==='s'){P.shield=typeof usShLook==='function'?usShLook(eq.s):eq.s;P.shC=ptPick(R,['red','blue','green','purple','white'])}
  ptLookBody(P,m,R);if(hid)P.veil=null;ptLivery(P,m);if(typeof usCoatOfMerc==="function")P.coat=usCoatOfMerc(m);if(P.av&&P.av.ptC){P.clothC=P.av.ptC;P.robeC=P.av.ptC}if(P.shield&&typeof usShieldPtRows==='function'){const c=ptCl(P.shC)||PT_CLOTH.red;try{P.shRows=usShieldPtRows(P.shield,usRamp(c.join(''),1))}catch(e){P.shRows=null}}
  if(race==='dwarf'){P.wy=3}
  P.gem=typeof mercRes==='function'?mercRes(m):null;
