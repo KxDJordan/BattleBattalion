@@ -43,6 +43,20 @@ def cut_row(M, y0, y1, n):
         cs[i:i + 1] = [[a, c - 1], [c + 1, b]]
     return cs
 
+def cut_grid(a, counts, rowgap=10, win=.22):
+    """pieces drawn touching in a regular row: cut near the even spacing, at the column with the least ink (within win of a cell)"""
+    M = a[:, :, 3] > 24; rs = bands(M.sum(1) > 0, rowgap); out = []
+    for (y0, y1), n in zip(rs, counts):
+        col = M[y0:y1 + 1].sum(0); xs = np.where(col > 0)[0]; X0, X1 = xs[0], xs[-1]; cw = (X1 - X0) / n; cuts = [X0]
+        for i in range(1, n):
+            e = int(X0 + cw * i); lo, hi = int(e - cw * win), int(e + cw * win); cuts.append(lo + int(np.argmin(col[lo:hi])))
+        cuts.append(X1 + 1); row = []
+        for x0, x1 in zip(cuts, cuts[1:]):
+            sub = M[y0:y1 + 1, x0:x1]; ys = np.where(sub.any(1))[0]; xs2 = np.where(sub.any(0))[0]
+            row.append([x0 + xs2[0], y0 + ys[0], x0 + xs2[-1] + 1, y0 + ys[-1] + 1])
+        out.append(row)
+    return out
+
 def cut(a, counts, rowgap=6):
     M = a[:, :, 3] > 24; rowsum = M.sum(1); rs = bands(rowsum > 0, rowgap)
     while len(rs) < len(counts):   # rows drawn touching: cut the tallest band at its thinnest row (middle half)
@@ -67,27 +81,59 @@ def layers(P, kind):
     r, g, b, al = P[:, :, 0], P[:, :, 1], P[:, :, 2], P[:, :, 3]
     mx = np.maximum(np.maximum(r, g), b); lum = .3 * r + .59 * g + .11 * b
     ol = (mx < 62) & (al > 0)
+    skin = (r > 180) & (g > r * .5) & (g < r * .86) & (b > r * .3) & (b < r * .72) & (r - b > 55)
     if kind == 'hair': sk = (~ol) & (al > 0); hl = sk; sk = np.zeros_like(ol)
+    elif kind == 'ehair':   # an elf style: its ear is skin (the skin-coloured blob on the left, below the crown; blond hair is skin-coloured too)
+        hh_, ww_ = al.shape; reg = np.zeros_like(ol); reg[int(hh_ * .3):int(hh_ * .8), :int(ww_ * .38)] = True
+        sk = skin & (r > 244) & (~ol) & (al > 0) & reg; hl = (~ol) & (~sk) & (al > 0)   # the ear's skin is brighter than blond hair
     else:
         hl = np.zeros_like(ol)
         skin = (r > 180) & (g > r * .5) & (g < r * .86) & (b > r * .3) & (b < r * .72) & (r - b > 55)
-        sk = skin & (~ol) & (al > 0) if kind in ('head', 'hand', 'torso') else np.zeros_like(ol)
+        sk = skin & (~ol) & (al > 0) if kind in ('head', 'ehead', 'hand', 'torso') else np.zeros_like(ol)
     L = {}
     def grey(m, keep_ol):
         ref = max(1., float(np.percentile(lum[m], 85))); v = np.clip(255 * lum / ref, 0, 255)
         if keep_ol: v[ol] = np.minimum(v[ol], lum[ol])
         o = np.zeros(P.shape, np.float32); o[..., 0] = o[..., 1] = o[..., 2] = v; o[..., 3] = al; o[~(m | (ol if keep_ol else m))] = 0; return o
-    if kind == 'hair': L['h'] = grey(hl, True)          # grey shade with the outline in it: multiplied by the hair colour, the outline stays black
+    if kind == 'ehair': L['s'] = grey(sk, False); L['h'] = grey(hl, True)
+    elif kind == 'hair': L['h'] = grey(hl, True)          # grey shade with the outline in it: multiplied by the hair colour, the outline stays black
     else:
         L['c'] = P.copy()                                 # the piece in its own colours
-        if sk.any() and kind in ('head', 'hand'): L['s'] = grey(sk, False)   # the skin alone, grey: drawn over 'c' tinted for other skin tones
+        if sk.any() and kind in ('head', 'ehead', 'hand'): L['s'] = grey(sk, False)   # the skin alone, grey: drawn over 'c' tinted for other skin tones
     return L
 
 PIECES = []   # (name, kind, P (float rgba), sf)
 def add(name, kind, a, box, sf): PIECES.append((name, kind, a[box[1]:box[3], box[0]:box[2]].astype(np.float32), sf, box))
 
 # ---- sheets ----
-_, H = load('heads.webp'); hb = cut(H, [8])[0]
+_, H0 = load('heads.webp'); hb0 = cut(H0, [8])[0]
+_, H = load('heads-mf.webp'); hmf = cut(H, [8, 8], 10); hb = hmf[0]
+_, EH = load('elf-heads.webp'); ehb = cut(EH, [8, 8], 10)
+_, EHR = load('elf-hair.webp'); ehr = cut_grid(EHR, [8, 8])
+def own_pixels(a, boxes):
+    """styles whose tails overlap a neighbour's box: each box keeps only the ink connected to its own centre column band (8-connected
+    components, given to the box whose centre is nearest the component's centroid). Returns one masked copy of the sheet per box."""
+    M = a[:, :, 3] > 6; H_, W_ = M.shape; lab = -np.ones((H_, W_), np.int32); comps = []
+    for y in range(H_):
+        row = np.where(M[y] & (lab[y] < 0))[0]
+        for x in row:
+            if lab[y, x] >= 0: continue
+            st = [(y, x)]; lab[y, x] = len(comps); sx = sy = n = 0
+            while st:
+                yy, xx = st.pop(); sx += xx; sy += yy; n += 1
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        y2, x2 = yy + dy, xx + dx
+                        if 0 <= y2 < H_ and 0 <= x2 < W_ and M[y2, x2] and lab[y2, x2] < 0: lab[y2, x2] = len(comps); st.append((y2, x2))
+            comps.append((sx / n, sy / n, n))
+    cen = [((b[0] + b[2]) / 2, (b[1] + b[3]) / 2) for b in boxes]
+    owner = [min(range(len(boxes)), key=lambda i: (c[0] - cen[i][0]) ** 2 + 4 * (c[1] - cen[i][1]) ** 2) for c in comps]
+    owner = np.array(owner + [-1], np.int32); O = owner[lab]; out = []
+    for i, b in enumerate(boxes):
+        m = O == i; ys, xs = np.where(m & (a[:, :, 3] > 40)); c = a.copy(); c[~m] = 0
+        out.append((c, [xs.min(), ys.min(), xs.max() + 1, ys.max() + 1]))
+    return out
+
 _, HA = load('hands.png'); nb = cut(HA, [2])[0]
 _, LG = load('legs.png'); lb = cut(LG, [10])[0]
 _, HR = load('hair.webp'); rb = cut(HR, [8, 8, 8, 6], 10)
@@ -97,16 +143,25 @@ def width(bx): return bx[2] - bx[0]
 med = lambda xs: float(np.median(xs))
 # per-sheet scales: SU per sheet px. Targets from the approved composite (ref px) x 1.18 SU per ref px
 SU = 1.18
-sf_head = 170 * SU / med([width(b) for b in hb])
+EHAIRK = float(os.environ.get('EHAIRK', '1.22'))   # elf-hair sheet px per elf-head sheet px
+sf_head = 170 * SU / med([width(b) for b in hb0]); sf_hair = sf_head   # the hair sheet is drawn to heads.webp's scale
+hgt = lambda bx: bx[3] - bx[1]
+sf_head = sf_head * med([hgt(b) for b in hb0]) / med([hgt(b) for b in hb])   # heads-mf drawn to the same head height as heads.webp
+sf_ehead = sf_head * med([hgt(b) for b in hb]) / med([hgt(b) for b in ehb[0]])   # elf heads: the same skull height
+sf_ehair = sf_ehead * EHAIRK
 sf_torso = 130 * SU / med([width(b) for b in ab[0] + ab[2] + ab[4] + ab[6] + ab[8]])
 sf_legs = 75 * SU / med([width(b) for b in lb])          # one leg of the pair
 sf_hand = 62 * SU / med([width(b) for b in nb])
-for i, b in enumerate(hb): add('head%d' % i, 'head', H, b, sf_head)
+for i, b in enumerate(hmf[0]): add('head%d' % i, 'head', H, b, sf_head)
+for i, b in enumerate(hmf[1]): add('headf%d' % i, 'head', H, b, sf_head)
+for i, b in enumerate(ehb[0]): add('elfm%d' % i, 'ehead', EH, b, sf_ehead)
+for i, b in enumerate(ehb[1]): add('elff%d' % i, 'ehead', EH, b, sf_ehead)
+for i, b in enumerate(ehr[0] + ehr[1]): add('ehair%d' % i, 'ehair', EHR, b, sf_ehair)
 for i, b in enumerate(nb): add('hand_' + 'ab'[i], 'hand', HA, b, sf_hand)
 for i, b in enumerate(lb): add('leg%d_%s' % (i // 2, 'ab'[i % 2]), 'leg', LG, b, sf_legs)
 k = 0
 for row in rb:
-    for b in row: add('hair%d' % k, 'hair', HR, b, sf_head); k += 1
+    for b in row: add('hair%d' % k, 'hair', HR, b, sf_hair); k += 1
 k = 0
 for row in mb:
     for b in row: add('helm%d' % k, 'helm', HM, b, sf_head); k += 1
@@ -137,11 +192,14 @@ def anchors(kind, P, s):
     al = P[:, :, 3] > 40; h, w = al.shape; A = {}
     def span(y):
         xs = np.where(al[min(h - 1, max(0, int(y)))])[0]; return (xs[0], xs[-1]) if len(xs) else (0, w - 1)
-    if kind == 'head':
+    if kind in ('head', 'ehead'):
         x0, x1 = span(h * .5); x0 = x0 + (x1 - x0) * .12   # skip the ear at the back (left)
         A['cx'] = (x0 + x1) / 2 * s; A['cy'] = h * .5 * s; A['r'] = (x1 - x0) / 2 * s; A['nx'] = (x0 + x1) / 2 * s + 4; A['ny'] = (h - 4) * s; A['top'] = 0
         q0, q1 = span(h * .36); A['sx0'] = q0 * s; A['sx1'] = q1 * s
-        A['ex'] = w * .185 * s; A['ey'] = h * .677 * s   # the ear (measured on the sheet: the same on every expression)   # the skull's back and front edges above the ear
+        A['ex'] = w * .185 * s; A['ey'] = h * .677 * s; A['etx'] = w * .2 * s; A['ety'] = h * .52 * s   # the ear's centre and its top
+        if kind == 'ehead':   # the elf ear's tip: the leftmost point of the lower half
+            ys_ = [y for y in range(int(h * .45), h) if al[y].any()]; yb = min(ys_, key=lambda y: np.where(al[y])[0][0]); A['tipx'] = float(np.where(al[yb])[0][0]) * s; A['tipy'] = yb * s
+            x0, x1 = span(h * .3); A['sx0'] = x0 * s; A['sx1'] = x1 * s   # the ear (measured on the sheet: the same on every expression)   # the skull's back and front edges above the ear
     elif kind == 'torso':
         sk = (P[:, :, 0] > 180) & (P[:, :, 0] - P[:, :, 2] > 55) & (P[:, :, 1] > P[:, :, 0] * .5) & al
         ys = np.where(sk.any(1))[0]; ny = ys[0] if len(ys) else 0; nxs = np.where(sk[ny])[0] if len(ys) else [w / 2]
@@ -155,6 +213,13 @@ def anchors(kind, P, s):
         x0, x1 = span(h * .2); A['px'] = (x0 + x1) / 2 * s; A['py'] = h * .22 * s
     elif kind == 'leg':
         x0, x1 = span(3); A['px'] = (x0 + x1) / 2 * s; A['py'] = 3 * s; A['fy'] = (h - 1) * s
+    elif kind == 'ehair':   # the ear drawn into the style: its tip (the leftmost skin-or-outline point of the skin region's rows)
+        r_, g_, b_ = P[:, :, 0], P[:, :, 1], P[:, :, 2]; sk = al & (r_ > 244) & (r_ - b_ > 55) & (g_ > r_ * .5); sk[:int(h * .3)] = False; sk[int(h * .8):] = False; sk[:, int(w * .38):] = False
+        ys_ = np.where(sk.any(1))[0]
+        if len(ys_):
+            yy = [y for y in ys_ if sk[y].sum() > 2]; band = sk[min(yy):max(yy) + 1]; xs_ = np.where(band.any(0))[0]; x0s = xs_[0]
+            ytip = min(yy) + int(np.argmax(band[:, x0s:x0s + 6].any(1))); A['tipx'] = float(x0s) * s; A['tipy'] = ytip * s
+        x0, x1 = span(h * .3); A['bw'] = (x1 - x0) * s; A['bcx'] = (x0 + x1) / 2 * s; A['btop'] = float(np.where(al.any(1))[0][0]) * s
     elif kind in ('helm', 'hair'):
         rows = [span(y) for y in (range(int(h * .45), h) if kind == 'helm' else range(int(h * .12), int(h * .42)))]
         ws = sorted(r[1] - r[0] for r in rows); bw = ws[int(len(ws) * .7)]   # hair: measured at its crown (tails, braids and long ends hang lower)

@@ -67,7 +67,8 @@ const P2_HAIR_OF={m:{crop:'short, side part',short:'short, side part 2',shaggy:'
 // expressions: the eight heads (heads.webp)
 const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','nervous','knocked out'];
 // per-hair tweak after the ear-hole alignment: [dx, dy (head radii), scale]
-const P2_HAIRADJ={7:[.25,0,1],11:[0,1.5,1],12:[.15,0,1],15:[0,1.4,1],23:[.3,.05,1],26:[0,1.5,1]};   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
+const P2_EHAIRADJ={2:[-.23,-.75,1],11:[-.24,-.74,1],13:[-.02,-.12,1.16]};   // elf styles whose ear tip the build misreads (blond hair), or drawn narrower (the braid)
+const P2_HAIRADJ={11:[0,1.5,1],15:[0,1.27,1],26:[0,1.1,1]};   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
 const HEAD_HOLD=380;
 /* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed) */
 const HEAD_RULES=[
@@ -115,6 +116,12 @@ function p2Armor(L){const S=L.S,hs=humSpec(L);let n=null;const id=S.armId;
  return P2A_IDX(n)}
 function p2Helm(S){const t=S.hat;if(!t)return-1;const fam=S.helmId&&typeof usFamedBase==='function'&&usFamedBase(S.helmId);const n=(fam&&P2_HELM_OF[t+'*'])||P2_HELM_OF[t];
  if(t==='hood'&&S.hatR&&/[DC]/.test(S.hatR.t||''))return P2H('purple mage hood');return n?P2H(n):P2H('leather cap')}
+// elves wear only the elf styles (elf-hair.webp: row 1 men 0-7, row 2 women 8-15)
+const P2_EHAIR=['elf short, side part','elf spiky','elf spiky swept','elf undercut','elf swept back','elf long low ponytail','elf top knot','elf shaggy',
+ 'elf bob, bangs','elf long straight','elf long wavy','elf side ponytail','elf twin buns','elf braid','elf twin tails','elf high bun, long'];
+const P2_EHAIR_OF={m:{crop:0,short:0,swept:4,shaggy:7,mane:7,mohawk:3,tail:5,long:5,topknot:6,bun:6,braids:5,curly:1,bowl:0,tonsure:0,wisps:4,spiky:1},
+ w:{short:8,bowl:8,long:9,swept:9,curly:10,mane:10,tail:11,bun:15,topknot:15,braids:13,crop:8,shaggy:10,mohawk:11,wisps:14}};
+function p2EHair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const i=P2_EHAIR_OF[fem?'w':'m'][st];return i!=null?i:fem?9:0}
 function p2Hair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const n=(P2_HAIR_OF[fem?'w':'m'][st])||(fem?'long':'short, side part');return P2_HAIR.indexOf(n)}
 
 /* ---- the asset record of a look x face (same fields as humSkAssets, from these parts) ---- */
@@ -130,28 +137,30 @@ function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1
  const a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py),c:p2Piece(n,tone)}};
  const legk=hs.race==='dwarf'?.62:1,legL=(LA.R.fy-LA.R.py)*legk,legY=-24*legk,hipY0=-(legL+legY),hx=P2A.p[ln('a')].w*.36;
  const loc=(x,y)=>({x,y}),shA=loc(TP.sax-16-TP.hx,TP.sy+4-TP.hy),shB=loc(TP.sbx+16-TP.hx,TP.sy+4-TP.hy),neck=loc(TP.nx-TP.hx+4,-TP.hy+P2A.p.torso10.h*P2.neck);   // the chin sits in the collar: the head overlaps the torso's top by P2.neck of a tunic's height (same for every torso)   // the sleeves sit at the torso's upper corners, half outside it
- const HP=P2A.p.head0.a,hR=p2Rig('head0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
+ const hf=hs.el?(fem?'elff':'elfm'):fem?'headf':'head',HP=P2A.p[hf+'0'].a,hR=p2Rig(hf+'0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
  return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,legk,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
   head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand(wSide==='a'?'hand_a':'hand_b'),HO:hand(oSide==='a'?'hand_a':'hand_b'),bk:new Map(),armor:ai,leg,tone,
-  helm:p2Helm(S),hair:p2Hair(S,fem),hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25)}}
+  hf,helm:p2Helm(S),hair:hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25)}}
 /* the head attachment for an expression: head piece, hair (none under a helmet), helmet, race cues */
 function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
- return hskAtt(A,'p2head:'+ex,[-480,-640,480,420],g=>{const n='head'+ex,c=p2Piece(n,A.tone),R=A.hR,pk=P2A.k;
+ return hskAtt(A,'p2head:'+ex,[-480,-640,480,420],g=>{const n=(A.hf||'head')+ex,c=p2Piece(n,A.tone),R=A.hR,pk=P2A.k;
   const top=sk.y-A.hR.h*.5;   // the head's top (SU, from the neck point)
   const put=(pn,canvas,s,dx,dy)=>{if(!canvas)return;g.drawImage(canvas,dx-1/pk*s,dy-1/pk*s,canvas.width/pk*s,canvas.height/pk*s)};
   // hair behind the head (long styles hang behind the neck): the whole hair piece first, the head over it, then the hair again clipped to above the eyes
-  const hp=A.helm<0&&A.hair>=0?'hair'+A.hair:null,HPc=hp?p2Piece(hp,null,A.hairC):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=P2_HAIRADJ[A.hair]||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
-  // the hair's ear hole (the notch on the left edge of its face opening, P2A anchors ehx / ehy) goes on the head's ear (ex / ey)
-  let hx=0,hy=0;if(Ha){if(Ha.ehx!=null){hx=HA.ex-R.px+P2.earX*R0-Ha.ehx*hs_+ha[0]*R0;hy=HA.ey-R.py+P2.earY*R0-Ha.ehy*hs_+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
+  const hp=A.helm<0&&A.hair>=0?(A.ehair?'ehair':'hair')+A.hair:null,HPc=hp?(A.ehair?p2Piece(hp,A.tone||'#ffffff',A.hairC):p2Piece(hp,null,A.hairC)):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=(A.ehair?P2_EHAIRADJ[A.hair]:P2_HAIRADJ[A.hair])||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
+  // the hair's ear notch (the left edge of its face opening, P2A ehx / ehy) is the TOP of the ear: it goes on the head's ear top (etx / ety);
+  // an elf style's drawn ear tip (tipx / tipy) goes on the elf head's ear tip
+  let hx=0,hy=0;if(Ha){if(A.ehair&&Ha.tipx!=null&&HA.tipx!=null){hx=HA.tipx-R.px-Ha.tipx*hs_+ha[0]*R0;hy=HA.tipy-R.py-Ha.tipy*hs_+ha[1]*R0}
+   else if(Ha.ehx!=null){hx=HA.etx-R.px+P2.earX*R0-Ha.ehx*hs_+ha[0]*R0;hy=HA.ety-R.py+P2.earY*R0-Ha.ehy*hs_+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
   A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};   // for the tests: no hair under a helmet
-  if(hs.orc||hs.el){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
+  if(hs.orc){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
   if(c)put(n,c,1,-R.px,-R.py);
   if(HPc)put(hp,HPc,hs_,hx,hy);   // the hair straight over the head: its art leaves the face and the ear open
   g.save();g.translate(sk.x,sk.y);
   if(hs.orc&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
   if(S.beard&&(hs.dw||S.beard))humBeard(g,S,R0*.98,hs.dw);
   g.restore();
-  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p['head'+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
+  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[(A.hf||'head')+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation (eyePick's context), held HEAD_HOLD ms, instant on hit and death */
 const P2_MEM=new WeakMap();
