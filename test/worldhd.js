@@ -47,13 +47,15 @@ function stage(sc){seedRng(7);newGame(true,{shape:sc.shape,biomes:sc.biomes});fo
  G.route=[{x:p.x,y:p.y},{x:p.x+2*T,y:p.y-2*T},{x:p.x+5*T,y:p.y-1*T}];G.path=[{x:p.x+T,y:p.y},{x:p.x+2*T,y:p.y+T}];G.moving=true;G.dest=null;
  WV.boot=true;WV.free=false;return true}
 (async()=>{const b=await chromium.launch();
-for(const sc of SCENES){const p=await b.newPage({viewport:{width:667,height:375},deviceScaleFactor:2});const errs=[];
+for(const sc of SCENES.filter(s=>!process.env.WHONLY||s.n.includes(process.env.WHONLY))){const p=await b.newPage({viewport:{width:667,height:375},deviceScaleFactor:2});const errs=[];
  p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::/.test(m.text()))errs.push(m.text())});
  await p.goto('file://'+f);await p.waitForTimeout(250);await p.evaluate(`window.stage=${stage.toString()}`);
  await p.evaluate(()=>{const w0=wvSprite;window.__spr=[];window.wvSprite=function(key,base,kind,o){const e=w0(key,base,kind,o);__spr.push({kind,k:o&&(kind==='east'?o.k:o.kind||o.goal||o.k||o.f)||'',hd:!!(e&&(e.hd||e.k>1))});return e}});
  // ---- Detail High
  await p.evaluate(sc=>{SET.detail='high';artChanged();stage(sc);G.moving=false},sc).catch(e=>errs.push('stage: '+e));
- await p.waitForTimeout(3000);
+ await p.waitForTimeout(2000);
+ // the view's quads get painted within a few seconds (a loaded CI machine may also have halved the backing store meanwhile: repainted at the new scale)
+ await p.evaluate(async()=>{const t0=performance.now();while(performance.now()-t0<6000){const S=WHQ*16;let miss=0;for(let y=Math.max(0,Math.floor(WV.vy0/S));y<=Math.min(WQ.n-1,Math.floor(WV.vy1/S));y++)for(let x=Math.max(0,Math.floor(WV.vx0/S));x<=Math.min(WQ.n-1,Math.floor(WV.vx1/S));x++){const q=wqAt(x,y);if(!q||!q.cv||q.cv.K!==WQ.K)miss++}if(!miss)break;await new Promise(r=>setTimeout(r,100))}});
  const H=await p.evaluate(()=>{__spr.length=0;WSG.ok=false;drawWorld(0);const S=WHQ*16,vx0=WV.vx0,vy0=WV.vy0,vx1=WV.vx1,vy1=WV.vy1;let need=0,have=0;
   for(let y=Math.max(0,Math.floor(vy0/S));y<=Math.min(WQ.n-1,Math.floor(vy1/S));y++)for(let x=Math.max(0,Math.floor(vx0/S));x<=Math.min(WQ.n-1,Math.floor(vx1/S));x++){need++;const q=wqAt(x,y);if(q&&q.cv&&q.cv.K===WQ.K)have++}
   const kinds={};for(const s of __spr){const k=s.kind+':'+s.k;kinds[k]=kinds[k]||{n:0,hd:0};kinds[k].n++;if(s.hd)kinds[k].hd++}
