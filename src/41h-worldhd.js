@@ -70,7 +70,7 @@ function whTexAt(t,X,Y,o){const T=WHA.tex[t];let x=X*WHTR-.5,y=Y*WHTR-.5;const i
 function whMix(o,c,a){if(a<=0)return;if(a>=1){o[0]=c[0];o[1]=c[1];o[2]=c[2];return}o[0]+=(c[0]-o[0])*a;o[1]+=(c[1]-o[1])*a;o[2]+=(c[2]-o[2])*a}
 function whCov(x,K){x=x*K+.5;return x<0?0:x>1?1:x}
 // fills img32 (16K x 16K, row stride 16K) with tile (tx,ty) at K device px an art px
-function whShadeTile(img32,tx,ty,K){whTex();const N=16*K,T9=WHS.T9,NZ=WHA.nz,o=WHS.c,o2=WHS.c2,WV4=WHS.wv,TY=WHS.ty;
+function whShadeTile(img32,tx,ty,K,stride,off){whTex();const N=16*K,ST=stride||N,OF=off||0,T9=WHS.T9,NZ=WHA.nz,o=WHS.c,o2=WHS.c2,WV4=WHS.wv,TY=WHS.ty;
  for(let j=0;j<3;j++)for(let i=0;i<3;i++)T9[j*3+i]=whTile(tx-1+i,ty-1+j);
  let uni=true;for(let i=0;i<9;i++)if(T9[i]!==T9[4]){uni=false;break}
  const t=T9[4],rv=W.river?W.river[ty*WN+tx]&15:0,rd=W.road?W.road[ty*WN+tx]&15:0;
@@ -79,12 +79,19 @@ function whShadeTile(img32,tx,ty,K){whTex();const N=16*K,T9=WHS.T9,NZ=WHA.nz,o=W
  {let anyR=false,anyD=false;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const c=tx+dx,r=ty+dy;if(c<0||r<0||c>=WN||r>=WN)continue;if(W.river&&W.river[r*WN+c])anyR=true;if(W.road&&W.road[r*WN+c])anyD=true}
   if(anyR)rn=whSegs(tx,ty,1,RS);if(anyD)sn=whSegs(tx,ty,2,SS)}
  const bx=tx*16,by=ty*16,inv=1/K;
+ if(uni&&!rn&&!sn){const T=WHA.tex[t];   // one ground, nothing on it: the texture alone (most tiles)
+  for(let j=0;j<N;j++){const y=(by+(j+.5)*inv)*WHTR-.5,iy=Math.floor(y),fy=y-iy,r0=(iy&WHTM)*WHTW,r1=((iy+1)&WHTM)*WHTW,o0=OF+j*ST;
+   for(let i=0;i<N;i++){const x=(bx+(i+.5)*inv)*WHTR-.5,ix=Math.floor(x),fx=x-ix,x0=ix&WHTM,x1=(ix+1)&WHTM,a=(r0+x0)*3,b=(r0+x1)*3,c=(r1+x0)*3,d=(r1+x1)*3,w0=(1-fx)*(1-fy),w1=fx*(1-fy),w2=(1-fx)*fy,w3=fx*fy;
+    img32[o0+i]=(0xff000000|((T[a+2]*w0+T[b+2]*w1+T[c+2]*w2+T[d+2]*w3)&255)<<16|((T[a+1]*w0+T[b+1]*w1+T[c+1]*w2+T[d+1]*w3)&255)<<8|((T[a]*w0+T[b]*w1+T[c]*w2+T[d]*w3)&255))>>>0}}
+  return}
  for(let j=0;j<N;j++){const ly=(j+.5)*inv,Y=by+ly,v=ly/16-.5,r0=v<0?0:1,wy=v<0?v+1:v;
   for(let i=0;i<N;i++){const lx=(i+.5)*inv,X=bx+lx;let best=t,sec=255,d=99;
    if(!uni){const u=lx/16-.5,c0=u<0?0:1,wx=u<0?u+1:u,a=T9[r0*3+c0],b=T9[r0*3+c0+1],c=T9[(r0+1)*3+c0],e=T9[(r0+1)*3+c0+1];
     if(a===b&&a===c&&a===e)best=a;
-    else{let n=0;const add=(tt,w)=>{for(let k=0;k<n;k++)if(TY[k]===tt){WV4[k]+=w;return}TY[n]=tt;WV4[n]=w;n++};
-     add(a,(1-wx)*(1-wy));add(b,wx*(1-wy));add(c,(1-wx)*wy);add(e,wx*wy);let bs=-9,ss=-9;
+    else{let n=1;TY[0]=a;WV4[0]=(1-wx)*(1-wy);
+     if(b===TY[0])WV4[0]+=wx*(1-wy);else{TY[n]=b;WV4[n++]=wx*(1-wy)}
+     {const w=(1-wx)*wy;let k=0;for(;k<n;k++)if(TY[k]===c){WV4[k]+=w;break}if(k===n){TY[n]=c;WV4[n++]=w}}
+     {const w=wx*wy;let k=0;for(;k<n;k++)if(TY[k]===e){WV4[k]+=w;break}if(k===n){TY[n]=e;WV4[n++]=w}}let bs=-9,ss=-9;
      for(let k=0;k<n;k++){const tt=TY[k],w=WV4[k],sc=w+(whNzS(NZ,X+tt*41,Y+tt*23)-.5)*.62*(w<.2?w*5:1);if(sc>bs){sec=best;ss=bs;best=tt;bs=sc}else if(sc>ss){sec=tt;ss=sc}}
      d=(bs-ss)*8}}
    whTexAt(best,X,Y,o);
@@ -111,7 +118,7 @@ function whShadeTile(img32,tx,ty,K){whTex();const N=16*K,T9=WHS.T9,NZ=WHA.nz,o=W
    if(sn){let bd=1e9,bs2=0;for(let q=0;q<sn*8;q+=8){const x0=SS[q],y0=SS[q+1],dx=SS[q+2]-x0,dy=SS[q+3]-y0,l2=dx*dx+dy*dy;let uu=l2>0?((lx-x0)*dx+(ly-y0)*dy)/l2:0;uu=uu<0?0:uu>1?1:uu;const ex=x0+dx*uu-lx,ey=y0+dy*uu-ly,dd=ex*ex+ey*ey;if(dd<bd){bd=dd;bs2=SS[q+4]+SS[q+5]*uu}}
     const dd=Math.sqrt(bd);if(dd<2.6){if(wet){whMix(o,WHC.rail,whCov(1.95-dd,K));whMix(o,(Math.floor(bs2*1.4)&1)?WHC.plank:WHC.plank2,whCov(1.45-dd,K));whMix(o,WHC.rail,whCov(.22-Math.abs(dd-1.15),K)*.9)}
      else{const R=WHRD[best];whMix(o,WHC.rdk,whCov(1.85-dd,K)*.55);whMix(o,R[0],whCov(1.45-dd,K));whMix(o,R[1],whCov(.7-dd,K)*.6)}}}
-   img32[j*N+i]=(255<<24|(o[2]<0?0:o[2]>255?255:o[2])<<16|(o[1]<0?0:o[1]>255?255:o[1])<<8|(o[0]<0?0:o[0]>255?255:o[0]))>>>0}}}
+   img32[OF+j*ST+i]=(255<<24|(o[2]<0?0:o[2]>255?255:o[2])<<16|(o[1]<0?0:o[1]>255?255:o[1])<<8|(o[0]<0?0:o[0]>255?255:o[0]))>>>0}}}
 
 /* ---- the tall layer: where things stand (the Low art's own rules, waTallBuild) ---- */
 const WHIV={round:5,dark:4,small:3,pine:3,spine:3,bush:3,dead:2,swtree:2,cactus:2,spire:2,boulder:2,sboulder:1};
@@ -259,13 +266,13 @@ function wqReset(){WQ.w=W;WQ.n=Math.ceil(WN/WHQ);WQ.list=new Array(WQ.n*WQ.n).fi
 function wqAt(qx,qy){return qx<0||qy<0||qx>=WQ.n||qy>=WQ.n?null:WQ.list[qy*WQ.n+qx]}
 function wqGet(qx,qy){if(qx<0||qy<0||qx>=WQ.n||qy>=WQ.n)return null;const i=qy*WQ.n+qx;return WQ.list[i]||(WQ.list[i]={qx,qy,x0:qx*WHQ*16,y0:qy*WHQ*16,cv:null,b:null,items:null,ver:0,use:0})}
 function wqTall(c,r){if(c<0||r<0||c>=WN||r>=WN)return null;const i=r*WN+c;let L=WQ.tall.get(i);if(L===undefined){L=whTallItems(c,r,[]);if(!L.length)L=null;WQ.tall.set(i,L)}return L}
-function wqImg(K){if(WQ.iK!==K||!WQ.img){WQ.iK=K;WQ.img=new ImageData(16*K,16*K);WQ.i32=new Uint32Array(WQ.img.data.buffer)}return WQ.img}
+function wqImg(K){const N=WHQ*16*K;if(WQ.iK!==K||!WQ.img){WQ.iK=K;WQ.img=new ImageData(N,N);WQ.i32=new Uint32Array(WQ.img.data.buffer)}return WQ.img}   // one quad's ground (one quad is shaded at a time)
 // one step of a quad's build; returns true when the quad is finished
 function wqStep(q,K,dl){let b=q.b;const S=WHQ*16,N=S*K;
- if(!b||b.K!==K){const cv=pxCanvas(N,N),g=cv.getContext('2d');b=q.b={cv,g,K,ph:0,i:0};g.imageSmoothingEnabled=true;
-  if(q.cv)g.drawImage(q.cv,0,0,N,N);else if(WCH.key)g.drawImage(WCH.key,q.qx*WHQ,q.qy*WHQ,WHQ,WHQ,0,0,N,N)}   // the old picture (or soft key colours) under the new one
+ if(!b||b.K!==K){if(WQ.owner&&WQ.owner!==q&&WQ.owner.b&&WQ.owner.b.ph===0)WQ.owner.b=null;const cv=pxCanvas(N,N),g=cv.getContext('2d');b=q.b={cv,g,K,ph:0,i:0};g.imageSmoothingEnabled=true;WQ.owner=q}
  const g=b.g,tx0=q.qx*WHQ,ty0=q.qy*WHQ;
- if(b.ph===0){const img=wqImg(K);for(;b.i<WHQ*WHQ;){const lx=b.i%WHQ,ly=(b.i/WHQ)|0,tx=tx0+lx,ty=ty0+ly;b.i++;if(tx<WN&&ty<WN){whShadeTile(WQ.i32,tx,ty,K);g.putImageData(img,lx*16*K,ly*16*K)}q.ver++;if(performance.now()>dl)return false}b.ph=1;b.i=0}
+ if(b.ph===0){if(!b.img){b.img=wqImg(K);b.img.data.fill(0)}const i32=WQ.i32,T=16*K;for(;b.i<WHQ*WHQ;){const lx=b.i%WHQ,ly=(b.i/WHQ)|0,tx=tx0+lx,ty=ty0+ly;b.i++;if(tx<WN&&ty<WN)whShadeTile(i32,tx,ty,K,N,ly*T*N+lx*T);if(performance.now()>dl)return false}
+  g.putImageData(b.img,0,0);b.img=null;b.ph=1;b.i=0;q.ver++}   // the ground is shaded into one buffer (no canvas traffic) and uploaded once
  if(b.ph===1){g.save();g.setTransform(K,0,0,K,-q.x0*K,-q.y0*K);g.beginPath();g.rect(q.x0,q.y0,S,S);g.clip();g.lineJoin='round';g.lineCap='round';
   whPU(g,K,()=>{for(let r=ty0-1;r<=ty0+WHQ;r++)for(let c=tx0-1;c<=tx0+WHQ;c++)if(c>=0&&r>=0&&c<WN&&r<WN)whTileDeco(g,c,r)});g.restore();b.ph=2;q.ver++;if(performance.now()>dl)return false}
  if(b.ph===2){const L=[],own=[];for(let r=ty0-1;r<=ty0+WHQ+2;r++)for(let c=tx0-1;c<=tx0+WHQ;c++){const T=wqTall(c,r);if(!T)continue;const mine=c>=tx0&&c<tx0+WHQ&&r>=ty0&&r<ty0+WHQ;for(const it of T){L.push(it);if(mine)own.push(it)}}
@@ -281,8 +288,8 @@ function wqWork(vx0,vy0,vx1,vy1,boot,busy,W_,H_){const t0=performance.now(),S=WH
  const qx0=clamp(Math.floor(vx0/S),0,WQ.n-1),qx1=clamp(Math.floor(vx1/S),0,WQ.n-1),qy0=clamp(Math.floor(vy0/S),0,WQ.n-1),qy1=clamp(Math.floor(vy1/S),0,WQ.n-1),cx=(vx0+vx1)/2/S-.5,cy=(vy0+vy1)/2/S-.5,stamp=++WQ.nb;
  for(let y=qy0;y<=qy1;y++)for(let x=qx0;x<=qx1;x++){const q=wqGet(x,y);q.use=stamp}
  let miss=false;for(let y=qy0;y<=qy1&&!miss;y++)for(let x=qx0;x<=qx1;x++){const q=WQ.list[y*WQ.n+x];if(!q||!q.cv){miss=true;break}}   // a hole in the view: work harder until it is filled
- const budget=boot?260:miss?9:busy?2.4:3.4,dl=t0+budget;let guard=0;
- while(guard++<200&&performance.now()<dl){let best=null,bd=1e9;
+ const budget=boot?260:miss?6:busy?2.4:3.4,dl=t0+budget;let guard=0;
+ while(guard++<200&&performance.now()<dl){let best=null,bd=1e9;const ow=WQ.owner;if(ow&&ow.b&&ow.b.ph===0&&ow.b.K===K&&ow.use>=stamp-1){if(!wqStep(ow,K,dl))break;continue}   // finish the ground being shaded first (one shared buffer)
   for(let y=Math.max(0,qy0-1);y<=Math.min(WQ.n-1,qy1+1);y++)for(let x=Math.max(0,qx0-1);x<=Math.min(WQ.n-1,qx1+1);x++){const q=WQ.list[y*WQ.n+x];if(q&&q.cv&&q.cv.K===K&&!q.b)continue;
    const inV=x>=qx0&&x<=qx1&&y>=qy0&&y<=qy1;if(boot&&!inV)continue;const d=Math.max(Math.abs(x-cx),Math.abs(y-cy))+(inV?0:10)-(q&&q.b?.5:0);if(d<bd){bd=d;best=[x,y]}}
   if(!best)break;const q=wqGet(best[0],best[1]);q.use=Math.max(q.use,stamp-1);if(!wqStep(q,K,dl))break}
@@ -305,8 +312,8 @@ function wqFogTile(ch,lc,lr,a,b,c,e){const q=ch.fq,X0=lc*16,Y0=lr*16,s=a+b+c+e;i
 function wqDraw(g,W_,H_,bx,by,sc,vx0,vy0,vx1,vy1,cx0,cy0,cx1,cy1){const S=WHQ*16;g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=true;
  const qx0=clamp(Math.floor(vx0/S),0,WQ.n-1),qx1=clamp(Math.floor(vx1/S),0,WQ.n-1),qy0=clamp(Math.floor(vy0/S),0,WQ.n-1),qy1=clamp(Math.floor(vy1/S),0,WQ.n-1);
  for(let y=qy0;y<=qy1;y++)for(let x=qx0;x<=qx1;x++){const q=wqAt(x,y),X=Math.round(bx+x*S*sc),Y=Math.round(by+y*S*sc),w=Math.round(bx+(x+1)*S*sc)-X,h=Math.round(by+(y+1)*S*sc)-Y;
-  const c=q&&(q.cv||(q.b&&q.b.cv));if(c)g.drawImage(c,X,Y,w,h);else if(WCH.key)g.drawImage(WCH.key,x*WHQ,y*WHQ,WHQ,WHQ,X,Y,w,h)}
- if(WCH.ton){const n=WV.night||0;if(n>.05){g.globalCompositeOperation='saturation';g.globalAlpha=.42*n;g.fillStyle='#808080';g.fillRect(0,0,W_,H_);g.globalAlpha=1;g.globalCompositeOperation='source-over'}wvTintRect(g,0,0,W_,H_)}   // night: a little less colour, then the light of the hour
+  const c=q&&(q.cv||(q.b&&q.b.ph>=1&&q.b.cv));if(c){g.imageSmoothingEnabled=c.width!==w||c.height!==h;g.drawImage(c,X,Y,w,h)}else if(WCH.key)g.drawImage(WCH.key,x*WHQ,y*WHQ,WHQ,WHQ,X,Y,w,h)}
+ g.imageSmoothingEnabled=true;if(WCH.ton){const n=WV.night||0;if(n>.05){g.globalCompositeOperation='saturation';g.globalAlpha=.42*n;g.fillStyle='#808080';g.fillRect(0,0,W_,H_);g.globalAlpha=1;g.globalCompositeOperation='source-over'}wvTintRect(g,0,0,W_,H_)}   // night: a little less colour, then the light of the hour
  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=wchAt(cx,cy);if(!ch||!ch.fog)continue;const X=Math.round(bx+ch.x0*sc),Y=Math.round(by+ch.y0*sc),w=Math.round(bx+(ch.x0+WVP)*sc)-X,h=Math.round(by+(ch.y0+WVP)*sc)-Y;
   g.drawImage(ch.fog===2?wqUnk():ch.fogcv,X,Y,w,h)}
  g.imageSmoothingEnabled=false}

@@ -333,7 +333,7 @@ if(e.tk===WCH.tk)return e.tc;if(e.tc&&WV.tn>=2)return e.tc;WV.tn++;   // a few r
 // draws a standing sprite, then puts back the tall parts of the tiles in front of it (tree tops and peaks south of its feet)
 function wvDrawSprite(e,x,y,snap){const sc=WV.sc;if(snap){x=Math.round(x*sc)/sc;y=Math.round(y*sc)/sc}else{x=Math.round(x);y=Math.round(y)}
  const c=wvSprCv(e),dx=x-e.ax,dy=y-e.ay;if(dx>WV.vx1+1||dy>WV.vy1+1||dx+e.w<WV.vx0-1||dy+e.h<WV.vy0-1)return;   // wholly off screen (still lit above, at the same pace)
- if(e.k>1){g.imageSmoothingEnabled=true;g.drawImage(c,dx,dy,e.w,e.h);g.imageSmoothingEnabled=false}else g.drawImage(c,dx,dy);if(WVHD){wqOcclude(g,e,x,y);return}if(!WCH.up&&!WCH.side)return;   // e.k: a painted sprite at k canvas px an art px (the colosseum at Detail High)
+ if(e.k>1){g.imageSmoothingEnabled=e.k!==sc||(dx*sc)%1!==0||(dy*sc)%1!==0;g.drawImage(c,dx,dy,e.w,e.h);g.imageSmoothingEnabled=false}else g.drawImage(c,dx,dy);if(WVHD){wqOcclude(g,e,x,y);return}if(!WCH.up&&!WCH.side)return;   // e.k: a painted sprite at k canvas px an art px (the colosseum at Detail High)
  const mx=Math.floor(x+e.x0),my=Math.floor(y+e.y0),mw=Math.ceil(x+e.x1)-mx,mh=Math.ceil(y+e.y1)-my;if(mw>0&&mh>0)wvBands(g,0,0,mx,my,mw,mh,Math.floor((y-WVTB)/WVT)+1,true)}
 
 /* ---- name plates (own 4x6 capitals; drawn in whole device pixels over the scene) ---- */
