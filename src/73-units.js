@@ -1154,11 +1154,12 @@ function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=u
   if(US.looks.size>160){const k0=US.looks.keys().next().value;US.looks.delete(k0)}}
  L.S.ld=ld;if(u&&typeof u==='object')US.byUnit.set(u,{L,cv,hw,ha,s:e?e.s:0,a:e?e.a:0,h:e?e.h:0,shs,cs,ld,sig:cs?usColSig(m):''});return L}
 function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?performance.now():0,S=L.S,v=face>=2?1:0,mir=face===1||face===2,d=US_DIM[L.big];
+ let hw=0;if(typeof humWant==='function'&&humWant(L)){hw=1;let o=null;try{o=humBuild(L,face,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.herr){US.herr=1;console.error('human figure',L.key,st,fr,e)}}if(o)return o}   // Detail High people: the parts-sheet figure (73k-humans.js)
  usBegin(L.big);usCrk=S.shCrack?1:0;if(S.coat)usCoatHDBegin();else US_EM.on=false;
  try{if(S.kind==='quad')usQuad(S.Q,v,mir,st,fr);else if(S.kind==='spider')usSpider(v,mir,st,fr);else usHuman(S,v,mir,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.err){US.err=1;console.error('unit sprite',L.key,st,fr,e)}}
- if(typeof uhOut==='function'&&uhOn()){const o=uhOut(usG,L.big||S.armor==='plate',d.ax,d.ay,S.famed&&st!=='death',S.lgd);if(o){if(US_EM.L.length)usCoatHD(o,d,mir);o.r=ARTHD.rev;US.builds++;if(t0)US.ms+=performance.now()-t0;return o}}   // Detail High: the HD figure (73h-unitshd.js)
+ if(typeof uhOut==='function'&&uhOn()){const o=uhOut(usG,L.big||S.armor==='plate',d.ax,d.ay,S.famed&&st!=='death',S.lgd);if(o){if(US_EM.L.length)usCoatHD(o,d,mir);o.r=ARTHD.rev;o.hpw=hw;US.builds++;if(t0)US.ms+=performance.now()-t0;return o}}   // Detail High: the HD figure (73h-unitshd.js)
  if(US_EM.L.length)usCoatLo(mir);const cv=usResolve(usG,L.big||S.armor==='plate');let gl=null;if(S.famed&&st!=='death'){const Z=usG.Z,w=usG.w,a=[],on=i=>i>=0&&i<Z.length&&Z[i]&&usGL[Z[i]];for(let i=0;i<Z.length;i++)if(on(i)&&(!on(i-1)||!on(i+1)||!on(i-w)||!on(i+w)))a.push(i);if(a.length){a.sort((p,q)=>(p%w-((p/w)|0))-(q%w-((q/w)|0)));gl={a,w,lg:!!S.lgd}}}
- US.builds++;if(t0)US.ms+=performance.now()-t0;return{cv,ax:d.ax,ay:d.ay,gl,r:ARTHD.rev}}
+ US.builds++;if(t0)US.ms+=performance.now()-t0;return{cv,ax:d.ax,ay:d.ay,gl,r:ARTHD.rev,hpw:hw}}
 /* famed gear glints: a gold highlight runs along the famed weapon / armor / shield every ~1.5 s (4 precomputed frames per sprite frame, built on demand); still under reduced motion */
 function usRM(){try{if(typeof reduced!=='undefined'&&reduced)return true;if(typeof SET!=='undefined'&&SET&&SET.motion==='reduce')return true}catch(e){}return false}
 const US_GLN=4,US_GLP=14,US_GLMS=110;
@@ -1168,11 +1169,11 @@ function usGlintFrame(o,ph){const c=pxCanvas(o.cv.width,o.cv.height);if(!c)retur
  const kk=o.k||1;for(const i of A){const k=Math.abs(dg(i)-mid)/kk;if(k>1)continue;const j=i*4;if(d[j+3]===0)continue;const cc=rgb[o.gl.lg?(k<.75?'r':'C'):k<.75?'e':'d'];d[j]=cc[0];d[j+1]=cc[1];d[j+2]=cc[2]}q.putImageData(im,0,0);if(o.k)c.hdk=o.k;return{cv:c,ax:o.ax,ay:o.ay,k:o.k}}
 function usMon(u,face,state,frame){if(!u||!u.def||u.m||typeof monsterSpritePx!=='function')return null;try{return monsterSpritePx(u,face,state,frame)||null}catch(e){return null}}   // monster art (76-monsters.js) draws its own enemies first
 function unitSpritePx(u,face,state,frame){const M=usMon(u,face,state,frame);if(M)return M;const L=usLook(u),n=UNIT_FRAMES[state];if(!n){state='idle'}const nf=UNIT_FRAMES[state];
- face=((face|0)%4+4)%4;frame=((frame|0)%nf+nf)%nf;const i=face*US_NF+US_OFF[state]+frame;let o=L.fr[i];if(!o||o.r!==ARTHD.rev)o=L.fr[i]=usBuild(L,face,state,frame);return o.gl?usGlint(o):o}
+ face=((face|0)%4+4)%4;frame=((frame|0)%nf+nf)%nf;const i=face*US_NF+US_OFF[state]+frame;let o=L.fr[i];if(!o||o.r!==ARTHD.rev||(o.hk&&o.hk!==humK())||(o.hpw&&humReady()))o=L.fr[i]=usBuild(L,face,state,frame);else if(o.hum)HUM.hits++;return o.gl?usGlint(o):o}
 /* pre-build every frame of a unit (call at battle start); returns the number of frames built.
    Optional: until (a performance.now() deadline: stops before a build past it and sets US.cut), states (a subset of US_WARM). */
 function unitSpriteWarm(u,faces,until,states){US.cut=0;if(usMon(u,0,'idle',0))return 0;const L=usLook(u);let n=0;for(let f=0;f<4;f++){if(faces&&faces.indexOf(f)<0)continue;for(const st of states||US_WARM)for(let k=0;k<UNIT_FRAMES[st];k++){const i=f*US_NF+US_OFF[st]+k;if(!L.fr[i]){if(until&&performance.now()>=until){US.cut=1;return n}L.fr[i]=usBuild(L,f,st,k);n++}}}return n}
-function unitSpriteBox(u){if(u&&u.def&&!u.m&&typeof monsterSpriteBox==='function'){try{const b=monsterSpriteBox(u);if(b)return b}catch(e){}}const M=usMon(u,0,'idle',0);if(M&&M.cv)return M.box||{w:M.cv.width,h:Math.max(8,Math.min(M.cv.height,(M.ay|0)||M.cv.height)),mon:1};const L=usLook(u);return L.big?{w:40,h:48}:{w:24,h:32}}
+function unitSpriteBox(u){if(u&&u.def&&!u.m&&typeof monsterSpriteBox==='function'){try{const b=monsterSpriteBox(u);if(b)return b}catch(e){}}const M=usMon(u,0,'idle',0);if(M&&M.cv)return M.box||{w:M.cv.width,h:Math.max(8,Math.min(M.cv.height,(M.ay|0)||M.cv.height)),mon:1};const L=usLook(u);if(typeof humWant==='function'&&humWant(L))return{w:24,h:humBoxH(L)};return L.big?{w:40,h:48}:{w:24,h:32}}
 /* crafted items draw their icon from the same painters as their sprite (06-icons.js icItemRows), replacing any stand-in registered earlier */
 (function(){if(typeof ITEMS!=='object'||typeof ICONS!=='object'||typeof icItemRows!=='function')return;for(const id in ITEMS){if(!ITEMS[id].craft)continue;const n='it-'+id;let r=null;try{r=icItemRows(id)}catch(e){r=null}if(!r)continue;
  ICONS[n]=r;IC_MADE[n]='item';try{_pxCache.delete('ic:'+n+'@1');_pxCache.delete('u:ic:'+n+'@1');IC_MEMO.delete(n)}catch(e){}icCss(n)}})();
