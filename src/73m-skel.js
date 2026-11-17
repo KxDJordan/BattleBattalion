@@ -171,7 +171,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const fSh=f*shA.x>f*shB.x?shA:shB,rSh=fSh===shA?shB:shA,abs=cls==='bow'||cls==='gun';
  const tw0=rest(abs?rSh:sW,P.w),armW=aim(AW,sW,tw0.x,tw0.y);
  const wa=P.wa*Math.PI/180,wdx=f*Math.cos(wa),wdy=Math.sin(wa);
- const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(abs?fSh:sO,P.o);
+ const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(abs?fSh:sO,P.o);if(P.wall&&A.p2&&S.shield)to0={x:neck.x+A.R0*.3,y:neck.y+A.R0*.6};   // braced: the off hand behind the raised shield
  if(grip){const d=(wi.h2||-3)*HUM_CELL*(cls==='gun'?.8:1);to0={x:armW.wx+wdx*d,y:armW.wy+wdy*d}}
  let armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);
  // the part sheets: weapons are held at the palm (the centre of the hand part, after its offset), not the wrist
@@ -194,7 +194,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);if(!att)g.rotate(-.12);const bd=!!P.bowD,hx=(armW.gx-armO.gx)*f;g.img(hskBowAtt(L,k,wi,bd),'bow');
   g.fn(q=>humDrawBowString(q,wi,bd,!!P.arrow,hx),'string');g.restore()};
  const shFar=oSide==='b',shieldAt=()=>A.p2?{x:armO.gx+(shFar?Math.sign(sO.x)*22:f*6),y:armO.gy-6}:({x:armO.wx+f*(shFar?14:24)+(shFar?Math.sign(sO.x)*26:0),y:armO.wy-18});   // part sheets: the shield's centre at the off hand's palm
- const drawShield=front=>{if(!S.shield||P.drop)return;tags.push(front?'front':'back');const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(front?mf:f*mf*.92,1.1);g.img(hskShieldAtt(L,k,S.shield,S.shR,front,!!S.shCrack),front?'shieldF':'shieldB');g.restore()};
+ const drawShield=front=>{if(!S.shield||P.drop||P.wall)return;tags.push(front?'front':'back');const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(front?mf:f*mf*.92,1.1);g.img(hskShieldAtt(L,k,S.shield,S.shR,front,!!S.shCrack),front?'shieldF':'shieldB');g.restore()};
  const torsoBone=fn=>{g.save();g.translate(UB.x,UB.y);g.rotate(rot);fn();g.restore()};
  const drawBackGear=()=>{const a=hskBackAtt(A);if(a)torsoBone(()=>g.img(a,'back'))};
  const drawHip=()=>{const a=hskHipAtt(A);if(a)torsoBone(()=>g.img(a,'hip'))};
@@ -213,16 +213,21 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  // ---- draw order (weapon arm near: faces 0 and 3; far: faces 1 and 2, before the mirror)
  const offHand=()=>{if(S.shield){drawHand(HO,armO);drawShield(true)}else if(cls==='bow'){drawBow();drawHand(HO,armO)}else{if(!grip)drawOW();if(!grip)drawHand(HO,armO)}};
  const wSet=()=>{if(A.p2){drawWeapon();drawArm(AW,armW);return}drawArm(AW,armW);drawWeapon();drawHand(HW,armW)};   // part sheets: the weapon under the hand, the hand under its sleeve
- const farShield=()=>{drawShield(false);drawArm(AO,armO);drawHand(HO,armO)};
+ const wall=!!(P.wall&&S.shield&&!P.drop);
+ // Shield wall: the shield's front raised in front of body and head, its top just below the eyes of the head drawn now (all faces)
+ let wDone=0;const drawWallShield=()=>{if(!wall||wDone)return;const fam=usShFam(S.shield),D=HUM_SHS[fam]||HUM_SHS.round,sy=1.1,top=fam==='kite'?D[1]*.86:fam==='buckler'||fam==='targe'||fam==='round'||fam==='spiked'?D[0]:D[1];
+  let eyb=0,cx=0;if(A.p2){const hn=(A.hf||'head')+(ex&&ex.head!=null?ex.head:0),HA=P2A.p[hn].a;eyb=HA.eyb-HA.ny;cx=HA.cx-HA.nx+A.R0*.18}else{eyb=A.skull.y+A.R0*.35;cx=A.skull.x+A.R0*.2}
+  const c={x:neck.x+cx,y:neck.y+eyb+4+top*sy};tags.push('front');g.save();g.translate(c.x,c.y);g.scale(mf,sy);g.img(hskShieldAtt(L,k,S.shield,S.shR,true,!!S.shCrack),'shieldF');g.restore()};
+ const farShield=()=>{if(!wall)drawShield(false);drawArm(AO,armO);drawHand(HO,armO)};
  if(!back){drawBackGear();const hb=hskHeadAtt(A,'hairB');if(hb)headBone(()=>g.img(hb,'hairB'));
   if(nearW){if(S.shield)farShield();else{drawArm(AO,armO);if(!grip&&cls!=='bow'){drawOW();drawHand(HO,armO)}}}else wSet();
   drawLegs();drawSkirt();drawTorso();drawHip();drawHead();
-  if(nearW){if(cls==='bow'){drawBow();drawHand(HO,armO)}wSet()}else{drawArm(AO,armO);offHand()}
-  if(grip)drawHand(HO,armO);drawSpark()}
+  if(nearW){if(cls==='bow'){drawBow();drawHand(HO,armO)}if(wall){drawWallShield();wDone=1}wSet()}else{drawArm(AO,armO);offHand()}   // braced, weapon arm near: the sword arm ready in front of the shield
+  if(grip)drawHand(HO,armO);drawWallShield();drawSpark()}
  else{
   if(nearW){if(S.shield)farShield();else{drawArm(AO,armO);if(cls==='bow')drawBow();if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}}else wSet();
   drawLegs();drawSkirt();drawTorso();drawBackGear();drawHip();drawHead();
-  if(nearW){wSet();if(grip)drawHand(HO,armO)}else{if(cls==='bow')drawBow();drawArm(AO,armO);if(S.shield){drawHand(HO,armO);drawShield(true)}else{if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}}drawSpark()}
+  if(nearW){wSet();if(grip)drawHand(HO,armO)}else{if(cls==='bow')drawBow();drawArm(AO,armO);if(S.shield){drawHand(HO,armO);drawShield(true)}else{if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}}drawWallShield();drawSpark()}
  // the weapon on the ground once dropped (ground bone: not part of the falling body)
  if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){const m0=g.m;g.m=[1,0,0,1,0,0];g.save();g.translate(fall>.5?-f*30:f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);g.img(hskBowAtt(L,k,wi,false),'dropped')}else{g.translate(fall>.5?-wi.len*.4:-wi.back,0);g.img(hskWpnAtt(L,k,wi,{},'u'),'dropped')}g.restore();g.m=m0}
  HSK.frames++;HSK.ms+=performance.now()-t0;

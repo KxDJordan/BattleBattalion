@@ -246,6 +246,10 @@ def anchors(kind, P, s):
         x0, x1 = span(h * .5); x0 = x0 + (x1 - x0) * .12   # skip the ear at the back (left)
         A['cx'] = (x0 + x1) / 2 * s; A['cy'] = h * .5 * s; A['r'] = (x1 - x0) / 2 * s; A['nx'] = (x0 + x1) / 2 * s + 4; A['ny'] = (h - 4) * s; A['top'] = 0
         q0, q1 = span(h * .36); A['sx0'] = q0 * s; A['sx1'] = q1 * s
+        px_ = P.astype(int); lum_ = .3 * px_[:, :, 0] + .59 * px_[:, :, 1] + .11 * px_[:, :, 2]; sat_ = px_[:, :, :3].max(2) - px_[:, :, :3].min(2)
+        wh = al & (lum_ > 215) & (sat_ < 40); wh[:int(h * .3)] = False; wh[:, :int(w * .4)] = False; ys_ = np.where(wh.sum(1) > 2)[0]
+        dark = al & (px_[:, :, :3].max(2) < 70); dark[:, :int(w * .4)] = False   # closed eyes (happy / content / knocked out): the eye ink below the brows
+        A['eyb'] = float(ys_[-1] if len(ys_) else int(h * .72)) * s   # the bottom of the eyes (shield wall: the shield's top sits just below)
         A['ex'] = w * .185 * s; A['ey'] = h * .677 * s; A['etx'] = w * .2 * s; A['ety'] = h * .52 * s   # the ear's centre and its top
         if kind == 'ehead':   # the elf ear's tip: the leftmost point of the lower half
             ys_ = [y for y in range(int(h * .45), h) if al[y].any()]; yb = min(ys_, key=lambda y: np.where(al[y])[0][0]); A['tipx'] = float(np.where(al[yb])[0][0]) * s; A['tipy'] = yb * s
