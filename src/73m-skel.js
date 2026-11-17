@@ -83,11 +83,12 @@ function hskBake(K,ext,fn){const t0=performance.now(),x0=ext[0],y0=ext[1],w=ext[
  const cw=a1-a0+1,ch=b1-b0+1,cv=document.createElement('canvas');cv.width=cw;cv.height=ch;cv.getContext('2d').drawImage(c,a0,b0,cw,ch,0,0,cw,ch);
  return{cv,x:x0+a0/K,y:y0+b0/K,w:cw/K,h:ch/K}}
 // a body piece canvas (atlas resolution, humPiece) as an attachment with its pivot at the local origin
-function hskPc(c,R){if(!c)return null;const hk=HPA.k;return{cv:c,x:-R.px-1/hk,y:-R.py-1/hk,w:c.width/hk,h:c.height/hk}}
+function hskPc(c,R){if(!c)return null;const hk=c.pk||HPA.k;return{cv:c,x:-R.px-1/hk,y:-R.py-1/hk,w:c.width/hk,h:c.height/hk}}
 
 /* ---- per look x face x device scale: the rig constants and the baked attachments (lazily) ---- */
-function humSkAssets(L,face,k){const hs=humSpec(L),c=L.skA||(L.skA={});const key=face+':'+k;let A=c[key];if(A)return A;
+function humSkAssets(L,face,k){const hs=humSpec(L),c=L.skA||(L.skA={}),pp=typeof p2On==='function'&&p2On()?1:0;const key=face+':'+k+':'+pp;let A=c[key];if(A)return A;
  if(c.k!==k){for(const n in c)if(n!=='k')delete c[n];c.k=k}
+ if(pp){A=p2Assets(L,face,k);c[key]=A;return A}   // the user's part sheets (73q-parts2.js)
  const S=L.S,v=face>=2?'b':'f',f=v==='f'?1:-1,mir=face===1||face===3,K=k*HUM_A*hs.sc,back=v==='b',mf=mir?-1:1;
  const pc=(kind,side,deco,dl,key2)=>{const n=hs.pn(kind,v,side);return{n,R:humRig(n),c:humPiece(hs,n,hs.col[kind],deco,key2||'',dl)}};
  const T=pc('torso',null,humTorsoDeco(hs,v,hs.pn('torso',v)),'c',mir&&HPA.p[hs.pn('torso',v)].L.g?'mb':''),LA=pc('leg','a',humLegDeco(hs),'p'),LB=pc('leg','b',humLegDeco(hs),'p');
@@ -100,7 +101,7 @@ function humSkAssets(L,face,k){const hs=humSpec(L),c=L.skA||(L.skA={});const key
  c[key]=A;return A}
 // a baked attachment of the look (cached by name)
 function hskAtt(A,name,ext,fn){let a=A.bk.get(name);if(a!==undefined)return a;a=hskBake(A.K,ext,fn);A.bk.set(name,a);return a}
-function hskHeadAtt(A,part){const S=A.S,hs=A.hs,R0=A.R0,back=A.back,f=A.f,mir=A.mir,head=A.head,sk=A.skull;
+function hskHeadAtt(A,part){if(A.p2)return null;const S=A.S,hs=A.hs,R0=A.R0,back=A.back,f=A.f,mir=A.mir,head=A.head,sk=A.skull;
  const inHead=(g,fn)=>{g.save();g.translate(sk.x,sk.y);g.scale(f,1);fn();g.restore()};
  if(part==='hairB')return hskAtt(A,'hairB',[-420,-520,420,320],g=>inHead(g,()=>humHair(g,S,R0,false,'behind')));
  if(part==='head')return hskAtt(A,'head',[-420,-560,420,360],g=>{
@@ -117,7 +118,8 @@ function hskHeadAtt(A,part){const S=A.S,hs=A.hs,R0=A.R0,back=A.back,f=A.f,mir=A.
    if(!back&&!covers)humBeard(g,S,R0,hs.dw);
    if(S.mask&&!back){humSh(g,humP(p=>{p.moveTo(-R0*.2,R0*.42);p.lineTo(R0*1.08,R0*.28);p.quadraticCurveTo(R0*1.05,R0*.95,R0*.45,R0*1.0);p.quadraticCurveTo(-R0*.1,R0*.9,-R0*.2,R0*.42);p.closePath()}),humLit(S.hatR||usCloth('night')))}
    humHat(g,S,R0,back,'over')})})}
-function hskTorsoAtt(A){const S=A.S,hs=A.hs,T=A.T,tR=A.tR,tw=A.tw,C=hs.C,shA=A.shA,shB=A.shB,neck=A.neck,f=A.f,back=A.back,mf=A.mf;
+function hskTorsoAtt(A){if(A.p2){const T=A.T;return hskAtt(A,'torso',[-260,-300,260,200],g=>{const pk=T.c.pk,R=T.R;g.drawImage(T.c,-R.px-1/pk,-R.py-1/pk,T.c.width/pk,T.c.height/pk)})}
+ const S=A.S,hs=A.hs,T=A.T,tR=A.tR,tw=A.tw,C=hs.C,shA=A.shA,shB=A.shB,neck=A.neck,f=A.f,back=A.back,mf=A.mf;
  return hskAtt(A,'torso',[-260,-300,260,200],g=>{const hk=HPA.k,R=T.R;if(T.c){g.save();g.scale(tw,1);g.drawImage(T.c,-R.px-1/hk,-R.py-1/hk,T.c.width/hk,T.c.height/hk);g.restore()}
   if(S.coat){const F=humLit(S.coat.F),Kc=humLit(S.coat.K),cut=S.coat.cut,long=cut==='surcoat'||cut==='herald'||cut==='jinbaori',bot=long?66:cut==='quilted'?44:28,w=(cut==='tabard'||cut==='mantle'?36:44)*tw;
    const top=tR.top-tR.hy+22,P2=humP(p=>{p.moveTo(-w,top);p.lineTo(w,top);p.lineTo(w+8,bot);if(long&&!back){p.lineTo(f*6+5,bot);p.lineTo(f*6,bot-30);p.lineTo(f*6-5,bot)}p.lineTo(-w-8,bot);p.closePath()});
@@ -135,16 +137,16 @@ function hskBackAtt(A){const S=A.S,back=A.back,shA=A.shA,shB=A.shB,sw0=A.sw0,UBy
   if(S.quiver){g.save();g.translate(sw0*34,-120);g.rotate(-sw0*.45);humSh(g,humP(p=>humRR(p,-16,-20,32,96,10)),humLit(USR.leather),{dk:.25});for(let i=0;i<3;i++){humSh(g,humPoly([-12+i*10,-20,-6+i*10,-46,0+i*10,-20]),'#e8e2d4',{lw:4})}g.restore()}})}
 function hskHipAtt(A){const S=A.S;if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return null;const oi=humWInfo(S.alt),so0=A.so0;
  return hskAtt(A,'hip',[-360,-200,360,420],g=>{g.save();g.translate(so0*24,-18);g.rotate(so0*.35+Math.PI/2);g.scale(.85,.85);humDrawW(g,oi,{});g.restore()})}
-function hskSkirtAtt(A){const n=A.hs.A.skirt;if(!n||n===1)return null;const S=A.S,hs=A.hs,C=hs.C,f=A.f;
+function hskSkirtAtt(A){if(A.p2)return null;const n=A.hs.A.skirt;if(!n||n===1)return null;const S=A.S,hs=A.hs,C=hs.C,f=A.f;
  return hskAtt(A,'skirt',[-140,-40,140,420],g=>{const c=n<0?C.body:humLit(hs.A.skB||hs.A.body),y0=-6,ln=n<0?(-A.UBy0-24):n===2?36:56,w=60*hs.wid;
   const P2=humP(p=>{p.moveTo(-w,y0);p.lineTo(w,y0);p.lineTo(w+(n<0?14:6),y0+ln);p.quadraticCurveTo(0,y0+ln+8,-w-(n<0?14:6),y0+ln);p.closePath()});humSh(g,P2,c,{dk:.2});
   if(S.armor==='mail'||n===3&&S.armor!=='brig'&&S.armor!=='lamellar')humMailTex(g,P2,-w-14,y0,w+14,y0+ln+8,c);if(S.armor==='lamellar'){g.save();g.clip(P2);for(let y=y0+12;y<y0+ln;y+=14)humLine(g,[-w-10,y,w+10,y],humLit(USR.red),4);g.restore()}
   if(n<0){humLine(g,[f*14,y0+4,f*18,y0+ln],humLit(S.trim||USR.brass),7)}})}
-function hskPaulAtt(A){const S=A.S,hA=A.hs.A;if(!(hA.paul||(S.av&&S.av.sode)))return null;
+function hskPaulAtt(A){if(A.p2)return null;const S=A.S,hA=A.hs.A;if(!(hA.paul||(S.av&&S.av.sode)))return null;
  return hskAtt(A,'paul',[-80,-90,80,90],g=>{const pc2=humLit(hA.paul||USR.steel);if(S.av&&S.av.sode){const P2=humP(q=>humRR(q,-30,-6,60,58,6));humSh(g,P2,humLit(USR[(S.av.A||{}).paul]||USR.blk),{dk:.2});g.save();g.clip(P2);for(let y=8;y<56;y+=14)humLine(g,[-32,y,32,y],humLit(USR.red),4);g.restore()}
   else{const P2=humP(q=>{q.moveTo(-34,8);q.quadraticCurveTo(-36,-30,0,-30);q.quadraticCurveTo(36,-30,34,8);q.quadraticCurveTo(0,20,-34,8);q.closePath()});humSh(g,P2,pc2,{dk:.22});if(S.spike)humSh(g,humPoly([-8,-26,0,-56,8,-26]),humLit(S.spikeR||USR.steel))}})}
 // weapon / bow / shield attachments do not depend on the face: shared by the look at this scale (A0: face 0's asset record)
-function hskShared(L,k){const c=L.skA;return c&&c['0:'+k]||humSkAssets(L,0,k)}
+function hskShared(L,k){return humSkAssets(L,0,k)}
 function hskWpnAtt(L,k,wi,o,key){const A=hskShared(L,k);return hskAtt(A,'w:'+wi.id+':'+key,[-260,-200,620,200],g=>humDrawW(g,wi,o))}
 function hskBowAtt(L,k,wi,drawn){const A=hskShared(L,k);return hskAtt(A,'b:'+wi.id+':'+drawn,[-80,-360,140,360],g=>humDrawBow(g,wi,drawn,0,false))}
 function hskShieldAtt(L,k,look,colR,front,crack){const A=hskShared(L,k);return hskAtt(A,'s:'+look+':'+front+':'+crack,[-130,-150,130,150],g=>humDrawShield(g,look,colR,front,crack))}
@@ -155,6 +157,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const wi=humWInfo(W),cls=humWCls(wi.fam,W);hs.fam=wi.fam;hs.two=wi.two;
  const P=humAnimPose(cls,state,t,{two:wi.two,fam:wi.fam},att&&S.shield&&(va==='bash'||va==='shieldbash')?'bash':'');
  if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1}   // Shield wall (usWall)
+ if(ex===undefined&&A.p2){try{ex=headPick(null,L,state,t,P.name,cls)}catch(e){ex=null}}
  if(ex===undefined&&typeof eyePick==='function'&&!A.back){try{ex=eyePick(null,L,state,t,P.name,cls)}catch(e){ex=null}}   // the baked path: the expression from the state alone
  const g=new HskRec(),tags=[],kn=Math.max(0,Math.min(1,P.kneel||0)),fall=Math.max(0,Math.min(1,P.fall||0));
  if(fall>0){const e=fall;g.translate(f*170*e,-58*e);g.rotate(-f*Math.PI/2*e)}
@@ -191,12 +194,12 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const drawTorso=()=>{tags.push('torso');torsoBone(()=>g.img(hskTorsoAtt(A),'torso'))};
  const drawSkirt=()=>{const a=hskSkirtAtt(A);if(a){g.save();g.translate(0,UB.y);g.img(a,'skirt');g.restore()}};
  const headBone=fn=>{g.save();g.translate(neck.x,neck.y);g.rotate(rot*.5+f*(P.head||0)*Math.PI/180);fn();g.restore()};
- const drawHead=()=>headBone(()=>{g.img(hskHeadAtt(A,'head'),'head');
+ const drawHead=()=>headBone(()=>{if(A.p2){g.img(p2HeadAtt(A,ex&&ex.head!=null?ex.head:0),'head');return}g.img(hskHeadAtt(A,'head'),'head');
   if(ex&&typeof eyeAtts==='function'){const E1=eyeAtts(A,ex.set),E0=ex.prev!=null?eyeAtts(A,ex.prev):null,a=E0?ex.fade:1;
    if(E0){g.img(E0.n,'eyeN0',1-a);g.img(E0.f,'eyeF0',1-a)}if(E1){g.img(E1.n,'eyeN',a);g.img(E1.f,'eyeF',a)}}
   g.img(hskHeadAtt(A,'headTop'),'headTop')});
  const drawLegs=()=>{const lg=P.lg;for(const [p,side,ix] of[[A.LB,'b',2],[A.LA,'a',0]]){const x=(side==='a'?-A.hx:A.hx),r=-f*lg[ix]*Math.PI/180,lift=lg[ix+1]||0,kr=-f*(side==='a'?.9:.15),ks=side==='a'?.55:.7;
-   g.save();g.translate(x+f*(side==='a'?24:-10)*kn,hipY+6-lift*(1-kn));g.rotate(r*(1-kn)+kr*kn);g.scale(1,hs.legk+(ks-hs.legk)*kn);pcImg(p,'leg');g.restore()}};
+   g.save();g.translate(x+f*(side==='a'?24:-10)*kn,hipY+(A.legY!=null?A.legY:6)-lift*(1-kn));g.rotate(r*(1-kn)+kr*kn);g.scale(1,hs.legk+(ks-hs.legk)*kn);pcImg(p,'leg');g.restore()}};
  const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;const R0=A.R0,sk={x:neck.x+A.skull.x,y:neck.y+A.skull.y};
   if(cls==='staff'){x=armW.wx+wdx*(Math.max(wi.len,170)+20);y=armW.wy+wdy*(Math.max(wi.len,170)+20)}else if(P.spark===3){x=sk.x;y=sk.y-R0-50}else{x=(armW.wx+armO.wx)/2+f*30;y=(armW.wy+armO.wy)/2}
   const r=P.spark===3?30:P.spark===2?22:14;g.save();g.translate(x,y);g.fn(q=>{q.fillStyle=col;q.globalAlpha*=.35;q.beginPath();q.arc(0,0,r*1.6,0,7);q.fill();q.globalAlpha/=.35;const st4=humP(p=>{for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i&1?r*.4:r;i?p.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):p.moveTo(rr,0)}p.closePath()});humSh(q,st4,humLt(col,.3),{lw:5,flat:1})},'spark');g.restore()};
@@ -216,7 +219,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  // the weapon on the ground once dropped (ground bone: not part of the falling body)
  if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){const m0=g.m;g.m=[1,0,0,1,0,0];g.save();g.translate(fall>.5?-f*30:f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);g.img(hskBowAtt(L,k,wi,false),'dropped')}else{g.translate(fall>.5?-wi.len*.4:-wi.back,0);g.img(hskWpnAtt(L,k,wi,{},'u'),'dropped')}g.restore();g.m=m0}
  HSK.frames++;HSK.ms+=performance.now()-t0;
-  return{list:g.list,tags,pose:P,anim:P.name,eyes:ex||null,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc}}
+  return{list:g.list,tags,pose:P,anim:P.name,eyes:ex||null,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc*(A.p2?P2.sc:1),p2:!!A.p2}}
 /* blit a frame: base = the target context's transform at the feet, in art px (x right, y down); mirror for faces 1 and 3.
    mapImg(cv) may swap an attachment for its tinted / silhouette version (70-render.js tintedOf / silOf, cached per canvas). */
 function humSkDraw(q,Fr,x,y,mapImg,skipFn){const t0=performance.now(),s=HUM_A*Fr.sc,m0=q.getTransform(),B0=[m0.a,m0.b,m0.c,m0.d,m0.e,m0.f],base=hskMul(B0,[Fr.mir?-s:s,0,0,s,x,y]);
@@ -240,7 +243,8 @@ function humLiveFrame(u,v){if(!u||!humImg()||(typeof hdArt==='function'&&!hdArt(
  const L=usLook(u);if(!humWant(L))return null;let st=v.pS||'idle';if(st==='walk'&&v.pAn==='flee')st='flee';
  let t=HSK_LOOP[st]?(v.pCy||0):(v.pPh!=null?v.pPh:humSkT(st,v.pF));if(st==='idle'&&typeof reduced!=='undefined'&&reduced)t=0;
  let va='';if(st==='attack'&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
- const face=((v.pD|0)%4+4)%4;let ex=null;if(face<2&&typeof eyePick==='function'){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=eyePick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
+ const face=((v.pD|0)%4+4)%4;let ex=null;if(typeof p2On==='function'&&p2On()){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=headPick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
+ else if(face<2&&typeof eyePick==='function'){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=eyePick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
  return humSkFrame(L,face,st==='flee'?'flee':st,t,humK(),va,ex)}
 /* warm a look: bake its attachments for every face (one face per call while a deadline allows) */
 function humSkWarm(L,until){let n=0;const k=humK();for(let f=0;f<4;f++){const c=L.skA&&L.skA[f+':'+k];if(c&&c.warm)continue;if(until&&performance.now()>=until)return n;

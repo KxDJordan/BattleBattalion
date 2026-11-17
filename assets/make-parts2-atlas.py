@@ -154,7 +154,8 @@ def anchors(kind, P, s):
     elif kind == 'leg':
         x0, x1 = span(3); A['px'] = (x0 + x1) / 2 * s; A['py'] = 3 * s; A['fy'] = (h - 1) * s
     elif kind in ('helm', 'hair'):
-        rows = [span(y) for y in range(int(h * .45), h)]; ws = sorted(r[1] - r[0] for r in rows); bw = ws[int(len(ws) * .7)]
+        rows = [span(y) for y in (range(int(h * .45), h) if kind == 'helm' else range(int(h * .12), int(h * .42)))]
+        ws = sorted(r[1] - r[0] for r in rows); bw = ws[int(len(ws) * .7)]   # hair: measured at its crown (tails, braids and long ends hang lower)
         mids = [(r[0] + r[1]) / 2 for r in rows if r[1] - r[0] >= bw * .8]
         A['bw'] = bw * s; A['bcx'] = (float(np.mean(mids)) if mids else w / 2) * s
         ys = np.where(al.any(1))[0]; topb = 0

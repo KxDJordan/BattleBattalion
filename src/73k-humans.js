@@ -23,7 +23,7 @@ const HUM_LW=9;                     // gear outline width (SU), the sheet's stro
 const HUM_INK='#141210';
 function humImg(){if(HUM.img)return HUM.ok?HUM.img:null;if(typeof Image==='undefined'||typeof HPA!=='object')return null;const I=new Image();I.decoding='async';
  I.onload=()=>{HUM.ok=true};I.src=HPA.src;HUM.img=I;if(I.complete&&I.naturalWidth)HUM.ok=true;return HUM.ok?I:null}
-function humReady(){const a=!!humImg(),b=typeof eyeImg!=='function'||!!eyeImg();return a&&b}
+function humReady(){const a=!!humImg(),b=typeof eyeImg!=='function'||!!eyeImg(),c=typeof p2Ready!=='function'||p2Ready();return a&&b&&c}
 function humK(){let s=1;try{s=typeof artScale==='function'?artScale():1}catch(e){}return Math.max(3,Math.min(7,Math.round(s)||3))}
 /* ---- who is a person: mercs (any race), and the human enemy types ---- */
 const HUM_NOT=new Set(['gob','gobarch','gobsham','skel','skelhal','zomb','orcy','orcw','orcl','obrute','hstd','hchief','imp','vknight','vmage','tyrant','gknight','bthrone']);

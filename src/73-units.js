@@ -959,6 +959,7 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
  if(P){S.beard=P.beard||null;if(P.beardC)S.beardR=usHairR(P.beardC);S.ring=P.ring;S.stubble=P.marks&&P.marks.stubble;S.patch=P.marks&&P.marks.patch;if(P.marks&&P.marks.paint)S.paint=P.marks.paintC;
   if(P.face&&P.face.iris&&P.face.iris!=='0'&&race==='elf')S.eye='1';S.hat=P.hat||null;if(P.hatC)S.hatR=usCloth(P.hatC);S.famH=!!(ITEMS[eq.h]&&ITEMS[eq.h].famed);if(P.gemC)S.gemC=P.gemC[0];if(P.beads)S.beads=P.beads[0];
   S.ragC=P.ragC;S.robeC=P.robeC;if(P.shC)S.shR=usCloth(P.shC)}
+ S.armId=ITEMS[eq.a]?eq.a:null;S.helmId=ITEMS[eq.h]?eq.h:null;   // the item ids, for the parts-sheet figures (73q-parts2.js)
  {const av=ITEMS[eq.a]&&ITEMS[eq.a].k==='a'?usArmorV(eq.a):US_AV.rags;S.armor=av.k;S.av=av;S.famA=!!(ITEMS[eq.a]&&ITEMS[eq.a].famed);if(av.spikes)S.spike=1;if(av.spikeR)S.spikeR=USR[av.spikeR];
   if(av.trim==='white')S.trim=USR.white;else if(av.trim==='steel')S.trim=USR.steel;else if(av.trim==='gold')S.trim=USR.gold}if(!(typeof ptHelmsExist==='function'&&ptHelmsExist())){if(S.armor==='plate')S.hat='great';else if(S.armor==='scale')S.hat='nasal'}   // helmets are gear now (eq.h -> P.hat); without that rule the armor tier still picks one
  if(S.hat==='cap'&&ITEMS[eq.h])S.hatR=USR.leather;
