@@ -312,11 +312,66 @@ def anchors(kind, P, s):
                 A['mtop'] = mt * s; A['mbw'] = (cols[-1] - cols[0] + 1) * s; A['mbcx'] = (cols[0] + cols[-1]) / 2 * s
     return {k_: round(float(v), 1) for k_, v in A.items()}
 
+# ---- human hair on the head: each style's EAR ARC (the concave edge of its face opening on the ear side, where the hair wraps the ear)
+# is matched to the head's ear outline (the silhouette bulging out of the skull circle on the ear side). A small search over the hair's
+# offset (and its scale, 1.12 unless the style covers the ear) minimises: arc mismatch (px) + 50 x scalp left uncovered (top 30% of the head)
+# + 30 x hair over the ear. Result per hair, SU: fx, fy (its top-left from the head piece's top-left), fs (scale). Male and female heads have
+# their ear in the same place (measured), so head0 stands for both.
+def fitc(pts):
+    p_ = np.array(pts, float); x, y = p_[:, 0], p_[:, 1]; A_ = np.c_[2 * x, 2 * y, np.ones(len(x))]
+    c = np.linalg.lstsq(A_, x * x + y * y, rcond=None)[0]; return c[0], c[1], np.sqrt(c[2] + c[0] ** 2 + c[1] ** 2)
+def su_img(P, sf, S=1.0):
+    im = Image.fromarray(np.clip(P, 0, 255).astype(np.uint8), 'RGBA'); return im.resize((max(1, round(im.width * sf * S)), max(1, round(im.height * sf * S))), Image.LANCZOS)
+def ear_profile(im):
+    al = np.array(im)[:, :, 3] > 100; h, w = al.shape; L_ = np.array([np.where(al[y])[0][0] if al[y].any() else w for y in range(h)])
+    cx, cy, r = fitc([(L_[y], y) for y in range(int(h * .15), int(h * .45))]); E = {}
+    for y in range(int(h * .45), int(h * .95)):
+        d = r * r - (y - cy) ** 2; skx = cx - np.sqrt(d) if d > 0 else cx
+        if L_[y] < skx - 3: E[y] = L_[y]
+    yy, xx = np.mgrid[0:h, 0:w]; ear = al & ((xx - cx) ** 2 + (yy - cy) ** 2 > (r + 2) ** 2) & (yy > min(E) - 4) & (yy < max(E) + 6)
+    return E, ear, al & (yy < h * .3), al
+def open_left(im):
+    al = np.array(im)[:, :, 3] > 100; h, w = al.shape
+    above = np.maximum.accumulate(al, axis=0); lft = np.maximum.accumulate(al, axis=1); rgt = np.maximum.accumulate(al[:, ::-1], axis=1)[:, ::-1]
+    cand = (~al) & above & lft & rgt; xc = int(np.argmax(cand.sum(0))); prof = {}
+    for y in range(h):
+        if not cand[y, xc]: continue
+        x = xc
+        while x > 0 and cand[y, x - 1]: x -= 1
+        prof[y] = x
+    return prof, al
+def fit_hair(P, sf, E, ear, scalp, ha, scales):
+    hh, hw = ha.shape; ey = sorted(E); ex = np.array([E[y] for y in ey]); best = None
+    for S in scales:
+        prof, hal = open_left(su_img(P, sf, S)); rh, rw = hal.shape
+        for ty in range(-170, 61, 2):
+            hx = [prof.get(y - ty) for y in ey]
+            if sum(v is None for v in hx) > len(ey) * .3: continue
+            hxa = np.array([v if v is not None else np.nan for v in hx], float)
+            for tx in range(-260, -29, 2):
+                d = ex - (hxa + tx); arc = np.nanmean(np.abs(d))
+                if arc > 25: continue
+                sx0, sy0, dx0, dy0 = max(0, -tx), max(0, -ty), max(0, tx), max(0, ty); w_ = min(rw - sx0, hw - dx0); h_ = min(rh - sy0, hh - dy0)
+                cov = np.zeros_like(ha)
+                if w_ > 0 and h_ > 0: cov[dy0:dy0 + h_, dx0:dx0 + w_] = hal[sy0:sy0 + h_, sx0:sx0 + w_]
+                unc = (scalp & ~cov).sum() / scalp.sum(); ov = (ear & cov).sum() / max(1, ear.sum()); c = arc + 50 * unc + 30 * ov + 40 * abs(S - 1.12)
+                if best is None or c < best[0]: best = (c, tx, ty, S, arc, unc, ov)
+    return best
+HFIT = {}
+_hd = [q for q in PIECES if q[0] == 'head0'][0]; _HI = su_img(_hd[2], _hd[3]); _E, _EAR, _SC, _HA = ear_profile(_HI)
+for name, kind, P, sf, box in PIECES:
+    if kind != 'hair': continue
+    b = fit_hair(P, sf, _E, _EAR, _SC, _HA, (1.12,))
+    if b is None or b[6] > .3: b2 = fit_hair(P, sf, _E, _EAR, _SC, _HA, (1.0, 1.04, 1.08, 1.12)); b = b2 if b2 and (b is None or b2[0] < b[0]) else b
+    HFIT[name] = b
+    print(name, 'arc %.1f px, scalp %.2f, ear %.2f, scale %.2f' % (b[4], b[5], b[6], b[3]), file=sys.stderr)
+
 # ---- layers, scaled, packed ----
 items = []; meta = {}
 for name, kind, P, sf, box in PIECES:
     h0, w0 = P.shape[:2]; s = sf   # SU per sheet px
     meta[name] = {'w': round(w0 * s, 1), 'h': round(h0 * s, 1), 'a': anchors(kind, P, s), 'L': {}, 'k': kind}
+    if name in HFIT: b = HFIT[name]; meta[name]['a'].update({'fx': float(b[1]), 'fy': float(b[2]), 'fs': float(b[3])})
     for m, arr in layers(P, kind).items():
         im = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA'); bb = im.getbbox()
         if not bb: continue

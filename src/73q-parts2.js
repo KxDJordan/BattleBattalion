@@ -68,7 +68,7 @@ const P2_HAIR_OF={m:{crop:'short, side part',short:'short, side part 2',shaggy:'
 const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','nervous','knocked out'];
 // per-hair tweak after the ear-hole alignment: [dx, dy (head radii), scale]
 const P2_EHAIRADJ={9:[0,0,1.14]};   // elf styles whose ear tip the build misreads (blond hair), or drawn narrower (the braid)
-const P2_HAIRADJ={10:[.12,.05,1.1],11:[0,1.5,1],15:[0,1.27,1],26:[0,1.1,1]};   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
+const P2_HAIRADJ={};   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
 const HEAD_HOLD=380;
 /* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed) */
 const HEAD_RULES=[
@@ -147,11 +147,12 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   const top=sk.y-A.hR.h*.5;   // the head's top (SU, from the neck point)
   const put=(pn,canvas,s,dx,dy)=>{if(!canvas)return;g.drawImage(canvas,dx-1/pk*s,dy-1/pk*s,canvas.width/pk*s,canvas.height/pk*s)};
   // hair behind the head (long styles hang behind the neck): the whole hair piece first, the head over it, then the hair again clipped to above the eyes
-  const hp=A.helm<0&&A.hair>=0?(A.ehair?'ehair':'hair')+A.hair:null,HPc=hp?(A.ehair?p2Piece(hp,A.tone||P2.skin0,A.hairC):p2Piece(hp,null,A.hairC)):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=(A.ehair?P2_EHAIRADJ[A.hair]:P2_HAIRADJ[A.hair])||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
+  let hp=A.helm<0&&A.hair>=0?(A.ehair?'ehair':'hair')+A.hair:null,HPc=hp?(A.ehair?p2Piece(hp,A.tone||P2.skin0,A.hairC):p2Piece(hp,null,A.hairC)):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=(A.ehair?P2_EHAIRADJ[A.hair]:P2_HAIRADJ[A.hair])||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
   // the hair's ear notch (the left edge of its face opening, P2A ehx / ehy) is the TOP of the ear: it goes on the head's ear top (etx / ety);
-  // an elf style's drawn ear tip (tipx / tipy) goes on the elf head's ear tip
+  // an elf style's drawn ear tip (tipx / tipy) goes on the elf head's ear tip; a human style is placed as fitted at build time
+  // (assets/make-parts2-atlas.py: its ear arc on the head's ear outline, fx / fy / fs)
   let hx=0,hy=0;if(Ha){if(A.ehair&&Ha.tipx!=null&&HA.tipx!=null){hx=HA.tipx-R.px-Ha.tipx*hs_+ha[0]*R0;hy=HA.tipy-R.py-Ha.tipy*hs_+ha[1]*R0}
-   else if(Ha.ehx!=null){hx=HA.etx-R.px+P2.earX*R0-Ha.ehx*hs_+ha[0]*R0;hy=HA.ety-R.py+P2.earY*R0-Ha.ehy*hs_+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
+   else if(Ha.fx!=null){hs_=Ha.fs*ha[2];hx=-R.px+Ha.fx+ha[0]*R0;hy=-R.py+Ha.fy+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
   A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};   // for the tests: no hair under a helmet
   if(hs.orc){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
   if(c)put(n,c,1,-R.px,-R.py);
