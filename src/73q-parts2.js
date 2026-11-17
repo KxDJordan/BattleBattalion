@@ -9,7 +9,7 @@
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
    pointed ear, half-orcs green-grey skin, a pointed ear and tusks, dwarves their braided beard (vector overlays in the sheet's style).
    The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
-const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,earX:0,earY:0,handA:[-.08,-.05]};
+const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05]};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
 const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
@@ -67,8 +67,8 @@ const P2_HAIR_OF={m:{crop:'short, side part',short:'short, side part 2',shaggy:'
 // expressions: the eight heads (heads.webp)
 const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','nervous','knocked out'];
 // per-hair tweak after the ear-hole alignment: [dx, dy (head radii), scale]
-const P2_EHAIRADJ={2:[-.23,-.75,1],11:[-.24,-.74,1],13:[-.02,-.12,1.16]};   // elf styles whose ear tip the build misreads (blond hair), or drawn narrower (the braid)
-const P2_HAIRADJ={11:[0,1.5,1],15:[0,1.27,1],26:[0,1.1,1]};   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
+const P2_EHAIRADJ={9:[0,0,1.14]};   // elf styles whose ear tip the build misreads (blond hair), or drawn narrower (the braid)
+const P2_HAIRADJ={10:[.12,.05,1.1],11:[0,1.5,1],15:[0,1.27,1],26:[0,1.1,1]};   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
 const HEAD_HOLD=380;
 /* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed) */
 const HEAD_RULES=[
@@ -147,7 +147,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   const top=sk.y-A.hR.h*.5;   // the head's top (SU, from the neck point)
   const put=(pn,canvas,s,dx,dy)=>{if(!canvas)return;g.drawImage(canvas,dx-1/pk*s,dy-1/pk*s,canvas.width/pk*s,canvas.height/pk*s)};
   // hair behind the head (long styles hang behind the neck): the whole hair piece first, the head over it, then the hair again clipped to above the eyes
-  const hp=A.helm<0&&A.hair>=0?(A.ehair?'ehair':'hair')+A.hair:null,HPc=hp?(A.ehair?p2Piece(hp,A.tone||'#ffffff',A.hairC):p2Piece(hp,null,A.hairC)):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=(A.ehair?P2_EHAIRADJ[A.hair]:P2_HAIRADJ[A.hair])||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
+  const hp=A.helm<0&&A.hair>=0?(A.ehair?'ehair':'hair')+A.hair:null,HPc=hp?(A.ehair?p2Piece(hp,A.tone||P2.skin0,A.hairC):p2Piece(hp,null,A.hairC)):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=(A.ehair?P2_EHAIRADJ[A.hair]:P2_HAIRADJ[A.hair])||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
   // the hair's ear notch (the left edge of its face opening, P2A ehx / ehy) is the TOP of the ear: it goes on the head's ear top (etx / ety);
   // an elf style's drawn ear tip (tipx / tipy) goes on the elf head's ear tip
   let hx=0,hy=0;if(Ha){if(A.ehair&&Ha.tipx!=null&&HA.tipx!=null){hx=HA.tipx-R.px-Ha.tipx*hs_+ha[0]*R0;hy=HA.tipy-R.py-Ha.tipy*hs_+ha[1]*R0}

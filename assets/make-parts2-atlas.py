@@ -77,6 +77,24 @@ def piece(a, box, kind):
     # clear bits of neighbouring pieces that intrude into the box: keep the components that touch the biggest one's bbox core
     return P
 
+def biggest(m):
+    """the sizeable 4-connected component nearest the ear's usual place of a mask (the ear; specks / patches of light hair that read as skin are dropped)"""
+    h_, w_ = m.shape; lab = -np.ones((h_, w_), np.int32); best = None
+    for y in range(h_):
+        for x in np.where(m[y] & (lab[y] < 0))[0]:
+            if lab[y, x] >= 0: continue
+            st = [(y, x)]; lab[y, x] = 1; pts = []
+            while st:
+                yy, xx = st.pop(); pts.append((yy, xx))
+                for y2, x2 in ((yy + 1, xx), (yy - 1, xx), (yy, xx + 1), (yy, xx - 1)):
+                    if 0 <= y2 < h_ and 0 <= x2 < w_ and m[y2, x2] and lab[y2, x2] < 0: lab[y2, x2] = 1; st.append((y2, x2))
+            d = lambda P_: (np.mean([q[1] for q in P_]) / w_ - .08) ** 2 + (np.mean([q[0] for q in P_]) / h_ - .62) ** 2
+            if len(pts) >= 30 and (best is None or d(pts) < d(best)): best = pts   # the ear: the sizeable skin blob nearest where ears sit (left, a little below the middle)
+    o = np.zeros_like(m)
+    if best:
+        ys, xs = zip(*best); o[list(ys), list(xs)] = True
+    return o
+
 def layers(P, kind):
     r, g, b, al = P[:, :, 0], P[:, :, 1], P[:, :, 2], P[:, :, 3]
     mx = np.maximum(np.maximum(r, g), b); lum = .3 * r + .59 * g + .11 * b
@@ -85,7 +103,15 @@ def layers(P, kind):
     if kind == 'hair': sk = (~ol) & (al > 0); hl = sk; sk = np.zeros_like(ol)
     elif kind == 'ehair':   # an elf style: its ear is skin (the skin-coloured blob on the left, below the crown; blond hair is skin-coloured too)
         hh_, ww_ = al.shape; reg = np.zeros_like(ol); reg[int(hh_ * .3):int(hh_ * .8), :int(ww_ * .38)] = True
-        sk = skin & (r > 244) & (~ol) & (al > 0) & reg; hl = (~ol) & (~sk) & (al > 0)   # the ear's skin is brighter than blond hair
+        seed = (r > 230) & (b > r * .58) & (g > r * .65) & (g < r * .85) & (~ol) & (al > 0) & reg   # the ears on this sheet are pink skin (240,184,156); blond hair is yellower (b/r ~.5)   # the ear's skin is brighter than blond hair: seed there, grow over its shading
+        loose = (r > 170) & (b > r * .54) & (g > r * .6) & (g < r * .86) & (~ol) & (al > 0) & reg; sk = seed.copy()
+        if seed.any():   # grow only within the ear's own box (blond hair is skin-coloured too)
+            ys_, xs_ = np.where(seed); box = np.zeros_like(seed); box[max(0, ys_.min() - 5):ys_.max() + 6, max(0, xs_.min() - 5):xs_.max() + 6] = True; loose &= box
+        for _ in range(60):
+            nb = sk | np.roll(sk, 1, 0) | np.roll(sk, -1, 0) | np.roll(sk, 1, 1) | np.roll(sk, -1, 1); nb &= loose
+            if (nb == sk).all(): break
+            sk = nb
+        sk = biggest(sk); hl = (~ol) & (~sk) & (al > 0)
     else:
         hl = np.zeros_like(ol)
         skin = (r > 180) & (g > r * .5) & (g < r * .86) & (b > r * .3) & (b < r * .72) & (r - b > 55)
@@ -95,7 +121,9 @@ def layers(P, kind):
         ref = max(1., float(np.percentile(lum[m], 85))); v = np.clip(255 * lum / ref, 0, 255)
         if keep_ol: v[ol] = np.minimum(v[ol], lum[ol])
         o = np.zeros(P.shape, np.float32); o[..., 0] = o[..., 1] = o[..., 2] = v; o[..., 3] = al; o[~(m | (ol if keep_ol else m))] = 0; return o
-    if kind == 'ehair': L['s'] = grey(sk, False); L['h'] = grey(hl, True)
+    if kind == 'ehair':
+        if sk.any(): L['s'] = grey(sk, False)
+        L['h'] = grey(hl, True)
     elif kind == 'hair': L['h'] = grey(hl, True)          # grey shade with the outline in it: multiplied by the hair colour, the outline stays black
     else:
         L['c'] = P.copy()                                 # the piece in its own colours
@@ -156,7 +184,29 @@ for i, b in enumerate(hmf[0]): add('head%d' % i, 'head', H, b, sf_head)
 for i, b in enumerate(hmf[1]): add('headf%d' % i, 'head', H, b, sf_head)
 for i, b in enumerate(ehb[0]): add('elfm%d' % i, 'ehead', EH, b, sf_ehead)
 for i, b in enumerate(ehb[1]): add('elff%d' % i, 'ehead', EH, b, sf_ehead)
-for i, b in enumerate(ehr[0] + ehr[1]): add('ehair%d' % i, 'ehair', EHR, b, sf_ehair)
+def main_only(P, keep=.12):
+    """drop the islands a cut leaves from neighbouring styles: 8-connected ink components smaller than keep x the largest"""
+    M = P[:, :, 3] > 24; h_, w_ = M.shape; lab = -np.ones((h_, w_), np.int32); sizes = []
+    for y in range(h_):
+        for x in np.where(M[y] & (lab[y] < 0))[0]:
+            if lab[y, x] >= 0: continue
+            st = [(y, x)]; lab[y, x] = len(sizes); n = 0
+            while st:
+                yy, xx = st.pop(); n += 1
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        y2, x2 = yy + dy, xx + dx
+                        if 0 <= y2 < h_ and 0 <= x2 < w_ and M[y2, x2] and lab[y2, x2] < 0: lab[y2, x2] = len(sizes); st.append((y2, x2))
+            sizes.append(n)
+    big = max(sizes); ok = np.array([n >= big * keep for n in sizes] + [False]); lab2 = lab.copy(); lab2[lab < 0] = len(sizes)
+    # faint edge pixels (alpha <= 24) go with their nearest kept ink: keep them only next to kept pixels
+    K = ok[lab2]; grow = K.copy()
+    for dy in (-2, -1, 0, 1, 2):
+        for dx in (-2, -1, 0, 1, 2): grow |= np.roll(np.roll(K, dy, 0), dx, 1)
+    Q = P.copy(); Q[~(K | (grow & ~M))] = 0; return Q
+for i, b in enumerate(ehr[0] + ehr[1]):
+    x0, y0, x1, y1 = b; Q = main_only(EHR[y0:y1, x0:x1].astype(np.float32)); ys, xs = np.where(Q[:, :, 3] > 24)
+    PIECES.append(('ehair%d' % i, 'ehair', Q[ys.min():ys.max() + 1, xs.min():xs.max() + 1], sf_ehair, [x0 + xs.min(), y0 + ys.min(), x0 + xs.max() + 1, y0 + ys.max() + 1]))
 for i, b in enumerate(nb): add('hand_' + 'ab'[i], 'hand', HA, b, sf_hand)
 for i, b in enumerate(lb): add('leg%d_%s' % (i // 2, 'ab'[i % 2]), 'leg', LG, b, sf_legs)
 k = 0
@@ -214,11 +264,15 @@ def anchors(kind, P, s):
     elif kind == 'leg':
         x0, x1 = span(3); A['px'] = (x0 + x1) / 2 * s; A['py'] = 3 * s; A['fy'] = (h - 1) * s
     elif kind == 'ehair':   # the ear drawn into the style: its tip (the leftmost skin-or-outline point of the skin region's rows)
-        r_, g_, b_ = P[:, :, 0], P[:, :, 1], P[:, :, 2]; sk = al & (r_ > 244) & (r_ - b_ > 55) & (g_ > r_ * .5); sk[:int(h * .3)] = False; sk[int(h * .8):] = False; sk[:, int(w * .38):] = False
+        r_, g_, b_ = P[:, :, 0], P[:, :, 1], P[:, :, 2]; sk = al & (r_ > 230) & (b_ > r_ * .58) & (g_ > r_ * .65) & (g_ < r_ * .85); sk[:int(h * .3)] = False; sk[int(h * .8):] = False; sk[:, int(w * .38):] = False; sk = biggest(sk)
         ys_ = np.where(sk.any(1))[0]
         if len(ys_):
-            yy = [y for y in ys_ if sk[y].sum() > 2]; band = sk[min(yy):max(yy) + 1]; xs_ = np.where(band.any(0))[0]; x0s = xs_[0]
-            ytip = min(yy) + int(np.argmax(band[:, x0s:x0s + 6].any(1))); A['tipx'] = float(x0s) * s; A['tipy'] = ytip * s
+            yy = [y for y in ys_ if sk[y].sum() > 2] or list(ys_); band = sk[min(yy):max(yy) + 1]; xs_ = np.where(band.any(0))[0]; x0s = xs_[0]
+            ytip = min(yy) + int(np.argmax(band[:, x0s:x0s + 6].any(1))); xt = x0s
+            for x_ in range(x0s - 1, max(-1, x0s - 30), -1):   # walk out through the ear's outline to its tip
+                if al[max(0, ytip - 3):ytip + 4, x_].any(): xt = x_
+                else: break
+            A['tipx'] = float(xt) * s; A['tipy'] = ytip * s
         x0, x1 = span(h * .3); A['bw'] = (x1 - x0) * s; A['bcx'] = (x0 + x1) / 2 * s; A['btop'] = float(np.where(al.any(1))[0][0]) * s
     elif kind in ('helm', 'hair'):
         rows = [span(y) for y in (range(int(h * .45), h) if kind == 'helm' else range(int(h * .12), int(h * .42)))]
