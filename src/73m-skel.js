@@ -173,7 +173,13 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const wa=P.wa*Math.PI/180,wdx=f*Math.cos(wa),wdy=Math.sin(wa);
  const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(abs?fSh:sO,P.o);
  if(grip){const d=(wi.h2||-3)*HUM_CELL*(cls==='gun'?.8:1);to0={x:armW.wx+wdx*d,y:armW.wy+wdy*d}}
- const armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);
+ let armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);
+ // the part sheets: weapons are held at the palm (the centre of the hand part, after its offset), not the wrist
+ const palm=(a,h)=>{const o=h.n==='hand_a'?P2.handA:[0,0],lx=h.R.w*(.5+o[0])-h.R.px,ly=h.R.h*(.55+o[1])-h.R.py,r=a.th-Math.PI/2,c=Math.cos(r),s_=Math.sin(r);return{x:a.wx+lx*c-ly*s_,y:a.wy+lx*s_+ly*c}};
+ if(A.p2){let pW=palm(armW,HW);armW.gx=pW.x;armW.gy=pW.y;let pO=palm(armO,HO);
+  if(grip){const d=(wi.h2||-3)*HUM_CELL*(cls==='gun'?.8:1)+(wi.gripC||0);for(let it=0;it<2;it++){const tx=pW.x+wdx*d,ty=pW.y+wdy*d;armO=aim(AO,sO,to0.x+(tx-pO.x),to0.y+(ty-pO.y),1.4);to0={x:to0.x+(tx-pO.x),y:to0.y+(ty-pO.y)};pO=palm(armO,HO)}}
+  armO.gx=pO.x;armO.gy=pO.y}
+ else{armW.gx=armW.wx;armW.gy=armW.wy;armO.gx=armO.wx;armO.gy=armO.wy}
  // slots
  const pcImg=(p,tag)=>g.img(hskPc(p.c,p.R),tag);
  const drawArm=(p,a)=>{if(A.p2){const h=p===AW?HW:HO,o=h.n==='hand_a'?P2.handA:null;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);if(o)g.translate(o[0]*h.R.w,o[1]*h.R.h);pcImg(h,'hand');g.restore()}   // the right hand (near arm) sits a little outward and up, under its sleeve's curve   // the part sheets: the hand under its own sleeve cap
@@ -181,13 +187,13 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
   const pa=hskPaulAtt(A);if(pa){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);g.img(pa,'paul');g.restore()}};
  const drawHand=(p,a)=>{if(A.p2)return;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(p,'hand');g.restore()};
  const fire=cls==='gun'&&att&&P.fire,loaded=S.ld!==0&&!(att&&t>=.38);
- const drawWeapon=()=>{if(P.drop||cls==='bow'||wi.fam==='fist')return;g.save();g.translate(armW.wx,armW.wy);g.scale(f,1);g.rotate(wa);
+ const drawWeapon=()=>{if(P.drop||cls==='bow'||wi.fam==='fist')return;g.save();g.translate(armW.gx,armW.gy);g.scale(f,1);g.rotate(wa);if(A.p2&&wi.gripC)g.translate(-wi.gripC,0);
   g.img(hskWpnAtt(L,k,wi,{loaded,fire,crank:P.crank},(loaded?'L':'u')+(fire?'F':'')+(P.crank||'')),'weapon');g.restore();
-  if(P.rod){g.save();g.translate(armO.wx,armO.wy);g.fn(q=>humInkLine(q,[0,-20,0,60],humLit(USR.steel),5),'rod');g.restore()}};
- const drawOW=()=>{if(!S.ow||P.drop||state==='cast')return;const oi=humWInfo(S.ow);g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);g.img(hskWpnAtt(L,k,oi,{},'ow'),'offweapon');g.restore()};
- const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);if(!att)g.rotate(-.12);const bd=!!P.bowD,hx=(armW.wx-armO.wx)*f;g.img(hskBowAtt(L,k,wi,bd),'bow');
+  if(P.rod){g.save();g.translate(armO.gx,armO.gy);g.fn(q=>humInkLine(q,[0,-20,0,60],humLit(USR.steel),5),'rod');g.restore()}};
+ const drawOW=()=>{if(!S.ow||P.drop||state==='cast')return;const oi=humWInfo(S.ow);g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);if(A.p2&&oi.gripC)g.translate(-oi.gripC,0);g.img(hskWpnAtt(L,k,oi,{},'ow'),'offweapon');g.restore()};
+ const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);if(!att)g.rotate(-.12);const bd=!!P.bowD,hx=(armW.gx-armO.gx)*f;g.img(hskBowAtt(L,k,wi,bd),'bow');
   g.fn(q=>humDrawBowString(q,wi,bd,!!P.arrow,hx),'string');g.restore()};
- const shFar=oSide==='b',shieldAt=()=>({x:armO.wx+f*(shFar?14:24)+(shFar?Math.sign(sO.x)*26:0),y:armO.wy-18});
+ const shFar=oSide==='b',shieldAt=()=>A.p2?{x:armO.gx+(shFar?Math.sign(sO.x)*22:f*6),y:armO.gy-6}:({x:armO.wx+f*(shFar?14:24)+(shFar?Math.sign(sO.x)*26:0),y:armO.wy-18});   // part sheets: the shield's centre at the off hand's palm
  const drawShield=front=>{if(!S.shield||P.drop)return;tags.push(front?'front':'back');const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(front?mf:f*mf*.92,1.1);g.img(hskShieldAtt(L,k,S.shield,S.shR,front,!!S.shCrack),front?'shieldF':'shieldB');g.restore()};
  const torsoBone=fn=>{g.save();g.translate(UB.x,UB.y);g.rotate(rot);fn();g.restore()};
  const drawBackGear=()=>{const a=hskBackAtt(A);if(a)torsoBone(()=>g.img(a,'back'))};

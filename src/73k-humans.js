@@ -113,6 +113,7 @@ function humWInfo(W){let o=HUM_WI.get(W);if(o)return o;const fam=humWFam(W),C=W.
   bowc:W.bowR?humLit(USR[W.bowR]||W.bowR):null,bow:W.bow||(fam==='bow'?6:0),recurve:!!W.recurve||W.asym>0,nock:W.nock?humLit(USR[W.nock]||USR.gold):null,wrap:W.wrap?(typeof W.wrap==='string'&&USR[W.wrap]?humLit(USR[W.wrap]):'#e8e0d0'):null,
   gemc:W.gemR?humLit(USR[W.gemR]||W.gemR):null};
  if(o.famed&&fam!=='bow'){o.guard=humHex('c');o.pom=humHex('c')}
+ {const B=o.back,gl=fam==='great'?Math.max(B,40):fam==='dagger'?Math.max(18,B*.8):Math.max(26,B);o.gripC=fam==='dagger'||fam==='sword'||fam==='great'||fam==='curved'?-gl/2:0}   // where the hand closes, along the weapon (73m-skel.js, part sheets)
  HUM_WI.set(W,o);return o}
 
 /* ---- poses: body space (x forward, y down, SU), hands relative to their own shoulder; wa the weapon angle (deg, 0 forward, -90 up) ---- */
