@@ -111,7 +111,10 @@ function whTownPaint(g,L,size,bio,night,f){const S=WHTS[bio]||WHTS.plains,Wd=WAS
 // a sprite with a lit layer: paint(g, L) with L the lit canvas's context at night (else g)
 function whMakeL(w,h,ax,ay,K,night,paint){let L=null,lc=null;const e=whMake(w,h,ax,ay,K,g=>{if(night){lc=pxCanvas(Math.ceil(w*K),Math.ceil(h*K));L=lc.getContext('2d');L.setTransform(K,0,0,K,ax*K,ay*K);L.lineJoin='round';L.lineCap='round'}paint(g,L||g)});if(lc)e.lit=lc;return e}
 const WHSITE={};   // kind -> {box(o) -> [w,h,ax,ay], paint(g,L,o)}
-function whSprite(kind,o,K){if(!whOn())return null;K=Math.max(1,K|0);
+const WHSCALE=1.25;   // towns, places and bands are painted this much larger than their pixel boxes, so they read at a glance
+function whSprite(kind,o,K){if(!whOn())return null;K=Math.max(1,K|0);const S=kind==='east'&&o.k!=='town'&&o.k!=='band'?1:WHSCALE;if(S===1)return whSprite0(kind,o,K);
+ const e=whSprite0(kind,o,Math.ceil(K*S));if(!e)return e;for(const f of ['w','h','ax','ay','x0','y0','x1','y1'])e[f]*=S;e.k=Math.ceil(K*S)/S;return e}   // painted at about K device px an art px all the same
+function whSprite0(kind,o,K){
  if(kind==='site'){const P=WHSITE[o.kind];if(!P)return null;const b=P.box(o),night=!!o.night,e=whMakeL(b[0],b[1],b[2],b[3],K,night,(g,L)=>P.paint(g,L,o,night,(o.frame|0)));e.x0=-(b[0]/2-5);e.x1=b[0]/2-5;e.y0=-(b[3]-6);e.y1=Math.min(e.y1,2);return e}   // the bounds of the picture, not of its padded canvas (name plates and markers sit on its top)
  if(kind==='deco'){const sz=clamp(o.size|0||1,1,3),D=WASITE['town'+sz];return whMakeL(D.w+16,D.h+30,(D.w+16)/2,D.h+24,K,!!o.night,(g,L)=>whTownDeco(g,L,sz,o.own,o.mask|0,o.pr==null?1:o.pr|0,!!o.night,(o.frame|0)&3))}
  if(kind==='band'||kind==='co'){if(typeof whBandSprite!=='function')return null;return whBandSprite(kind,o,K)}
