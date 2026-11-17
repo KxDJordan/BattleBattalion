@@ -127,6 +127,8 @@ function tailorCoatAll(){const {m}=tlrMerc(),id=m&&tlcDraft(m);if(!id)return fal
  if(G.crowns<c){toast('Not enough crowns');return false}G.crowns-=c;for(const x of L){const j=G.stash.indexOf(id);if(j>=0)G.stash.splice(j,1);if(x.eq.c)G.stash.push(x.eq.c);x.eq.c=id}tlrRefresh();
  toast(`The whole company wears the ${ITEMS[id].n.toLowerCase()}${c?' for '+c+' crowns':''}`);renderTown(townNote);if(typeof save==='function')save();return true}
 function tailorCoatOff(){const {m}=tlrMerc();if(!m||!coatOf(m))return false;G.stash.push(m.eq.c);m.eq.c=null;tlrRefresh();toast(`${m.name}'s surcoat goes to the stash`);renderTown(townNote);if(typeof save==='function')save();return true}
+/* the company's colours on its clothes (G.wearCol, saved): coats in the flag's colours, and everyday fabric too (73q-parts2.js) */
+function tailorWear(part,on){if(!G)return;G.wearCol=Object.assign({coat:true,cloth:false},G.wearCol||{});G.wearCol[part]=!!on;tlrRefresh();if(typeof save==='function')try{save()}catch(e){}if(typeof renderTown==='function')try{renderTown(typeof townNote!=='undefined'?townNote:'')}catch(e){}}
 function tailorCoatView(t){let list=pnSec('The company',G.roster.length),detail='',foot='';const {m,i}=tlrMerc();if(!m)return{list:list+pnEmpty('Nobody to dress.'),detail,foot,key:'tailor:c'};
  G.roster.forEach((x,j)=>{const c=coatOf(x);list+=pnRow({on:`townPick(${j})`,sel:j===i,cls:'tw-row tl-row',lead:twPortrait(x,32),title:x.name,sub:`<span class="tw-line">${c?pnItemIcon(c,16):''}<span class="tw-t0">${c?ITEMS[c].n:'No surcoat'}</span></span>`})});
  const id=tlcDraft(m),cur=coatOf(m),pv=Object.assign({},m,{eq:Object.assign({},m.eq,{c:id||null})}),b=typeof bannerFix==='function'?bannerFix(G.banner):null;
@@ -135,6 +137,8 @@ function tailorCoatView(t){let list=pnSec('The company',G.roster.length),detail=
  for(const k of coatIds()){if(!coatSold(k))continue;const it=ITEMS[k],on=k===id,own=cur===k,st=G.stash.indexOf(k)>=0,p=coatPrice(k);
   detail+=`<div class="pn-gear tap tl-coat${on?' on':''}" role="button" tabindex="0" aria-pressed="${on}" data-coat="${k}" onclick="tailorCoatPick('${k}')">${pnItemIcon(k,32)}<span class="pn-rmain"><span class="pn-rt">${it.n}${own?' <span class="pn-grip">worn</span>':st?' <span class="pn-grip">in the stash</span>':''}</span><span class="pn-rs">${itemDesc(k)}</span></span><span class="pn-cd">${pnCoin(p,G.crowns<p?'short':'')}</span></div>`}
  detail+=`<p class="pn-p dim">Cut in the company's colours with its emblem on the chest and the back, over any armor. It follows the banner when the banner changes.</p>`;
+ {const w=G.wearCol||{};detail+=pnHead('The company colours')+`<label class="pn-p tl-wear"><input type="checkbox" id="tlWearCoat" ${w.coat!==false?'checked':''} onchange="tailorWear('coat',this.checked)"> Surcoats and tabards in the flag's colours</label>`
+  +`<label class="pn-p tl-wear"><input type="checkbox" id="tlWearCloth" ${w.cloth?'checked':''} onchange="tailorWear('cloth',this.checked)"> Wear the company colours: every sword's tunic, robe and trousers dyed to the flag (no charge; metal, leather and fur stay)</label>`}
  const fromSt=!!id&&G.stash.indexOf(id)>=0,c=id&&!fromSt?coatPrice(id):0,A=id?tlcAllCost(id):{n:0,c:0},same=!id||cur===id;
  foot=`<span class="pn-fl">${pnCoin(c,'big'+(G.crowns<c?' short':''))}<small>${same?(cur?'Already worn':'Pick a surcoat'):fromSt?'from the stash':G.crowns<c?'<em>Not enough crowns</em>':'for '+m.name}</small></span>`
   +(cur?`<button type="button" class="pn-btn" id="tlcOff" onclick="tailorCoatOff()">Take off</button>`:'')

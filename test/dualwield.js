@@ -137,9 +137,11 @@ section('the off hand: which weapons, beside what');
   console.log('equip rules, calc, the company screen: ok') }
 section('saves');
 { const G=fresh(SEED+2);const m=G.roster[0];m.eq.w='shortsword';m.eq.b=null;m.eq.s='kris';G.roster[1].eq.w='arming';G.roster[1].eq.s='buckler';
-  ok(X.save(),'save() failed');const raw=JSON.parse(X.store.get(X.SAVEKEY));ok(raw.v===X.SAVEVER&&X.SAVEVER===18,'saved as v18');
+  ok(X.save(),'save() failed');const raw=JSON.parse(X.store.get(X.SAVEKEY));ok(raw.v===X.SAVEVER&&X.SAVEVER>=18,'saved at the current version (18 or later)');
   let r=X.readSave();ok(r.state==='ok'&&r.g.roster.find(x=>x.id===m.id).eq.s==='kris'&&r.g.roster[1].eq.s==='buckler','the off-hand weapon and the shield come back');
-  const old=X.clone(raw);old.v=17;r=X.readSaveRaw(JSON.stringify(old));ok(r.state==='ok'&&r.v===17&&r.g.v===18&&r.g.roster.find(x=>x.id===m.id).eq.s==='kris','a v17 save loads (the migration changes nothing)');
+  const old=X.clone(raw);old.v=17;r=X.readSaveRaw(JSON.stringify(old));ok(r.state==='ok'&&r.v===17&&r.g.v===X.SAVEVER&&r.g.roster.find(x=>x.id===m.id).eq.s==='kris','a v17 save loads (the migration changes nothing)');
+  {const o18=X.clone(raw);o18.v=18;delete o18.wearCol;const r18=X.readSaveRaw(JSON.stringify(o18));ok(r18.state==='ok'&&r18.g.wearCol&&r18.g.wearCol.coat===true&&r18.g.wearCol.cloth===false,'a v18 save gains the company colours option (coats on, clothes off)')}
+  {X.G.wearCol={coat:true,cloth:true};ok(X.save(),'save with the colours option');const r19=X.readSave();ok(r19.g.wearCol&&r19.g.wearCol.cloth===true,'the company colours option survives a save round trip');X.G.wearCol={coat:true,cloth:false}}
   const bad=X.clone(raw);const bm=bad.roster.find(x=>x.id===m.id);bm.eq.s='arming';r=X.readSaveRaw(JSON.stringify(bad));ok(r.state==='ok'&&r.g.roster.find(x=>x.id===m.id).eq.s===null,'repair drops a weapon the off hand cannot hold');
   const lone=X.clone(raw);const lm=lone.roster.find(x=>x.id===m.id);lm.eq.w='greataxe';r=X.readSaveRaw(JSON.stringify(lone));ok(r.state==='ok'&&r.g.roster.find(x=>x.id===m.id).eq.s===null,'repair drops an off-hand weapon with nothing to fight beside');
   X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.roster.find(x=>x.id===m.id).eq.s==='kris','continueGame');closeAll(X);X.store.clear();console.log('v18 round trip, v17 load, repair: ok') }

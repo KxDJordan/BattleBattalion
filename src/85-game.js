@@ -6,7 +6,7 @@ function createCampaign(opts){opts=opts||{};const wk=setWorldSize(opts.wsize),AK
  for(let tries=0;tries<60;tries++){const seed=(rnd()*1e9)|0,w=genWorld(seed);   // the generator almost always gives its full count of towns on a broad mainland; reroll the rare cramped world
   if(!best||w.towns.length>best.towns.length||(w.towns.length===best.towns.length&&w.size>best.size))best=w;
   if(w.towns.length>=NT-2&&w.size>=(shp?shapeLand():1500)*AK)break}
- W=best;G={seed:W.seed,nid:1,towns:placeTowns()};if(shp&&(shp[0]!=='continent'||shp[1]!=='temperate')){G.shape=shp[0];G.biomes=shp[1]}G.sites=worldSites(W,G.nid);G.nid+=G.sites.length;
+ W=best;G={seed:W.seed,nid:1,towns:placeTowns(),wearCol:{coat:true,cloth:false}};if(shp&&(shp[0]!=='continent'||shp[1]!=='temperate')){G.shape=shp[0];G.biomes=shp[1]}G.sites=worldSites(W,G.nid);G.nid+=G.sites.length;
  const name=cleanName(opts.name);
  Object.assign(G,{v:SAVEVER,name,wsize:wk,banner:bannerFix(Object.assign({},opts.banner||{},{name}),name),day:1,hour:8,crowns:1200,food:50,tools:20,renown:0,roster:[],stash:['spear','buckler'],parties:[],portals:[],contract:null,crisis:null,crisisDay:26,diff:DIFF[opts.diff]?opts.diff:'normal',ironman:!!opts.ironman,fabled:{},dun:null,portalRun:null,dungeons:[],grace:4,healAcc:0,zoom:1,path:[],route:[],moving:false,dest:null,town:null,note:null,fog:null,
   weather:{kind:'clear',t:0,dur:10},p:{x:G.towns[0].x,y:G.towns[0].y+.65*TS}});

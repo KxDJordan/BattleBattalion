@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=18;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=19;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -131,7 +131,10 @@ const MIGRATE={
     shield; the Twin blades tree joined some pools (sellsword, cutthroat, thief, brigand, pit fighter, tumbler, gladiator). Nothing in an
     older save changes: its shield slots hold shields, its swords keep the trees they carry. The version marks that an older build, which
     would throw an off-hand weapon away as an unknown shield, must not load this save. */
- 17:g=>g
+ 17:g=>g,
+ /* v19: the company's colours on its clothes (73q-parts2.js p2Recolour): G.wearCol {coat: surcoats and tabards in the flag's colours,
+    cloth: every merc's fabric too}. Older companies keep the look they had: coats in their colours, everyday clothes as they were. */
+ 18:g=>{g.wearCol={coat:true,cloth:false};return g}
 };
 /* rerollRogueTrees(m, seed): a merc whose background may draw a light-blade tree but who has none: keeps the trees it has perks in (and the
    Monster hunter tree), fills the other slots from a fresh roll of its background's pool. Deterministic (its own stream from the world seed
