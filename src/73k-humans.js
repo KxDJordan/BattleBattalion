@@ -500,7 +500,7 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
  else if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){g.save();g.translate(f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);humDrawBow(g,wi,0,0,null)}else{g.translate(-wi.back,0);humDrawW(g,wi,{})}g.restore()}
  // ---- crop to the figure, mirror for faces 1 and 3
  g.setTransform(1,0,0,1,0,0);const x0=Math.max(0,Math.floor(HUM_BB[0])),y0=Math.max(0,Math.floor(HUM_BB[1])),x1=Math.min(sc.width,Math.ceil(HUM_BB[2])),y1=Math.min(sc.height,Math.ceil(HUM_BB[3]));
- if(!(x1>x0&&y1>y0))return null;const w=x1-x0,h=y1-y0,cv=document.createElement('canvas');cv.width=w;cv.height=h;const q=cv.getContext('2d');
+ if(!(x1>x0&&y1>y0))return null;const w=x1-x0,h=y1-y0,cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.hdk=k;const q=cv.getContext('2d');
  if(mir){q.translate(w,0);q.scale(-1,1)}q.drawImage(sc,x0,y0,w,h,0,0,w,h);
  const fx=OX*K-x0,ax=(mir?w-fx:fx)/k,ay=(OY*K-y0)/k;HUM.builds++;HUM.bytes+=w*h*4;if(t0)HUM.ms+=performance.now()-t0;
  return{cv,ax,ay,k,smooth:true,hk:k,hum:1,r:typeof ARTHD==='object'?ARTHD.rev:0}}
