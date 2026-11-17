@@ -432,6 +432,7 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
  const hs=humSpec(L),S=L.S,v=face>=2?'b':'f',f=v==='f'?1:-1,mir=face===1||face===3,k=humK(),K=k*HUM_A*hs.sc,A=hs.A,C=hs.C;
  let W=S.wd;if(W&&W.cls==='xbow'&&!/:L$/.test(W.id)&&((S.ld&&st!=='reload')||(st==='attack'&&fr===0))){try{W=usWdef(W.id+':L')}catch(e){}}
  const wi=humWInfo(W),cls=humWCls(wi.fam,W),P=humPose(cls,st,fr,{two:wi.two,fam:wi.fam});
+ if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&st!=='death'){const far=face===0||face===3,hi=face===3?(st==='attack'?[-34,22]:st==='hit'?[-30,24]:[-38,16]):far?(st==='attack'?[62,22]:st==='hit'?[54,24]:[66,16]):(st==='attack'?[30,30]:st==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.oa=0;P.wall=1}   // Shield wall: the shield held up high in front (usWall in 73-units.js)
  const SW=1100,SH=1250,OX=550,OY=980;let sc=HUM_SCR.c;if(!sc)sc=HUM_SCR.c=document.createElement('canvas');const cw=Math.ceil(SW*K),ch=Math.ceil(SH*K);if(sc.width<cw||sc.height<ch){sc.width=Math.max(sc.width,cw);sc.height=Math.max(sc.height,ch)}
  const g=sc.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,sc.width,sc.height);g.imageSmoothingEnabled=true;try{g.imageSmoothingQuality='high'}catch(e){}
  g.setTransform(K,0,0,K,OX*K,OY*K);humBBr();HUM_SL.length=0;g.lineJoin='round';g.lineCap='round';
