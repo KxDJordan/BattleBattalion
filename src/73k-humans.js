@@ -46,8 +46,8 @@ function humLit(r){if(!r||typeof r==='string')return humRC(r);const n=r.t.length
 function humBox(n,m){const P=HPA.p[n];const l=P&&P.L[m];return l?{x:l[4],y:l[5],w:l[6],h:l[7]}:{x:0,y:0,w:P?P.w:1,h:P?P.h:1}}
 const HUM_RIG={};
 function humRig(n){let R=HUM_RIG[n];if(R)return R;const P=HPA.p[n];R={w:P.w,h:P.h};
- if(/^([od]?head|elf)/.test(n)){const s=humBox(n,'s'),f=/_f$/.test(n),el=n[0]==='e'||n[0]==='o';   // the skull: a circle in the skin box (elf ears stick out of it)
-  const sx0=s.x+(el?(f?20:22):0),sx1=s.x+s.w-(el&&!f?22:0);R.cx=(sx0+sx1)/2+(f?4:-2);R.cy=s.y+s.h*.5;R.r=Math.min(sx1-sx0,s.h)*.5;R.px=R.cx+(f?-4:4);R.py=s.y+s.h-6}
+ if(/^([od]?head|elf)/.test(n)){const s=humBox(n,'s'),f=/_f$/.test(n),el=n[0]==='e',oc=n[0]==='o',dw=n[0]==='d';   // the skull: a circle in the skin box (ears stick out of it)
+  const sx0=s.x+(el?(f?20:22):oc?(f?26:12):dw?(f?14:8):0),sx1=s.x+s.w-(el&&!f?22:0);R.cx=(sx0+sx1)/2+(f?4:-2);R.cy=s.y+s.h*.5;R.r=oc||dw?Math.max(sx1-sx0,s.h)*.5:Math.min(sx1-sx0,s.h)*.5;R.px=R.cx+(f?-4:4);R.py=s.y+s.h-6}
  else if(/^[od]?torso/.test(n)){const c=humBox(n,'c'),b=humBox(n,'b'),f=/f$/.test(n);R.hx=b.x+b.w/2;R.hy=b.y+b.h*.55;R.nx=c.x+c.w*(f?.52:.5);R.ny=c.y+(f?2:8);
   R.px=R.hx;R.py=R.hy;R.sa={x:c.x+3,y:c.y+(f?24:18)};R.sb={x:c.x+c.w-3,y:c.y+(f?24:18)};R.top=c.y;R.bot=b.y+b.h;R.x0=c.x;R.x1=c.x+c.w}
  else if(/^[od]?arm/.test(n)){const c=humBox(n,'c'),s=humBox(n,'s');R.px=c.x+c.w/2;R.py=c.y+10;R.wx=s.x+s.w/2;R.wy=s.y+s.h-12}
@@ -273,7 +273,14 @@ function humHair(g,S,R,back,part){const st=S.hair;if(!st||st==='bald')return;con
  else{g.save();g.clip(P);g.strokeStyle=humLt(c,.25);g.lineWidth=3.5;for(const a of[-2.2,-1.75,-1.3]){g.beginPath();g.arc(0,0,R*.82,a,a+.35);g.stroke()}g.restore()}
  if(st==='bun'||st==='topknot'){const x=st==='bun'?-R*.65:-R*.25,y=st==='bun'?-R*.75:-R*1.08;humSh(g,humCirc(x,y,R*.27),c,{dk:.25});if(st==='topknot')humInkLine(g,[x+R*.18,y+R*.05,x+R*.33,y-R*.1],humHex('g'),5);humBBp(g,x,y,R*.3)}
  if(st==='topknot'&&back){}}
-function humBeard(g,S,R){const bd=S.beard;if(!bd)return;const br=S.beardR||S.hairR||usHairR(['i','H','k']),c=humMix(humRC(br),humRC(br,1),.2),sh=P=>humSh(g,P,c,{dk:.25,sx:6,sy:-6});
+function humBeard(g,S,R,dw){const bd=S.beard;if(!bd)return;const br=S.beardR||S.hairR||usHairR(['i','H','k']),c=humMix(humRC(br),humRC(br,1),.2),sh=P=>humSh(g,P,c,{dk:.25,sx:6,sy:-6});
+ if(bd==='dwarf'||(dw&&(bd==='long'||bd==='fork'||bd==='full'))){   // the dwarves' signature: a big beard over the chest, braided
+  const L=bd==='long'?1.95:bd==='fork'?1.8:1.7,W=1.12;sh(humP(p=>{p.moveTo(-R*.5,R*.12);p.quadraticCurveTo(-R*.55,R*L*.75,-R*.05,R*L);if(bd==='fork'){p.lineTo(R*.22,R*(L-.35));p.lineTo(R*.5,R*L)}else p.quadraticCurveTo(R*.5,R*(L+.08),R*.85,R*(L*.72));
+   p.quadraticCurveTo(R*W,R*.5,R*.98,R*.25);p.quadraticCurveTo(R*.62,R*.6,R*.6,R*.56);p.quadraticCurveTo(R*.12,R*.68,-R*.12,R*.36);p.closePath()}));
+  humSh(g,humP(p=>{p.moveTo(R*.2,R*.6);p.quadraticCurveTo(R*.55,R*.44,R*.98,R*.5);p.quadraticCurveTo(R*.65,R*.7,R*.2,R*.6);p.closePath()}),humDk(c,.12),{dk:.2});
+  g.strokeStyle=humDk(c,.32);g.lineWidth=3;for(const x of[-.15,.15,.45]){g.beginPath();g.moveTo(R*x,R*.8);g.quadraticCurveTo(R*(x+.06),R*(L*.75),R*(x+.02),R*(L*.92));g.stroke()}
+  for(const x of bd==='fork'?[.05,.45]:[.2]){const ring=S.ring?humHex('c'):humDk(c,.25);humSh(g,humP(p=>humRR(p,R*x-11,R*(L-.32),22,14,5)),ring,{lw:5})}
+  humBBp(g,R*.2,R*L,R*.9);return}
  switch(bd){
   case'stache':sh(humP(p=>{p.moveTo(R*.2,R*.6);p.quadraticCurveTo(R*.5,R*.42,R*.85,R*.5);p.quadraticCurveTo(R*.6,R*.68,R*.2,R*.6);p.closePath()}));break;
   case'goatee':sh(humP(p=>{p.moveTo(R*.3,R*.7);p.quadraticCurveTo(R*.55,R*.6,R*.75,R*.62);p.quadraticCurveTo(R*.75,R*1.05,R*.48,R*1.12);p.quadraticCurveTo(R*.3,R*1,R*.3,R*.7);p.closePath()}));break;
@@ -474,7 +481,7 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
     if(S.paint){humLine(g,[R0*.0,R0*.55,R0*.95,R0*.48],humHex(S.paint),6)}if(S.stubble){g.fillStyle='rgba(30,25,20,.22)';g.beginPath();g.ellipse(R0*.45,R0*.75,R0*.5,R0*.22,0,0,7);g.fill()}
     if(S.tusk&&!hs.orc){for(const x of[R0*.35,R0*.85])humSh(g,humPoly([x-6,R0*.72,x,R0*.5,x+6,R0*.72]),'#efe7cf',{lw:4})}}
    if(!covers&&!/^(kabuto|menpo|kawari|lgoni|jingasa)$/.test(hat||''))humHair(g,S,R0,back,'cap');else if(/^(kabuto|menpo|kawari|jingasa|lgoni)$/.test(hat||'')&&S.hair==='topknot')humHair(g,S,R0,back,'cap');
-   if(!back&&!covers)humBeard(g,S,R0);
+   if(!back&&!covers)humBeard(g,S,R0,hs.dw);
    if(S.mask&&!back){humSh(g,humP(p=>{p.moveTo(-R0*.2,R0*.42);p.lineTo(R0*1.08,R0*.28);p.quadraticCurveTo(R0*1.05,R0*.95,R0*.45,R0*1.0);p.quadraticCurveTo(-R0*.1,R0*.9,-R0*.2,R0*.42);p.closePath()}),humLit(S.hatR||usCloth('night')))}
    humHat(g,S,R0,back,'over')})};
  const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;if(cls==='staff'){x=armW.wx+wdx*(Math.max(wi.len,170)+20);y=armW.wy+wdy*(Math.max(wi.len,170)+20)}else if(P.spark===3){x=skull.x;y=skull.y-R0-50}else{x=(armW.wx+armO.wx)/2+f*30;y=(armW.wy+armO.wy)/2}
