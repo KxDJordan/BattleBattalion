@@ -6,7 +6,7 @@
 # into layers at full resolution: 'c' the piece in its own colours, 's' its skin alone as grey shade (heads, hands: drawn over 'c' multiplied by
 # another skin tone), 'h' a hair piece as grey shade with its black outline (multiplied by the merc's hair colour). Each layer is stored at P2A.k atlas px per SU.
 # P2A.p[name] = {w,h (SU), a:{...anchors in SU, piece-local}, L:{layer:[ax,ay,aw,ah, ox,oy,ow,oh]}} ; P2A.src[i] the atlas images.
-import sys, json, io, base64, os
+import sys, json, io, base64, os, re
 import numpy as np
 from PIL import Image, ImageDraw
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'parts2')
@@ -95,7 +95,38 @@ def biggest(m):
         ys, xs = zip(*best); o[list(ys), list(xs)] = True
     return o
 
-def layers(P, kind):
+CLOTH_SETS = {10, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 25, 26, 27, 29, 36, 37, 38, 39, 40, 41, 43, 45, 46, 47, 48, 49, 50}   # armour sets that are all fabric (73q-parts2.js P2_ARMOR)
+def cloth_masks(P, allcloth=False, legs=False):
+    """cloth vs metal / leather / fur / skin / outline, by colour: saturated non-brown colours, light cream and white fabric; brown and
+    tan below a brightness, greys (steel), skin and ink are not cloth. Specks under 1.5% of the piece are dropped (highlights, rivets).
+    The largest hue group is the main cloth (k1), the rest trim and devices (k2)."""
+    r, g, b, al = P[:, :, 0], P[:, :, 1], P[:, :, 2], P[:, :, 3] > 100; mx = np.maximum(np.maximum(r, g), b); mn = np.minimum(np.minimum(r, g), b)
+    sat = (mx - mn) / np.maximum(mx, 1); hue = np.zeros_like(r)
+    d = np.maximum(mx - mn, 1e-3); hr = (mx == r); hg = (mx == g) & ~hr; hb = ~hr & ~hg
+    hue[hr] = (60 * ((g - b) / d) % 360)[hr]; hue[hg] = (60 * ((b - r) / d) + 120)[hg]; hue[hb] = (60 * ((r - g) / d) + 240)[hb]
+    skin = (r > 180) & (r - b > 55) & (g > r * .5) & (g < r * .86) & (b > r * .3)
+    brownish = (hue >= 10) & (hue <= 50) & (mx < 175)
+    white = (sat < .14) & (mx > 205)
+    colour = (sat >= .22) & ~brownish & (mx > 60)
+    cloth = al & (mx > 60) & ~skin & (white | colour)
+    if allcloth: cloth = al & (mx > 85) & ~skin   # a fabric outfit: everything but ink, the darkest leather (belt, boots) and skin
+    if legs: yy_ = np.arange(P.shape[0])[:, None]; cloth = al & (mx > 60) & ~skin & (yy_ < P.shape[0] * .62)   # trousers: the leg above the boot
+    lab = -np.ones(cloth.shape, np.int32); comps = []; h_, w_ = cloth.shape
+    for y in range(h_):
+        for x in np.where(cloth[y] & (lab[y] < 0))[0]:
+            if lab[y, x] >= 0: continue
+            st = [(y, x)]; lab[y, x] = len(comps); n = 0
+            while st:
+                yy, xx = st.pop(); n += 1
+                for y2, x2 in ((yy + 1, xx), (yy - 1, xx), (yy, xx + 1), (yy, xx - 1)):
+                    if 0 <= y2 < h_ and 0 <= x2 < w_ and cloth[y2, x2] and lab[y2, x2] < 0: lab[y2, x2] = len(comps); st.append((y2, x2))
+            comps.append(n)
+    keep = np.array([n >= al.sum() * .015 for n in comps] + [False]); lab[lab < 0] = len(comps); cloth = keep[lab]
+    if not cloth.any(): return cloth, cloth
+    grp = np.where(white, 12, (hue // 30).astype(int)); counts = np.bincount(grp[cloth].ravel(), minlength=13); main = int(np.argmax(counts))
+    k1 = cloth & (grp == main); return k1, cloth & ~k1
+
+def layers(P, kind, nm=''):
     r, g, b, al = P[:, :, 0], P[:, :, 1], P[:, :, 2], P[:, :, 3]
     mx = np.maximum(np.maximum(r, g), b); lum = .3 * r + .59 * g + .11 * b
     ol = (mx < 62) & (al > 0)
@@ -127,6 +158,10 @@ def layers(P, kind):
     elif kind == 'hair': L['h'] = grey(hl, True)          # grey shade with the outline in it: multiplied by the hair colour, the outline stays black
     else:
         L['c'] = P.copy()                                 # the piece in its own colours
+        if kind in ('torso', 'arm', 'leg'):   # the cloth, for recolouring to a flag: k1 its main colour, k2 the rest (trim, device)
+            si = int(re.sub(r'\D', '', nm.split('_')[0]) or -1) if kind in ('torso', 'arm') else -1; k1, k2 = cloth_masks(P, si in CLOTH_SETS, kind == 'leg')
+            if k1.any(): L['k1'] = grey(k1, False)
+            if k2.any(): L['k2'] = grey(k2, False)
         if sk.any() and kind in ('head', 'ehead', 'hand'): L['s'] = grey(sk, False)   # the skin alone, grey: drawn over 'c' tinted for other skin tones
     return L
 
@@ -438,7 +473,7 @@ for name, kind, P, sf, box in PIECES:
     meta[name] = {'w': round(w0 * s, 1), 'h': round(h0 * s, 1), 'a': anchors(kind, P, s), 'L': {}, 'k': kind}
     if name in HFIT: b = HFIT[name]; meta[name]['a'].update({'fx': float(b[1]), 'fy': float(b[2]), 'fs': float(b[3])})
     if name in HEAR: meta[name]['a'].update({'edx': -float(HEAR[name][1]), 'edy': -float(HEAR[name][2])})   # its ear relative to head0's
-    for m, arr in layers(P, kind).items():
+    for m, arr in layers(P, kind, name).items():
         im = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA'); bb = im.getbbox()
         if not bb: continue
         im = im.crop(bb); tw, th = max(1, round(im.width * s * K)), max(1, round(im.height * s * K))

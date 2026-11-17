@@ -1136,14 +1136,18 @@ function usHand(u,o){o=o||US_H;let ov=null;try{if(typeof anHandOv==='function')o
  const base=(u.wpn0&&u.wpn0.wt)||(d.w&&ITEMS[d.w]&&ITEMS[d.w].wt)||(d.rng?'bow':'sword'),sw=!!(u.wpn&&u.wpn.wt&&u.wpn.wt!==base&&!d.spell);o.w=sw?d.side:'@main';o.a=sw?'@main':d.side;return o}
 const usHK=x=>x==null?'-':typeof x==='object'?(x.wt||'?')+(x.two?'2':''):String(x);
 function usLd(u){return u&&u.loaded===false?0:1}
-function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+usHK(H.w)+':'+usHK(H.a)+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+usShs(u)+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+usColSig(m)+':'+usLd(u)+':'+usCoatSig(u)+':w'+usWall(u)}
- if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a)+':'+usLd(u)+':'+usCoatSig(u)+':w'+usWall(u);return'x:?'}
+function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+usHK(H.w)+':'+usHK(H.a)+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+usShs(u)+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+usColSig(m)+':'+usLd(u)+':'+usCoatSig(u)+':w'+usWall(u)+usSpearW(u)+':'+usWearSig()}
+ if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a)+':'+usLd(u)+':'+usCoatSig(u)+':w'+usWall(u)+usSpearW(u)+':'+usWearSig();return'x:?'}
 // a unit braced behind its raised shield (Shield wall: the 'shieldwall' buff): its figure holds the shield up high (73k-humans.js humBuild)
+// braced behind a spear (the 'spearwall' buff): the figure holds its spear levelled forward (73m-skel.js)
+function usSpearW(u){return u&&Array.isArray(u.buffs)&&u.buffs.some(b=>b&&b.key==='spearwall')?1:0}
+// the company's 'wear the colours' choice (G.wearCol {coat, cloth}): part of every look
+function usWearSig(){const w=typeof G==='object'&&G&&G.wearCol;return(w&&w.coat===false?'0':'1')+(w&&w.cloth?'1':'0')}
 function usWall(u){return u&&u.shield&&Array.isArray(u.buffs)&&u.buffs.some(b=>b&&b.key==='shieldwall')?1:0}
 /* what the shield in hand looks like now: 0 whole, 1 cracked (half its hitpoints gone), 2 split (gone); 3 a merc whose shield the foes smashed */
 function usShs(u){if(!u)return 0;if(u.shpMax>0)return!(u.shield||(u.slung&&u.shp>0))?2:u.shp<=u.shpMax*.5?1:0;return u.sund?2:0}
-function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=usHand(u),hw=H.w,ha=H.a,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null,ld=usLd(u),wl=usWall(u);
- const cv=usCoatSig(u);if(c&&c.cv===cv&&c.wl===wl&&c.shs===shs&&c.hw===hw&&c.ha===ha&&c.cs===cs&&c.ld===ld&&(!cs||c.sig===usColSig(m))&&(!e||(c.s===e.s&&c.a===e.a&&c.h===e.h)))return c.L;
+function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=usHand(u),hw=H.w,ha=H.a,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null,ld=usLd(u),wl=usWall(u)*2+usSpearW(u),ws=usWearSig();
+ const cv=usCoatSig(u);if(c&&c.cv===cv&&c.wl===wl&&c.ws===ws&&c.shs===shs&&c.hw===hw&&c.ha===ha&&c.cs===cs&&c.ld===ld&&(!cs||c.sig===usColSig(m))&&(!e||(c.s===e.s&&c.a===e.a&&c.h===e.h)))return c.L;
  const key=usLookKey(u);let L=US.looks.get(key);
  if(!L){let S=null;try{S=u.m&&u.m.eq?usMercSpec(u.m,{w:hw,a:ha}):usEnemySpec(usEnKey(u.def)||u.eid,u)}catch(er){S=null}
   if(!S)S={kind:'hum',seed:1,b:US_BUILD.human,skin:usSkin(['s','t','u','i']),armor:'rags',wd:usWdef('fist')};
@@ -1155,7 +1159,7 @@ function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=u
   const big=S.kind==='quad'?(S.Q.big?1:0):S.kind==='spider'?0:(S.b.big?1:0);
   L={key,S,big,fr:new Array(4*US_NF).fill(null)};US.looks.set(key,L);
   if(US.looks.size>160){const k0=US.looks.keys().next().value;US.looks.delete(k0)}}
- L.S.ld=ld;L.S.wall=wl;if(u&&typeof u==='object')US.byUnit.set(u,{L,cv,wl,hw,ha,s:e?e.s:0,a:e?e.a:0,h:e?e.h:0,shs,cs,ld,sig:cs?usColSig(m):''});return L}
+ L.S.ld=ld;L.S.wall=wl>>1;L.S.spearw=wl&1;if(u&&u.m)L.m=u.m;if(u&&typeof u==='object')US.byUnit.set(u,{L,cv,wl,ws,hw,ha,s:e?e.s:0,a:e?e.a:0,h:e?e.h:0,shs,cs,ld,sig:cs?usColSig(m):''});return L}
 function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?performance.now():0,S=L.S,v=face>=2?1:0,mir=face===1||face===2,d=US_DIM[L.big];
  let hw=0;if(typeof humWant==='function'&&humWant(L)){hw=1;let o=null;try{o=humBuild(L,face,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.herr){US.herr=1;console.error('human figure',L.key,st,fr,e)}}if(o)return o}   // Detail High people: the parts-sheet figure (73k-humans.js)
  usBegin(L.big);usCrk=S.shCrack?1:0;if(S.coat)usCoatHDBegin();else US_EM.on=false;

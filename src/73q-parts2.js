@@ -92,12 +92,12 @@ function p2Ready(){if(typeof P2A!=='object')return false;let ok=true;for(let i=0
 function p2On(){return P2.on&&typeof P2A==='object'&&p2Ready()}
 const P2_PC=new Map();   // tinted piece canvases, by piece + colour
 // a piece canvas at atlas resolution (P2A.k px per SU), its own colours; skin (s) / hair (h) multiplied by col; pk = canvas px per SU
-function p2Piece(n,skin,hair){const id=n+'|'+(skin||'')+'|'+(hair||'');let c=P2_PC.get(id);if(c)return c;const P=P2A.p[n];if(!P)return null;const k=P2A.k,W=Math.ceil(P.w*k)+2,H=Math.ceil(P.h*k)+2;
+function p2Piece(n,skin,hair,k1,k2){const id=n+'|'+(skin||'')+'|'+(hair||'')+'|'+(k1||'')+'|'+(k2||'');let c=P2_PC.get(id);if(c)return c;const P=P2A.p[n];if(!P)return null;const k=P2A.k,W=Math.ceil(P.w*k)+2,H=Math.ceil(P.h*k)+2;
  c=document.createElement('canvas');c.width=W;c.height=H;c.pk=k;const g=c.getContext('2d');
  const lay=(m,col)=>{const l=P.L[m];if(!l)return;const I=p2Img(l[0]);if(!I)return;if(!col){g.drawImage(I,l[1],l[2],l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k);return}
   const t=humTmp(l[3],l[4]),q=t.getContext('2d');q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);q.globalCompositeOperation='multiply';q.fillStyle=col;q.fillRect(0,0,l[3],l[4]);q.globalCompositeOperation='destination-in';q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);
   g.drawImage(t,0,0,l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k)};
- lay('c');if(skin)lay('s',skin);if(P.L.h)lay('h',hair||'#6b4a2b');
+ lay('c');if(k1)lay('k1',k1);if(k2)lay('k2',k2||k1);if(skin)lay('s',skin);   // k1 / k2: the cloth recoloured (a flag's colours)if(P.L.h)lay('h',hair||'#6b4a2b');
  P2_PC.set(id,c);return c}
 // a piece's rig record (SU, origin at the pivot): what 73m-skel.js reads (px, py, wx, wy, len, ang, fy, ...)
 function p2Rig(n,px,py,extra){const P=P2A.p[n];const R=Object.assign({w:P.w,h:P.h,px,py},extra||{});if(R.wx!=null){R.len=Math.hypot(R.wx-R.px,R.wy-R.py);R.ang=Math.atan2(R.wy-R.py,R.wx-R.px)}return R}
@@ -112,7 +112,8 @@ function p2Armor(L){const S=L.S,hs=humSpec(L);let n=null;const id=S.armId;
  if(!n&&S.armor==='robe'){const c=S.robeC||'';n=P2_ROBE[c]||null}
  if(!n)n=P2_ARMOR_OF['k_'+S.armor]||'rags';
  if(S.coat){const F=humLit(S.coat.F),plate=/plate/.test(n),fc=p2Hex(F),blue=fc[2]>fc[0]+20,red=fc[0]>fc[2]+40&&fc[0]>fc[1]+20,light=fc[0]+fc[1]+fc[2]>500;   // a surcoat / house coat: the tabards
-  n=plate?(blue?'plate, blue fleur-de-lis surcoat':'plate, white crusader cross'):blue?'blue cross tabard':red?'dark red cloak':light?'white star tabard':'blue cross tabard'}
+  const rec=!(typeof G==='object'&&G&&G.wearCol&&G.wearCol.coat===false);   // recoloured to the livery: one tabard of each kind, its colours from the flag
+  n=rec?(plate?'plate, blue fleur-de-lis surcoat':'white star tabard'):plate?(blue?'plate, blue fleur-de-lis surcoat':'plate, white crusader cross'):blue?'blue cross tabard':red?'dark red cloak':light?'white star tabard':'blue cross tabard'}
  return P2A_IDX(n)}
 function p2Helm(S){const t=S.hat;if(!t)return-1;const fam=S.helmId&&typeof usFamedBase==='function'&&usFamedBase(S.helmId);const n=(fam&&P2_HELM_OF[t+'*'])||P2_HELM_OF[t];
  if(t==='hood'&&S.hatR&&/[DC]/.test(S.hatR.t||''))return P2H('purple mage hood');return n?P2H(n):P2H('leather cap')}
@@ -125,14 +126,23 @@ function p2EHair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const i=P2_
 function p2Hair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const n=(P2_HAIR_OF[fem?'w':'m'][st])||(fem?'long':'short, side part');return P2_HAIR.indexOf(n)}
 
 /* ---- the asset record of a look x face (same fields as humSkAssets, from these parts) ---- */
+/* the flag's colours on the clothes: a surcoat / tabard / house coat in its livery (G.wearCol.coat, default on), and with
+   G.wearCol.cloth (default off) every company merc's cloth (tunic, robe, gambeson, sleeves, trousers; the atlas's k1 / k2 layers leave
+   metal, leather, fur and skin alone) in the company's (or a rival's) colours: k1 the main colour, k2 trim and devices */
+function p2LivCol(c,i){const B=typeof BANNERC==='object'&&BANNERC[c];return B?humMix(humHex(B.r[1]),humHex(B.r[2]),.35):i?'#d1a94e':'#2f7868'}
+function p2Recolour(L){const S=L.S,w=typeof G==='object'&&G&&G.wearCol||{};
+ if(S.coat&&w.coat!==false)return{k1:humLit(S.coat.F),k2:humLit(S.coat.K),body:1,legs:0};
+ if(L.m&&w.cloth&&typeof mercLivery==='function'){const lv=mercLivery(L.m);if(lv)return{k1:p2LivCol(lv.c1,0),k2:p2LivCol(lv.c2,1),body:1,legs:1}}
+ return null}
 function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1,K=k*HUM_A*hs.sc*P2.sc*(hs.race==='dwarf'?.96:1),mf=mir?-1:1;
  const ai=p2Armor(L),leg=P2_LEGS.indexOf(P2_ARMOR[ai][1]),skin=hs.orc?humLit(hs.S.skin):hs.C.skin,fem=!!hs.fem;
  const tone=hs.race==='human'&&!hs.orc&&/^s/.test((S.skin&&S.skin.t)||'')?null:skin;   // the sheet's own skin is a fair human's
- const tn='torso'+ai,TP=P2A.p[tn].a,T={n:tn,R:p2Rig(tn,TP.hx,TP.hy),c:p2Piece(tn,tone)};
+ const rc=p2Recolour(L),rb=rc&&rc.body?rc:null,rl=rc&&rc.legs?rc:null;   // a coat or the company's cloth in the flag's colours
+ const tn='torso'+ai,TP=P2A.p[tn].a,T={n:tn,R:p2Rig(tn,TP.hx,TP.hy),c:p2Piece(tn,tone,null,rb&&rb.k1,rb&&rb.k2)};
  const ln=s=>'leg'+leg+'_'+s,LPa=P2A.p[ln('a')].a,LPb=P2A.p[ln('b')].a;
- const LA={n:ln('a'),R:p2Rig(ln('a'),LPa.px,LPa.py,{fy:LPa.fy}),c:p2Piece(ln('a'))},LB={n:ln('b'),R:p2Rig(ln('b'),LPb.px,LPb.py,{fy:LPb.fy}),c:p2Piece(ln('b'))};
+ const LA={n:ln('a'),R:p2Rig(ln('a'),LPa.px,LPa.py,{fy:LPa.fy}),c:p2Piece(ln('a'),null,null,rl&&rl.k1,rl&&rl.k2)},LB={n:ln('b'),R:p2Rig(ln('b'),LPb.px,LPb.py,{fy:LPb.fy}),c:p2Piece(ln('b'),null,null,rl&&rl.k1,rl&&rl.k2)};
  const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sw0=wSide==='a'?-1:1,so0=-sw0;
- const arm=s=>{const n='sh'+ai+'_'+s,a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py,{wx:a.wx,wy:a.wy}),c:p2Piece(n)}};
+ const arm=s=>{const n='sh'+ai+'_'+s,a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py,{wx:a.wx,wy:a.wy}),c:p2Piece(n,null,null,rb&&rb.k1,rb&&rb.k2)}};
  const hand=n=>{   // hand_a the character's right (the near arm, image left in face 0), hand_b the left (far arm); a hand stays on its own arm
  const a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py),c:p2Piece(n,tone)}};
  const legk=hs.race==='dwarf'?.62:1,legL=(LA.R.fy-LA.R.py)*legk,legY=-24*legk,hipY0=-(legL+legY),hx=P2A.p[ln('a')].w*.36;
