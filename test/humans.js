@@ -50,10 +50,29 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
   const q1=c1.getContext('2d'),q2=c2.getContext('2d'),k=A.k,X=W/2,Y=H-4;q1.translate(X,0);q1.scale(-1,1);q1.drawImage(A.cv,-A.ax*k,Y-A.ay*k);q2.drawImage(Bm.cv,X-Bm.ax*k,Y-Bm.ay*k);
   const d1=q1.getImageData(0,0,W,H).data,d2=q2.getImageData(0,0,W,H).data;let n1=0,dif=0;for(let i=3;i<d1.length;i+=4){if(d1[i]>128||d2[i]>128){n1++;if((d1[i]>128)!==(d2[i]>128)||Math.abs(d1[i-3]-d2[i-3])+Math.abs(d1[i-2]-d2[i-2])+Math.abs(d1[i-1]-d2[i-1])>90)dif++}}
   if(!(dif>n1*.08))bad.push('face '+fb+' is a plain mirror of face '+fa+' ('+dif+' of '+n1+' px differ)');n.mirrorDiff=(n.mirrorDiff||'')+fb+':'+(dif/n1).toFixed(2)+' '}
+ // the skeleton: every animation sampled at 9 times in every face for a few loadouts: slots present, hands and shield rules, a stable box
+ {const k=humK(),T=[0,.12,.24,.3,.38,.5,.62,.8,1];let n2=0;
+  for(const eq of[{w:'arming',s:'heater2',a:'mail'},{w:'warbow',a:'leather',b:'knife'},{w:'greataxe',a:'scale'},{w:'crossbow',a:'padded'},{w:'musket',a:'leather'},{w:'focus',a:'robe'},{w:'waraxe',s:'hatchet',a:'mail'},{w:'spear',s:'kite',a:'mail'},{w:'knife',a:'rags'},{a:'padded'}]){
+   const u=merc({race:'human',eq}),L=usLook(u);
+   for(const nm in HUM_AN)for(const face of[0,1,2,3])for(const t of T){const st=nm==='swing'||nm==='two'||nm==='thrust'||nm==='dagger'||nm==='punch'||nm==='bash'||nm==='staff'||nm==='gun'||nm==='bow'?'attack':/^reload/.test(nm)?'reload':nm;
+    const Fr=humSkFrame(L,face,st,t,k,nm==='bash'?'bash':'');n2++;const id='skel '+JSON.stringify(eq)+' '+nm+' f'+face+' t'+t;
+    if(!Fr.list.length||!Fr.list.some(x=>x.tag==='torso')||!Fr.list.some(x=>x.tag==='head')){bad.push(id+': missing slots');continue}
+    if(Fr.hand.w!==Fr.hand.right)bad.push(id+': weapon not in the right hand');
+    if(Fr.hand.shield){if(Fr.hand.shield===Fr.hand.right)bad.push(id+': shield on the right arm');const Lr=Fr.hand.layers;if(Fr.hand.shield==='b'?Lr!=='back,torso':Lr!=='torso,front')bad.push(id+': shield order '+Lr)}
+    const b=humSkBox({list:Fr.list.filter(x=>x.tag==='leg'||x.tag==='torso'||x.tag==='head')});if(!(nm==='death'&&t>.6)&&!(b[3]<=(nm==='death'?50:40)&&b[3]>-30&&b[1]>-600&&b[2]-b[0]<700))bad.push(id+': body box '+b.map(x=>x|0));   // the feet stay on the ground
+    for(const it of Fr.list)if(it.m.some(x=>!isFinite(x))){bad.push(id+': bad matrix '+it.tag);break}}}
+  n.skelSamples=n2;
+  // the live path: the board asks humLiveFrame for a person, never for a monster
+  const v={pS:'attack',pF:1,pPh:.38,pCy:0,pD:0,pAn:''};const lf=humLiveFrame(merc({race:'elf',eq:{w:'arming'}}),v);if(!lf||!lf.list.length)bad.push('live frame missing for a person');
+  const g0=mkEnemy('gob','gob');if(humLiveFrame(g0,v))bad.push('live skeleton for a goblin');
+  // the per-frame cost of a live figure (pose + blit)
+  const c=document.createElement('canvas');c.width=200;c.height=200;const q=c.getContext('2d');const us=[];for(let i=0;i<24;i++)us.push(merc({race:['human','elf','dwarf','halforc'][i&3],eq:[{w:'arming',s:'heater2',a:'mail',h:'kettle'},{w:'warbow',a:'leather'},{w:'greataxe',a:'scale'},{w:'crossbow',a:'padded'}][i&3]}));
+  for(const u of us)for(let f=0;f<4;f++)for(const st of['idle','walk'])humLiveFrame(u,{pS:st,pF:0,pPh:0,pCy:0,pD:f,pAn:''});const t1=performance.now();let nf=0;for(let r=0;r<20;r++)for(const u of us){const F=humLiveFrame(u,{pS:r&1?'walk':'idle',pF:0,pPh:0,pCy:r/7,pD:r&3,pAn:''});humSkDraw(q,F,100,180);nf++}
+  n.liveMs=+((performance.now()-t1)/nf).toFixed(3);if(n.liveMs>0.3)bad.push('a live figure costs '+n.liveMs+' ms')}
  // Detail Low: the old figure, never the composed one; back to High: composed again
  const u0=merc({race:'elf',fem:1,eq:{w:'warbow',a:'leather',h:'hood'}});const hi=unitSpritePx(u0,0,'idle',0);
  SET.detail='low';artChanged();const lo=unitSpritePx(u0,0,'idle',0);if(!lo||lo.hum||lo.k)bad.push('Detail Low drew the composed figure');
- const box=unitSpriteBox(u0);SET.detail='high';artChanged();const hi2=unitSpritePx(u0,0,'idle',0);if(!hi2||!hi2.hum)bad.push('Detail High after Low is not composed');if(!hi||!hi.hum)bad.push('first high draw not composed');
+ const box=unitSpriteBox(u0);if(humLiveFrame(u0,{pS:'idle',pF:0,pPh:0,pCy:0,pD:0,pAn:''}))bad.push('Detail Low drew the skeleton');SET.detail='high';artChanged();const hi2=unitSpritePx(u0,0,'idle',0);if(!hi2||!hi2.hum)bad.push('Detail High after Low is not composed');if(!hi||!hi.hum)bad.push('first high draw not composed');
  if(!(unitSpriteBox(u0).h>=26&&unitSpriteBox(u0).h<=34))bad.push('figure box height '+unitSpriteBox(u0).h);
  const ms=performance.now()-t0;return{bad,n,people:people.length,ms:Math.round(ms),builds:HUM.builds,buildMs:+(HUM.ms/Math.max(1,HUM.builds)).toFixed(2),tint:HUM.tint,live:Math.round((HUM.live||0)/1e6)}});
 console.log(JSON.stringify(Object.assign({},R,{bad:R.bad.length})));
