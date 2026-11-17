@@ -440,13 +440,14 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
  // stays right-handed. The near arm is always piece 'a'; the character's right arm is the near one in faces 0 and 3, the far one in 1 and 2.
  const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sW=wSide==='a'?shA:shB,sO=oSide==='a'?shA:shB,nearW=wSide==='a',sw0=wSide==='a'?-1:1,so0=-sw0,mf=mir?-1:1;
  const AW=pc('arm',wSide,humArmDeco(hs),'c'),AO=pc('arm',oSide,humArmDeco(hs),'c'),HW=pc('hand',wSide,null,'s'),HO=pc('hand',oSide,null,'s');
- const aim=(p,sh,tx,ty)=>{const R=p.R,dx=tx-sh.x,dy=ty-sh.y,d=Math.hypot(dx,dy)||1,s=Math.max(.72,Math.min(1.28,d/R.len)),th=Math.atan2(dy,dx),L2=R.len*s;return{th,s,wx:sh.x+Math.cos(th)*(L2+12),wy:sh.y+Math.sin(th)*(L2+12),sh}};
+ const aim=(p,sh,tx,ty,mx)=>{const R=p.R,dx=tx-sh.x,dy=ty-sh.y,d=Math.hypot(dx,dy)||1,s=Math.max(.72,Math.min(mx||1.28,d/R.len)),th=Math.atan2(dy,dx),L2=R.len*s;return{th,s,wx:sh.x+Math.cos(th)*(L2+12),wy:sh.y+Math.sin(th)*(L2+12),sh}};
  const rest=(sh,o)=>({x:sh.x+f*o[0],y:sh.y+o[1]});
- let tw0=rest(sW,P.w);const armW=aim(AW,sW,tw0.x,tw0.y);
+ const fSh=f*shA.x>f*shB.x?shA:shB,rSh=fSh===shA?shB:shA,abs=cls==='bow'||cls==='gun';   // bows and guns aim the same whichever arm is near: hands placed from the front / rear shoulder
+ let tw0=rest(abs?rSh:sW,P.w);const armW=aim(AW,sW,tw0.x,tw0.y);
  const wa=P.wa*Math.PI/180,wdx=f*Math.cos(wa),wdy=Math.sin(wa);
- const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(sO,P.o);
+ const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(abs?fSh:sO,P.o);
  if(grip){const d=(wi.h2||-3)*HUM_CELL*(cls==='gun'?.8:1);to0={x:armW.wx+wdx*d,y:armW.wy+wdy*d}}
- const armO=aim(AO,sO,to0.x,to0.y);
+ const armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);   // the bow arm from the rear shoulder reaches across the body
  const drawArm=(p,a)=>{if(!p.c)return;g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);const R=p.R;g.drawImage(p.c,-R.px-1/hk,-R.py-1/hk,p.c.width/hk,p.c.height/hk);humBBbox(g,-R.px,-R.py,R.w-R.px,R.h-R.py);g.restore();
   if(A.paul||(S.av&&S.av.sode)){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);const pc2=humLit(A.paul||USR.steel);if(S.av&&S.av.sode){const P2=humP(q=>humRR(q,-30,-6,60,58,6));humSh(g,P2,humLit(USR[(S.av.A||{}).paul]||USR.blk),{dk:.2});g.save();g.clip(P2);for(let y=8;y<56;y+=14)humLine(g,[-32,y,32,y],humLit(USR.red),4);g.restore()}
    else{const P2=humP(q=>{q.moveTo(-34,8);q.quadraticCurveTo(-36,-30,0,-30);q.quadraticCurveTo(36,-30,34,8);q.quadraticCurveTo(0,20,-34,8);q.closePath()});humSh(g,P2,pc2,{dk:.22});if(S.spike)humSh(g,humPoly([-8,-26,0,-56,8,-26]),humLit(S.spikeR||USR.steel))}humBBp(g,0,-30,40);g.restore()}};

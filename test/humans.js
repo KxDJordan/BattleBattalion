@@ -19,6 +19,7 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
    if(!o||!o.cv||!o.cv.width||!o.cv.height){bad.push(id+': no sprite');continue}if(!o.hum){bad.push(id+': not the composed figure');continue}
    const w=o.cv.width/o.k,h=o.cv.height/o.k;if(!(o.ax>=0&&o.ax<=w&&o.ay>=0&&o.ay<=h+.5))bad.push(id+': anchor outside the frame '+[o.ax.toFixed(1),o.ay.toFixed(1),w.toFixed(1),h.toFixed(1)]);
    if(n.sprites%7===0){const d=o.cv.getContext('2d').getImageData(0,0,o.cv.width,o.cv.height).data;let a=0;for(let i=3;i<d.length;i+=16)a+=d[i];if(!a)bad.push(id+': empty')}
+   if(o.hand){if(o.hand.w!==o.hand.right)bad.push(id+': the weapon is not in the right hand');if(o.hand.shield&&o.hand.shield===o.hand.right)bad.push(id+': the shield is not on the left arm')}else bad.push(id+': no hand tags');
    const o2=unitSpritePx(u,face,st,fr);if(o2!==o)bad.push(id+': rebuilt on the second draw');else n.hits++}}};
  const RACES=[['human'],['elf'],['halforc','orc'],['halforc','ashorc'],['dwarf']];
  // every background x race x sex: front and back idle; one per race x sex: every face, state and frame
@@ -42,6 +43,12 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
  for(const id of['gob','gobarch','orcw','skel','zomb','wolf','bear','ogre','imp','vknight'])if(people.indexOf(id)>=0)bad.push(id+': a non-person is composed');
  // house soldiers in livery: the coat is on the look
  {const h=(G.houses||[])[0];if(h){const u=mkEnemy('braid',h.id);const L=usLook(u);if(!L.S.coat)bad.push('house soldier without a coat');chk(u,'house braid',[0,2],['idle'],0)}}
+ // right-handed in every facing: a mirrored face is not a pixel mirror of the unmirrored one
+ for(const [fa,fb] of[[0,1],[2,3]]){const u=merc({race:'human',fem:0,eq:{w:'arming',s:'heater2',a:'mail'}});const A=unitSpritePx(u,fa,'idle',0),Bm=unitSpritePx(u,fb,'idle',0);
+  const W=Math.ceil(Math.max(A.cv.width,Bm.cv.width)*1.6),H=Math.ceil(Math.max(A.cv.height,Bm.cv.height)*1.2),c1=document.createElement('canvas'),c2=document.createElement('canvas');c1.width=c2.width=W;c1.height=c2.height=H;
+  const q1=c1.getContext('2d'),q2=c2.getContext('2d'),k=A.k,X=W/2,Y=H-4;q1.translate(X,0);q1.scale(-1,1);q1.drawImage(A.cv,-A.ax*k,Y-A.ay*k);q2.drawImage(Bm.cv,X-Bm.ax*k,Y-Bm.ay*k);
+  const d1=q1.getImageData(0,0,W,H).data,d2=q2.getImageData(0,0,W,H).data;let n1=0,dif=0;for(let i=3;i<d1.length;i+=4){if(d1[i]>128||d2[i]>128){n1++;if((d1[i]>128)!==(d2[i]>128)||Math.abs(d1[i-3]-d2[i-3])+Math.abs(d1[i-2]-d2[i-2])+Math.abs(d1[i-1]-d2[i-1])>90)dif++}}
+  if(!(dif>n1*.08))bad.push('face '+fb+' is a plain mirror of face '+fa+' ('+dif+' of '+n1+' px differ)');n.mirrorDiff=(n.mirrorDiff||'')+fb+':'+(dif/n1).toFixed(2)+' '}
  // Detail Low: the old figure, never the composed one; back to High: composed again
  const u0=merc({race:'elf',fem:1,eq:{w:'warbow',a:'leather',h:'hood'}});const hi=unitSpritePx(u0,0,'idle',0);
  SET.detail='low';artChanged();const lo=unitSpritePx(u0,0,'idle',0);if(!lo||lo.hum||lo.k)bad.push('Detail Low drew the composed figure');
