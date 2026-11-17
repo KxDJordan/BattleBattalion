@@ -118,31 +118,6 @@ function humWInfo(W){let o=HUM_WI.get(W);if(o)return o;const fam=humWFam(W),C=W.
 /* ---- poses: body space (x forward, y down, SU), hands relative to their own shoulder; wa the weapon angle (deg, 0 forward, -90 up) ---- */
 function humWCls(fam,W){return fam==='bow'?'bow':fam==='xbow'||fam==='pistol'||fam==='musket'?'gun':fam==='dagger'?'dagger':fam==='fist'?'fist':fam==='staff'||fam==='orb'?'staff':
  fam==='spear'||fam==='trident'||fam==='halberd'||fam==='bill'||fam==='glaive'?'thrust':fam==='great'||fam==='greataxe'||fam==='maul'||(W&&W.two&&W.cls==='two')?'two':'swing'}
-function humPose(cls,st,fr,hs){const P={w:[6,86],o:[-4,86],wa:-62,oa:0,lean:0,bob:0,lg:[0,0,0,0],kneel:0,lie:0,grip:0,bowD:0,arrow:0,spark:0,drop:0,rod:0,crank:0};
- // guard positions per class
- switch(cls){case'swing':P.w=[0,86];P.wa=-42;break;case'dagger':P.w=[0,86];P.wa=-28;break;case'two':P.w=[30,74];P.wa=-58;P.grip=1;break;case'thrust':P.w=[-16,82];P.wa=-104;P.grip=hs&&hs.two?1:0;break;
-  case'staff':P.w=[-16,82];P.wa=-100;break;case'bow':P.o=[24,78];P.w=[0,86];break;case'gun':P.w=[44,64];P.wa=-6;P.grip=1;break;case'fist':P.w=[6,86];break}
- const set=(o)=>Object.assign(P,o);
- switch(st){
-  case'idle':if(fr===1)P.bob=4;break;
-  case'walk':{const a=fr&3;if(a===0)set({lg:[16,0,-14,6],w:[P.w[0]-10,P.w[1]],o:[P.o[0]+12,P.o[1]]});else if(a===2)set({lg:[-14,6,16,0],w:[P.w[0]+12,P.w[1]],o:[P.o[0]-10,P.o[1]]});else set({bob:-6});break}
-  case'attack':
-   if(cls==='swing'||cls==='two'||cls==='staff'){const g=cls==='two'?1:0;
-    if(fr===0)set({w:[-6,-64],wa:-128,lean:-7,lg:[-6,0,4,0],bob:2,grip:g});else if(fr===1)set({w:[82,44],wa:10,lean:9,lg:[16,0,-10,0],grip:g});else set({w:[50,74],wa:52,lean:5,lg:[10,0,-4,0],grip:g})}
-   else if(cls==='dagger'){if(fr===0)set({w:[-20,40],wa:-70,lean:-5});else if(fr===1)set({w:[90,44],wa:-2,lean:10,lg:[16,0,-10,0]});else set({w:[50,68],wa:24,lean:4})}
-   else if(cls==='thrust'){if(fr===0)set({w:[-34,54],wa:-8,lean:-6,lg:[-6,0,6,0]});else if(fr===1)set({w:[82,40],wa:-5,lean:11,lg:[20,0,-14,0]});else set({w:[30,52],wa:-6,lean:3,lg:[8,0,-4,0]});P.grip=hs&&hs.two?1:0}
-   else if(cls==='gun'){if(fr===1)set({w:[56,46],wa:-16,lean:-6,lg:[6,0,0,0]});else set({w:[62,52],wa:-3,lg:[6,0,0,0]})}
-   else if(cls==='bow'){set({o:[86,26],oa:0,lg:[8,0,-4,0]});if(fr===0)set({w:[92,22],bowD:0,arrow:1});else if(fr===1)set({w:[18,30],bowD:1,arrow:1,lean:-3});else set({w:[-4,40],bowD:0})}
-   else{if(fr===0)set({w:[-24,62],lean:-5});else if(fr===1)set({w:[96,10],lean:10,lg:[16,0,-10,0]});else set({w:[48,54]})}
-   break;
-  case'cast':if(fr===0)set({w:[52,44],o:[30,40],wa:-80,spark:1});else if(fr===1)set({w:[16,-84],o:[-6,-86],wa:-92,bob:-6,spark:3});else set({w:[86,-10],o:[60,24],wa:-52,lean:7,spark:2,lg:[12,0,-6,0]});P.grip=0;break;
-  case'hit':if(fr===0)set({lean:-13,bob:3,w:[-26,70],o:[-22,66],wa:P.wa-24,lg:[-8,0,-6,0]});else set({lean:-5,bob:2});break;
-  case'death':if(fr===0)set({lean:-20,bob:5,w:[-30,30],o:[-24,24],wa:-140,lg:[-10,0,-6,0]});else if(fr===1)set({kneel:1,lean:14,bob:0,w:[30,80],o:[34,80],wa:30,drop:1});else set({lie:1,drop:1,w:[4,88],o:[-4,88]});P.grip=0;break;
-  case'swap':if(fr<2)set({w:[-40,-36],wa:-150,lean:-3,grip:0});else set({w:[30,60],wa:-50,lean:3});break;
-  case'reload':if(cls==='gun'&&hs&&hs.fam==='xbow')set({w:[26,84],wa:84,o:[[18,34],[34,26],[26,44]][fr],grip:0,crank:fr+1});
-   else if(cls==='gun')set({w:[26,82],wa:-86,o:[30,-30+fr*12],grip:0,rod:1});else if(cls==='bow')set({w:[-46,-30+fr*10]});else set({w:[14,82]});break}
- return P}
-
 /* ---- drawing helpers: flat fill + one shade (the lower-back side) + the thick outline; bbox tracking in device px ---- */
 const HUM_BB=[0,0,0,0];
 function humBBr(){HUM_BB[0]=HUM_BB[1]=1e9;HUM_BB[2]=HUM_BB[3]=-1e9}
@@ -215,12 +190,15 @@ function humDrawW(g,wi,o){o=o||{};const L=wi.len,B=wi.back,f=wi.fam,bb=(x,y,r)=>
   default:break}}
 function humRR2(x,y,w,h,r){return humP(p=>humRR(p,x,y,w,h,r))}
 /* a bow held upright in the off hand: local frame, grip at the origin, the belly towards +x (forward) */
-function humDrawBow(g,wi,draw,arrow,hx){const n=Math.max(5,wi.bow||6),H=n*22+30,bend=draw?30:18,bc=wi.bowc||(n>=7?humHex('a'):humHex('i'));humBBp(g,0,-H,10);humBBp(g,0,H,10);humBBp(g,bend+10,0,10);humBBp(g,hx!=null?hx:-40,0,10);
- const sx=draw&&hx!=null?hx:-6;g.strokeStyle='#ece4d2';g.lineWidth=2.5;g.beginPath();g.moveTo(-4,-H+6);g.lineTo(sx,0);g.lineTo(-4,H-6);g.stroke();
+/* hx false: the bow body only (the skeleton draws the string and the arrow live, humDrawBowString) */
+function humDrawBowString(g,wi,draw,arrow,hx){const n=Math.max(5,wi.bow||6),H=n*22+30,bend=draw?30:18,sx=draw&&hx!=null?hx:-6;g.strokeStyle='#ece4d2';g.lineWidth=2.5;g.lineCap='round';g.beginPath();g.moveTo(-4,-H+6);g.lineTo(sx,0);g.lineTo(-4,H-6);g.stroke();
+ if(arrow){const ax=sx;humSh(g,humPoly([ax,-2.5,bend+46,-2.5,bend+46,2.5,ax,2.5]),'#c8a070',{lw:4});humSh(g,humPoly([bend+42,-8,bend+62,0,bend+42,8]),'#c0c8d0',{lw:4});humSh(g,humPoly([ax-2,-2,ax+16,-10,ax+18,-2]),humHex('g'),{lw:3})}}
+function humDrawBow(g,wi,draw,arrow,hx){const n=Math.max(5,wi.bow||6),H=n*22+30,bend=draw?30:18,bc=wi.bowc||(n>=7?humHex('a'):humHex('i'));humBBp(g,0,-H,10);humBBp(g,0,H,10);humBBp(g,bend+10,0,10);humBBp(g,hx!=null&&hx!==false?hx:-40,0,10);
+ const sx=draw&&hx!=null&&hx!==false?hx:-6;if(hx!==false){g.strokeStyle='#ece4d2';g.lineWidth=2.5;g.beginPath();g.moveTo(-4,-H+6);g.lineTo(sx,0);g.lineTo(-4,H-6);g.stroke()}
  const rc=wi.recurve?12:0,path=humP(p=>{p.moveTo(-4-rc,-H);p.quadraticCurveTo(bend*2.2,-H*.55,bend,0);p.quadraticCurveTo(bend*2.2,H*.55,-4-rc,H)});
  g.strokeStyle=HUM_INK;g.lineWidth=HUM_LW+9;g.lineCap='round';g.stroke(path);g.strokeStyle=bc;g.lineWidth=9;g.stroke(path);g.strokeStyle=humLt(bc,.3);g.lineWidth=3;g.save();g.translate(-2,-2);g.stroke(path);g.restore();
  if(wi.wrap){g.strokeStyle=wi.wrap;g.lineWidth=9;g.beginPath();g.moveTo(bend+1,-14);g.lineTo(bend+1,14);g.stroke()}
- if(arrow){const ax=sx;humSh(g,humPoly([ax,-2.5,bend+46,-2.5,bend+46,2.5,ax,2.5]),'#c8a070',{lw:4});humSh(g,humPoly([bend+42,-8,bend+62,0,bend+42,8]),'#c0c8d0',{lw:4});humSh(g,humPoly([ax-2,-2,ax+16,-10,ax+18,-2]),humHex('g'),{lw:3})}}
+ if(arrow&&hx!==false){const ax=sx;humSh(g,humPoly([ax,-2.5,bend+46,-2.5,bend+46,2.5,ax,2.5]),'#c8a070',{lw:4});humSh(g,humPoly([bend+42,-8,bend+62,0,bend+42,8]),'#c0c8d0',{lw:4});humSh(g,humPoly([ax-2,-2,ax+16,-10,ax+18,-2]),humHex('g'),{lw:3})}}
 
 /* ---- shields: family outline, field + device + rim + boss (front), planks and a strap (back) ---- */
 const HUM_SHS={buckler:[42,42],targe:[60,60],round:[66,66],spiked:[66,66],heater:[62,74],kite:[58,96],tower:[66,100],pavise:[74,110]};
@@ -428,103 +406,7 @@ function humLegDeco(hs){const a=hs.S.armor,c=hs.C.leg;return(g,P)=>{const b=humB
 /* ---- the frame builder ---- */
 const HUM_SCR={c:null},HUM_SL=[];   // HUM_SL: the order the shield and torso were drawn in the last build (for the tests)
 const HUM_SPK={mana:'#7ab8ff',aura:'#ffe27a',qi:'#7affd0',chi:'#ff9a5a',hex:'#c87aff',void:'#b07aff',ice:'#a8e8ff',fire:'#ffb040'};
-function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undefined')return null;const t0=typeof performance!=='undefined'?performance.now():0;
- const hs=humSpec(L),S=L.S,v=face>=2?'b':'f',f=v==='f'?1:-1,mir=face===1||face===3,k=humK(),K=k*HUM_A*hs.sc,A=hs.A,C=hs.C;
- let W=S.wd;if(W&&W.cls==='xbow'&&!/:L$/.test(W.id)&&((S.ld&&st!=='reload')||(st==='attack'&&fr===0))){try{W=usWdef(W.id+':L')}catch(e){}}
- const wi=humWInfo(W),cls=humWCls(wi.fam,W),P=humPose(cls,st,fr,{two:wi.two,fam:wi.fam});
- if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&st!=='death'){const far=face===0||face===3,hi=face===3?(st==='attack'?[-34,22]:st==='hit'?[-30,24]:[-38,16]):far?(st==='attack'?[62,22]:st==='hit'?[54,24]:[66,16]):(st==='attack'?[30,30]:st==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.oa=0;P.wall=1}   // Shield wall: the shield held up high in front (usWall in 73-units.js)
- const SW=1100,SH=1250,OX=550,OY=980;let sc=HUM_SCR.c;if(!sc)sc=HUM_SCR.c=document.createElement('canvas');const cw=Math.ceil(SW*K),ch=Math.ceil(SH*K);if(sc.width<cw||sc.height<ch){sc.width=Math.max(sc.width,cw);sc.height=Math.max(sc.height,ch)}
- const g=sc.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,sc.width,sc.height);g.imageSmoothingEnabled=true;try{g.imageSmoothingQuality='high'}catch(e){}
- g.setTransform(K,0,0,K,OX*K,OY*K);humBBr();HUM_SL.length=0;g.lineJoin='round';g.lineCap='round';
- const hk=HPA.k,pc=(kind,side,deco,dl,key)=>{const n=hs.pn(kind,v,side);return{n,R:humRig(n),c:humPiece(hs,n,hs.col[kind],deco,key||'',dl)}};
- const draw=(p,x,y,rot,sx,sy)=>{if(!p.c)return;g.save();g.translate(x,y);if(rot)g.rotate(rot);if(sx!=null)g.scale(sx,sy==null?1:sy);const R=p.R;g.drawImage(p.c,-R.px-1/hk,-R.py-1/hk,p.c.width/hk,p.c.height/hk);
-  humBBbox(g,-R.px,-R.py,p.R.w-R.px,p.R.h-R.py);g.restore()};
- const lie=!!P.lie,kneel=!!P.kneel;
- if(lie){g.save();g.translate(f*170,-58);g.rotate(-f*Math.PI/2);Object.assign(P,{w:[4,88],o:[-4,88],lean:0,bob:0,lg:[4,0,-4,0]})}
- // ---- skeleton (screen space of the canonical view; feet at 0,0)
- const T=pc('torso',null,humTorsoDeco(hs,v,hs.pn('torso',v)),'c',mir&&HPA.p[hs.pn('torso',v)].L.g?'mb':''),LA=pc('leg','a',humLegDeco(hs),'p'),LB=pc('leg','b',humLegDeco(hs),'p');
- const legL=(LA.R.fy-LA.R.py)*hs.legk,hipY=-(legL+4)*(kneel?.5:1)+(P.bob>0?P.bob*.5:0),hx=24*hs.wid;
- const UB={x:0,y:hipY-14+P.bob},rot=f*P.lean*Math.PI/180;
- const up=(x,y)=>{const c=Math.cos(rot),s=Math.sin(rot);return{x:UB.x+x*c-y*s,y:UB.y+x*s+y*c}};   // upper-body frame -> screen
- const tR=T.R,tw=hs.wid,shA=up((tR.sa.x-tR.hx)*tw,tR.sa.y-tR.hy),shB=up((tR.sb.x-tR.hx)*tw,tR.sb.y-tR.hy),neck=up((tR.nx-tR.hx)*tw*.6,tR.ny-tR.hy+18);
- // handedness: the composition is mirrored for faces 1 and 3, so there the weapon goes in the other hand before the mirror and every figure
- // stays right-handed. The near arm is always piece 'a'; the character's right arm is the near one in faces 0 and 3, the far one in 1 and 2.
- const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sW=wSide==='a'?shA:shB,sO=oSide==='a'?shA:shB,nearW=wSide==='a',sw0=wSide==='a'?-1:1,so0=-sw0,mf=mir?-1:1;
- const AW=pc('arm',wSide,humArmDeco(hs),'c'),AO=pc('arm',oSide,humArmDeco(hs),'c'),HW=pc('hand',wSide,null,'s'),HO=pc('hand',oSide,null,'s');
- const aim=(p,sh,tx,ty,mx)=>{const R=p.R,dx=tx-sh.x,dy=ty-sh.y,d=Math.hypot(dx,dy)||1,s=Math.max(.72,Math.min(mx||1.28,d/R.len)),th=Math.atan2(dy,dx),L2=R.len*s;return{th,s,wx:sh.x+Math.cos(th)*(L2+12),wy:sh.y+Math.sin(th)*(L2+12),sh}};
- const rest=(sh,o)=>({x:sh.x+f*o[0],y:sh.y+o[1]});
- const fSh=f*shA.x>f*shB.x?shA:shB,rSh=fSh===shA?shB:shA,abs=cls==='bow'||cls==='gun';   // bows and guns aim the same whichever arm is near: hands placed from the front / rear shoulder
- let tw0=rest(abs?rSh:sW,P.w);const armW=aim(AW,sW,tw0.x,tw0.y);
- const wa=P.wa*Math.PI/180,wdx=f*Math.cos(wa),wdy=Math.sin(wa);
- const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(abs?fSh:sO,P.o);
- if(grip){const d=(wi.h2||-3)*HUM_CELL*(cls==='gun'?.8:1);to0={x:armW.wx+wdx*d,y:armW.wy+wdy*d}}
- const armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);   // the bow arm from the rear shoulder reaches across the body
- const drawArm=(p,a)=>{if(!p.c)return;g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);const R=p.R;g.drawImage(p.c,-R.px-1/hk,-R.py-1/hk,p.c.width/hk,p.c.height/hk);humBBbox(g,-R.px,-R.py,R.w-R.px,R.h-R.py);g.restore();
-  if(A.paul||(S.av&&S.av.sode)){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);const pc2=humLit(A.paul||USR.steel);if(S.av&&S.av.sode){const P2=humP(q=>humRR(q,-30,-6,60,58,6));humSh(g,P2,humLit(USR[(S.av.A||{}).paul]||USR.blk),{dk:.2});g.save();g.clip(P2);for(let y=8;y<56;y+=14)humLine(g,[-32,y,32,y],humLit(USR.red),4);g.restore()}
-   else{const P2=humP(q=>{q.moveTo(-34,8);q.quadraticCurveTo(-36,-30,0,-30);q.quadraticCurveTo(36,-30,34,8);q.quadraticCurveTo(0,20,-34,8);q.closePath()});humSh(g,P2,pc2,{dk:.22});if(S.spike)humSh(g,humPoly([-8,-26,0,-56,8,-26]),humLit(S.spikeR||USR.steel))}humBBp(g,0,-30,40);g.restore()}};
- const drawHand=(p,a,r2)=>draw(p,a.wx,a.wy,a.th-Math.PI/2+(r2||0));
- const drawWeapon=()=>{if(P.drop||cls==='bow'||wi.fam==='fist')return;g.save();g.translate(armW.wx,armW.wy);g.scale(f,1);g.rotate(wa);humDrawW(g,wi,{loaded:S.ld!==0&&!(st==='attack'&&fr>=1),fire:cls==='gun'&&st==='attack'&&fr===1,crank:P.crank});g.restore();
-  if(P.rod){g.save();g.translate(armO.wx,armO.wy);humInkLine(g,[0,-20,0,60],humLit(USR.steel),5);g.restore()}};
- const drawOW=()=>{if(!S.ow||P.drop||st==='cast')return;const oi=humWInfo(S.ow);g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);humDrawW(g,oi,{});g.restore()};
- const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);if(st!=='attack')g.rotate(-.12);humDrawBow(g,wi,!!P.bowD,!!P.arrow,(armW.wx-armO.wx)*f);g.restore()};
- const shFar=oSide==='b',shieldAt=()=>({x:armO.wx+f*(shFar?14:24)+(shFar?Math.sign(sO.x)*26:0),y:armO.wy-18});   // on the far arm it peeks out past the body at that side
- const drawShield=front=>{if(!S.shield||P.drop)return;HUM_SL.push(front?'front':'back');const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(front?mf:f*mf*.92,1.1);humDrawShield(g,S.shield,S.shR,front,!!S.shCrack);g.restore()};
- const head=pc('head',null,null,'s'),hR=head.R,skull={x:neck.x+(hR.cx-hR.px),y:neck.y+(hR.cy-hR.py)},R0=hR.r;
- const inHead=fn=>{g.save();g.translate(skull.x,skull.y);g.rotate(rot*.5);g.scale(f,1);try{fn()}catch(e){if(!HUM.err){HUM.err=1;console.error('human head gear',e)}}g.restore()};
- const back=v==='b';
- // stowed gear on the back (S.alt with a stow class), a slung shield, the quiver, a cape
- const drawBackGear=()=>{const bx=up(sw0*10,-70);
-  if(S.cape){g.save();const c=humLit(S.cape),P2=humP(q=>{q.moveTo(shA.x-6,shA.y-8);q.lineTo(shB.x+6,shB.y-8);q.quadraticCurveTo(shB.x+30,-40,shB.x+26,-18);q.quadraticCurveTo(0,-6,shA.x-26,-18);q.quadraticCurveTo(shA.x-30,-40,shA.x-6,shA.y-8);q.closePath()});humSh(g,P2,c,{dk:.25});humBBp(g,0,-18,80);g.restore()}
-  if(S.slung){g.save();g.translate(bx.x,bx.y);g.scale(.8,.8);humDrawShield(g,S.slung,S.shR,back,0);g.restore()}
-  if(S.alt&&(S.altCls==='back'||S.altCls==='bow')){const oi=humWInfo(S.alt);g.save();g.translate(bx.x,bx.y+30);if(oi.fam==='bow'){g.rotate(-sw0*.45);g.scale(sw0*.9,.9)}else g.rotate(sw0*.7-Math.PI/2);if(oi.fam==='bow')humDrawBow(g,oi,0,0,null);else{g.translate(-oi.len*.35,0);humDrawW(g,oi,{})}g.restore()}
-  if(S.back&&/usSashi/.test(String(S.back))){const big=/1\)$/.test(String(S.back).trim())||/,1\)/.test(String(S.back)),q=up(sw0*30,-60),fl=/R\.blk/.test(String(S.back))?'#2a2a34':'#efe9da';g.save();g.translate(q.x,q.y);humInkLine(g,[0,40,0,-300],humLit(USR.dwood),7);
-   const F=humP(p=>{p.moveTo(0,-290);p.lineTo(sw0*62,-290);p.lineTo(sw0*62,-150);p.lineTo(0,-150);p.closePath()});humSh(g,F,fl,{dk:.12});g.fillStyle=fl==='#2a2a34'?humHex('c'):humHex('g');g.beginPath();g.arc(sw0*31,-220,15,0,7);g.fill();humBBp(g,sw0*62,-300,8);humBBp(g,0,40,8);g.restore()}
-  if(S.quiver){const q=up(sw0*34,-120);g.save();g.translate(q.x,q.y);g.rotate(-sw0*.45);humSh(g,humP(p=>humRR(p,-16,-20,32,96,10)),humLit(USR.leather),{dk:.25});for(let i=0;i<3;i++){humSh(g,humPoly([-12+i*10,-20,-6+i*10,-46,0+i*10,-20]),'#e8e2d4',{lw:4})}humBBp(g,0,-46,30);humBBp(g,0,80,30);g.restore()}};
- const drawHip=()=>{if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return;const oi=humWInfo(S.alt),p=up(so0*24,-18);g.save();g.translate(p.x,p.y);g.rotate(so0*.35+Math.PI/2);g.scale(.85,.85);humDrawW(g,oi,{});g.restore()};
- const drawLegs=()=>{const lg=P.lg;for(const [p,side,ix] of[[LB,'b',2],[LA,'a',0]]){const x=(side==='a'?-hx:hx),r=-f*lg[ix]*Math.PI/180,lift=lg[ix+1]||0;
-   if(kneel){draw(p,x+f*(side==='a'?24:-10),hipY+6,-f*(side==='a'?.9:.15),1,side==='a'?.55:.7)}else draw(p,x,hipY+6-lift,r,1,hs.legk)}};
- const drawSkirt=()=>{const n=A.skirt;if(!n||n===1)return;const c=n<0?C.body:humLit(A.skB||A.body),y0=UB.y-6,ln=n<0?(-y0-(kneel?6:24)):n===2?36:56,w=60*hs.wid;
-  const P2=humP(p=>{p.moveTo(-w,y0);p.lineTo(w,y0);p.lineTo(w+(n<0?14:6),y0+ln);p.quadraticCurveTo(0,y0+ln+8,-w-(n<0?14:6),y0+ln);p.closePath()});humSh(g,P2,c,{dk:.2});humBBbox(g,-w-14,y0,w+14,y0+ln+8);
-  if(S.armor==='mail'||n===3&&S.armor!=='brig'&&S.armor!=='lamellar')humMailTex(g,P2,-w-14,y0,w+14,y0+ln+8,c);if(S.armor==='lamellar'){g.save();g.clip(P2);for(let y=y0+12;y<y0+ln;y+=14)humLine(g,[-w-10,y,w+10,y],humLit(USR.red),4);g.restore()}
-  if(n<0){humLine(g,[f*14,y0+4,f*18,y0+ln],humLit(S.trim||USR.brass),7)}};
- const drawCoat=()=>{if(!S.coat)return;const F=humLit(S.coat.F),K=humLit(S.coat.K),cut=S.coat.cut,long=cut==='surcoat'||cut==='herald'||cut==='jinbaori',bot=long?66:cut==='quilted'?44:28,w=(cut==='tabard'||cut==='mantle'?36:44)*tw;
-  g.save();g.translate(UB.x,UB.y);g.rotate(rot);const top=tR.top-tR.hy+22,P2=humP(p=>{p.moveTo(-w,top);p.lineTo(w,top);p.lineTo(w+8,bot);if(long&&!back){p.lineTo(f*6+5,bot);p.lineTo(f*6,bot-30);p.lineTo(f*6-5,bot)}p.lineTo(-w-8,bot);p.closePath()});
-  humSh(g,P2,F,{dk:.18});if(cut==='herald'){g.save();g.clip(P2);g.strokeStyle=K;g.lineWidth=10;g.stroke(P2);g.restore();g.lineWidth=HUM_LW;g.strokeStyle=HUM_INK;g.stroke(P2)}
-  humBBbox(g,-w-8,top,w+8,bot);humInkLine(g,[-w+4,-4,w-4,-4],C.belt,8);if(!back||cut==='jinbaori'){const es=Math.min(2*w*.8,50);g.save();g.translate(f*4,top+(-4-top)*.5);g.scale(mf,1);humEmblem(g,S.coat.em,0,0,es,K);g.restore()}g.restore();
-  if(cut==='mantle'){const m=humP(p=>{p.moveTo(shA.x-12,shA.y+6);p.quadraticCurveTo(neck.x,neck.y-36,shB.x+12,shB.y+6);p.quadraticCurveTo(neck.x,neck.y+26,shA.x-12,shA.y+6);p.closePath()});humSh(g,m,K)}};
- const drawTorso=()=>{HUM_SL.push('torso');draw(T,UB.x,UB.y,rot,tw,1);drawCoat();if(S.av&&S.av.mantle){const c=humLit(S.armor==='robe'?(S.accR||usCloth('purple')):USR.fur),m=humP(p=>{p.moveTo(shA.x-14,shA.y+4);p.quadraticCurveTo(neck.x,neck.y-40,shB.x+14,shB.y+4);p.quadraticCurveTo(neck.x,neck.y+20,shA.x-14,shA.y+4);p.closePath()});humSh(g,m,c)}};
- const drawHead=()=>{inHead(()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind');if(back&&!/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|coif|hood|cowl)$/.test(S.hat||''))humHair(g,S,R0,back,'over')});draw(head,neck.x,neck.y,rot*.5);
-  inHead(()=>{const hat=S.hat;const covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');
-   if(!back&&!covers){if(S.patch){const ex=mir?.1:.8,ey=mir?.44:.28;humLine(g,[-R0*.7,-R0*.3,R0*1.0,R0*(ey-.25)],HUM_INK,4);humSh(g,humEll(R0*ex,R0*ey,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
-    if(S.paint){humLine(g,[R0*.0,R0*.55,R0*.95,R0*.48],humHex(S.paint),6)}if(S.stubble){g.fillStyle='rgba(30,25,20,.22)';g.beginPath();g.ellipse(R0*.45,R0*.75,R0*.5,R0*.22,0,0,7);g.fill()}
-    if(S.tusk&&!hs.orc){for(const x of[R0*.35,R0*.85])humSh(g,humPoly([x-6,R0*.72,x,R0*.5,x+6,R0*.72]),'#efe7cf',{lw:4})}}
-   if(!covers&&!/^(kabuto|menpo|kawari|lgoni|jingasa)$/.test(hat||''))humHair(g,S,R0,back,'cap');else if(/^(kabuto|menpo|kawari|jingasa|lgoni)$/.test(hat||'')&&S.hair==='topknot')humHair(g,S,R0,back,'cap');
-   if(!back&&!covers)humBeard(g,S,R0,hs.dw);
-   if(S.mask&&!back){humSh(g,humP(p=>{p.moveTo(-R0*.2,R0*.42);p.lineTo(R0*1.08,R0*.28);p.quadraticCurveTo(R0*1.05,R0*.95,R0*.45,R0*1.0);p.quadraticCurveTo(-R0*.1,R0*.9,-R0*.2,R0*.42);p.closePath()}),humLit(S.hatR||usCloth('night')))}
-   humHat(g,S,R0,back,'over')})};
- const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;if(cls==='staff'){x=armW.wx+wdx*(Math.max(wi.len,170)+20);y=armW.wy+wdy*(Math.max(wi.len,170)+20)}else if(P.spark===3){x=skull.x;y=skull.y-R0-50}else{x=(armW.wx+armO.wx)/2+f*30;y=(armW.wy+armO.wy)/2}
-  const r=P.spark===3?30:P.spark===2?22:14;g.save();g.translate(x,y);g.fillStyle=col;g.globalAlpha=.35;g.beginPath();g.arc(0,0,r*1.6,0,7);g.fill();g.globalAlpha=1;const st4=humP(p=>{for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i&1?r*.4:r;i?p.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):p.moveTo(rr,0)}p.closePath()});humSh(g,st4,humLt(col,.3),{lw:5,flat:1});humBBp(g,0,0,r*1.6);g.restore()};
- // ---- layers (weapon arm near: faces 0 and 3; far: faces 1 and 2 before the mirror)
- const offHand=()=>{if(S.shield){drawHand(HO,armO);drawShield(true)}else if(cls==='bow'){drawBow();drawHand(HO,armO)}else{if(!grip)drawOW();if(!grip)drawHand(HO,armO)}};
- const wSet=()=>{drawArm(AW,armW);drawWeapon();drawHand(HW,armW)};
- const farShield=()=>{drawShield(false);drawArm(AO,armO);drawHand(HO,armO)};   // the shield on the far arm: its inside, behind the body
- if(!back){drawBackGear();inHead(()=>humHair(g,S,R0,false,'behind'));
-  if(nearW){if(S.shield)farShield();else{drawArm(AO,armO);if(!grip&&cls!=='bow'){drawOW();drawHand(HO,armO)}}}else wSet();
-  drawLegs();drawSkirt();drawTorso();drawHip();drawHead();
-  if(nearW){if(cls==='bow'){drawBow();drawHand(HO,armO)}wSet()}else{drawArm(AO,armO);offHand()}
-  if(grip)drawHand(HO,armO);drawSpark()}
- else{
-  if(nearW){if(S.shield)farShield();else{drawArm(AO,armO);if(cls==='bow')drawBow();if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}}else wSet();
-  drawLegs();drawSkirt();drawTorso();drawBackGear();drawHip();drawHead();
-  if(nearW){wSet();if(grip)drawHand(HO,armO)}else{if(cls==='bow')drawBow();drawArm(AO,armO);if(S.shield){drawHand(HO,armO);drawShield(true)}else{if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}}drawSpark()}
- if(lie){g.restore();if(W&&(W.c&&W.c.length||cls==='bow')){g.save();g.translate(-f*30,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);humDrawBow(g,wi,0,0,null)}else{g.translate(-wi.len*.4,0);humDrawW(g,wi,{})}g.restore()}}
- else if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){g.save();g.translate(f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);humDrawBow(g,wi,0,0,null)}else{g.translate(-wi.back,0);humDrawW(g,wi,{})}g.restore()}
- // ---- crop to the figure, mirror for faces 1 and 3
- g.setTransform(1,0,0,1,0,0);const x0=Math.max(0,Math.floor(HUM_BB[0])),y0=Math.max(0,Math.floor(HUM_BB[1])),x1=Math.min(sc.width,Math.ceil(HUM_BB[2])),y1=Math.min(sc.height,Math.ceil(HUM_BB[3]));
- if(!(x1>x0&&y1>y0))return null;const w=x1-x0,h=y1-y0,cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.hdk=k;const q=cv.getContext('2d');
- if(mir){q.translate(w,0);q.scale(-1,1)}q.drawImage(sc,x0,y0,w,h,0,0,w,h);
- const fx=OX*K-x0,ax=(mir?w-fx:fx)/k,ay=(OY*K-y0)/k;HUM.builds++;HUM.bytes+=w*h*4;if(t0)HUM.ms+=performance.now()-t0;
- return{cv,ax,ay,k,smooth:true,hk:k,hum:1,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:HUM_SL.join(',')},r:typeof ARTHD==='object'?ARTHD.rev:0}}
+/* humBuild (one baked frame) and the live figure are in 73m-skel.js: the skeleton, its slots and its animations */
 /* frame memory: the frames of every look share one budget; the oldest built are dropped (rebuilt on demand) */
 function humKeep(L,i,o){if(!o||!o.hum||!o.cv)return o;const b=o.cv.width*o.cv.height*4;HUM.fifo.push([L,i,o,b]);HUM.live=(HUM.live||0)+b;
  while(HUM.live>HUM.cap&&HUM.fifo.length>1){const e=HUM.fifo.shift();HUM.live-=e[3];if(e[0].fr[e[1]]===e[2])e[0].fr[e[1]]=null}return o}
