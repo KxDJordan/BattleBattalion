@@ -158,6 +158,7 @@ function wvBandOld(q,x,y,o,co){const n=co?clamp(Math.ceil((o.n||1)/3),1,4):clamp
    the town is off the screen an arrow at the screen's edge pointing the way. Art units (the world's transform); f: WV.fs. */
 function wvBeacon(x,y,size,f,vx0,vy0,vx1,vy1,sc){const ph=reduced?.35:(f%9)/9,c0=PAL['0'],cy=PAL.y,cw=PAL.l,R0=14+6*size;
  const ring=(rx,col,a)=>{const ry=rx*.5,n=Math.max(24,Math.round(rx*1.5));g.globalAlpha=a;
+  if(WVHD){g.save();g.imageSmoothingEnabled=true;g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.strokeStyle=c0;g.lineWidth=3.2;g.stroke();g.strokeStyle=col;g.lineWidth=1.6;g.stroke();g.restore();g.globalAlpha=1;return}   // Detail High: smooth rings
   for(let i=0;i<n;i++){const t=i/n*Math.PI*2,px=Math.round(x+Math.cos(t)*rx),py=Math.round(y+Math.sin(t)*ry);g.fillStyle=c0;g.fillRect(px-1,py-1,4,4)}
   for(let i=0;i<n;i++){const t=i/n*Math.PI*2,px=Math.round(x+Math.cos(t)*rx),py=Math.round(y+Math.sin(t)*ry);g.fillStyle=col;g.fillRect(px,py,2,2)}g.globalAlpha=1};
  // the part of the map the player can see: the canvas less the top bar, the order rail on the right and (for the arrow) the minimap
@@ -347,7 +348,7 @@ const WPL=new Map();
 function wvPlate(txt,col,bg){const id=txt+'|'+col+bg;let c=WPL.get(id);if(c)return c;if(WPL.size>80)WPL.clear();const G_=[];let w=5;for(const ch of txt.toUpperCase()){const s=WFONT[ch];if(!s)continue;const r=s.split('/');G_.push(r);w+=r[0].length+1}
  c=mkCanvas(w,10);const q=c.getContext('2d');q.fillStyle=PAL['0'];q.fillRect(1,0,w-2,10);q.fillRect(0,1,w,8);q.fillStyle=PAL[bg];q.fillRect(1,1,w-2,8);q.fillStyle=PAL[col];let x=3;
  for(const r of G_){for(let y=0;y<6;y++)for(let i=0;i<r[y].length;i++)if(r[y][i]==='#')q.fillRect(x+i,2+y,1,1);x+=r[0].length+1}WPL.set(id,c);return c}
-function wvPlateAt(txt,col,bg,ax,ay){const i=WV.np++,P=WV.plates[i]||(WV.plates[i]={c:null,x:0,y:0});P.c=wvPlate(txt,col,bg);P.x=ax;P.y=ay}       // art-space anchor: bottom centre
+function wvPlateAt(txt,col,bg,ax,ay){const i=WV.np++,P=WV.plates[i]||(WV.plates[i]={c:null,x:0,y:0});P.c=WVHD&&typeof whPlate==='function'?whPlate(txt,col,bg,dpr):wvPlate(txt,col,bg);P.hd=WVHD;P.x=ax;P.y=ay}       // art-space anchor: bottom centre
 
 /* ---- the edge of sight: everything beyond the company's vision dimmed with a dithered rim ---- */
 function wvRing(R){if(WV.ringR===R&&WV.ring&&WV.ringHD===WVHD)return WV.ring;WV.ringHD=WVHD;const D=2*R+2,c=WV.ring||(WV.ring=mkCanvas(D,D));c.width=c.height=D;
@@ -373,9 +374,10 @@ function wvPathDots(vx0,vy0,vx1,vy1){const p=G.p,P=G.path,ph=reduced?0:(now/70)%
  for(let i=0;i<P.length;i++){const nx=P[i].x/WVU,ny=P[i].y/WVU,dx=nx-lx,dy=ny-ly,L=Math.hypot(dx,dy);if(L<.01)continue;
   if(Math.max(lx,nx)<vx0||Math.min(lx,nx)>vx1||Math.max(ly,ny)<vy0||Math.min(ly,ny)>vy1){acc=(acc-L)%7;if(acc<0)acc+=7;lx=nx;ly=ny;continue}
   let d=acc;for(;d<L&&n<800;d+=7){D[n++]=Math.round(lx+dx*d/L);D[n++]=Math.round(ly+dy*d/L)}acc=d-L;lx=nx;ly=ny}
+ if(WVHD&&typeof whDots==='function'){whDots(g,D,n,G.route,WV.sc);return}
  g.fillStyle=c0;for(let i=0;i<n;i+=2)g.fillRect(D[i]-1,D[i+1]-1,3,3);g.fillStyle=c1;for(let i=0;i<n;i+=2)g.fillRect(D[i]-1,D[i+1]-1,2,2);
  const R=G.route;if(R&&R.length>1){g.fillStyle=PAL.m;for(let i=1;i<R.length;i++){const ax=R[i-1].x/WVU,ay=R[i-1].y/WVU,dx=R[i].x/WVU-ax,dy=R[i].y/WVU-ay,L=Math.hypot(dx,dy);for(let d=5;d<L;d+=9)g.fillRect(Math.round(ax+dx*d/L),Math.round(ay+dy*d/L),1,1)}}}
-function wvMark(x,y,kind){const o={kind,frame:WV.fs};if(WVA.mark){try{drawMarkerPx(g,Math.round(x),Math.round(y),o);return}catch(e){wvFail('mark',e)}}wvMarkOld(g,Math.round(x),Math.round(y),o)}
+function wvMark(x,y,kind){if(WVHD&&typeof whMark==='function'){try{whMark(g,x,y,kind,WV.fs,WV.sc);return}catch(e){}}const o={kind,frame:WV.fs};if(WVA.mark){try{drawMarkerPx(g,Math.round(x),Math.round(y),o);return}catch(e){wvFail('mark',e)}}wvMarkOld(g,Math.round(x),Math.round(y),o)}
 /* Frame skipping. drawWorld collects the frame's draw list first (chunk canvases and their versions, sprites, the rim, markers, plates)
    into WSG.a and compares it with the list of the last frame it drew (WSG.b). When nothing on the list changed and nothing on it moves
    with the clock (flickering glows, weather, the march's dots), the canvas already shows exactly this frame and the pixel work is
@@ -476,7 +478,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  // weather, in screen space at the art scale
  if(wx){g.setTransform(sc,0,0,sc,0,0);try{drawWeatherPx(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind})}catch(e){wvFail('wx',e)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
  // name plates
- g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;const P=Math.max(1,Math.round(dpr*1.5));for(let i=0;i<WV.np;i++){const q=WV.plates[i],w=q.c.width*P,h=q.c.height*P;g.drawImage(q.c,Math.round(bx+q.x*sc-w/2),Math.round(by+q.y*sc-h),w,h)}
+ g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;const P=Math.max(1,Math.round(dpr*1.5));for(let i=0;i<WV.np;i++){const q=WV.plates[i],w=q.c.width*(q.hd?1:P),h=q.c.height*(q.hd?1:P);g.drawImage(q.c,Math.round(bx+q.x*sc-w/2),Math.round(by+q.y*sc-h),w,h)}
  g.setTransform(dpr,0,0,dpr,0,0);drawVignette(.42+night*.2);WV.boot=false;WV.cost+=(performance.now()-t0-WV.cost)*.1}
 
 /* ---- what is under a world point: the nearest thing the player can see there, else the tile ---- */

@@ -125,3 +125,20 @@ function whBandSprite(kind,o,K){const f=o.frame|0,mv=!!o.moving&&!(typeof reduce
   if(fk==='ogre'){const P=k>=3?[[2,0,1],[-8,1,0]]:k===2?[[-4,0,0],[6,1.6,0]]:[[0,0,0]];P.forEach((p,i)=>whOgre(g,p[0],p[1],mv?(f+i)&1:0,mv&&((f+i)&3)===1?.5:0,!!p[2]));if(k>=3)whFig(g,11,2,WHFL.gob,mv?f&1:0,0);return}
   if(fk==='wyvern'){whWyvern(g,0,0,f,true);if(k>=2)whWyvern(g,-10,3,f+1,false);if(k>=3)whWyvern(g,10,4,f+2,false);return}
   const look=WHFL[fk]||WHFL.bandit;whFile(g,L,clamp(k+1,2,4),look.s>1?7.5:6.6,look,f,mv,{})})}
+
+/* ---- markers, the march's dots, name plates (drawn each frame at Detail High: a handful of vector shapes) ---- */
+function whMark(g,x,y,kind,f,sc){whPU(g,sc,()=>{g.save();g.imageSmoothingEnabled=true;g.lineJoin='round';g.lineCap='round';
+ if(kind==='contract'){const b=(f>>1)&1?-.8:0;whShadowE(g,x,y,2.4,.8,.3);const P=new Path2D();P.moveTo(x,y-.6+b);P.bezierCurveTo(x-2.2,y-4+b,x-3.8,y-6+b,x-3.8,y-8.2+b);P.arc(x,y-8.2+b,3.8,Math.PI,0);P.bezierCurveTo(x+3.8,y-6+b,x+2.2,y-4+b,x,y-.6+b);P.closePath();
+  whFill(g,{p:P,b:[x-3.8,y-12+b,x+3.8,y+b]},PKM.cloth,{k:.45,lw:.55});whDot(g,x,y-8.2+b,2.3,'#f4ecd8');const c=y-8.2+b;whLine(g,[x-1.3,c-1.3,x+1.3,c+1.3],.55,'#2a2a32');whLine(g,[x+1.3,c-1.3,x-1.3,c+1.3],.55,'#2a2a32');whDot(g,x,c,.5,'#c4493f')}
+ else if(kind==='turnin'){const b=(f>>1)&1?-.8:0;whShadowE(g,x,y,2.2,.7,.3);pkCoin(g,x,y-5+b,3,'gold');const a=(f&3)*Math.PI/2;g.save();g.translate(x+2.6,y-7.6+b);g.rotate(a/4);pkSparkle(g,0,0,1.4,'gold');g.restore()}
+ else if(kind==='dest'||kind==='dest2'){whShadowE(g,x+.5,y,2.4,.8,.3);whPole(g,x,y-9,y);whPennant(g,x,y-8.8,['#4fb08a','#2c6a5d','#f4ecd8'],f,4.6,3,1)}
+ else{whFill(g,whPolyS([x,y-3.4,x+1.6,y-1.6,x,y+.2,x-1.6,y-1.6]),PKM.gold,{k:.3,lw:.45})}
+ g.restore()})}
+function whDots(g,D,n,R,sc){g.save();g.imageSmoothingEnabled=true;g.fillStyle=WHINK;g.beginPath();for(let i=0;i<n;i+=2){g.moveTo(D[i]+1.2,D[i+1]);g.arc(D[i],D[i+1],1.2,0,Math.PI*2)}g.fill();g.fillStyle='#f4ecd8';g.beginPath();for(let i=0;i<n;i+=2){g.moveTo(D[i]+.7,D[i+1]);g.arc(D[i],D[i+1],.7,0,Math.PI*2)}g.fill();
+ if(R&&R.length>1){g.fillStyle='#e8c060';g.globalAlpha=.85;g.beginPath();for(let i=1;i<R.length;i++){const ax=R[i-1].x/WVU,ay=R[i-1].y/WVU,dx=R[i].x/WVU-ax,dy=R[i].y/WVU-ay,L=Math.hypot(dx,dy);for(let d=5;d<L;d+=9){const px=ax+dx*d/L,py=ay+dy*d/L;g.moveTo(px+.55,py);g.arc(px,py,.55,0,Math.PI*2)}}g.fill()}g.restore();void sc}
+const WHPL=new Map();
+function whPlate(txt,col,bg,dpr){const fok=typeof document==='object'&&document.fonts&&document.fonts.check?document.fonts.check('13px "Jersey 15"'):true,id=txt+'|'+col+bg+dpr+(fok?1:0);let c=WHPL.get(id);if(c)return c;if(WHPL.size>80)WHPL.clear();
+ const fs=Math.round(13*dpr),pad=Math.round(6*dpr),h=Math.round(17*dpr),b=Math.max(1,Math.round(1.5*dpr));const m=pxCanvas(4,4).getContext('2d');m.font=fs+'px "Jersey 15","Alegreya Sans",sans-serif';const w=Math.ceil(m.measureText(txt).width)+pad*2;
+ c=pxCanvas(w,h+Math.round(2*dpr));const q=c.getContext('2d');q.fillStyle='rgba(11,21,20,.55)';rrect(q,Math.round(2*dpr),Math.round(2*dpr),w-Math.round(2*dpr),h,Math.round(3*dpr));q.fill();
+ q.fillStyle=bg==='0'?'#0b1514':'#101d1c';rrect(q,0,0,w-Math.round(2*dpr),h,Math.round(3*dpr));q.fill();q.strokeStyle=bg==='0'?'#26332f':'#35554f';q.lineWidth=b;rrect(q,b/2,b/2,w-Math.round(2*dpr)-b,h-b,Math.round(3*dpr));q.stroke();
+ q.font=fs+'px "Jersey 15","Alegreya Sans",sans-serif';q.textBaseline='middle';q.textAlign='center';q.fillStyle=col==='d'?'#f2d98a':col==='n'?'#8d99a6':'#e9e0c9';q.fillText(txt,(w-Math.round(2*dpr))/2,h/2+dpr*.5);WHPL.set(id,c);return c}

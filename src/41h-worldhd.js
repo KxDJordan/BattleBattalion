@@ -306,7 +306,7 @@ function wqDraw(g,W_,H_,bx,by,sc,vx0,vy0,vx1,vy1,cx0,cy0,cx1,cy1){const S=WHQ*16
  const qx0=clamp(Math.floor(vx0/S),0,WQ.n-1),qx1=clamp(Math.floor(vx1/S),0,WQ.n-1),qy0=clamp(Math.floor(vy0/S),0,WQ.n-1),qy1=clamp(Math.floor(vy1/S),0,WQ.n-1);
  for(let y=qy0;y<=qy1;y++)for(let x=qx0;x<=qx1;x++){const q=wqAt(x,y),X=Math.round(bx+x*S*sc),Y=Math.round(by+y*S*sc),w=Math.round(bx+(x+1)*S*sc)-X,h=Math.round(by+(y+1)*S*sc)-Y;
   const c=q&&(q.cv||(q.b&&q.b.cv));if(c)g.drawImage(c,X,Y,w,h);else if(WCH.key)g.drawImage(WCH.key,x*WHQ,y*WHQ,WHQ,WHQ,X,Y,w,h)}
- if(WCH.ton)wvTintRect(g,0,0,W_,H_);
+ if(WCH.ton){const n=WV.night||0;if(n>.05){g.globalCompositeOperation='saturation';g.globalAlpha=.42*n;g.fillStyle='#808080';g.fillRect(0,0,W_,H_);g.globalAlpha=1;g.globalCompositeOperation='source-over'}wvTintRect(g,0,0,W_,H_)}   // night: a little less colour, then the light of the hour
  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=wchAt(cx,cy);if(!ch||!ch.fog)continue;const X=Math.round(bx+ch.x0*sc),Y=Math.round(by+ch.y0*sc),w=Math.round(bx+(ch.x0+WVP)*sc)-X,h=Math.round(by+(ch.y0+WVP)*sc)-Y;
   g.drawImage(ch.fog===2?wqUnk():ch.fogcv,X,Y,w,h)}
  g.imageSmoothingEnabled=false}
