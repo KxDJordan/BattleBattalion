@@ -68,7 +68,7 @@ const P2_HAIR_OF={m:{crop:'short, side part',short:'short, side part 2',shaggy:'
 const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','nervous','knocked out'];
 // per-hair tweak after the ear-hole alignment: [dx, dy (head radii), scale]
 const P2_EHAIRADJ={9:[0,0,1.14]};   // elf styles whose ear tip the build misreads (blond hair), or drawn narrower (the braid)
-const P2_HAIRADJ={};   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
+const P2_HAIRADJ={8:[0,.1,1],11:[0,.1,1]};   // [dx, dy (head radii), scale] on top of the placement: bob and long sit a little lower (user review)   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
 const HEAD_HOLD=380;
 /* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed) */
 const HEAD_RULES=[
