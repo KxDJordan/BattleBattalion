@@ -9,10 +9,10 @@
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
    pointed ear, half-orcs green-grey skin, a pointed ear and tusks, dwarves their braided beard (vector overlays in the sheet's style).
    The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
-const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:16};
+const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
-const P2_HADJ={13:[1,-.04,.12],14:[1,0,.1],15:[1,-.04,.12],24:[1,0,.12],28:[1,0,.06],29:[1,0,.06],4:[1,0,.06],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
+const P2_HADJ={33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],13:[1,-.04,.12],14:[1,0,.1],15:[1,-.04,.12],24:[1,0,.12],28:[1,0,.06],29:[1,0,.06],4:[1,0,.06],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
 const P2_HTOP={4:.3,5:.16,13:.42,14:.3,15:.34,24:.38,28:.28,29:.3,30:.34,32:.3};
 // the five leg colours (legs.png): tan, blue, green, rust, grey
 const P2_LEGS=['tan','blue','green','rust','grey'];
@@ -102,9 +102,9 @@ function p2Near(col,list){const a=p2Hex(col);let best=0,bd=1e9;list.forEach((q,i
 function p2AvKey(av){if(!av||typeof US_AV!=='object')return null;for(const k in US_AV)if(US_AV[k]===av)return k;return null}
 function p2Armor(L){const S=L.S,hs=humSpec(L);let n=null;const id=S.armId;
  if(id){n=P2_ARMOR_OF[id]||null;if(!n&&typeof usFamedBase==='function'&&usFamedBase(id))n=P2_ARMOR_OF[usFamedBase(id)]||null;if(!n&&typeof usLookOf==='function')n=P2_ARMOR_OF[usLookOf(id)]||null}
+ if(!n&&L.key[0]==='m'&&!id){const t=P2_TUNIC[p2Near(hs.C.body,P2_TUNIC)];n=t[0]}   // no armour: the plain tunic in the look's cloth colour
  if(!n){const k=p2AvKey(S.av);if(k)n=P2_ARMOR_OF[k]||null}
  if(!n&&S.armor==='robe'){const c=S.robeC||'';n=P2_ROBE[c]||null}
- if(!n&&L.key[0]==='m'&&!id){const t=P2_TUNIC[p2Near(hs.C.body,P2_TUNIC)];n=t[0]}   // no armour: the plain tunic in the look's cloth colour
  if(!n)n=P2_ARMOR_OF['k_'+S.armor]||'rags';
  if(S.coat){const F=humLit(S.coat.F),plate=/plate/.test(n),fc=p2Hex(F),blue=fc[2]>fc[0]+20,red=fc[0]>fc[2]+40&&fc[0]>fc[1]+20,light=fc[0]+fc[1]+fc[2]>500;   // a surcoat / house coat: the tabards
   n=plate?(blue?'plate, blue fleur-de-lis surcoat':'plate, white crusader cross'):blue?'blue cross tabard':red?'dark red cloak':light?'white star tabard':'blue cross tabard'}
@@ -122,12 +122,13 @@ function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1
  const LA={n:ln('a'),R:p2Rig(ln('a'),LPa.px,LPa.py,{fy:LPa.fy}),c:p2Piece(ln('a'))},LB={n:ln('b'),R:p2Rig(ln('b'),LPb.px,LPb.py,{fy:LPb.fy}),c:p2Piece(ln('b'))};
  const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sw0=wSide==='a'?-1:1,so0=-sw0;
  const arm=s=>{const n='sh'+ai+'_'+s,a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py,{wx:a.wx,wy:a.wy}),c:p2Piece(n)}};
- const hand=n=>{const a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py),c:p2Piece(n,tone)}};
+ const hand=n=>{   // hand_a the character's right (the near arm, image left in face 0), hand_b the left (far arm); a hand stays on its own arm
+ const a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py),c:p2Piece(n,tone)}};
  const legk=hs.race==='dwarf'?.62:1,legL=(LA.R.fy-LA.R.py)*legk,legY=-24*legk,hipY0=-(legL+legY),hx=P2A.p[ln('a')].w*.36;
- const loc=(x,y)=>({x,y}),shA=loc(TP.sax-16-TP.hx,TP.sy+4-TP.hy),shB=loc(TP.sbx+16-TP.hx,TP.sy+4-TP.hy),neck=loc(TP.nx-TP.hx+4,TP.ny-TP.hy+P2.neck);   // the sleeves sit at the torso's upper corners, half outside it
+ const loc=(x,y)=>({x,y}),shA=loc(TP.sax-16-TP.hx,TP.sy+4-TP.hy),shB=loc(TP.sbx+16-TP.hx,TP.sy+4-TP.hy),neck=loc(TP.nx-TP.hx+4,-TP.hy+P2A.p.torso10.h*P2.neck);   // the chin sits in the collar: the head overlaps the torso's top by P2.neck of a tunic's height (same for every torso)   // the sleeves sit at the torso's upper corners, half outside it
  const HP=P2A.p.head0.a,hR=p2Rig('head0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
  return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,legk,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
-  head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand('hand_b'),HO:hand('hand_a'),bk:new Map(),armor:ai,leg,tone,
+  head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand(wSide==='a'?'hand_a':'hand_b'),HO:hand(oSide==='a'?'hand_a':'hand_b'),bk:new Map(),armor:ai,leg,tone,
   helm:p2Helm(S),hair:p2Hair(S,fem),hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25)}}
 /* the head attachment for an expression: head piece, hair (none under a helmet), helmet, race cues */
 function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
@@ -145,7 +146,8 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   if(hs.orc&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
   if(S.beard&&(hs.dw||S.beard))humBeard(g,S,R0*.98,hs.dw);
   g.restore();
-  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],s=(R0*2*1.12)/Hm.bw*adj[0];put(hn,Hc,s,sk.x+R0*(.02+adj[1])-Hm.bcx*s,top-R0*(.16-adj[2])-bt*s)}})}
+  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p['head'+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
+   put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation (eyePick's context), held HEAD_HOLD ms, instant on hit and death */
 const P2_MEM=new WeakMap();
 function headPick(u,L,st,t,an,cls){const S=L.S,now=typeof anNow==='function'?anNow():performance.now();

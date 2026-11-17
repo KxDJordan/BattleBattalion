@@ -140,6 +140,7 @@ def anchors(kind, P, s):
     if kind == 'head':
         x0, x1 = span(h * .5); x0 = x0 + (x1 - x0) * .12   # skip the ear at the back (left)
         A['cx'] = (x0 + x1) / 2 * s; A['cy'] = h * .5 * s; A['r'] = (x1 - x0) / 2 * s; A['nx'] = (x0 + x1) / 2 * s + 4; A['ny'] = (h - 4) * s; A['top'] = 0
+        q0, q1 = span(h * .36); A['sx0'] = q0 * s; A['sx1'] = q1 * s   # the skull's back and front edges above the ear
     elif kind == 'torso':
         sk = (P[:, :, 0] > 180) & (P[:, :, 0] - P[:, :, 2] > 55) & (P[:, :, 1] > P[:, :, 0] * .5) & al
         ys = np.where(sk.any(1))[0]; ny = ys[0] if len(ys) else 0; nxs = np.where(sk[ny])[0] if len(ys) else [w / 2]
