@@ -411,4 +411,4 @@ const HUM_SPK={mana:'#7ab8ff',aura:'#ffe27a',qi:'#7affd0',chi:'#ff9a5a',hex:'#c8
 function humKeep(L,i,o){if(!o||!o.hum||!o.cv)return o;const b=o.cv.width*o.cv.height*4;HUM.fifo.push([L,i,o,b]);HUM.live=(HUM.live||0)+b;
  while(HUM.live>HUM.cap&&HUM.fifo.length>1){const e=HUM.fifo.shift();HUM.live-=e[3];if(e[0].fr[e[1]]===e[2])e[0].fr[e[1]]=null}return o}
 /* the height of the figure's head top above the feet (art px), for the bars and statuses: unitSpriteBox */
-function humBoxH(L){const hs=humSpec(L);return Math.round(30*hs.sc)}
+function humBoxH(L){const hs=humSpec(L);return Math.round((typeof p2On==='function'&&p2On()?(hs.race==='dwarf'?29:33):30)*hs.sc)}   // the part-sheet figures (73q-parts2.js) stand a little taller in their helmets
