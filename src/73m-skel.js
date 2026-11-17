@@ -23,8 +23,10 @@ function hskEase(e,u){if(!e||e==='l')return u;if(e==='i')return u*u;if(e==='o')r
 /* ---- animation data: [t, {fields}, ease to the next key]; fields override the class guard (w / o hand targets [x forward, y down]
    from their shoulder, wa weapon angle deg, lean deg, bob SU, lA / lB leg swing deg, uA / uB foot lift, kneel 0..1, fall 0..1,
    dw / do / dwa offsets to the guard; flags step: g grip, bd bow drawn, ar arrow, sp spark size, dr dropped, fi fire, rd rod, ck crank) ---- */
-const HUM_GUARD={swing:{w:[6,58],wa:90},dagger:{w:[6,66],wa:90},   // one-handed weapons hang straight down at the side at rest (axes, maces, hammers held by the neck: drawWeapon)
- two:{w:[30,74],wa:-58,g:1},thrust:{w:[-16,82],wa:-104},staff:{w:[-16,82],wa:-100},bow:{o:[24,78],w:[0,86]},gun:{w:[44,64],wa:-6,g:1},fist:{w:[6,86]}};
+// rest poses (the guard every animation starts from and returns to): w the hand from its shoulder [forward, down], wa the weapon angle
+// (0 forward, 90 down, -90 up, 180 back). One-handed weapons level and pointing forward; two-handers trailing down behind like dragged;
+// spears, polearms and staves leaning back over the shoulder from a hand held forward
+const HUM_GUARD={swing:{w:[30,70],wa:0},dagger:{w:[30,72],wa:0},two:{w:[-6,84],wa:145},thrust:{w:[30,16],wa:-118},staff:{w:[30,16],wa:-114},bow:{o:[24,78],w:[0,86]},gun:{w:[44,64],wa:-6,g:1},fist:{w:[6,86]}};
 const HUM_AN={
  idle:{loop:1,k:[[0,{},'io'],[.5,{bob:3,dw:[0,3],do:[0,3],dwa:-2},'io'],[1,{}]]},
  walk:{loop:1,k:[[0,{lA:16,lB:-14,uB:7,dw:[-12,0],do:[12,0],bob:1},'o'],[.25,{bob:-7,uA:0,uB:2},'i'],[.5,{lA:-14,uA:7,lB:16,dw:[12,0],do:[-12,0],bob:1},'o'],[.75,{bob:-7,uA:2},'i'],[1,{lA:16,lB:-14,uB:7,dw:[-12,0],do:[12,0],bob:1}]]},
@@ -157,7 +159,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  let W=S.wd;const att=state==='attack';if(W&&W.cls==='xbow'&&!/:L$/.test(W.id)&&((S.ld&&state!=='reload')||(att&&t<.38))){try{W=usWdef(W.id+':L')}catch(e){}}
  const wi=humWInfo(W),cls=humWCls(wi.fam,W);hs.fam=wi.fam;hs.two=wi.two;
  const P=humAnimPose(cls,state,t,{two:wi.two,fam:wi.fam},att&&S.shield&&(va==='bash'||va==='shieldbash')?'bash':'');
- if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1;if((cls==='swing'||cls==='dagger')&&!att)P.wa+=(cls==='dagger'?-28:-42)-90}   // braced (approved look): the blade held up as before   // Shield wall (usWall)
+ if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1;if((cls==='swing'||cls==='dagger')&&!att)P.wa+=(cls==='dagger'?-28:-42)}   // braced (approved look): the blade held up as before   // Shield wall (usWall)
  if(ex===undefined&&A.p2){try{ex=headPick(null,L,state,t,P.name,cls)}catch(e){ex=null}}
  if(ex===undefined&&typeof eyePick==='function'&&!A.back){try{ex=eyePick(null,L,state,t,P.name,cls)}catch(e){ex=null}}   // the baked path: the expression from the state alone
  if(S.spearw&&cls==='thrust'&&state!=='death'&&state!=='walk'&&state!=='swap'&&state!=='reload'){   // Spear wall: braced, knees bent, the spear levelled forward
@@ -192,7 +194,9 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
   const pa=hskPaulAtt(A);if(pa){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);g.img(pa,'paul');g.restore()}};
  const drawHand=(p,a)=>{if(A.p2)return;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(p,'hand');g.restore()};
  const fire=cls==='gun'&&att&&P.fire,loaded=S.ld!==0&&!(att&&t>=.38);
- const drawWeapon=()=>{if(P.drop||cls==='bow'||wi.fam==='fist')return;g.save();g.translate(armW.gx,armW.gy);g.scale(f,1);g.rotate(wa);if(A.p2&&wi.gripC)g.translate(-wi.gripC,0);{const hang=Math.max(0,Math.min(1,(P.wa-45)/45));let back=0;if(hang>0&&(wi.fam==='axe'||wi.fam==='mace'||wi.fam==='hammer'||wi.fam==='club'))back=wi.len*.62*hang;
+ const drawWeapon=()=>{if(P.drop||cls==='bow'||wi.fam==='fist')return;let wa2=wa;
+  if(P.wa>95&&state!=='death'){const tip=wi.len-(A.p2&&wi.gripC?wi.gripC:0)+8,sn=Math.sin(wa);if(armW.gy+sn*tip>-4){const s2=Math.max(.05,Math.min(1,(-4-armW.gy)/tip));wa2=Math.PI-Math.asin(s2)}}   // trailing behind: lowered only until the tip touches the ground
+  g.save();g.translate(armW.gx,armW.gy);g.scale(f,1);g.rotate(wa2);if(A.p2&&wi.gripC)g.translate(-wi.gripC,0);{const hang=P.wa>95?0:Math.max(0,Math.min(1,(P.wa-45)/45));let back=0;if(hang>0&&(wi.fam==='axe'||wi.fam==='mace'||wi.fam==='hammer'||wi.fam==='club'))back=wi.len*.62*hang;
   if(hang>0&&state!=='death'){const tip=wi.len-(A.p2&&wi.gripC?wi.gripC:0)-back+8,low=armW.gy+Math.sin(wa)*tip;if(low>-6)back+=(low+6)/Math.max(.3,Math.sin(wa))}   // hanging: the tip stops just above the ground
   if(back)g.translate(-back,0)}   // hanging at the side: a hafted weapon is held up by its neck, its head just under the fist
   g.img(hskWpnAtt(L,k,wi,{loaded,fire,crank:P.crank},(loaded?'L':'u')+(fire?'F':'')+(P.crank||'')),'weapon');g.restore();
