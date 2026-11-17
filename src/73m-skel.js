@@ -199,7 +199,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
    if(E0){g.img(E0.n,'eyeN0',1-a);g.img(E0.f,'eyeF0',1-a)}if(E1){g.img(E1.n,'eyeN',a);g.img(E1.f,'eyeF',a)}}
   g.img(hskHeadAtt(A,'headTop'),'headTop')});
  const drawLegs=()=>{const lg=P.lg;for(const [p,side,ix] of[[A.LB,'b',2],[A.LA,'a',0]]){const x=(side==='a'?-A.hx:A.hx),r=-f*lg[ix]*Math.PI/180,lift=lg[ix+1]||0,kr=-f*(side==='a'?.9:.15),ks=side==='a'?.55:.7;
-   g.save();g.translate(x+f*(side==='a'?24:-10)*kn,hipY+(A.legY!=null?A.legY:6)-lift*(1-kn));g.rotate(r*(1-kn)+kr*kn);g.scale(1,hs.legk+(ks-hs.legk)*kn);pcImg(p,'leg');g.restore()}};
+   g.save();g.translate(x+f*(side==='a'?24:-10)*kn,hipY+(A.legY!=null?A.legY:6)-lift*(1-kn));const lk=A.legk!=null?A.legk:hs.legk;g.rotate(r*(1-kn)+kr*kn);g.scale(1,lk+(ks-lk)*kn);pcImg(p,'leg');g.restore()}};
  const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;const R0=A.R0,sk={x:neck.x+A.skull.x,y:neck.y+A.skull.y};
   if(cls==='staff'){x=armW.wx+wdx*(Math.max(wi.len,170)+20);y=armW.wy+wdy*(Math.max(wi.len,170)+20)}else if(P.spark===3){x=sk.x;y=sk.y-R0-50}else{x=(armW.wx+armO.wx)/2+f*30;y=(armW.wy+armO.wy)/2}
   const r=P.spark===3?30:P.spark===2?22:14;g.save();g.translate(x,y);g.fn(q=>{q.fillStyle=col;q.globalAlpha*=.35;q.beginPath();q.arc(0,0,r*1.6,0,7);q.fill();q.globalAlpha/=.35;const st4=humP(p=>{for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i&1?r*.4:r;i?p.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):p.moveTo(rr,0)}p.closePath()});humSh(q,st4,humLt(col,.3),{lw:5,flat:1})},'spark');g.restore()};
@@ -219,7 +219,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  // the weapon on the ground once dropped (ground bone: not part of the falling body)
  if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){const m0=g.m;g.m=[1,0,0,1,0,0];g.save();g.translate(fall>.5?-f*30:f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);g.img(hskBowAtt(L,k,wi,false),'dropped')}else{g.translate(fall>.5?-wi.len*.4:-wi.back,0);g.img(hskWpnAtt(L,k,wi,{},'u'),'dropped')}g.restore();g.m=m0}
  HSK.frames++;HSK.ms+=performance.now()-t0;
-  return{list:g.list,tags,pose:P,anim:P.name,eyes:ex||null,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc*(A.p2?P2.sc:1),p2:!!A.p2}}
+  return{list:g.list,tags,pose:P,anim:P.name,eyes:ex||null,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc*(A.p2?P2.sc*(hs.race==='dwarf'?.96:1):1),p2:!!A.p2}}
 /* blit a frame: base = the target context's transform at the feet, in art px (x right, y down); mirror for faces 1 and 3.
    mapImg(cv) may swap an attachment for its tinted / silhouette version (70-render.js tintedOf / silOf, cached per canvas). */
 function humSkDraw(q,Fr,x,y,mapImg,skipFn){const t0=performance.now(),s=HUM_A*Fr.sc,m0=q.getTransform(),B0=[m0.a,m0.b,m0.c,m0.d,m0.e,m0.f],base=hskMul(B0,[Fr.mir?-s:s,0,0,s,x,y]);

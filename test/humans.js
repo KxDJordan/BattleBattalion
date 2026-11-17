@@ -69,8 +69,33 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
   const c=document.createElement('canvas');c.width=200;c.height=200;const q=c.getContext('2d');const us=[];for(let i=0;i<24;i++)us.push(merc({race:['human','elf','dwarf','halforc'][i&3],eq:[{w:'arming',s:'heater2',a:'mail',h:'kettle'},{w:'warbow',a:'leather'},{w:'greataxe',a:'scale'},{w:'crossbow',a:'padded'}][i&3]}));
   for(const u of us)for(let f=0;f<4;f++)for(const st of['idle','walk'])humLiveFrame(u,{pS:st,pF:0,pPh:0,pCy:0,pD:f,pAn:''});const t1=performance.now();let nf=0;for(let r=0;r<20;r++)for(const u of us){const F=humLiveFrame(u,{pS:r&1?'walk':'idle',pF:0,pPh:0,pCy:r/7,pD:r&3,pAn:''});humSkDraw(q,F,100,180);nf++}
   n.liveMs=+((performance.now()-t1)/nf).toFixed(3);if(n.liveMs>0.3)bad.push('a live figure costs '+n.liveMs+' ms')}
- // eyes: every cell cut; the expression rules; eyes on front views only; the near eye the bigger, nearer one in every facing
- {if(typeof EYA!=='object'||EYA.c.length!==54||EYA.c.some(c=>!c||!c[0]||!c[1]))bad.push('eye sheet: not every cell has a near and a far eye');
+ // the user's part sheets (73q-parts2.js): every armour set, helmet, hair drawn; game items mapped; no hair under a helmet; heads by situation
+ const P2ON=typeof p2On==='function'&&p2On();
+ if(P2ON){const k=humK();n.p2={armor:0,helm:0,hair:0,face:0};
+  if(Object.keys(P2A.p).length!==243)bad.push('parts atlas: '+Object.keys(P2A.p).length+' pieces');
+  for(const nm of ['head0','head7','hand_a','hand_b','leg4_b','hair29','helm39','torso50','sh50_a','sh50_b'])if(!P2A.p[nm]||!P2A.p[nm].L.c&&!P2A.p[nm].L.h)bad.push('parts atlas: '+nm+' missing');
+  const u=merc({race:'human',fem:0,eq:{w:'arming',s:'heater2',a:'padded'}}),L=usLook(u);
+  for(let i=0;i<P2_ARMOR.length;i++){const L2=Object.assign({},L,{skA:null,hs:null});L2.S=Object.assign({},L.S,{armId:'__t',av:null,coat:null});P2_ARMOR_OF.__t=P2_ARMOR[i][0];
+   for(const face of[0,1,2,3]){const A=humSkAssets(L2,face,k);if(A.armor!==i||P2_LEGS[A.leg]!==P2_ARMOR[i][1])bad.push('armour '+i+': set '+A.armor+' legs '+A.leg);const Fr=humSkFrame(L2,face,'idle',0,k,'',{head:0});
+    if(!Fr.list.some(x=>x.tag==='torso')||Fr.list.filter(x=>x.tag==='leg').length!==2||Fr.list.filter(x=>x.tag==='arm').length!==2||!Fr.list.some(x=>x.tag==='head'))bad.push('armour '+i+' f'+face+': slots missing');n.p2.armor++}}
+  delete P2_ARMOR_OF.__t;
+  for(const id in ITEMS){const I=ITEMS[id];if(I.k==='a'){const v=merc({race:'human',eq:{a:id}});const A=humSkAssets(usLook(v),0,k);if(!(A.armor>=0&&A.armor<51))bad.push('armour item '+id+' unmapped');
+    const nm=P2_ARMOR_OF[id]||(typeof usFamedBase==='function'&&P2_ARMOR_OF[usFamedBase(id)])||P2_ARMOR_OF[usLookOf(id)];if(!nm)bad.push('armour item '+id+' falls back by kind (add it to P2_ARMOR_OF)')}
+   if(I.k==='h'){const v=merc({race:'human',eq:{h:id,a:'padded'}}),Lv=usLook(v),A=humSkAssets(Lv,0,k);if(!(A.helm>=0))bad.push('helmet item '+id+' unmapped');else if(!P2_HELM_OF[Lv.S.hat])bad.push('helmet item '+id+' ('+Lv.S.hat+') falls back');
+    humSkFrame(Lv,0,'idle',0,k,'',{head:0});if(A.drawn&&A.drawn.hair)bad.push('hair drawn under helmet '+id);n.p2.helm++}}
+  for(let i=0;i<40;i++){const A=humSkAssets(L,0,k),keep=A.helm;A.helm=i;A.bk.clear();humSkFrame(L,0,'idle',0,k,'',{head:0});if(!A.drawn||A.drawn.helm!=='helm'+i)bad.push('helmet '+i+' not drawn');A.helm=keep;A.bk.clear()}
+  for(const sx of['m','w'])for(const st in P2_HAIR_OF[sx])if(P2_HAIR.indexOf(P2_HAIR_OF[sx][st])<0)bad.push('hair style '+sx+':'+st+' -> unknown part');
+  for(let i=0;i<30;i++){const A=humSkAssets(L,0,k),kh=A.helm,kr=A.hair;A.helm=-1;A.hair=i;A.bk.clear();humSkFrame(L,0,'idle',0,k,'',{head:0});if(!A.drawn||A.drawn.hair!=='hair'+i)bad.push('hair '+i+' not drawn');A.helm=kh;A.hair=kr;A.bk.clear();n.p2.hair++}
+  {let v=null;for(let i=0;i<60;i++){const w=merc({race:'human',fem:1,bg:['sellsword','farmhand','thief','squire'][i&3],eq:{a:'padded'}});const Sw=usLook(w).S;if(!Sw.hat&&Sw.hair&&Sw.hair!=='bald'){v=w;break}}const Lv=v&&usLook(v);if(Lv){humSkFrame(Lv,0,'idle',0,k,'',{head:0});const A=humSkAssets(Lv,0,k);if(!A.drawn||!A.drawn.hair)bad.push('a woman without a helmet shows no hair')}}
+  // expressions: each reachable from a situation
+  const hp=(o,st,t,cls)=>{const v=merc({race:'human',eq:{w:'arming',a:'mail'}});if(o.st)v.st=Object.assign({},o.st);if(o.buffs)v.buffs=o.buffs;if(o.mor!=null)v.mor=o.mor;return headPick(v,usLook(v),st,t||0,o.an||'',cls||'swing').name};
+  const want=[['neutral',{mor:3},'idle'],['gritted',{},'attack',.2],['shouting',{},'attack',.5,'two'],['shouting',{},'cast',.5],['happy',{},'idle',0,'swing',1],['content',{mor:4},'idle'],['surprised',{},'hit',.2],['nervous',{mor:1},'idle'],['knocked out',{},'death',.9]];
+  for(const [e,o,st,t,cls,won] of want){if(won){const B0=B;B={over:true,result:{win:true},units:[]};try{const r=hp(o,st,t,cls);if(r!==e)bad.push('expression '+e+': got '+r)}finally{B=B0}continue}const r=hp(o,st,t,cls);if(r!==e)bad.push('expression '+e+': got '+r)}
+  for(let i=0;i<8;i++){const Fr=humSkFrame(L,0,'idle',0,k,'',{head:i});if(!Fr.list.some(x=>x.tag==='head'))bad.push('head '+i+' not drawn');n.p2.face++}
+  // paper facing: the face shows in every facing (front art, mirrored for the left-facing ones); no eye overlay on these heads
+  for(const face of[0,1,2,3]){const Fr=humSkFrame(L,face,'idle',0,k,'',{head:0});if(!Fr.list.some(x=>x.tag==='head'))bad.push('face '+face+': no head');if(Fr.list.some(x=>/^eye/.test(x.tag)))bad.push('face '+face+': eye overlay on a parts-sheet head');if(Fr.mir!==(face===1||face===2))bad.push('face '+face+': mirror '+Fr.mir)}}
+ // eyes (the earlier parts sheet; dormant while the user's part sheets are on): every cell cut; the expression rules; eyes on front views only
+ if(!P2ON){if(typeof EYA!=='object'||EYA.c.length!==54||EYA.c.some(c=>!c||!c[0]||!c[1]))bad.push('eye sheet: not every cell has a near and a far eye');
   const pick=(o,st,t,cls)=>{const u=merc(Object.assign({race:'human',fem:0},o.spec||{eq:{w:'arming',a:'mail'}}));if(o.st)u.st=Object.assign({},o.st);if(o.buffs)u.buffs=o.buffs;if(o.mor!=null)u.mor=o.mor;const L=usLook(u);return eyePick(u,L,st,t||0,o.an||'',cls||'swing')};
   const ir=u=>0;const CASES=[['idle',{},'idle',0,'swing',c=>c<6],['melee attack',{},'attack',.4,'swing',c=>c>=12&&c<18],['bow attack',{},'attack',.4,'bow',c=>c>=6&&c<12],
    ['hit',{},'hit',.2,'swing',c=>c===24||c===21],['death',{},'death',.9,'swing',c=>c===28],['stunned',{st:{stun:1}},'idle',0,'swing',c=>c===33],['chilled',{st:{chill:2}},'idle',0,'swing',c=>c===52],
@@ -84,6 +109,7 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
     if(!(N.a.w*N.a.h>F.a.w*F.a.h))bad.push(id+': the near eye is not the bigger');if(!(N.a.x+N.a.w/2<F.a.x+F.a.w/2))bad.push(id+': the near eye is not on the near side (before the mirror)');
     const hi=Fr.list.findIndex(x=>x.tag==='head'),ht=Fr.list.findIndex(x=>x.tag==='headTop'),ni=Fr.list.indexOf(N);if(!(hi<ni&&(ht<0||ni<ht)))bad.push(id+': eyes not between the head and its top')}}
   {const u=merc({race:'human',eq:{w:'arming',a:'plate',h:'greathelm'}});const Fr=humSkFrame(usLook(u),0,'idle',0,k,'',{set:0,prev:null,fade:1});if(Fr.list.some(x=>x.tag==='eyeN'))bad.push('eyes show through a great helm')}}
+ else{if(typeof EYA!=='object'||EYA.c.length!==54)bad.push('eye data missing (kept for later)')}
  // Detail Low: the old figure, never the composed one; back to High: composed again
  const u0=merc({race:'elf',fem:1,eq:{w:'warbow',a:'leather',h:'hood'}});const hi=unitSpritePx(u0,0,'idle',0);
  SET.detail='low';artChanged();const lo=unitSpritePx(u0,0,'idle',0);if(!lo||lo.hum||lo.k)bad.push('Detail Low drew the composed figure');

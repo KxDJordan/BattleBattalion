@@ -29,7 +29,7 @@ const P2A_IDX=n=>{for(let i=0;i<P2_ARMOR.length;i++)if(P2_ARMOR[i][0]===n)return
 const P2_ARMOR_OF={
  rags:'rags',robe:'monk robe',padded:'quilted gambeson',jack:'quilted, laced',leather:'brown leather, pouches',hide:'fur-collared leather',studded:'red studded',brigandine:'brigandine',
  mail:'mail',scale:'scale',lamellar:'lamellar',plate:'plate',gothic:'plate fluted',coatplates:'plate riveted',sigilrobe:'blue patterned robe',archrobe:'purple mage robe',mailrobe:'blue robe',
- manica:'torn leather',harness:'steel and gold',champharness:'plate gilded white',serpjerkinC:'green ranger',owlcoatC:'fur coat',barkrobeC:'green leaf robe',ogreharnessC:'black, red and gold',wyvcuirassC:'plate blackened',
+ manica:'torn leather',harness:'steel and gold',champharness:'plate gilded white',serpjerkin:'green ranger',owlcoat:'fur coat',barkrobe:'green leaf robe',ogreharness:'black, red and gold',wyvcuirass:'plate blackened',
  kesa:'red and gold vestment',tatami:'lamellar',do:'lamellar',domaru:'red lamellar',oyoroi:'red samurai plate',
  'fb:palecloak':'white and blue wrap','fb:wolfpelt':'fur coat','fb:shroud':'dark rogue','fb:cranedo':'white and gold','fb:demonarmor':'black, red and gold','fb:lotusrobe':'teal eastern robe',
  'fb:riftmail':'black, crescent','fb:bearhide':'fur-collared leather','fb:snowdo':'white and blue wrap',
@@ -114,7 +114,7 @@ function p2Helm(S){const t=S.hat;if(!t)return-1;const fam=S.helmId&&typeof usFam
 function p2Hair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const n=(P2_HAIR_OF[fem?'w':'m'][st])||(fem?'long':'short, side part');return P2_HAIR.indexOf(n)}
 
 /* ---- the asset record of a look x face (same fields as humSkAssets, from these parts) ---- */
-function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1,K=k*HUM_A*hs.sc*P2.sc,mf=mir?-1:1;
+function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1,K=k*HUM_A*hs.sc*P2.sc*(hs.race==='dwarf'?.96:1),mf=mir?-1:1;
  const ai=p2Armor(L),leg=P2_LEGS.indexOf(P2_ARMOR[ai][1]),skin=hs.orc?humLit(hs.S.skin):hs.C.skin,fem=!!hs.fem;
  const tone=hs.race==='human'&&!hs.orc&&/^s/.test((S.skin&&S.skin.t)||'')?null:skin;   // the sheet's own skin is a fair human's
  const tn='torso'+ai,TP=P2A.p[tn].a,T={n:tn,R:p2Rig(tn,TP.hx,TP.hy),c:p2Piece(tn,tone)};
@@ -123,10 +123,10 @@ function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1
  const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sw0=wSide==='a'?-1:1,so0=-sw0;
  const arm=s=>{const n='sh'+ai+'_'+s,a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py,{wx:a.wx,wy:a.wy}),c:p2Piece(n)}};
  const hand=n=>{const a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py),c:p2Piece(n,tone)}};
- const legL=LA.R.fy-LA.R.py,legY=-24,hipY0=-(legL+legY),hx=P2A.p[ln('a')].w*.36;
+ const legk=hs.race==='dwarf'?.62:1,legL=(LA.R.fy-LA.R.py)*legk,legY=-24*legk,hipY0=-(legL+legY),hx=P2A.p[ln('a')].w*.36;
  const loc=(x,y)=>({x,y}),shA=loc(TP.sax-16-TP.hx,TP.sy+4-TP.hy),shB=loc(TP.sbx+16-TP.hx,TP.sy+4-TP.hy),neck=loc(TP.nx-TP.hx+4,TP.ny-TP.hy+P2.neck);   // the sleeves sit at the torso's upper corners, half outside it
  const HP=P2A.p.head0.a,hR=p2Rig('head0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
- return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
+ return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,legk,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
   head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand('hand_b'),HO:hand('hand_a'),bk:new Map(),armor:ai,leg,tone,
   helm:p2Helm(S),hair:p2Hair(S,fem),hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25)}}
 /* the head attachment for an expression: head piece, hair (none under a helmet), helmet, race cues */
@@ -136,6 +136,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   const put=(pn,canvas,s,dx,dy)=>{if(!canvas)return;g.drawImage(canvas,dx-1/pk*s,dy-1/pk*s,canvas.width/pk*s,canvas.height/pk*s)};
   // hair behind the head (long styles hang behind the neck): the whole hair piece first, the head over it, then the hair again clipped to above the eyes
   const hp=A.helm<0&&A.hair>=0?'hair'+A.hair:null,HPc=hp?p2Piece(hp,null,A.hairC):null,Ha=hp?P2A.p[hp].a:null,hs_=Ha?(R0*2*1.2)/Ha.bw:1,hx=Ha?sk.x-R0*.1-Ha.bcx*hs_:0,hy=Ha?top-R0*.12-Ha.btop*hs_:0;
+  A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};   // for the tests: no hair under a helmet
   if(HPc)put(hp,HPc,hs_,hx,hy);
   if(hs.orc||hs.el){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
   if(c)put(n,c,1,-R.px,-R.py);
