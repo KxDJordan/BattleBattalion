@@ -362,49 +362,47 @@ def fit_hair(P, sf, E, ear, scalp, ha, scales, eyes):
                 if best is None or c < best[0]: best = (c, tx, ty, S, arc, unc, ov, ec)
     return best
 HFIT = {}
-# The hair's ear arc: its inner edges facing down / toward the face (the outline that cups the ear), 40-150 px below the face opening's top;
-# the head's ear outline: the top of the ear's ink arc and, below it, the head silhouette behind the ear. Fit = the hair offset (scale .96-1.04)
-# minimising the mean distance from each head-ear outline point to the nearest hair-arc point, searched within reach of the skull (the hair's
-# crown within ~40 px of the head's crown: a plausibility window, not a coverage term). HFIT_FIX: styles whose arc the search cannot find
-# (a strand or the undercut's shaved panel looks like the arc): their offsets from the unconstrained search or by eye (review-hair-ears-9.png).
-HFIT_FIX = {'hair3': (-48, -63, 1.0), 'hair19': (-42, -59, 1.0), 'hair8': (-66, -43, 1.0), 'hair27': (-80, -43, 1.0), 'hair20': (-75, -20, 1.0)}
-def ear_outline(HI):
-    a_ = np.array(HI).astype(int); HA_ = a_[:, :, 3] > 100; DK = (a_[:, :, :3].max(2) < 70) & HA_; h_, w_ = HA_.shape; top = []
-    for x in range(int(w_ * .09), int(w_ * .28)):
-        for y in range(int(h_ * .52), int(h_ * .68)):
-            if DK[y, x] and not DK[y - 1, x] and HA_[y - 1, x]: top.append((x, y)); break
-    ty_ = int(np.median([q[1] for q in top])) if top else int(h_ * .6)
-    back = [(np.where(HA_[y])[0][0], y) for y in range(ty_ + 4, int(h_ * .86)) if HA_[y].any()]
-    return np.array(top + back, float), HA_
-def hair_arc(Hr):
-    a_ = np.array(Hr)[:, :, 3] > 100; h_, w_ = a_.shape; t_ = ~a_; dn = np.roll(t_, -1, 0); rt = np.roll(t_, -1, 1)
-    prof = open_left(Hr)[0]; ot = min(prof) if prof else int(h_ * .3); yy, xx = np.mgrid[0:h_, 0:w_]
-    m = a_ & (dn | rt) & (xx < w_ * .6) & (yy > ot + 40) & (yy < ot + 150); y, x = np.where(m); return np.c_[x, y].astype(float), a_
-def fit_arc(P, sf, EP, HA_):
-    hh_ = HA_.shape[0]; Hy0 = np.where(HA_.any(1))[0][0]; Hc = np.where(HA_[Hy0:Hy0 + int(hh_ * .15)].any(0))[0]; Hcx = (Hc[0] + Hc[-1]) / 2; best = None
-    em = EP.mean(0)
-    def cost(Q, S):
-        near = Q[(abs(Q[:, 0] - em[0]) < 60) & (abs(Q[:, 1] - em[1]) < 60)]
-        if len(near) < 5: return None
-        d = ((EP[:, None, :] - near[None, :, :]) ** 2).sum(2); return np.sqrt(d.min(1)).mean() + 30 * abs(S - 1)
-    for S in (.96, 1.0, 1.04):
-        Hr = su_img(P, sf, S); HP, ha = hair_arc(Hr); hy0 = np.where(ha.any(1))[0][0]; cols = np.where(ha[hy0:hy0 + int(ha.shape[0] * .15)].any(0))[0]
-        tx0, ty0 = int(Hcx - (cols[0] + cols[-1]) / 2), int(Hy0 - hy0)
-        for ty in range(ty0 - 40, ty0 + 16, 3):
-            for tx in range(tx0 - 45, tx0 + 46, 3):
-                c = cost(HP + [tx, ty], S)
-                if c is not None and (best is None or c < best[0]): best = [c, tx, ty, S]
-    c, tx0, ty0, S = best; HP, ha = hair_arc(su_img(P, sf, S))
-    for ty in range(ty0 - 2, ty0 + 3):
-        for tx in range(tx0 - 2, tx0 + 3):
-            c = cost(HP + [tx, ty], S)
-            if c is not None and c < best[0]: best = [c, tx, ty, S]
-    return best
-_hd = [q for q in PIECES if q[0] == 'head0'][0]; _HI = su_img(_hd[2], _hd[3]); _EP, _HA0 = ear_outline(_HI)
+# styles whose drawn ear is hidden (long hair over it) fall back to the earlier arc fit
+HFIT_FALLBACK = {'hair8': (-66, -43), 'hair19': (-42, -59), 'hair20': (-75, -20), 'hair23': (-12, -41), 'hair24': (-66, -42), 'hair25': (-78, -42), 'hair26': (-88, -25), 'hair27': (-80, -43), 'hair28': (-66, -42), 'hair29': (-36, -42)}
+# hair-ears.webp: the same 30 styles at the same places, each with the head's ear drawn in. Per style: register the cell to hair.webp (the
+# shift that best overlays their hair ink), take the drawn ear (opaque pixels there but not in hair.webp), then find where that ear sits on
+# head0 (translation minimising the colour difference over the ear's pixels, in SU at scale 1.0). That translation places the hair.
+_, HRE = load('hair-ears.webp'); HRE = np.pad(HRE, ((40, 40), (40, 40), (0, 0)))   # padded: a cell's ear may reach the sheet's edge
+def _hair_ear(box):
+    x0, y0, x1, y1 = box; pad = 8; H_ = HR[y0:y1, x0:x1]; inkH = (H_[:, :, 3] > 100) & (H_[:, :, :3].max(2) < 70); best = None
+    for dy in range(-pad, pad + 1):
+        for dx in range(-pad, pad + 1):
+            E_ = HRE[40 + y0 + dy:40 + y1 + dy, 40 + x0 + dx:40 + x1 + dx]
+            if E_.shape != H_.shape: continue
+            inkE = (E_[:, :, 3] > 100) & (E_[:, :, :3].max(2) < 70); c = (inkH ^ inkE).sum()
+            if best is None or c < best[0]: best = (c, dx, dy)
+    _, dx, dy = best; E_ = HRE[40 + y0 + dy - 30:40 + y1 + dy + 30, 40 + x0 + dx - 30:40 + x1 + dx + 30].astype(np.float32)   # the ear may stick out of the hair's box
+    Hp = np.zeros_like(E_); Hp[30:30 + (y1 - y0), 30:30 + (x1 - x0)] = H_
+    r_, g_, b_ = E_[:, :, 0], E_[:, :, 1], E_[:, :, 2]; op = E_[:, :, 3] > 100; free = ~(Hp[:, :, 3] > 100)
+    skin = op & free & (r_ > 190) & (r_ - b_ > 45) & (g_ > r_ * .5) & (g_ < r_ * .85); core = biggest(skin)
+    grow = core.copy()   # with its outline: opaque, not hair, within 7 px of the skin
+    for _ in range(7): grow = grow | (np.roll(grow, 1, 0) | np.roll(grow, -1, 0) | np.roll(grow, 1, 1) | np.roll(grow, -1, 1))
+    lab_ = grow & op & free; return E_ * lab_[:, :, None], (dx, dy), lab_
+def _su(arr, sf): return np.array(su_img(arr, sf))
+_hd = [q for q in PIECES if q[0] == 'head0'][0]; _H0 = _su(_hd[2], _hd[3]).astype(np.float32); HEARP = {}
 for name, kind, P, sf, box in PIECES:
     if kind != 'hair': continue
-    if name in HFIT_FIX: b = HFIT_FIX[name]; HFIT[name] = (0, b[0], b[1], b[2]); print(name, 'fixed', b, file=sys.stderr); continue
-    b = fit_arc(P, sf, _EP, _HA0); HFIT[name] = b; print(name, 'arc distance %.1f px, scale %.2f' % (b[0], b[3]), file=sys.stderr)
+    E_, reg, m = _hair_ear(box)
+    if m.sum() < 60: print(name, 'no drawn ear found', file=sys.stderr); HFIT[name] = (0,) + HFIT_FALLBACK[name] + (1.0,); continue
+    Es = _su(E_, sf).astype(np.float32); ms = Es[:, :, 3] > 128; ys, xs = np.where(ms); ey0, ex0 = ys.min(), xs.min(); Ec = Es[ey0:ys.max() + 1, ex0:xs.max() + 1]; mc = ms[ey0:ys.max() + 1, ex0:xs.max() + 1]
+    eh, ew = mc.shape; Hh, Hw = _H0.shape[:2]; best = None
+    for ty in range(int(Hh * .4), int(Hh * .95) - eh):
+        for tx in range(0, int(Hw * .4) - ew + 1):
+            W_ = _H0[ty:ty + eh, tx:tx + ew]
+            if W_.shape[:2] != mc.shape: continue
+            ok = W_[:, :, 3] > 128; d = np.abs(W_[:, :, :3] - Ec[:, :, :3]).sum(2); c = (d[mc & ok].sum() + 600 * (mc & ~ok).sum()) / mc.sum()
+            if best is None or c < best[0]: best = (c, tx, ty)
+    if best is None or best[0] > 60: print(name, 'drawn ear not matched (too little of it shows)', file=sys.stderr); HFIT[name] = (0,) + HFIT_FALLBACK[name] + (1.0,); continue
+    c, tx, ty = best
+    # the hair's top-left in head0 SU: the ear's top-left in the hair (SU) is ((ex0 - 30*sf) , (ey0 - 30*sf)) relative to the hair box
+    fx = tx - (ex0 - 30 * sf); fy = ty - (ey0 - 30 * sf)
+    HFIT[name] = (c, fx, fy, 1.0); HEARP[name] = reg
+    print(name, 'registered %s, ear match %.1f, at %d,%d' % (reg, c, fx, fy), file=sys.stderr)
 # every head (sex, expression) against head0: the shift that best overlays its ear region (hair fitted on head0 moves with it)
 def _mask(n):
     q = [p_ for p_ in PIECES if p_[0] == n][0]; return np.array(su_img(q[2], q[3]))[:, :, 3] > 100
