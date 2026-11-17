@@ -160,6 +160,10 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1;if((cls==='swing'||cls==='dagger')&&!att)P.wa+=(cls==='dagger'?-28:-42)-90}   // braced (approved look): the blade held up as before   // Shield wall (usWall)
  if(ex===undefined&&A.p2){try{ex=headPick(null,L,state,t,P.name,cls)}catch(e){ex=null}}
  if(ex===undefined&&typeof eyePick==='function'&&!A.back){try{ex=eyePick(null,L,state,t,P.name,cls)}catch(e){ex=null}}   // the baked path: the expression from the state alone
+ if(S.spearw&&cls==='thrust'&&state!=='death'&&state!=='walk'&&state!=='swap'&&state!=='reload'){   // Spear wall: braced, knees bent, the spear levelled forward
+  const two=wi.two||!S.shield,hit=state==='hit'?Math.sin(Math.PI*Math.min(1,t/.5)):0,lunge=att?Math.max(0,Math.sin(Math.PI*Math.min(1,Math.max(0,(t-.2)/.5)))):0;
+  P.lA=16;P.lB=-14;P.uA=0;P.uB=0;P.lg=[P.lA,0,P.lB,0];P.bob=12;P.lean=8+lunge*6-hit*10;P.head=-4;P.kneel=0;
+  if(two){P.w=[40+lunge*46-hit*14,46];P.wa=-6;P.grip=1}else{P.w=[46+lunge*40-hit*10,36];P.wa=-3;P.grip=0}}
  const g=new HskRec(),tags=[],kn=Math.max(0,Math.min(1,P.kneel||0)),fall=Math.max(0,Math.min(1,P.fall||0));
  if(fall>0){const e=fall;g.translate(f*170*e,-58*e);g.rotate(-f*Math.PI/2*e)}
  // bones: hip, torso (lean), shoulders, neck
