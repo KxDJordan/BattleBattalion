@@ -395,7 +395,7 @@ function wvCovered(){return(typeof TV!=='undefined'&&!!TV&&TV.shown&&!!TV.root&&
 // worldVisible for one pass (a frame's list, a minimap paint): the company's sight radius cannot change inside it, so it is taken once
 function wvVisFn(){if(typeof visibleWithin!=='function'||typeof visibleAt!=='function'||typeof visionRadius!=='function')return worldVisible;const r=visionRadius();return(x,y)=>visibleWithin(Math.floor(x/TS),Math.floor(y/TS),r)}
 let WVHD=false;   // Detail High: the painted world of 41h-worldhd.js (Detail Low keeps the pixel chunks below exactly as they were)
-function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='function'&&whOn();if(hd!==WVHD){WVHD=hd;WCH.w=null;WSPR.clear();WSBX.clear()}}if(WCH.w!==W){wchReset();WV.boot=true;WV.free=false}
+function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='function'&&whOn();if(hd!==WVHD){WVHD=hd;WCH.w=null;WSPR.clear();WSBX.clear();if(!hd&&typeof wqReset==='function'&&W){wqReset();WQ.mm=null}}}if(WCH.w!==W){wchReset();WV.boot=true;WV.free=false}
  worldCam(dt||0);const t0=performance.now(),p=G.p,sc=WV.sc,bx=WV.bx,by=WV.by,W_=cv.width,H_=cv.height;WV.f4=reduced?0:Math.floor(now/250);WV.fs=reduced?0:Math.floor(now/140);
  wvFogSync();wvTintTick(WV.boot);const night=WV.night=wvNight(G.hour);
  const vx0=WV.vx0=-bx/sc,vy0=WV.vy0=-by/sc,vx1=WV.vx1=(W_-bx)/sc,vy1=WV.vy1=(H_-by)/sc,AM=WN*WVT;

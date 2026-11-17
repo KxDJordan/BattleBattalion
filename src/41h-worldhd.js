@@ -288,7 +288,7 @@ function wqWork(vx0,vy0,vx1,vy1,boot,busy,W_,H_){const t0=performance.now(),S=WH
  const qx0=clamp(Math.floor(vx0/S),0,WQ.n-1),qx1=clamp(Math.floor(vx1/S),0,WQ.n-1),qy0=clamp(Math.floor(vy0/S),0,WQ.n-1),qy1=clamp(Math.floor(vy1/S),0,WQ.n-1),cx=(vx0+vx1)/2/S-.5,cy=(vy0+vy1)/2/S-.5,stamp=++WQ.nb;
  for(let y=qy0;y<=qy1;y++)for(let x=qx0;x<=qx1;x++){const q=wqGet(x,y);q.use=stamp}
  let miss=false;for(let y=qy0;y<=qy1&&!miss;y++)for(let x=qx0;x<=qx1;x++){const q=WQ.list[y*WQ.n+x];if(!q||!q.cv){miss=true;break}}   // a hole in the view: work harder until it is filled
- const budget=boot?260:miss?6:busy?2.4:3.4,dl=t0+budget;let guard=0;
+ const budget=boot?260:miss?(busy?6:12):busy?2.4:3.4,dl=t0+budget;let guard=0;
  while(guard++<200&&performance.now()<dl){let best=null,bd=1e9;const ow=WQ.owner;if(ow&&ow.b&&ow.b.ph===0&&ow.b.K===K&&ow.use>=stamp-1){if(!wqStep(ow,K,dl))break;continue}   // finish the ground being shaded first (one shared buffer)
   for(let y=Math.max(0,qy0-1);y<=Math.min(WQ.n-1,qy1+1);y++)for(let x=Math.max(0,qx0-1);x<=Math.min(WQ.n-1,qx1+1);x++){const q=WQ.list[y*WQ.n+x];if(q&&q.cv&&q.cv.K===K&&!q.b)continue;
    const inV=x>=qx0&&x<=qx1&&y>=qy0&&y<=qy1;if(boot&&!inV)continue;const d=Math.max(Math.abs(x-cx),Math.abs(y-cy))+(inV?0:10)-(q&&q.b?.5:0);if(d<bd){bd=d;best=[x,y]}}
@@ -312,7 +312,7 @@ function wqFogTile(ch,lc,lr,a,b,c,e){const q=ch.fq,X0=lc*16,Y0=lr*16,s=a+b+c+e;i
 function wqDraw(g,W_,H_,bx,by,sc,vx0,vy0,vx1,vy1,cx0,cy0,cx1,cy1){const S=WHQ*16;g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=true;
  const qx0=clamp(Math.floor(vx0/S),0,WQ.n-1),qx1=clamp(Math.floor(vx1/S),0,WQ.n-1),qy0=clamp(Math.floor(vy0/S),0,WQ.n-1),qy1=clamp(Math.floor(vy1/S),0,WQ.n-1);
  for(let y=qy0;y<=qy1;y++)for(let x=qx0;x<=qx1;x++){const q=wqAt(x,y),X=Math.round(bx+x*S*sc),Y=Math.round(by+y*S*sc),w=Math.round(bx+(x+1)*S*sc)-X,h=Math.round(by+(y+1)*S*sc)-Y;
-  const c=q&&(q.cv||(q.b&&q.b.ph>=1&&q.b.cv));if(c){g.imageSmoothingEnabled=c.width!==w||c.height!==h;g.drawImage(c,X,Y,w,h)}else if(WCH.key)g.drawImage(WCH.key,x*WHQ,y*WHQ,WHQ,WHQ,X,Y,w,h)}
+  const c=q&&(q.cv||(q.b&&q.b.ph>=1&&q.b.cv));if(c){g.imageSmoothingEnabled=c.width!==w||c.height!==h;g.drawImage(c,X,Y,w,h)}else if(WCH.key){g.imageSmoothingEnabled=true;g.drawImage(WCH.key,x*WHQ,y*WHQ,WHQ,WHQ,X,Y,w,h)}}
  g.imageSmoothingEnabled=true;if(WCH.ton){const n=WV.night||0;if(n>.05){g.globalCompositeOperation='saturation';g.globalAlpha=.42*n;g.fillStyle='#808080';g.fillRect(0,0,W_,H_);g.globalAlpha=1;g.globalCompositeOperation='source-over'}wvTintRect(g,0,0,W_,H_)}   // night: a little less colour, then the light of the hour
  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=wchAt(cx,cy);if(!ch||!ch.fog)continue;const X=Math.round(bx+ch.x0*sc),Y=Math.round(by+ch.y0*sc),w=Math.round(bx+(ch.x0+WVP)*sc)-X,h=Math.round(by+(ch.y0+WVP)*sc)-Y;
   g.drawImage(ch.fog===2?wqUnk():ch.fogcv,X,Y,w,h)}

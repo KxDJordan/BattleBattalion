@@ -20,11 +20,11 @@ const WHFL={
  east:{skin:'#f0c8a0',body:'#a8322a',legs:'#2a2228',head:'jingasa',hat:'#26262c',wpn:'spear',flag:['#e8e4da','#c4493f','#26262c']},
  co:{skin:'#f0c8a0',body:'#3f74c0',legs:'#4c3a2a',head:'helm',hat:'#a8b4be',wpn:'spear',flag:['#e8c060','#a26800','#fff6dc']}};
 // one figure, feet at (x, by), facing right. sp: the look; tab: tabard colours [field, trim] (company, rivals, guards)
-function whFig(g,x,by,sp,step,bob,o){o=o||{};const s=sp.s||1;g.save();g.translate(x,by);g.scale(s,s);whShadowE(g,.2,0,2.6,.85,.28);g.translate(0,-bob/s);
+function whFig(g,x,by,sp,step,bob,o){o=o||{};const s=sp.s||1,Lc=o.L&&o.L!==g?o.L:null;g.save();g.translate(x,by);g.scale(s,s);whShadowE(g,.2,0,2.6,.85,.28);g.translate(0,-bob/s);if(Lc){Lc.save();Lc.translate(x,by);Lc.scale(s,s);Lc.translate(0,-bob/s)}
  const wp=o.wpn!==undefined?o.wpn:sp.wpn,body=o.body||sp.body,skin=sp.skin;
  if(sp.head==='wraith'){const P=new Path2D();P.moveTo(-2.4,-7);P.quadraticCurveTo(-2.8,-2,-1.6,-.4);P.lineTo(-.6,-1.4);P.lineTo(.4,-.2);P.lineTo(1.4,-1.4);P.lineTo(2.4,-.6);P.quadraticCurveTo(3,-4,2.4,-7);P.closePath();
   whFill(g,{p:P,b:[-2.8,-7,3,0]},whRampOf(body),{k:.3,lw:.42});whFill(g,whBlob([[.2,-8.4,2.7,2.6]]),whRampOf(body),{k:.3,lw:.42});g.fillStyle='#120820';g.beginPath();g.ellipse(.9,-8.1,1.6,1.5,0,0,Math.PI*2);g.fill();
-  whDot(g,.4,-8.2,.33,sp.eye);whDot(g,1.6,-8.2,.33,sp.eye);g.restore();return}
+  whDot(g,.4,-8.2,.33,sp.eye);whDot(g,1.6,-8.2,.33,sp.eye);if(Lc)Lc.restore();g.restore();return}
  // legs
  const la=step?.7:-.1,lb=step?-.5:.3;for(const [lx,dx] of [[-.9,lb],[.6,la]]){whSh(g,pkRect(lx+dx-.6,-2.8,1.3,2.9,.5),o.legs||sp.legs||'#4c3a2a',{k:.2})}
  // back arm, body, head
@@ -55,7 +55,7 @@ function whFig(g,x,by,sp,step,bob,o){o=o||{};const s=sp.s||1;g.save();g.translat
  else if(wp==='staff'){whLine(g,[ax+.2,ay+3,ax+.7,ay-6],.95,WHINK);whLine(g,[ax+.2,ay+3,ax+.7,ay-6],.45,'#8c5e34')}
  whDot(g,ax,ay,.75,WHINK);whDot(g,ax,ay,.5,skin);
  if(wp==='shield'||o.shield){const c=o.shield||sp.sh||'#c4493f';whSh(g,whEllS(ax+.7,ay+.4,1.7,2.1),c,{k:.25});whDot(g,ax+.9,ay+.3,.45,'#cfa443')}
- g.restore()}
+ if(Lc)Lc.restore();g.restore()}
 /* quadrupeds and monsters (feet at (x, by), facing right) */
 function whWolf(g,x,by,step,bob,big,col){const s=big?1.5:1;g.save();g.translate(x,by);g.scale(s,s);whShadowE(g,0,0,4,.9,.28);g.translate(0,-bob);const c=col||'#7a7f86';
  for(const [lx,d] of [[-2.6,step?.5:-.3],[-1.6,step?-.4:.3],[1.6,step?.4:-.3],[2.6,step?-.5:.3]])whLine(g,[lx,-2.4,lx+d,0],.95,WHINK),whLine(g,[lx,-2.4,lx+d,-.1],.5,whRampOf(c)[1]);
