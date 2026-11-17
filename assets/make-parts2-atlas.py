@@ -164,6 +164,12 @@ def anchors(kind, P, s):
             a_, b_ = span(y)
             if al[y].any() and b_ - a_ >= bw * .4 and al[y, a_:b_ + 1].mean() > .55: topb = y; break
         A['btop'] = topb * s
+        if kind == 'helm':   # the steel bowl alone (grey, unsaturated, not white): its top row and its width / centre below that, for crested / winged helms
+            r_, g_, b_ = P[:, :, 0], P[:, :, 1], P[:, :, 2]; lum = .3 * r_ + .59 * g_ + .11 * b_; sat = np.maximum(np.maximum(r_, g_), b_) - np.minimum(np.minimum(r_, g_), b_)
+            met = al & (sat < 28) & (lum > 95) & (lum < 222); rows_ = np.where(met.sum(1) >= max(3, met.sum(1).max() * .35))[0]
+            if len(rows_):
+                mt = rows_[0]; sub = met[mt:mt + max(4, (h - mt) // 2)]; cols = np.where(sub.any(0))[0]
+                A['mtop'] = mt * s; A['mbw'] = (cols[-1] - cols[0] + 1) * s; A['mbcx'] = (cols[0] + cols[-1]) / 2 * s
     return {k_: round(float(v), 1) for k_, v in A.items()}
 
 # ---- layers, scaled, packed ----

@@ -9,11 +9,13 @@
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
    pointed ear, half-orcs green-grey skin, a pointed ear and tusks, dwarves their braided beard (vector overlays in the sheet's style).
    The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
-const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36};
+const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,handA:[-.08,-.05]};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
-const P2_HADJ={3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],13:[1,-.04,.12],14:[1,0,.1],15:[1,-.04,.12],24:[1,0,.12],28:[1,0,.06],29:[1,0,.06],4:[1,0,.06],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
-const P2_HTOP={4:.3,5:.16,13:.42,14:.3,15:.34,24:.38,28:.28,29:.3,30:.34,32:.3};
+const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
+// crested / winged / crowned helmets are fitted by their steel bowl alone (P2A anchors mtop: the bowl's top), the crest rises above it
+const P2_BOWL={13:1,14:1,15:1,28:1,29:1};
+const P2_HTOP={4:.3,5:.16,24:.38,30:.34,32:.3};
 // the five leg colours (legs.png): tan, blue, green, rust, grey
 const P2_LEGS=['tan','blue','green','rust','grey'];
 // the 51 armours, sheet order (armor.webp: torso rows A-F, each followed by its shoulder row); [name, leg colour]
@@ -146,7 +148,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   if(hs.orc&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
   if(S.beard&&(hs.dw||S.beard))humBeard(g,S,R0*.98,hs.dw);
   g.restore();
-  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p['head'+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
+  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p['head'+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation (eyePick's context), held HEAD_HOLD ms, instant on hit and death */
 const P2_MEM=new WeakMap();

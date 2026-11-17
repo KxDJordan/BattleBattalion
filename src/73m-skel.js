@@ -176,7 +176,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);
  // slots
  const pcImg=(p,tag)=>g.img(hskPc(p.c,p.R),tag);
- const drawArm=(p,a)=>{if(A.p2){const h=p===AW?HW:HO;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(h,'hand');g.restore()}   // the part sheets: the hand under its own sleeve cap
+ const drawArm=(p,a)=>{if(A.p2){const h=p===AW?HW:HO,o=h.n==='hand_a'?P2.handA:null;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);if(o)g.translate(o[0]*h.R.w,o[1]*h.R.h);pcImg(h,'hand');g.restore()}   // the right hand (near arm) sits a little outward and up, under its sleeve's curve   // the part sheets: the hand under its own sleeve cap
   g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);pcImg(p,'arm');g.restore();
   const pa=hskPaulAtt(A);if(pa){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);g.img(pa,'paul');g.restore()}};
  const drawHand=(p,a)=>{if(A.p2)return;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(p,'hand');g.restore()};
