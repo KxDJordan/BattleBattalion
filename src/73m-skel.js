@@ -68,7 +68,7 @@ HskRec.prototype.save=function(){this.st.push(this.m.slice())};HskRec.prototype.
 HskRec.prototype.translate=function(x,y){const m=this.m;m[4]+=m[0]*x+m[2]*y;m[5]+=m[1]*x+m[3]*y};
 HskRec.prototype.rotate=function(r){const m=this.m,c=Math.cos(r),s=Math.sin(r),a=m[0],b=m[1],cc=m[2],d=m[3];m[0]=a*c+cc*s;m[1]=b*c+d*s;m[2]=-a*s+cc*c;m[3]=-b*s+d*c};
 HskRec.prototype.scale=function(x,y){const m=this.m;m[0]*=x;m[1]*=x;m[2]*=y;m[3]*=y};
-HskRec.prototype.img=function(a,tag){if(a&&a.cv)this.list.push({a,m:this.m.slice(),tag:tag||''})};          // an attachment {cv,x,y,w,h} (local SU)
+HskRec.prototype.img=function(a,tag,al){if(a&&a.cv)this.list.push({a,m:this.m.slice(),tag:tag||'',al:al==null?1:al})};          // an attachment {cv,x,y,w,h} (local SU)
 HskRec.prototype.fn=function(f,tag){this.list.push({f,m:this.m.slice(),tag:tag||''})};                      // live vector (bow string, spark, rod)
 function hskMul(A,B){return[A[0]*B[0]+A[2]*B[1],A[1]*B[0]+A[3]*B[1],A[0]*B[2]+A[2]*B[3],A[1]*B[2]+A[3]*B[3],A[0]*B[4]+A[2]*B[5]+A[4],A[1]*B[4]+A[3]*B[5]+A[5]]}
 
@@ -103,9 +103,10 @@ function hskAtt(A,name,ext,fn){let a=A.bk.get(name);if(a!==undefined)return a;a=
 function hskHeadAtt(A,part){const S=A.S,hs=A.hs,R0=A.R0,back=A.back,f=A.f,mir=A.mir,head=A.head,sk=A.skull;
  const inHead=(g,fn)=>{g.save();g.translate(sk.x,sk.y);g.scale(f,1);fn();g.restore()};
  if(part==='hairB')return hskAtt(A,'hairB',[-420,-520,420,320],g=>inHead(g,()=>humHair(g,S,R0,false,'behind')));
- return hskAtt(A,'head',[-420,-560,420,360],g=>{
+ if(part==='head')return hskAtt(A,'head',[-420,-560,420,360],g=>{
   inHead(g,()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind');if(back&&!/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|coif|hood|cowl)$/.test(S.hat||''))humHair(g,S,R0,back,'over')});
-  const hk=HPA.k,R=head.R;if(head.c)g.drawImage(head.c,-R.px-1/hk,-R.py-1/hk,head.c.width/hk,head.c.height/hk);
+  const hk=HPA.k,R=head.R;if(head.c)g.drawImage(head.c,-R.px-1/hk,-R.py-1/hk,head.c.width/hk,head.c.height/hk)});
+ return hskAtt(A,'headTop',[-420,-560,420,360],g=>{
   inHead(g,()=>{const hat=S.hat;const covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');
    if(!back&&!covers){if(S.patch){const ex=mir?.1:.8,ey=mir?.44:.28;humLine(g,[-R0*.7,-R0*.3,R0*1.0,R0*(ey-.25)],HUM_INK,4);humSh(g,humEll(R0*ex,R0*ey,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
     if(S.paint){humLine(g,[R0*.0,R0*.55,R0*.95,R0*.48],humHex(S.paint),6)}if(S.stubble){g.fillStyle='rgba(30,25,20,.22)';g.beginPath();g.ellipse(R0*.45,R0*.75,R0*.5,R0*.22,0,0,7);g.fill()}
@@ -147,11 +148,12 @@ function hskBowAtt(L,k,wi,drawn){const A=hskShared(L,k);return hskAtt(A,'b:'+wi.
 function hskShieldAtt(L,k,look,colR,front,crack){const A=hskShared(L,k);return hskAtt(A,'s:'+look+':'+front+':'+crack,[-130,-150,130,150],g=>humDrawShield(g,look,colR,front,crack))}
 
 /* ---- one frame: pose the skeleton and list the slots in draw order (world matrices in canonical SU space) ---- */
-function humSkFrame(L,face,state,t,k,va){const t0=performance.now(),A=humSkAssets(L,face,k),hs=A.hs,S=A.S,f=A.f,back=A.back,mf=A.mf,mir=A.mir,hA=hs.A;
+function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAssets(L,face,k),hs=A.hs,S=A.S,f=A.f,back=A.back,mf=A.mf,mir=A.mir,hA=hs.A;
  let W=S.wd;const att=state==='attack';if(W&&W.cls==='xbow'&&!/:L$/.test(W.id)&&((S.ld&&state!=='reload')||(att&&t<.38))){try{W=usWdef(W.id+':L')}catch(e){}}
  const wi=humWInfo(W),cls=humWCls(wi.fam,W);hs.fam=wi.fam;hs.two=wi.two;
  const P=humAnimPose(cls,state,t,{two:wi.two,fam:wi.fam},att&&S.shield&&(va==='bash'||va==='shieldbash')?'bash':'');
  if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1}   // Shield wall (usWall)
+ if(ex===undefined&&typeof eyePick==='function'&&!A.back){try{ex=eyePick(null,L,state,t,P.name,cls)}catch(e){ex=null}}   // the baked path: the expression from the state alone
  const g=new HskRec(),tags=[],kn=Math.max(0,Math.min(1,P.kneel||0)),fall=Math.max(0,Math.min(1,P.fall||0));
  if(fall>0){const e=fall;g.translate(f*170*e,-58*e);g.rotate(-f*Math.PI/2*e)}
  // bones: hip, torso (lean), shoulders, neck
@@ -187,7 +189,10 @@ function humSkFrame(L,face,state,t,k,va){const t0=performance.now(),A=humSkAsset
  const drawTorso=()=>{tags.push('torso');torsoBone(()=>g.img(hskTorsoAtt(A),'torso'))};
  const drawSkirt=()=>{const a=hskSkirtAtt(A);if(a){g.save();g.translate(0,UB.y);g.img(a,'skirt');g.restore()}};
  const headBone=fn=>{g.save();g.translate(neck.x,neck.y);g.rotate(rot*.5+f*(P.head||0)*Math.PI/180);fn();g.restore()};
- const drawHead=()=>headBone(()=>g.img(hskHeadAtt(A,'head'),'head'));
+ const drawHead=()=>headBone(()=>{g.img(hskHeadAtt(A,'head'),'head');
+  if(ex&&typeof eyeAtts==='function'){const E1=eyeAtts(A,ex.set),E0=ex.prev!=null?eyeAtts(A,ex.prev):null,a=E0?ex.fade:1;
+   if(E0){g.img(E0.n,'eyeN0',1-a);g.img(E0.f,'eyeF0',1-a)}if(E1){g.img(E1.n,'eyeN',a);g.img(E1.f,'eyeF',a)}}
+  g.img(hskHeadAtt(A,'headTop'),'headTop')});
  const drawLegs=()=>{const lg=P.lg;for(const [p,side,ix] of[[A.LB,'b',2],[A.LA,'a',0]]){const x=(side==='a'?-A.hx:A.hx),r=-f*lg[ix]*Math.PI/180,lift=lg[ix+1]||0,kr=-f*(side==='a'?.9:.15),ks=side==='a'?.55:.7;
    g.save();g.translate(x+f*(side==='a'?24:-10)*kn,hipY+6-lift*(1-kn));g.rotate(r*(1-kn)+kr*kn);g.scale(1,hs.legk+(ks-hs.legk)*kn);pcImg(p,'leg');g.restore()}};
  const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;const R0=A.R0,sk={x:neck.x+A.skull.x,y:neck.y+A.skull.y};
@@ -209,11 +214,11 @@ function humSkFrame(L,face,state,t,k,va){const t0=performance.now(),A=humSkAsset
  // the weapon on the ground once dropped (ground bone: not part of the falling body)
  if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){const m0=g.m;g.m=[1,0,0,1,0,0];g.save();g.translate(fall>.5?-f*30:f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);g.img(hskBowAtt(L,k,wi,false),'dropped')}else{g.translate(fall>.5?-wi.len*.4:-wi.back,0);g.img(hskWpnAtt(L,k,wi,{},'u'),'dropped')}g.restore();g.m=m0}
  HSK.frames++;HSK.ms+=performance.now()-t0;
- return{list:g.list,tags,pose:P,anim:P.name,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc}}
+  return{list:g.list,tags,pose:P,anim:P.name,eyes:ex||null,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc}}
 /* blit a frame: base = the target context's transform at the feet, in art px (x right, y down); mirror for faces 1 and 3.
    mapImg(cv) may swap an attachment for its tinted / silhouette version (70-render.js tintedOf / silOf, cached per canvas). */
 function humSkDraw(q,Fr,x,y,mapImg,skipFn){const t0=performance.now(),s=HUM_A*Fr.sc,m0=q.getTransform(),B0=[m0.a,m0.b,m0.c,m0.d,m0.e,m0.f],base=hskMul(B0,[Fr.mir?-s:s,0,0,s,x,y]);
- for(const it of Fr.list){const m=hskMul(base,it.m);q.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);if(it.a){const a=it.a,cv=mapImg?mapImg(a.cv):a.cv;q.drawImage(cv,a.x,a.y,a.w,a.h)}else if(it.f&&!skipFn){q.save();try{it.f(q)}catch(e){}q.restore()}}
+ const ga=q.globalAlpha;for(const it of Fr.list){const m=hskMul(base,it.m);q.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);if(it.a){const a=it.a,cv=mapImg?mapImg(a.cv):a.cv;if(it.al<1){q.globalAlpha=ga*it.al;q.drawImage(cv,a.x,a.y,a.w,a.h);q.globalAlpha=ga}else q.drawImage(cv,a.x,a.y,a.w,a.h)}else if(it.f&&!skipFn){q.save();try{it.f(q)}catch(e){}q.restore()}}
  q.setTransform(m0);HSK.draws++;HSK.drawMs+=performance.now()-t0}
 /* the frame's box in canonical SU (union of the slot rectangles) */
 function humSkBox(Fr){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const it of Fr.list){const m=it.m;const pts=it.a?[[it.a.x,it.a.y],[it.a.x+it.a.w,it.a.y],[it.a.x,it.a.y+it.a.h],[it.a.x+it.a.w,it.a.y+it.a.h]]:[[-40,-40],[40,40]];
@@ -233,7 +238,8 @@ function humLiveFrame(u,v){if(!u||!humImg()||(typeof hdArt==='function'&&!hdArt(
  const L=usLook(u);if(!humWant(L))return null;let st=v.pS||'idle';if(st==='walk'&&v.pAn==='flee')st='flee';
  let t=HSK_LOOP[st]?(v.pCy||0):(v.pPh!=null?v.pPh:humSkT(st,v.pF));if(st==='idle'&&typeof reduced!=='undefined'&&reduced)t=0;
  let va='';if(st==='attack'&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
- return humSkFrame(L,((v.pD|0)%4+4)%4,st==='flee'?'flee':st,t,humK(),va)}
+ const face=((v.pD|0)%4+4)%4;let ex=null;if(face<2&&typeof eyePick==='function'){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=eyePick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
+ return humSkFrame(L,face,st==='flee'?'flee':st,t,humK(),va,ex)}
 /* warm a look: bake its attachments for every face (one face per call while a deadline allows) */
 function humSkWarm(L,until){let n=0;const k=humK();for(let f=0;f<4;f++){const c=L.skA&&L.skA[f+':'+k];if(c&&c.warm)continue;if(until&&performance.now()>=until)return n;
   try{humSkFrame(L,f,'idle',0,k,'');humSkFrame(L,f,'attack',.38,k,'')}catch(e){}humSkAssets(L,f,k).warm=1;n++}return n}
