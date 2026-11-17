@@ -105,13 +105,15 @@ function hskHeadAtt(A,part){const S=A.S,hs=A.hs,R0=A.R0,back=A.back,f=A.f,mir=A.
  if(part==='hairB')return hskAtt(A,'hairB',[-420,-520,420,320],g=>inHead(g,()=>humHair(g,S,R0,false,'behind')));
  if(part==='head')return hskAtt(A,'head',[-420,-560,420,360],g=>{
   inHead(g,()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind');if(back&&!/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|coif|hood|cowl)$/.test(S.hat||''))humHair(g,S,R0,back,'over')});
-  const hk=HPA.k,R=head.R;if(head.c)g.drawImage(head.c,-R.px-1/hk,-R.py-1/hk,head.c.width/hk,head.c.height/hk)});
+  const hk=HPA.k,R=head.R;if(head.c)g.drawImage(head.c,-R.px-1/hk,-R.py-1/hk,head.c.width/hk,head.c.height/hk);
+  inHead(g,()=>{const hat=S.hat,covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');   // the hair cap: under the eyes (73o-eyes.js), so the brows sit over a fringe
+   if(!covers&&!/^(kabuto|menpo|kawari|lgoni|jingasa)$/.test(hat||''))humHair(g,S,R0,back,'cap');else if(/^(kabuto|menpo|kawari|jingasa|lgoni)$/.test(hat||'')&&S.hair==='topknot')humHair(g,S,R0,back,'cap');
+  })});
  return hskAtt(A,'headTop',[-420,-560,420,360],g=>{
   inHead(g,()=>{const hat=S.hat;const covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');
    if(!back&&!covers){if(S.patch){const ex=mir?.1:.8,ey=mir?.44:.28;humLine(g,[-R0*.7,-R0*.3,R0*1.0,R0*(ey-.25)],HUM_INK,4);humSh(g,humEll(R0*ex,R0*ey,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
     if(S.paint){humLine(g,[R0*.0,R0*.55,R0*.95,R0*.48],humHex(S.paint),6)}if(S.stubble){g.fillStyle='rgba(30,25,20,.22)';g.beginPath();g.ellipse(R0*.45,R0*.75,R0*.5,R0*.22,0,0,7);g.fill()}
     if(S.tusk&&!hs.orc){for(const x of[R0*.35,R0*.85])humSh(g,humPoly([x-6,R0*.72,x,R0*.5,x+6,R0*.72]),'#efe7cf',{lw:4})}}
-   if(!covers&&!/^(kabuto|menpo|kawari|lgoni|jingasa)$/.test(hat||''))humHair(g,S,R0,back,'cap');else if(/^(kabuto|menpo|kawari|jingasa|lgoni)$/.test(hat||'')&&S.hair==='topknot')humHair(g,S,R0,back,'cap');
    if(!back&&!covers)humBeard(g,S,R0,hs.dw);
    if(S.mask&&!back){humSh(g,humP(p=>{p.moveTo(-R0*.2,R0*.42);p.lineTo(R0*1.08,R0*.28);p.quadraticCurveTo(R0*1.05,R0*.95,R0*.45,R0*1.0);p.quadraticCurveTo(-R0*.1,R0*.9,-R0*.2,R0*.42);p.closePath()}),humLit(S.hatR||usCloth('night')))}
    humHat(g,S,R0,back,'over')})})}

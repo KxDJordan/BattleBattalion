@@ -74,13 +74,28 @@ for si, srcf in enumerate(srcs):
               vs = [P[y][x] for y in range(max(0, int(cy - r)), min(h, int(cy + r))) for x in range(max(0, int(cx - r)), min(w, int(cx + r)))
                     if P[y][x][3] > 250 and max(P[y][x][:3]) > 90 and dl[y][x] < 0]
               vs = vs or skinpx; vs.sort(key=lambda c: sum(c[:3])); return vs[len(vs) // 2]
+          # in-paint: every blob pixel and a 2 px halo takes the skin interpolated along its row between the nearest clean skin pixels
+          hole = [[False] * w for _ in range(h)]
           for (cx, cy, y0b, y1b, x0b, x1b, pts) in cand:
-              col = skin_near(cx, cy, max(y1b - y0b, x1b - x0b) + 8)
-              for yy in range(max(0, y0b - 3), min(h, y1b + 4)):
-                  for xx in range(max(0, x0b - 3), min(w, x1b + 4)):
-                      if dl[yy][xx] == big: continue
-                      near = any(0 <= yy + j < h and 0 <= xx + i < w and dl[yy + j][xx + i] >= 0 and dl[yy + j][xx + i] != big for j in range(-3, 4) for i in range(-3, 4))
-                      if near and P[yy][xx][3] > 20 and (dl[yy][xx] >= 0 or max(P[yy][xx][:3]) < sum(col[:3]) / 3 + 10): P[yy][xx] = (col[0], col[1], col[2], 255)
+              for (xx, yy) in pts:
+                  for j in range(-2, 3):
+                      for i in range(-2, 3):
+                          a_, b_ = xx + i, yy + j
+                          if 0 <= a_ < w and 0 <= b_ < h and dl[b_][a_] != big and P[b_][a_][3] > 20: hole[b_][a_] = True
+          clean = lambda x, y: (not hole[y][x]) and P[y][x][3] > 250 and max(P[y][x][:3]) > 90 and dl[y][x] < 0
+          for yy in range(h):
+              for xx in range(w):
+                  if not hole[yy][xx]: continue
+                  l = xx - 1
+                  while l >= 0 and not clean(l, yy): l -= 1
+                  r = xx + 1
+                  while r < w and not clean(r, yy): r += 1
+                  if l < 0 and r >= w: col = skin_near(xx, yy, 12)
+                  elif l < 0: col = P[yy][r]
+                  elif r >= w: col = P[yy][l]
+                  else:
+                      t = (xx - l) / (r - l); A_ = P[yy][l]; B_ = P[yy][r]; col = tuple(round(A_[c] + (B_[c] - A_[c]) * t) for c in range(3))
+                  P[yy][xx] = (col[0], col[1], col[2], 255)
           if cand:
               cand.sort(key=lambda c: c[0]); gaps = [(cand[i + 1][0] - cand[i][0], i) for i in range(len(cand) - 1)]
               cut = max(gaps)[1] if gaps and max(gaps)[0] > w * 0.12 else len(cand) - 1

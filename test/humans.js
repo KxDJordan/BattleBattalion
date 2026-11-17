@@ -69,6 +69,21 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
   const c=document.createElement('canvas');c.width=200;c.height=200;const q=c.getContext('2d');const us=[];for(let i=0;i<24;i++)us.push(merc({race:['human','elf','dwarf','halforc'][i&3],eq:[{w:'arming',s:'heater2',a:'mail',h:'kettle'},{w:'warbow',a:'leather'},{w:'greataxe',a:'scale'},{w:'crossbow',a:'padded'}][i&3]}));
   for(const u of us)for(let f=0;f<4;f++)for(const st of['idle','walk'])humLiveFrame(u,{pS:st,pF:0,pPh:0,pCy:0,pD:f,pAn:''});const t1=performance.now();let nf=0;for(let r=0;r<20;r++)for(const u of us){const F=humLiveFrame(u,{pS:r&1?'walk':'idle',pF:0,pPh:0,pCy:r/7,pD:r&3,pAn:''});humSkDraw(q,F,100,180);nf++}
   n.liveMs=+((performance.now()-t1)/nf).toFixed(3);if(n.liveMs>0.3)bad.push('a live figure costs '+n.liveMs+' ms')}
+ // eyes: every cell cut; the expression rules; eyes on front views only; the near eye the bigger, nearer one in every facing
+ {if(typeof EYA!=='object'||EYA.c.length!==54||EYA.c.some(c=>!c||!c[0]||!c[1]))bad.push('eye sheet: not every cell has a near and a far eye');
+  const pick=(o,st,t,cls)=>{const u=merc(Object.assign({race:'human',fem:0},o.spec||{eq:{w:'arming',a:'mail'}}));if(o.st)u.st=Object.assign({},o.st);if(o.buffs)u.buffs=o.buffs;if(o.mor!=null)u.mor=o.mor;const L=usLook(u);return eyePick(u,L,st,t||0,o.an||'',cls||'swing')};
+  const ir=u=>0;const CASES=[['idle',{},'idle',0,'swing',c=>c<6],['melee attack',{},'attack',.4,'swing',c=>c>=12&&c<18],['bow attack',{},'attack',.4,'bow',c=>c>=6&&c<12],
+   ['hit',{},'hit',.2,'swing',c=>c===24||c===21],['death',{},'death',.9,'swing',c=>c===28],['stunned',{st:{stun:1}},'idle',0,'swing',c=>c===33],['chilled',{st:{chill:2}},'idle',0,'swing',c=>c===52],
+   ['poisoned',{st:{poison:2}},'idle',0,'swing',c=>c===51],['fleeing',{an:'flee'},'walk',0,'swing',c=>c===34],['breaking',{mor:1},'idle',0,'swing',c=>c===36],['wavering',{mor:2},'idle',0,'swing',c=>c===18],
+   ['rallied',{buffs:[{key:'rallied'}]},'idle',0,'swing',c=>c===31],['shield wall',{buffs:[{key:'shieldwall'}]},'idle',0,'swing',c=>c>=6&&c<12],['rage',{st:{fury:2}},'idle',0,'swing',c=>c===16],['walk',{},'walk',0,'swing',c=>c>=6&&c<12]];
+  for(const [nm,o,st,t,cls,ok] of CASES){const e=pick(o,st,t,cls);if(!e||!ok(e.set))bad.push('expression '+nm+': got '+(e&&e.name)+' ('+(e&&e.set)+')')}
+  {const u=merc({race:'human',eq:{w:'focus',a:'robe'}});const L=usLook(u);L.S.res='mana';const e=eyePick(u,L,'cast',.5,'cast','staff');if(e.set!==47)bad.push('mana cast eyes: '+e.name)}
+  const k=humK();for(const race of['human','elf','halforc','dwarf'])for(const fem of[0,1]){const u=merc({race,fem,eq:{w:'arming',a:'padded'}}),L=usLook(u);
+   for(const face of[0,1,2,3]){const Fr=humSkFrame(L,face,'idle',0,k,'',{set:0,prev:null,fade:1}),N=Fr.list.find(x=>x.tag==='eyeN'),F=Fr.list.find(x=>x.tag==='eyeF'),id='eyes '+race+(fem?'F':'M')+' f'+face;
+    if(face>=2){if(N||F)bad.push(id+': eyes on a back view');continue}if(!N||!F){bad.push(id+': eyes missing');continue}
+    if(!(N.a.w*N.a.h>F.a.w*F.a.h))bad.push(id+': the near eye is not the bigger');if(!(N.a.x+N.a.w/2<F.a.x+F.a.w/2))bad.push(id+': the near eye is not on the near side (before the mirror)');
+    const hi=Fr.list.findIndex(x=>x.tag==='head'),ht=Fr.list.findIndex(x=>x.tag==='headTop'),ni=Fr.list.indexOf(N);if(!(hi<ni&&(ht<0||ni<ht)))bad.push(id+': eyes not between the head and its top')}}
+  {const u=merc({race:'human',eq:{w:'arming',a:'plate',h:'greathelm'}});const Fr=humSkFrame(usLook(u),0,'idle',0,k,'',{set:0,prev:null,fade:1});if(Fr.list.some(x=>x.tag==='eyeN'))bad.push('eyes show through a great helm')}}
  // Detail Low: the old figure, never the composed one; back to High: composed again
  const u0=merc({race:'elf',fem:1,eq:{w:'warbow',a:'leather',h:'hood'}});const hi=unitSpritePx(u0,0,'idle',0);
  SET.detail='low';artChanged();const lo=unitSpritePx(u0,0,'idle',0);if(!lo||lo.hum||lo.k)bad.push('Detail Low drew the composed figure');
