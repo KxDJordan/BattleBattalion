@@ -30,7 +30,7 @@ const HUM_NOT=new Set(['gob','gobarch','gobsham','skel','skelhal','zomb','orcy',
 function humPerson(L){if(L.hum!==undefined)return L.hum;let r=false;const S=L.S;
  if(S&&S.kind==='hum'&&typeof L.key==='string'){if(L.key[0]==='m')r=true;else if(L.key[0]==='e'){const id=L.key.split(':')[1];r=!HUM_NOT.has(id)&&!(typeof SHEETS==='object'&&SHEETS[id])&&!!US_BUILD&&S.b!==US_BUILD.thin&&S.b!==US_BUILD.gob&&S.b!==US_BUILD.orc&&S.b!==US_BUILD.imp&&S.b!==US_BUILD.bloat&&S.b!==US_BUILD.tyrant&&!(S.armor==='rags'&&S.wd&&S.wd.cls==='fist'&&!S.hair&&!S.hat&&!S.beard)}}   // the stock spec a monster without its own falls back to is no person
  L.hum=r;return r}
-function humWant(L){return HUM.on&&typeof document!=='undefined'&&typeof HPA==='object'&&(typeof hdArt!=='function'||hdArt())&&!!L&&humPerson(L)}
+function humWant(L){return HUM.on&&typeof document!=='undefined'&&typeof Path2D==='function'&&typeof CanvasRenderingContext2D==='function'&&typeof HPA==='object'&&(typeof hdArt!=='function'||hdArt())&&!!L&&humPerson(L)}
 
 /* ---- colours ---- */
 function humHex(k){const s=typeof PAL==='object'&&PAL[k];return s||(/^#/.test(k)?k:'#888888')}
@@ -57,7 +57,7 @@ function humRig(n){let R=HUM_RIG[n];if(R)return R;const P=HPA.p[n];R={w:P.w,h:P.
 
 /* ---- per look: the body spec (pieces, colours, proportions), computed once ---- */
 function humSpec(L){if(L.hs)return L.hs;const S=L.S,A=S.A||(S.A=usArmor(S)),bd=S.b||US_BUILD.human,big=!!bd.big;
- const race=L.key[0]==='m'?L.key.split(':')[3]:'',orc=race==='halforc'&&!!HPA.p.ohead_f,dw=race==='dwarf'&&!!HPA.p.dhead_f,el=S.ears==='elf'&&!orc&&!dw,fem=!!S.fem,a=S.armor;
+ const race=L.key[0]!=='m'?'':S.b===US_BUILD.dwarf?'dwarf':S.b===US_BUILD.halforc?'halforc':S.b===US_BUILD.elf?'elf':'human',orc=race==='halforc'&&!!HPA.p.ohead_f,dw=race==='dwarf'&&!!HPA.p.dhead_f,el=S.ears==='elf'&&!orc&&!dw,fem=!!S.fem,a=S.armor;
  const shorts=a==='rags'||a==='bare'||a==='fur';
  const sk=S.skin||usSkin(['s','t','u','i']),skin=humMix(humRC(sk),humRC(sk,-1),.38);
  const C={skin,skinD:humDk(skin,.2),body:humLit(A.body),slv:humLit(A.slv||A.body),fore:A.fore===sk?skin:humLit(A.fore||A.slv||A.body),hand:A.hand&&A.hand!==sk?humLit(A.hand):skin,leg:humLit(A.leg),boot:humLit(A.boot),
