@@ -12,7 +12,7 @@
 const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
-const P2_HADJ={33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],13:[1,-.04,.12],14:[1,0,.1],15:[1,-.04,.12],24:[1,0,.12],28:[1,0,.06],29:[1,0,.06],4:[1,0,.06],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
+const P2_HADJ={3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],13:[1,-.04,.12],14:[1,0,.1],15:[1,-.04,.12],24:[1,0,.12],28:[1,0,.06],29:[1,0,.06],4:[1,0,.06],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
 const P2_HTOP={4:.3,5:.16,13:.42,14:.3,15:.34,24:.38,28:.28,29:.3,30:.34,32:.3};
 // the five leg colours (legs.png): tan, blue, green, rust, grey
 const P2_LEGS=['tan','blue','green','rust','grey'];
