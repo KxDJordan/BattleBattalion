@@ -150,7 +150,7 @@ function whDot(g,x,y,r,col,a){g.globalAlpha=a==null?1:a;g.fillStyle=col;g.beginP
 function whShadowE(g,x,y,rx,ry,a){g.save();g.globalAlpha=a==null?.25:a;g.fillStyle='#0a1014';g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fill();g.restore()}
 // a sprite painted at K: box (w,h, anchor ax,ay) in art px; paint(g) draws with (0,0) at the anchor
 function whMake(w,h,ax,ay,K,paint){const c=pxCanvas(Math.max(1,Math.ceil(w*K)),Math.max(1,Math.ceil(h*K))),g=c.getContext('2d');g.setTransform(K,0,0,K,ax*K,ay*K);g.lineJoin='round';g.lineCap='round';
- whPU(g,K,()=>paint(g));return{c,w,h,ax,ay,x0:-ax,y0:-ay,x1:w-ax,y1:h-ay,tc:null,tq:null,tk:'',lit:null,raw:false,k:K}}
+ whPU(g,K,()=>paint(g));return{c,w,h,ax,ay,x0:-ax,y0:-ay,x1:w-ax,y1:h-ay,tc:null,tq:null,tk:'',lit:null,raw:false,k:K,hd:true}}
 
 /* ---- tall things ---- */
 function whTree(g,seed,rx,ry,trunk,M){const R=waRng(seed),cy=-trunk-ry+.6;whShadowE(g,1,.2,rx*.85,1.3,.24);
@@ -280,7 +280,8 @@ function wqDrop(q){if(q.cv)WQ.px-=q.cv.width*q.cv.height;q.cv=null;q.b=null;q.it
 function wqWork(vx0,vy0,vx1,vy1,boot,busy,W_,H_){const t0=performance.now(),S=WHQ*16,K=WQ.K;WQ.cap=Math.max(6e6,W_*H_*3.2);
  const qx0=clamp(Math.floor(vx0/S),0,WQ.n-1),qx1=clamp(Math.floor(vx1/S),0,WQ.n-1),qy0=clamp(Math.floor(vy0/S),0,WQ.n-1),qy1=clamp(Math.floor(vy1/S),0,WQ.n-1),cx=(vx0+vx1)/2/S-.5,cy=(vy0+vy1)/2/S-.5,stamp=++WQ.nb;
  for(let y=qy0;y<=qy1;y++)for(let x=qx0;x<=qx1;x++){const q=wqGet(x,y);q.use=stamp}
- const budget=boot?260:busy?2.4:3.4,dl=t0+budget;let guard=0;
+ let miss=false;for(let y=qy0;y<=qy1&&!miss;y++)for(let x=qx0;x<=qx1;x++){const q=WQ.list[y*WQ.n+x];if(!q||!q.cv){miss=true;break}}   // a hole in the view: work harder until it is filled
+ const budget=boot?260:miss?9:busy?2.4:3.4,dl=t0+budget;let guard=0;
  while(guard++<200&&performance.now()<dl){let best=null,bd=1e9;
   for(let y=Math.max(0,qy0-1);y<=Math.min(WQ.n-1,qy1+1);y++)for(let x=Math.max(0,qx0-1);x<=Math.min(WQ.n-1,qx1+1);x++){const q=WQ.list[y*WQ.n+x];if(q&&q.cv&&q.cv.K===K&&!q.b)continue;
    const inV=x>=qx0&&x<=qx1&&y>=qy0&&y<=qy1;if(boot&&!inV)continue;const d=Math.max(Math.abs(x-cx),Math.abs(y-cy))+(inV?0:10)-(q&&q.b?.5:0);if(d<bd){bd=d;best=[x,y]}}

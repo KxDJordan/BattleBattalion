@@ -277,7 +277,7 @@ function wchWork(cx0,cy0,cx1,cy1,vx0,vy0,vx1,vy1){const t0=performance.now(),boo
  for(let i=0;i<L.length;i++)if(L[i])L[i].vis=false;
  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=wchGet(cx,cy);ch.vis=true}
  if(WVHD){   // Detail High: painted quads (41h-worldhd.js); the chunks keep only their fog
-  if(WV.z===WV.zt&&!WV.pinch)WQ.K=clamp(WV.s,1,8);else if(!WQ.K)WQ.K=clamp(WV.s,1,8);wqWork(vx0,vy0,vx1,vy1,boot,G.moving||WV.hold||WV.z!==WV.zt,cv.width,cv.height);WV.build=performance.now()-t0;WCH.dl=boot?1e18:performance.now()+1.4;
+  {const k0=WQ.K;if(WV.z===WV.zt&&!WV.pinch)WQ.K=clamp(WV.s,1,8);else if(!WQ.K)WQ.K=clamp(WV.s,1,8);if(k0&&WQ.K!==k0){WSPR.clear();WSBX.clear()}}wqWork(vx0,vy0,vx1,vy1,boot,G.moving||WV.hold||WV.z!==WV.zt,cv.width,cv.height);WV.build=performance.now()-t0;WCH.dl=boot?1e18:performance.now()+1.4;
   for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=L[cy*WCH.cols+cx];if(ch&&ch.fd){ch.fd=false;wchFog(ch);ch.ver++}}return}
  // rows: visible chunks first (all of them when the view has just opened), then the ring around, then the rest of the map
  const budget=boot?90:G.moving||WV.hold||WV.z!==WV.zt?2.2:3.2;let guard=0;
@@ -300,6 +300,7 @@ function wchWork(cx0,cy0,cx1,cy1,vx0,vy0,vx1,vy1){const t0=performance.now(),boo
 function wvDecoOf(t,i){const D=WV.dk[i]||(WV.dk[i]={at:-1e9,key:'',own:null,mask:0,pr:1,hit:false});if(now-D.at>400){D.at=now;const h=t.own&&t.own!=='free'?lkHouse(t.own):null,own=h&&typeof waBnOf==='function'?waBnOf(h):null,
   mask=typeof waTownSitMask==='function'?waTownSitMask(t):0,pr=typeof t.pros==='number'?(t.pros<30?0:t.pros>70?2:1):1;if(own!==D.own||mask!==D.mask||pr!==D.pr||!D.key){D.own=own;D.mask=mask;D.pr=pr;D.key='D'+(t.size||2)+'|'+mask+'|'+pr+'|'+(own?own.sig:'-')}D.hit=!!(own||mask||pr!==1)}
  if(!D.hit)return null;const O=WV.deco;O.own=D.own;O.mask=D.mask;O.pr=D.pr;return D}
+function wvTownBio(t,i){const D=WV.dk[i]||(WV.dk[i]={at:-1e9,key:'',own:null,mask:0,pr:1,hit:false});if(!D.bio||D.bw!==W){D.bw=W;D.bio=typeof whTownBio==='function'?whTownBio(t):'plains'}return D.bio}
 function waNestTierSafe(n){if(typeof waNestTier==='function'){try{return waNestTier(n)}catch(e){}}return 2}
 const WSPR=new Map(),WSBX=new Map(),WSC={c:null,cq:null};
 function wvScratch(w,h,k){let c=WSC[k];if(!c){c=WSC[k]=mkCanvas(Math.max(96,w),Math.max(96,h));WSC[k+'q']=c.getContext('2d',{willReadFrequently:k==='c'})}if(c.width<w)c.width=w;if(c.height<h)c.height=h;const q=WSC[k+'q'];q.setTransform(1,0,0,1,0,0);q.globalCompositeOperation='source-over';q.globalAlpha=1;q.imageSmoothingEnabled=false;q.clearRect(0,0,c.width,c.height);return q}
@@ -310,7 +311,9 @@ function wvPaint(q,x,y,kind,o){
  else if(kind==='band'){if(WVA.band){try{drawBandPx(q,x,y,o);return}catch(e){wvFail('band',e)}}wvBandOld(q,x,y,o,false)}
  else{if(WVA.co){try{drawCompanyPx(q,x,y,o);return}catch(e){wvFail('co',e)}}wvBandOld(q,x,y,o,true)}}
 // Cached sprite for a key. Two new sprites a frame at most: a third shows the last frame of the same thing meanwhile.
-function wvSprite(key,base,kind,o){let e=WSPR.get(key);if(e)return e;{const b=WSBX.get(base);if(b&&b.last&&WV.nc>=2&&!WV.boot)return b.last}WV.nc++;if(WSPR.size>420)WSPR.clear();let w=72,h=64,ax=36,ay=54;if(kind==='site'){const b=wvSiteBox(o);w=b.w+12;h=b.h+12;ax=w>>1;ay=b.h+6}else if(kind==='deco'){const b=wvSiteBox({kind:'town',size:o.size});w=b.w+20;h=b.h+32;ax=w>>1;ay=b.h+24}
+function wvSprite(key,base,kind,o){let e=WSPR.get(key);if(e)return e;{const b=WSBX.get(base);if(b&&b.last&&WV.nc>=2&&!WV.boot)return b.last}WV.nc++;if(WSPR.size>420)WSPR.clear();
+ if(WVHD&&typeof whSprite==='function'){let h=null;try{h=whSprite(kind,o,WQ.K||WV.s)}catch(err){if(!WVA.warn.hd){WVA.warn.hd=1;try{console.warn('world: painted sprite failed, using the pixel one: '+(err&&err.message||err))}catch(x){}}}   // Detail High: painted (41i-worldhd-sites.js)
+  if(h){let bb=WSBX.get(base);if(!bb){if(WSBX.size>300)WSBX.clear();bb={x0:h.x0,y0:h.y0,x1:h.x1,y1:h.y1,last:null};WSBX.set(base,bb)}bb.last=h;WSPR.set(key,h);return h}}let w=72,h=64,ax=36,ay=54;if(kind==='site'){const b=wvSiteBox(o);w=b.w+12;h=b.h+12;ax=w>>1;ay=b.h+6}else if(kind==='deco'){const b=wvSiteBox({kind:'town',size:o.size});w=b.w+20;h=b.h+32;ax=w>>1;ay=b.h+24}
  else if(kind==='east'){const b=eastBoxPx(o);w=b.w+12;h=b.h+12;ax=w>>1;ay=b.h+6}
  const night=(kind==='site'||kind==='deco'||(kind==='east'&&o.k==='town'))&&o.night,c=mkCanvas(w,h),q=c.getContext('2d',night?{willReadFrequently:true}:undefined);q.imageSmoothingEnabled=false;wvPaint(q,ax,ay,kind,o);
  let bb=WSBX.get(base),d=null;if(!bb||night)d=q.getImageData(0,0,w,h).data;
@@ -322,7 +325,8 @@ function wvSprite(key,base,kind,o){let e=WSPR.get(key);if(e)return e;{const b=WS
   for(let i=0;i<d.length;i+=4)if(d[i+3]&&(d[i]!==dd[i]||d[i+1]!==dd[i+1]||d[i+2]!==dd[i+2])&&d[i]+d[i+1]+d[i+2]>dd[i]+dd[i+1]+dd[i+2]){ld[i]=d[i];ld[i+1]=d[i+1];ld[i+2]=d[i+2];ld[i+3]=255;any=true}
   if(any){e.lit=mkCanvas(w,h);e.lit.getContext('2d').putImageData(im,0,0)}}
  WSPR.set(key,e);return e}
-function wvSprCv(e){if(!WCH.ton||e.raw)return e.c;if(e.tk===WCH.tk)return e.tc;if(e.tc&&WV.tn>=2)return e.tc;WV.tn++;   // a few re-tints a frame; the rest keep the last light for a frame or two
+function wvSprCv(e){if(!WCH.ton||e.raw){if(e.hd&&e.lit){if(!e.cl){e.cl=mkCanvas(e.c.width,e.c.height);const q=e.cl.getContext('2d');q.drawImage(e.c,0,0);q.drawImage(e.lit,0,0)}return e.cl}return e.c}   // a painted sprite's lit layer (torches, fires) shows by day too
+if(e.tk===WCH.tk)return e.tc;if(e.tc&&WV.tn>=2)return e.tc;WV.tn++;   // a few re-tints a frame; the rest keep the last light for a frame or two
  const w=e.c.width,h=e.c.height;if(!e.tc){e.tc=mkCanvas(w,h);e.tq=e.tc.getContext('2d')}const t=e.tc,q=e.tq;
  q.globalCompositeOperation='copy';q.drawImage(e.c,0,0);wvTintRect(q,0,0,w,h);q.globalCompositeOperation='destination-in';q.drawImage(e.c,0,0);q.globalCompositeOperation='source-over';if(e.lit)q.drawImage(e.lit,0,0);e.tk=WCH.tk;return t}
 // draws a standing sprite, then puts back the tall parts of the tiles in front of it (tree tops and peaks south of its feet)
@@ -399,7 +403,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  // standing things, back to front
  WSN=0;WV.np=0;WV.tn=0;WV.nc=0;const vis=wvVisFn(),M=40,inV=(x,y)=>x>vx0-M&&x<vx1+M&&y>vy0-M&&y<vy1+M+24,fs=WV.fs,c=G.contract,CM=lkCtrMarks();let turnin=-1;WV.mkn=0;for(let i=0;i<CM.length;i++)if(CM[i].kind==='turnin'){turnin=CM[i].town;break}
  for(let i=0;i<G.towns.length;i++){const o=G.towns[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y))continue;const seen=worldSeen(o.x,o.y),so={kind:'town',size:o.size||2,frame:WV.f4%4,night:night>.5};let top=y-7;
-  if(seen){const ea=WVE.on&&!!o.east,e=ea?wvEastSpr(WVE.town,'town',so.size,so.night,so.frame):wvSprite('T'+so.size+(so.night?'n':'d')+so.frame,'T'+so.size,'site',so);wvPush(y,e,x,false);top=y+e.y0;
+  if(seen){const ea=WVE.on&&!!o.east;if(WVHD&&!ea){so.bio=wvTownBio(o,i)}const e=ea?wvEastSpr(WVE.town,'town',so.size,so.night,so.frame):wvSprite((WVHD?'T'+so.bio:'T')+so.size+(so.night?'n':'d')+so.frame,(WVHD?'T'+so.bio:'T')+so.size,'site',so);wvPush(y,e,x,false);top=y+e.y0;
    if(WVA.deco){const dk=wvDecoOf(o,i);if(dk){const DO=WV.deco;DO.size=so.size;DO.frame=so.frame;DO.night=so.night;const e2=wvSprite(dk.key+(so.night?'n':'d')+so.frame,dk.key,'deco',DO);wvPush(y+.001,e2,x,false)}}}
   wvPlateAt(o.name,seen?(i===turnin?'d':'l'):'n',seen?'1':'0',x,top-2);if(i===turnin)WV.mk={x,y:top-13}}
  if(WVE.on){const L=WVE.props;for(let i=0;i<L.length;i++){const o=L[i],x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!worldSeen(o.x,o.y))continue;wvPush(y,wvEastProp(o),x,false)}}   // eastern scenery: static sprites (their entries are in the draw list)
