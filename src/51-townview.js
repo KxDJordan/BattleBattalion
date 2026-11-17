@@ -1,12 +1,38 @@
-/* ================= TOWN VIEW (illustrated town scene) =================
-   Entering a town shows a pixel-art street painted in code: tvShow(note) / tvHide(), driven by renderTown() in 50-towns.js.
-   The scene is painted once into a palette-index buffer (only PAL keys), lit for the time of day by palette remaps
-   (night uses a darker map, lantern pools dither back to the warm map), then blitted to a low-resolution canvas that
-   CSS scales by an integer factor. A 10 fps overlay draws the small animated bits on top of the cached picture.
-   Everything cosmetic derives from a hash of the town name; the game's seeded rnd() stream is never touched. */
-const TV={root:null,cv:null,g:null,W:0,H:0,s:2,key:'',pic:null,an:null,hot:-1,down:-1,raf:0,last:0,tick:0,note:'',paid:false,force:null,dirty:true,ms:0,frames:0,sp:new Map()};
+/* ================= TOWN VIEW (illustrated town street) =================
+   Entering a town shows a street painted in code: tvShow(note) / tvHide(), driven by renderTown() in 50-towns.js.
+   Every service the town offers is its own building on the street (tvPlan): the four base lots (tavern, inn, market with the
+   tailor behind it, notice board with the temple behind it), then the town's extra buildings (t.bld: armorer, weaponsmith, fletcher,
+   arcane college, training hall) between them, and the harbour last, at the water's edge. When the lots are wider than the screen
+   the street pans sideways (drag, wheel, the arrows in the bottom bar, or keyboard focus); the labels move with it.
+   Detail Low (hdArt() false): the scene is painted once into a palette-index buffer (only PAL keys), lit for the time of day by
+   palette remaps (night uses a darker map, lantern pools dither back to the warm map), and blitted at an integer scale.
+   Detail High: the same plan is painted as clean-lined, painted vector art at device resolution (51h-townhd.js).
+   Either way the painted street is cached (key: town, size, time of day, biome, detail) and a 10 fps overlay draws the small
+   animated bits over the visible part of it. Everything cosmetic derives from a hash of the town name; the game's seeded
+   rnd() stream is never touched. */
+const TV={root:null,cv:null,g:null,W:0,H:0,s:2,key:'',pic:null,an:null,hot:-1,down:-1,raf:0,last:0,tick:0,note:'',paid:false,force:null,dirty:true,ms:0,frames:0,sp:new Map(),
+ pan:0,panMax:0,SW:0,k:1,hd:false,vw:0,vh:0,plan:null,panTown:null,drag:null,fling:0,paintMs:0};
 const TVK=Object.keys(PAL),TVI={};TVK.forEach((k,i)=>TVI[k]=i+1);
 const TVPLACES=[['contracts','Notice board','board'],['tavern','Tavern','tavern'],['market','Market','market'],['inn','Inn','inn'],['temple','Temple','temple'],['tailor','Tailor','tailor']];
+/* ---- the street plan: which buildings stand where (shared by both detail levels, in scene units u = one low-res pixel) ----
+   lots: [{k, x, w}] left to right; places: {k: {k, tab, x, w, cx, box:{x,y,w,h}, back}}; back = stands behind another lot
+   (the temple behind the notice board, the tailor behind the market) and carries its label above that lot. */
+const TVID={board:1,tavern:2,market:3,inn:4,temple:5,tailor:6,armorer:7,weaponsmith:8,fletcher:9,college:10,hall:11,harbour:12};
+const TVLOT={tavern:90,inn:88,market:96,board:44,armorer:58,weaponsmith:62,fletcher:54,college:44,hall:66,harbour:112};
+const TVTAB={board:'contracts'};
+function tvPlan(t,ti,W,H){const hs=tvHash(t.name||'town'+ti),GH=Math.round(clamp(H*.29,52,112)),yB=H-GH,R=mulberry(hs^0x5bd1e995);
+ const base=[['tavern','board','market','inn'],['inn','board','tavern','market'],['market','board','inn','tavern'],['board','tavern','market','inn']][(hs>>>20)%4];
+ const all=tvExtras(t),ex=all.filter(k=>k!=='harbour');for(let i=ex.length-1;i>0;i--){const j=Math.floor(R()*(i+1)),q=ex[i];ex[i]=ex[j];ex[j]=q}
+ const seq=[];base.forEach((k,i)=>{seq.push(k);if(ex.length>i)seq.push(ex[i])});for(let i=base.length;i<ex.length;i++)seq.push(ex[i]);if(all.includes('harbour'))seq.push('harbour');
+ const sum=seq.reduce((a,k)=>a+TVLOT[k],0),n=seq.length,g0=n<=4?-3:4,m0=4,need=sum+g0*(n-1)+m0*2;
+ let SW=W,gap,mar;if(need<=W){gap=Math.min(40,(W-sum)/(n+1));mar=(W-sum-gap*(n-1))/2}else{SW=Math.ceil(need);gap=g0;mar=m0}
+ const lots=[];let x=mar;for(const k of seq){lots.push({k,x:Math.round(x),w:TVLOT[k]});x+=TVLOT[k]+gap}
+ const places={},put=(k,x0,w,box,cx,back)=>places[k]={k,tab:TVTAB[k]||k,x:x0,w,box,cx:Math.round(cx),back:!!back};
+ const BX={tavern:[-90,92],inn:[-108,110],market:[-58,62],board:[-41,49],armorer:[-72,74],weaponsmith:[-72,74],fletcher:[-60,62],college:[-116,118],hall:[-74,76],harbour:[-92,108]};
+ for(const L of lots){const b=BX[L.k];put(L.k,L.x,L.w,{x:L.x,y:yB+b[0],w:L.w,h:b[1]},L.k==='harbour'?L.x+24:L.x+L.w/2);
+  if(L.k==='board'){const cx=L.x+22;put('temple',cx-27,54,{x:cx-27,y:yB-108,w:54,h:67},cx,1)}
+  if(L.k==='market'){const cx=L.x+45;put('tailor',cx-34,68,{x:cx-34,y:yB-88,w:68,h:30},cx,1)}}
+ return{SW,W,H,GH,yB,gap,lots,places,seq,hs}}
 function tvCan(){return typeof window!=='undefined'&&typeof document!=='undefined'&&typeof HTMLCanvasElement!=='undefined'&&typeof ImageData!=='undefined'}
 function tvHash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function tvRM(){try{const a=$('app');if(a&&a.classList.contains('rm'))return true;if(typeof SET!=='undefined'&&SET){if(SET.motion==='reduce')return true}
@@ -31,11 +57,12 @@ const TVBAY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
 /* ---- painter: a W x H buffer of palette indices plus flags (bit0 emissive, bits1-2 layer, bits3-5 building id) ---- */
 function tvPainter(W,H){const buf=new Uint8Array(W*H),fl=new Uint8Array(W*H);
  const P={W,H,buf,fl,em:0,id:0,ly:2,
-  p(x,y,k){if(x<0||y<0||x>=W||y>=H)return;const i=y*W+x;buf[i]=TVI[k];fl[i]=P.em|P.ly<<1|P.id<<3},
+  p(x,y,k){if(x<0||y<0||x>=W||y>=H)return;const i=y*W+x;buf[i]=TVI[k];fl[i]=P.em|P.ly<<1|P.id<<3},   /* id: bits 3-7 (TVID, up to 31) */
   r(x,y,w,h,k){for(let j=0;j<h;j++)for(let i=0;i<w;i++)P.p(x+i,y+j,k)},
   d(x,y,w,h,k,m){for(let j=0;j<h;j++)for(let i=0;i<w;i++){const a=x+i,b=y+j;if(m===2?((a&1)===0&&(b&1)===0&&((a>>1)+(b>>1)&1)===0):m===1?((a+b*2)%4===0):((a+b)&1)===0)P.p(a,b,k)}},
   s(rows,x,y,flip){for(let j=0;j<rows.length;j++){const r=rows[j],n=r.length;for(let i=0;i<n;i++){const k=r[flip?n-1-i:i];if(k!=='.'&&k!==' ')P.p(x+i,y+j,k)}}},
   disc(cx,cy,r,k,m){for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)if(x*x+y*y<=r*r+r*.8){if(m===undefined)P.p(cx+x,cy+y,k);else P.d(cx+x,cy+y,1,1,k,m)}},
+  ln(x0,y0,x1,y1,k){const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0))||1;for(let i=0;i<=n;i++)P.p(Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n),k)},
   key(x,y){if(x<0||y<0||x>=W||y>=H)return'';const v=buf[y*W+x];return v?TVK[v-1]:''}};
  return P}
 /* buffer -> canvas, applying the light for the time of day */
@@ -60,14 +87,22 @@ const TVS={
  walkA:['..HH...','.HHH...','.sst...','.sst...','.7550..','755570.','s5557s.','.5577..','.jjij..','.j..i..','.j..i..','.0..0..'],
  walkB:['..HH...','.HHH...','.sst...','.sst...','.7550..','.75570.','.s557..','.5577..','.jjii..','..ji...','..ji...','..00...'],
  bird:['p...p','.p.p.','..p..'],birdB:['.....','pp.pp','..p..'],
- cat:['0....0.','00..00.','0G00G0.','.0GG0..']
+ cat:['0....0.','00..00.','0G00G0.','.0GG0..'],
+ manq:['...00000...','..0qqqpo0..','..0q000o0..','..0qqppo0..','...0ooo0...','.....j.....','.000000000.','0qqqpqqqpo0','0qppqpppoo0','.0qpqppoo0.','.0qppqpoo0.','.0qpqppoo0.',
+  '.0pppppoo0.','.0popopoo0.','.0opopopo0.','.0popopop0.','..0000000..','.....j.....','.....j.....','.....j.....','.....j.....','...jjjjj...','..iiiiiii..'],
+ manqE:['..c.....c..','...c...c...','...0ggg0...','..0gffgf0..','..0g000f0..','...0fff0...','.....j.....','.000000000.','0ggfgggff00','0gffgffff00','.0g1g1g1f0.','.0gfgfgff0.','.0g1g1g1f0.',
+  '.0gfgfgff0.','.0g1g1g1f0.','.0fffffff0.','..0000000..','.....j.....','.....j.....','.....j.....','.....j.....','...jjjjj...','..iiiiiii..'],
+ helmA:['.pqp.','pqqqo','p000o','pqqpo','.ooo.'],helmB:['..g..','.ggg.','.pqp.','pqqpo','po.po'],helmE:['c...c','.c.c.','.gfg.','ggffg','f...f'],
+ anvil:['0000000..','oqqqqqpo0','.0ppppo0.','..0oo0...','.0oooo0..','000000000'],
+ dummy:['....ddd....','...dcccd...','...cdcdc...','....ccc....','.....j.....','jjjjjjjjjjj','....ccc....','...cdccc...','...cdcbc...','...ccccb...','...ckkkb...','...cdccb...',
+  '...cccbb...','....cbb....','.....j.....','.....j.....','.....j.....','.....j.....','.....j.....','.....j.....','.....j.....','...jjjjj...']
 };
 function tvSpr(key,rows,map,flip){const id=key+'|'+(flip?1:0);let c=TV.sp.get(id);if(c===undefined){c=px(flip?pxFlip(rows):rows,map);TV.sp.set(id,c)}return c}
 
 /* ---- the scene ---- */
-function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=tvHash(t.name||'town'+ti),R=mulberry(hs),rr=(a,b)=>a+Math.floor(R()*(b-a+1)),ch=p=>R()<p;
+function tvPaint(t,ti,PL,tod,bio){const W=PL.SW,H=PL.H,east=!!(t&&t.east),P=tvPainter(W,H),hs=tvHash(t.name||'town'+ti),R=mulberry(hs),rr=(a,b)=>a+Math.floor(R()*(b-a+1)),ch=p=>R()<p;
  const dark=tod==='night',dim=tod==='dusk'||dark,lamps=dim,GH=Math.round(clamp(H*.29,52,112)),yB=H-GH,yH=yB-12,snow=bio==='snow';
- const an={smoke:[],lamps:[],stars:[],glints:[],lights:[],sign:null,mill:null,flag:null,walkY:yB+12,parts:null,box:{},yB,GH,tod,bio};
+ const an={smoke:[],lamps:[],stars:[],glints:[],lights:[],sign:null,mill:null,flag:null,flags:[],sparks:[],runes:[],walkY:yB+12,parts:null,box:{},yB,GH,tod,bio,water:null,walkX1:W};
  const lit=p=>tod==='night'?ch(p):tod==='dusk'?ch(p*.75):tod==='dawn'?ch(p*.3):false;
  const ramps=east?['kawara','tile','kawara','tile']:bio==='desert'?['clay','thatch','blue','plum']:bio==='snow'?['slate','blue','red','verd']:bio==='swamp'?['wood','verd','slate','plum']:bio==='forest'?['verd','wood','red','slate']:bio==='hills'?['slate','red','blue','verd']:['red','thatch','verd','slate'];
  const pickR=()=>ramps[(hs>>>(pickR.n=(pickR.n||0)+3))%ramps.length];
@@ -192,12 +227,11 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
  const shadow=(x,y,w)=>{P.d(x,y,w,1,GR.rs,0);P.d(x+2,y+1,w-4,1,GR.rs,1)};
  /* -- back row of houses and the landmark -- */
  const hz=dark?['n','o','4']:['m','n','o'],bR=[[hz[1],hz[2],'4'],['o','4','3'],[rA[1],rA[2],'4'],[rB[1],rB[2],'4']];
- /* -- layout of the four street places (the temple stands behind the notice board, the lowest of them) -- */
- const order=[['tavern','board','market','inn'],['inn','market','board','tavern'],['market','tavern','board','inn'],['inn','board','tavern','market']][(hs>>>20)%4];
- const WD={tavern:80,inn:84,market:80,board:38},tot=order.reduce((a,k)=>a+WD[k],0),gap=Math.max(-5,(W-tot)/(order.length+.6)),X={};{let cx=gap*.8;order.forEach(k=>{X[k]=Math.round(cx);cx+=WD[k]+gap})}
- const tcx=X.board+19,tlx=X.market+40;
+ /* -- the plan (tvPlan): lot positions; the temple stands behind the notice board, the tailor behind the market -- */
+ const X={},PLC=PL.places;PL.lots.forEach(L=>X[L.k]=L.x);
+ const tcx=PLC.temple.cx,tlx=PLC.tailor.cx,harb=PLC.harbour?PLC.harbour.x+40:W+99;if(PLC.harbour)an.walkX1=harb-6;
  // the town's own landmark keeps clear of the temple
- const land=east?(t.size>=3?'castle':'pagoda'):['mill','tower','beacon','gate','mill','tower','gate','beacon'][ti%8],lx=(()=>{const c=[.3,.4,.5,.6,.7].map(f=>Math.round(W*f)),far=a=>Math.min(Math.abs(a-tcx),Math.abs(a-tlx)),a=c[(hs>>>16)%5];return far(a)>=46?a:c.slice().sort((p,q)=>far(q)-far(p))[0]})();
+ const land=east?(t.size>=3?'castle':'pagoda'):['mill','tower','beacon','gate','mill','tower','gate','beacon'][ti%8],lx=(()=>{const tall=[tcx,tlx].concat(PLC.college?[PLC.college.cx]:[]),span=Math.min(W,harb-30),c=[.3,.4,.5,.6,.7].map(f=>Math.round(span*f)),far=a=>Math.min(...tall.map(q=>Math.abs(a-q))),a=c[(hs>>>16)%5];return far(a)>=46?a:c.slice().sort((p,q)=>far(q)-far(p))[0]})();
  const lmK=bio==='desert'?['d','c','k']:['q','p','o'];
  const LH=Math.round(clamp(yB*.62,70,104)),by0=yB-6,brick=(i,j,hw)=>i<-hw+2?lmK[0]:i>hw-3?lmK[2]:(j%6===5||((i+(j/6|0)*3+60)%7===0))?lmK[2]:lmK[1];
  if(land==='pagoda'){const RF=TVRAMP.tile;let y=by0;for(let k=0;k<5;k++){const hw=13-k*2,bh=k?8:12;for(let j=0;j<bh;j++)for(let i=-hw+3;i<=hw-3;i++)P.p(lx+i,y-j,i===-hw+3?'k':i===hw-3?'i':k?'g':'l');
@@ -207,7 +241,7 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
   for(let k=0;k<3;k++){const hw=15-k*4,bh=k===2?10:12;wall(lx-hw,y-bh+1,hw*2,bh,'plaster');for(let i=-hw+4;i<hw-3;i+=6)win(lx+i,y-bh+5,3,4,{lit:lit(.6),fr:'1'});y-=bh;for(let j=0;j<6;j++){const ww=hw+2+Math.round(j*j*.4);for(let i=-ww;i<=ww;i++)P.p(lx+i,y-5+j,j===5?'1':i<-ww*.3?RF[0]:i>ww*.4?RF[2]:RF[1])}eaves(lx-hw-4,lx+hw+5,y,RF);y-=6}
   P.s(['c...c','dc.cd','.ccc.'],lx-2,y-2);if(lamps)an.lights.push({x:lx,y:y+20,r:20})}
  else if(land==='mill'){const h=LH-22;for(let j=0;j<h;j++){const hw=6+Math.round(j/9);for(let i=-hw;i<=hw;i++)P.p(lx+i,by0-h+j,brick(i,j,hw+1))}
-  for(let j=0;j<9;j++)for(let i=-j-2;i<=j+2;i++)P.p(lx+i,by0-h-9+j,snow&&j<3?'r':i<0?rC[1]:rC[2]);P.r(lx-1,by0-h+12,3,5,'G');P.r(lx-1,by0-h+30,3,5,'G');an.mill={x:lx,y:by0-h-3,r:Math.round(LH*.26)}}
+  for(let j=0;j<9;j++)for(let i=-j-2;i<=j+2;i++)P.p(lx+i,by0-h-9+j,snow&&j<3?'r':i<0?rC[1]:rC[2]);P.r(lx-1,by0-h+12,3,5,'G');P.r(lx-1,by0-h+30,3,5,'G');an.mill={x:lx,y:by0-h-3,r:Math.round(LH*.26)};{const m=an.mill,hid=PL.lots.some(L=>{const b=PLC[L.k].box;return L.k!=='board'&&b.x<m.x+m.r+2&&b.x+b.w>m.x-m.r-2&&b.y<m.y+m.r})||[PLC.temple,PLC.tailor].some(q=>Math.abs(q.cx-m.x)<m.r+30);if(hid){an.millHid=1;for(let a=0;a<4;a++){const th=.4+a*Math.PI/2,cs=Math.cos(th),sn=Math.sin(th);for(let i=2;i<=m.r;i++){const x=m.x+cs*i,y=m.y+sn*i;P.p(Math.round(x),Math.round(y),'i');if(i>m.r*.3){P.p(Math.round(x-sn*1.2),Math.round(y+cs*1.2),'l');P.p(Math.round(x-sn*2.4),Math.round(y+cs*2.4),i%2?'l':'n');P.p(Math.round(x-sn*3.4),Math.round(y+cs*3.4),'n')}}}}}}
  else if(land==='tower'||land==='beacon'){const h=land==='beacon'?LH-14:LH-10;for(let j=0;j<h;j++)for(let i=-8;i<8;i++)P.p(lx+i,by0-h+j,brick(i,j,8));
   for(let i=-10;i<10;i++){P.p(lx+i,by0-h,lmK[2]);P.p(lx+i,by0-h-1,lmK[1]);P.p(lx+i,by0-h-2,lmK[1]);if((i+10)%4<2){P.p(lx+i,by0-h-3,lmK[1]);P.p(lx+i,by0-h-4,snow?'r':lmK[0])}}
   P.r(lx-1,by0-h+10,2,6,'G');P.r(lx-1,by0-h+28,2,6,'G');P.r(lx-5,by0-h+44,2,5,'G');
@@ -221,7 +255,7 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
  else{const h=LH-22;for(const ox of [-19,11]){for(let j=0;j<h;j++)for(let i=-5;i<5;i++)P.p(lx+ox+5+i,by0-h+j,brick(i,j,5));for(let j=0;j<13;j++){const hw=Math.round((j+1)*7/13);for(let i=-hw;i<hw;i++)P.p(lx+ox+5+i,by0-h-13+j,snow&&i<0?'r':i<0?rC[1]:rC[2])}P.r(lx+ox+4,by0-h+10,2,6,'G');P.r(lx+ox+4,by0-h+26,2,6,'G')}
   const gh=Math.round(h*.66);for(let j=0;j<gh;j++)for(let i=-9;i<11;i++)P.p(lx+i,by0-gh+j,j%6===5||(i+(j/6|0)*3+60)%7===0?lmK[2]:lmK[1]);for(let i=-9;i<11;i++)if((i+9)%4<2)P.r(lx+i,by0-gh-3,1,3,snow?'r':lmK[0]);
   for(let j=0;j<22;j++){const hw=j<7?Math.round(Math.sqrt(49-(7-j)*(7-j))):7;for(let i=-hw;i<=hw;i++)P.p(lx+1+i,by0-22+j,j>4&&(i+j)%4===0?'3':'1')}}
- for(let x=-rr(2,14);x<W+10;){const w=rr(22,34),h=rr(26,44),by=yB-3,rc=bR[rr(0,3)],gab=ch(.4);
+ for(let x=-rr(2,14);x<Math.min(W+10,harb-20);){const w=rr(22,34),h=rr(26,44),by=yB-3,rc=bR[rr(0,3)],gab=ch(.4);
   for(let j=0;j<h;j++)for(let i=0;i<w;i++)P.p(x+i,by-h+j,i>w-4?hz[2]:j<2?hz[1]:(bio==='desert'?(dark?'o':'k'):hz[0]));
   if(bio==='desert'&&!gab){P.r(x-1,by-h-2,w+2,3,hz[1]);P.r(x-1,by-h-3,w+2,1,dark?'o':'d')}
   else if(gab){for(let j=0;j<Math.round(w/2.4);j++){const hw=Math.round((j+1)*(w/2+2)/Math.round(w/2.4));for(let i=-hw;i<hw;i++){const e=Math.min(i+hw,hw-1-i);P.p(Math.round(x+w/2)+i,by-h-Math.round(w/2.4)+j,e<2?(snow?'r':i<0?rc[0]:rc[1]):hz[0])}}}
@@ -230,8 +264,8 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
   if(ch(.5)){const cx=x+rr(4,w-8);P.r(cx,by-h-(gab?16:15),4,8,hz[2]);P.r(cx-1,by-h-(gab?16:15),6,1,snow?'r':hz[1])}
   x+=w+rr(-2,10)}
  // trees in the gaps, behind the buildings
- order.forEach((k,i)=>{if(gap>8&&i<order.length-1&&ch(.8))tree(X[k]+WD[k]+Math.round(gap/2)+rr(-2,2),yB-1,rr(20,30))});
- if(X[order[0]]>14)tree(rr(3,8),yB,rr(22,30));if(W-(X[order[3]]+WD[order[3]])>14)tree(W-rr(3,8),yB,rr(22,30));
+ PL.lots.forEach((L,i)=>{const N=PL.lots[i+1];if(!N)return;const g=N.x-(L.x+L.w);if(g>8&&ch(.8))tree(L.x+L.w+Math.round(g/2)+rr(-2,2),yB-1,rr(20,30));if(g>44)tree(L.x+L.w+Math.round(g/4),yB-2,rr(16,24))});
+ {const F=PL.lots[0],Z=PL.lots[PL.lots.length-1];if(F.x>14)tree(rr(3,8),yB,rr(22,30));if(Z.k!=='harbour'&&W-(Z.x+Z.w)>14)tree(W-rr(3,8),yB,rr(22,30))}
  /* -- temple: a stone chapel, gable to the street, a lit lancet window and a bell under a little cap -- */
  const temple=cx=>{P.id=5;const m=bio==='desert'?'adobe':'stone',rT=(r=>r===rC?TVRAMP[r===TVRAMP.blue?'verd':'blue']:r)(TVRAMP[bio==='desert'?'clay':bio==='forest'||bio==='swamp'?'blue':'verd']),by=yB-3,w=44,x=cx-22,wh=58,gh=24,ty=by-wh,ap=ty-gh,bt=yB+6-47;
   const tr=m==='adobe'?['d','c','k']:['q','p','o'];
@@ -255,11 +289,6 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
   P.r(cx-1,cy-13,2,7,'c');P.r(cx-3,cy-11,6,2,'c');P.p(cx-1,cy-13,'e');P.p(cx-3,cy-11,'d');P.r(cx,cy-12,1,6,'b');
   if(lamps)an.lights.push({x:cx,y:ty+4,r:18});
   an.bell={x:cx-2,y:cy+5};P.id=0;an.box.temple={x:x-5,y:cy-13,w:w+10,h:Math.max(24,bt-(cy-13))}};
- /* -- guild houses (phase 7): the town's extra buildings (t.bld) as tall back-row houses that rise over the street, each with
-    its own silhouette and a hanging sign carrying the building's icon. Hot spots come from an.box (no pixel outline). -- */
- {const ex=tvExtras(t);if(ex.length){const avoid=[tcx,tlx,lx],cand=[];for(let f=.05;f<.97;f+=.045)cand.push(Math.round(W*f));
-   const pick=[];for(const k of ex){let best=null,bd=-1;for(const c of cand){const d=Math.min(...avoid.map(a=>Math.abs(c-a)).concat(pick.map(q=>Math.abs(c-q.x)+4)));if(d>bd){bd=d;best=c}}if(best==null||bd<24)break;pick.push({k,x:best})}
-   for(const g of pick)tvGuild(P,g.k,g.x,yB,LH,{lit,snow,dim,dark,mat,wall,win,roofGable,roofSide,chimney,rr,ch,an,wallM})}}
  /* -- the East: a shrine hall instead of the stone chapel: red pillars, a great curved roof, a hanging bell under a gate roof -- */
  const templeE=cx=>{P.id=5;const by=yB-3,w=48,x=cx-24,wh=34,ty=by-wh,RF=TVRAMP.tile;
   for(let j=0;j<5;j++)P.r(x-4+j,by+1-j,w+8-j*2,1,j?'p':'o');wall(x,ty,w,wh-4,'plaster');for(let i=0;i<w;i+=8){P.r(x+i,ty,3,wh-4,'g');P.r(x+i,ty,1,wh-4,'h');P.r(x+i+2,ty,1,wh-4,'f')}
@@ -369,9 +398,85 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
    if(tr){const A=typeof BANNERC==='object'&&BANNERC[tr.c1]?BANNERC[tr.c1].r:['f','g','h'],C=typeof BANNERC==='object'&&BANNERC[tr.c2]?BANNERC[tr.c2].r:['m','l','r'];
     for(let k=0;k<7;k++){P.p(px0+k,py0+1+k,'f');P.p(px0+1+k,py0+1+k,'g')}P.r(px0+3,py0-2,6,8,'0');P.r(px0+4,py0-1,4,6,A[1]);P.r(px0+4,py0-1,4,1,A[2]);P.r(px0+4,py0+1,4,1,C[1]);P.r(px0+7,py0,1,5,A[0]);P.r(px0+5,py0+4,2,1,'0');P.r(px0+5,py0+5,2,1,'k');P.p(px0+5,py0-2,'p')}}
   P.d(x+1,by,36,1,GR.rs,0);P.id=0;an.box.board={x:x-3,y:by-47,w:46,h:49}};
- const DRAW={tavern,inn,market,board};['tavern','inn','market','board'].forEach(k=>DRAW[k](X[k]));
+ /* -- a shop sign: an 18 x 18 board with the building's icon (iconRows), hung from a bar when hang -- */
+ const sign=(sx,sy,k,hang)=>{const R=typeof iconRows==='function'?iconRows(tvBldIcon(k)):null;if(hang){P.r(sx-1,sy-3,20,1,'0');P.r(sx+3,sy-2,1,2,'0');P.r(sx+14,sy-2,1,2,'0')}
+  P.r(sx,sy,18,18,'0');P.r(sx+1,sy+1,16,16,east?'m':'l');P.r(sx+1,sy+16,16,1,'m');P.r(sx+16,sy+1,1,16,'m');if(R)P.s(R.map(r=>r.replace(/0/g,'.')),sx+1,sy+1)};
+ const rSl=east?TVRAMP.kawara:TVRAMP.slate,stn=wallM==='adobe'?'adobe':'stone',shopM=wallM==='logs'||wallM==='wood'?'stone':wallM;
+ /* -- armorer: a stone shop under slate, helmets on show in the window, a stand out front wearing plate over mail -- */
+ const armorer=x=>{P.id=7;wall(x+12,yB-46,44,46,shopM);if(shopM==='plaster'||shopM==='adobe')timber(x+12,yB-46,44,46,3);
+  roofSide(x+8,yB-62,52,17,rSl,.45);chimney(x+46,yB-72,7,12,1);
+  const on=lit(.8);P.r(x+16,yB-33,21,15,'i');P.em=on?1:0;P.r(x+17,yB-32,19,13,on?'d':dim?'G':'1');P.em=0;P.r(x+17,yB-25,19,1,'k');
+  const H=east?[TVS.helmE,TVS.helmE,TVS.helmE]:[TVS.helmA,TVS.helmB,TVS.helmA];H.forEach((h,i)=>P.s(h,x+18+i*6,yB-31));
+  P.d(x+19,yB-23,15,4,'p',0);P.d(x+20,yB-23,14,4,'o',0);P.r(x+15,yB-18,23,1,snow?'r':'k');P.r(x+16,yB-17,21,1,'i');
+  sign(x+38,yB-44,'armorer');door(x+41,yB-22,11,22,{});
+  P.s(east?TVS.manqE:TVS.manq,x,yB-22);if(lamps)an.lights.push({x:x+26,y:yB-24,r:18});shadow(x+2,yB,54);P.id=0};
+ /* -- weaponsmith: an open forge under a lean-to (glowing hearth, anvil), a rack of blades, the smithy behind -- */
+ const weaponsmith=x=>{P.id=8;wall(x+24,yB-44,36,44,shopM);if(shopM==='plaster'||shopM==='adobe')timber(x+24,yB-44,36,44,2);
+  roofSide(x+20,yB-60,44,17,rSl,.45);
+  for(let i=0;i<28;i++){const ty=yB-34-Math.round(i*7/28);P.r(x+i,ty,1,4,i%4===0?'i':'j');P.p(x+i,ty,'k');P.p(x+i,ty+3,'i');if(snow)P.p(x+i,ty-1,'r')}   // lean-to roof
+  P.r(x+1,yB-31,2,31,'i');P.r(x+1,yB-31,1,31,'j');
+  for(let j=yB-52;j<yB-12;j++)for(let i=x+6;i<x+15;i++)P.p(i,j,mat('stone',i,j));P.r(x+5,yB-52,11,2,snow?'r':'q');an.smoke.push({x:x+10,y:yB-54});   // hood and chimney
+  for(let j=yB-12;j<yB;j++)for(let i=x+3;i<x+18;i++)P.p(i,j,mat('stone',i,j));P.r(x+3,yB-13,15,1,'q');
+  P.em=1;P.r(x+6,yB-10,9,5,'E');P.r(x+7,yB-9,7,3,'y');P.r(x+8,yB-8,4,1,'e');P.em=0;an.sparks.push({x:x+10,y:yB-11});an.lights.push({x:x+10,y:yB-8,r:dark?24:16});
+  P.s(TVS.anvil,x+16,yB-6);P.r(x+19,yB-1,4,1,'i');
+  P.r(x+27,yB-24,18,2,'i');P.r(x+27,yB-6,18,2,'i');P.r(x+27,yB-24,1,24,'j');P.r(x+44,yB-24,1,24,'j');      // the rack: swords, an axe, a spear
+  for(let i=0;i<4;i++){const bx=x+30+i*3;P.r(bx,yB-30+(i&1)*2,1,20,'q');P.r(bx+1,yB-30+(i&1)*2,1,20,'p');P.r(bx-1,yB-11,4,1,'c');P.r(bx,yB-10,2,3,'i')}
+  P.r(x+42,yB-36,1,34,'j');P.s(['.q.','qqp','.p.'],x+41,yB-39);P.r(x+40,yB-28,2,5,'p');P.r(x+39,yB-27,1,3,'q');
+  sign(x+27,yB-43,'weaponsmith');door(x+48,yB-22,10,22,{});win(x+50,yB-38,6,6,{});
+  shadow(x,yB,60);P.id=0};
+ /* -- fletcher: a plank workshop, bows and quivers hung in the open hatch, a barrel of arrows, a straw target on its easel -- */
+ const fletcher=x=>{P.id=9;const m=wallM==='stone'?'wood':wallM;wall(x+4,yB-40,40,40,m);if(m==='plaster'||m==='adobe')timber(x+4,yB-40,40,40,3);
+  roofSide(x,yB-56,48,17,east?TVRAMP.kawara:bio==='desert'?TVRAMP.clay:TVRAMP.thatch,.45);
+  P.r(x+7,yB-31,20,17,'i');P.r(x+8,yB-30,18,15,'1');P.r(x+6,yB-14,22,2,'k');P.r(x+6,yB-13,22,1,'j');P.r(x+6,yB-33,22,2,'j');
+  for(let b=0;b<3;b++){const bx=x+11+b*5;for(let j=0;j<13;j++){const o=Math.round(Math.sin(j/12*Math.PI)*2.4);P.p(bx-o,yB-29+j,b===1?'k':'j')}P.r(bx,yB-29,1,13,'l');P.p(bx,yB-30,'0')}
+  P.r(x+22,yB-26,3,9,'i');P.r(x+22,yB-26,3,1,'k');P.p(x+22,yB-28,'g');P.p(x+23,yB-29,'l');P.p(x+24,yB-28,'g');P.r(x+22,yB-27,3,1,'j');
+  sign(x+27,yB-39,'fletcher');door(x+31,yB-20,10,20,{});
+  P.s(TVS.barrel,x+8,yB-8);for(let i=0;i<4;i++){P.r(x+9+i,yB-14+(i&1),1,6,'k');P.p(x+9+i,yB-15+(i&1),i&1?'l':'g')}
+  const cx=x+49,cy=yB-14;P.ln(cx,cy,cx-4,yB,'j');P.ln(cx,cy,cx+4,yB,'i');P.ln(cx,cy,cx,yB,'j');
+  P.disc(cx,cy,5,'0');P.disc(cx,cy,4,'l');P.disc(cx,cy,3,'g');P.disc(cx,cy,2,'l');P.disc(cx,cy,1,'g');P.p(cx,cy,'y');P.ln(cx+1,cy-1,cx+6,cy-5,'k');P.p(cx+6,cy-6,'l');P.p(cx+7,cy-5,'g');
+  shadow(x+2,yB,50);P.id=0};
+ /* -- arcane college: a slender tower with a blue cone and a star, a rune window that always glows, a low hall at its foot -- */
+ const college=x=>{P.id=10;const cx=x+22,tw=18,tx=cx-9,tt=yB-86;
+  wall(x+2,yB-28,40,28,stn);roofSide(x-1,yB-40,46,13,east?TVRAMP.kawara:TVRAMP.blue,.45);win(x+5,yB-21,5,8,{});win(x+35,yB-21,5,8,{});
+  for(let j=tt;j<yB;j++)for(let i=tx;i<tx+tw;i++)P.p(i,j,i===tx?'q':i>=tx+tw-2?'o':mat('stone',i,j));
+  P.r(tx-2,tt-2,tw+4,3,'p');P.r(tx-2,tt-2,tw+4,1,'q');for(let i=tx-2;i<tx+tw+2;i+=3)P.p(i,tt+1,'o');
+  if(east){let y=tt-2;for(let k=0;k<3;k++){const hw=13-k*3;for(let j=0;j<5;j++){const ww=hw-2+Math.round(j*j*.5);for(let i=-ww;i<=ww;i++)P.p(cx+i,y-4+j,j===4?'1':i<-ww*.3?'p':i>ww*.4?'G':'o')}eaves(cx-hw-2,cx+hw+2,y,TVRAMP.kawara);y-=5;if(k<2){P.r(cx-hw+4,y-5,(hw-4)*2,5,'l');P.r(cx-hw+4,y-5,1,5,'g');P.r(cx+hw-5,y-5,1,5,'f');y-=5}}
+   P.r(cx-1,y-10,2,10,'c');P.p(cx-1,y-11,'e')}
+  else{for(let j=0;j<26;j++){const hw=Math.round((j+1)*(tw/2+3)/26);for(let i=-hw;i<hw;i++)P.p(cx+i,tt-27+j,snow&&i<0&&j<22?'r':i<-hw+2?'x':i<0?'X':i<hw-2?'X':'G');if(!snow)P.p(cx-hw+1,tt-27+j,'x')}
+   P.r(cx-1,tt-33,2,6,'c');P.p(cx-1,tt-35,'F');P.p(cx,tt-34,'F');P.p(cx-2,tt-34,'F');P.p(cx-1,tt-36,'r')}
+  const ry=tt+15;P.disc(cx-1,ry,5,'0');P.em=1;P.disc(cx-1,ry,4,'X');P.disc(cx-1,ry,3,'x');P.disc(cx-1,ry,1,'F');for(const [dx,dy] of [[0,-3],[-3,0],[3,0],[0,3]])P.p(cx-1+dx,ry+dy,'F');P.em=0;an.runes.push({x:cx-1,y:ry});
+  for(const wy of [tt+30,tt+48]){const on=lit(.9);P.r(cx-3,wy-1,4,10,'0');P.p(cx-2,wy-2,'0');P.em=on?1:0;P.r(cx-2,wy,2,8,on?'F':dim?'G':'X');if(on)P.p(cx-2,wy,'r');P.em=0}
+  P.r(cx-5,yB-16,8,16,'0');for(let j=0;j<16;j++)for(let i=0;i<6;i++){const a=j<3&&(i===0||i===5)||j<1;if(!a)P.p(cx-4+i,yB-15+j,i%3===2?'i':'j')}P.p(cx-1,yB-8,'c');P.r(cx-7,yB,12,2,snow?'r':'q');
+  P.r(tx+tw,tt+20,5,1,'0');P.r(tx+tw+1,tt+21,4,12,'X');P.r(tx+tw+1,tt+21,1,12,'x');P.p(tx+tw+2,tt+33,'X');P.p(tx+tw+4,tt+33,'X');P.p(tx+tw+2,tt+25,'F');P.p(tx+tw+3,tt+26,'F');
+  if(lamps)an.lights.push({x:cx,y:yB-20,r:16});shadow(x+2,yB,40);P.id=0};
+ /* -- training hall: a long hall under a steep roof with a crossed-swords banner; straw dummies and a rack of practice arms in the yard -- */
+ const hall=x=>{P.id=11;const m=wallM==='stone'?'wood':wallM,rH=east?TVRAMP.kawara:TVRAMP.red;wall(x+12,yB-38,52,38,m);if(m==='plaster'||m==='adobe')timber(x+12,yB-38,52,38,4);
+  roofSide(x+8,yB-62,60,25,rH,.6);win(x+17,yB-30,7,9,{sh:rH});win(x+56,yB-30,6,9,{});door(x+40,yB-24,14,24,{dbl:1});
+  P.r(x+38,yB-34,18,6,'0');P.r(x+39,yB-33,16,4,east?'l':'c');P.s(['g...g','.g.g.','..g..','.g.g.','g...g'].map(r=>r.replace(/g/g,east?'1':'a')),x+44,yB-34);
+  P.r(x+35,yB-82,1,22,'i');P.p(x+35,yB-83,'c');an.flags.push({x:x+36,y:yB-81,c:rH,sw:1});
+  P.d(x,yB-2,36,3,GR.rh,0);P.s(TVS.dummy,x,yB-21);P.s(TVS.dummy,x+13,yB-21,1);
+  P.r(x+26,yB-18,10,1,'i');P.r(x+26,yB-11,10,1,'i');P.r(x+26,yB-18,1,18,'j');P.r(x+35,yB-18,1,18,'j');for(let i=0;i<3;i++){P.r(x+28+i*3,yB-22,1,17,'k');P.r(x+27+i*3,yB-9,3,1,'i')}P.r(x+29,yB-27,1,26,'j');P.p(x+29,yB-28,'q');
+  if(lamps)an.lights.push({x:x+47,y:yB-20,r:20});shadow(x,yB,66);P.id=0};
+ /* -- harbour: the harbour master's shed and the quay, a pier, a moored ship; open water from the quay to the end of the street -- */
+ const harbour=x=>{P.id=12;const qx=harb,wt=yH+3,wl=yB+12;
+  for(let y=wt;y<H;y++)for(let i=qx;i<W;i++){const d=y-wt,w2=((i*3+y*7)%23===0)||((i+y*5)%31===0&&d>6);P.p(i,y,d<2?'x':d<5&&((i+y)&1)?'x':w2?'x':y>=H-6&&((i+y)&1)?'G':'X')}
+  for(let y=wt;y<H;y+=4)for(let i=qx+((y*13)%17);i<W;i+=rr(14,26))an.glints.push({x:i,y,w:rr(8,16),k:'F'});an.water={x0:qx,x1:W,y0:wt,y1:H};
+  for(let j=yB-3;j<H;j++)for(let i=qx-5;i<qx;i++)P.p(i,j,i>qx-2?'o':mat('stone',i,j));P.r(qx-5,yB-4,6,2,'q');
+  for(let i=qx;i<qx+34;i++){P.p(i,yB+3,'k');P.p(i,yB+4,i%4===0?'i':'j');P.p(i,yB+5,'i')}for(let i=qx+4;i<qx+34;i+=9){P.r(i,yB+6,2,10,'i');P.p(i,yB+6,'j')}
+  wall(x+2,yB-36,30,36,'wood');roofSide(x-1,yB-48,36,13,rSl,.4);sign(x+4,yB-34,'harbour');door(x+23,yB-20,8,20,{});
+  P.s(TVS.crate,x+33,yB-7);P.s(TVS.crate,x+33,yB-13);P.s(TVS.barrel,x+26,yB-8,1);
+  const sx=qx+12,L=50;for(let j=0;j<11;j++){const y=wl-8+j,ins=Math.round(j*j*.1),x0=sx+ins+(j<4?0:1),x1=sx+L-Math.round(j*1.2)-ins;for(let i=x0;i<x1;i++)P.p(i,y,j===0?'k':j===3?'g':j===4?'f':j<3?'j':j===10?'1':'i')}
+  P.r(sx,wl-13,12,5,'j');P.r(sx,wl-13,12,1,'k');P.r(sx+1,wl-11,2,2,lamps?'y':'1');P.r(sx+5,wl-11,2,2,lamps?'y':'1');P.r(sx+L-8,wl-11,9,3,'j');P.r(sx+L-8,wl-11,9,1,'k');P.ln(sx+L,wl-10,sx+L+8,wl-14,'i');
+  if(lamps){an.lights.push({x:sx+4,y:wl-10,r:14})}
+  const mx=sx+26;P.r(mx,wl-92,2,84,'i');P.r(mx,wl-92,1,84,'j');P.ln(mx,wl-90,sx+1,wl-13,'o');P.ln(mx+1,wl-90,sx+L+7,wl-14,'o');
+  for(const [yy,hw] of [[wl-78,17],[wl-50,14]]){P.r(mx-hw,yy,hw*2+2,2,'i');for(let i=-hw+1;i<hw+1;i++){P.p(mx+i,yy+2,'l');P.p(mx+i,yy+3,(i&3)===0?'m':'l');if((i&3)===1)P.p(mx+i,yy+4,'m')}}
+  P.r(mx-2,wl-66,6,4,'i');an.flags.push({x:mx+2,y:wl-92,c:TVRAMP.red});
+  P.r(qx+30,yB+1,2,6,'i');P.ln(qx+31,yB+2,sx+L-2,wl-9,'k');
+  P.id=0};
+ const DRAW={tavern:x=>tavern(x),inn:x=>inn(x+3),market:x=>market(x+5),board:x=>board(x+3),armorer,weaponsmith,fletcher,college,hall,harbour};
+ for(const L of PL.lots)if(L.k!=='harbour')DRAW[L.k](L.x);if(PLC.harbour)DRAW.harbour(PLC.harbour.x);
  /* -- street props -- */
- const prop=(hs>>>24)%3,pgx=(()=>{let best=null;order.forEach((k,i)=>{if(i<3){const a=X[k]+WD[k],b=X[order[i+1]],g=b-a;if(!best||g>best.g)best={g,x:Math.round((a+b)/2)}}});return best})();
+ const prop=(hs>>>24)%3,pgx=(()=>{let best=null;PL.lots.forEach((L,i)=>{const N=PL.lots[i+1];if(!N)return;const a=L.x+L.w,g=N.x-a;if(!best||g>best.g)best={g,x:Math.round((a+N.x)/2)}});return best})();
  if(pgx&&pgx.g>20){const x=pgx.x,by=yB+3;
   if(east){const hw=Math.min(13,Math.max(7,(pgx.g>>1)-2));for(let j=0;j<34;j++){P.r(x-hw,by-j,2,1,'g');P.p(x-hw,by-j,'h');P.r(x+hw-1,by-j,2,1,'f')}P.r(x-hw-2,by-26,hw*2+5,2,'g');P.r(x-hw-2,by-25,hw*2+5,1,'f');
    P.r(x-hw-5,by-34,hw*2+11,2,'1');P.r(x-hw-4,by-32,hw*2+9,2,'g');P.p(x-hw-6,by-35,'1');P.p(x+hw+6,by-35,'1');P.p(x-hw-7,by-36,'1');P.p(x+hw+7,by-36,'1');P.r(x-1,by-31,3,5,'1');P.p(x,by-29,'c');P.r(x-hw-1,by,4,2,'p');P.r(x+hw-2,by,4,2,'p')}
@@ -379,7 +484,7 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
   else if(prop===1){P.r(x-6,by-4,12,4,'p');P.r(x-6,by-4,12,1,'q');P.r(x-3,by-10,6,6,'p');P.r(x-3,by-10,1,6,'q');P.r(x+2,by-10,1,6,'o');P.r(x-2,by-18,4,8,'n');P.r(x-2,by-18,1,8,'m');P.r(x-3,by-21,6,4,'n');P.r(x-3,by-21,2,2,'m');P.r(x+1,by-17,4,1,'o');P.r(x+4,by-25,1,9,'q')}
   else{P.r(x-9,by-7,18,4,'j');P.r(x-9,by-7,18,1,'k');P.r(x-9,by-4,18,1,'i');P.r(x-8,by-11,12,4,'c');P.r(x-8,by-11,12,1,'d');P.d(x-8,by-9,12,2,'b',1);P.disc(x-5,by-2,3,'i');P.disc(x-5,by-2,1,'k');P.disc(x+5,by-2,3,'i');P.disc(x+5,by-2,1,'k');P.r(x+9,by-6,7,1,'j')}}
  // lamp post on the street and foreground framing
- const bi=order.indexOf('board'),lpx=bi<2?X.board+WD.board+5:X.board-6;
+ const lpx=PL.lots[PL.lots.length-1].k==='board'?X.board-3:X.board+46;
  if(east){const x=clamp(lpx,10,W-10),by=yB+Math.round(rdH*.62),S2=['q','p','o'];P.r(x-5,by-3,11,3,'p');P.r(x-5,by-3,11,1,'q');P.r(x-2,by-16,5,13,'p');P.r(x-2,by-16,1,13,'q');P.r(x+2,by-16,1,13,'o');P.r(x-5,by-18,11,2,'p');P.r(x-5,by-18,11,1,'q');
   P.r(x-4,by-25,9,7,'1');P.r(x-4,by-25,1,7,'p');P.r(x+4,by-25,1,7,'o');const on=lamps;P.em=on?1:0;P.r(x-2,by-23,5,3,on?'y':'G');if(on)P.p(x-1,by-23,'e');P.em=0;if(on){an.lamps.push({x:x-2,y:by-23});an.lights.push({x,y:by-10,r:28})}
   for(let j=0;j<4;j++){const w2=7-j;P.r(x-w2,by-26-j,w2*2+1,1,j?'p':'o')}P.p(x-8,by-27,'p');P.p(x+8,by-27,'o');P.r(x,by-31,1,2,'q');void S2}   // a stone toro instead of the iron lamp post
@@ -387,54 +492,68 @@ function tvPaint(t,ti,W,H,tod,bio){const east=!!(t&&t.east),P=tvPainter(W,H),hs=
   if(lamps){P.em=1;P.r(x-1,by-35,3,2,'y');P.p(x,by-35,'e');P.em=0;an.lamps.push({x:x-1,y:by-35});an.lights.push({x:x+1,y:by-14,r:30})}else{P.r(x-1,by-35,3,2,'p');P.p(x-1,by-35,'q')}
   if(snow)P.r(x-2,by-38,5,1,'r')}
  // fence along the front
- const fy=yF+Math.round((H-yF)*.28);if(east){for(let x=-2;x<W;x+=4){const h=10+((x*7)%3);P.r(x,fy-h+8,2,h,'v');P.p(x,fy-h+8,'A');P.p(x+1,fy-h+8,'w');P.p(x,fy+3,'B');P.p(x+1,fy+3,'7')}P.r(-2,fy+1,W+4,1,'i');P.r(-2,fy+5,W+4,1,'i')}else for(let x=-3;x<W;x+=12){const broken=ch(.12);if(!broken){P.r(x+2,fy-1,12,1,'k');P.r(x+2,fy,12,1,'j');P.r(x+2,fy+4,12,2,'j');P.r(x+2,fy+4,12,1,'k')}
+ const fy=yF+Math.round((H-yF)*.28);if(east){for(let x=-2;x<Math.min(W,harb-6);x+=4){const h=10+((x*7)%3);P.r(x,fy-h+8,2,h,'v');P.p(x,fy-h+8,'A');P.p(x+1,fy-h+8,'w');P.p(x,fy+3,'B');P.p(x+1,fy+3,'7')}P.r(-2,fy+1,Math.min(W,harb-6)+4,1,'i');P.r(-2,fy+5,Math.min(W,harb-6)+4,1,'i')}else for(let x=-3;x<Math.min(W,harb-16);x+=12){const broken=ch(.12);if(!broken){P.r(x+2,fy-1,12,1,'k');P.r(x+2,fy,12,1,'j');P.r(x+2,fy+4,12,2,'j');P.r(x+2,fy+4,12,1,'k')}
   P.r(x,fy-4,3,12,'j');P.r(x,fy-4,1,12,'k');P.r(x+2,fy-4,1,12,'i');P.r(x,fy-5,3,1,snow?'r':'k');P.d(x+3,fy+8,3,1,GR.gs,0)}
  // framing foliage at the lower corners
  const fol=(cx2,cy2,r)=>{const c=bio==='desert'?['c','k','j']:snow?['r','q','p']:bio==='swamp'?['7','3','2']:['B','7','3'];
   for(let i=0;i<9;i++){const a=R()*6.28,q=R()*r,bx=Math.round(cx2+Math.cos(a)*q),by2=Math.round(cy2+Math.sin(a)*q*.6),rad=rr(3,Math.max(4,Math.round(r*.5)));
    for(let y=-rad;y<=rad;y++)for(let xx=-rad;xx<=rad;xx++)if(xx*xx+y*y<=rad*rad+rad*.5)P.p(bx+xx,by2+y,xx+y<-rad*.5?c[0]:xx+y>rad*.6?c[2]:c[1])}};
- const fr=Math.round(clamp((H-yF)*.5,8,26));fol(2,H-2,fr);fol(W-3,H-2,fr);
- if(bio==='plains'||bio==='forest'||bio==='hills')for(let i=0;i<W/14;i++){const x=rr(2,W-3),y=rr(yF+2,H-3),c=['g','y','l','C'][rr(0,3)];P.p(x,y,c);P.p(x,y+1,'B')}
- if(bio==='swamp')for(let i=0;i<W/10;i++){const x=rr(2,W-3),y=rr(yF+6,H-2),h=rr(5,10);P.r(x,y-h,1,h,'w');P.r(x,y-h-2,1,3,'i')}
- if(bio==='desert')for(let i=0;i<W/90;i++)cactus(rr(20,W-20),rr(yF+12,H-2),rr(8,12));
- if(bio==='hills'||bio==='snow')for(let i=0;i<W/60;i++){const x=rr(8,W-12),y=rr(yF+6,H-3),w=rr(5,9);P.r(x,y-3,w,4,snow?'q':'p');P.r(x+1,y-4,w-2,1,snow?'r':'q');P.r(x,y-3,2,2,snow?'r':'q');P.r(x+w-2,y-2,2,3,snow?'p':'o')}
+ const fr=Math.round(clamp((H-yF)*.5,8,26));fol(2,H-2,fr);if(!PLC.harbour)fol(W-3,H-2,fr);
+ const Wg=Math.min(W,harb-4);
+ if(bio==='plains'||bio==='forest'||bio==='hills')for(let i=0;i<W/14;i++){const x=rr(2,Wg-3),y=rr(yF+2,H-3),c=['g','y','l','C'][rr(0,3)];P.p(x,y,c);P.p(x,y+1,'B')}
+ if(bio==='swamp')for(let i=0;i<W/10;i++){const x=rr(2,Wg-3),y=rr(yF+6,H-2),h=rr(5,10);P.r(x,y-h,1,h,'w');P.r(x,y-h-2,1,3,'i')}
+ if(bio==='desert')for(let i=0;i<W/90;i++)cactus(rr(20,Math.min(W,harb)-20),rr(yF+12,H-2),rr(8,12));
+ if(bio==='hills'||bio==='snow')for(let i=0;i<W/60;i++){const x=rr(8,Wg-12),y=rr(yF+6,H-3),w=rr(5,9);P.r(x,y-3,w,4,snow?'q':'p');P.r(x+1,y-4,w-2,1,snow?'r':'q');P.r(x,y-3,2,2,snow?'r':'q');P.r(x+w-2,y-2,2,3,snow?'p':'o')}
  /* -- particles for the overlay -- */
  an.parts=snow?{k:'snow',n:Math.round(W*H/900)}:bio==='desert'?{k:'dust',n:8}:bio==='swamp'?{k:dim?'fly':'mote',n:dim?10:5}:bio==='forest'?{k:'leaf',n:7}:bio==='plains'?{k:'seed',n:5}:{k:'leaf',n:3};
  an.P=P;return{P,an}}
 
-/* outline pixels (just outside each building's silhouette) for the hover / pressed highlight */
-function tvOutlines(P){const W=P.W,H=P.H,o={1:[],2:[],3:[],4:[],5:[],6:[]},id=i=>P.fl[i]>>3&7;
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(id(i))continue;let k=0;if(x>0&&(k=id(i-1))){}else if(x<W-1&&(k=id(i+1))){}else if(y>0&&(k=id(i-W))){}else if(y<H-1&&(k=id(i+W))){}if(k)o[k].push(x,y)}
+/* outline pixels (just outside each building's silhouette) for the hover / pressed highlight (Detail Low) */
+function tvOutlines(P){const W=P.W,H=P.H,o={},id=i=>P.fl[i]>>3;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(id(i))continue;let k=0;if(x>0&&(k=id(i-1))){}else if(x<W-1&&(k=id(i+1))){}else if(y>0&&(k=id(i-W))){}else if(y<H-1&&(k=id(i+W))){}if(k)(o[k]||(o[k]=[])).push(x,y)}
  return o}
 
-/* ---- overlay animation (cheap: a few dozen 1px rects over the cached picture) ---- */
+/* ---- overlay animation (cheap: a few dozen 1px rects over the cached picture). World things are drawn in street units
+   shifted by the pan; particles and birds live in the view. Detail High has its own overlay (tvDrawHD, 51h-townhd.js). ---- */
 function tvC(k){const m=TVMAP[TV.an?TV.an.tod:'day'];return PAL[m[k]||k]}
-function tvInitAnim(an,W,H){const r=mulberry(77);an.pt=[];const n=an.parts?an.parts.n:0;for(let i=0;i<n;i++)an.pt.push({x:r()*W,y:r()*H,v:.4+r()*.8,ph:r()*6.28,k:i});
+function tvInitAnim(an,W,H){const r=mulberry(77);an.pt=[];const n=an.parts?(an.parts.k==='snow'?Math.round(W*H/900):an.parts.n):0;for(let i=0;i<n;i++)an.pt.push({x:r()*W,y:r()*H,v:.4+r()*.8,ph:r()*6.28,k:i});
  an.puffs=[];an.smoke.forEach((s,si)=>{for(let i=0;i<5;i++)an.puffs.push({s:si,age:i*7})});an.walk=null;an.walkT=30+((r()*60)|0);an.birds=[];an.birdT=40}
-function tvDraw(){const g=TV.g,an=TV.an;if(!g||!TV.pic||!an)return;const W=TV.W,H=TV.H,T=TV.tick,rm=tvRM(),px1=(x,y,c,w,h)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),w||1,h||1)};
- g.drawImage(TV.pic,0,0);
+function tvPanU(){return TV.hd?TV.pan/TV.s:Math.round(TV.pan/TV.s)}
+function tvDraw(){if(TV.hd){if(typeof tvDrawHD==='function')tvDrawHD();return}
+ const g=TV.g,an=TV.an;if(!g||!TV.pic||!an)return;const W=TV.W,H=TV.H,T=TV.tick,rm=tvRM(),px1=(x,y,c,w,h)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),w||1,h||1)},pu=tvPanU();
+ g.setTransform(1,0,0,1,0,0);g.fillStyle=PAL['0'];g.fillRect(0,0,W,H);g.drawImage(TV.pic,-pu,0);g.save();g.translate(-pu,0);
  // smoke
  for(const p of an.puffs){const s=an.smoke[p.s],a=p.age,x=s.x+Math.round(Math.sin(a*.13+p.s)*2+a*.18),y=s.y-Math.round(a*.55),sz=a<6?1:a<16?2:a<26?3:2,c=tvC(a<20?'q':'p');
   if(y<0)continue;if(a<28)px1(x-(sz>>1),y,c,sz,sz);else{px1(x,y,c);px1(x+2,y+1,c);px1(x-1,y+2,c)}if(sz===3)px1(x-1,y,tvC('r'),1,1)}
  // lantern flicker
  for(const l of an.lamps){const f=rm?0:(tvHash(l.x+':'+((T/3)|0))%5);if(l.big){px1(l.x,l.y,PAL[f<2?'e':'r'],3,3);px1(l.x-1+f%3,l.y-2,PAL.E,2,1)}else{px1(l.x,l.y,PAL[f===0?'d':'y'],3,2);px1(l.x+(f===1?0:1),l.y,PAL.e)}}
+ // forge sparks and the college's rune window
+ for(const s of an.sparks){const f=rm?0:T%9;px1(s.x-1+(f%3),s.y,PAL[f<4?'e':'y'],2,1);if(!rm)for(let i=0;i<3;i++){const a=(T*2+i*7)%14;if(a<10)px1(s.x+((i*5+a)%5)-2,s.y-2-a,PAL[a<5?'e':'E'])}}
+ for(const r of an.runes){const f=rm?0:((T/4)|0)%4;px1(r.x-1,r.y-1,PAL[f===1?'r':'F'],3,3);if(!rm){const a=(T%30)/30;px1(r.x-6+((T>>2)%13),r.y-6-Math.round(a*14),PAL.F);px1(r.x+5-((T>>3)%9),r.y-2-Math.round(((T+15)%30)/30*16),PAL.x)}}
  // tavern sign: a mug on a board, swinging
  if(an.sign){const ph=rm?0:Math.round(Math.sin(T*.16)*1.4),sx=an.sign.x,sy=an.sign.y;
   px1(sx+1,sy+1,PAL['0'],1,2);px1(sx+8,sy+1,PAL['0'],1,2);
   for(let j=0;j<11;j++){const o=Math.round(ph*(j+2)/12);px1(sx+o,sy+3+j,PAL['0'],10,1);if(j>0&&j<10){px1(sx+1+o,sy+3+j,tvC(j===1?'k':'j'),8,1);px1(sx+8+o,sy+3+j,tvC('i'))}
    if(j>=3&&j<=7){px1(sx+3+o,sy+3+j,tvC(j===3?'r':'y'),3,1);if(j>3)px1(sx+5+o,sy+3+j,tvC('c'));if(j===4||j===6)px1(sx+6+o,sy+3+j,tvC('l'));if(j===5)px1(sx+7+o,sy+3+j,tvC('l'))}}}
- // mill sails / tower flag
- if(an.mill){const f=rm?0:((T/5)|0)%4,c=tvC('l'),c2=tvC('n'),c3=tvC('i'),mx=an.mill.x,my=an.mill.y,R0=an.mill.r,ang=f*Math.PI/8;
+ // mill sails / flags
+ if(an.mill&&!an.millHid){const f=rm?0:((T/5)|0)%4,c=tvC('l'),c2=tvC('n'),c3=tvC('i'),mx=an.mill.x,my=an.mill.y,R0=an.mill.r,ang=f*Math.PI/8;
   for(let a=0;a<4;a++){const th=ang+a*Math.PI/2,cs=Math.cos(th),sn=Math.sin(th);for(let i=2;i<=R0;i++){const x=mx+cs*i,y=my+sn*i;px1(x,y,c3);if(i>R0*.3){px1(x-sn*1.2,y+cs*1.2,c);px1(x-sn*2.4,y+cs*2.4,i%2?c:c2);px1(x-sn*3.4,y+cs*3.4,c2)}}}px1(mx-1,my-1,c3,3,3)}
- if(an.flag){const f=an.flag;for(let i=0;i<11;i++){const o=rm?0:Math.round(Math.sin(T*.35-i*.7)*1.2);px1(f.x+i,f.y+o,tvC(f.c[1]),1,i>7?4:6);px1(f.x+i,f.y+o,tvC(f.c[0]));px1(f.x+i,f.y+o+(i>7?3:5),tvC(f.c[2]))}}
+ for(const f of (an.flag?[an.flag]:[]).concat(an.flags)){for(let i=0;i<11;i++){const o=rm?0:Math.round(Math.sin(T*.35-i*.7)*1.2);px1(f.x+i,f.y+o,tvC(f.c[1]),1,i>7?4:6);px1(f.x+i,f.y+o,tvC(f.c[0]));px1(f.x+i,f.y+o+(i>7?3:5),tvC(f.c[2]))}}
  // temple bell: rings a few strokes now and then
  if(an.bell){const b=an.bell,ph=rm?0:(T%70<16?[0,1,1,0,-1,-1,0,1][(T>>1)&7]:0);
   if(ph){px1(b.x-1,b.y,tvC('1'),6,5);const R=['.cc.','cddc','cdcb','cdcb','bccb'];for(let j=0;j<5;j++)for(let i=0;i<4;i++){const k=R[j][i];if(k!=='.')px1(b.x+i+(j>1?ph:0),b.y+j,tvC(k))}px1(b.x+1-ph,b.y+5,PAL['0'])}}
+ if(!rm){an.stars.forEach((s,i)=>{if(((T/4|0)+i*3)%11===0)px1(s.x,s.y,PAL['4'])});
+  an.glints.forEach((s,i)=>{if(s.x+s.w<pu-4||s.x>pu+W+4)return;const o=((T/5|0)+i*2)%4;px1(s.x+o*((s.w/4)|0),s.y,tvC(s.k),3,1)});
+  // a townsperson crossing the street now and then (only where there is street)
+  if(!an.walk&&--an.walkT<=0){const dir=Math.random()<.5?1:-1,v=(Math.random()*4)|0,x0=dir>0?pu-8:Math.min(pu+W+2,an.walkX1);an.walk={x:x0,dir,v,y:an.walkY+((Math.random()*5)|0)};an.walkT=(an.tod==='night'?140:50)+(Math.random()*90|0)}
+  if(an.walk){const w=an.walk;w.x+=w.dir*.8;const fr=((T/3)|0)%2,maps=[{},{'5':'g','7':'f','6':'h',H:'I'},{'5':'x','7':'X','6':'F',H:'G'},{'5':'c','7':'b','6':'d',H:'K'}],m=Object.assign({},TVMAP[an.tod]);
+   for(const k in maps[w.v])m[k]=TVMAP[an.tod][maps[w.v][k]]||maps[w.v][k];
+   const c=tvSpr('w'+fr+w.v+an.tod,fr?TVS.walkB:TVS.walkA,m,w.dir<0);if(c)g.drawImage(c,Math.round(w.x),w.y-12);
+   if(an.tod==='night'||an.tod==='dusk'){px1(w.x+(w.dir>0?7:-1),w.y-6,PAL.e);px1(w.x+(w.dir>0?7:-1),w.y-5,PAL.y)}
+   if(w.x<pu-10||w.x>Math.min(pu+W+4,an.walkX1))an.walk=null}}
+ tvOutline();g.restore();
  if(rm)return;
- // stars
- an.stars.forEach((s,i)=>{if(((T/4|0)+i*3)%11===0)px1(s.x,s.y,PAL['4'])});
- an.glints.forEach((s,i)=>{const o=((T/5|0)+i*2)%4;px1(s.x+o*((s.w/4)|0),s.y,tvC(s.k),3,1)});
- // particles
+ // particles (in the view)
  const pk=an.parts&&an.parts.k;for(const p of an.pt){if(pk==='snow'){p.y+=p.v*.9;p.x+=Math.sin(T*.08+p.ph)*.4-.15;if(p.y>H){p.y=-1;p.x=Math.random()*W}if(p.x<0)p.x+=W;px1(p.x,p.y,tvC(p.k%3?'r':'q'),p.k%7===0?2:1,1)}
   else if(pk==='leaf'||pk==='seed'){p.x+=.5+p.v*.5;p.y+=Math.sin(T*.12+p.ph)*.5+.18;if(p.x>W||p.y>H){p.x=-2;p.y=Math.random()*H*.7}px1(p.x,p.y,tvC(pk==='seed'?'l':['E','c','K','A'][p.k%4]),1,1);if(pk==='leaf'&&(T+p.k)%6<3)px1(p.x+1,p.y,tvC('c'))}
   else if(pk==='dust'){p.x+=1.6+p.v;if(p.x>W){p.x=-6;p.y=an.yB+Math.random()*an.GH}px1(p.x,p.y,tvC('e'),3,1)}
@@ -443,74 +562,106 @@ function tvDraw(){const g=TV.g,an=TV.an;if(!g||!TV.pic||!an)return;const W=TV.W,
  // birds by day
  if(an.tod==='day'||an.tod==='dawn'){if(--an.birdT<=0){an.birdT=90+(Math.random()*160|0);const y=8+Math.random()*an.yB*.3;for(let i=0;i<2+(Math.random()*3|0);i++)an.birds.push({x:-6-i*7,y:y+i*3*(i%2?1:-1),ph:i*2})}
   an.birds=an.birds.filter(b=>{b.x+=1.3;const up=((T+b.ph)/3|0)%2,c=PAL['2'];px1(b.x,b.y,c);if(up){px1(b.x-1,b.y-1,c);px1(b.x+1,b.y-1,c);px1(b.x-2,b.y-2,c);px1(b.x+2,b.y-2,c)}else{px1(b.x-1,b.y,c);px1(b.x+1,b.y,c);px1(b.x-2,b.y+1,c);px1(b.x+2,b.y+1,c)}return b.x<W+6})}
- // a townsperson crossing the street now and then
- if(!an.walk&&--an.walkT<=0){const dir=Math.random()<.5?1:-1,v=(Math.random()*4)|0;an.walk={x:dir>0?-8:W+2,dir,v,y:an.walkY+((Math.random()*5)|0)};an.walkT=(an.tod==='night'?140:50)+(Math.random()*90|0)}
- if(an.walk){const w=an.walk;w.x+=w.dir*.8;const fr=((T/3)|0)%2,maps=[{},{'5':'g','7':'f','6':'h',H:'I'},{'5':'x','7':'X','6':'F',H:'G'},{'5':'c','7':'b','6':'d',H:'K'}],m=Object.assign({},TVMAP[an.tod]);
-  for(const k in maps[w.v])m[k]=TVMAP[an.tod][maps[w.v][k]]||maps[w.v][k];
-  const c=tvSpr('w'+fr+w.v+an.tod,fr?TVS.walkB:TVS.walkA,m,w.dir<0);if(c)g.drawImage(c,Math.round(w.x),w.y-12);
-  if(an.tod==='night'||an.tod==='dusk'){px1(w.x+(w.dir>0?7:-1),w.y-6,PAL.e);px1(w.x+(w.dir>0?7:-1),w.y-5,PAL.y)}
-  if(w.x<-10||w.x>W+4)an.walk=null}
  // advance smoke
  for(const p of an.puffs){p.age+=.5;if(p.age>35)p.age=0}}
-function tvOutline(){const g=TV.g,o=TV.out;if(!g||!o)return;const k=TV.down>=0?TV.down:TV.hot;if(k<0)return;const a=o[[1,2,3,4,5,6][k]];if(!a)return;
+function tvOutline(){const g=TV.g,o=TV.out;if(!g||!o)return;const k=TV.down>=0?TV.down:TV.hot;if(k<0)return;const a=o[k];if(!a)return;
  g.fillStyle=PAL[TV.down>=0?'r':'e'];for(let i=0;i<a.length;i+=2)g.fillRect(a[i],a[i+1],1,1)}
 function tvFrame(ts){TV.raf=0;if(!TV.root||!TV.shown)return;
  if(!G||!G.townOpen||mode!=='world'){tvHide();return}
  TV.raf=requestAnimationFrame(tvFrame);
  const covered=typeof panelOpen==='function'&&panelOpen();if(covered)return;
+ // pan animation (arrows, focus) and the fling after a drag
+ if(TV.panA){const a=TV.panA,q=Math.min(1,(ts-a.t0)/260),e=1-Math.pow(1-q,3);TV.pan=a.from+(a.to-a.from)*e;if(q>=1)TV.panA=null;tvPanApply()}
+ else if(TV.fling&&!TV.drag){const dt=Math.min(40,ts-(TV.flingT||ts));TV.flingT=ts;const p=clamp(TV.pan+TV.fling*dt,0,TV.panMax);if(p===TV.pan&&dt>0)TV.fling=0;else{TV.pan=p;TV.fling*=Math.pow(.93,dt/16);if(Math.abs(TV.fling)<.03)TV.fling=0}tvPanApply()}
  const rm=tvRM(),due=ts-TV.last>=100;if(rm!==TV.rm){TV.rm=rm;TV.dirty=true}if(!TV.dirty&&(rm||!due))return;
- const t0=performance.now();if(due&&!rm){TV.last=ts;TV.tick++}tvDraw();tvOutline();TV.dirty=false;TV.ms+=performance.now()-t0;TV.frames++}
+ const t0=performance.now();if(due&&!rm){TV.last=ts;TV.tick++}tvDraw();TV.dirty=false;TV.ms+=performance.now()-t0;TV.frames++}
+
+/* ---- panning the street ---- */
+function tvPanApply(){const s=TV.s||2;if(!TV.hd)TV.pan=Math.round(TV.pan/s)*s;else{const d=TV.dpr||1;TV.pan=Math.round(TV.pan*d)/d}
+ const P=$('tvPlaces');if(P)P.style.transform=TV.pan?`translateX(${-TV.pan}px)`:'';TV.dirty=true;
+ const L=$('tvPL'),R=$('tvPR'),K=$('tvPK');if(L){L.disabled=TV.pan<=1;R.disabled=TV.pan>=TV.panMax-1}
+ if(K&&TV.SW){const tw=TV.SW*TV.s,f=Math.min(1,TV.vw/tw);K.style.width=(f*100)+'%';K.style.left=(TV.pan/tw*100)+'%'}}
+function tvPanTo(p,anim){TV.fling=0;p=clamp(+p||0,0,TV.panMax);if(anim&&!tvRM()&&Math.abs(p-TV.pan)>2){TV.panA={from:TV.pan,to:p,t0:performance.now()};TV.dirty=true;if(TV.shown&&!TV.raf)TV.raf=requestAnimationFrame(tvFrame)}else{TV.panA=null;TV.pan=p;tvPanApply()}}
+function tvPanBy(d){tvPanTo((TV.panA?TV.panA.to:TV.pan)+d*TV.vw*.72,1)}
+// bring a place (its hit area and its label) into view
+function tvPanShow(el){if(!el||TV.panMax<=0)return;const x=parseFloat(el.style.left)||0,w=parseFloat(el.style.width)||0,m=12;let p=TV.pan;
+ const pl=el.querySelector('.tv-plate');let a=x,b=x+w;if(pl){const c=x+(parseFloat(pl.dataset.cx)||w/2),pw=pl.offsetWidth||80;a=Math.min(a,c-pw/2);b=Math.max(b,c+pw/2)}
+ if(b-a>TV.vw-2*m){a=(a+b)/2-TV.vw/2+m;b=a+TV.vw-2*m}if(a<p+m)p=a-m;else if(b>p+TV.vw-m)p=b-TV.vw+m;if(p!==TV.pan)tvPanTo(p,1)}
+function tvPanWire(r){const d0=e=>!e.target.closest||!e.target.closest('.tv-btn,.tv-pan,.tv-top,.tv-note');
+ r.addEventListener('pointerdown',e=>{if((e.button||0)>0||TV.panMax<=0||!d0(e))return;TV.drag={id:e.pointerId,x:e.clientX,p:TV.pan,moved:false,vx:0,lx:e.clientX,lt:e.timeStamp};TV.fling=0;TV.panA=null});
+ r.addEventListener('pointermove',e=>{const d=TV.drag;if(!d||e.pointerId!==d.id)return;const dx=e.clientX-d.x;
+  if(!d.moved&&Math.abs(dx)>8){d.moved=true;try{r.setPointerCapture(e.pointerId)}catch(_){}TV.hot=TV.down=-1;r.classList.add('drag')}
+  if(d.moved){const dt=Math.max(1,e.timeStamp-d.lt);d.vx=.6*d.vx+.4*(-(e.clientX-d.lx)/dt);d.lx=e.clientX;d.lt=e.timeStamp;TV.pan=clamp(d.p-dx,0,TV.panMax);tvPanApply()}});
+ const end=e=>{const d=TV.drag;if(!d||e.pointerId!==d.id)return;TV.drag=null;r.classList.remove('drag');if(d.moved){TV.noClick=performance.now();if(!tvRM()&&Math.abs(d.vx)>.15&&e.timeStamp-d.lt<80){TV.fling=clamp(d.vx,-3,3);TV.flingT=0}}};
+ r.addEventListener('pointerup',end);r.addEventListener('pointercancel',end);
+ r.addEventListener('click',e=>{if(TV.noClick&&performance.now()-TV.noClick<350&&e.target.closest&&e.target.closest('.tv-place')){e.stopPropagation();e.preventDefault()}TV.noClick=0},true);
+ r.addEventListener('wheel',e=>{if(TV.panMax<=0)return;const d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;TV.fling=0;TV.panA=null;TV.pan=clamp(TV.pan+d,0,TV.panMax);tvPanApply()},{passive:true});
+ r.addEventListener('scroll',()=>{if(r.scrollLeft||r.scrollTop){r.scrollLeft=0;r.scrollTop=0}});
+ r.addEventListener('focusin',e=>{const b=e.target.closest&&e.target.closest('.tv-place');if(b)tvPanShow(b)})}
 
 /* ---- DOM ---- */
 function tvIcon(n,sz){return typeof pxIcon==='function'?pxIcon(n,sz||16):''}
 function tvRoot(){if(TV.root)return TV.root;const r=document.createElement('div');r.id='tv';r.className='tv';r.setAttribute('role','region');r.setAttribute('aria-label','Town');
- r.innerHTML=`<canvas class="tv-cv" aria-hidden="true"></canvas><div class="tv-top"><div class="tv-name"><b id="tvName"></b><span id="tvSub"></span><span id="tvOwn" class="tv-own"></span></div><div class="tv-res" id="tvRes"></div></div>
-<div class="tv-note" id="tvNote" role="status"></div><div class="tv-places" id="tvPlaces"></div>
-<div class="tv-bar"><button type="button" class="tv-btn" id="tvCo" onclick="tvCompany()"></button><button type="button" class="tv-btn pri" id="tvLeave" onclick="leaveTown()"></button></div>`;
+ r.innerHTML=`<canvas class="tv-cv" aria-hidden="true"></canvas><div class="tv-places" id="tvPlaces"></div><div class="tv-top"><div class="tv-name"><b id="tvName"></b><span id="tvSub"></span><span id="tvOwn" class="tv-own"></span></div><div class="tv-res" id="tvRes"></div></div>
+<div class="tv-note" id="tvNote" role="status"></div>
+<div class="tv-bar"><button type="button" class="tv-btn" id="tvCo" onclick="tvCompany()"></button><div class="tv-pan" id="tvPan" hidden><button type="button" class="tv-pb" id="tvPL" aria-label="Look left along the street" onclick="tvPanBy(-1)"><i></i></button><span class="tv-track" aria-hidden="true"><i id="tvPK"></i></span><button type="button" class="tv-pb r" id="tvPR" aria-label="Look right along the street" onclick="tvPanBy(1)"><i></i></button></div><button type="button" class="tv-btn pri" id="tvLeave" onclick="leaveTown()"></button></div>`;
  const app=$('app')||document.body,pn=$('pn'),sh=$('sheet'),before=pn&&pn.parentNode===app?pn:sh&&sh.parentNode===app?sh:null;if(before)app.insertBefore(r,before);else app.appendChild(r);
- ['touchmove','wheel'].forEach(ev=>r.addEventListener(ev,e=>e.stopPropagation(),{passive:true}));
+ ['touchmove','wheel'].forEach(ev=>r.addEventListener(ev,e=>e.stopPropagation(),{passive:true}));tvPanWire(r);
  window.addEventListener('resize',()=>{if(TV.shown){tvLayout();TV.dirty=true}});
  TV.root=r;TV.cv=r.querySelector('canvas');TV.g=TV.cv.getContext('2d');return r}
 function tvBadges(t){const hurt=G.roster.filter(m=>m.hp<calc(m).hp).length,c=G.contract;
  return{contracts:TV.paid?{t:'Paid',c:'ok'}:c?{t:'In hand',c:'dim'}:(n=>n?{t:n,c:''}:t.contracts.length?{t:'Taken',c:'dim'}:null)(t.contracts.filter(x=>x&&x.rtook==null).length),
   tavern:t.recruits.length?{t:t.recruits.length,c:''}:null,market:lkHostile(G.town)?{t:'Closed',c:'bad'}:null,tailor:null,inn:hurt?{t:hurt,c:'bad'}:null,temple:(n=>n?{t:n,c:'bad'}:null)(typeof cpTreatable==='function'?cpTreatable().length:0)}}
 function tvRect(e){try{return e.getBoundingClientRect()}catch(_){return null}}
+/* the places of the town's street, in street order: [{k (TVID key), tab, n (name), ic (icon), id}] */
+function tvPlaceList(t,PL){const L=[];for(const [tab,n,ic] of TVPLACES)if(PL.places[ic])L.push({k:ic,tab,n,ic,id:TVID[ic]});
+ for(const k of tvExtras(t))if(PL.places[k])L.push({k,tab:k,n:tvBldName(k),ic:tvBldIcon(k),id:TVID[k],x:1});
+ return L.sort((a,b)=>PL.places[a.k].cx-PL.places[b.k].cx||(PL.places[a.k].back?1:-1))}
 function tvLayout(){const r=TV.root,t=G.towns[G.town];if(!r||!t)return;const vw=r.clientWidth||window.innerWidth,vh=r.clientHeight||window.innerHeight;
- const s=Math.max(2,Math.floor(Math.min(vw/300,vh/170))),W=Math.ceil(vw/s),H=Math.ceil(vh/s),tod=tvTod(),bio=tvBiome(t);
- const key=[G.town,t.name,W,H,tod,bio,t.contracts.length,t.contracts.map(x=>x&&x.rtook!=null?x.rival:'').join(','),(t.bld||[]).join(',')].join('|');
- if(key!==TV.key){TV.key=key;TV.s=s;TV.W=W;TV.H=H;const o=tvPaint(t,G.town,W,H,tod,bio);TV.an=o.an;TV.pic=tvCompose(o.P,tod,o.an.lights);TV.out=tvOutlines(o.P);tvInitAnim(o.an,W,H);delete o.an.P;
-  TV.cv.width=W;TV.cv.height=H;TV.cv.style.width=W*s+'px';TV.cv.style.height=H*s+'px';TV.g.imageSmoothingEnabled=false;r.style.setProperty('--s',s);r.dataset.tod=tod;r.dataset.bio=bio}
- const B=tvBadges(t),box=TV.an.box,P=$('tvPlaces');
- P.innerHTML=tvExtras(t).filter(k=>box[k]).map(k=>{const b=box[k],x=Math.max(0,b.x)*TV.s,w=Math.max(44,(Math.min(TV.W,b.x+b.w)-Math.max(0,b.x))*TV.s);
-  const sx=b.sx!=null?(b.sx-Math.max(0,b.x))*TV.s-13:w/2-13,sy=b.sy!=null?(b.sy-b.y)*TV.s+b.ss*TV.s+4:8;return`<button type="button" class="tv-place tv-guild" style="left:${x}px;top:${b.y*TV.s}px;width:${w}px;height:${Math.max(44,b.h*TV.s)}px" aria-label="${tvBldName(k)}" title="${tvBldName(k)}" onclick="tvGo('${k}')"><span class="tv-plate ic" style="left:${Math.round(sx)}px;top:${Math.round(sy)}px">${tvIcon(tvBldIcon(k),16)}<b>${tvBldName(k)}</b></span></button>`}).join('')+TVPLACES.map(([k,n,ic],i)=>{const b=box[ic]||box[k],bd=B[k],x=Math.max(0,b.x)*TV.s,w=Math.max(44,(Math.min(TV.W,b.x+b.w)-Math.max(0,b.x))*TV.s),top=b.y*TV.s,h=Math.max(44,b.h*TV.s);
-  return`<button type="button" class="tv-place" data-i="${i}" style="left:${x}px;top:${top}px;width:${w}px;height:${h}px" aria-label="${n}${bd?', '+bd.t+(k==='contracts'&&+bd.t?' contracts posted':k==='tavern'?' looking for work':k==='inn'?' wounded':k==='temple'?' injured':''):''}" onclick="tvGo('${k}')"><span class="tv-plate${k==='temple'||k==='tailor'?' up':''}">${typeof cpIcon==='function'?cpIcon(ic,16):tvIcon(ic,16)}<b>${n}</b>${bd?`<i class="tv-badge ${bd.c}${typeof bd.t==='string'?' txt':''}">${bd.t}</i>`:''}</span></button>`}).join('');
- P.querySelectorAll('.tv-place:not(.tv-guild)').forEach(el=>{const i=+el.dataset.i,set=(h,d)=>{if(h!==null)TV.hot=h;if(d!==null)TV.down=d;TV.dirty=true};
-  el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')set(i,null)});el.addEventListener('pointerleave',()=>set(TV.hot===i?-1:TV.hot,TV.down===i?-1:TV.down));
+ const s=Math.max(2,Math.floor(Math.min(vw/300,vh/170))),W=Math.ceil(vw/s),H=Math.ceil(vh/s),tod=tvTod(),bio=tvBiome(t),hd=typeof hdArt==='function'&&hdArt()&&typeof tvPaintHD==='function',dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+ const key=[G.town,t.name,t.east?1:0,W,H,tod,bio,hd?'hd'+dpr:'px',t.contracts.length,t.contracts.map(x=>x&&x.rtook!=null?x.rival:'').join(','),(t.bld||[]).join(',')].join('|');
+ if(key!==TV.key){const PL=tvPlan(t,G.town,W,H),t0=performance.now();TV.plan=PL;TV.SW=PL.SW;TV.s=s;TV.W=W;TV.H=H;TV.hd=hd;TV.dpr=dpr;
+  if(hd){let k=s*dpr;const cap=12e6;if(PL.SW*H*k*k>cap)k=Math.sqrt(cap/(PL.SW*H));TV.k=k;const o=tvPaintHD(t,G.town,PL,tod,bio,k);TV.an=o.an;TV.pic=o.pic;TV.out=null}
+  else{TV.k=1;const o=tvPaint(t,G.town,PL,tod,bio);TV.an=o.an;TV.pic=tvCompose(o.P,tod,o.an.lights);TV.out=tvOutlines(o.P);delete o.an.P}
+  TV.paintMs=performance.now()-t0;TV.key=key;tvInitAnim(TV.an,W,H);r.style.setProperty('--s',s);r.dataset.tod=tod;r.dataset.bio=bio;r.classList.toggle('hd',hd)}
+ if(TV.hd){const cw=Math.round(vw*dpr),ch=Math.round(vh*dpr);if(TV.cv.width!==cw||TV.cv.height!==ch){TV.cv.width=cw;TV.cv.height=ch}TV.cv.style.width=vw+'px';TV.cv.style.height=vh+'px'}
+ else{if(TV.cv.width!==W||TV.cv.height!==H){TV.cv.width=W;TV.cv.height=H}TV.cv.style.width=W*s+'px';TV.cv.style.height=H*s+'px'}
+ TV.g.imageSmoothingEnabled=TV.hd;TV.cv.classList.toggle('hd',TV.hd);
+ const PL=TV.plan;TV.vw=vw;TV.vh=vh;TV.panMax=PL.SW*s-vw>6?PL.SW*s-vw:0;if(TV.panTown!==G.town){TV.pan=0;TV.panTown=G.town}TV.pan=clamp(TV.pan,0,TV.panMax);
+ const B=tvBadges(t),P=$('tvPlaces'),S=TV.s,yRow=(PL.yB+4)*S;P.style.width=PL.SW*S+'px';
+ P.innerHTML=tvPlaceList(t,PL).map(o=>{const pl=PL.places[o.k],b=pl.box,x=Math.max(0,b.x)*S,w=Math.max(44,(Math.min(PL.SW,b.x+b.w)-Math.max(0,b.x))*S),top=b.y*S,h=Math.max(44,b.h*S),bd=B[o.tab]||null,cx=pl.cx*S-x;
+  const py=pl.back?((o.k==='temple'?PL.yB-43:PL.yB-45)*S-top):yRow-top,ic=o.x?tvIcon(o.ic,16):typeof cpIcon==='function'?cpIcon(o.ic,16):tvIcon(o.ic,16);
+  return`<button type="button" class="tv-place${pl.back?' bk':''}" data-k="${o.k}" data-id="${o.id}" style="left:${x}px;top:${top}px;width:${w}px;height:${h}px" aria-label="${o.n}${bd?', '+bd.t+(o.tab==='contracts'&&+bd.t?' contracts posted':o.tab==='tavern'?' looking for work':o.tab==='inn'?' wounded':o.tab==='temple'?' injured':''):''}" onclick="tvGo('${o.tab}')"><span class="tv-plate${pl.back?' bk':''}" data-cx="${cx}" style="left:${cx}px;top:${py}px">${ic}<b>${o.n}</b>${bd?`<i class="tv-badge ${bd.c}${typeof bd.t==='string'?' txt':''}">${bd.t}</i>`:''}</span></button>`}).join('');
+ P.querySelectorAll('.tv-place').forEach(el=>{const i=+el.dataset.id,set=(h,d)=>{if(h!==null)TV.hot=h;if(d!==null)TV.down=d;TV.dirty=true};
+  el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'&&!TV.drag)set(i,null)});el.addEventListener('pointerleave',()=>set(TV.hot===i?-1:TV.hot,TV.down===i?-1:TV.down));
   el.addEventListener('pointerdown',()=>set(null,i));el.addEventListener('pointerup',()=>set(null,-1));el.addEventListener('pointercancel',()=>set(-1,-1));
   el.addEventListener('focus',()=>set(i,null));el.addEventListener('blur',()=>set(TV.hot===i?-1:TV.hot,null))});
- // keep nameplates on screen and apart: a plate that would overlap one already placed drops to a second row
- const done=[];[...P.querySelectorAll('.tv-plate:not(.up)')].map(e=>({e,r:e.getBoundingClientRect()})).sort((a,b)=>a.r.left-b.r.left).forEach(o=>{let dx=0,dy=0;const r=o.r,m=10;
-  if(r.left<6)dx=6-r.left;else if(r.right>vw-6)dx=vw-6-r.right;
-  for(let k=0;k<2;k++)if(done.some(q=>r.left+dx<q.right+m&&r.right+dx+m>q.left&&r.top+dy<q.bottom+m&&r.bottom+dy+m>q.top))dy+=r.height+8;
-  if(dx)o.e.style.marginLeft=dx+'px';if(dy)o.e.style.marginTop=dy+'px';done.push({left:r.left+dx,right:r.right+dx,top:r.top+dy,bottom:r.bottom+dy})});
+ // labels apart: the back-row labels stay where they are; a street label that would overlap one already placed rises a row (over the doors)
+ {const pr=P.getBoundingClientRect(),all=[...P.querySelectorAll('.tv-plate')].map(e=>{e.style.marginLeft='';e.style.marginTop='';const q=e.getBoundingClientRect();return{e,bk:e.classList.contains('bk'),l:q.left-pr.left,r:q.right-pr.left,t:q.top-pr.top,b:q.bottom-pr.top}});
+  const done=[],m=8,hit=(o,dx,dy)=>done.some(q=>o.l+dx<q.r+m&&o.r+dx+m>q.l&&o.t+dy<q.b+4&&o.b+dy+4>q.t),Wd=PL.SW*S;
+  all.sort((a,b)=>(a.bk===b.bk?a.l-b.l:a.bk?-1:1)).forEach(o=>{let dx=0,dy=0;if(o.l<6)dx=6-o.l;else if(o.r>Wd-6)dx=Wd-6-o.r;
+   for(let k=0;k<3&&hit(o,dx,dy);k++)dy-=(o.b-o.t)+10;
+   if(hit(o,dx,dy)){dy=0;for(const sgn of [1,-1])for(let k=1;k<6&&hit(o,dx,dy);k++)dx=sgn*k*12;if(hit(o,dx,dy))dx=0}
+   if(dx)o.e.style.marginLeft=dx+'px';if(dy)o.e.style.marginTop=dy+'px';done.push({l:o.l+dx,r:o.r+dx,t:o.t+dy,b:o.b+dy})})}
  $('tvName').textContent=t.name;{const O=$('tvOwn');if(O){const bn=tvTownBanner(G.town);O.innerHTML=bn+tvTownNote(G.town);O.classList.toggle('on',!!O.innerHTML)}}$('tvSub').textContent=`Day ${G.day} · ${TVTODN[tod]} · ${TVBION[bio]}`;
  $('tvRes').innerHTML=`<span class="tv-chip coin">${tvIcon('coin',16)}<b>${G.crowns}</b></span><span class="tv-chip">${tvIcon('food',16)}<b>${G.food}</b></span><span class="tv-chip" title="Tools">${typeof cpIcon==='function'?cpIcon('tools',16):''}<b>${typeof cpTools==='function'?cpTools():0}</b></span><span class="tv-chip">${tvIcon('swords',16)}<b>${G.roster.length}</b></span>`;
  const ready=G.roster.filter(m=>m.pend||m.pp).length;
  $('tvCo').innerHTML=`${tvIcon('company',16)}<span>Company</span>${ready?`<i class="tv-badge">${ready}</i>`:''}`;$('tvLeave').innerHTML=`${tvIcon('back',16)}<span>Leave town</span>`;
- // the temple's plate sits above its bell: slide it sideways when the town's nameplate or the purse is in the way
- {const ups=[];P.querySelectorAll('.tv-plate.up').forEach(e=>{e.style.marginLeft='';const r=e.getBoundingClientRect();let dx=0;for(const q of [tvRect($('tvName').parentNode),tvRect($('tvRes'))].concat(ups)){if(!q||r.bottom<q.top-2||r.top>q.bottom+4)continue;if(r.left+dx<q.right+8&&r.right+dx>q.left-8)dx+=q.left<vw/2?q.right+8-(r.left+dx):q.left-8-(r.right+dx)}
-   if(r.left+dx<6)dx=6-r.left;if(r.right+dx>vw-6)dx=vw-6-r.right;if(dx)e.style.marginLeft=dx+'px';ups.push({left:r.left+dx,right:r.right+dx,top:r.top,bottom:r.bottom})})}
- const N=$('tvNote');N.innerHTML=TV.note?`${TV.paid?tvIcon('coin',32):''}<div>${TV.note}</div>`:'';N.classList.toggle('on',!!TV.note);N.classList.toggle('paid',!!TV.paid)}
+ {const pn=$('tvPan');pn.hidden=TV.panMax<=0}tvPanApply();
+ const N=$('tvNote');N.innerHTML=TV.note?`${TV.paid?tvIcon('coin',32):''}<div>${TV.note}</div>`:'';N.classList.toggle('on',!!TV.note);N.classList.toggle('paid',!!TV.paid);
+ // the arrival note fades after 7 s (TV.noteT; N.dataset.t marks the note it belongs to)
+ if(TV.note&&N.dataset.t!==TV.note){N.dataset.t=TV.note;clearTimeout(TV.noteT);TV.noteT=setTimeout(()=>{TV.note='';TV.paid=false;N.classList.remove('on','paid');N.innerHTML='';N.dataset.t='';if(TV.shown)tvLayout()},7000)}
+ if(!TV.note){N.dataset.t='';clearTimeout(TV.noteT)}}
 /* show the scene for the current town. Returns false when there is no real canvas (headless), so the caller falls back to the panel. */
 function tvShow(note){if(!tvCan()||!G||G.town==null||!G.towns[G.town])return false;
  if(typeof panelOpen==='function'&&panelOpen()&&!closePanel(true))return false;
  let r;try{r=tvRoot();if(!TV.g)return false}catch(e){return false}
  if(note!==undefined&&note!==null&&note!==''){TV.note=note;TV.paid=/Contract fulfilled/.test(note)}
  G.townOpen=true;sheetOpen=true;const fresh=!TV.shown;TV.shown=true;TV.hot=TV.down=-1;r.classList.add('on');
- try{tvLayout()}catch(e){r.classList.remove('on');TV.shown=false;return false}
+ try{tvLayout()}catch(e){r.classList.remove('on');TV.shown=false;if(typeof console==='object')console.error(e);return false}
  if(fresh){r.classList.remove('in');void r.offsetWidth;r.classList.add('in')}
- TV.dirty=true;tvDraw();tvOutline();if(!TV.raf)TV.raf=requestAnimationFrame(tvFrame);return true}
-function tvHide(){if(!TV.root)return;TV.shown=false;TV.root.classList.remove('on','in');TV.note='';TV.paid=false;if(TV.raf){cancelAnimationFrame(TV.raf);TV.raf=0}}
+ TV.dirty=true;tvDraw();if(!TV.raf)TV.raf=requestAnimationFrame(tvFrame);return true}
+function tvHide(){if(!TV.root)return;TV.shown=false;TV.drag=null;TV.fling=0;TV.panA=null;TV.root.classList.remove('on','in','drag');TV.note='';TV.paid=false;clearTimeout(TV.noteT);if(TV.raf){cancelAnimationFrame(TV.raf);TV.raf=0}}
 function tvGo(k){TV.note='';TV.paid=false;townAt='panel';townTab=k;if(TVX.includes(k)&&typeof tvbOpen==='function'){tvbOpen(k);return}renderTown()}
 function tvCompany(){if(typeof companySheet==='function')companySheet()}
 
@@ -520,33 +671,6 @@ const TVXN={armorer:'Armorer',weaponsmith:'Weaponsmith',fletcher:'Fletcher',coll
 function tvExtras(t){return t&&Array.isArray(t.bld)?TVX.filter(k=>t.bld.includes(k)):[]}
 function tvBldName(k){const B=typeof BLD==='object'&&BLD?BLD[k]:null;return B&&B.n||TVXN[k]||k}
 function tvBldIcon(k){return typeof icHas==='function'&&icHas('bld-'+k)?'bld-'+k:(typeof BLD==='object'&&BLD&&BLD[k]&&BLD[k].icon)||'board'}
-/* one guild house at centre x, standing on the back-row line; K = the painter's kit from tvPaint */
-function tvGuild(P,k,cx,yB,LH,K){const SG={x:null,y:null};const by=yB-3,top=by-Math.round(clamp(LH*1.15,86,124)),w=k==='college'?20:k==='hall'?34:28,x=cx-(w>>1),stone=K.wallM==='adobe'?'adobe':'stone';
- const sign=(sx,sy)=>{SG.x=sx+9;SG.y=sy;const R=typeof iconRows==='function'?iconRows(tvBldIcon(k)):null;P.r(sx-1,sy-3,20,1,'0');P.r(sx+3,sy-2,1,2,'0');P.r(sx+14,sy-2,1,2,'0');P.r(sx,sy,18,18,'0');P.r(sx+1,sy+1,16,16,'l');P.r(sx+1,sy+16,16,1,'m');P.r(sx+16,sy+1,1,16,'m');if(R)P.s(R.map(r=>r.replace(/0/g,'.')),sx+1,sy+1)};
- if(k==='harbour'){// a ship's mast and furled sail over the roofs, a crane and a warehouse
-  const mx=cx,mt=top-6;P.r(mx,mt,2,by-mt,'i');P.r(mx,mt,1,by-mt,'j');P.r(mx-14,mt+12,30,2,'i');for(let i=-12;i<14;i++)P.p(mx+i,mt+14,i%3?'l':'m');P.r(mx-12,mt+15,26,2,'m');
-  P.r(mx-9,mt+34,20,2,'i');P.r(mx-8,mt+36,18,3,'l');P.r(mx,mt-6,1,6,'j');for(let i=0;i<7;i++)P.r(mx+1,mt-6+i,Math.max(1,7-i),1,i<3?'g':'f');
-  for(let i=0;i<10;i++)P.p(mx-1-i,mt+1+i*2,'4');for(let i=0;i<10;i++)P.p(mx+2+i,mt+1+i*2,'4');
-  K.wall(x-8,by-34,w+16,34,'wood');K.roofSide(x-11,by-46,w+22,13,TVRAMP.slate,.3);P.r(x-1,by-20,10,20,'i');P.r(x,by-19,8,19,'1');sign(x+14,by-30);
-  return void(K.an.box.harbour={x:x-14,y:mt-8,w:w+28,h:Math.min(56,by-mt),sx:SG.x,sy:SG.y,ss:18})}
- // the house body
- K.wall(x,top+14,w,by-top-14,k==='college'?'stone':k==='hall'?K.wallM:stone);
- if(k==='college'){// a slender tower, a blue cone roof with a star finial, a lit round window
-  for(let j=0;j<22;j++){const hw=Math.round((j+1)*(w/2+3)/22);for(let i=-hw;i<hw;i++)P.p(cx+i,top-8+j,K.snow&&i<0&&j<18?'r':i<0?'x':i<hw-2?'X':'G')}
-  P.r(cx-1,top-14,2,6,'c');P.p(cx-1,top-16,'F');P.p(cx,top-15,'F');P.p(cx-2,top-15,'F');P.p(cx-1,top-17,'r');
-  P.r(cx-4,top+18,8,8,'0');P.em=1;P.r(cx-3,top+19,6,6,K.lit(.95)?'F':'x');P.p(cx-3,top+19,'r');P.em=0;P.r(cx-4,top+22,8,1,'0');P.r(cx-1,top+19,1,6,'0');
-  K.win(cx-2,top+40,4,8,{});sign(x+w+2,top+30)}
- else if(k==='hall'){// a long timber hall under a steep roof with a crossed-swords banner
-  K.roofGable(x-4,top-4,w+8,20,TVRAMP.red,K.wallM);P.r(x-4,top+15,w+8,1,'1');P.r(cx-1,top-18,1,16,'i');P.p(cx-1,top-19,'d');P.r(cx,top-17,9,8,'g');P.r(cx,top-17,9,1,'h');P.r(cx,top-10,9,1,'f');P.p(cx+8,top-13,'.');P.s(['l...l','.l.l.','..l..','.l.l.'],cx+2,top-16);
-  K.win(x+5,top+22,6,8,{});K.win(x+w-11,top+22,6,8,{});sign(x+(w>>1)-9,top+34)}
- else{// forge or workshop: a pitched roof, a fat chimney (smoke, a red glow for the forges)
-  const forge=k==='armorer'||k==='weaponsmith';K.roofSide(x-3,top,w+6,15,forge?TVRAMP.slate:TVRAMP.wood,.5);
-  K.chimney(x+w-9,top-10,7,14,1);if(forge){P.em=1;P.r(x+w-8,top-11,5,1,'E');P.p(x+w-6,top-12,'y');P.em=0;K.an.lights.push({x:x+w-6,y:top-6,r:14})}
-  if(k==='fletcher'){P.r(x+4,top+22,11,11,'0');P.r(x+5,top+23,9,9,'l');P.r(x+6,top+24,7,7,'g');P.r(x+7,top+25,5,5,'l');P.r(x+8,top+26,3,3,'g');P.p(x+9,top+27,'y');P.r(x+11,top+25,5,1,'j');P.p(x+16,top+25,'l')}
-  else{P.r(x+4,top+24,9,10,'i');P.em=K.lit(.9)?1:0;P.r(x+5,top+25,7,8,P.em?'E':'1');if(P.em)P.r(x+5,top+30,7,3,'y');P.em=0}
-  sign(x+w+1,top+22)}
- K.an.box[k]={x:x-4,y:top-18,w:w+26,h:58,sx:SG.x,sy:SG.y,ss:18}}
-
 /* ---- the town's header pieces, for the scene and the town panel (50-towns.js may use them: tvTownBanner(ti), tvTownNote(ti), tvTownTabs(t)) ---- */
 // who holds the town now: a crisis faction that took it (townOwner, 18-crises.js), else its owner
 function tvOwner(ti){const t=G.towns[ti];if(!t)return null;if(typeof townOwner==='function'){try{const o=townOwner(ti);if(o)return o}catch(e){}}return t.own||null}

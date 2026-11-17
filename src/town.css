@@ -5,6 +5,8 @@
 #tv *,#tv *::before,#tv *::after{box-sizing:border-box}
 #tv i{font-style:normal}
 #tv .tv-cv{position:absolute;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;image-rendering:pixelated}
+#tv .tv-cv.hd{image-rendering:auto}
+#tv.drag,#tv.drag *{cursor:grabbing}
 #tv.in .tv-cv{animation:tv-in .32s steps(4) both}
 @keyframes tv-in{from{opacity:0}to{opacity:1}}
 #tv button{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;background:none;border:0;margin:0;padding:0;border-radius:0;box-shadow:none;text-shadow:none;text-transform:none;letter-spacing:normal;cursor:pointer;min-height:0;min-width:0;filter:none;transform:none;transition:none}
@@ -22,11 +24,11 @@
 #tv .tv-chip.coin{color:#f3d98b}
 
 /* the four places: big hit areas with a nameplate under each building */
-#tv .tv-places{position:absolute;inset:0}
+#tv .tv-places{position:absolute;left:0;top:0;bottom:0;will-change:transform}
 #tv .tv-place{position:absolute;display:block}
-#tv .tv-plate{position:absolute;left:50%;top:100%;transform:translate(-50%,2px);display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px 1px 6px;white-space:nowrap;font-size:13px;font-weight:600;letter-spacing:.02em;line-height:1;color:#e9e0c9}
+#tv .tv-plate{position:absolute;left:50%;top:100%;transform:translate(-50%,0);display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px 1px 6px;white-space:nowrap;font-size:13px;font-weight:600;letter-spacing:.02em;line-height:1;color:#e9e0c9}
 #tv .tv-place:hover .tv-plate,#tv .tv-place:focus-visible .tv-plate{color:#fff4c8;box-shadow:inset 0 0 0 2px #8a6a2a,inset 0 2px 0 2px #d1a94e,4px 4px 0 #0b151499}
-#tv .tv-place:active .tv-plate{transform:translate(-50%,4px);background:#213a36;box-shadow:inset 0 0 0 2px #d1a94e}
+#tv .tv-place:active .tv-plate{transform:translate(-50%,2px);background:#213a36;box-shadow:inset 0 0 0 2px #d1a94e}
 #tv .tv-badge{position:absolute;right:-9px;top:-11px;min-width:18px;height:18px;padding:0 4px;display:flex;align-items:center;justify-content:center;background:#d1a94e;color:#101d1c;border:2px solid #0b1514;box-shadow:inset -2px -2px 0 #8a6a2a,inset 2px 2px 0 #f3d98b;font-size:12px;font-weight:700;line-height:1;white-space:nowrap}
 #tv .tv-badge.txt{top:-20px;right:-6px;padding:0 5px}
 #tv .tv-badge.ok{background:#58b39c;box-shadow:inset -2px -2px 0 #2c6a5d,inset 2px 2px 0 #9fe0cd}
@@ -36,7 +38,7 @@
 @keyframes tv-bob{50%{transform:translateY(-2px)}}
 
 /* arrival notice */
-#tv .tv-note{position:absolute;left:50%;top:calc(var(--sat,0px) + 52px);transform:translateX(-50%);display:none;align-items:center;gap:8px;max-width:min(86%,460px);padding:7px 14px 8px;pointer-events:none;
+#tv .tv-note{position:absolute;z-index:8;left:50%;top:calc(var(--sat,0px) + 96px);transform:translateX(-50%);display:none;align-items:center;gap:8px;max-width:min(86%,460px);padding:7px 14px 8px;pointer-events:none;
  font-family:'Alegreya Sans',system-ui,sans-serif;font-size:15px;font-weight:700;line-height:1.25;color:#e9e0c9;box-shadow:inset 0 0 0 2px #8a6a2a,inset 0 2px 0 2px #d1a94e,4px 4px 0 #0b151499}
 #tv .tv-note.on{display:flex;animation:tv-note .4s steps(4) both}
 #tv .tv-note p{margin:0}
@@ -114,8 +116,22 @@
 #pn .pn-btn.off{background-color:#182a28;border-color:#182a28;color:#7d8f86;border-image-source:var(--pxb-dis)}
 #pn .pn-foot .pn-btn+.pn-btn{margin-left:-4px}
 #tv i.pn-i{display:inline-block;flex:none;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated}
-#tv .tv-plate.up{top:auto;bottom:100%;transform:translate(-50%,-2px)}
-#tv .tv-place:active .tv-plate.up{transform:translate(-50%,0)}
+#tv .tv-plate.bk{transform:translate(-50%,-100%)}
+#tv .tv-place.bk{z-index:1}
+#tv .tv-place:active .tv-plate.bk{transform:translate(-50%,calc(2px - 100%))}
+#tv .tv-top{z-index:4}#tv .tv-bar{z-index:5}
+/* panning the street: two arrows and a track between Company and Leave town */
+#tv .tv-pan{pointer-events:auto;display:flex;align-items:center;gap:6px;margin:0 8px 2px}
+#tv .tv-pan[hidden]{display:none}
+#tv .tv-pb{position:relative;width:44px;height:40px;background:#101d1c;box-shadow:inset 0 0 0 2px #35554f,inset 0 2px 0 2px #4d5a5c,3px 3px 0 #0b151499}
+#tv .tv-pb i{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -3px;border:solid #e9e0c9;border-width:0 0 4px 4px;transform:rotate(45deg)}
+#tv .tv-pb.r i{margin-left:-9px;transform:rotate(-135deg)}
+#tv .tv-pb:disabled{opacity:.4;cursor:default}
+#tv .tv-pb:not(:disabled):active{transform:translate(2px,2px);box-shadow:inset 0 0 0 2px #d1a94e}
+#tv .tv-pb:focus-visible{outline:2px solid #f3d98b;outline-offset:2px}
+#tv .tv-track{position:relative;width:56px;height:8px;background:#0b1514;box-shadow:inset 0 0 0 2px #213a36}
+#tv .tv-track i{position:absolute;top:0;bottom:0;background:#58b39c;box-shadow:inset 0 2px 0 #9fe0cd}
+@media (max-width:600px){#tv .tv-track{width:28px}#tv .tv-pan{margin:0 4px 2px;gap:4px}}
 /* builds rework: recruit trees on the tavern rows and in the detail */
 #pn .tw-trees{gap:2px;height:18px;min-height:18px;margin-top:1px}
 #pn .tw-gv{color:var(--pn-gift);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-weight:600}
