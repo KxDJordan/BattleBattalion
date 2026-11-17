@@ -152,7 +152,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   // an elf style's drawn ear tip (tipx / tipy) goes on the elf head's ear tip; a human style is placed as fitted at build time
   // (assets/make-parts2-atlas.py: its ear arc on the head's ear outline, fx / fy / fs)
   let hx=0,hy=0;if(Ha){if(A.ehair&&Ha.tipx!=null&&HA.tipx!=null){hx=HA.tipx-R.px-Ha.tipx*hs_+ha[0]*R0;hy=HA.tipy-R.py-Ha.tipy*hs_+ha[1]*R0}
-   else if(Ha.fx!=null){hs_=Ha.fs*ha[2];hx=-R.px+Ha.fx+ha[0]*R0;hy=-R.py+Ha.fy+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
+   else if(Ha.fx!=null){hs_=Ha.fs*ha[2];hx=-R.px+Ha.fx+(HA.edx||0)+ha[0]*R0;hy=-R.py+Ha.fy+(HA.edy||0)+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
   A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};   // for the tests: no hair under a helmet
   if(hs.orc){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
   if(c)put(n,c,1,-R.px,-R.py);
