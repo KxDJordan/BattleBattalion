@@ -2,7 +2,8 @@
 // The Detail High battle figures composed from the parts sheets (73j-humanatlas.js + 73k-humans.js): every background x race (human,
 // elf, half-orc in both skin tones, dwarf) x man / woman, every person enemy type, every helmet, body armour, shield and weapon on a
 // figure, all four faces and every state and frame. Checks: no page errors, the sprite is the composed one (hum), not empty, the feet
-// anchor inside the frame, a second draw is a cache hit (same object), the elf / half-orc / dwarf pieces are the race's own, dwarves
+// anchor inside the frame, the weapon in the right hand and the shield on the left arm (its inside, behind the body on the far arm; its face with
+// the device in front on the near arm), a second draw is a cache hit (same object), the elf / half-orc / dwarf pieces are the race's own, dwarves
 // stand shorter than humans, and Detail Low still draws the old pixel figure (and monsters never come here).
 const {chromium}=require('playwright'),path=require('path');
 (async()=>{const f=path.resolve(process.argv[2]||'dist/index.html');const b=await chromium.launch(),p=await b.newPage({viewport:{width:667,height:375}});const errs=[];
@@ -19,7 +20,7 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
    if(!o||!o.cv||!o.cv.width||!o.cv.height){bad.push(id+': no sprite');continue}if(!o.hum){bad.push(id+': not the composed figure');continue}
    const w=o.cv.width/o.k,h=o.cv.height/o.k;if(!(o.ax>=0&&o.ax<=w&&o.ay>=0&&o.ay<=h+.5))bad.push(id+': anchor outside the frame '+[o.ax.toFixed(1),o.ay.toFixed(1),w.toFixed(1),h.toFixed(1)]);
    if(n.sprites%7===0){const d=o.cv.getContext('2d').getImageData(0,0,o.cv.width,o.cv.height).data;let a=0;for(let i=3;i<d.length;i+=16)a+=d[i];if(!a)bad.push(id+': empty')}
-   if(o.hand){if(o.hand.w!==o.hand.right)bad.push(id+': the weapon is not in the right hand');if(o.hand.shield&&o.hand.shield===o.hand.right)bad.push(id+': the shield is not on the left arm')}else bad.push(id+': no hand tags');
+   if(o.hand){if(o.hand.w!==o.hand.right)bad.push(id+': the weapon is not in the right hand');if(o.hand.shield&&o.hand.shield===o.hand.right)bad.push(id+': the shield is not on the left arm');if(o.hand.shield){const L=o.hand.layers;if(o.hand.shield==='b'?L!=='back,torso':L!=='torso,front')bad.push(id+': shield on the '+(o.hand.shield==='b'?'far':'near')+' arm drawn as '+L);n.shieldChecks=(n.shieldChecks||0)+1}}else bad.push(id+': no hand tags');
    const o2=unitSpritePx(u,face,st,fr);if(o2!==o)bad.push(id+': rebuilt on the second draw');else n.hits++}}};
  const RACES=[['human'],['elf'],['halforc','orc'],['halforc','ashorc'],['dwarf']];
  // every background x race x sex: front and back idle; one per race x sex: every face, state and frame
