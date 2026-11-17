@@ -9,7 +9,7 @@
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
    pointed ear, half-orcs green-grey skin, a pointed ear and tusks, dwarves their braided beard (vector overlays in the sheet's style).
    The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
-const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,handA:[-.08,-.05]};
+const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,earX:0,earY:0,handA:[-.08,-.05]};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
 const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
@@ -66,6 +66,8 @@ const P2_HAIR_OF={m:{crop:'short, side part',short:'short, side part 2',shaggy:'
  w:{long:'long',short:'bob',bun:'bun',braids:'braid',tail:'ponytail',bowl:'bob 2',swept:'long side-swept',curly:'long wavy',mane:'twin tails',crop:'tousled',shaggy:'messy',mohawk:'undercut 2',topknot:'high ponytail',wisps:'long 2'}};
 // expressions: the eight heads (heads.webp)
 const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','nervous','knocked out'];
+// per-hair tweak after the ear-hole alignment: [dx, dy (head radii), scale]
+const P2_HAIRADJ={7:[.25,0,1],11:[0,1.5,1],12:[.15,0,1],15:[0,1.4,1],23:[.3,.05,1],26:[0,1.5,1]};   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
 const HEAD_HOLD=380;
 /* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed) */
 const HEAD_RULES=[
@@ -138,12 +140,13 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   const top=sk.y-A.hR.h*.5;   // the head's top (SU, from the neck point)
   const put=(pn,canvas,s,dx,dy)=>{if(!canvas)return;g.drawImage(canvas,dx-1/pk*s,dy-1/pk*s,canvas.width/pk*s,canvas.height/pk*s)};
   // hair behind the head (long styles hang behind the neck): the whole hair piece first, the head over it, then the hair again clipped to above the eyes
-  const hp=A.helm<0&&A.hair>=0?'hair'+A.hair:null,HPc=hp?p2Piece(hp,null,A.hairC):null,Ha=hp?P2A.p[hp].a:null,hs_=Ha?(R0*2*1.2)/Ha.bw:1,hx=Ha?sk.x-R0*.1-Ha.bcx*hs_:0,hy=Ha?top-R0*.12-Ha.btop*hs_:0;
+  const hp=A.helm<0&&A.hair>=0?'hair'+A.hair:null,HPc=hp?p2Piece(hp,null,A.hairC):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=P2_HAIRADJ[A.hair]||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
+  // the hair's ear hole (the notch on the left edge of its face opening, P2A anchors ehx / ehy) goes on the head's ear (ex / ey)
+  let hx=0,hy=0;if(Ha){if(Ha.ehx!=null){hx=HA.ex-R.px+P2.earX*R0-Ha.ehx*hs_+ha[0]*R0;hy=HA.ey-R.py+P2.earY*R0-Ha.ehy*hs_+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
   A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};   // for the tests: no hair under a helmet
-  if(HPc)put(hp,HPc,hs_,hx,hy);
   if(hs.orc||hs.el){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
   if(c)put(n,c,1,-R.px,-R.py);
-  if(HPc){g.save();g.beginPath();g.rect(-600,-900,1200,900+sk.y-R0*.05);g.clip();put(hp,HPc,hs_,hx,hy);g.restore()}
+  if(HPc)put(hp,HPc,hs_,hx,hy);   // the hair straight over the head: its art leaves the face and the ear open
   g.save();g.translate(sk.x,sk.y);
   if(hs.orc&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
   if(S.beard&&(hs.dw||S.beard))humBeard(g,S,R0*.98,hs.dw);

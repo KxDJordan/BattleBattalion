@@ -140,7 +140,8 @@ def anchors(kind, P, s):
     if kind == 'head':
         x0, x1 = span(h * .5); x0 = x0 + (x1 - x0) * .12   # skip the ear at the back (left)
         A['cx'] = (x0 + x1) / 2 * s; A['cy'] = h * .5 * s; A['r'] = (x1 - x0) / 2 * s; A['nx'] = (x0 + x1) / 2 * s + 4; A['ny'] = (h - 4) * s; A['top'] = 0
-        q0, q1 = span(h * .36); A['sx0'] = q0 * s; A['sx1'] = q1 * s   # the skull's back and front edges above the ear
+        q0, q1 = span(h * .36); A['sx0'] = q0 * s; A['sx1'] = q1 * s
+        A['ex'] = w * .185 * s; A['ey'] = h * .677 * s   # the ear (measured on the sheet: the same on every expression)   # the skull's back and front edges above the ear
     elif kind == 'torso':
         sk = (P[:, :, 0] > 180) & (P[:, :, 0] - P[:, :, 2] > 55) & (P[:, :, 1] > P[:, :, 0] * .5) & al
         ys = np.where(sk.any(1))[0]; ny = ys[0] if len(ys) else 0; nxs = np.where(sk[ny])[0] if len(ys) else [w / 2]
@@ -164,6 +165,26 @@ def anchors(kind, P, s):
             a_, b_ = span(y)
             if al[y].any() and b_ - a_ >= bw * .4 and al[y, a_:b_ + 1].mean() > .55: topb = y; break
         A['btop'] = topb * s
+        if kind == 'hair':   # the ear hole: the notch on the left edge of the face opening (the opening = the biggest enclosed transparent region)
+            above = np.maximum.accumulate(al, axis=0); lft = np.maximum.accumulate(al, axis=1); rgt = np.maximum.accumulate(al[:, ::-1], axis=1)[:, ::-1]
+            cand = (~al) & above & lft & rgt; lab = -np.ones(al.shape, int); best = None; nid = 0
+            for y0_ in range(h):
+                for x0_ in range(w):
+                    if cand[y0_, x0_] and lab[y0_, x0_] < 0:
+                        st = [(y0_, x0_)]; lab[y0_, x0_] = nid; pts = []
+                        while st:
+                            yy, xx = st.pop(); pts.append((yy, xx))
+                            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                                y2, x2 = yy + dy, xx + dx
+                                if 0 <= y2 < h and 0 <= x2 < w and cand[y2, x2] and lab[y2, x2] < 0: lab[y2, x2] = nid; st.append((y2, x2))
+                        if best is None or len(pts) > len(best): best = pts
+                        nid += 1
+            if best:
+                ys_ = [p_[0] for p_ in best]; oy0, oy1 = min(ys_), max(ys_); rows_ = {}
+                for yy, xx in best: rows_[yy] = min(rows_.get(yy, w), xx)
+                lo = oy0 + int((oy1 - oy0) * .3); hi = oy0 + int((oy1 - oy0) * .9); rr = [(rows_[y_], y_) for y_ in range(lo, hi + 1) if y_ in rows_]
+                if rr:
+                    mx = min(r_[0] for r_ in rr); ys2 = [y_ for x_, y_ in rr if x_ <= mx + 2]; A['ehx'] = mx * s; A['ehy'] = float(np.median(ys2)) * s
         if kind == 'helm':   # the steel bowl alone (grey, unsaturated, not white): its top row and its width / centre below that, for crested / winged helms
             r_, g_, b_ = P[:, :, 0], P[:, :, 1], P[:, :, 2]; lum = .3 * r_ + .59 * g_ + .11 * b_; sat = np.maximum(np.maximum(r_, g_), b_) - np.minimum(np.minimum(r_, g_), b_)
             met = al & (sat < 28) & (lum > 95) & (lum < 222); rows_ = np.where(met.sum(1) >= max(3, met.sum(1).max() * .35))[0]
