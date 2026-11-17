@@ -28,7 +28,7 @@ function humK(){let s=1;try{s=typeof artScale==='function'?artScale():1}catch(e)
 /* ---- who is a person: mercs (any race), and the human enemy types ---- */
 const HUM_NOT=new Set(['gob','gobarch','gobsham','skel','skelhal','zomb','orcy','orcw','orcl','obrute','hstd','hchief','imp','vknight','vmage','tyrant','gknight','bthrone']);
 function humPerson(L){if(L.hum!==undefined)return L.hum;let r=false;const S=L.S;
- if(S&&S.kind==='hum'&&typeof L.key==='string'){if(L.key[0]==='m')r=true;else if(L.key[0]==='e'){const id=L.key.split(':')[1];r=!HUM_NOT.has(id)&&!(typeof SHEETS==='object'&&SHEETS[id])&&!!US_BUILD&&S.b!==US_BUILD.thin&&S.b!==US_BUILD.gob&&S.b!==US_BUILD.orc&&S.b!==US_BUILD.imp&&S.b!==US_BUILD.bloat&&S.b!==US_BUILD.tyrant}}
+ if(S&&S.kind==='hum'&&typeof L.key==='string'){if(L.key[0]==='m')r=true;else if(L.key[0]==='e'){const id=L.key.split(':')[1];r=!HUM_NOT.has(id)&&!(typeof SHEETS==='object'&&SHEETS[id])&&!!US_BUILD&&S.b!==US_BUILD.thin&&S.b!==US_BUILD.gob&&S.b!==US_BUILD.orc&&S.b!==US_BUILD.imp&&S.b!==US_BUILD.bloat&&S.b!==US_BUILD.tyrant&&!(S.armor==='rags'&&S.wd&&S.wd.cls==='fist'&&!S.hair&&!S.hat&&!S.beard)}}   // the stock spec a monster without its own falls back to is no person
  L.hum=r;return r}
 function humWant(L){return HUM.on&&typeof document!=='undefined'&&typeof HPA==='object'&&(typeof hdArt!=='function'||hdArt())&&!!L&&humPerson(L)}
 
@@ -40,19 +40,19 @@ function humDk(c,t){return humMix(c,'#000000',t==null?.22:t)}
 function humLt(c,t){return humMix(c,'#ffffff',t==null?.22:t)}
 // a ramp of 73-units.js ({t: PAL keys dark -> light, b: resting tone}) -> the lit colour a grey shade layer is multiplied by
 function humRC(r,d){if(!r)return'#888888';if(typeof r==='string')return humHex(r);const t=r.t,n=t.length;let i=(r.b==null?1:r.b)+(d||0);i=i<0?0:i>=n?n-1:i;return humHex(t[i])}
-function humLit(r){if(!r||typeof r==='string')return humRC(r);const n=r.t.length,b=r.b==null?1:r.b;return b+1<n?humMix(humRC(r),humRC(r,1),.45):humRC(r)}
+function humLit(r){if(!r||typeof r==='string')return humRC(r);const n=r.t.length,b=r.b==null?1:r.b;return b+1<n?humMix(humRC(r),humRC(r,1),.2):humRC(r)}
 
 /* ---- the rig: pivots read from the layer boxes of each piece (sheet px), so a re-cut sheet keeps working ---- */
 function humBox(n,m){const P=HPA.p[n];const l=P&&P.L[m];return l?{x:l[4],y:l[5],w:l[6],h:l[7]}:{x:0,y:0,w:P?P.w:1,h:P?P.h:1}}
 const HUM_RIG={};
 function humRig(n){let R=HUM_RIG[n];if(R)return R;const P=HPA.p[n];R={w:P.w,h:P.h};
- if(/^(head|elf)/.test(n)){const s=humBox(n,'s'),f=/_f$/.test(n),el=n[0]==='e';   // the skull: a circle in the skin box (elf ears stick out of it)
+ if(/^([od]?head|elf)/.test(n)){const s=humBox(n,'s'),f=/_f$/.test(n),el=n[0]==='e'||n[0]==='o';   // the skull: a circle in the skin box (elf ears stick out of it)
   const sx0=s.x+(el?(f?20:22):0),sx1=s.x+s.w-(el&&!f?22:0);R.cx=(sx0+sx1)/2+(f?4:-2);R.cy=s.y+s.h*.5;R.r=Math.min(sx1-sx0,s.h)*.5;R.px=R.cx+(f?-4:4);R.py=s.y+s.h-6}
- else if(/^torso/.test(n)){const c=humBox(n,'c'),b=humBox(n,'b'),f=/f$/.test(n);R.hx=b.x+b.w/2;R.hy=b.y+b.h*.55;R.nx=c.x+c.w*(f?.52:.5);R.ny=c.y+(f?2:8);
+ else if(/^[od]?torso/.test(n)){const c=humBox(n,'c'),b=humBox(n,'b'),f=/f$/.test(n);R.hx=b.x+b.w/2;R.hy=b.y+b.h*.55;R.nx=c.x+c.w*(f?.52:.5);R.ny=c.y+(f?2:8);
   R.px=R.hx;R.py=R.hy;R.sa={x:c.x+3,y:c.y+(f?24:18)};R.sb={x:c.x+c.w-3,y:c.y+(f?24:18)};R.top=c.y;R.bot=b.y+b.h;R.x0=c.x;R.x1=c.x+c.w}
- else if(/^arm/.test(n)){const c=humBox(n,'c'),s=humBox(n,'s');R.px=c.x+c.w/2;R.py=c.y+10;R.wx=s.x+s.w/2;R.wy=s.y+s.h-12}
- else if(/^hand/.test(n)){const s=humBox(n,'s');R.px=s.x+s.w/2;R.py=s.y+s.h*.45}
- else if(/^leg/.test(n)){const p=humBox(n,'p'),k=humBox(n,'k');R.px=p.x+p.w/2;R.py=p.y+14;R.fy=k.y+k.h-4;R.fx=k.x+k.w/2}
+ else if(/^[od]?arm/.test(n)){const c=humBox(n,'c'),s=humBox(n,'s');R.px=c.x+c.w/2;R.py=c.y+10;R.wx=s.x+s.w/2;R.wy=s.y+s.h-12}
+ else if(/^[od]?hand/.test(n)){const s=humBox(n,'s');R.px=s.x+s.w/2;R.py=s.y+s.h*.45}
+ else if(/^[od]?leg/.test(n)){const p=humBox(n,'p'),k=humBox(n,'k');R.px=p.x+p.w/2;R.py=p.y+14;R.fy=k.y+k.h-4;R.fx=k.x+k.w/2}
  R.len=R.wx!=null?Math.hypot(R.wx-R.px,R.wy-R.py):0;R.ang=R.wx!=null?Math.atan2(R.wy-R.py,R.wx-R.px):0;HUM_RIG[n]=R;return R}
 
 /* ---- per look: the body spec (pieces, colours, proportions), computed once ---- */
@@ -105,7 +105,7 @@ function humWInfo(W){let o=HUM_WI.get(W);if(o)return o;const fam=humWFam(W),C=W.
  const pomR=(C.find(c=>c[0]===i0)||[])[2];
  const blade=top(by[2])||USR.plate,guard=top(by[1])||USR.brass,haft=top(by[0])||USR.wood;
  const col=r=>r==='GEM'||r==null?null:humLit(r);
- o={fam,id:W.id,len:Math.max(4,i1)*HUM_CELL,back:Math.max(1,-i0)*HUM_CELL,wid:o1,famed:!!W.famed||/\*/.test(W.id||''),gem:gem||W.gem,two:!!W.two,h2:W.h2||0,
+ o={fam,id:W.id,len:Math.max(fam==='dagger'?6:4,i1)*HUM_CELL,back:Math.max(1,-i0)*HUM_CELL,wid:o1,famed:!!W.famed||/\*/.test(W.id||''),gem:gem||W.gem,two:!!W.two,h2:W.h2||0,
   blade:col(blade)||'#c8d0d6',guard:col(guard)||'#c79a3c',haft:col(haft)||'#8a5a32',grip:col(gripR)||col(haft)||'#5a3a22',pom:col(pomR)||col(guard)||'#c79a3c',
   bowc:W.bowR?humLit(USR[W.bowR]||W.bowR):null,bow:W.bow||(fam==='bow'?6:0),recurve:!!W.recurve||W.asym>0,nock:W.nock?humLit(USR[W.nock]||USR.gold):null,wrap:W.wrap?(typeof W.wrap==='string'&&USR[W.wrap]?humLit(USR[W.wrap]):'#e8e0d0'):null,
   gemc:W.gemR?humLit(USR[W.gemR]||W.gemR):null};
@@ -117,8 +117,8 @@ function humWCls(fam,W){return fam==='bow'?'bow':fam==='xbow'||fam==='pistol'||f
  fam==='spear'||fam==='trident'||fam==='halberd'||fam==='bill'||fam==='glaive'?'thrust':fam==='great'||fam==='greataxe'||fam==='maul'||(W&&W.two&&W.cls==='two')?'two':'swing'}
 function humPose(cls,st,fr,hs){const P={w:[6,86],o:[-4,86],wa:-62,oa:0,lean:0,bob:0,lg:[0,0,0,0],kneel:0,lie:0,grip:0,bowD:0,arrow:0,spark:0,drop:0,rod:0,crank:0};
  // guard positions per class
- switch(cls){case'swing':P.w=[-4,86];P.wa=-66;break;case'dagger':P.w=[-4,86];P.wa=-40;break;case'two':P.w=[30,74];P.wa=-58;P.grip=1;break;case'thrust':P.w=[4,84];P.wa=-82;P.grip=hs&&hs.two?1:0;break;
-  case'staff':P.w=[20,80];P.wa=-86;break;case'bow':P.o=[24,78];P.w=[0,86];break;case'gun':P.w=[44,64];P.wa=-6;P.grip=1;break;case'fist':P.w=[6,86];break}
+ switch(cls){case'swing':P.w=[0,86];P.wa=-42;break;case'dagger':P.w=[0,86];P.wa=-28;break;case'two':P.w=[30,74];P.wa=-58;P.grip=1;break;case'thrust':P.w=[-16,82];P.wa=-104;P.grip=hs&&hs.two?1:0;break;
+  case'staff':P.w=[-16,82];P.wa=-100;break;case'bow':P.o=[24,78];P.w=[0,86];break;case'gun':P.w=[44,64];P.wa=-6;P.grip=1;break;case'fist':P.w=[6,86];break}
  const set=(o)=>Object.assign(P,o);
  switch(st){
   case'idle':if(fr===1)P.bob=4;break;
@@ -245,14 +245,16 @@ function humDrawShield(g,look,colR,front,crack){const fam=usShFam(look),V=usShVa
 function humDome(r,yF,yB,sag){const a1=Math.asin(Math.max(-.99,Math.min(.99,yF/r))),a0=Math.PI-Math.asin(Math.max(-.99,Math.min(.99,yB/r)));
  return humP(p=>{p.arc(0,0,r,a0,Math.PI*2+a1,false);const x1=Math.cos(a1)*r,y1=Math.sin(a1)*r,x0=Math.cos(a0)*r,y0=Math.sin(a0)*r;p.quadraticCurveTo((x0+x1)/2,(y0+y1)/2+(sag||0),x0,y0);p.closePath()})}
 function humMailTex(g,P,x0,y0,x1,y1,c){g.save();g.clip(P);g.strokeStyle=humDk(c,.38);g.lineWidth=2.6;for(let y=y0,j=0;y<y1;y+=11,j++){g.beginPath();for(let x=x0+(j&1?6:0);x<x1;x+=12){g.moveTo(x+5,y);g.arc(x,y,5,0,Math.PI,false)}g.stroke()}g.restore()}
-function humHair(g,S,R,back,part){const st=S.hair;if(!st||st==='bald')return;const c=humLit(S.hairR||usHairR(['i','H','k'])),r=R+6;
+function humHair(g,S,R,back,part){const st=S.hair;if(!st||st==='bald')return;const hr=S.hairR||usHairR(['i','H','k']),c=humMix(humRC(hr),humRC(hr,1),.2),r=R+6;
  const longS=st==='long'||st==='braids'||st==='mane',
   sh=(P,o)=>humSh(g,P,c,Object.assign({dk:.25,sx:7,sy:-6},o||{}));
  if(part==='behind'){if(longS&&!back){const P=humP(p=>{p.moveTo(-R*.95,-R*.1);p.quadraticCurveTo(-R*1.25,R*.9,-R*1.05,R*(st==='mane'?1.55:1.75));p.quadraticCurveTo(-R*.6,R*1.9,-R*.15,R*1.45);p.lineTo(-R*.1,R*.3);p.closePath()});sh(P);humBBp(g,-R*1.3,R*1.8,6)}
   if(st==='tail'&&!back){sh(humP(p=>{p.moveTo(-R*.8,R*.15);p.quadraticCurveTo(-R*1.35,R*.5,-R*1.15,R*1.25);p.quadraticCurveTo(-R*.95,R*.9,-R*.62,R*.45);p.closePath()}))}
   return}
- if(part==='over'){if(back&&(longS||st==='tail')){const L=st==='tail'?1.35:st==='mane'?1.45:1.7;sh(humP(p=>{p.moveTo(-R*.75,R*.2);p.quadraticCurveTo(-R*.95,R*L*.8,-R*.55,R*L);p.lineTo(R*.45,R*L);p.quadraticCurveTo(R*.85,R*L*.8,R*.7,R*.2);p.closePath()}));humBBp(g,0,R*L,R*.8)
-   if(st==='braids'){g.strokeStyle=humDk(c,.35);g.lineWidth=3;for(let y=R*.6;y<R*1.6;y+=14){g.beginPath();g.moveTo(-R*.3,y);g.lineTo(-R*.1,y+8);g.lineTo(R*.1,y);g.lineTo(R*.3,y+8);g.stroke()}}}
+ if(part==='over'){if(back&&(longS||st==='tail')){const L=st==='tail'?1.65:st==='mane'?1.75:2.05,w=st==='tail'?.3:.82;
+   sh(humP(p=>{p.moveTo(-R*w,R*.1);p.bezierCurveTo(-R*(w+.12),R*L*.7,-R*w*.8,R*L,0,R*L);p.bezierCurveTo(R*w*.8,R*L,R*(w+.12),R*L*.7,R*w,R*.1);p.closePath()}));humBBp(g,0,R*L,R*.9);
+   g.strokeStyle=humDk(c,.32);g.lineWidth=3;if(st==='braids'){for(const x of[-R*.35,R*.35])for(let y=R*.55;y<R*(L-.1);y+=16){g.beginPath();g.moveTo(x-8,y);g.quadraticCurveTo(x,y+10,x+8,y);g.stroke()}}
+   else for(const x of[-R*.4,0,R*.4]){g.beginPath();g.moveTo(x,R*.6);g.quadraticCurveTo(x*1.1,R*L*.8,x*.9,R*(L-.08));g.stroke()}}
   return}
  // the cap of hair over the skull
  let P;
@@ -261,7 +263,7 @@ function humHair(g,S,R,back,part){const st=S.hair;if(!st||st==='bald')return;con
   else P=humP(p=>{p.arc(0,0,r,Math.PI-Math.asin(nape),Math.PI*2+Math.asin(nape),false);p.quadraticCurveTo(0,R*(nape+.18),Math.cos(Math.PI-Math.asin(nape))*r,nape*r);p.closePath()});
   sh(P);if(st==='tonsure'){humSh(g,humEll(0,-R*.45,R*.42,R*.3),humLit(S.skin),{dk:.15})}}
  else{const brow={bowl:.12,swept:-.1,shaggy:.05,curly:-.05,mane:-.05,crop:-.28,tonsure:-.2,topknot:-.25,bun:-.2,tail:-.22,wisps:-.4,long:-.12,braids:-.15}[st];const b=brow==null?-.2:brow;
-  if(st==='mohawk')P=humP(p=>{p.moveTo(R*.6,-R*.6);p.quadraticCurveTo(R*.2,-R*1.45,-R*.6,-R*1.1);p.quadraticCurveTo(-R*.9,-R*.6,-R*.75,-R*.2);p.quadraticCurveTo(-R*.2,-R*.8,R*.6,-R*.6);p.closePath()});
+  if(st==='mohawk')P=humP(p=>{p.arc(0,0,R*1.3,-2.75,-.95,false);p.arc(0,0,R*.92,-.8,-2.9,true);p.closePath()});
   else if(st==='wisps')P=humP(p=>{p.arc(0,0,r-2,Math.PI*1.25,Math.PI*1.75,false);p.quadraticCurveTo(0,-R*.65,-Math.cos(Math.PI*.25)*r,-Math.sin(Math.PI*.25)*r);p.closePath()});
   else P=humP(p=>{const a1=Math.asin(b),a0=Math.PI-Math.asin(st==='crop'?.2:.62);p.arc(0,0,r,a0,Math.PI*2+a1,false);
    if(st==='bowl')p.lineTo(-R*.2,b*R+R*.02);else if(st==='swept'){p.quadraticCurveTo(R*.6,-R*.05,R*.15,-R*.32);p.quadraticCurveTo(-R*.35,-R*.05,-R*.55,R*.3)}else p.quadraticCurveTo(R*.05,-R*.42,-R*.55,R*.3);
@@ -271,7 +273,7 @@ function humHair(g,S,R,back,part){const st=S.hair;if(!st||st==='bald')return;con
  else{g.save();g.clip(P);g.strokeStyle=humLt(c,.25);g.lineWidth=3.5;for(const a of[-2.2,-1.75,-1.3]){g.beginPath();g.arc(0,0,R*.82,a,a+.35);g.stroke()}g.restore()}
  if(st==='bun'||st==='topknot'){const x=st==='bun'?-R*.65:-R*.25,y=st==='bun'?-R*.75:-R*1.08;humSh(g,humCirc(x,y,R*.27),c,{dk:.25});if(st==='topknot')humInkLine(g,[x+R*.18,y+R*.05,x+R*.33,y-R*.1],humHex('g'),5);humBBp(g,x,y,R*.3)}
  if(st==='topknot'&&back){}}
-function humBeard(g,S,R){const bd=S.beard;if(!bd)return;const c=humLit(S.beardR||S.hairR||usHairR(['i','H','k'])),sh=P=>humSh(g,P,c,{dk:.25,sx:6,sy:-6});
+function humBeard(g,S,R){const bd=S.beard;if(!bd)return;const br=S.beardR||S.hairR||usHairR(['i','H','k']),c=humMix(humRC(br),humRC(br,1),.2),sh=P=>humSh(g,P,c,{dk:.25,sx:6,sy:-6});
  switch(bd){
   case'stache':sh(humP(p=>{p.moveTo(R*.2,R*.6);p.quadraticCurveTo(R*.5,R*.42,R*.85,R*.5);p.quadraticCurveTo(R*.6,R*.68,R*.2,R*.6);p.closePath()}));break;
   case'goatee':sh(humP(p=>{p.moveTo(R*.3,R*.7);p.quadraticCurveTo(R*.55,R*.6,R*.75,R*.62);p.quadraticCurveTo(R*.75,R*1.05,R*.48,R*1.12);p.quadraticCurveTo(R*.3,R*1,R*.3,R*.7);p.closePath()}));break;
@@ -445,8 +447,8 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
   if(P.rod){g.save();g.translate(armO.wx,armO.wy);humInkLine(g,[0,-20,0,60],humLit(USR.steel),5);g.restore()}};
  const drawOW=()=>{if(!S.ow||P.drop||st==='cast')return;const oi=humWInfo(S.ow);g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);humDrawW(g,oi,{});g.restore()};
  const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);if(st!=='attack')g.rotate(-.12);humDrawBow(g,wi,!!P.bowD,!!P.arrow,(armW.wx-armO.wx)*f);g.restore()};
- const shieldAt=()=>({x:armO.wx+f*16,y:armO.wy-14});
- const drawShield=front=>{if(!S.shield||P.drop)return;const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(f*(front?.86:.8),1);humDrawShield(g,S.shield,S.shR,front,!!S.shCrack);g.restore()};
+ const shieldAt=()=>({x:armO.wx+f*24,y:armO.wy-18});
+ const drawShield=front=>{if(!S.shield||P.drop)return;const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(f*(front?1:.92),1.1);humDrawShield(g,S.shield,S.shR,front,!!S.shCrack);g.restore()};
  const head=pc('head',null,null,'s'),hR=head.R,skull={x:neck.x+(hR.cx-hR.px),y:neck.y+(hR.cy-hR.py)},R0=hR.r;
  const inHead=fn=>{g.save();g.translate(skull.x,skull.y);g.rotate(rot*.5);g.scale(f,1);try{fn()}catch(e){if(!HUM.err){HUM.err=1;console.error('human head gear',e)}}g.restore()};
  const back=v==='b';
@@ -455,6 +457,8 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
   if(S.cape){g.save();const c=humLit(S.cape),P2=humP(q=>{q.moveTo(shA.x-6,shA.y-8);q.lineTo(shB.x+6,shB.y-8);q.quadraticCurveTo(shB.x+30,-40,shB.x+26,-18);q.quadraticCurveTo(0,-6,shA.x-26,-18);q.quadraticCurveTo(shA.x-30,-40,shA.x-6,shA.y-8);q.closePath()});humSh(g,P2,c,{dk:.25});humBBp(g,0,-18,80);g.restore()}
   if(S.slung){g.save();g.translate(bx.x,bx.y);g.scale(.8,.8);humDrawShield(g,S.slung,S.shR,back,0);g.restore()}
   if(S.alt&&(S.altCls==='back'||S.altCls==='bow')){const oi=humWInfo(S.alt);g.save();g.translate(bx.x,bx.y+30);g.rotate(f*(oi.fam==='bow'?.35:-.7)-Math.PI/2);if(oi.fam==='bow')humDrawBow(g,oi,0,0,null);else{g.translate(-oi.len*.35,0);humDrawW(g,oi,{})}g.restore()}
+  if(S.back&&/usSashi/.test(String(S.back))){const big=/1\)$/.test(String(S.back).trim())||/,1\)/.test(String(S.back)),q=up(f*-30,-60),fl=/R\.blk/.test(String(S.back))?'#2a2a34':'#efe9da';g.save();g.translate(q.x,q.y);humInkLine(g,[0,40,0,-300],humLit(USR.dwood),7);
+   const F=humP(p=>{p.moveTo(0,-290);p.lineTo(-f*62,-290);p.lineTo(-f*62,-150);p.lineTo(0,-150);p.closePath()});humSh(g,F,fl,{dk:.12});g.fillStyle=fl==='#2a2a34'?humHex('c'):humHex('g');g.beginPath();g.arc(-f*31,-220,15,0,7);g.fill();humBBp(g,-f*62,-300,8);humBBp(g,0,40,8);g.restore()}
   if(S.quiver){const q=up(f*-34,-120);g.save();g.translate(q.x,q.y);g.rotate(f*.45);humSh(g,humP(p=>humRR(p,-16,-20,32,96,10)),humLit(USR.leather),{dk:.25});for(let i=0;i<3;i++){humSh(g,humPoly([-12+i*10,-20,-6+i*10,-46,0+i*10,-20]),'#e8e2d4',{lw:4})}humBBp(g,0,-46,30);humBBp(g,0,80,30);g.restore()}};
  const drawHip=()=>{if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return;const oi=humWInfo(S.alt),p=up(f*(back?20:-30),-18);g.save();g.translate(p.x,p.y);g.rotate(f*.35+Math.PI/2);g.scale(.85,.85);humDrawW(g,oi,{});g.restore()};
  const drawLegs=()=>{const lg=P.lg;for(const [p,side,ix] of[[LB,'b',2],[LA,'a',0]]){const x=(side==='a'?-hx:hx),r=-f*lg[ix]*Math.PI/180,lift=lg[ix+1]||0;
@@ -464,7 +468,7 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
   if(S.armor==='mail'||n===3&&S.armor!=='brig'&&S.armor!=='lamellar')humMailTex(g,P2,-w-14,y0,w+14,y0+ln+8,c);if(S.armor==='lamellar'){g.save();g.clip(P2);for(let y=y0+12;y<y0+ln;y+=14)humLine(g,[-w-10,y,w+10,y],humLit(USR.red),4);g.restore()}
   if(n<0){humLine(g,[f*14,y0+4,f*18,y0+ln],humLit(S.trim||USR.brass),7)}};
  const drawTorso=()=>{draw(T,UB.x,UB.y,rot,tw,1);if(S.av&&S.av.mantle){const c=humLit(S.armor==='robe'?(S.accR||usCloth('purple')):USR.fur),m=humP(p=>{p.moveTo(shA.x-14,shA.y+4);p.quadraticCurveTo(neck.x,neck.y-40,shB.x+14,shB.y+4);p.quadraticCurveTo(neck.x,neck.y+20,shA.x-14,shA.y+4);p.closePath()});humSh(g,m,c)}};
- const drawHead=()=>{inHead(()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind')});draw(head,neck.x,neck.y,rot*.5);
+ const drawHead=()=>{inHead(()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind');if(back&&!/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|coif|hood|cowl)$/.test(S.hat||''))humHair(g,S,R0,back,'over')});draw(head,neck.x,neck.y,rot*.5);
   inHead(()=>{const hat=S.hat;const covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');
    if(!back&&!covers){if(S.patch){humLine(g,[-R0*.7,-R0*.3,R0*.9,R0*.1],HUM_INK,4);humSh(g,humEll(R0*.62,R0*.33,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
     if(S.paint){humLine(g,[R0*.0,R0*.55,R0*.95,R0*.48],humHex(S.paint),6)}if(S.stubble){g.fillStyle='rgba(30,25,20,.22)';g.beginPath();g.ellipse(R0*.45,R0*.75,R0*.5,R0*.22,0,0,7);g.fill()}
@@ -472,14 +476,14 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
    if(!covers&&!/^(kabuto|menpo|kawari|lgoni|jingasa)$/.test(hat||''))humHair(g,S,R0,back,'cap');else if(/^(kabuto|menpo|kawari|jingasa|lgoni)$/.test(hat||'')&&S.hair==='topknot')humHair(g,S,R0,back,'cap');
    if(!back&&!covers)humBeard(g,S,R0);
    if(S.mask&&!back){humSh(g,humP(p=>{p.moveTo(-R0*.2,R0*.42);p.lineTo(R0*1.08,R0*.28);p.quadraticCurveTo(R0*1.05,R0*.95,R0*.45,R0*1.0);p.quadraticCurveTo(-R0*.1,R0*.9,-R0*.2,R0*.42);p.closePath()}),humLit(S.hatR||usCloth('night')))}
-   humHat(g,S,R0,back,'over');if(back)humHair(g,S,R0,back,'over')})};
+   humHat(g,S,R0,back,'over')})};
  const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;if(cls==='staff'){x=armW.wx+wdx*(Math.max(wi.len,170)+20);y=armW.wy+wdy*(Math.max(wi.len,170)+20)}else if(P.spark===3){x=skull.x;y=skull.y-R0-50}else{x=(armW.wx+armO.wx)/2+f*30;y=(armW.wy+armO.wy)/2}
   const r=P.spark===3?30:P.spark===2?22:14;g.save();g.translate(x,y);g.fillStyle=col;g.globalAlpha=.35;g.beginPath();g.arc(0,0,r*1.6,0,7);g.fill();g.globalAlpha=1;const st4=humP(p=>{for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i&1?r*.4:r;i?p.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):p.moveTo(rr,0)}p.closePath()});humSh(g,st4,humLt(col,.3),{lw:5,flat:1});humBBp(g,0,0,r*1.6);g.restore()};
  // ---- layers
  if(!back){drawBackGear();inHead(()=>humHair(g,S,R0,false,'behind'));
   drawArm(AO,armO);if(!grip&&cls!=='bow'&&!S.shield){drawOW();drawHand(HO,armO)}
   drawLegs();drawSkirt();drawTorso();drawHip();drawHead();
-  drawShield(true);if(S.shield)drawHand(HO,armO);if(cls==='bow'){drawBow();drawHand(HO,armO)}
+  if(S.shield)drawHand(HO,armO);drawShield(true);if(cls==='bow'){drawBow();drawHand(HO,armO)}
   drawArm(AW,armW);drawWeapon();drawHand(HW,armW);if(grip)drawHand(HO,armO);drawSpark()}
  else{drawShield(false);drawArm(AW,armW);drawWeapon();drawHand(HW,armW);
   drawLegs();drawSkirt();drawTorso();drawBackGear();drawHip();drawHead();
@@ -492,5 +496,8 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
  if(mir){q.translate(w,0);q.scale(-1,1)}q.drawImage(sc,x0,y0,w,h,0,0,w,h);
  const fx=OX*K-x0,ax=(mir?w-fx:fx)/k,ay=(OY*K-y0)/k;HUM.builds++;HUM.bytes+=w*h*4;if(t0)HUM.ms+=performance.now()-t0;
  return{cv,ax,ay,k,smooth:true,hk:k,hum:1,r:typeof ARTHD==='object'?ARTHD.rev:0}}
+/* frame memory: the frames of every look share one budget; the oldest built are dropped (rebuilt on demand) */
+function humKeep(L,i,o){if(!o||!o.hum||!o.cv)return o;const b=o.cv.width*o.cv.height*4;HUM.fifo.push([L,i,o,b]);HUM.live=(HUM.live||0)+b;
+ while(HUM.live>HUM.cap&&HUM.fifo.length>1){const e=HUM.fifo.shift();HUM.live-=e[3];if(e[0].fr[e[1]]===e[2])e[0].fr[e[1]]=null}return o}
 /* the height of the figure's head top above the feet (art px), for the bars and statuses: unitSpriteBox */
 function humBoxH(L){const hs=humSpec(L);return Math.round(30*hs.sc)}
