@@ -44,12 +44,12 @@ function humLit(r){if(!r||typeof r==='string')return humRC(r);const n=r.t.length
 
 /* ---- the rig: pivots read from the layer boxes of each piece (sheet px), so a re-cut sheet keeps working ---- */
 function humBox(n,m){const P=HPA.p[n];const l=P&&P.L[m];return l?{x:l[4],y:l[5],w:l[6],h:l[7]}:{x:0,y:0,w:P?P.w:1,h:P?P.h:1}}
-const HUM_RIG={};
+const HUM_RIG={};   // torso: the shoulder caps sit at the torso's upper corners, below the collar (sa / sb)
 function humRig(n){let R=HUM_RIG[n];if(R)return R;const P=HPA.p[n];R={w:P.w,h:P.h};
  if(/^([od]?head|elf)/.test(n)){const s=humBox(n,'s'),f=/_f$/.test(n),el=n[0]==='e',oc=n[0]==='o',dw=n[0]==='d';   // the skull: a circle in the skin box (ears stick out of it)
   const sx0=s.x+(el?(f?20:22):oc?(f?26:12):dw?(f?14:8):0),sx1=s.x+s.w-(el&&!f?22:0);R.cx=(sx0+sx1)/2+(f?4:-2);R.cy=s.y+s.h*.5;R.r=oc||dw?Math.max(sx1-sx0,s.h)*.5:Math.min(sx1-sx0,s.h)*.5;R.px=R.cx+(f?-4:4);R.py=s.y+s.h-6}
  else if(/^[od]?torso/.test(n)){const c=humBox(n,'c'),b=humBox(n,'b'),f=/f$/.test(n);R.hx=b.x+b.w/2;R.hy=b.y+b.h*.55;R.nx=c.x+c.w*(f?.52:.5);R.ny=c.y+(f?2:8);
-  R.px=R.hx;R.py=R.hy;R.sa={x:c.x+3,y:c.y+(f?24:18)};R.sb={x:c.x+c.w-3,y:c.y+(f?24:18)};R.top=c.y;R.bot=b.y+b.h;R.x0=c.x;R.x1=c.x+c.w}
+  R.px=R.hx;R.py=R.hy;R.sa={x:c.x+2,y:c.y+c.h*(f?.5:.44)};R.sb={x:c.x+c.w-2,y:c.y+c.h*(f?.5:.44)};R.top=c.y;R.bot=b.y+b.h;R.x0=c.x;R.x1=c.x+c.w}
  else if(/^[od]?arm/.test(n)){const c=humBox(n,'c'),s=humBox(n,'s');R.px=c.x+c.w/2;R.py=c.y+10;R.wx=s.x+s.w/2;R.wy=s.y+s.h-12}
  else if(/^[od]?hand/.test(n)){const s=humBox(n,'s');R.px=s.x+s.w/2;R.py=s.y+s.h*.45}
  else if(/^[od]?leg/.test(n)){const p=humBox(n,'p'),k=humBox(n,'k');R.px=p.x+p.w/2;R.py=p.y+14;R.fy=k.y+k.h-4;R.fx=k.x+k.w/2}
@@ -83,6 +83,9 @@ function humPiece(hs,n,col,deco,key,dl){const id=n+'|'+(key||'');let c=hs.pc.get
  if(deco&&P.L[dl]){g.save();g.globalCompositeOperation='source-atop';g.scale(k,k);g.lineJoin='round';g.lineCap='round';try{deco(g,P)}catch(e){if(!HUM.err){HUM.err=1;console.error('human deco',n,e)}}g.restore()}
  for(const m in P.L)if(m!=='o'&&m!==dl)lay(m);
  const o=P.L.o;if(o)g.drawImage(I,o[0],o[1],o[2],o[3],o[4]*k,o[5]*k,o[6]*k,o[7]*k);
+ if(key==='mb'&&P.L.g&&P.L.b){   // a composition that is mirrored afterwards: the buckle moves to the other end of the belt, so it keeps its side
+  const q=P.L.g,bl=P.L.b,r=Math.max(q[6],q[7])/2,cx=q[4]+q[6]/2,cy=q[5]+q[7]/2,mx=P.w-cx,by0=bl[5]+7,by1=bl[5]+bl[7]-7;g.save();g.scale(k,k);
+  g.fillStyle=col.b||'#4a3020';g.fillRect(cx-r-5,by0,2*r+10,by1-by0);humSh(g,humCirc(mx,cy,r*.8),col.g||'#d1a94e',{lw:6,dk:.25});g.restore()}
  hs.pc.set(id,c);return c}
 /* ---- weapons: family + size + materials from the sprite weapon (usWdef) ---- */
 const HUM_CELL=15;                  // SU per weapon cell (one art px of the old sprite weapon)
@@ -422,18 +425,20 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
  const SW=1100,SH=1250,OX=550,OY=980;let sc=HUM_SCR.c;if(!sc)sc=HUM_SCR.c=document.createElement('canvas');const cw=Math.ceil(SW*K),ch=Math.ceil(SH*K);if(sc.width<cw||sc.height<ch){sc.width=Math.max(sc.width,cw);sc.height=Math.max(sc.height,ch)}
  const g=sc.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,sc.width,sc.height);g.imageSmoothingEnabled=true;try{g.imageSmoothingQuality='high'}catch(e){}
  g.setTransform(K,0,0,K,OX*K,OY*K);humBBr();g.lineJoin='round';g.lineCap='round';
- const hk=HPA.k,pc=(kind,side,deco,dl)=>{const n=hs.pn(kind,v,side);return{n,R:humRig(n),c:humPiece(hs,n,hs.col[kind],deco,'',dl)}};
+ const hk=HPA.k,pc=(kind,side,deco,dl,key)=>{const n=hs.pn(kind,v,side);return{n,R:humRig(n),c:humPiece(hs,n,hs.col[kind],deco,key||'',dl)}};
  const draw=(p,x,y,rot,sx,sy)=>{if(!p.c)return;g.save();g.translate(x,y);if(rot)g.rotate(rot);if(sx!=null)g.scale(sx,sy==null?1:sy);const R=p.R;g.drawImage(p.c,-R.px-1/hk,-R.py-1/hk,p.c.width/hk,p.c.height/hk);
   humBBbox(g,-R.px,-R.py,p.R.w-R.px,p.R.h-R.py);g.restore()};
  const lie=!!P.lie,kneel=!!P.kneel;
  if(lie){g.save();g.translate(f*170,-58);g.rotate(-f*Math.PI/2);Object.assign(P,{w:[4,88],o:[-4,88],lean:0,bob:0,lg:[4,0,-4,0]})}
  // ---- skeleton (screen space of the canonical view; feet at 0,0)
- const T=pc('torso',null,humTorsoDeco(hs,v,hs.pn('torso',v)),'c'),LA=pc('leg','a',humLegDeco(hs),'p'),LB=pc('leg','b',humLegDeco(hs),'p');
+ const T=pc('torso',null,humTorsoDeco(hs,v,hs.pn('torso',v)),'c',mir&&HPA.p[hs.pn('torso',v)].L.g?'mb':''),LA=pc('leg','a',humLegDeco(hs),'p'),LB=pc('leg','b',humLegDeco(hs),'p');
  const legL=(LA.R.fy-LA.R.py)*hs.legk,hipY=-(legL+4)*(kneel?.5:1)+(P.bob>0?P.bob*.5:0),hx=24*hs.wid;
  const UB={x:0,y:hipY-14+P.bob},rot=f*P.lean*Math.PI/180;
  const up=(x,y)=>{const c=Math.cos(rot),s=Math.sin(rot);return{x:UB.x+x*c-y*s,y:UB.y+x*s+y*c}};   // upper-body frame -> screen
  const tR=T.R,tw=hs.wid,shA=up((tR.sa.x-tR.hx)*tw,tR.sa.y-tR.hy),shB=up((tR.sb.x-tR.hx)*tw,tR.sb.y-tR.hy),neck=up((tR.nx-tR.hx)*tw*.6,tR.ny-tR.hy+18);
- const wSide=v==='f'?'a':'b',oSide=v==='f'?'b':'a',sW=wSide==='a'?shA:shB,sO=oSide==='a'?shA:shB;
+ // handedness: the composition is mirrored for faces 1 and 3, so there the weapon goes in the other hand before the mirror and every figure
+ // stays right-handed. The near arm is always piece 'a'; the character's right arm is the near one in faces 0 and 3, the far one in 1 and 2.
+ const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sW=wSide==='a'?shA:shB,sO=oSide==='a'?shA:shB,nearW=wSide==='a',sw0=wSide==='a'?-1:1,so0=-sw0,mf=mir?-1:1;
  const AW=pc('arm',wSide,humArmDeco(hs),'c'),AO=pc('arm',oSide,humArmDeco(hs),'c'),HW=pc('hand',wSide,null,'s'),HO=pc('hand',oSide,null,'s');
  const aim=(p,sh,tx,ty)=>{const R=p.R,dx=tx-sh.x,dy=ty-sh.y,d=Math.hypot(dx,dy)||1,s=Math.max(.72,Math.min(1.28,d/R.len)),th=Math.atan2(dy,dx),L2=R.len*s;return{th,s,wx:sh.x+Math.cos(th)*(L2+12),wy:sh.y+Math.sin(th)*(L2+12),sh}};
  const rest=(sh,o)=>({x:sh.x+f*o[0],y:sh.y+o[1]});
@@ -450,20 +455,20 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
   if(P.rod){g.save();g.translate(armO.wx,armO.wy);humInkLine(g,[0,-20,0,60],humLit(USR.steel),5);g.restore()}};
  const drawOW=()=>{if(!S.ow||P.drop||st==='cast')return;const oi=humWInfo(S.ow);g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);humDrawW(g,oi,{});g.restore()};
  const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.wx,armO.wy);g.scale(f,1);if(st!=='attack')g.rotate(-.12);humDrawBow(g,wi,!!P.bowD,!!P.arrow,(armW.wx-armO.wx)*f);g.restore()};
- const shieldAt=()=>({x:armO.wx+f*24,y:armO.wy-18});
- const drawShield=front=>{if(!S.shield||P.drop)return;const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(f*(front?1:.92),1.1);humDrawShield(g,S.shield,S.shR,front,!!S.shCrack);g.restore()};
+ const shieldAt=()=>({x:armO.wx+f*24+(back?Math.sign(sO.x)*22:0),y:armO.wy-18});   // from behind, the rim peeks out past the body
+ const drawShield=front=>{if(!S.shield||P.drop)return;const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(f*mf*(front?1:.92),1.1);humDrawShield(g,S.shield,S.shR,front,!!S.shCrack);g.restore()};
  const head=pc('head',null,null,'s'),hR=head.R,skull={x:neck.x+(hR.cx-hR.px),y:neck.y+(hR.cy-hR.py)},R0=hR.r;
  const inHead=fn=>{g.save();g.translate(skull.x,skull.y);g.rotate(rot*.5);g.scale(f,1);try{fn()}catch(e){if(!HUM.err){HUM.err=1;console.error('human head gear',e)}}g.restore()};
  const back=v==='b';
  // stowed gear on the back (S.alt with a stow class), a slung shield, the quiver, a cape
- const drawBackGear=()=>{const bx=up(f*-10,-70);
+ const drawBackGear=()=>{const bx=up(sw0*10,-70);
   if(S.cape){g.save();const c=humLit(S.cape),P2=humP(q=>{q.moveTo(shA.x-6,shA.y-8);q.lineTo(shB.x+6,shB.y-8);q.quadraticCurveTo(shB.x+30,-40,shB.x+26,-18);q.quadraticCurveTo(0,-6,shA.x-26,-18);q.quadraticCurveTo(shA.x-30,-40,shA.x-6,shA.y-8);q.closePath()});humSh(g,P2,c,{dk:.25});humBBp(g,0,-18,80);g.restore()}
   if(S.slung){g.save();g.translate(bx.x,bx.y);g.scale(.8,.8);humDrawShield(g,S.slung,S.shR,back,0);g.restore()}
-  if(S.alt&&(S.altCls==='back'||S.altCls==='bow')){const oi=humWInfo(S.alt);g.save();g.translate(bx.x,bx.y+30);if(oi.fam==='bow'){g.rotate(f*.45);g.scale(-f*.9,.9)}else g.rotate(-f*.7-Math.PI/2);if(oi.fam==='bow')humDrawBow(g,oi,0,0,null);else{g.translate(-oi.len*.35,0);humDrawW(g,oi,{})}g.restore()}
-  if(S.back&&/usSashi/.test(String(S.back))){const big=/1\)$/.test(String(S.back).trim())||/,1\)/.test(String(S.back)),q=up(f*-30,-60),fl=/R\.blk/.test(String(S.back))?'#2a2a34':'#efe9da';g.save();g.translate(q.x,q.y);humInkLine(g,[0,40,0,-300],humLit(USR.dwood),7);
-   const F=humP(p=>{p.moveTo(0,-290);p.lineTo(-f*62,-290);p.lineTo(-f*62,-150);p.lineTo(0,-150);p.closePath()});humSh(g,F,fl,{dk:.12});g.fillStyle=fl==='#2a2a34'?humHex('c'):humHex('g');g.beginPath();g.arc(-f*31,-220,15,0,7);g.fill();humBBp(g,-f*62,-300,8);humBBp(g,0,40,8);g.restore()}
-  if(S.quiver){const q=up(f*-34,-120);g.save();g.translate(q.x,q.y);g.rotate(f*.45);humSh(g,humP(p=>humRR(p,-16,-20,32,96,10)),humLit(USR.leather),{dk:.25});for(let i=0;i<3;i++){humSh(g,humPoly([-12+i*10,-20,-6+i*10,-46,0+i*10,-20]),'#e8e2d4',{lw:4})}humBBp(g,0,-46,30);humBBp(g,0,80,30);g.restore()}};
- const drawHip=()=>{if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return;const oi=humWInfo(S.alt),p=up(f*(back?20:-30),-18);g.save();g.translate(p.x,p.y);g.rotate(f*.35+Math.PI/2);g.scale(.85,.85);humDrawW(g,oi,{});g.restore()};
+  if(S.alt&&(S.altCls==='back'||S.altCls==='bow')){const oi=humWInfo(S.alt);g.save();g.translate(bx.x,bx.y+30);if(oi.fam==='bow'){g.rotate(-sw0*.45);g.scale(sw0*.9,.9)}else g.rotate(sw0*.7-Math.PI/2);if(oi.fam==='bow')humDrawBow(g,oi,0,0,null);else{g.translate(-oi.len*.35,0);humDrawW(g,oi,{})}g.restore()}
+  if(S.back&&/usSashi/.test(String(S.back))){const big=/1\)$/.test(String(S.back).trim())||/,1\)/.test(String(S.back)),q=up(sw0*30,-60),fl=/R\.blk/.test(String(S.back))?'#2a2a34':'#efe9da';g.save();g.translate(q.x,q.y);humInkLine(g,[0,40,0,-300],humLit(USR.dwood),7);
+   const F=humP(p=>{p.moveTo(0,-290);p.lineTo(sw0*62,-290);p.lineTo(sw0*62,-150);p.lineTo(0,-150);p.closePath()});humSh(g,F,fl,{dk:.12});g.fillStyle=fl==='#2a2a34'?humHex('c'):humHex('g');g.beginPath();g.arc(sw0*31,-220,15,0,7);g.fill();humBBp(g,sw0*62,-300,8);humBBp(g,0,40,8);g.restore()}
+  if(S.quiver){const q=up(sw0*34,-120);g.save();g.translate(q.x,q.y);g.rotate(-sw0*.45);humSh(g,humP(p=>humRR(p,-16,-20,32,96,10)),humLit(USR.leather),{dk:.25});for(let i=0;i<3;i++){humSh(g,humPoly([-12+i*10,-20,-6+i*10,-46,0+i*10,-20]),'#e8e2d4',{lw:4})}humBBp(g,0,-46,30);humBBp(g,0,80,30);g.restore()}};
+ const drawHip=()=>{if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return;const oi=humWInfo(S.alt),p=up(so0*24,-18);g.save();g.translate(p.x,p.y);g.rotate(so0*.35+Math.PI/2);g.scale(.85,.85);humDrawW(g,oi,{});g.restore()};
  const drawLegs=()=>{const lg=P.lg;for(const [p,side,ix] of[[LB,'b',2],[LA,'a',0]]){const x=(side==='a'?-hx:hx),r=-f*lg[ix]*Math.PI/180,lift=lg[ix+1]||0;
    if(kneel){draw(p,x+f*(side==='a'?24:-10),hipY+6,-f*(side==='a'?.9:.15),1,side==='a'?.55:.7)}else draw(p,x,hipY+6-lift,r,1,hs.legk)}};
  const drawSkirt=()=>{const n=A.skirt;if(!n||n===1)return;const c=n<0?C.body:humLit(A.skB||A.body),y0=UB.y-6,ln=n<0?(-y0-(kneel?6:24)):n===2?36:56,w=60*hs.wid;
@@ -473,12 +478,12 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
  const drawCoat=()=>{if(!S.coat)return;const F=humLit(S.coat.F),K=humLit(S.coat.K),cut=S.coat.cut,long=cut==='surcoat'||cut==='herald'||cut==='jinbaori',bot=long?66:cut==='quilted'?44:28,w=(cut==='tabard'||cut==='mantle'?36:44)*tw;
   g.save();g.translate(UB.x,UB.y);g.rotate(rot);const top=tR.top-tR.hy+22,P2=humP(p=>{p.moveTo(-w,top);p.lineTo(w,top);p.lineTo(w+8,bot);if(long&&!back){p.lineTo(f*6+5,bot);p.lineTo(f*6,bot-30);p.lineTo(f*6-5,bot)}p.lineTo(-w-8,bot);p.closePath()});
   humSh(g,P2,F,{dk:.18});if(cut==='herald'){g.save();g.clip(P2);g.strokeStyle=K;g.lineWidth=10;g.stroke(P2);g.restore();g.lineWidth=HUM_LW;g.strokeStyle=HUM_INK;g.stroke(P2)}
-  humBBbox(g,-w-8,top,w+8,bot);humInkLine(g,[-w+4,-4,w-4,-4],C.belt,8);if(!back||cut==='jinbaori'){const es=Math.min(2*w*.8,50);humEmblem(g,S.coat.em,f*4,top+(-4-top)*.5,es,K)}g.restore();
+  humBBbox(g,-w-8,top,w+8,bot);humInkLine(g,[-w+4,-4,w-4,-4],C.belt,8);if(!back||cut==='jinbaori'){const es=Math.min(2*w*.8,50);g.save();g.translate(f*4,top+(-4-top)*.5);g.scale(mf,1);humEmblem(g,S.coat.em,0,0,es,K);g.restore()}g.restore();
   if(cut==='mantle'){const m=humP(p=>{p.moveTo(shA.x-12,shA.y+6);p.quadraticCurveTo(neck.x,neck.y-36,shB.x+12,shB.y+6);p.quadraticCurveTo(neck.x,neck.y+26,shA.x-12,shA.y+6);p.closePath()});humSh(g,m,K)}};
  const drawTorso=()=>{draw(T,UB.x,UB.y,rot,tw,1);drawCoat();if(S.av&&S.av.mantle){const c=humLit(S.armor==='robe'?(S.accR||usCloth('purple')):USR.fur),m=humP(p=>{p.moveTo(shA.x-14,shA.y+4);p.quadraticCurveTo(neck.x,neck.y-40,shB.x+14,shB.y+4);p.quadraticCurveTo(neck.x,neck.y+20,shA.x-14,shA.y+4);p.closePath()});humSh(g,m,c)}};
  const drawHead=()=>{inHead(()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind');if(back&&!/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|coif|hood|cowl)$/.test(S.hat||''))humHair(g,S,R0,back,'over')});draw(head,neck.x,neck.y,rot*.5);
   inHead(()=>{const hat=S.hat;const covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');
-   if(!back&&!covers){if(S.patch){humLine(g,[-R0*.7,-R0*.3,R0*.9,R0*.1],HUM_INK,4);humSh(g,humEll(R0*.62,R0*.33,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
+   if(!back&&!covers){if(S.patch){const ex=mir?.1:.8,ey=mir?.44:.28;humLine(g,[-R0*.7,-R0*.3,R0*1.0,R0*(ey-.25)],HUM_INK,4);humSh(g,humEll(R0*ex,R0*ey,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
     if(S.paint){humLine(g,[R0*.0,R0*.55,R0*.95,R0*.48],humHex(S.paint),6)}if(S.stubble){g.fillStyle='rgba(30,25,20,.22)';g.beginPath();g.ellipse(R0*.45,R0*.75,R0*.5,R0*.22,0,0,7);g.fill()}
     if(S.tusk&&!hs.orc){for(const x of[R0*.35,R0*.85])humSh(g,humPoly([x-6,R0*.72,x,R0*.5,x+6,R0*.72]),'#efe7cf',{lw:4})}}
    if(!covers&&!/^(kabuto|menpo|kawari|lgoni|jingasa)$/.test(hat||''))humHair(g,S,R0,back,'cap');else if(/^(kabuto|menpo|kawari|jingasa|lgoni)$/.test(hat||'')&&S.hair==='topknot')humHair(g,S,R0,back,'cap');
@@ -487,15 +492,18 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
    humHat(g,S,R0,back,'over')})};
  const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;if(cls==='staff'){x=armW.wx+wdx*(Math.max(wi.len,170)+20);y=armW.wy+wdy*(Math.max(wi.len,170)+20)}else if(P.spark===3){x=skull.x;y=skull.y-R0-50}else{x=(armW.wx+armO.wx)/2+f*30;y=(armW.wy+armO.wy)/2}
   const r=P.spark===3?30:P.spark===2?22:14;g.save();g.translate(x,y);g.fillStyle=col;g.globalAlpha=.35;g.beginPath();g.arc(0,0,r*1.6,0,7);g.fill();g.globalAlpha=1;const st4=humP(p=>{for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i&1?r*.4:r;i?p.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):p.moveTo(rr,0)}p.closePath()});humSh(g,st4,humLt(col,.3),{lw:5,flat:1});humBBp(g,0,0,r*1.6);g.restore()};
- // ---- layers
+ // ---- layers (weapon arm near: faces 0 and 3; far: faces 1 and 2 before the mirror)
+ const offHand=()=>{if(S.shield){drawHand(HO,armO);drawShield(true)}else if(cls==='bow'){drawBow();drawHand(HO,armO)}else{if(!grip)drawOW();if(!grip)drawHand(HO,armO)}};
+ const wSet=()=>{drawArm(AW,armW);drawWeapon();drawHand(HW,armW)};
  if(!back){drawBackGear();inHead(()=>humHair(g,S,R0,false,'behind'));
-  drawArm(AO,armO);if(!grip&&cls!=='bow'&&!S.shield){drawOW();drawHand(HO,armO)}
+  if(nearW){drawArm(AO,armO);if(!grip&&cls!=='bow'&&!S.shield){drawOW();drawHand(HO,armO)}}else wSet();
   drawLegs();drawSkirt();drawTorso();drawHip();drawHead();
-  if(S.shield)drawHand(HO,armO);drawShield(true);if(cls==='bow'){drawBow();drawHand(HO,armO)}
-  drawArm(AW,armW);drawWeapon();drawHand(HW,armW);if(grip)drawHand(HO,armO);drawSpark()}
- else{drawShield(false);drawArm(AW,armW);drawWeapon();drawHand(HW,armW);
+  if(nearW){if(S.shield)drawHand(HO,armO);drawShield(true);if(cls==='bow'){drawBow();drawHand(HO,armO)}wSet()}else{drawArm(AO,armO);offHand()}
+  if(grip)drawHand(HO,armO);drawSpark()}
+ else{drawShield(false);
+  if(nearW){drawArm(AO,armO);if(cls==='bow')drawBow();if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}else wSet();
   drawLegs();drawSkirt();drawTorso();drawBackGear();drawHip();drawHead();
-  if(cls==='bow')drawBow();drawArm(AO,armO);if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO);drawSpark()}
+  if(nearW){wSet();if(grip)drawHand(HO,armO)}else{if(cls==='bow')drawBow();drawArm(AO,armO);if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}drawSpark()}
  if(lie){g.restore();if(W&&(W.c&&W.c.length||cls==='bow')){g.save();g.translate(-f*30,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);humDrawBow(g,wi,0,0,null)}else{g.translate(-wi.len*.4,0);humDrawW(g,wi,{})}g.restore()}}
  else if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){g.save();g.translate(f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);humDrawBow(g,wi,0,0,null)}else{g.translate(-wi.back,0);humDrawW(g,wi,{})}g.restore()}
  // ---- crop to the figure, mirror for faces 1 and 3
@@ -503,7 +511,7 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
  if(!(x1>x0&&y1>y0))return null;const w=x1-x0,h=y1-y0,cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.hdk=k;const q=cv.getContext('2d');
  if(mir){q.translate(w,0);q.scale(-1,1)}q.drawImage(sc,x0,y0,w,h,0,0,w,h);
  const fx=OX*K-x0,ax=(mir?w-fx:fx)/k,ay=(OY*K-y0)/k;HUM.builds++;HUM.bytes+=w*h*4;if(t0)HUM.ms+=performance.now()-t0;
- return{cv,ax,ay,k,smooth:true,hk:k,hum:1,r:typeof ARTHD==='object'?ARTHD.rev:0}}
+ return{cv,ax,ay,k,smooth:true,hk:k,hum:1,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null},r:typeof ARTHD==='object'?ARTHD.rev:0}}
 /* frame memory: the frames of every look share one budget; the oldest built are dropped (rebuilt on demand) */
 function humKeep(L,i,o){if(!o||!o.hum||!o.cv)return o;const b=o.cv.width*o.cv.height*4;HUM.fifo.push([L,i,o,b]);HUM.live=(HUM.live||0)+b;
  while(HUM.live>HUM.cap&&HUM.fifo.length>1){const e=HUM.fifo.shift();HUM.live-=e[3];if(e[0].fr[e[1]]===e[2])e[0].fr[e[1]]=null}return o}
