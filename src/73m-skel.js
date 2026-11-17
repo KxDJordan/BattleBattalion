@@ -176,9 +176,10 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);
  // slots
  const pcImg=(p,tag)=>g.img(hskPc(p.c,p.R),tag);
- const drawArm=(p,a)=>{g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);pcImg(p,'arm');g.restore();
+ const drawArm=(p,a)=>{if(A.p2){const h=p===AW?HW:HO;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(h,'hand');g.restore()}   // the part sheets: the hand under its own sleeve cap
+  g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);pcImg(p,'arm');g.restore();
   const pa=hskPaulAtt(A);if(pa){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);g.img(pa,'paul');g.restore()}};
- const drawHand=(p,a)=>{g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(p,'hand');g.restore()};
+ const drawHand=(p,a)=>{if(A.p2)return;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(p,'hand');g.restore()};
  const fire=cls==='gun'&&att&&P.fire,loaded=S.ld!==0&&!(att&&t>=.38);
  const drawWeapon=()=>{if(P.drop||cls==='bow'||wi.fam==='fist')return;g.save();g.translate(armW.wx,armW.wy);g.scale(f,1);g.rotate(wa);
   g.img(hskWpnAtt(L,k,wi,{loaded,fire,crank:P.crank},(loaded?'L':'u')+(fire?'F':'')+(P.crank||'')),'weapon');g.restore();
@@ -205,7 +206,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
   const r=P.spark===3?30:P.spark===2?22:14;g.save();g.translate(x,y);g.fn(q=>{q.fillStyle=col;q.globalAlpha*=.35;q.beginPath();q.arc(0,0,r*1.6,0,7);q.fill();q.globalAlpha/=.35;const st4=humP(p=>{for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i&1?r*.4:r;i?p.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):p.moveTo(rr,0)}p.closePath()});humSh(q,st4,humLt(col,.3),{lw:5,flat:1})},'spark');g.restore()};
  // ---- draw order (weapon arm near: faces 0 and 3; far: faces 1 and 2, before the mirror)
  const offHand=()=>{if(S.shield){drawHand(HO,armO);drawShield(true)}else if(cls==='bow'){drawBow();drawHand(HO,armO)}else{if(!grip)drawOW();if(!grip)drawHand(HO,armO)}};
- const wSet=()=>{drawArm(AW,armW);drawWeapon();drawHand(HW,armW)};
+ const wSet=()=>{if(A.p2){drawWeapon();drawArm(AW,armW);return}drawArm(AW,armW);drawWeapon();drawHand(HW,armW)};   // part sheets: the weapon under the hand, the hand under its sleeve
  const farShield=()=>{drawShield(false);drawArm(AO,armO);drawHand(HO,armO)};
  if(!back){drawBackGear();const hb=hskHeadAtt(A,'hairB');if(hb)headBone(()=>g.img(hb,'hairB'));
   if(nearW){if(S.shield)farShield();else{drawArm(AO,armO);if(!grip&&cls!=='bow'){drawOW();drawHand(HO,armO)}}}else wSet();
