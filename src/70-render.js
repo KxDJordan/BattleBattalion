@@ -198,7 +198,7 @@ function wvUnknownInit(){if(WCH.unk32)return;const N=64,u=WCH.unk32=new Uint32Ar
  WCH.nz=new Float32Array(32*32);for(let i=0;i<1024;i++)WCH.nz[i]=(hash2(i&31,i>>5,33)-.5)*.34;
  const t=mkCanvas(N,N),tq=t.getContext('2d'),im=tq.createImageData(N,N);new Uint32Array(im.data.buffer).set(u);tq.putImageData(im,0,0);
  WCH.unk=mkCanvas(WVP,WVP);const q=wvCtx(WCH.unk,true);for(let y=0;y<WVP;y+=N)for(let x=0;x<WVP;x+=N)q.drawImage(t,x,y)}
-function wchReset(){WCH.w=W;WCH.cols=Math.ceil(WN/WVC);WCH.rows=Math.ceil(WN/WVC);WCH.list=new Array(WCH.cols*WCH.rows).fill(null);if(!WVA.init)wvArtInit();wvTallProbe();WCH.bh=WVT+WCH.up;WCH.aw=WVP+2*WCH.side;wvUnknownInit();
+function wchReset(){WCH.w=W;WCH.cols=Math.ceil(WN/WVC);WCH.rows=Math.ceil(WN/WVC);WCH.list=new Array(WCH.cols*WCH.rows).fill(null);if(!WVA.init)wvArtInit();if(WVHD){WCH.up=WCH.side=0;WCH.tallT.fill(0);wqReset()}else wvTallProbe();WCH.bh=WVT+WCH.up;WCH.aw=WVP+2*WCH.side;wvUnknownInit();
  // the key colours, one pixel a tile, written in one go (the same opaque pixels a fillRect each would give)
  {const k=WCH.key&&WCH.key.width===WN&&WCH.key.height===WN?WCH.key:(WCH.key=mkCanvas(WN,WN)),q=k.getContext('2d'),im=q.createImageData(WN,WN),d=new Uint32Array(im.data.buffer),C={};
   for(let i=0;i<WN*WN;i++){const kk=wvKeyOf(W.tiles[i],W.river?W.river[i]:0,W.road?W.road[i]:0);d[i]=C[kk]||(C[kk]=wvC32(kk))}q.putImageData(im,0,0)}
@@ -238,7 +238,7 @@ function wchAnimTile(ch,i,f){ch.ver++;const lc=i%WVC,r=(i/WVC)|0,x=lc*WVT,y=r*WV
 /* the unknown: per chunk, a dithered edge that follows the seen set (soft at tile corners, a little ragged) */
 function wvUnseen(x,y){return WCH.fs[(y<0?0:y>=WN?WN-1:y)*WN+(x<0?0:x>=WN?WN-1:x)]}
 // One tile of a chunk's fog canvas: clear, solid unknown, or a dithered edge from the four corner weights (0..4 unseen tiles each).
-function wchFogTile(ch,lc,lr,a,b,c,e){const q=ch.fq,X0=lc*WVT,Y0=lr*WVT,s=a+b+c+e;if(!s){q.clearRect(X0,Y0,WVT,WVT);return}
+function wchFogTile(ch,lc,lr,a,b,c,e){if(WVHD){wqFogTile(ch,lc,lr,a,b,c,e);return}const q=ch.fq,X0=lc*WVT,Y0=lr*WVT,s=a+b+c+e;if(!s){q.clearRect(X0,Y0,WVT,WVT);return}
  if(s===16){q.globalCompositeOperation='copy';q.drawImage(WCH.unk,X0,Y0,WVT,WVT,X0,Y0,WVT,WVT);q.globalCompositeOperation='source-over';return}
  if(!WCH.img){WCH.img=new ImageData(WVT,WVT);WCH.imgD=new Uint32Array(WCH.img.data.buffer)}const d=WCH.imgD,U=WCH.unk32,NZ=WCH.nz;
  for(let py=0;py<WVT;py++){const Y=Y0+py,fy=(py+.5)/WVT,l=a+(c-a)*fy,r=b+(e-b)*fy,o=py*WVT,uy=(Y&63)*64,ny=(Y>>1&31)*32,by=(Y&3)*4;
@@ -250,7 +250,7 @@ function wchFog(ch){const V=WCH.vg,tx0=ch.cx*WVC,ty0=ch.cy*WVC;let lo=4,hi=0;
  if(WCH.fogOn)for(let j=0;j<=WVC;j++)for(let i=0;i<=WVC;i++){const x=tx0+i,y=ty0+j,v=wvUnseen(x-1,y-1)+wvUnseen(x,y-1)+wvUnseen(x-1,y)+wvUnseen(x,y);V[j*17+i]=v;if(v<lo)lo=v;if(v>hi)hi=v}else lo=hi=0;
  if(hi===0){ch.fog=0;ch.fv=false;return null}if(lo===4){ch.fog=2;ch.fv=false;return null}
  if(!ch.fogcv){ch.fogcv=mkCanvas(WVP,WVP);ch.fq=ch.fogcv.getContext('2d');ch.ts=new Uint16Array(WVC*WVC)}const S=ch.ts,dt=WCH.dt;dt.length=0;let all=false;
- if(ch.fog!==1||!ch.fv){ch.fog=1;ch.fv=true;all=true;const q=ch.fq;q.globalCompositeOperation='copy';q.drawImage(WCH.unk,0,0);q.globalCompositeOperation='source-over';S.fill(2340)}   // from scratch: all unknown, then open up what is known
+ if(ch.fog!==1||!ch.fv){ch.fog=1;ch.fv=true;all=true;const q=ch.fq;q.globalCompositeOperation='copy';q.drawImage(WVHD?wqUnk():WCH.unk,0,0);q.globalCompositeOperation='source-over';S.fill(2340)}   // from scratch: all unknown, then open up what is known
  for(let lr=0;lr<WVC;lr++)for(let lc=0;lc<WVC;lc++){const k=lr*17+lc,a=V[k],b=V[k+1],c=V[k+17],e=V[k+18],sg=a|b<<3|c<<6|e<<9,i=lr*WVC+lc;if(sg===S[i])continue;
   if((dt.length&3)===3&&performance.now()>WCH.dl){ch.fd=true;return all?null:dt}wchFogTile(ch,lc,lr,a,b,c,e);S[i]=sg;dt.push(i)}
  return all?null:dt}
@@ -276,6 +276,9 @@ function wvTintTick(force){if(!force&&now-WCH.tAt<220)return;WCH.tAt=now;let t=n
 function wchWork(cx0,cy0,cx1,cy1,vx0,vy0,vx1,vy1){const t0=performance.now(),boot=WV.boot,L=WCH.list,ccx=(vx0+vx1)/2/WVP-.5,ccy=(vy0+vy1)/2/WVP-.5;let stale=0;
  for(let i=0;i<L.length;i++)if(L[i])L[i].vis=false;
  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=wchGet(cx,cy);ch.vis=true}
+ if(WVHD){   // Detail High: painted quads (41h-worldhd.js); the chunks keep only their fog
+  if(WV.z===WV.zt&&!WV.pinch)WQ.K=clamp(WV.s,1,8);else if(!WQ.K)WQ.K=clamp(WV.s,1,8);wqWork(vx0,vy0,vx1,vy1,boot,G.moving||WV.hold||WV.z!==WV.zt,cv.width,cv.height);WV.build=performance.now()-t0;WCH.dl=boot?1e18:performance.now()+1.4;
+  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=L[cy*WCH.cols+cx];if(ch&&ch.fd){ch.fd=false;wchFog(ch);ch.ver++}}return}
  // rows: visible chunks first (all of them when the view has just opened), then the ring around, then the rest of the map
  const budget=boot?90:G.moving||WV.hold||WV.z!==WV.zt?2.2:3.2;let guard=0;
  while(guard++<400){let best=null,bd=1e9;for(let cy=0;cy<WCH.rows;cy++)for(let cx=0;cx<WCH.cols;cx++){const ch=L[cy*WCH.cols+cx];if(ch&&ch.row>=WVC)continue;
@@ -325,7 +328,7 @@ function wvSprCv(e){if(!WCH.ton||e.raw)return e.c;if(e.tk===WCH.tk)return e.tc;i
 // draws a standing sprite, then puts back the tall parts of the tiles in front of it (tree tops and peaks south of its feet)
 function wvDrawSprite(e,x,y,snap){const sc=WV.sc;if(snap){x=Math.round(x*sc)/sc;y=Math.round(y*sc)/sc}else{x=Math.round(x);y=Math.round(y)}
  const c=wvSprCv(e),dx=x-e.ax,dy=y-e.ay;if(dx>WV.vx1+1||dy>WV.vy1+1||dx+e.w<WV.vx0-1||dy+e.h<WV.vy0-1)return;   // wholly off screen (still lit above, at the same pace)
- if(e.k>1){g.imageSmoothingEnabled=true;g.drawImage(c,dx,dy,e.w,e.h);g.imageSmoothingEnabled=false}else g.drawImage(c,dx,dy);if(!WCH.up&&!WCH.side)return;   // e.k: a painted sprite at k canvas px an art px (the colosseum at Detail High)
+ if(e.k>1){g.imageSmoothingEnabled=true;g.drawImage(c,dx,dy,e.w,e.h);g.imageSmoothingEnabled=false}else g.drawImage(c,dx,dy);if(WVHD){wqOcclude(g,e,x,y);return}if(!WCH.up&&!WCH.side)return;   // e.k: a painted sprite at k canvas px an art px (the colosseum at Detail High)
  const mx=Math.floor(x+e.x0),my=Math.floor(y+e.y0),mw=Math.ceil(x+e.x1)-mx,mh=Math.ceil(y+e.y1)-my;if(mw>0&&mh>0)wvBands(g,0,0,mx,my,mw,mh,Math.floor((y-WVTB)/WVT)+1,true)}
 
 /* ---- name plates (own 4x6 capitals; drawn in whole device pixels over the scene) ---- */
@@ -343,7 +346,9 @@ function wvPlate(txt,col,bg){const id=txt+'|'+col+bg;let c=WPL.get(id);if(c)retu
 function wvPlateAt(txt,col,bg,ax,ay){const i=WV.np++,P=WV.plates[i]||(WV.plates[i]={c:null,x:0,y:0});P.c=wvPlate(txt,col,bg);P.x=ax;P.y=ay}       // art-space anchor: bottom centre
 
 /* ---- the edge of sight: everything beyond the company's vision dimmed with a dithered rim ---- */
-function wvRing(R){if(WV.ringR===R&&WV.ring)return WV.ring;const D=2*R+2,c=WV.ring||(WV.ring=mkCanvas(D,D));c.width=c.height=D;const q=c.getContext('2d'),im=q.createImageData(D,D),d=new Uint32Array(im.data.buffer),col=wvC32('1',WVDIM),C=D/2,soft=Math.min(14,R*.4),R0=R-soft,RR=R*R,R00=R0*R0;
+function wvRing(R){if(WV.ringR===R&&WV.ring&&WV.ringHD===WVHD)return WV.ring;WV.ringHD=WVHD;const D=2*R+2,c=WV.ring||(WV.ring=mkCanvas(D,D));c.width=c.height=D;
+ if(WVHD){const q=c.getContext('2d'),C=D/2,soft=Math.min(16,R*.42),gr=q.createRadialGradient(C,C,R-soft,C,C,R);gr.addColorStop(0,'rgba(16,29,28,0)');gr.addColorStop(.55,'rgba(16,29,28,'+(WVDIM/255*.45).toFixed(3)+')');gr.addColorStop(1,'rgba(16,29,28,'+(WVDIM/255).toFixed(3)+')');q.fillStyle=gr;q.fillRect(0,0,D,D);WV.ringR=R;return c}   // Detail High: a soft edge
+ const q=c.getContext('2d'),im=q.createImageData(D,D),d=new Uint32Array(im.data.buffer),col=wvC32('1',WVDIM),C=D/2,soft=Math.min(14,R*.4),R0=R-soft,RR=R*R,R00=R0*R0;
  for(let y=0;y<D;y++){const dy=y+.5-C,d2=dy*dy,o=y*D;if(d2>=RR){d.fill(col,o,o+D);continue}
   const xo=Math.sqrt(RR-d2),xi=d2<R00?Math.sqrt(R00-d2):0,a=Math.max(0,Math.floor(C-xo)),b=Math.min(D,Math.ceil(C-xi)),e=Math.max(0,Math.floor(C+xi)),f=Math.min(D,Math.ceil(C+xo)),by=(y&3)*4;d.fill(col,o,o+a);d.fill(col,o+f,o+D);
   for(let x=a;x<b;x++){const dx=x+.5-C,dd=dx*dx+d2;if(dd>R00&&(dd>=RR||(Math.sqrt(dd)-R0)/soft>(WBAYER[by+(x&3)]+.5)/16))d[o+x]=col}
@@ -383,7 +388,8 @@ function wvRivalArt(id){const r=typeof lkRival==='function'?lkRival(id):null;if(
 function wvCovered(){return(typeof TV!=='undefined'&&!!TV&&TV.shown&&!!TV.root&&TV.root.classList.contains('on'))||(typeof MP!=='undefined'&&!!MP&&MP.open&&!!MP.root&&MP.root.classList.contains('on'))}
 // worldVisible for one pass (a frame's list, a minimap paint): the company's sight radius cannot change inside it, so it is taken once
 function wvVisFn(){if(typeof visibleWithin!=='function'||typeof visibleAt!=='function'||typeof visionRadius!=='function')return worldVisible;const r=visionRadius();return(x,y)=>visibleWithin(Math.floor(x/TS),Math.floor(y/TS),r)}
-function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot=true;WV.free=false}
+let WVHD=false;   // Detail High: the painted world of 41h-worldhd.js (Detail Low keeps the pixel chunks below exactly as they were)
+function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='function'&&whOn();if(hd!==WVHD){WVHD=hd;WCH.w=null;WSPR.clear();WSBX.clear()}}if(WCH.w!==W){wchReset();WV.boot=true;WV.free=false}
  worldCam(dt||0);const t0=performance.now(),p=G.p,sc=WV.sc,bx=WV.bx,by=WV.by,W_=cv.width,H_=cv.height;WV.f4=reduced?0:Math.floor(now/250);WV.fs=reduced?0:Math.floor(now/140);
  wvFogSync();wvTintTick(WV.boot);const night=WV.night=wvNight(G.hour);
  const vx0=WV.vx0=-bx/sc,vy0=WV.vy0=-by/sc,vx1=WV.vx1=(W_-bx)/sc,vy1=WV.vy1=(H_-by)/sc,AM=WN*WVT;
@@ -428,7 +434,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  const escM=typeof escDrawMap==='function'&&typeof escCtr==='function'&&!!escCtr();   // a live escort: its road and the caravan's ring (42-caravans.js)
  let live=dots||(wx&&!reduced)||(pglow&&!reduced)||(cvOn&&!reduced)||escM;WSG.n=0;
  wsg(W_);wsg(H_);wsg(sc);wsg(bx);wsg(by);wsg(dpr);wsg(night);wsg(WCH.tk);wsg(WCH.frev);wsg(reduced);wsg(wk);wsg(wind);
- for(let cy=cy0-1;cy<=cy1+1;cy++)for(let cx=cx0-1;cx<=cx1+1;cx++){const ch=wchAt(cx,cy);wsg(ch);if(ch){wsg(ch.ver);wsg(ch.comp)}}
+ for(let cy=cy0-1;cy<=cy1+1;cy++)for(let cx=cx0-1;cx<=cx1+1;cx++){const ch=wchAt(cx,cy);wsg(ch);if(ch){wsg(ch.ver);wsg(WVHD?ch.fog:ch.comp)}}if(WVHD)wqSig(vx0,vy0,vx1,vy1);
  for(let i=0;i<WSN;i++){const s=WSL[i],e=s.e;wsg(e);wsg(s.x);wsg(s.y);wsg(s.snap);if(WCH.ton&&!e.raw&&e.tk!==WCH.tk)live=true}
  wsg(rc);wsg(rc?WV.ringR:-1);wsg(rD);wsg(rX);wsg(rY);   // the rim canvas is redrawn in place for a new radius
  {const n0=WSG.n,R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++){wsg(R[i].x);wsg(R[i].y)}wsg(-1);if(dots&&!G.dest){const e=G.path[G.path.length-1];wsg(e.x);wsg(e.y)}wsg(-2);
@@ -441,12 +447,13 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();if(WCH.w!==W){wchReset();WV.boot
  {const a=WSG.a;WSG.a=WSG.b;WSG.b=a;WSG.pn=WSG.n;WSG.ok=true;WSG.at=now;WSG.live=live}
  g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.imageSmoothingEnabled=false;
  if(vx0<0||vy0<0||vx1>AM||vy1>AM){g.fillStyle=PAL['0'];g.fillRect(0,0,W_,H_)}
- for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=WCH.list[cy*WCH.cols+cx],x=Math.round(bx+ch.x0*sc),y=Math.round(by+ch.y0*sc);g.drawImage(ch.comp,x,y,Math.round(bx+(ch.x0+WVP)*sc)-x,Math.round(by+(ch.y0+WVP)*sc)-y)}
+ if(WVHD)wqDraw(g,W_,H_,bx,by,sc,vx0,vy0,vx1,vy1,cx0,cy0,cx1,cy1);
+ else for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const ch=WCH.list[cy*WCH.cols+cx],x=Math.round(bx+ch.x0*sc),y=Math.round(by+ch.y0*sc);g.drawImage(ch.comp,x,y,Math.round(bx+(ch.x0+WVP)*sc)-x,Math.round(by+(ch.y0+WVP)*sc)-y)}
  g.setTransform(sc,0,0,sc,bx,by);
  if(dots)wvPathDots(vx0,vy0,vx1,vy1);
  if(escM){try{escDrawMap(g,now,reduced)}catch(e){wvFail('escort',e)}}
  for(let i=0;i<WSN;i++){const s=WSL[i];wvDrawSprite(s.e,s.x,s.y,s.snap)}
- if(rc){const D=rD,x=rX,y=rY;g.drawImage(rc,x,y,D,D);g.fillStyle='rgba(16,29,28,'+(WVDIM/255).toFixed(3)+')';
+ if(rc){const D=rD,x=rX,y=rY;g.imageSmoothingEnabled=WVHD;g.drawImage(rc,x,y,D,D);g.imageSmoothingEnabled=false;g.fillStyle='rgba(16,29,28,'+(WVDIM/255).toFixed(3)+')';
   if(y>vy0)g.fillRect(vx0,vy0,vx1-vx0,y-vy0);if(y+D<vy1)g.fillRect(vx0,y+D,vx1-vx0,vy1-y-D);if(x>vx0)g.fillRect(vx0,y,x-vx0,D);if(x+D<vx1)g.fillRect(x+D,y,vx1-x-D,D)}
  // markers: route waypoints, the tap destination, the contract
  {const R=G.route;if(R&&R.length>1)for(let i=1;i<R.length;i++)wvMark(R[i].x/WVU,R[i].y/WVU,'waypoint');
