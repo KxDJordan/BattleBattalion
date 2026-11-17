@@ -735,7 +735,7 @@ v.dur=reduced?1:Math.max(45,(dist>1?230:kb?140:118)*SPEEDF);v.hop=reduced||HAVE.
  v.kx*=Math.max(0,1-dt*14);v.ky*=Math.max(0,1-dt*14)}
 function unitFrames(s){return typeof UNIT_FRAMES==='object'&&UNIT_FRAMES&&UNIT_FRAMES[s]||1}
 function poseTo(u,v){let p=null;if(HAVE.pose){try{p=unitPose(u)}catch(e){artFail('pose',e)}}
- if(p){v.pS=p.state||'idle';v.pF=p.frame|0;v.pX=p.ox||0;v.pY=p.oy||0;v.pA=p.alpha==null?1:p.alpha;v.pFl=p.flash||0;v.pSh=p.shadow==null?1:p.shadow;v.pL=typeof p.lift==='number'?p.lift:0;v.pT=p.tint||null;v.pD=screenDir(p.dc||0,p.dr||0);
+ if(p){v.pS=p.state||'idle';v.pF=p.frame|0;v.pPh=p.ph||0;v.pCy=p.cyc||0;v.pAn=p.anim||'';v.pX=p.ox||0;v.pY=p.oy||0;v.pA=p.alpha==null?1:p.alpha;v.pFl=p.flash||0;v.pSh=p.shadow==null?1:p.shadow;v.pL=typeof p.lift==='number'?p.lift:0;v.pT=p.tint||null;v.pD=screenDir(p.dc||0,p.dr||0);
   if(!u.alive&&v.pA<=.01&&now-v.deadT>200)v.gone=true;if(!u.alive&&now-v.deadT>4000)v.gone=true;v.show=!v.gone;return}
  const dead=!u.alive,a=dead?clamp((now-v.deadT)/650,0,1):0,s=dead?'death':v.mv?'walk':'idle',n=unitFrames(s),fps=typeof UNIT_FPS==='object'&&UNIT_FPS&&UNIT_FPS[s]||6;
  v.pS=s;v.pF=dead?Math.min(n-1,(a*n)|0):reduced&&!v.mv?0:((now*fps/1000)|0)%n;v.pX=v.kx;v.pY=v.ky-v.lift;v.pL=v.lift;v.pT=null;v.pA=1-a*a;v.pFl=clamp(1-(now-v.flashT)/170,0,1)*.9;v.pSh=1;v.pD=screenDir(v.fdc,v.fdr);v.show=!dead||a<1}
@@ -761,14 +761,20 @@ function warmSprites(){if(typeof unitSpriteWarm!=='function'||!HAVE.sprite)retur
   if(typeof monsterSpriteWarm==='function'&&wu.def){monsterSpriteWarm(wu,WARMF,until,st);mon=!!umon(wu).kind;cut=MS.cut}
   if(!mon){unitSpriteWarm(wu,WARMF,until,st);cut=US.cut}
   if(cut)return;WARM.i++;if(performance.now()>=until)return}}catch(e){WARM.p=9}}
-function drawUnitPx(u,v){let s=null;if(typeof monsterSpritePx==='function'&&u.def){try{s=monsterSpritePx(u,v.pD,v.pS,v.pF)}catch(e){s=null}}
- if(!s){try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}}if(!s||!s.cv||!s.cv.width)return false;
+function drawUnitPx(u,v){let s=null,Fr=null;if(typeof humLiveFrame==='function'){try{Fr=humLiveFrame(u,v)}catch(e){Fr=null;artFail('skeleton',e)}}   // Detail High people: the live skeleton (73m-skel.js)
+ if(!Fr){if(typeof monsterSpritePx==='function'&&u.def){try{s=monsterSpritePx(u,v.pD,v.pS,v.pF)}catch(e){s=null}}
+ if(!s){try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}}if(!s||!s.cv||!s.cv.width)return false}
  const mi=umon(u),wide=mi.size>1,big=!wide&&(u.def&&u.def.big||mi.bigSh),x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=wide?E.shW:big?E.shB:E.sh;
  if(mi.fly&&u.alive&&v.pL>0){const k=Math.max(.45,1-v.pL/140);g.globalAlpha=v.pA*.42;const w=Math.round(sh.width*k),h=Math.round(sh.height*k);g.drawImage(sh,x-(w>>1),gy-(h>>1),w,h);   // a flier: its shadow shrinks with height, the side ring stays on the ground
   if(u.alive){const rg=ellRing(E,u,wide,big);g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
  else if(u.alive&&v.pA>.99&&v.pSh>.99){const c=ellComb(E,u,wide,big);g.drawImage(c,x-(c.width>>1),gy-(c.height>>1))}
  else{g.globalAlpha=v.pA*v.pSh*.42;g.drawImage(sh,x-(sh.width>>1),gy-(sh.height>>1));
   if(u.alive){const rg=ellRing(E,u,wide,big);g.globalAlpha=.85;g.drawImage(rg,x-(rg.width>>1),gy-(rg.height>>1))}}
+ if(Fr){g.imageSmoothingEnabled=true;g.globalAlpha=v.pA;if(u===B.cur&&!B.over&&!v.mv){const o=.9*(B.cam&&B.cam.s?1/B.cam.s:.5)+.45,pu=reduced?.6:.45+.45*(.5+.5*Math.sin(now/260)),col=u.side!==0?'r':u.ally?'x':'e',mp=c=>silOf(c,col);
+   g.globalAlpha=v.pA*pu;for(const [dx,dy] of TURNOL)humSkDraw(g,Fr,x+dx*o,y+dy*o,mp,1);g.globalAlpha=v.pA}
+  humSkDraw(g,Fr,x,y,tintedOf);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;const t=v.pT;humSkDraw(g,Fr,x,y,c=>silOf(c,t),1)}
+  if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);humSkDraw(g,Fr,x,y,c=>silOf(c,'r'),1)}
+  g.imageSmoothingEnabled=false;g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
  g.globalAlpha=v.pA;const sk=s.k||1,sw=s.cv.width/sk,sh2=s.cv.height/sk;   // an HD figure (k 2, 73h-unitshd.js) is blitted at half size
  if(u===B.cur&&!B.over&&!v.mv){const o=.9*(B.cam&&B.cam.s?1/B.cam.s:.5)+.45,pu=reduced?.6:.45+.45*(.5+.5*Math.sin(now/260)),sl=silOf(s.cv,u.side!==0?'r':u.ally?'x':'e');   // whose turn: a pulsing outline round the figure
   g.globalAlpha=v.pA*pu;if(s.smooth)g.imageSmoothingEnabled=true;for(const [dx,dy] of TURNOL)g.drawImage(sl,x-s.ax+dx*o,y-s.ay+dy*o,sw,sh2);g.imageSmoothingEnabled=false;g.globalAlpha=v.pA}

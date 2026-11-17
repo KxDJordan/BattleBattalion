@@ -227,3 +227,13 @@ function humBuild(L,face,st,fr,tt){const I=humImg();if(!I||typeof document==='un
  const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.hdk=k;const q=cv.getContext('2d');q.imageSmoothingEnabled=true;try{q.imageSmoothingQuality='high'}catch(e){}
  const ax=-X0+1/k,ay=-Y0+1/k;q.setTransform(k,0,0,k,0,0);humSkDraw(q,Fr,ax,ay);HUM.builds++;HUM.bytes+=w*h*4;HUM.ms+=performance.now()-t0;
  return{cv,ax,ay,k,smooth:true,hk:k,hum:1,hand:Fr.hand,anim:Fr.anim,r:typeof ARTHD==='object'?ARTHD.rev:0}}
+/* ---- the live figure on the board: 70-render.js drawUnitPx asks for this frame's display list (null: not a skeletal figure) ---- */
+const HSK_LOOP={idle:1,walk:1,flee:1};
+function humLiveFrame(u,v){if(!u||!humImg()||(typeof hdArt==='function'&&!hdArt()))return null;if(u.def&&!u.m&&typeof monsterSpritePx==='function'){try{if(monsterSpritePx(u,0,'idle',0))return null}catch(e){}}
+ const L=usLook(u);if(!humWant(L))return null;let st=v.pS||'idle';if(st==='walk'&&v.pAn==='flee')st='flee';
+ let t=HSK_LOOP[st]?(v.pCy||0):(v.pPh!=null?v.pPh:humSkT(st,v.pF));if(st==='idle'&&typeof reduced!=='undefined'&&reduced)t=0;
+ let va='';if(st==='attack'&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
+ return humSkFrame(L,((v.pD|0)%4+4)%4,st==='flee'?'flee':st,t,humK(),va)}
+/* warm a look: bake its attachments for every face (one face per call while a deadline allows) */
+function humSkWarm(L,until){let n=0;const k=humK();for(let f=0;f<4;f++){const c=L.skA&&L.skA[f+':'+k];if(c&&c.warm)continue;if(until&&performance.now()>=until)return n;
+  try{humSkFrame(L,f,'idle',0,k,'');humSkFrame(L,f,'attack',.38,k,'')}catch(e){}humSkAssets(L,f,k).warm=1;n++}return n}

@@ -12,7 +12,7 @@ const AN_FR={idle:4,walk:4,attack:4,cast:4,hit:2,death:4},AN_FPS={idle:3,walk:10
 const AN_WALK=0,AN_KB=1,AN_LEAP=2,AN_BLINK=3,AN_DASH=4,AN_STEP=5,AN_DIVE=6;
 const AN_HIT_AT=.38;                       // share of a melee attack spent winding up before the blow lands
 const ANIM=new WeakMap();
-const POSE={state:'idle',frame:0,dc:0,dr:1,ox:0,oy:0,alpha:1,flash:0,shadow:1,lift:0,tint:null};
+const POSE={state:'idle',frame:0,dc:0,dr:1,ox:0,oy:0,alpha:1,flash:0,shadow:1,lift:0,tint:null,ph:0,cyc:0,anim:''};   // ph / cyc / anim: continuous time for the skeletal figures (73m-skel.js)
 const ANB={t:-1e9,rot:-9,cx:32,cy:16,rx:-32,ry:16,hy:-16};   // board-space basis of +c, +r, +h under the current view
 function anNow(){return typeof now==='number'&&now>0?now:typeof performance!=='undefined'?performance.now():0}
 function anSp(){return(typeof reduced!=='undefined'&&reduced)||!(SPEEDF>0)?0:SPEEDF}
@@ -98,29 +98,29 @@ function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
  // displayed hp/armor follow the rules only once the blow has visibly landed
  if(t>=s.hitT){if(u.hp<s.hp){s.lag0=Math.max(s.lag,s.hp);s.lagT=t}s.hp=u.hp;s.arm=u.arm;s.helm=u.helm||0;if(s.rev!==SHV.rev||t-s.revT>700)anStRefresh(u,s,t)}else{if(u.hp>s.hp)s.hp=u.hp;if(u.arm>s.arm)s.arm=u.arm;if(u.helm>s.helm)s.helm=u.helm}
  {const k=(t-s.lagT-300)/260;s.lag=k<=0?s.lag0:k>=1?s.hp:s.lag0+(s.hp-s.lag0)*k;if(s.lag<s.hp)s.lag=s.lag0=s.hp}
- let gx=s.vc-u.c,gy=s.vr-u.r,lift=s.lift,state='idle',frame=0,alpha=s.va,flash=0,n;
+ let gx=s.vc-u.c,gy=s.vr-u.r,lift=s.lift,state='idle',frame=0,alpha=s.va,flash=0,n,ph=0,cyc=0,anm='';
  const dt=t-s.deadT,hb=(t-s.hitT)/s.hdur;
- if(s.dead&&dt>=0){n=anN('death',u);const C=sp?Math.max(210,420*sp):1,hold=sp?150:60,fade=sp?320:220;state='death';
+ if(s.dead&&dt>=0){n=anN('death',u);const C=sp?Math.max(210,420*sp):1,hold=sp?150:60,fade=sp?320:220;state='death';ph=Math.min(1,dt/C);
   frame=n<2?0:dt>=C?n-1:Math.min(n-2,(dt/C*(n-1))|0);alpha=dt<C+hold?1:Math.max(0,1-(dt-C-hold)/fade);if(dt<90)flash=1-dt/90;
   if(hb>=0&&hb<1){const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}}
  else{
-  if(hb>=0&&hb<1){n=anN('hit',u);state='hit';frame=Math.min(n-1,(hb*n)|0);flash=hb<.42?1-hb/.42:0;const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}
+  if(hb>=0&&hb<1){n=anN('hit',u);state='hit';ph=hb;frame=Math.min(n-1,(hb*n)|0);flash=hb<.42?1-hb/.42:0;const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}
   else if(s.mv&&t>=s.mt0){const k=s.mk;
-   if(k===AN_BLINK){n=anN('cast',u);state='cast';frame=Math.min(n-1,n>>1)}
-   else if(k===AN_KB){n=anN('hit',u);state='hit';frame=n-1}
-   else if(k===AN_DASH){state='attack';frame=0}
-   else{n=anN('walk',u);state='walk';frame=(((t-s.wt0)*anFps('walk')/1000/Math.max(sp,.5))|0)%n;if(frame<0)frame=0}}
-  else if(t-s.swT<s.swD){const a=(t-s.swT)/s.swD;state='swap';frame=a<.34?0:a<.67?1:2;if(anN('swap',u)<3)state='idle',frame=0}
-  else if(s.act&&t-s.at0<s.adur){const a=(t-s.at0)/s.adur;
+   if(k===AN_BLINK){n=anN('cast',u);state='cast';ph=.5;frame=Math.min(n-1,n>>1)}
+   else if(k===AN_KB){n=anN('hit',u);state='hit';ph=.8;frame=n-1}
+   else if(k===AN_DASH){state='attack';ph=.2;frame=0}
+   else{n=anN('walk',u);state='walk';const wf=(t-s.wt0)*anFps('walk')/1000/Math.max(sp,.5);cyc=Math.max(0,wf/4);frame=(wf|0)%n;if(frame<0)frame=0}}
+  else if(t-s.swT<s.swD){const a=(t-s.swT)/s.swD;state='swap';ph=a;frame=a<.34?0:a<.67?1:2;if(anN('swap',u)<3)state='idle',frame=0}
+  else if(s.act&&t-s.at0<s.adur){const a=(t-s.at0)/s.adur;ph=a;
    if(s.act===1){n=anN('attack',u);state='attack';frame=Math.min(n-1,(a*n)|0);if(s.lc||s.lr){const L=anLunge(a);gx+=s.lc*L;gy+=s.lr*L}}
    else if(s.act===3){n=anN('reload',u);state=n>1?'reload':'cast';frame=Math.min(n-1,((t-s.at0)*anFps('reload')/1000/Math.max(sp,.45))|0)%n}
    else{n=anN('cast',u);state='cast';frame=Math.min(n-1,((t-s.at0)*anFps('cast')/1000/Math.max(sp,.45))|0)}}
-  else if(sp&&s.gath){n=anN('cast',u);state='cast';frame=Math.min(n-1,1);lift+=((t/120)|0)&1?2:0}                       // gathering a telegraphed attack: arms raised, trembling
-  else if(sp&&s.run){n=anN('walk',u);state='walk';frame=((t*14/1000+s.ph*n)|0)%n;gx+=(((t/90)|0)&1?.03:-.03)}               // fleeing: runs on the spot, shaking, until its turn takes it away
-  else if(sp){n=anN('idle',u);frame=((t*anFps('idle')/1000+s.ph*n)|0)%n}
+  else if(sp&&s.gath){n=anN('cast',u);state='cast';ph=.5;frame=Math.min(n-1,1);lift+=((t/120)|0)&1?2:0}                       // gathering a telegraphed attack: arms raised, trembling
+  else if(sp&&s.run){n=anN('walk',u);state='walk';anm='flee';cyc=(t*14/1000+s.ph*n)/4;frame=((t*14/1000+s.ph*n)|0)%n;gx+=(((t/90)|0)&1?.03:-.03)}               // fleeing: runs on the spot, shaking, until its turn takes it away
+  else if(sp){n=anN('idle',u);cyc=t/2600+s.ph;frame=((t*anFps('idle')/1000+s.ph*n)|0)%n}
   const db=sp?(t-s.dgT)/(210*sp):-1;if(db>=0&&db<1){const k=.17*Math.sin(Math.PI*db);gx+=s.dr*k-s.dc*k*.5;gy+=s.dc*k-s.dr*k*.5}}
  lift=Math.round(lift/2)*2;
- P.state=state;P.frame=frame;P.dc=s.dc;P.dr=s.dr;
+ P.state=state;P.frame=frame;P.dc=s.dc;P.dr=s.dr;P.ph=ph;P.cyc=cyc;P.anim=anm;
  P.ox=Math.round((gx*ANB.cx+gy*ANB.rx)/2)*2;P.oy=Math.round((gx*ANB.cy+gy*ANB.ry+(s.vh-s.h)*ANB.hy)/2)*2-lift;
   let rise=0;if(s.wd)alpha=0;                                                                                         // a unit that left the field is drawn by the effect that walks it off
  else if(t-s.spT<s.spD){const a=Math.max(0,(t-s.spT)/s.spD);if(s.spK===1){rise=Math.round((1-a)*9)*2;alpha*=a<.15?0:((t/60)|0)&1&&a<.5?.55:1}else if(s.spK===2)alpha*=a<.3?0:a<.6?(((t/50)|0)&1?.9:.3):1;else alpha*=Math.min(1,a*2.5)}
