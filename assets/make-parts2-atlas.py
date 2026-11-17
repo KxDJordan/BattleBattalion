@@ -362,8 +362,6 @@ def fit_hair(P, sf, E, ear, scalp, ha, scales, eyes):
                 if best is None or c < best[0]: best = (c, tx, ty, S, arc, unc, ov, ec)
     return best
 HFIT = {}
-# styles whose drawn ear is hidden (long hair over it) fall back to the earlier arc fit
-HFIT_FALLBACK = {'hair8': (-66, -43), 'hair19': (-42, -59), 'hair20': (-75, -20), 'hair23': (-12, -41), 'hair24': (-66, -42), 'hair25': (-78, -42), 'hair26': (-88, -25), 'hair27': (-80, -43), 'hair28': (-66, -42), 'hair29': (-36, -42)}
 # hair-ears.webp: the same 30 styles at the same places, each with the head's ear drawn in. Per style: register the cell to hair.webp (the
 # shift that best overlays their hair ink), take the drawn ear (opaque pixels there but not in hair.webp), then find where that ear sits on
 # head0 (translation minimising the colour difference over the ear's pixels, in SU at scale 1.0). That translation places the hair.
@@ -388,7 +386,7 @@ _hd = [q for q in PIECES if q[0] == 'head0'][0]; _H0 = _su(_hd[2], _hd[3]).astyp
 for name, kind, P, sf, box in PIECES:
     if kind != 'hair': continue
     E_, reg, m = _hair_ear(box)
-    if m.sum() < 60: print(name, 'no drawn ear found', file=sys.stderr); HFIT[name] = (0,) + HFIT_FALLBACK[name] + (1.0,); continue
+    if m.sum() < 12: print(name, 'no drawn ear found', file=sys.stderr); continue   # predicted below
     Es = _su(E_, sf).astype(np.float32); ms = Es[:, :, 3] > 128; ys, xs = np.where(ms); ey0, ex0 = ys.min(), xs.min(); Ec = Es[ey0:ys.max() + 1, ex0:xs.max() + 1]; mc = ms[ey0:ys.max() + 1, ex0:xs.max() + 1]
     eh, ew = mc.shape; Hh, Hw = _H0.shape[:2]; best = None
     for ty in range(int(Hh * .4), int(Hh * .95) - eh):
@@ -397,12 +395,25 @@ for name, kind, P, sf, box in PIECES:
             if W_.shape[:2] != mc.shape: continue
             ok = W_[:, :, 3] > 128; d = np.abs(W_[:, :, :3] - Ec[:, :, :3]).sum(2); c = (d[mc & ok].sum() + 600 * (mc & ~ok).sum()) / mc.sum()
             if best is None or c < best[0]: best = (c, tx, ty)
-    if best is None or best[0] > 60: print(name, 'drawn ear not matched (too little of it shows)', file=sys.stderr); HFIT[name] = (0,) + HFIT_FALLBACK[name] + (1.0,); continue
+    if best is None or best[0] > 90: print(name, 'drawn ear not matched', file=sys.stderr); continue   # predicted below
     c, tx, ty = best
     # the hair's top-left in head0 SU: the ear's top-left in the hair (SU) is ((ex0 - 30*sf) , (ey0 - 30*sf)) relative to the hair box
     fx = tx - (ex0 - 30 * sf); fy = ty - (ey0 - 30 * sf)
     HFIT[name] = (c, fx, fy, 1.0); HEARP[name] = reg
     print(name, 'registered %s, ear match %.1f, at %d,%d' % (reg, c, fx, fy), file=sys.stderr)
+# styles whose drawn ear could not be used: predicted from their own crown (top row, middle of the top 15%)
+# left edge in its upper half) with the median offset from that landmark to the matched placement over the matched styles
+def _landmark(P, sf):   # the hair's crown: its top row and the middle of its top 15%, SU
+    al_ = np.array(su_img(P, sf))[:, :, 3] > 100; y0_ = np.where(al_.any(1))[0][0]; c_ = np.where(al_[y0_:y0_ + int(al_.shape[0] * .15)].any(0))[0]; return (c_[0] + c_[-1]) / 2, y0_
+_lm = {n: _landmark(P, sf) for n, k, P, sf, b in PIECES if k == 'hair'}
+_off = [(HFIT[n][1] + _lm[n][0], HFIT[n][2] + _lm[n][1]) for n in HFIT]; _mx = float(np.median([o[0] for o in _off])); _my = float(np.median([o[1] for o in _off]))
+print('crown-to-placement offsets', sorted(int(o[0]) for o in _off), sorted(int(o[1]) for o in _off), file=sys.stderr)
+_ht = {n: P.shape[0] * sf for n, k, P, sf, b in PIECES if k == 'hair'}
+for n in _lm:
+    if n in HFIT: continue
+    near = sorted(HFIT, key=lambda m: abs(_ht[m] - _ht[n]))[:5]   # the five matched styles nearest in length (long hair sits differently from short)
+    ox = float(np.median([HFIT[m][1] + _lm[m][0] for m in near])); oy = float(np.median([HFIT[m][2] + _lm[m][1] for m in near]))
+    HFIT[n] = (0, ox - _lm[n][0], oy - _lm[n][1], 1.0); print(n, 'predicted from its crown: %d,%d' % (HFIT[n][1], HFIT[n][2]), file=sys.stderr)
 # every head (sex, expression) against head0: the shift that best overlays its ear region (hair fitted on head0 moves with it)
 def _mask(n):
     q = [p_ for p_ in PIECES if p_[0] == n][0]; return np.array(su_img(q[2], q[3]))[:, :, 3] > 100
