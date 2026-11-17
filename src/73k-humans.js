@@ -403,10 +403,6 @@ function humTorsoDeco(hs,v,n){const S=hs.S,A=hs.A,a=S.armor,V=S.av||{},C=hs.C,b=
    else if(gb==='patches'||gb==='tatters'||gb==='welts'){g.fillStyle=gc;g.fillRect(x0+b.w*.6,y0+b.h*.2,16,14);g.fillRect(x0+10,y0+b.h*.6,14,12)}
    else if(gb==='vials'){for(let i=0;i<3;i++){g.fillStyle=['#62c06a','#5aa0e8','#d860a0'][i];g.fillRect(x0+14+i*12,y0+b.h*.5,7,14)}}
    else if(gb==='manica'){}}
-  // a coat of the house / company over everything: field, the emblem in the charge colour
-  if(S.coat){const F=humLit(S.coat.F),K=humLit(S.coat.K),cut=S.coat.cut,w=cut==='tabard'||cut==='mantle'?.56:.7,lx=v==='f'?cx-b.w*w*.5:x0+b.w*(1-w)/2;g.fillStyle=F;g.fillRect(lx,y0-6,b.w*w,b.h+12);
-   g.strokeStyle=humDk(F,.35);g.lineWidth=3;g.strokeRect(lx,y0-6,b.w*w,b.h+12);if(cut==='herald'){g.strokeStyle=K;g.lineWidth=5;g.strokeRect(lx+3,y0-3,b.w*w-6,b.h+6)}
-   if(v==='f'||cut==='jinbaori')humEmblem(g,S.coat.em,lx+b.w*w/2,y0+b.h*.48,Math.min(b.w*w*.9,46),K)}
   if(V.gold||V.lg)L([x0+8,y0+4,x1-8,y0+4],humLit(USR.gold),6)}}
 function humArmDeco(hs){const S=hs.S,a=S.armor,c=hs.C.slv,dk=humDk(c,.32);
  return(g,P)=>{const b=humBoxOf(P,'c');if(!b)return;if(a==='mail'||(S.av&&S.av.mailtop))(()=>{g.save();g.strokeStyle=dk;g.lineWidth=2.6;for(let y=b.y+4,j=0;y<b.y+b.h;y+=10,j++){g.beginPath();for(let x=b.x+(j&1?6:0);x<b.x+b.w+6;x+=12){g.moveTo(x+5,y);g.arc(x,y,5,0,Math.PI,false)}g.stroke()}g.restore()})();
@@ -474,7 +470,12 @@ function humBuild(L,face,st,fr){const I=humImg();if(!I||typeof document==='undef
   const P2=humP(p=>{p.moveTo(-w,y0);p.lineTo(w,y0);p.lineTo(w+(n<0?14:6),y0+ln);p.quadraticCurveTo(0,y0+ln+8,-w-(n<0?14:6),y0+ln);p.closePath()});humSh(g,P2,c,{dk:.2});humBBbox(g,-w-14,y0,w+14,y0+ln+8);
   if(S.armor==='mail'||n===3&&S.armor!=='brig'&&S.armor!=='lamellar')humMailTex(g,P2,-w-14,y0,w+14,y0+ln+8,c);if(S.armor==='lamellar'){g.save();g.clip(P2);for(let y=y0+12;y<y0+ln;y+=14)humLine(g,[-w-10,y,w+10,y],humLit(USR.red),4);g.restore()}
   if(n<0){humLine(g,[f*14,y0+4,f*18,y0+ln],humLit(S.trim||USR.brass),7)}};
- const drawTorso=()=>{draw(T,UB.x,UB.y,rot,tw,1);if(S.av&&S.av.mantle){const c=humLit(S.armor==='robe'?(S.accR||usCloth('purple')):USR.fur),m=humP(p=>{p.moveTo(shA.x-14,shA.y+4);p.quadraticCurveTo(neck.x,neck.y-40,shB.x+14,shB.y+4);p.quadraticCurveTo(neck.x,neck.y+20,shA.x-14,shA.y+4);p.closePath()});humSh(g,m,c)}};
+ const drawCoat=()=>{if(!S.coat)return;const F=humLit(S.coat.F),K=humLit(S.coat.K),cut=S.coat.cut,long=cut==='surcoat'||cut==='herald'||cut==='jinbaori',bot=long?66:cut==='quilted'?44:28,w=(cut==='tabard'||cut==='mantle'?36:44)*tw;
+  g.save();g.translate(UB.x,UB.y);g.rotate(rot);const top=tR.top-tR.hy+22,P2=humP(p=>{p.moveTo(-w,top);p.lineTo(w,top);p.lineTo(w+8,bot);if(long&&!back){p.lineTo(f*6+5,bot);p.lineTo(f*6,bot-30);p.lineTo(f*6-5,bot)}p.lineTo(-w-8,bot);p.closePath()});
+  humSh(g,P2,F,{dk:.18});if(cut==='herald'){g.save();g.clip(P2);g.strokeStyle=K;g.lineWidth=10;g.stroke(P2);g.restore();g.lineWidth=HUM_LW;g.strokeStyle=HUM_INK;g.stroke(P2)}
+  humBBbox(g,-w-8,top,w+8,bot);humInkLine(g,[-w+4,-4,w-4,-4],C.belt,8);if(!back||cut==='jinbaori'){const es=Math.min(2*w*.8,50);humEmblem(g,S.coat.em,f*4,top+(-4-top)*.5,es,K)}g.restore();
+  if(cut==='mantle'){const m=humP(p=>{p.moveTo(shA.x-12,shA.y+6);p.quadraticCurveTo(neck.x,neck.y-36,shB.x+12,shB.y+6);p.quadraticCurveTo(neck.x,neck.y+26,shA.x-12,shA.y+6);p.closePath()});humSh(g,m,K)}};
+ const drawTorso=()=>{draw(T,UB.x,UB.y,rot,tw,1);drawCoat();if(S.av&&S.av.mantle){const c=humLit(S.armor==='robe'?(S.accR||usCloth('purple')):USR.fur),m=humP(p=>{p.moveTo(shA.x-14,shA.y+4);p.quadraticCurveTo(neck.x,neck.y-40,shB.x+14,shB.y+4);p.quadraticCurveTo(neck.x,neck.y+20,shA.x-14,shA.y+4);p.closePath()});humSh(g,m,c)}};
  const drawHead=()=>{inHead(()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind');if(back&&!/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|coif|hood|cowl)$/.test(S.hat||''))humHair(g,S,R0,back,'over')});draw(head,neck.x,neck.y,rot*.5);
   inHead(()=>{const hat=S.hat;const covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');
    if(!back&&!covers){if(S.patch){humLine(g,[-R0*.7,-R0*.3,R0*.9,R0*.1],HUM_INK,4);humSh(g,humEll(R0*.62,R0*.33,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
