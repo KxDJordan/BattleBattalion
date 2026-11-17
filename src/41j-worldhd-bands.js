@@ -142,3 +142,24 @@ function whPlate(txt,col,bg,dpr){const fok=typeof document==='object'&&document.
  c=pxCanvas(w,h+Math.round(2*dpr));const q=c.getContext('2d');q.fillStyle='rgba(11,21,20,.55)';rrect(q,Math.round(2*dpr),Math.round(2*dpr),w-Math.round(2*dpr),h,Math.round(3*dpr));q.fill();
  q.fillStyle=bg==='0'?'#0b1514':'#101d1c';rrect(q,0,0,w-Math.round(2*dpr),h,Math.round(3*dpr));q.fill();q.strokeStyle=bg==='0'?'#26332f':'#35554f';q.lineWidth=b;rrect(q,b/2,b/2,w-Math.round(2*dpr)-b,h-b,Math.round(3*dpr));q.stroke();
  q.font=fs+'px "Jersey 15","Alegreya Sans",sans-serif';q.textBaseline='middle';q.textAlign='center';q.fillStyle=col==='d'?'#f2d98a':col==='n'?'#8d99a6':'#e9e0c9';q.fillText(txt,(w-Math.round(2*dpr))/2,h/2+dpr*.5);WHPL.set(id,c);return c}
+
+/* ---- weather (Detail High): the Low art's scrolling layers, painted smooth at K device px an art px ---- */
+const WHWX=new Map();
+function whWx(kind,layer,K){const key=kind+layer+'@'+K;let c=WHWX.get(key);if(c)return c;const S=kind==='fog'?128:64,R=waRng(900+layer*7+kind.length);c=pxCanvas(S*K,S*K);const g=c.getContext('2d');g.scale(K,K);g.lineCap='round';
+ const wrap=(fn)=>{for(const dx of [-S,0,S])for(const dy of [-S,0,S]){g.save();g.translate(dx,dy);fn();g.restore()}};
+ if(kind==='rain'||kind==='storm'){const n=kind==='storm'?(layer?34:26):(layer?20:14),L=[];for(let i=0;i<n;i++)L.push([R()*S,R()*S]);
+  wrap(()=>{for(const p of L){const l=layer?3.2:5.4;g.strokeStyle=layer?'rgba(170,190,215,.75)':'rgba(220,232,248,.9)';g.lineWidth=layer?.35:.5;g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(p[0]-l*.45,p[1]+l);g.stroke()}})}
+ else if(kind==='snow'){const n=layer?26:16,L=[];for(let i=0;i<n;i++)L.push([R()*S,R()*S,layer?.45:.6+R()*.4]);wrap(()=>{for(const p of L){g.fillStyle='rgba(150,170,200,.6)';g.beginPath();g.arc(p[0]+.12,p[1]+.12,p[2],0,Math.PI*2);g.fill();g.fillStyle='#ffffff';g.beginPath();g.arc(p[0],p[1],p[2]*.85,0,Math.PI*2);g.fill()}})}
+ else if(kind==='sand'){const n=layer?30:18,L=[];for(let i=0;i<n;i++)L.push([R()*S,R()*S,layer?2+R()*3:4+R()*5]);wrap(()=>{for(const p of L){g.strokeStyle=layer?'rgba(232,200,140,.7)':'rgba(214,170,100,.8)';g.lineWidth=layer?.35:.5;g.beginPath();g.moveTo(p[0],p[1]);g.quadraticCurveTo(p[0]+p[2]*.5,p[1]-.3,p[0]+p[2],p[1]+.6);g.stroke()}})}
+ else{const nz=waFbm(950+layer*5,32),im=new ImageData(S,S),d=new Uint32Array(im.data.buffer),col=layer?[200,208,212]:[232,236,236];for(let y=0;y<S;y++)for(let x=0;x<S;x++){const v=whNzS(nz,x,y*2),a=clamp((v-.42)*2.2,0,1);d[y*S+x]=((a*a*(3-2*a)*230|0)<<24|col[2]<<16|col[1]<<8|col[0])>>>0}
+  const t=pxCanvas(S,S);t.getContext('2d').putImageData(im,0,0);g.imageSmoothingEnabled=true;g.drawImage(t,0,0,S,S)}
+ if(WHWX.size>24)WHWX.clear();WHWX.set(key,c);return c}
+function whTileWx(q,c,S,w,h,ox,oy){ox=((ox%S)+S)%S;oy=((oy%S)+S)%S;for(let y=oy-S;y<h;y+=S)for(let x=ox-S;x<w;x+=S)q.drawImage(c,x,y,S,S)}
+function whWeather(q,w,h,o,K){const kind=o.kind;if(!kind||kind==='clear')return;const rm=typeof reduced!=='undefined'&&reduced,f=rm?0:+o.frame||0,wind=o.wind==null?.4:clamp(+o.wind,-1,1),a0=q.globalAlpha,T=(k,l)=>whWx(k,l,K),Z=kind==='fog'?128:64;
+ q.save();q.imageSmoothingEnabled=true;q.beginPath();q.rect(0,0,w,h);q.clip();
+ if(kind==='rain'||kind==='storm'){const sp=kind==='storm'?12:9;if(wind<0){q.translate(w,0);q.scale(-1,1)}q.globalAlpha=a0*.45;whTileWx(q,T(kind,1),Z,w,h,-f*sp*.3,f*sp*.62);q.globalAlpha=a0*.7;whTileWx(q,T(kind,0),Z,w,h,-f*sp*.5,f*sp);
+  if(kind==='storm'&&!rm){const fi=Math.floor(f),cyc=Math.floor(fi/36),at=(waHash(cyc,7,3)*30)|0,d=fi%36-at;if(d===0||d===2){q.globalAlpha=a0*(d?.16:.3);q.fillStyle='#e8f0ff';q.fillRect(0,0,w,h)}}}
+ else if(kind==='snow'){q.globalAlpha=a0*.7;whTileWx(q,T(kind,1),Z,w,h,f*wind*1.2+Math.sin(f*.21)*3,f*1.1);q.globalAlpha=a0*.95;whTileWx(q,T(kind,0),Z,w,h,f*wind*2+Math.sin(f*.17+1)*4,f*1.9)}
+ else if(kind==='sand'){const d=wind<0?-1:1;q.globalAlpha=a0*.5;whTileWx(q,T(kind,1),Z,w,h,d*f*7,Math.sin(f*.13)*3);q.globalAlpha=a0*.75;whTileWx(q,T(kind,0),Z,w,h,d*f*13,f*.6)}
+ else if(kind==='fog'){const d=wind<0?-1:1;q.globalAlpha=a0*.5;whTileWx(q,T(kind,1),Z,w,h,d*f*.35,20);q.globalAlpha=a0*.6;whTileWx(q,T(kind,0),Z,w,h,d*f*.8+40,0)}
+ q.restore();q.globalAlpha=a0}

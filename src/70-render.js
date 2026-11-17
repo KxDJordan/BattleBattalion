@@ -476,7 +476,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(inV(x,y)&&vis(o.x,o.y))drawGlow('#9a5cff',x,y-10,24,26,.42+(reduced?0:.1*Math.sin(now/400+o.id)))}
  g.globalCompositeOperation='source-over';g.globalAlpha=1;
  // weather, in screen space at the art scale
- if(wx){g.setTransform(sc,0,0,sc,0,0);try{drawWeatherPx(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind})}catch(e){wvFail('wx',e)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
+ if(wx){g.setTransform(sc,0,0,sc,0,0);try{if(WVHD&&typeof whWeather==='function')whWeather(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind},WQ.K||WV.s);else drawWeatherPx(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind})}catch(e){wvFail('wx',e)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
  // name plates
  g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;const P=Math.max(1,Math.round(dpr*1.5));for(let i=0;i<WV.np;i++){const q=WV.plates[i],w=q.c.width*(q.hd?1:P),h=q.c.height*(q.hd?1:P);g.drawImage(q.c,Math.round(bx+q.x*sc-w/2),Math.round(by+q.y*sc-h),w,h)}
  g.setTransform(dpr,0,0,dpr,0,0);drawVignette(.42+night*.2);WV.boot=false;WV.cost+=(performance.now()-t0-WV.cost)*.1}
@@ -495,17 +495,17 @@ function worldPick(wx,wy,withCompany){if(!G||!W)return null;const pad=Math.max(0
 /* ---- minimap: one pixel a tile at a whole scale; terrain and fog cached, markers repainted at 8 Hz ---- */
 const MM={el:null,w:null,fog:null,fq:null,frev:-1,pk:-1,t:0,s:0,ox:0,oy:0,sig:''};
 function wvMiniFog(){const pk=Math.floor(G.p.y/TS)*WN+Math.floor(G.p.x/TS)+(typeof visionRadius==='function'?Math.round(visionRadius()/TS*2)*WN*WN:0);if(MM.w===W&&MM.frev===WCH.frev&&MM.pk===pk)return false;MM.w=W;MM.frev=WCH.frev;MM.pk=pk;
- if(!MM.fog){MM.fog=mkCanvas(WN,WN);MM.fq=MM.fog.getContext('2d')}if(MM.fog.width!==WN)MM.fog.width=MM.fog.height=WN;const q=MM.fq;q.globalCompositeOperation='copy';q.drawImage(WCH.key,0,0);q.globalCompositeOperation='source-over';
+ const hd=WVHD&&typeof wqMini==='function',MW=hd?WN*4:WN;if(!MM.fog){MM.fog=mkCanvas(MW,MW);MM.fq=MM.fog.getContext('2d')}if(MM.fog.width!==MW)MM.fog.width=MM.fog.height=MW;const q=MM.fq;q.globalCompositeOperation='copy';q.drawImage(hd?wqMini():WCH.key,0,0);q.globalCompositeOperation='source-over';MM.hd=hd;
  if(!WCH.fogOn)return true;const im=q.createImageData(WN,WN),d=new Uint32Array(im.data.buffer),u0=wvC32('0'),u1=wvC32('1'),dim=wvC32('1',118),vr=typeof visionRadius==='function'?visionRadius():-1,vis=vr<0&&typeof visibleAt==='function',px=G.p.x,py=G.p.y;
  for(let y=0;y<WN;y++)for(let x=0;x<WN;x++){const i=y*WN+x;if(WCH.fs[i])d[i]=(x+y)&1?u0:u1;else if(vr>=0?Math.hypot((x+.5)*TS-px,(y+.5)*TS-py)>vr:vis&&!visibleAt(x,y))d[i]=dim}
- const s=wvScratch(WN,WN,'c');s.putImageData(im,0,0);q.drawImage(WSC.c,0,0,WN,WN,0,0,WN,WN);return true}
+ const s=wvScratch(WN,WN,'c');s.putImageData(im,0,0);if(hd){q.imageSmoothingEnabled=true;q.drawImage(WSC.c,0,0,WN,WN,0,0,MW,MW);q.imageSmoothingEnabled=false}else q.drawImage(WSC.c,0,0,WN,WN,0,0,WN,WN);return true}
 function drawMinimap(){const el=$('mini');if(!el||!G||!W||WCH.w!==W)return;if(el!==MM.el){MM.el=el;MM.t=0;MM.sig='';if(typeof wireMinimap==='function')wireMinimap(el)}
  if(now-MM.t<110)return;const cwid=el.clientWidth,chei=el.clientHeight;if(cwid<8||chei<8)return;MM.t=now;const vsb=wvVisFn(),c0=G.contract,pulse=(now/300|0)&1,fogNew=wvMiniFog();let vis='';for(const o of G.parties)if(vsb(o.x,o.y))vis+=((o.x/TS)|0)+'.'+((o.y/TS)|0)+';';
  const sig=(G.p.x/TS*2|0)+','+(G.p.y/TS*2|0)+','+(wcam.x/TS*2|0)+','+(wcam.y/TS*2|0)+','+WV.s+','+G.path.length+','+G.portals.length+','+pulse+','+(c0?c0.type+(c0.done?1:0)+(c0.stage|0):'')+(G.nests?G.nests.length:0)+','+SR.w+','+SR.h+','+cwid+','+vis+(G.route?G.route.length:0);
  if(sig===MM.sig&&!fogNew)return;MM.sig=sig;
  const d=Math.min(3,window.devicePixelRatio||1),w=Math.round(cwid*d),h=Math.round(chei*d);if(el.width!==w||el.height!==h){el.width=w;el.height=h}
  const q=el.getContext('2d'),k=Math.max(1,Math.floor(Math.min(w,h)/WN)),S=k*WN,ox=(w-S)>>1,oy=(h-S)>>1,u=k/TS,th=Math.max(1,k>>1);MM.s=S/WS/d;MM.ox=ox/d;MM.oy=oy/d;
- q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=false;q.fillStyle=PAL['0'];q.fillRect(0,0,w,h);q.drawImage(MM.fog,ox,oy,S,S);
+ q.setTransform(1,0,0,1,0,0);q.imageSmoothingEnabled=!!MM.hd;q.fillStyle=PAL['0'];q.fillRect(0,0,w,h);q.drawImage(MM.fog,ox,oy,S,S);q.imageSmoothingEnabled=false;
  const X=v=>ox+Math.floor(v*u),Y=v=>oy+Math.floor(v*u),box=(x,y,r,a,b)=>{q.fillStyle=PAL[a];q.fillRect(x-r-th,y-r-th,2*r+k+2*th,2*r+k+2*th);q.fillStyle=PAL[b];q.fillRect(x-r,y-r,2*r+k,2*r+k)},tile=v=>Math.floor(v/TS)*k;
  if(G.moving&&G.path.length){q.fillStyle=PAL.l;for(const s of G.path)q.fillRect(ox+tile(s.x)+((k-th)>>1),oy+tile(s.y)+((k-th)>>1),th,th)}
  if(G.sites){q.fillStyle=PAL.m;for(const o of G.sites)if(worldSeen(o.x,o.y))q.fillRect(ox+tile(o.x),oy+tile(o.y),k,k)}

@@ -319,3 +319,7 @@ function wqOcclude(g,e,x,y){if(!WQ.n)return;const S=WHQ*16,x0=x+e.x0,x1=x+e.x1,y
   for(const it of q.items){if(it.y<=y+.05)continue;const ie=it.e,ix0=it.x-ie.ax,iy0=it.y-ie.ay;if(ix0>=x1||ix0+ie.w<=x0||iy0>=y1||iy0+ie.h<=y0)continue;
    if(!sm){sm=true;g.imageSmoothingEnabled=true}g.drawImage(wvSprCv(ie),ix0,iy0,ie.w,ie.h)}}
  if(sm)g.imageSmoothingEnabled=false}
+// the minimap's ground at Detail High: the same shader at 4 px a tile, once per world
+function wqMini(){if(WQ.mm&&WQ.mmw===W)return WQ.mm;const P=4,N=WN*P,c=WQ.mm&&WQ.mm.width===N?WQ.mm:pxCanvas(N,N),q=c.getContext('2d'),im=q.createImageData(N,N),D=new Uint32Array(im.data.buffer),t=new Uint32Array(P*P);
+ for(let ty=0;ty<WN;ty++)for(let tx=0;tx<WN;tx++){whShadeTile(t,tx,ty,P/16);for(let j=0;j<P;j++)for(let i=0;i<P;i++)D[(ty*P+j)*N+tx*P+i]=t[j*P+i]}
+ q.putImageData(im,0,0);WQ.mm=c;WQ.mmw=W;return c}
