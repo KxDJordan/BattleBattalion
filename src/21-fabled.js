@@ -83,7 +83,7 @@ const FABLED_TREES={
   ['Saint’s warmth','Adjacent allies regain 4 hitpoints a turn',{mod:{medAura:4}}],['Lantern Light','Ability: she and allies within 3 tiles heal 10–16 and steady',{ab:'fb_saint'}]]],
  yuki:['A Hundred Arrows',[['Snow-eyed','+10 ranged skill, +8 initiative',{st:{rs:10,init:8}}],['Arrow-rain','+15% damage with ranged weapons',{mod:{dmgRanged:.15}}],
   ['Far sight','+1 bow range, +5 ranged skill',{st:{rs:5},flag:'eagle'}],['Hundred Arrows','Ability: 100% damage to the target and 70% to each foe beside it, +5 to hit (bow)',{ab:'fb_hundred'}]]]};
-for(const id in FABLED_TREES){const [n,P]=FABLED_TREES[id],k='fab.'+id,T={n,kind:'fabled',owner:id,aff:['melee','ranged'],d:'A personal tree: only this warrior can learn it',tiers:P.map((p,i)=>[perkDef(p[0],p[1],Object.assign({id:k+'.'+(i+1)},p[2]))])};
+for(const id in FABLED_TREES){const [n,P]=FABLED_TREES[id],k='fab.'+id,T={n,kind:'fabled',owner:id,aff:['melee','ranged'],d:'A personal tree: only this warrior can learn it',role:'A legend\'s own craft: what made this warrior a name in the songs',tiers:P.map((p,i)=>[perkDef(p[0],p[1],Object.assign({id:k+'.'+(i+1)},p[2]))])};
  T.p=T.tiers.map(t=>t[0]);MAST[k]=T}
 /* ---- the sixteen ---- */
 const FABLED={

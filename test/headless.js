@@ -407,7 +407,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      m0.mor=3;m0.hp=m0.hpMax;X.hurt(m0,5,1,e0,{loc:1});ok(m0.mor===3,'a light hit must not test morale');
      let ups=0;m0.brv=300;for(let i=0;i<30;i++){m0.mor=3;e0.alive=true;e0.hp=1;e0.fearless=false;X.hurt(e0,99,1,m0,{loc:1});if(m0.mor===4)ups++}ok(ups>=22,'a kill must lift the killer: '+ups+'/30');
      A.park();put(m0,2,mid);put(e0,3,mid);m0.ms=50;e0.md=0;const atk=ab(m0,'attack'),base=X.hitChance(m0,e0,atk);ok(base>=30&&base<=80,'morale fixture hit chance out of range: '+base);
-     m0.mor=4;ok(X.hitChance(m0,e0,atk)===base+10,'confident: +10 to hit');m0.mor=1;ok(X.hitChance(m0,e0,atk)===base-20,'breaking: -20 to hit');m0.mor=3;e0.mor=1;ok(X.hitChance(m0,e0,atk)===base+10,'a breaking target is easier to hit');e0.mor=4;ok(X.hitChance(m0,e0,atk)===base-5,'a confident target is harder to hit');
+     m0.mor=4;ok(X.hitChance(m0,e0,atk)===base+10,'confident: +10 to hit');m0.mor=1;ok(X.hitChance(m0,e0,atk)===base-20,'breaking: -20 to hit');m0.mor=3;e0.mor=1;{const f0=m0.flags;m0.flags=Object.assign({},f0,{shakenHit:0});ok(X.hitChance(m0,e0,atk)===base+10,'a breaking target is easier to hit (Rout them, the roles update, set aside)');m0.flags=f0}e0.mor=4;ok(X.hitChance(m0,e0,atk)===base-5,'a confident target is harder to hit');
      const f=X.forecast(m0,e0,atk);ok(f.mor.att===0&&f.mor.def===5&&f.hit===base-5,'forecast must carry morale');
      A.park();e1.fearless=true;ok(X.moraleCheck(e1,-500,-1)===null&&e1.mor===3,'fearless units never test');
      A.park();put(m0,2,mid);put(e0,3,mid);put(e1,1,mid);put(e2,2,mid-1);m0.brv=-100;await A.turnOf(m0);ok(m0.mor===2||m0.mor===3,'surrounded check went wrong');let sur=0;for(let i=0;i<12;i++){m0.mor=3;await A.turnOf(m0);if(m0.mor===2)sur++}ok(sur>=8,'starting a turn surrounded must shake a coward: '+sur+'/12');
@@ -618,13 +618,13 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        unspawn(tw,mate,sp) }
      // the shield mastery: only while a shield is raised
      { Z.park();const P=['weapons.shield'],m=mer('arming','greataxe','heater',P),s=X.calc(m),s2=X.calc(m,{hand:'b'}),s0=X.calc(mer('arming','greataxe','heater',[]));
-       ok(X.weaponTypes(m).includes('shield')&&s.perks.includes('weapons.shield')&&s.shield.md===X.ITEMS.heater.md+5&&s.md===s0.md+5&&s.rd===s0.rd+5,'the shield mastery works with the shield raised');
-       ok(s2.off.includes('weapons.shield')&&s2.shield.hp===s.shield.hp&&!s2.flags.shieldDef,'a slung shield: the shield mastery sleeps');
+       ok(X.weaponTypes(m).includes('shield')&&s.perks.includes('weapons.shield')&&s.shield.hp===Math.round(s0.shield.hp*1.3)&&s.flags.deflect===.1,'the shield mastery works with the shield raised (the roles update: +30% shield hitpoints, −10% from shots)');
+       ok(s2.off.includes('weapons.shield')&&s2.shield.hp===s.shield.hp&&!s2.flags.deflect,'a slung shield: the shield mastery sleeps');
        ok(X.calc(mer('arming',null,null,P)).off.length===1,'no shield, no shield mastery') }
      // every weapon mastery works only with its family in hand, and does what it says
      { const W=(id,P)=>X.calc(mer(id,null,null,P)).wpn,base=id=>X.calc(mer(id,null,null,[])).wpn;
-       ok(W('arming',['weapons.sword']).hit===base('arming').hit+10,'sword mastery: +10 to hit');ok(W('waraxe',['weapons.axe']).ign===base('waraxe').ign+.15,'axe mastery: +15% armor piercing');
-       ok(Math.abs(W('mace',['weapons.mace']).stun-base('mace').stun-.15)<1e-9,'mace mastery: +15% stun');ok(Math.abs(W('warhammer',['weapons.hammer']).crush-base('warhammer').crush-.4)<1e-9,'hammer mastery: crush');
+       ok(W('arming',['weapons.sword']).hit===base('arming').hit+5&&X.calc(mer('arming',null,null,['weapons.sword'])).md===X.calc(mer('arming',null,null,[])).md+5,'sword mastery: +5 to hit, +5 melee defense');ok(Math.abs(W('waraxe',['weapons.axe']).ign-base('waraxe').ign-.1)<1e-9&&X.calc(mer('waraxe',null,null,['weapons.axe'])).flags.splitB===.5,'axe mastery: +10% armor piercing, shield-splitting +50%');
+       ok(Math.abs(W('mace',['weapons.mace']).stun-base('mace').stun-.1)<1e-9&&Math.abs(W('mace',['weapons.mace']).crush-(base('mace').crush||0)-.2)<1e-9,'mace mastery: +10% stun, +20% crush');ok(Math.abs(W('warhammer',['weapons.hammer']).crush-base('warhammer').crush-.4)<1e-9,'hammer mastery: crush');
        ok(W('rondel',['weapons.dagger']).ap===2&&W('shortbow',['weapons.bow']).ap===3&&W('warbow',['weapons.bow']).ap===4,'dagger and bow masteries: 1 less AP, at least 2');
        const gs=W('greatsword',['weapons.greatsword']);ok(gs.fat===X.ITEMS.greatsword.fat-6&&gs.fatCut===6,'greatsword mastery: 6 less fatigue');
        ok(W('crossbow',['weapons.crossbow']).reload.ap===2&&W('musket',['weapons.flintlock']).reload.ap===3,'crossbow and firearm masteries: reload 2 AP cheaper');
@@ -671,7 +671,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    ok(styles.length>=12&&['vanguard','bulwark','marksman','skirmisher'].every(k=>kind(k)==='style'),'at least 12 style trees, the four old ones kept');
    ok(wts.join()==='weapons'&&M.weapons.tiers.length===1&&M.weapons.tiers[0].map(p=>p.wt).join()===X.WTS.join()&&M.weapons.tiers[0].every(p=>p.id==='weapons.'+p.wt),'one weapon tree: one mastery per family (13 families and the shield), ids weapons.<family>');
    ok(X.WTS.length===15&&['sword','axe','mace','dagger','spear','bow','staff','fist','hammer','polearm','greatsword','crossbow','flintlock','throwing','shield'].every(w=>X.WTS.includes(w)),'WTS lists every weapon family');
-   ok(M.weapons.tiers[0].every(p=>!p.ab&&Object.keys(p.wmod||{}).length+Object.keys(p.mod||{}).length===1),'each weapon mastery has one clear effect');
+   ok(M.weapons.tiers[0].every(p=>{const n=Object.keys(p.wmod||{}).length+Object.keys(p.mod||{}).length+Object.keys(p.st||{}).length;return!p.ab&&n>=1&&n<=2}),'each weapon mastery has one or two effects: its family\'s trade (the roles update)');
    for(const k of styles.concat(gifts))ok(M[k].tiers.length===6&&M[k].tiers.every(t=>t.length>=1),k+': 6 tiers');
    ok(M.mana.style==='caster'&&M.aura.style==='melee'&&M.qi.style==='melee'&&M.chi.style==='support'&&['mana','aura','qi','chi'].every(k=>kind(k)==='gift'&&M[k].res===k),'the four old gift trees keep their keys');
    for(const r of X.RESK){const vs=gifts.filter(k=>M[k].res===r).map(k=>M[k].style);ok(vs.includes('melee')&&vs.includes('ranged'),r+' needs melee and ranged variants');ok(X.giftKey(r,'melee')&&X.giftKey(r,'ranged')&&M[X.giftKey(r,'ranged')].style==='ranged','giftKey '+r)}
@@ -712,7 +712,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    { const m=X.newMerc('knight');m.gift='aura';m.trees=['vanguard','bulwark','brute','duelist','aura'];m.perks=[];m.race='human';m.eq.w='arming';X.syncMast(m);
      m.lvl=2;m.pp=2;ok(!X.canLearn(m,'vanguard.3')&&!X.learnPerk(m,'vanguard.3')&&m.pp===2,'a tier-3 perk must not open at level 2');
      ok(X.canLearn(m,'bulwark.2')&&X.learnPerk(m,'bulwark.2')&&m.pp===1&&m.perks.includes('bulwark.2')&&!m.perks.includes('bulwark.1'),'a tier-2 perk must not need the tier-1 perk');
-     const hp0=m.hp;ok(m.hp===Math.min(X.calc(m).hp,hp0)&&X.calc(m).hp===X.calc(Object.assign(X.clone(m),{perks:[]})).hp+15,'Colossus must add 15 hitpoints');
+     const hp0=m.hp;ok(m.hp===Math.min(X.calc(m).hp,hp0)&&X.calc(m).flags.holdMit===.6,'Rooted (bulwark.2 since the roles update) must give its mitigation flag');
      ok(!X.canLearn(m,'weapons.sword'),'weapon masteries must wait for level 3');m.lvl=3;ok(X.canLearn(m,'weapons.sword'),'weapon masteries open at level 3');ok(!X.canLearn(m,'weapons.bow'),'not a family the background lacks');
      ok(!X.canLearn(m,'bulwark.2')&&!X.canLearn(m,'marksman.1'),'no perk twice, none from a tree the merc lacks');
      m.lvl=5;m.pp=1;ok(!X.giftAwake(m)&&!X.calc(m).res.aura,'the gift sleeps until a perk awakens it');
@@ -856,7 +856,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        ok(kb>70&&kb<130&&st>70&&st<130,'Rolling with it: half the knockbacks and stuns land: '+kb+' / '+st);
        const kbA={id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,status:{stun:1},rng:1,tgt:'enemy'},fk=X.forecast(e0,Pl,kbA);ok(fk.kb&&fk.kb.ch===.5&&fk.statuses.some(s=>s.k==='stun'&&s.ch===.5),'forecast: Rolling with it halves knockback and stun chances');
        Pl.ap=9;Pl.fat=0;put(e0,15,0);await X.walkPath(Pl,[5*BW+4,5*BW+3,5*BW+2]);ok(Pl.c===2&&Pl.fat===3&&X.moveFat(Pl)===1,'Steady footing: 1 fatigue a tile');put(Pl,5,5);put(e0,6,5);
-       Pl.arm=150;const res0=Pl.res;Pl.res={mana:{cur:0,max:30,regen:4}};b.order=[Pl];b.busy=true;await X.nextTurn();ok(Pl.arm===153&&b.cur===Pl,'Braced mail: +3 armor at turn start');ok(Pl.res.mana.cur===4,'gift pools still regenerate at turn start');Pl.res=res0;b.busy=true;Pl.arm=200 }
+       Pl.arm=150;const res0=Pl.res;Pl.res={mana:{cur:0,max:30,regen:4}};b.order=[Pl];b.busy=true;await X.nextTurn();ok(Pl.arm===155&&b.cur===Pl,'Braced mail: +5 armor at turn start (the roles update)');ok(Pl.res.mana.cur===4,'gift pools still regenerate at turn start');Pl.res=res0;b.busy=true;Pl.arm=200 }
      Object.assign(Pl,PlSt);if(Pl.m)Pl.m.inj=[];
      // heavy
      { const H=fl('plate');Pl.flags=H.flags;Pl.aw=H.aw;Pl.fat=0;ok(X.kbImmune(Pl),'Immovable');put(Pl,5,5);await X.knockback(e0,Pl,2,0);ok(Pl.c===5&&Pl.r===5,'Immovable: no knockback');
@@ -885,17 +885,17 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=7;g.note='newlands';X.store.set(X.SAVEKEY,JSON.stringify(g));
      const r=X.readSave();ok(r.state==='ok'&&r.v===7&&r.g.v===X.SAVEVER&&X.SAVEVER>=8,'a version 7 save was not migrated to 8');const A=r.g.roster[0],H=r.g.roster[1];
      // (and on through v15: the old weapon tree perks go too, armor halves become the merged perks)
-     ok(A.perks.join()==='medarmor.1,heavyarmor.2'&&A.pp===5&&A.armp===undefined,'v8+v15: a sellsword keeps its own armor trees\' perks and gets 4 points back: '+A.perks.join()+' pp '+A.pp);
+     ok(A.perks.join()===''&&A.pp===7&&A.armp===undefined,'v8+v15(+v21): a sellsword keeps its own armor trees\' perks and gets 4 points back (v21, the roles update, then takes back the changed medarmor.1 and heavyarmor.2: 2 more): '+A.perks.join()+' pp '+A.pp);
      ok(H.perks.join()==='lightarmor.1'&&H.pp===3,'v8+v15: a hunter loses its heavy armor, shield and bow perks for 3 points: '+H.perks.join()+' pp '+H.pp);
      ok(r.g.roster[2].pp===1&&!r.g.roster[2].perks.length,'v8: a merc with nothing to refund is untouched');
      if(rc){const rr=r.g.towns[X.G.towns.indexOf(tw)].recruits[0];ok(!rr.perks.length&&rr.pp===2,'v8+v15: recruits waiting in towns are refunded too')}
-     ok(r.g.note==='newlands'&&Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===[A.name+':4',H.name+':3'].join(),'v8: G.refund lists the company\'s swords who got points back: '+JSON.stringify(r.g.refund));
+     ok(r.g.note==='newlands'&&Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===[A.name+':6',H.name+':3'].join(),'v8: G.refund lists the company\'s swords who got points back: '+JSON.stringify(r.g.refund));
      // in game: the note waits behind any other note, shows once, and is gone after a save
-     X.G=null;X.mode='title';X.continueGame();closeAll(X);ok(X.G&&X.G.roster[0].pp===5&&X.G.note==='newlands','continueGame after the v8 migration');const n0=X.sheets.length;
+     X.G=null;X.mode='title';X.continueGame();closeAll(X);ok(X.G&&X.G.roster[0].pp===7&&X.G.note==='newlands','continueGame after the v8 migration (and v21)');const n0=X.sheets.length;
      X.worldTick(.016);ok(X.sheets.length===n0+1&&/New lands/.test(X.sheets[n0])&&X.G.note==='refund','the earlier note comes first, the refund note queued behind it');closeAll(X);
-     X.worldTick(.016);const rs=X.sheets[n0+1]||'';ok(X.sheets.length===n0+2&&/Perk points returned/.test(rs)&&rs.includes(X.G.roster[0].name)&&rs.includes(X.G.roster[1].name)&&/4 points/.test(rs)&&/3 points/.test(rs)&&!X.G.refund&&!X.G.note,'the refund note names who got points back, once');closeAll(X);
+     X.worldTick(.016);const rs=X.sheets[n0+1]||'';ok(X.sheets.length===n0+2&&/Perk points returned/.test(rs)&&rs.includes(X.G.roster[0].name)&&rs.includes(X.G.roster[1].name)&&/6 points/.test(rs)&&/3 points/.test(rs)&&!X.G.refund&&!X.G.note,'the refund note names who got points back, once');closeAll(X);
      X.worldTick(.016);ok(X.sheets.length===n0+2,'the refund note shows only once');ok(X.save(),'save failed');X.G=null;X.mode='title';X.continueGame();closeAll(X);X.worldTick(.016);
-     ok(X.sheets.length===n0+2&&!X.G.refund&&X.G.roster[0].pp===5,'no refund note after a reload');console.log('v7 -> v8 -> v15 migration: weapon and armor perks refunded ('+(A.name)+' 4, '+H.name+' 3), note shown once: ok') }
+     ok(X.sheets.length===n0+2&&!X.G.refund&&X.G.roster[0].pp===7,'no refund note after a reload');console.log('v7 -> v8 -> v15 migration: weapon and armor perks refunded ('+(A.name)+' 4, '+H.name+' 3), note shown once: ok') }
    // -- a version 14 save: the merged masteries (v15) --
    { X.store.clear();X.seedRng(SEED+7275);X.newGame(true);closeAll(X);const R0=X.G.roster;ok(R0.length>=4,'fixture roster');
      Object.assign(R0[0],{bg:'sellsword',race:'human',lvl:9,pp:0,trees:['vanguard','bulwark','brute','duelist'],perks:['vanguard.1','sword.1a','sword.2b','medarmor.1a','medarmor.1b','medarmor.2b','sword.cap'],deeds:{bane:1}});
@@ -905,12 +905,13 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const rv=X.G.rivals&&X.G.rivals[0]&&X.G.rivals[0].roster[0];if(rv)Object.assign(rv,{bg:'hunter',race:'human',perks:['shield.1a','lightarmor.1b'],pp:0});
      ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=14;X.store.set(X.SAVEKEY,JSON.stringify(g));
      const r=X.readSave();ok(r.state==='ok'&&r.v===14&&r.g.v===X.SAVEVER&&X.SAVEVER>=15,'a version 14 save was not migrated to 15+');const [A,H,H2,W]=r.g.roster;
-     ok(A.perks.join()==='vanguard.1,medarmor.1,medarmor.2,sword.cap'&&A.pp===3,'v15: weapon tree perks refunded, armor halves merged (both halves: one point back), the weapon capstone kept: '+A.perks.join()+' pp '+A.pp);
-     ok(H.trees.join()==='marksman,scout,survivor,hunter'&&H.perks.join()==='marksman.1,scout.2,hunter.gob,hunter.wolf,lightarmor.3'&&H.pp===1,'v15: a hunter with quarry perks keeps the hunter tree in place of an unused style tree: '+H.trees.join());
-     ok(H2.trees.join()==='marksman,scout,survivor,skirmisher'&&H2.pp===0,'v15: a hunter without quarry perks keeps its trees');
+     ok(A.perks.join()==='medarmor.2,sword.cap'&&A.pp===5,   // v21 (the roles update) takes back the changed vanguard.1 and medarmor.1
+     'v15: weapon tree perks refunded, armor halves merged (both halves: one point back), the weapon capstone kept: '+A.perks.join()+' pp '+A.pp);
+     ok(H.trees.join()==='marksman,scout,survivor,hunter'&&H.perks.join()==='scout.2,hunter.gob,hunter.wolf,lightarmor.3'&&H.pp===2,'v15: a hunter with quarry perks keeps the hunter tree in place of an unused style tree: '+H.trees.join());
+     ok(H2.trees.join()==='marksman,scout,survivor,skirmisher'&&H2.pp===2,'v15: a hunter without quarry perks keeps its trees (v21 then refunds the changed marksman.1 and skirmisher.3)');
      ok(W.trees.join()==='berserker,brute,survivor,vanguard,hunter'&&W.perks.includes('hunter.ogre'),'v15: every style tree in use: the hunter tree comes as a 5th');
      if(rv){const rr=r.g.rivals[0].roster.find(q=>q.id===rv.id);ok(rr&&rr.perks.join()==='lightarmor.1'&&rr.pp===1,'v15: rival swords migrate too')}
-     ok(Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===A.name+':3','v15: G.refund names who got points back: '+JSON.stringify(r.g.refund));
+     ok(Array.isArray(r.g.refund)&&r.g.refund.map(x=>x.name+':'+x.n).join()===[A.name+':5',H.name+':1',H2.name+':2',W.name+':1'].join(),'v15 (+v21: the changed perks): G.refund names who got points back: '+JSON.stringify(r.g.refund));
      X.G=null;X.mode='title';X.continueGame();closeAll(X);const L=X.G.roster;ok(X.mercTrees(L[1]).some(x=>x.key==='hunter')&&X.calc(L[1]).perks.includes('hunter.gob')&&L[0].perks.includes('sword.cap'),'the migrated perks load and work');
      console.log('v14 -> v15 migration: weapon perks refunded, armor perks merged, the hunter tree kept where it was used: ok') }
    // -- an old (version 4) save: masteries become trees and perks --
@@ -918,10 +919,10 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const olds=[{vanguard:2,bulwark:0,aura:1},{marksman:4,skirmisher:1,qi:2},{bulwark:3,vanguard:1,chi:5},{skirmisher:0,mana:3,bulwark:1}];
      g.roster.forEach((m,i)=>{delete m.trees;delete m.gift;delete m.perks;delete m.eq.b;m.mast=olds[i%4];m.lvl=6;m.pp=1});g.towns.forEach(t=>t.recruits.forEach(m=>{delete m.trees;delete m.gift;delete m.perks;delete m.eq.b;m.mast={vanguard:0,skirmisher:0}}));
      X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.v===4&&r.g.v===X.SAVEVER,'a version 4 save was not migrated');
-     const R=r.g.roster;ok(R[0].perks.join()==='vanguard.1,aura.1'&&R[0].pp===2&&R[0].gift==='aura'&&R[1].perks.join()==='marksman.1,marksman.2,marksman.4,skirmisher.1,qi.1'&&R[1].pp===3&&R[1].gift==='qi'&&R[2].perks.length===6&&R[3].gift==='mana','old masteries must map to their tier perks, and v20 hands back the perks that changed: '+R.map(m=>m.perks.join(' ')).join(' | '));
+     const R=r.g.roster;ok(R[0].perks.join()==='aura.1'&&R[0].pp===3&&R[0].gift==='aura'&&R[1].perks.join()==='marksman.4,skirmisher.1,qi.1'&&R[1].pp===5&&R[1].gift==='qi'&&R[2].perks.join()==='bulwark.3,chi.2,chi.5'&&R[3].gift==='mana','old masteries must map to their tier perks, and v20 and v21 (the roles update) hand back the perks that changed: '+R.map(m=>m.perks.join(' ')).join(' | '));
      ok(R.every(m=>m.trees.filter(k=>kind(k)==='style').length===4&&m.eq.b===null&&m.pp===1&&m.trees.includes(m.gift||'vanguard')||m.trees.filter(k=>kind(k)==='style').length===4&&m.eq.b===null),'migrated mercs must carry 4 style trees, an empty sidearm slot and their points');
      ok(R[0].trees.includes('vanguard')&&R[0].trees.includes('bulwark')&&R[1].trees.includes('marksman'),'migrated mercs keep their old trees');
-     const c0=X.calc(R[0]);ok(c0.res.aura&&c0.res.aura.max===X.GIFTBASE&&c0.abs.includes('astrike')&&!c0.abs.includes('shove')&&c0.ms>=R[0].base.ms+8,'old perks keep their effects');
+     const c0=X.calc(R[0]);ok(c0.res.aura&&c0.res.aura.max===X.GIFTBASE&&c0.abs.includes('astrike')&&!c0.abs.includes('shove'),'old perks keep their effects (Steady hand, vanguard.1, is a changed perk since v21)');
      ok(X.calc(R[3]).res.mana.max===X.GIFTBASE&&X.calc(R[3]).abs.includes('bolt')&&!X.calc(R[3]).abs.includes('blink')&&X.calc(R[2]).res.chi.max===X.GIFTBASE+15,'old gift pools');
      ok(r.g.towns.every(t=>t.recruits.every(m=>Array.isArray(m.perks)&&m.trees.length>=4)),'recruits in towns are migrated too');
      X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.roster.length===4,'a migrated v4 save did not load');scan(X.G,'G');

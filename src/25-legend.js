@@ -43,7 +43,7 @@ function capHow(key){const C=capOf(key);if(!C)return'';const D=DEEDS[C.unlock.de
 /* capstone perks: [tree key, name, text, fields] (one per tree; a second in .capb where listed) */
 const CAPS={
  vanguard:[['Spearhead','+6 melee skill; +12% melee damage; a kill steadies you (+10 to the morale roll)',{st:{ms:6},mod:{dmgMelee:.12,killMor:10}}]],
- bulwark:[['Unbreakable','+15 hitpoints; melee blows on you lose 12% of their damage',{st:{hp:15},mod:{drMelee:.12}}]],
+ bulwark:[['Unbreakable','+15 hitpoints; your armor counts 25% more on the mitigation curve and its ceiling is 5 points higher',{st:{hp:15},mod:{mitK:.25,mitCap:.05}}]],
  marksman:[['Dead eye','+6 ranged skill; +12% damage with bows, crossbows and guns; +10% head chance',{st:{rs:6},mod:{dmgRanged:.12,headB:10}}]],
  skirmisher:[['Ghost step','+12 initiative, +4 melee and ranged defense; +10 defense against shots after you moved this turn',{st:{init:12,md:4,rd:4},mod:{fleet:10}}]],
  duelist:[['Blade saint','In a duel (one-handed melee weapon, no shield): +8 to hit and +15% damage',{mod:{duelHit:8,duelDmg:.15}}]],

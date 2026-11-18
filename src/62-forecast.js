@@ -56,6 +56,9 @@
    numbers through the foe auras) are inside hit and the damage figures; poison riding on a light blow (poisonOf) is listed with statuses like bleed.
    o is strike()'s option bag: {splash:.7} for blast/arc secondaries, {auto:1} for arcs and strays that always hit,
    {free:...} for free attacks.
+   Roles update (64v-roles.js; the new perks' terms are inside hit and the damage figures):
+     shock      a hit that reaches hitpoints tests the target's morale (Shock, Vanguard)
+     icpt       the unit that will step in and take this attack when it is ordered (Intercept, Shieldbearer), else null
    Endgame (24-endgame.js): realm {k, n, notes:[text]} | null (the portal realm's rules on this strike; spellK is inside spellMult already);
    lines [{k,t}] legendary powers (legendFcLines, 25-legend.js). */
 // The damage one roll does before armor: the same dmgAfter() strike() calls (talent bonuses, executioner, splash, height, reduction).
@@ -74,7 +77,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],
   headCh:0,head:null,body:null,cover:los.cover,blocked:los.blocked,ff:[],mor:{att:mu.hit,def:mt.def},shake:false,injure:false,shield:null,riposte:false,
   locked:isRangedAtk(u,a)&&rangedLocked(u),mitB:0,mitH:0,undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
-  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),fire:t.fw&&fireAb(a)?t.fw:0,
+  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),shock:rlShockOK(u,t,a),icpt:B&&B.icpOn&&!(o&&(o.free||o.auto))?rlInterceptOf(u,t,a):null,fire:t.fw&&fireAb(a)?t.fw:0,
   tiredAtt:sure?0:tiredPen(u),tiredDef:sure?0:tiredPen(t),armDef:sure?0:armorDef(u,t,a),armDr:a.split||a.noDmg?0:armorDr(t),sidestep:false,soak:(t.flags&&t.flags.hpSoak)||0,quarry:fcQuarry(u,t,a,sure)};
  if(a.split){const m=splitMult(u,a),lo=Math.round(u.wpn.d[0]*m),hi=Math.round(u.wpn.d[1]*m);if(t.shield)f.shield={min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp};f.body={hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false};return f}
  let lo=0,hi=0;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];f.ign=ignOf(u,a)}else{const wd=rollOf(u,a);lo=wd[0];hi=wd[1];f.ign=ignOf(u,a)}

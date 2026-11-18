@@ -108,7 +108,7 @@ function rollTrees(bg,r){const b=BG[bg],pool=(b&&b.pool||MUNDANE).filter(k=>MAST
    highest open tier that suits its style, gear and weapons; abilities it could not use with its gear are passed over.
    Deterministic (no randomness). Returns the ids learned. */
 function mercTags(m){const t=new Set([mercStyle(m)]),w=ITEMS[m.eq&&m.eq.w],a=ITEMS[m.eq&&m.eq.a];
- if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow');if(w.wt==='flintlock')t.add('gun');if(w.wt==='throwing')t.add('throw')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&isShieldId(m.eq.s)&&!(w&&w.two))t.add('shield');if(dwMainOK(w)&&offItem(m))t.add('dual');if(!a||a.fat<=10)t.add('light');if(typeof isLightW==='function'&&isLightW(w||FIST))t.add('lightw');   // lightw: a light weapon in hand (the rogues' trees)
+ if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow');if(w.wt==='flintlock')t.add('gun');if(w.wt==='throwing')t.add('throw')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&isShieldId(m.eq.s)&&!(w&&w.two))t.add('shield');if(dwMainOK(w)&&offItem(m))t.add('dual');if(!a||a.fat<=10)t.add('light');if(typeof isLightW==='function'&&isLightW(w||FIST))t.add('lightw');if(typeof armorClass==='function'&&armorClass(m)==='heavy')t.add('heavy');   // lightw: a light weapon in hand (the rogues' trees)
  if(m.gift&&MAST[m.gift])t.add(MAST[m.gift].style);return t}
 function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,rngd=isRangedW(w),bow=wt==='bow',two=!!(w&&w.two),
   sh=!!(m.eq&&isShieldId(m.eq.s)),up=sh&&!two,swUp=sh&&!!sw&&!sw.two,pw=p.wt||T.wt,ow=!!offItem(m),dw=ow&&dwMainOK(w),swDw=ow&&dwMainOK(sw);   // dw: a weapon in each hand with the main weapon (swDw: with the sidearm)   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
@@ -130,7 +130,11 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
   if((md.smokeDef||md.gunPB||md.gunSteady||md.gunIgn||md.gunLine)&&!gun)s-=30;if((md.ammoB||md.recover||md.ricochet||md.throwRng||p.flag==='deadArc')&&!thr)s-=30;
   if((md.hobbleShot||md.bindRoot||md.staticChg||p.flag==='drawLoose')&&!(rngd&&(bow||wt==='crossbow')))s-=30;if((md.koDmg||md.fistDaze)&&!fist)s-=25;if(md.follow&&!(two&&!rngd))s-=30;
   if(md.counter&&!duel)s-=30;if((md.sfHit||md.doomHurt||md.cheapBlind)&&!lw)s-=25;if((md.dwBleed||md.dwFlow)&&!dw)s-=swDw?10:30;if(md.bindOff&&!sh)s-=35;
-  if((md.pressHit||md.chainHit||md.flowDmg||md.clinch||md.crowdDef)&&rngd)s-=15;if(md.overpen&&!rngd)s-=30;if(md.manaDmg&&!rngd&&!tags.has('melee'))s-=10}if((md.rngB||p.flag==='eagle')&&!bow)s-=30;if(md.spellB&&!tags.has('caster'))s-=20;if(md.dmgMelee&&rngd)s-=20;
+  if((md.pressHit||md.chainHit||md.flowDmg||md.clinch||md.crowdDef||md.chargeHit||md.shock||md.shakenHit||md.armDmg)&&rngd)s-=15;
+  {const xb=bow||wt==='crossbow',duel2=!(sh||ow||two||rngd),hv=tags.has('heavy');   // the roles update (64v-roles.js): each perk only with the gear its role needs
+   if((md.mvShot||md.arrowBurn)&&!bow)s-=30;if((md.suppress||md.bowDmg)&&!xb)s-=30;if((md.holdHit||md.holdHead||md.spotMark)&&!rngd)s-=30;if((md.primeHit||md.primeDmg)&&!gun)s-=30;
+   if((md.mixHit||md.mixDmg)&&!thr)s-=30;if((md.twoIgn||md.twoCrush||md.sweep||md.twoDaze)&&!(two&&!rngd))s-=30;if((md.isoHit||md.duelDef)&&!duel2)s-=30;
+   if((md.shelter||md.intercept)&&!sh)s-=35;if((md.holdMit||md.mitK||md.mitCap||md.armDmg)&&hv)s+=6;if(md.healLow&&!tags.has('support'))s-=6}if(md.overpen&&!rngd)s-=30;if(md.manaDmg&&!rngd&&!tags.has('melee'))s-=10}if((md.rngB||p.flag==='eagle')&&!bow)s-=30;if(md.spellB&&!tags.has('caster'))s-=20;if(md.dmgMelee&&rngd)s-=20;
  if(p.st){if(rngd&&p.st.ms)s-=8;if(!rngd&&p.st.rs&&!p.st.ms)s-=12}
  return s}
 function autoLearn(m){const got=[];if(!m||!Array.isArray(m.perks))return got;const tags=mercTags(m);let g=0;

@@ -162,7 +162,7 @@ section('passives on foes, one by one');
   const th=by('thug'),sa=by('samurai'),br=by('braid'),kn=by('bknife');ok(th&&sa&&br&&kn,'the four foes');
   ok(th.flags.missAP===1&&th.flags.kbImm===1&&th.flags.angel===1&&th.flags.seizeAP===2,'Unmoved, Guardian angel and Seize the moment on a foe: '+JSON.stringify(th.flags));
   ok(kn.flags.ammoB===2&&X.ammoLeft(kn)===ITEMS.tknives.ammo+2,'Bandolier: the foe\'s stack is '+X.ammoLeft(kn));
-  ok(sa.wpn.hit===ITEMS.katana.hit+10,'Blade discipline on the samurai\'s katana');
+  ok(sa.wpn.hit===ITEMS.katana.hit+5,'Blade discipline on the samurai\'s katana (+5 to hit since the roles update)');
   ok(b.pvAngel,'the battle knows a Guardian angel stands on the field');
   // Unmoved: a melee miss on the foe gives it AP for its next turn
   A.park();const m0=P[0];put(m0,5,5);put(th,5,4);m0.ms=-200;b.cur=m0;const at=X.abilityInfo(m0,'attack');th.bonusAP=0;th.umvN=0;

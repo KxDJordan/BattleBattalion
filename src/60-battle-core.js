@@ -401,7 +401,7 @@ function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;
 function payFor(u,a){u.ap-=a.ap;u.fat+=a.fat;if(a.cost)u.res[a.cost[0]].cur-=a.cost[1];if(a.once)(u.used||(u.used={}))[a.id]=1;if(a.swapW)u.swapFree=false;
  pvPay(u,a);if(u.wpn&&u.wpn.reload&&isRangedAtk(u,a)&&!pvBarrel(u))setLoaded(u,false)}      // firing a reload weapon spends its load (a twin barrel: the second one)
 // Loads or unloads the weapon in hand (u.loaded, and its entry in u.ld).
-function setLoaded(u,v){u.loaded=!!v;u.ld=Object.assign({},u.ld);u.ld[wkey(u.wpn)]=!!v;if(v&&u.wpn&&u.wpn.barrels>1)setAmmo(u,u.wpn.barrels)}
+function setLoaded(u,v){u.loaded=!!v;u.ld=Object.assign({},u.ld);u.ld[wkey(u.wpn)]=!!v;if(v&&u.wpn&&u.wpn.barrels>1)setAmmo(u,u.wpn.barrels);if(v)rlPrime(u)}   // Primed (Gunnery, 64v-roles.js)
 /* ---- Line of sight and cover ----
    shotKind: 0 a melee blow (adjacent, a free attack, a dash), 1 a reach weapon striking 2+ tiles away (a pike over the front
    rank: walls stop it, bodies do not), 2 a shot (bows, spells, aura waves).
@@ -490,7 +490,7 @@ function hitChance(u,t,a){if(a.sure||pvSure(u,a))return 100;const d=mdist(u,t),m
  ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit+rogueHit(u,t,a)+glHit(u,t,a)+pvHit(u,t,a,d,melee);return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
 // Traits: Hard-headed / Glass-jawed (t.flags.headDef) move it the other way; Steady-handed adds to headB.
-function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0)-((t.flags&&t.flags.headDef)||0),0,100)}
+function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0)+rlHead(u,t,a)-((t.flags&&t.flags.headDef)||0),0,100)}   // Deliberate aim (64v-roles.js)
 // B.auraOn: some unit gives a Battle orders / Cover bonus to its neighbours (kept fresh at every turn, spawn and swap).
 function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cmd||x.flags.guard));B.wallOn=B.units.some(x=>x.alive&&x.flags&&x.flags.steelWall>0);pvScan()}return!!(B&&B.auraOn)}
 /* ---- Damage pieces shared by strike() and forecast(), so the forecast cannot drift ----
@@ -557,7 +557,7 @@ const injK=t=>t.side===0?runK('injury'):1;
 function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.killer=src.name||(src.def&&src.def.n)||'';if(src.m)src.m.kills=(src.m.kills|0)+1}   // the killing blow counts toward the killer's quarry tally (m.slain)
  if(t.m){t.down=B.opts.yield?true:rnd()<(t.side===0&&B.opts.arena&&B.opts.arena.death!=null?clamp(1-(1-downCh(t))*B.opts.arena.death,0,1):downCh(t));if(t.down)inflictInjury(t,head,!B.opts.yield&&rnd()<PERMCH*injK(t),true)}   // a duel to yielding (o.yield): nobody dies   // struck down and alive: always at the price of an injury (a rival's merc too)
  say(`${t.name} ${t.m&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
- for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
+ for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,(d<=1?25:35)-((src&&src.flags&&src.flags.killFear)||0),-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
  if(t.grd&&typeof cvGuardDown==='function')cvGuardDown(t,src);   // a caravan guard falls: struck down by the company, the caravan turns on it (42-caravans.js)
  if(t.side===1&&B.rival)checkRout(1)}
 /* ---- Armor mitigation (Armor update) ----
@@ -570,7 +570,7 @@ function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.k
    mitK makes the armor count for more on the curve, mitCap raises its ceiling. Both are worth more the heavier the armor.
    armorMit(t,a,ign): the share for armor a; armorMitOf(t,head,ign): t's current one at that location (0 without armor). */
 const MIT={cap:.65,k:140,p:1.5,max:.75};
-function armorMit(t,a,ign){if(!(a>0))return 0;const f=(t&&t.flags)||{},A=a*(1+(f.mitK||0))*Math.max(0,1-(ign||0));if(!(A>0))return 0;
+function armorMit(t,a,ign){if(!(a>0))return 0;const f=(t&&t.flags)||{},A=a*(1+(f.mitK||0)+rlMitK(t))*Math.max(0,1-(ign||0));   // Rooted (Bulwark, 64v-roles.js): more while t held its groundif(!(A>0))return 0;
  return Math.round(Math.min(MIT.max,(MIT.cap+(f.mitCap||0))*Math.pow(A/(A+MIT.k),MIT.p))*100)/100}
 // the piercing share that meets the struck location's armor: Layered defense's padIgn makes it smaller on the body
 const locIgn=(t,ign,head)=>!head&&t.flags&&t.flags.padIgn?ign*(1-t.flags.padIgn):ign;
@@ -649,9 +649,10 @@ const hp0=t.hp;let dmg=0;const ign=a.noDmg?1:ignOf(u,a),wd=rollOf(u,a);if(a.noDm
   if(!a.noDmg)pvStatus(u,t,a,o,hpd,head,hp0,st);for(const k in st)addStatus(t,k,st[k]);pvStruck(u,t,a,o);pvHitDone(u,t,a,o,hpd);
   const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t)&&!o.stray)await knockback(u,t,kb,a.crash||u.crashD||0);
   if(a.pull&&t.alive&&u.alive&&!kbImmune(t))await pullUnit(u,t,a.pull);
-  if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1)}
+  if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1);rlShock(u,t,a,o,hpd)}   // Shock (Vanguard, 64v-roles.js)
  else{pvStruck(u,t,a,o);pvHitDone(u,t,a,o,hpd);if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(a.killAP&&u.alive&&!o.stray){u.ap+=a.killAP;float(u,'+'+a.killAP+' AP','#ffd27a');FX.emit('buff',{t:u})}if(a.killRally&&u.alive&&!o.stray&&typeof crowdRally==='function')crowdRally(u,a.killRally,4);if(!t.gone&&u.alive){onKill(u);await pvKill(u,t,a,o)}}
  if(a.magic&&u.flags&&u.flags.spellArc&&!o.splash&&!o.auto&&!o.arc&&u.alive)await pvArc(u,t,a);   // Arcing spells (Arcana)
+ if(u.flags&&u.flags.sweep&&t.alive&&u.alive)await rlSweep(u,t,a,o);   // Sweeping blows (Brute, 64v-roles.js)
  await sleep(240);return true}
 // A hook: t is dragged up to n tiles toward u, along the longer axis, while the next tile is free, walkable and at most 1 step up.
 async function pullUnit(u,t,n){if(mdist(u,t)>1&&rollsWith(t))return;for(let i=0;i<n&&t.alive&&mdist(u,t)>1;i++){const m=unitCenter(u);let dc=m.c-t.c,dr=m.r-t.r;if(Math.abs(dc)>=Math.abs(dr)){dc=Math.sign(dc);dr=0}else{dr=Math.sign(dr);dc=0}
@@ -699,9 +700,9 @@ async function walkPath0(u,path,land){const b=B,sz=u.sz||1,mf=moveFat(u);for(con
   if(stop){u.ap=Math.max(0,u.ap-c);if(qs)u.qsT=1;break}
   u.ap-=c;if(qs)u.qsT=1;u.fat+=mf;u.mvd=1;u.mvN=(u.mvN||0)+1;u.c=nc;u.r=nr;FX.emit('move',{u});await sleep(105);if(B!==b)return;if(land&&!airAt(u)){land[0]=nc;land[1]=nr}if(T(u).t==='haz'){hurt(u,12,1);if(!u.alive)return}}}
 /* ---- Ability effects on allies (heal, buff, rally, cleanse, AP) ---- */
-const healRoll=(u,a)=>{const h=ri(a.heal[0],a.heal[1]);return Math.round(h*(1+(u.flags&&u.flags.healB||0))*(B&&B.realm&&B.realm.healK!=null?B.realm.healK:1))};   // the Ashen Reach halves healing
+const healRoll=(u,a,t)=>{const h=ri(a.heal[0],a.heal[1]),f=u.flags||{};return Math.round(h*(1+(f.healB||0)+(f.healLow&&t&&t.hp<t.hpMax/2?f.healLow:0))*(B&&B.realm&&B.realm.healK!=null?B.realm.healK:1))};   // the Ashen Reach halves healing
 function healUnit(t,h){const h0=t.hp;t.hp=Math.min(t.hpMax,t.hp+h);float(t,'+'+h,'#9bd96f');FX.emit('heal',{t,n:t.hp-h0})}
-function allyEffect(u,t,a){if(!t.alive)return;if(a.heal){healUnit(t,healRoll(u,a));pvHealed(u,t)}
+function allyEffect(u,t,a){if(!t.alive)return;if(a.heal){healUnit(t,healRoll(u,a,t));pvHealed(u,t)}
  if(a.cleanse){let n=0;for(const k of a.cleanse)if(t.st[k]>0){t.st[k]=0;n++}if(a.cleanse.includes('root')&&t===B.cur&&!(t.st.webbed>0))t.rooted=false;if(n)float(t,'Cleansed','#9bd96f')}
  if(a.rally&&t.mor>0&&t.mor<3)setMorale(t,t.mor+1);
  if(a.buff){addBuff(t,a.buff,a.dur);float(t,a.n,'#9bd96f');FX.emit('buff',{t})}if(a.giveAP){t.bonusAP=(t.bonusAP||0)+a.giveAP;float(t,'+'+a.giveAP+' AP','#ffd27a');FX.emit('buff',{t})}}
@@ -720,11 +721,11 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
   if(a.reloadW&&u.wpn.reload){setLoaded(u,true);float(u,'Loaded','#e9e0c9');FX.emit('reload',{u})}
   if(a.gainAP){u.ap+=a.gainAP;float(u,'+'+a.gainAP+' AP','#ffd27a');FX.emit('buff',{t:u})}if(a.rest){u.fat=Math.max(0,u.fat-a.rest);float(u,'-'+a.rest+' fatigue','#8fd8ff')}
   if(a.party)for(const t of partyOf(u,a))allyEffect(u,t,a);
-  else{if(a.heal){healUnit(u,healRoll(u,a));pvHealed(u,u)}if(a.buff){addBuff(u,a.buff,a.dur);float(u,a.n,'#9bd96f');FX.emit('buff',{t:u})}}}
+  else{if(a.heal){healUnit(u,healRoll(u,a,u));pvHealed(u,u)}if(a.buff){addBuff(u,a.buff,a.dur);float(u,a.n,'#9bd96f');FX.emit('buff',{t:u})}}}
  else if(a.tgt==='aoe'){if(u.flags&&u.flags.hitRun)u.hrun=1;for(const t of b.units.filter(t=>t.alive&&t.side!==u.side&&mdist(u,t)===1)){if(B!==b||!u.alive)break;await strike(u,t,a)}}
  else if(a.tgt==='move'){u.c=c;u.r=r;u.mvd=1;FX.emit('move',{u});await sleep(200);if(B===b&&T(u).t==='haz')hurt(u,12,1);if(B===b&&u.alive&&a.buff){addBuff(u,a.buff,a.dur);FX.emit('buff',{t:u})}}
  else if(a.tgt==='ally'){const t=unitAt(c,r);if(t)allyEffect(u,t,a)}
- else if(a.tgt==='enemy'){const t=unitAt(c,r);if(u.flags&&u.flags.hitRun&&!a.noDmg)u.hrun=1;if(t){
+ else if(a.tgt==='enemy'){let t=unitAt(c,r);if(u.flags&&u.flags.hitRun&&!a.noDmg)u.hrun=1;if(t&&b.icpOn)t=rlIntercept(u,t,a);if(t){   // Intercept (Shieldbearer, 64v-roles.js)
    if(a.dash&&mdist(u,t)>1){const best=dashSpot(u,t);if(best){u.c=best[0];u.r=best[1];FX.emit('move',{u});await sleep(200)}}
    if(B===b&&u.alive&&(!a.dash||mdist(u,t)===1||u.wpn.rng>=mdist(u,t))){
     if(losInfo(u,t,a).blocked){float(u,'No line of fire','#c8d0d8');FX.emit('blocked',{u,t});await sleep(200)}

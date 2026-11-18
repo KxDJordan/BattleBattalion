@@ -14,12 +14,12 @@
 const FOEMASTV={vet:1.5,elite:2.75};
 const FOEMAST={
  // brigands (also the house troops and caravan guards, who are brigand stock under other names)
- thug:{p:['shieldbearer.2'],v:['shieldbearer.1'],e:['bulwark.3']},
- bmark:{p:['sharpshooter.1'],v:['marksman.3']},
+ thug:{p:['shieldbearer.2'],v:['shieldbearer.1'],e:['shieldbearer.5']},                  // the shield brigand: covers, then steps in front of his mates
+ bmark:{p:['sharpshooter.1'],v:['marksman.3']},                                    // the archer: hobbles what runs at the line
  bxbow:{p:['sharpshooter.1'],v:['weapons.crossbow']},
  bknife:{p:['weapons.throwing'],v:['thrower.1']},
- braid:{p:['vanguard.2'],v:['skirmisher.2','vanguard.3']},
- blead:{p:['tactician.1','tactician.3','shieldbearer.1'],v:['tactician.4'],e:['tactician.2']},
+ braid:{p:['vanguard.1'],v:['vanguard.2','vanguard.3']},                           // the raider: charges in and shakes the line
+ blead:{p:['tactician.1','tactician.3','shieldbearer.1'],v:['tactician.4'],e:['tactician.5']},
  // goblins and orcs: the lighter set (goblins only as veterans: their early bands are hard enough)
  gob:{p:[],v:['skirmisher.2']},
  gobarch:{p:[],v:['sharpshooter.1']},
@@ -29,7 +29,7 @@ const FOEMAST={
  obrute:{p:['weapons.hammer']},
  orcl:{p:['berserker.1','tactician.3']},
  hstd:{p:['tactician.2']},
- hchief:{p:['berserker.1','tactician.3','brute.3']},
+ hchief:{p:['berserker.1','tactician.3','vanguard.3']},
  // the necromancers: living men among the dead
  necro:{p:['survivor.1']},
  necrolt:{p:['survivor.1','survivor.3']},
@@ -40,13 +40,13 @@ const FOEMAST={
  gsecu:{p:['champion.1'],v:['shieldbearer.1'],e:['weapons.sword']},
  gchamp:{p:['weapons.sword','champion.1','gladiator.1'],v:['champion.3'],e:['shieldbearer.1']},
  // the northmen
- barbz:{p:['weapons.axe','berserker.1'],v:['brute.1']},
+ barbz:{p:['weapons.axe','berserker.1'],v:['berserker.4'],e:['brute.1']},
  barbax:{p:['weapons.throwing'],v:['thrower.1']},
  barbskald:{p:['tactician.2','tactician.3'],v:['tactician.4']},
- barbhus:{p:['weapons.axe','shieldbearer.1'],v:['bulwark.4'],e:['bulwark.3']},
- emperor:{p:['brute.3','berserker.1','tactician.3','survivor.3','vanguard.cap']},
+ barbhus:{p:['weapons.axe','shieldbearer.1'],v:['bulwark.4'],e:['bulwark.1']},     // the huscarl: plants himself in the shield wall
+ emperor:{p:['vanguard.3','berserker.1','tactician.3','survivor.3','vanguard.cap']},
  // the East
- ashi:{p:['skirmisher.1'],v:['weapons.spear'],e:['bulwark.5']},
+ ashi:{p:['skirmisher.1'],v:['weapons.spear'],e:['bulwark.1']},             // the ashigaru: a spear line that holds
  ashiy:{p:['scout.1'],v:['sharpshooter.1'],e:['marksman.3']},
  kageuchi:{p:['thrower.1'],v:['weapons.throwing']},
  shinobi:{p:['skirmisher.2'],v:['assassin.1']},

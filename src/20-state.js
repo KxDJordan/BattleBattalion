@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=20;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=21;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -149,8 +149,22 @@ const MIGRATE={
   if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
   if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(m=>fix(m,false))});
   if(out.length){const L=Array.isArray(g.refund)?g.refund:[];for(const x of out){const o=L.find(y=>svObj(y)&&y.name===x.name);if(o)o.n=Math.max(0,Math.floor(svNum(o.n,0)))+x.n;else L.push(x)}
-   g.refund=L;g.refundWhy='masteries';if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
+   g.refund=L;g.refundWhy='masteries';if(typeof g.note!=='string'||!g.note)g.note='refund'}return g},
+ /* v21: the roles update (64v-roles.js). Every tree got one battlefield role and perks that build toward it; the perks whose effect changed
+    (PERKV21, same ids, same tiers) are taken back from the company's swords with their points returned, as in v20 (G.refund / G.note
+    'refund', the sheet says why: refundWhy 'roles'). Recruits waiting in towns and the rival companies' swords keep the new perks in place of
+    the old (no points move). Draws no randomness. */
+ 20:g=>{const out=[],fix=m=>{if(!svObj(m)||!Array.isArray(m.perks))return;m.perks=m.perks.filter(id=>typeof id==='string');const keep=m.perks.filter(id=>!PERKV21.includes(id)),n=m.perks.length-keep.length;
+   if(n){m.perks=keep;m.pp=Math.max(0,Math.floor(svNum(m.pp,0)))+n;out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})}if(typeof syncMast==='function')syncMast(m)};
+  if(Array.isArray(g.roster))g.roster.forEach(fix);
+  if(out.length){const L=Array.isArray(g.refund)?g.refund:[];for(const x of out){const o=L.find(y=>svObj(y)&&y.name===x.name);if(o)o.n=Math.max(0,Math.floor(svNum(o.n,0)))+x.n;else L.push(x)}
+   g.refund=L;g.refundWhy=g.refundWhy==='masteries'?'masteries':'roles';if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
 };
+// v21: the perk ids whose effect changed in the roles update (same tier and tree; a rename alone, like Vanguard's Breakthrough, keeps its perk)
+const PERKV21=['vanguard.1','vanguard.3','vanguard.5','vanguard.6','bulwark.1','bulwark.2','bulwark.5','bulwark.cap','marksman.1','marksman.2','marksman.6','skirmisher.3',
+ 'duelist.3','duelist.5','brute.3','brute.4','brute.5','shieldbearer.3','shieldbearer.5','tactician.5','survivor.4','medic.5','scout.5','berserker.4','sharpshooter.5',
+ 'gunner.3','thrower.5','qi_r.2','chi_m.5','weapons.sword','weapons.axe','weapons.mace','weapons.dagger','weapons.spear','weapons.shield',
+ 'medarmor.1','heavyarmor.1','heavyarmor.2','heavyarmor.3'];
 // v20: the perk ids whose perk changed in the masteries update (an ability that became a passive); they keep their tier and tree
 const PERKV20=['vanguard.2','bulwark.4','marksman.3','marksman.5','skirmisher.2','skirmisher.4','duelist.2','duelist.6','brute.2','shieldbearer.4','tactician.2','tactician.4',
  'medic.3','medic.6','scout.6','berserker.6','sharpshooter.6','brawler.4','brawler.5','brawler.6','assassin.2','assassin.4','rogue.4','rogue.6','shadow.6','gladiator.2','gladiator.5',

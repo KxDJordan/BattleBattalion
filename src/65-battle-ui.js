@@ -352,6 +352,8 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  if(f.quarry&&(f.quarry.dmg||f.quarry.hit)){const q=f.quarry,qi=typeof icQuarry==='function'?icQuarry(q.key):'skull';   // a Monster hunter's quarry bonus (already counted in hit and damage)
   mods+='<span class="fcm good fcq" title="'+esc((q.text||q.tag||'Quarry')+(q.slain!=null?' ('+q.slain+' '+String(q.n||'').toLowerCase()+' slain)':'')+' (already counted)')+'">'+pic(qi,16,'skull')+'<b>'+(q.dmg?'+'+q.dmg+'%':'')+(q.hit?'<small>'+(q.dmg?' ':'')+'+'+q.hit+'</small>':'')+'</b></span>'}
  if(f.riposte)mods+='<span class="fcm bad" title="A miss draws a riposte">'+pic('riposte',16,'sword')+'<b>!</b></span>';
+ if(f.icpt)mods+='<span class="fcm bad" title="'+esc(f.icpt.name)+' will step in and take this blow on the shield (Intercept)">'+pic('shielded',16,'shield')+'<b>!</b></span>';
+ if(f.shock)mods+='<span class="fcm good" title="A hit that wounds tests '+esc(t.name)+'’s morale (Shock)">'+pic('morale-1',16,'flag')+'</span>';
  if(f.shield){const S=f.shield;rows+='<span class="fcl'+(S.sure?' sure':S.brk?' kill':'')+'" title="Damage to the shield ('+S.hp+' left)">'+pic('shield',16,'shield')+'<span class="fcd arm"><i class="pip"></i><b>'+fcRange(S.min,S.max)+'</b><small>/'+S.hp+'</small></span>'+(S.brk?'<span class="fck'+(S.sure?' sure':'')+'">'+pic('st-splitshield',16,'shield')+'<b>'+(S.sure?'Splits':'May split')+'</b></span>':'')+'</span>'}
  else if(a.noDmg)rows+='<span class="fcl"><span class="fcd" title="No damage">'+esc(a.n)+'</span></span>';
  else if(f.body!==undefined||f.head!==undefined){

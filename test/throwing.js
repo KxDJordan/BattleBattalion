@@ -165,16 +165,16 @@ section('firearms');
   const ea=X.abilityInfo(e,'attack');e.wpn=Object.assign({},e.wpn,{wt:'bow',rng:8});const eb=X.abilityInfo(e,'attack');u.smoke=0;const s0=X.hitChance(e,u,eb);u.smoke=1;ok(X.hitChance(e,u,eb)===Math.max(5,s0-10)||s0<=15,'Powder smoke: −10 to be shot');u.smoke=0;
   X.payFor(u,X.abilityInfo(u,'attack'));ok(u.smoke===1,'firing makes the smoke');u.smoke=0;
   // Point-blank, Steady aim, Gunline: inside hitChance and dmgBonus, so the forecast holds them
-  put(e,3,6);const f0=u.flags;u.flags=Object.assign({},f0,{gunPBHit:0,gunPB:0,gunSteady:0,gunLine:0,gunLineD:0});const h0=X.hitChance(u,e,at),d0=X.dmgBonus(u,e,at);u.flags=f0;
-  u.mvd=0;ok(X.hitChance(u,e,at)===Math.min(95,h0+20),'Point-blank +10 and Steady aim +10 at 2 tiles, not moved');ok(near(X.dmgBonus(u,e,at)-d0,.15),'Point-blank +15% damage');
-  u.mvd=1;ok(X.hitChance(u,e,at)===Math.min(95,h0+10),'moved: no Steady aim');u.mvd=0;put(e,3,3);ok(X.hitChance(u,e,X.abilityInfo(u,'attack'))<Math.min(95,h0+20),'farther than 2 tiles: no Point-blank');
+  put(e,3,6);const f0=u.flags;u.flags=Object.assign({},f0,{gunPBHit:0,gunPB:0,primeHit:0,primeDmg:0,gunLine:0,gunLineD:0});u.primed=0;const h0=X.hitChance(u,e,at),d0=X.dmgBonus(u,e,at);u.flags=f0;
+  u.mvd=0;u.primed=0;ok(X.hitChance(u,e,at)===Math.min(95,h0+10),'Point-blank +10 at 2 tiles');ok(near(X.dmgBonus(u,e,at)-d0,.15),'Point-blank +15% damage');
+  u.primed=1;ok(X.hitChance(u,e,at)===Math.min(95,h0+20)&&near(X.dmgBonus(u,e,at)-d0,.3),'Primed (the roles update): +10 to hit and +15% damage after a reload');u.primed=0;put(e,3,3);ok(X.hitChance(u,e,X.abilityInfo(u,'attack'))<Math.min(95,h0+10),'farther than 2 tiles: no Point-blank');
   put(m3,4,8);put(m4,2,8);const hl=X.hitChance(u,e,at);put(m3,15,11);put(m4,14,11);ok(hl===Math.min(95,X.hitChance(u,e,at)+10),'Gunline: +5 for each of two gunners beside');
   ok(near(X.ignOf(u,at)-X.ITEMS.twinpistol.ign,.1)&&near(X.crushOf(u,at),.25),'Armor-piercing ball: +10% piercing, +25% crushing');
   // the wall gun: braced
   put(wg,8,8);put(e2,8,3);const wa=X.abilityInfo(wg,'attack');wg.mvd=0;const w0=X.hitChance(wg,e2,wa);wg.mvd=1;ok(X.hitChance(wg,e2,wa)===Math.max(5,w0-15),'the wall gun: −15 to hit after moving');wg.mvd=0;
   // Double charge spends the load
   u.ap=12;const dc=X.abilityInfo(u,'dcharge');ok(X.canUse(u,dc)&&dc.mult===1.4,'Double charge: 140%');
-  X.B=null;X.mode='world';console.log('two barrels, reload, Powder smoke, Point-blank, Steady aim, Gunline, Armor-piercing ball, the braced wall gun, Double charge: ok') }
+  X.B=null;X.mode='world';console.log('two barrels, reload, Powder smoke, Point-blank, Primed, Gunline, Armor-piercing ball, the braced wall gun, Double charge: ok') }
 
 section('the new passives, one by one');
 { fresh(SEED+6);const A=await arena(SEED+6,[merc('sellsword','arming',[],['vanguard','duelist','bulwark','tactician']),merc('sellsword','arming',[]),merc('sellsword','arming',[])]),b=A.b,[u,v,w]=A.P,[e,e2,e3]=A.E;
@@ -291,9 +291,10 @@ section('auto battles: every new tree learned, every blow checked; the AI throws
 section('saves: v19 -> v20');
 { const G=fresh(SEED+40);const m=G.roster[0];m.lvl=8;m.trees=['vanguard','marksman','skirmisher','bulwark'];m.perks=['vanguard.1','vanguard.2','marksman.3','skirmisher.1','bulwark.4'];m.pp=1;
   const t=G.towns.find(t=>t.recruits&&t.recruits.length),rc=t&&t.recruits[0];if(rc){rc.lvl=5;rc.trees=['vanguard','bulwark','survivor','brute'];rc.perks=['vanguard.2','bulwark.4'];rc.pp=0}
-  ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=19;delete g.refund;g.note=null;X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.v===19&&r.g.v===X.SAVEVER&&X.SAVEVER===20,'a v19 save migrates to v20');
-  const M=r.g.roster.find(q=>q.id===m.id);ok(M.perks.join()==='vanguard.1,skirmisher.1'&&M.pp===4,'the changed perks are handed back: '+M.perks.join()+' pp '+M.pp);
-  ok(Array.isArray(r.g.refund)&&r.g.refund.some(x=>x.name===m.name&&x.n===3)&&r.g.note==='refund'&&r.g.refundWhy==='masteries','G.refund names the sword, the note asks for the sheet');
+  ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=19;delete g.refund;g.note=null;X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.v===19&&r.g.v===X.SAVEVER&&X.SAVEVER>=20,'a v19 save migrates to v20 (and on: v21, the roles update)');
+  const M=r.g.roster.find(q=>q.id===m.id);ok(M.perks.join()==='skirmisher.1'&&M.pp===5,   // v20 takes vanguard.2 marksman.3 bulwark.4, v21 (the roles update) vanguard.1
+  'the changed perks are handed back: '+M.perks.join()+' pp '+M.pp);
+  ok(Array.isArray(r.g.refund)&&r.g.refund.some(x=>x.name===m.name&&x.n===4)&&r.g.note==='refund'&&r.g.refundWhy==='masteries','G.refund names the sword, the note asks for the sheet');
   if(rc){const T=r.g.towns.find(q=>q.name===t.name),R0=T.recruits.find(q=>q.id===rc.id);ok(R0&&R0.perks.join()==='vanguard.2,bulwark.4'&&R0.pp===0,'recruits keep the new passives in place of the old perks')}
   X.G=null;X.mode='title';X.continueGame();closeAll(X);ok(X.mode==='world'&&!X.calc(X.G.roster.find(q=>q.id===m.id)).abs.includes('shove'),'the migrated save loads; no ability left from a refunded perk');
   console.log('v19 -> v20: changed perks refunded, recruits remapped, the save loads: ok') }

@@ -28,7 +28,7 @@
    turn), wsN (off-hand hits this turn), smoke (u fired a gun this turn), umvN (AP Unmoved gave this round), chg (Static charge), echoT,
    shotT (u shot a bow this turn), hrun (Hit and run ready), angU (a Guardian angel spent), am {weapon key: throws or barrels left}.
    Randomness: only rnd(), and only where a bearer's chance is rolled. */
-const PV={chainMax:3,momStep:2,momMax:3,furyMax:5,readMax:3,crowdMax:3,gunR:2,gunMax:3,missAP:2,wsMax:3,chgMax:2,resPer:10,resMax:6,
+const PV={armDmgMax:.25,chainMax:3,momStep:2,momMax:3,furyMax:5,readMax:3,crowdMax:3,gunR:2,gunMax:3,missAP:2,wsMax:3,chgMax:2,resPer:10,resMax:6,
  sfHit:15,arcDmg:.25,angelR:3,seizeR:4,steadyR:3,pbR:2,farD:4,hobble:2,echoMax:1};
 const isThrowW=w=>!!w&&w.wt==='throwing';
 const isGunW=w=>!!w&&w.wt==='flintlock';
@@ -50,7 +50,10 @@ function pvSure(u,a){const f=u.flags;return!!(f&&f.deadArc&&!u.dArc&&isThrowW(u.
 /* ---- the numbers of one blow ---- */
 function pvHit(u,t,a,d,melee){const f=u.flags||{},g=t.flags||{};let v=0;
  if(!a.magic){
-  if(melee){if(f.pressHit&&u.lastHit===t.id)v+=f.pressHit;if(f.chainHit&&u.chainN>0)v+=f.chainHit*Math.min(PV.chainMax,u.chainN);if(f.sfHit&&!u.sfDone&&isLightW(u.wpn))v+=f.sfHit}
+  if(melee){if(f.pressHit&&u.lastHit===t.id)v+=f.pressHit;if(f.chainHit&&u.chainN>0)v+=f.chainHit*Math.min(PV.chainMax,u.chainN);if(f.sfHit&&!u.sfDone&&isLightW(u.wpn))v+=f.sfHit;
+   if(f.chargeHit&&rlCharge(u))v+=f.chargeHit;if(f.isoHit&&isDuel(u,a)&&rlIso(t))v+=f.isoHit;if(f.mixHit&&rlMix(u,'t'))v+=f.mixHit}
+  if(f.shakenHit&&rlShaken(t))v+=f.shakenHit;
+  if(pvRng(u,a)){if(f.mvShot&&u.mvd&&u.wpn.wt==='bow')v+=f.mvShot;if(f.holdHit&&!u.mvd)v+=f.holdHit;if(f.primeHit&&u.primed&&isGunW(u.wpn))v+=f.primeHit;if(f.mixHit&&isThrowW(u.wpn)&&rlMix(u,'m'))v+=f.mixHit}
   if(f.payHit&&u.hitBy&&u.hitBy.includes(t.id))v+=f.payHit;
   if(f.readOpp&&u.atkN&&u.atkN[t.id])v+=f.readOpp*Math.min(PV.readMax,u.atkN[t.id]);
   if(f.oppHit&&t.aoo)v+=f.oppHit;
@@ -58,12 +61,16 @@ function pvHit(u,t,a,d,melee){const f=u.flags||{},g=t.flags||{};let v=0;
   if(isGunW(u.wpn)&&pvRng(u,a)){if(f.gunPBHit&&d<=PV.pbR)v+=f.gunPBHit;if(f.gunSteady&&!u.mvd)v+=f.gunSteady;if(f.gunLine)v+=f.gunLine*gunMates(u)}
   if(u.wpn&&u.wpn.brace&&u.mvd&&pvRng(u,a))v-=u.wpn.brace}                             // the wall gun: fired after moving
  if(g.afterImg&&!t.aimg)v-=g.afterImg;
+ if(!a.magic){if(g.holdDef&&!t.mvd)v-=g.holdDef;if(g.mvDef&&t.mvd)v-=g.mvDef;if(g.duelDef&&melee&&isDuel(t,FREEAB))v-=g.duelDef}
  if(!melee){if(g.smokeDef&&t.smoke&&!a.magic)v-=g.smokeDef;if(g.farDef&&d>=PV.farD)v-=g.farDef}
  else if(!a.magic){if(g.dwFlow&&t.wsN>0)v-=g.dwFlow*Math.min(PV.wsMax,t.wsN);if(g.crowdDef)v-=g.crowdDef*crowdN(t)}
  return v}
 function pvDmg(u,t,a,melee){const f=u.flags||{};let x=0;
  if(melee){if(f.pressDmg&&u.lastHit===t.id)x+=f.pressDmg;if(f.flowDmg&&u.chainN>0)x+=f.flowDmg*Math.min(PV.chainMax,u.chainN);if(f.sfDmg&&!u.sfDone&&isLightW(u.wpn))x+=f.sfDmg;
-  if(f.koDmg&&isFistW(u.wpn))x+=f.koDmg;if(f.crowdDmg)x+=f.crowdDmg*crowdN(u)}
+  if(f.koDmg&&isFistW(u.wpn))x+=f.koDmg;if(f.crowdDmg)x+=f.crowdDmg*crowdN(u);
+  if(f.chargeDmg&&rlCharge(u))x+=f.chargeDmg;if(f.isoDmg&&isDuel(u,a)&&rlIso(t))x+=f.isoDmg;if(f.mixDmg&&rlMix(u,'t'))x+=f.mixDmg;
+  if(f.armDmg&&u.hitBy&&u.hitBy.includes(t.id))x+=Math.min(PV.armDmgMax,f.armDmg*Math.floor((u.arm||0)/10))}
+ if(f.shakenDmg&&rlShaken(t))x+=f.shakenDmg;
  if(f.momentum&&u.mvN>=PV.momStep)x+=f.momentum*Math.min(PV.momMax,Math.floor(u.mvN/PV.momStep));
  if(f.furyHit&&u.fury>0)x+=f.furyHit*Math.min(PV.furyMax,u.fury);
  if(f.payDmg&&u.hitBy&&u.hitBy.includes(t.id))x+=f.payDmg;
@@ -71,11 +78,12 @@ function pvDmg(u,t,a,melee){const f=u.flags||{};let x=0;
  if(f.manaDmg&&u.res&&u.res.mana)x+=f.manaDmg*Math.min(PV.resMax,Math.floor(u.res.mana.cur/PV.resPer));
  if(pvRng(u,a)){if(f.staticChg&&u.chg>=PV.chgMax&&u.wpn.wt==='bow')x+=f.staticChg;
   if(isGunW(u.wpn)){if(f.gunPB&&mdist(u,t)<=PV.pbR)x+=f.gunPB;if(f.gunLineD)x+=f.gunLineD*gunMates(u)}
-  if(f.deadArc&&!u.dArc&&isThrowW(u.wpn))x+=PV.arcDmg}
+  if(f.deadArc&&!u.dArc&&isThrowW(u.wpn))x+=PV.arcDmg;
+  if(f.bowDmg&&isBowW(u.wpn))x+=f.bowDmg;if(f.holdDmg&&!u.mvd)x+=f.holdDmg;if(f.primeDmg&&u.primed&&isGunW(u.wpn))x+=f.primeDmg;if(f.mixDmg&&isThrowW(u.wpn)&&rlMix(u,'m'))x+=f.mixDmg}
  return x}
-function pvDr(u,t,a){const g=t.flags||{};let dr=0;if(g.manaWard&&t.res&&t.res.mana&&t.res.mana.cur>=t.res.mana.max/2)dr+=g.manaWard;return dr}
-function pvIgn(u,a){const f=u.flags||{};let x=0;if(f.gunIgn&&isGunW(u.wpn)&&pvRng(u,a))x+=f.gunIgn;if(f.auraIgn&&pvAura(a,'aura'))x+=f.auraIgn;return x}
-function pvCrush(u,a){const f=u.flags||{};let x=0;if(f.gunCrush&&isGunW(u.wpn)&&pvRng(u,a))x+=f.gunCrush;if(f.auraCrush&&pvAura(a,'aura'))x+=f.auraCrush;return x}
+function pvDr(u,t,a){const g=t.flags||{};let dr=0;if(g.manaWard&&t.res&&t.res.mana&&t.res.mana.cur>=t.res.mana.max/2)dr+=g.manaWard;if(B&&B.shelOn)dr+=shelterOf(t);return dr}
+function pvIgn(u,a){const f=u.flags||{};let x=0;if(f.gunIgn&&isGunW(u.wpn)&&pvRng(u,a))x+=f.gunIgn;if(f.auraIgn&&pvAura(a,'aura'))x+=f.auraIgn;if(f.twoIgn&&rlTwo(u,a))x+=f.twoIgn;return x}
+function pvCrush(u,a){const f=u.flags||{};let x=0;if(f.gunCrush&&isGunW(u.wpn)&&pvRng(u,a))x+=f.gunCrush;if(f.auraCrush&&pvAura(a,'aura'))x+=f.auraCrush;if(f.twoCrush&&rlTwo(u,a))x+=f.twoCrush;return x}
 function pvBleed(u,a){const f=u.flags||{};let n=0;if(a.wpn&&!a.magic&&u.wpn&&u.wpn.bleed)n=u.wpn.bleed;if(f.dwBleed&&pvOff(u,a))n=Math.max(n,f.dwBleed);return n}
 /* the statuses a hit adds. Certain ones first, then the chances, each one rnd() drawn only when its bearer qualifies (strike order) */
 function pvStCases(u,t,a,melee,shot,hp){const f=u.flags||{},w=u.wpn||{},L=[];   // [key, turns, kind: 1 any hit | 'hp' reaching hitpoints | 'head' a head hit, chance]
@@ -92,6 +100,10 @@ function pvStCases(u,t,a,melee,shot,hp){const f=u.flags||{},w=u.wpn||{},L=[];   
  if(f.cheapBlind&&melee&&isLightW(w))L.push(['blinded',1,1,f.cheapBlind]);
  if(f.bindRoot&&w.wt==='bow'&&pvRng(u,a))L.push(['root',1,'hp',f.bindRoot]);
  if(f.chillCh&&a.wpn)L.push(['chill',1,'hp',f.chillCh]);
+ if(f.suppress&&isBowW(w)&&pvRng(u,a))L.push(['suppr',1,1,1]);                         // the roles update (64v-roles.js)
+ if(f.spotMark&&pvRng(u,a))L.push(['marked',1,'hp',1]);
+ if(f.twoDaze&&melee&&w.two&&!isRangedW(w))L.push(['daze',1,'hp',f.twoDaze]);
+ if(f.arrowBurn&&w.wt==='bow'&&pvRng(u,a))L.push(['burn',2,'hp',f.arrowBurn]);
  return L}
 function pvStatus(u,t,a,o,hpd,head,hp0,st){const melee=!!a.melee||mdist(u,t)<=1,shot=shotKind(u,t,a)===2;
  for(const [k,n,kind,ch] of pvStCases(u,t,a,melee,shot,hp0)){if(kind==='hp'&&!(hpd>0))continue;if(kind==='head'&&!head)continue;if(ch<1&&!(rnd()<ch))continue;st[k]=Math.max(st[k]||0,n)}}
@@ -102,10 +114,11 @@ function pvFcStatus(u,t,a,st,pch,hc){const melee=!!a.melee||mdist(u,t)<=1,shot=s
 /* ---- hooks ---- */
 function pvStruck(u,t,a,o){if(!u||!t||o.stray)return;const f=u.flags||{};
  if(t.flags&&t.flags.afterImg)t.aimg=1;
- if(t.flags&&(t.flags.payHit||t.flags.payDmg)&&u.side!==t.side){const L=Array.isArray(t.hitBy)?t.hitBy:[];if(!L.includes(u.id))t.hitBy=L.concat([u.id])}
+ if(t.flags&&(t.flags.payHit||t.flags.payDmg||t.flags.armDmg)&&u.side!==t.side){const L=Array.isArray(t.hitBy)?t.hitBy:[];if(!L.includes(u.id))t.hitBy=L.concat([u.id])}
  if(f.readOpp&&!a.magic){u.atkN=Object.assign({},u.atkN);u.atkN[t.id]=(u.atkN[t.id]||0)+1}
  if(f.sfHit||f.sfDmg)u.sfDone=1;
- if(f.deadArc&&isThrowW(u.wpn)&&pvRng(u,a))u.dArc=1}
+ if(f.deadArc&&isThrowW(u.wpn)&&pvRng(u,a))u.dArc=1;
+ rlStruck(u,t,a,o)}
 function pvHitDone(u,t,a,o,hpd){const f=u.flags||{},melee=!!a.melee||mdist(u,t)<=1;if(o.stray)return;
  if(!a.magic){
   if(melee&&f.pressHit)u.lastHit=t.id;
@@ -141,10 +154,10 @@ async function pvArc(u,t,a){const b=B,n=b.units.filter(x=>x.alive&&x!==t&&x.side
 function pvHealed(u,t){const f=u&&u.flags;if(!f||!t||!t.alive)return;if(f.healBuff){addBuff(t,{key:'touched',ms:f.healBuff,rs:f.healBuff},2);FX.emit('buff',{t})}
  if(f.healAP){t.bonusAP=(t.bonusAP||0)+f.healAP;float(t,'+'+f.healAP+' AP','#ffd27a')}}
 // the free attack's ability: Clinch (a foe stepping away) and Gale-touched (knockback) change it; otherwise the plain FREEAB
-function pvFreeAb(e,why){const f=e&&e.flags;if(!f||!(f.clinch||f.galeKb))return FREEAB;const x={};if(f.clinch&&why==='zoc')x.hit=f.clinch;if(f.galeKb&&why!=='retreat')x.kb=1;
+function pvFreeAb(e,why){const f=e&&e.flags;if(!f||!(f.clinch||f.galeKb||f.zocHit))return FREEAB;const x={};if(f.clinch&&why==='zoc')x.hit=f.clinch;if(f.zocHit)x.hit=(x.hit||0)+f.zocHit;if(f.galeKb&&why!=='retreat')x.kb=1;
  return Object.keys(x).length?Object.assign({},FREEAB,x):FREEAB}
 function pvTurn(u){const b=B,f=u.flags||{};
- if(u.shotT)u.shotT=0;if(u.mvN)u.mvN=0;if(u.chainN)u.chainN=0;if(u.aimg)u.aimg=0;if(u.wsN)u.wsN=0;if(u.smoke)u.smoke=0;if(u.umvN)u.umvN=0;if(u.hitBy)u.hitBy=null;if(u.echoT)u.echoT=0;if(u.hrun)u.hrun=0;
+ if(u.shotT)u.shotT=0;if(u.atkT)u.atkT=0;if(u.mixK)u.mixK=0;if(u.icpT)u.icpT=0;if(u.mvN)u.mvN=0;if(u.chainN)u.chainN=0;if(u.aimg)u.aimg=0;if(u.wsN)u.wsN=0;if(u.smoke)u.smoke=0;if(u.umvN)u.umvN=0;if(u.hitBy)u.hitBy=null;if(u.echoT)u.echoT=0;if(u.hrun)u.hrun=0;
  if(u.st.hobbled>0){u.ap=Math.max(0,u.ap-PV.hobble);u.st.hobbled--;float(u,'Hobbled','#ffd27a')}
  if(b&&b.pvBreath){const v=bestAdj(u,'breathFat');if(v>0)u.fat=Math.max(0,u.fat-v)}
  if(f.auraAdj&&u.res.aura){const n=adjFoes(u).length,R=u.res.aura;if(n&&R.cur<R.max){const g=Math.min(R.max-R.cur,f.auraAdj*n);R.cur+=g;float(u,'+'+g+' '+(RESN.aura||'Aura'),RESC.aura||'#ffd27a')}}
@@ -152,7 +165,8 @@ function pvTurn(u){const b=B,f=u.flags||{};
   if(n){setMorale(n,n.mor+1);say(`${u.name} steadies ${n.name}.`)}}
  if(f.fieldTri){const K=['bleed','poison','burn','daze'],cnt=x=>K.filter(k=>x.st[k]>0).length;
   const n=b.units.filter(x=>x.alive&&x.side===u.side&&mdist(x,u)<=1&&cnt(x)>0).sort((x,y)=>cnt(y)-cnt(x)||x.hp/x.hpMax-y.hp/y.hpMax||x.id-y.id)[0];
-  if(n){for(const k of K)if(n.st[k]>0)n.st[k]=0;float(n,'Tended','#9bd96f');FX.emit('heal',{t:n,n:0})}}}
+  if(n){for(const k of K)if(n.st[k]>0)n.st[k]=0;float(n,'Tended','#9bd96f');FX.emit('heal',{t:n,n:0})}}
+ rlTurn(u)}
 function pvPay(u,a){const w=u.wpn,f=u.flags||{};if(!w||!isRangedAtk(u,a))return;
  if(w.ammo){const n=ammoLeft(u)-((a.ammoN)||1);setAmmo(u,n);if(n<=0&&!u.m){u.back=false;if(u.role==='sniper')u.role='flanker'}}   // a foe with no throws left closes in
  if(f.drawLoose&&w.wt==='bow')u.shotT=1;
@@ -165,4 +179,4 @@ function pvAbInfo(u,a){const f=u.flags||{},w=u.wpn;if(!w)return a;
 // a Guardian angel of t's side within PV.angelR tiles, not yet spent (the nearest; ties: the lower id), or null
 function pvAngel(t){if(!B||!t||!B.pvAngel)return null;let best=null;for(const o of B.units)if(o.alive&&o!==t&&o.side===t.side&&o.flags&&o.flags.angel&&!o.angU&&mdist(o,t)<=PV.angelR&&(!best||mdist(o,t)<mdist(best,t)||(mdist(o,t)===mdist(best,t)&&o.id<best.id)))best=o;return best}
 // what the battle's units carry (kept on B at the start and on every spawn: cheap scans skip what nobody has)
-function pvScan(){const b=B;if(!b||!b.units)return;b.pvAngel=b.units.some(x=>x.flags&&x.flags.angel);b.pvBreath=b.units.some(x=>x.flags&&x.flags.breathFat>0)}
+function pvScan(){const b=B;if(!b||!b.units)return;b.pvAngel=b.units.some(x=>x.flags&&x.flags.angel);b.pvBreath=b.units.some(x=>x.flags&&x.flags.breathFat>0);b.shelOn=b.units.some(x=>x.alive&&x.shield&&x.flags&&x.flags.shelter>0);b.icpOn=b.units.some(x=>x.alive&&x.flags&&x.flags.intercept>0)}
