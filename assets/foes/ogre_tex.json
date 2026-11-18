@@ -1,0 +1,99 @@
+{
+ "name": "ogre",
+ "imagePath": "ogre_tex.png",
+ "width": 1024,
+ "height": 952,
+ "SubTexture": [
+  {
+   "name": "torso",
+   "x": 2,
+   "y": 2,
+   "width": 266,
+   "height": 270
+  },
+  {
+   "name": "torso_back",
+   "x": 272,
+   "y": 2,
+   "width": 266,
+   "height": 270
+  },
+  {
+   "name": "club",
+   "x": 2,
+   "y": 536,
+   "width": 378,
+   "height": 250
+  },
+  {
+   "name": "head_neutral",
+   "x": 316,
+   "y": 276,
+   "width": 309,
+   "height": 254
+  },
+  {
+   "name": "head_angry",
+   "x": 542,
+   "y": 2,
+   "width": 305,
+   "height": 257
+  },
+  {
+   "name": "head_grin",
+   "x": 2,
+   "y": 276,
+   "width": 309,
+   "height": 256
+  },
+  {
+   "name": "head_back",
+   "x": 630,
+   "y": 276,
+   "width": 285,
+   "height": 254
+  },
+  {
+   "name": "upper_r",
+   "x": 2,
+   "y": 790,
+   "width": 148,
+   "height": 159
+  },
+  {
+   "name": "fore_r",
+   "x": 384,
+   "y": 536,
+   "width": 131,
+   "height": 203
+  },
+  {
+   "name": "upper_l",
+   "x": 154,
+   "y": 790,
+   "width": 155,
+   "height": 159
+  },
+  {
+   "name": "fore_l",
+   "x": 520,
+   "y": 536,
+   "width": 131,
+   "height": 194
+  },
+  {
+   "name": "leg_r",
+   "x": 656,
+   "y": 536,
+   "width": 129,
+   "height": 178
+  },
+  {
+   "name": "leg_l",
+   "x": 790,
+   "y": 536,
+   "width": 137,
+   "height": 178
+  }
+ ]
+}

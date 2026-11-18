@@ -57,7 +57,7 @@ function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
  if(type==='move'){if(d.u)anMove(d.u,anOf(d.u),-1)}
  else if(type==='kb'){if(d.t)anMove(d.t,anOf(d.t),AN_KB)}
  else if(type==='cast'){const u=d.u;if(!u)return;const s=anOf(u),ab=d.ab||{};if(ab.id==='swap'||ab.swap){anSwapPoll(u,s,anNow(),anSp());return}
-  const fx=ab.fx||'';s.va=AN_VAR[fx]||'';s.vaT=t;s.next=fx==='dive-land'?AN_DIVE:ab.id==='blink'||fx==='blink'?AN_BLINK:ab.id==='gale'?AN_LEAP:ab.id==='footwork'||fx==='dash'?AN_STEP:ab.dash||fx==='charge'?AN_DASH:ab.tgt==='move'&&ab.leap?AN_LEAP:-1;s.hold=false;
+  const fx=ab.fx||'';s.va=AN_VAR[fx]||'';s.vaId=ab.id||'';s.vaT=t;s.next=fx==='dive-land'?AN_DIVE:ab.id==='blink'||fx==='blink'?AN_BLINK:ab.id==='gale'?AN_LEAP:ab.id==='footwork'||fx==='dash'?AN_STEP:ab.dash||fx==='charge'?AN_DASH:ab.tgt==='move'&&ab.leap?AN_LEAP:-1;s.hold=false;
   if(d.t&&d.t!==u)anFace(s,d.t.c-u.c,d.t.r-u.r);else if(d.k>=0&&ab.tgt==='tile')anFace(s,d.k%BW-u.c,((d.k/BW)|0)-u.r);
   if(ab.reloadW||ab.id==='reload'){anAct(s,3,t,Math.max(1,560*sp),0,0);return}
   if(ab.tgt==='aoe')anAct(s,1,t,260*sp,0,0);else if(!(ab.wpn||ab.id==='shove'||fx==='shove'||ab.tgt==='move'||ab.withdraw)){anAct(s,2,t,380*sp,0,0);s.hold=true}}
@@ -71,7 +71,7 @@ function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
   if(s.hold&&s.act===2){s.adur=Math.max(s.adur,t-s.at0+240*sp)}else anAct(s,1,t,240*sp,ln?s.dc:0,ln?s.dr:0)}
  else if(type==='ff'){if(d.u)anOf(d.u).ffT=t}
  else if(type==='death'){const tg=d.t;if(!tg)return;const s=anOf(tg);if(!s.dead){s.dead=true;s.deadT=SPEEDF>0?Math.max(t,s.hitT):-1e9}}
- else if(type==='turn'){if(d.u){const s=anOf(d.u);s.hold=false;s.va=''}}
+ else if(type==='turn'){if(d.u){const s=anOf(d.u);s.hold=false;s.va='';s.vaId=''}}
  else if(type==='heal'){const tg=d.t;if(tg&&tg.def&&tg.def.regen){const s=anOf(tg);s.va='regen';s.vaT=t;anAct(s,2,t,520*sp,0,0)}}}
 /* which variant of its attack / cast a monster shows (its sprite has poses per variant: a wyvern's sting, buffet or dive, an ogre's
    overhead slam, an ent's roots or bark): from the ability's fx hint, for 2.5 s after it was used */

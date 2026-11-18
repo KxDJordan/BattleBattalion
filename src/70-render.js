@@ -775,6 +775,7 @@ function warmSprites(){if(typeof unitSpriteWarm!=='function'||!HAVE.sprite)retur
   if(!mon){unitSpriteWarm(wu,WARMF,until,st);cut=US.cut}
   if(cut)return;WARM.i++;if(performance.now()>=until)return}}catch(e){WARM.p=9}}
 function drawUnitPx(u,v){let s=null,Fr=null;if(typeof humLiveFrame==='function'){try{Fr=humLiveFrame(u,v)}catch(e){Fr=null;artFail('skeleton',e)}}   // Detail High people: the live skeleton (73m-skel.js)
+ if(!Fr&&typeof ogreLiveFrame==='function'&&u.def&&!u.m)Fr=ogreLiveFrame(u,v);   // Detail High ogre: the paper cut-out skeleton from the user's sheet (76d-ogre.js)
  if(!Fr){if(typeof monsterSpritePx==='function'&&u.def){try{s=monsterSpritePx(u,v.pD,v.pS,v.pF)}catch(e){s=null}}
  if(!s){try{s=unitSpritePx(u,v.pD,v.pS,v.pF)}catch(e){artFail('sprite',e)}}if(!s||!s.cv||!s.cv.width)return false}
  const mi=umon(u),wide=mi.size>1,big=!wide&&(u.def&&u.def.big||mi.bigSh),x=Math.round((u.sx+v.pX)/2),y=Math.round((u.sy+v.pY)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),E=ELL.ok?ELL:ellInit(),sh=wide?E.shW:big?E.shB:E.sh;
