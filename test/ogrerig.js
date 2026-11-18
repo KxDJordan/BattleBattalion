@@ -32,8 +32,10 @@ for(const A of ske.armature){const an=A.name;ok(A.type==='Armature','armature ty
   for(const t of a.bone||[]){ok(!!B[t.name],tag+': timeline for no bone '+t.name);for(const k of['translateFrame','rotateFrame','scaleFrame'])if(t[k]){nTl++;ok(sum(t[k])===a.duration,tag+' '+t.name+' '+k+' sums to '+sum(t[k]));ok(t[k].every(f=>f.tweenEasing===0||f.tweenEasing==null),tag+': easing')}}
   for(const t of a.slot||[]){ok(!!S[t.name],tag+': timeline for no slot '+t.name);if(t.displayFrame){ok(sum(t.displayFrame)===a.duration,tag+': display frames sum');ok(t.displayFrame.every(f=>f.value>=-1&&f.value<D[t.name].length),tag+': display index out of range')}}
   if(a.zOrder){ok(sum(a.zOrder.frame)===a.duration,tag+': z-order frames sum');for(const f of a.zOrder.frame){const z=f.zOrder||[],n=A.slot.length,pos=new Set();for(let i=0;i<z.length;i+=2){ok(z[i]>=0&&z[i]<n&&(i===0||z[i]>z[i-2]),tag+': z-order slot index');const p=z[i]+z[i+1];ok(p>=0&&p<n&&!pos.has(p),tag+': z-order target');pos.add(p)}}}}
- // the faces: three on the front head, the back of the head on the back armature
- ok(an==='ogre'?D.head.map(d=>d.name).join()==='head_neutral,head_angry,head_grin':D.head.map(d=>d.name).join()==='head_back',an+': head displays '+D.head.map(d=>d.name))}
+ // the faces: the three heads on both armatures (the back one turns them, and the torso, to look left), no other pieces than the sheet's
+ ok(D.head.map(d=>d.name).join()==='head_neutral,head_angry,head_grin',an+': head displays '+D.head.map(d=>d.name));
+ ok((an==='ogre_back')===(D.head[0].transform.scX<0&&D.torso[0].transform.scX<0),an+': head / torso turned '+D.head[0].transform.scX)}
+ok(!tex.SubTexture.some(s=>/back/.test(s.name)),'painted back pieces still in the atlas');
 // replay: a DragonBones transform player against the in-game rig
 const ctx={console,Math,JSON,performance:{now:()=>0},Map,WeakMap,Set,Array,Object,Number,String};vm.createContext(ctx);
 const src=f=>fs.readFileSync(F('src/'+f),'utf8');
@@ -52,7 +54,7 @@ for(const A of ske.armature)for(const a of A.animation){const [st,mv]=ANIM[a.nam
    const m=mat(T);W[b.name]=b.parent?hskMul(W[b.parent],m):m;
    const g=Fr.bones[b.name];if(g&&!(b.name==='club'&&(Fr.pose.drop)))for(const [px,py] of[[0,0],[100,0]]){const X=W[b.name][0]*px+W[b.name][2]*py+W[b.name][4],Y=W[b.name][1]*px+W[b.name][3]*py+W[b.name][5],X2=g[0]*px+g[2]*py+g[4],Y2=g[1]*px+g[3]*py+g[5];const e=Math.hypot(X-X2,Y-Y2);nCmp++;if(e>worst)worst=e;if(e>3)bad.push(A.name+'/'+a.name+' frame '+i+': bone '+b.name+' off the rig by '+e.toFixed(1))}}
   // the face on the head slot
-  if(A.name==='ogre'){const df=(a.slot||[]).find(s=>s.name==='head');const v=df?at(df.displayFrame.map(f=>Object.assign({},f,{tweenEasing:null})),Math.min(i,N-1),f=>[f.value])[0]:0;const want=['neutral','angry','grin'].indexOf(Fr.face);if(i<N&&v!==want){bad.push(A.name+'/'+a.name+' frame '+i+': face '+v+' vs the rig '+Fr.face);}}}}
+  {const df=(a.slot||[]).find(s=>s.name==='head');const v=df?at(df.displayFrame.map(f=>Object.assign({},f,{tweenEasing:null})),Math.min(i,N-1),f=>[f.value])[0]:0;const want=['neutral','angry','grin'].indexOf(Fr.face);if(i<N&&v!==want){bad.push(A.name+'/'+a.name+' frame '+i+': face '+v+' vs the rig '+Fr.face);}}}}
 // no randomness in the rig or the scripts
 for(const f of['src/76d-ogre.js','assets/make-ogre-db.js'])ok(!/Math\.random|\brnd\(/.test(fs.readFileSync(F(f),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'')),f+' uses randomness');
 console.log('dragonbones: '+ske.armature.length+' armatures, '+nTl+' bone timelines, replay vs rig worst '+worst.toFixed(2)+' OU over '+nCmp+' points');
@@ -70,9 +72,9 @@ const R=await p.evaluate(()=>{const bad=[],n={frames:0,px:0},k=humK(),H=SHEETS.o
  const MV=['ogSmash','ogSweep','ogSlam','ogHurl'],K=k*HUM_A*OG_SC();
  const c=document.createElement('canvas');c.width=360;c.height=300;const q=c.getContext('2d');
  for(const face of[0,1,2,3])for(const [st,T] of ST)for(const mv of st==='attack'?MV:[''])for(const t of T){const Fr=ogFrame(face,st,t,mv,K,0);n.frames++;const tag='f'+face+' '+st+(mv?'/'+mv:'')+' '+t;
-  const tags=new Set(Fr.list.map(x=>x.tag));for(const m of['torso','head','leg','arm','hand'])if(!tags.has(m)){bad.push(tag+': no '+m);break}
+  const tags=new Set(Fr.list.map(x=>x.tag));for(const m of['torso','head','leg','arm'])if(!tags.has(m)){bad.push(tag+': no '+m);break}
   if(st!=='death'&&!tags.has('weapon'))bad.push(tag+': no club');if(st==='death'&&t>=.5&&!tags.has('dropped'))bad.push(tag+': the club is not dropped');
-  if(Fr.mir!==(face===1||face===3))bad.push(tag+': mirror '+Fr.mir);if((face>=2)!==(Fr.face==='back'))bad.push(tag+': face '+Fr.face);
+  if(Fr.mir!==(face===1||face===3))bad.push(tag+': mirror '+Fr.mir);if(['neutral','angry','grin'].indexOf(Fr.face)<0)bad.push(tag+': face '+Fr.face);
   if(Fr.list.some(x=>x.a&&!(x.a.cv&&x.a.cv.width>0)))bad.push(tag+': an empty piece');
   // pixels: drawn at 4 device px per art px, feet at (45, 62) art px: the figure is there, stands on the ground, about the sheet's height
   q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);q.setTransform(4,0,0,4,0,0);humSkDraw(q,Fr,45,62);q.setTransform(1,0,0,1,0,0);
@@ -80,7 +82,8 @@ const R=await p.evaluate(()=>{const bad=[],n={frames:0,px:0},k=humK(),H=SHEETS.o
   const lo=(y1-248)/4,h=(y1-y0)/4;
   if(st!=='death'&&!(lo>-1.5&&lo<(/^(idle|walk|flee|swap|reload)$/.test(st)?2:7)))bad.push(tag+': lowest point '+lo.toFixed(1)+' art px from the ground');
   if(st==='idle'&&!(Math.abs(h-H)<H*.25))bad.push(tag+': height '+h.toFixed(1)+' vs the sheet '+H);
-  if(a<300)bad.push(tag+': nearly empty frame ('+a+')')}
+  if(a<300)bad.push(tag+': nearly empty frame ('+a+')')
+  if((st==='idle'||st==='walk')&&Fr.bones.club){const m=Fr.bones.club,sx=Fr.mir?-1:1;let far=0;for(const L of[0,ogLen('club')*OG.club]){const x=Math.abs(sx*(m[0]*L+m[4]))*HUM_A*Fr.sc;if(x>far)far=x}if(far>20)bad.push(tag+': the club reaches '+far.toFixed(1)+' art px from the tile centre')}}
  // the faces follow the state
  const fc=(st,t,mv)=>ogFrame(0,st,t,mv||'',K,0).face;
  if(fc('hit',.22)!=='angry')bad.push('hit without the snarl');if(fc('attack',.38,'ogSmash')!=='angry')bad.push('attacks without the snarl');if(fc('cast',.4)!=='angry')bad.push('roars without the snarl');
