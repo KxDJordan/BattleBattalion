@@ -1,7 +1,6 @@
 // Writes the ogre's DragonBones 5.5 project from the in-game rig:  node assets/make-ogre-db.js
-//   assets/foes/ogre_ske.json   armatures "ogre" (front three-quarter, club in the near hand: the game's face 0) and "ogre_back" (back
-//                               three-quarter facing left, club in the near hand: the game's face 3 before its mirror; the same
-//                               pieces, the head and torso turned to face left; its own draw order and motion), bones, slots,
+//   assets/foes/ogre_ske.json   armature "ogre" (front three-quarter facing right, club in the near hand: the game's face 0; the game
+//                               mirrors it for the other facings), bones, slots,
 //                               skin displays, and the animations idle, walk, flee, attack (the overhead smash), sweep, slam, hurl,
 //                               cast (the roar), hit, death
 //   (ogre_tex.json + ogre_tex.png, the texture atlas, come from assets/make-ogre-atlas.py)
@@ -46,12 +45,12 @@ function armature(name,face){
  const bone=BONES.map(([n,p])=>{const L=loc(W0,n,p),o={name:n,transform:{x:R2(L.x),y:R2(L.y),skX:R2(L.skX),skY:R2(L.skY),scX:R2(L.scX),scY:R2(L.scY)}};if(p)o.parent=p;
   const len={armN:OG.arm*145,armF:OG.arm*141,legN:150,legF:150,club:260,head:120,torso:130}[n];if(len)o.length=Math.round(len);return o});
  const order=[];for(const it of F0.list){const s=piece(it.n);if(order.indexOf(s)<0)order.push(s)}
- const heads=['head_neutral','head_angry','head_grin'],fl=face>=2?-1:1;   // the back armature turns the head and torso (scX -1) to look the way it goes
+ const heads=['head_neutral','head_angry','head_grin'];
  const slot=order.map(s=>({name:s,parent:s,displayIndex:0}));
  // a display: the piece's centre and turn in its bone (the rig draws it scaled by sc, turned by -ang, its pivot on the bone)
  const disp=(n)=>{const P=OGA.p[n],pv=P.a.pv,base=n.startsWith('head')?'head':n.startsWith('torso')?'torso':n,sc=/^arm_/.test(n)?OG.arm:n==='club'?OG.club:1,
    ang=P.a.ax?Math.atan2(P.a.ax[1]-pv[1],P.a.ax[0]-pv[0]):0,cx=P.w/2-pv[0],cy=P.h/2-pv[1],c=Math.cos(-ang),s=Math.sin(-ang);
-   const t={x:R2(sc*(cx*c-cy*s)),y:R2(sc*(cx*s+cy*c))};if(ang){t.skX=R2(-ang*DEG);t.skY=R2(-ang*DEG)}if(sc!==1){t.scX=sc;t.scY=sc}if(fl<0&&/^(head|torso)/.test(n)){t.x=R2(-t.x);t.scX=-(t.scX||1)}return{name:n,type:'image',transform:t}};
+   const t={x:R2(sc*(cx*c-cy*s)),y:R2(sc*(cx*s+cy*c))};if(ang){t.skX=R2(-ang*DEG);t.skY=R2(-ang*DEG)}if(sc!==1){t.scX=sc;t.scY=sc}return{name:n,type:'image',transform:t}};
  const pieceOf={head:null,torso:'torso',armN:'arm_r',armF:'arm_l',legN:'leg_r',legF:'leg_l',club:'club'};
  const skin=[{name:'',slot:order.map(s=>({name:s,display:s==='head'?heads.map(disp):[disp(pieceOf[s])]}))}];
  const animation=ANIMS.map(([an,st,mv,N,loop,ph])=>{
@@ -69,7 +68,7 @@ function armature(name,face){
   zf.push({duration:runZ,zOrder:JSON.parse(curZ)});if(zf.some(f=>f.zOrder.length))anim.zOrder={frame:zf.map(f=>f.zOrder.length?f:{duration:f.duration})};
   return anim});
  return{type:'Armature',frameRate:60,name,aabb:{x:-260,y:-560,width:520,height:600},bone,slot,skin,animation,defaultActions:[{gotoAndPlay:'idle'}]}}
-const ske={frameRate:60,name:'ogre',version:'5.5',compatibleVersion:'5.5',armature:[armature('ogre',0),armature('ogre_back',3)]};
+const ske={frameRate:60,name:'ogre',version:'5.5',compatibleVersion:'5.5',armature:[armature('ogre',0)]};
 fs.writeFileSync(path.join(ROOT,'assets','foes','ogre_ske.json'),JSON.stringify(ske));
 const nb=ske.armature[0].bone.length,ns=ske.armature[0].slot.length;
-console.log('ogre_ske.json: '+ske.armature.length+' armatures, '+nb+' bones, '+ns+' slots, '+ske.armature[0].animation.length+' animations, '+(fs.statSync(path.join(ROOT,'assets','foes','ogre_ske.json')).size>>10)+' KB; atlas '+tex.SubTexture.length+' textures');
+console.log('ogre_ske.json: '+ske.armature.length+' armature, '+nb+' bones, '+ns+' slots, '+ske.armature[0].animation.length+' animations, '+(fs.statSync(path.join(ROOT,'assets','foes','ogre_ske.json')).size>>10)+' KB; atlas '+tex.SubTexture.length+' textures');

@@ -5,9 +5,9 @@
 // skin display in the atlas and inside the atlas image, animation durations, every timeline naming a bone / slot that exists and summing
 // to the animation's duration, display indices and z-order entries in range), and replaying the file's timelines (a small DragonBones
 // transform player: setup + translate / rotate / skew / scale, linear tweens, parent chains) gives the in-game rig's bones at every frame.
-// Browser part: every state x facing x sampled time draws a non-empty frame with the main slots, feet on the ground (a blow may reach a
+// Browser part: the back facings are the front frames (face 3 = face 0, face 2 = face 1); every state x facing x sampled time draws a non-empty frame with the main slots, feet on the ground (a blow may reach a
 // little below it, the legs swing as the people's) and about the painted
-// sheet's height; the faces follow the state; faces 1 and 3 are mirrored; the board's live frame and the baked sprite come from the rig;
+// sheet's height; the faces follow the state; faces 1 and 2 are mirrored; the board's live frame and the baked sprite come from the rig;
 // the painted sheet is the fallback while the rig is off; the armoured ogre keeps its art; Detail Low draws the same pixels as main.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm');
@@ -19,7 +19,7 @@ const png=fs.readFileSync(F('assets/foes/ogre_tex.png'));const pw=png.readUInt32
 ok(png.slice(1,4).toString()==='PNG','ogre_tex.png is not a PNG');ok(pw===tex.width&&ph===tex.height,'atlas size '+pw+'x'+ph+' vs json '+tex.width+'x'+tex.height);
 ok(tex.imagePath==='ogre_tex.png'&&tex.name===ske.name,'atlas name / imagePath');
 const sub={};for(const s of tex.SubTexture){sub[s.name]=s;ok(s.x>=0&&s.y>=0&&s.width>0&&s.height>0&&s.x+s.width<=tex.width&&s.y+s.height<=tex.height,'texture '+s.name+' outside the atlas')}
-ok(ske.version==='5.5'&&ske.frameRate>0&&Array.isArray(ske.armature)&&ske.armature.length===2,'ske header');
+ok(ske.version==='5.5'&&ske.frameRate>0&&Array.isArray(ske.armature)&&ske.armature.length===1&&ske.armature[0].name==='ogre','ske header (one armature: the game mirrors it)');
 let nTl=0;
 for(const A of ske.armature){const an=A.name;ok(A.type==='Armature','armature type '+an);
  const B={};A.bone.forEach((b,i)=>{ok(!B[b.name],an+': bone twice '+b.name);B[b.name]=b;ok(i===0?!b.parent:!!B[b.parent],an+': bone '+b.name+' before / without its parent');ok(b.transform&&isFinite(b.transform.x),an+': bone '+b.name+' transform')});
@@ -32,9 +32,8 @@ for(const A of ske.armature){const an=A.name;ok(A.type==='Armature','armature ty
   for(const t of a.bone||[]){ok(!!B[t.name],tag+': timeline for no bone '+t.name);for(const k of['translateFrame','rotateFrame','scaleFrame'])if(t[k]){nTl++;ok(sum(t[k])===a.duration,tag+' '+t.name+' '+k+' sums to '+sum(t[k]));ok(t[k].every(f=>f.tweenEasing===0||f.tweenEasing==null),tag+': easing')}}
   for(const t of a.slot||[]){ok(!!S[t.name],tag+': timeline for no slot '+t.name);if(t.displayFrame){ok(sum(t.displayFrame)===a.duration,tag+': display frames sum');ok(t.displayFrame.every(f=>f.value>=-1&&f.value<D[t.name].length),tag+': display index out of range')}}
   if(a.zOrder){ok(sum(a.zOrder.frame)===a.duration,tag+': z-order frames sum');for(const f of a.zOrder.frame){const z=f.zOrder||[],n=A.slot.length,pos=new Set();for(let i=0;i<z.length;i+=2){ok(z[i]>=0&&z[i]<n&&(i===0||z[i]>z[i-2]),tag+': z-order slot index');const p=z[i]+z[i+1];ok(p>=0&&p<n&&!pos.has(p),tag+': z-order target');pos.add(p)}}}}
- // the faces: the three heads on both armatures (the back one turns them, and the torso, to look left), no other pieces than the sheet's
- ok(D.head.map(d=>d.name).join()==='head_neutral,head_angry,head_grin',an+': head displays '+D.head.map(d=>d.name));
- ok((an==='ogre_back')===(D.head[0].transform.scX<0&&D.torso[0].transform.scX<0),an+': head / torso turned '+D.head[0].transform.scX)}
+ // the faces: the three heads on the head slot
+ ok(D.head.map(d=>d.name).join()==='head_neutral,head_angry,head_grin',an+': head displays '+D.head.map(d=>d.name))}
 ok(!tex.SubTexture.some(s=>/back/.test(s.name)),'painted back pieces still in the atlas');
 // replay: a DragonBones transform player against the in-game rig
 const ctx={console,Math,JSON,performance:{now:()=>0},Map,WeakMap,Set,Array,Object,Number,String};vm.createContext(ctx);
@@ -44,7 +43,7 @@ vm.runInContext(src('73m-skel.js')+'\n'+src('76c-ogreatlas.js')+'\n'+src('76d-og
 const {ogFrame,hskMul}=ctx.__o,RAD=Math.PI/180;
 const mat=t=>{const skX=(t.skX||0)*RAD,skY=(t.skY||0)*RAD,sx=t.scX==null?1:t.scX,sy=t.scY==null?1:t.scY;return[Math.cos(skY)*sx,Math.sin(skY)*sx,-Math.sin(skX)*sy,Math.cos(skX)*sy,t.x||0,t.y||0]};
 const at=(fr,i,f)=>{if(!fr)return null;let t=0;for(let k=0;k<fr.length;k++){const d=fr[k].duration;if(i<t+d||k===fr.length-1){const a=fr[k],b=fr[k+1];if(!b||!d||a.tweenEasing==null)return f(a);const u=(i-t)/d,A=f(a),Bv=f(b);return A.map((x,j)=>x+(Bv[j]-x)*u)}t+=d}return null};
-const RIG={ogre:0,ogre_back:3},ANIM={idle:['idle',''],walk:['walk',''],flee:['flee',''],attack:['attack','ogSmash'],sweep:['attack','ogSweep'],slam:['attack','ogSlam'],hurl:['attack','ogHurl'],cast:['cast',''],hit:['hit',''],death:['death','']};
+const RIG={ogre:0},ANIM={idle:['idle',''],walk:['walk',''],flee:['flee',''],attack:['attack','ogSmash'],sweep:['attack','ogSweep'],slam:['attack','ogSlam'],hurl:['attack','ogHurl'],cast:['cast',''],hit:['hit',''],death:['death','']};
 let worst=0,nCmp=0;
 for(const A of ske.armature)for(const a of A.animation){const [st,mv]=ANIM[a.name],N=a.duration,loop=a.playTimes===0,tl={};for(const t of a.bone||[])tl[t.name]=t;
  for(let i=0;i<=N;i++){const tt=a.name==='death'?Math.min(1,i/25):i/N,Fr=ogFrame(RIG[A.name],st,tt,mv,0,0),W={};
@@ -74,7 +73,7 @@ const R=await p.evaluate(()=>{const bad=[],n={frames:0,px:0},k=humK(),H=SHEETS.o
  for(const face of[0,1,2,3])for(const [st,T] of ST)for(const mv of st==='attack'?MV:[''])for(const t of T){const Fr=ogFrame(face,st,t,mv,K,0);n.frames++;const tag='f'+face+' '+st+(mv?'/'+mv:'')+' '+t;
   const tags=new Set(Fr.list.map(x=>x.tag));for(const m of['torso','head','leg','arm'])if(!tags.has(m)){bad.push(tag+': no '+m);break}
   if(st!=='death'&&!tags.has('weapon'))bad.push(tag+': no club');if(st==='death'&&t>=.5&&!tags.has('dropped'))bad.push(tag+': the club is not dropped');
-  if(Fr.mir!==(face===1||face===3))bad.push(tag+': mirror '+Fr.mir);if(['neutral','angry','grin'].indexOf(Fr.face)<0)bad.push(tag+': face '+Fr.face);
+  if(Fr.mir!==(face===1||face===2))bad.push(tag+': mirror '+Fr.mir);if(['neutral','angry','grin'].indexOf(Fr.face)<0)bad.push(tag+': face '+Fr.face);
   if(Fr.list.some(x=>x.a&&!(x.a.cv&&x.a.cv.width>0)))bad.push(tag+': an empty piece');
   // pixels: drawn at 4 device px per art px, feet at (45, 62) art px: the figure is there, stands on the ground, about the sheet's height
   q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);q.setTransform(4,0,0,4,0,0);humSkDraw(q,Fr,45,62);q.setTransform(1,0,0,1,0,0);
@@ -84,6 +83,9 @@ const R=await p.evaluate(()=>{const bad=[],n={frames:0,px:0},k=humK(),H=SHEETS.o
   if(st==='idle'&&!(Math.abs(h-H)<H*.25))bad.push(tag+': height '+h.toFixed(1)+' vs the sheet '+H);
   if(a<300)bad.push(tag+': nearly empty frame ('+a+')')
   if((st==='idle'||st==='walk')&&Fr.bones.club){const m=Fr.bones.club,sx=Fr.mir?-1:1;let far=0;for(const L of[0,ogLen('club')*OG.club]){const x=Math.abs(sx*(m[0]*L+m[4]))*HUM_A*Fr.sc;if(x>far)far=x}if(far>20)bad.push(tag+': the club reaches '+far.toFixed(1)+' art px from the tile centre')}}
+ // the back facings draw exactly the front frames: face 3 = face 0, face 2 = face 1 (same slots, matrices, mirror)
+ for(const [st,T] of ST)for(const mv of st==='attack'?MV:[''])for(const t of T)for(const [b2,f2] of[[3,0],[2,1]]){const A=ogFrame(b2,st,t,mv,K,0),B=ogFrame(f2,st,t,mv,K,0);
+  if(A.mir!==B.mir||A.face!==B.face||A.list.length!==B.list.length||A.list.some((x,i)=>x.a!==B.list[i].a||x.tag!==B.list[i].tag||x.m.some((v,j)=>Math.abs(v-B.list[i].m[j])>1e-9)))bad.push('face '+b2+' is not face '+f2+': '+st+(mv?'/'+mv:'')+' '+t)}
  // the faces follow the state
  const fc=(st,t,mv)=>ogFrame(0,st,t,mv||'',K,0).face;
  if(fc('hit',.22)!=='angry')bad.push('hit without the snarl');if(fc('attack',.38,'ogSmash')!=='angry')bad.push('attacks without the snarl');if(fc('cast',.4)!=='angry')bad.push('roars without the snarl');

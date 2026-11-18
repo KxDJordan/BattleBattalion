@@ -10,11 +10,11 @@
      hand target (P.w weapon hand, P.o off hand, from the shoulder, x forward): only the direction counts, the reach is the piece's.
      The club sits in the weapon fist at its own world angle (P.wa), under the fist; with P.grip the off arm turns so its fist lands
      on the haft behind the weapon hand (where its reach meets the haft's line); P.drop leaves the club on the ground.
-   - Views as the people: faces 0 / 1 front three-quarter, 2 / 3 back three-quarter, mirrored for faces 1 and 3; the club in the near
-     hand for faces 0 and 3, the far hand for 1 and 2, layers ordered by which arm is near. The back facings show the same head (with
-     its faces) and torso, turned to look the way the ogre goes (the sheet has no back art).
-     Where the club hand is the outer one for the way it faces (faces 1 and 3), the rest pose holds the club up and forward
-     (OG_GUARD_OUT) instead of resting its head on the ground, so it stays over the ogre's own tile. Faces swap: neutral, angry snarl while attacking, roaring and hurt, a grin now and then
+   - Facings: the sheet is front three-quarter only, so every facing draws the front animations, mirrored to face the way the ogre
+     goes: face 0 (bottom-right) as painted, face 1 (bottom-left) the people's mirrored composition (the club in the far hand, the
+     layers by which arm is near), face 3 (top-right) exactly face 0's frames and face 2 (top-left) exactly face 1's. In face 1
+     (and so 2) the club hand is the outer one, and the rest pose holds the club upright (OG_GUARD_OUT) instead of resting its head
+     on the ground, so it stays over the ogre's own tile. Faces swap: neutral, angry snarl while attacking, roaring and hurt, a grin now and then
      when idle.
    - Animations: idle, walk, flee, hit and death are the people's own (HUM_AN), so an ogre breathes, steps, flinches and falls like a
      merc; its moves are keys of the same form (OG_AN): ogSmash (the basic attack: an overhead club smash), ogSweep (Sweeping blow: a
@@ -74,7 +74,7 @@ function ogLen(n){const A=OGA.p[n].a;return Math.hypot(A.ax[0]-A.pv[0],A.ax[1]-A
 const OG_SC=()=>OG.H>0?(typeof SHEETS==='object'&&SHEETS.ogre?SHEETS.ogre.h:36)/OG.H/HUM_A:1;   // the painted sheet's size on the board
 /* ---- one frame: the pose of the state at t (0..1; idle / walk / flee loop), the slots in draw order. K: device px per OU (0: no
    images, bones only, for the DragonBones export). Returns {list, tags, bones, sc, mir, anim, face} ---- */
-function ogFrame(face,st,t,mv,K,seed,opt){const t0=typeof performance==='object'?performance.now():0;face=((face|0)%4+4)%4;
+function ogFrame(face,st,t,mv,K,seed,opt){const t0=typeof performance==='object'?performance.now():0;face=((face|0)%4+4)%4;face=face===3?0:face===2?1:face;   // the back facings: the front frames
  const back=face>=2,f=back?-1:1,mir=face===1||face===3,wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',nearW=wSide==='a',Q=OG.Q;
  if(st==='swap'||st==='reload'||!st)st='idle';
  const nm=st==='attack'?(mv||'ogSmash'):st==='cast'?'ogRoar':HUM_AN[st]?st:'idle';
