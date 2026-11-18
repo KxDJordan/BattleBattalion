@@ -130,8 +130,8 @@ const run60=(seed,log)=>{const G=fresh(seed);const st={took:0,race:0,raceLost:0,
   ok(st.took>0&&tot.took>=4,'rivals take work from the boards');ok(tot.race>=1,'rivals race the company for its target');ok(tot.raceLost+tot.raceWon>=1,'a race is decided (won or lost)');
   ok(st.wiped>=1&&tot.formed>=1,'a company with no men is wiped out, and new ones form');ok(tot.lost>=1,'rivals lose men');ok(tot.grew>=1,'rivals grow');ok(st.deeds>4&&st.news>=1,'deeds and news report them') }
 // a race the rival wins: the company's contract fails with a clear notice and no reputation cost
-{ const G=fresh(SEED);day(G);const t=G.towns[0];let c=t.contracts.find(c=>c.type==='hunt');if(!c){c=X.CTYPES.hunt.gen(t,0);t.contracts.push(c)}X.ctrAccept(c);c.due=null;c.twist=null;
-  const r=G.rivals[0],s=X.rvGoStage(c),rep0=X.repOf(c.emp),ren0=G.renown;r.ctr=X.rvJobFrom(c,s,0);r.ctr.race=c.id;r.ctr.eta=1;c.rival=r.id;r.roster.forEach(m=>{m.lvl=12;m.base.ms+=50});
+{ const G=fresh(SEED);day(G);const t=G.towns[0];let c=t.contracts.find(c=>c.type==='hunt'&&c.rtook==null);if(!c){c=X.CTYPES.hunt.gen(t,0);t.contracts.push(c)}X.ctrAccept(c);c.due=null;c.twist=null;   // one no rival has taken yet
+  const r=G.rivals.find(x=>x.alive)||G.rivals[0],s=X.rvGoStage(c),rep0=X.repOf(c.emp),ren0=G.renown;r.ctr=X.rvJobFrom(c,s,0);r.ctr.race=c.id;r.ctr.eta=1;c.rival=r.id;r.roster.forEach(m=>{m.lvl=12;m.base.ms+=50});
   ok(X.ctrRace(c)&&/race you/.test(X.ctrRace(c).text),'ctrRace says who races and how far: '+(X.ctrRace(c)&&X.ctrRace(c).text));
   const p=X.rivalParty(r)||X.rvSpawn(r);p.x=s.x;p.y=s.y;X.seedRng(7);const keep=X.rvFight;X.rvFight=()=>({win:true,dead:[]});const news=[];X.rvResolve(r,news);X.rvFight=keep;
   ok(!G.contract&&c.failed&&c.rivalWon===r.id&&G.ctrLast.rival===r.id,'the contract fails to the rival');ok(new RegExp(r.short).test(X.ctrRivalTook(c))&&/first/.test(X.ctrRivalTook(c)),'ctrRivalTook: '+X.ctrRivalTook(c));

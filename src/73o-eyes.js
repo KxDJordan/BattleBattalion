@@ -18,7 +18,7 @@ const EYE_HOLD=420,EYE_FADE=140;
 const EYE_IRISMAP={'0':0,'1':0,a:0,i:0,j:0,H:0,G:0,k:3,X:1,x:1,F:1,Z:1,'7':2,B:2,A:2,'5':2,'6':2,'4':2,w:2,v:2,b:3,c:3,d:3,E:3,y:3,Y:3,I:3,f:4,g:4,h:4,K:4,D:5,C:5};
 const EYE_GIFT={mana:'voidfire',aura:'frostfire',qi:'storm',chi:'stars',hex:'voidfire',void:'cosmic',ice:'crystal',fire:'voidfire'};
 const EYE_INJ={missingeye:'scar',gashedbrow:'bleeding',brokennose:'blackeye',scarredface:'claw',concussion:'sleepy',fracturedskull:'sleepy'};
-const EYE_ENEMY={necro:'cosmic',necrolt:'blank',shinobi:'determined',barbz:'feral',sohei:'determined'};
+const EYE_ENEMY={necro:'cosmic',necrolt:'blank',shinobi:'determined',kageuchi:'determined',bknife:'determined',barbz:'feral',sohei:'determined'};
 const EYE_HELM=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|murm|galea|thraex)$/;
 /* the rules: [test(c) -> expression name | null]; c = {u, S, st (animation state), t (0..1), an (animation name), mor, sts (status keys),
    buffs, cls (weapon class), now, won, kill (ms since this unit's last kill), base (its resting look)} */

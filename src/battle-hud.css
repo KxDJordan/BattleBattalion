@@ -221,6 +221,8 @@
 .unl.unlc::after{content:"";position:absolute;left:3px;top:3px;width:2px;height:2px;background:#5a1f1c}
 .uwp .uwh{position:relative;display:block;flex:none;line-height:0}
 .uwp .uwh .unl{position:absolute;right:-3px;bottom:-1px}
+.uwp .uwh .uam{position:absolute;right:-4px;bottom:-3px;font:bold 8px/8px monospace;color:#f4ead0;background:#2a2218;border:1px solid #8a7a5a;border-radius:2px;padding:0 1px;min-width:5px;text-align:center}
+.uwp .uwh .uam.none{color:#ff8a7a;border-color:#c4493f}
 .uwp.unl>.pxi:first-child{opacity:.7}
 #order .oc .oul{position:absolute;right:1px;bottom:6px;line-height:0}
 #order .oc .oul .unl .pxi{width:12px!important;height:12px!important}

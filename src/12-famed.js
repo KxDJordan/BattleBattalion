@@ -28,8 +28,8 @@ const FAMED_NOUN={
  bow:['Song','Sigh','Long Goodbye','Sorrow','Errand','Letter','Glance','Howl'],gun:['Thunder','Last Laugh','Temper','Oath','Bellow','Wrath','Salute','Retort'],
  staff:['Lantern','Wisdom','Riddle','Dream','Path','Memory','Secret','Burden'],shield:['Wall','Vow','Refuge','Shelter','Bulwark','Defiance','Gate','Keeping'],
  armor:['Shroud','Skin','Coat','Embrace','Mantle','Penance','Hide','Shell'],helm:['Crown','Brow','Watch','Visage','Hood','Dread','Gaze','Countenance']};
-const FAMED_WT={sword:'blade',dagger:'blade',greatsword:'blade',axe:'axe',mace:'blunt',hammer:'blunt',spear:'pole',polearm:'pole',bow:'bow',crossbow:'bow',flintlock:'gun',staff:'staff'},
- FAMED_TYPE={sword:'Blade',dagger:'Dagger',greatsword:'Greatsword',axe:'Axe',mace:'Mace',hammer:'Hammer',spear:'Spear',polearm:'Glaive',bow:'Bow',crossbow:'Crossbow',flintlock:'Gun',staff:'Staff'};
+const FAMED_WT={sword:'blade',dagger:'blade',greatsword:'blade',axe:'axe',mace:'blunt',hammer:'blunt',spear:'pole',polearm:'pole',bow:'bow',crossbow:'bow',flintlock:'gun',throwing:'axe',staff:'staff'},
+ FAMED_TYPE={sword:'Blade',dagger:'Dagger',greatsword:'Greatsword',axe:'Axe',mace:'Mace',hammer:'Hammer',spear:'Spear',polearm:'Glaive',bow:'Bow',crossbow:'Crossbow',flintlock:'Gun',throwing:'Throwing arms',staff:'Staff'};
 function famedNameKind(it){return it.k==='s'?'shield':it.k==='a'?'armor':it.k==='h'?'helm':FAMED_WT[it.wt]||'blade'}
 function famedTypeWord(it){if(it.k==='s')return/tower|pavise/.test(it.look||'')?'Wall':'Shield';if(it.k==='h')return'Helm';
  if(it.k==='a')return/robe|vest/.test((it.look||'')+' '+it.n.toLowerCase())?'Robes':it.arm<=95?'Jerkin':it.arm<=180?'Mail':'Plate';return FAMED_TYPE[it.wt]||'Blade'}

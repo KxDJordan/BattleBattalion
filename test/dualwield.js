@@ -90,8 +90,8 @@ section('catalog');
 { fresh(SEED);const M=X.MAST,T=M.dualwield;
   ok(T&&T.kind==='style'&&T.n==='Twin blades'&&T.tiers.length===6&&T.tiers.every((t,i)=>t.length===1&&t[0].id==='dualwield.'+(i+1)&&t[0].n&&t[0].d),'six tiers of one perk, ids pinned dualwield.1-6');
   ok(X.MUNDANE.includes('dualwield')&&T.cap&&T.cap.tiers[0][0].id==='dualwield.cap'&&X.perkById('dualwield.cap'),'a style tree with a capstone');
-  const abs=T.tiers.map(t=>t[0].ab).filter(Boolean);ok(abs.join()===ABS.join(),'three abilities: '+abs);for(const id of ABS){const a=X.AB[id];ok(a&&a.n&&a.d.length>40&&a.dual&&a.tgt==='enemy'&&a.wpn,id+': a dual-wield weapon ability with a text')}
-  ok(T.tiers.filter(t=>!t[0].ab).length===3,'three passives');
+  const abs=T.tiers.map(t=>t[0].ab).filter(Boolean);ok(abs.join()==='twinstrike','one ability (the masteries update: Feint and cut and Blade flurry stay abilities, granted by no perk): '+abs);for(const id of ABS){const a=X.AB[id];ok(a&&a.n&&a.d.length>40&&a.dual&&a.tgt==='enemy'&&a.wpn,id+': a dual-wield weapon ability with a text')}
+  ok(T.tiers.filter(t=>!t[0].ab).length===5,'five passives');
   for(const bg of ['thief','sellsword','brigand','pitfighter','cutthroat','acrobat','gladiator'])ok(X.BG[bg].pool.includes('dualwield')&&X.BG[bg].pool.length<=9,bg+' can draw the tree');
   ok(X.BG.pitfighter.pool.includes('gladiator')&&X.BG.knight.pool.includes('champion'),'the arena trees stay where they were');
   const seen={};for(let i=0;i<80;i++)for(const bg of ['pitfighter','cutthroat','gladiator']){const m=X.newMerc(bg);if(m.trees.includes('dualwield'))seen[bg]=1}ok(Object.keys(seen).length===3,'recruits roll the tree: '+Object.keys(seen));
@@ -196,5 +196,5 @@ section('the AI uses the abilities');
   for(let i=0;i<8;i++){const G=fresh(SEED+20+i);G.roster.length=0;for(const bg of ['pitfighter','cutthroat','gladiator','thief','brigand','sellsword']){const r=twin(bg,['shortsword','falchion','gladius'][i%3],['knife','dirk','hatchet','sica'][i%4]);X.gainXP(r,X.XPT[8]);r.lvl=8;r.pend=0;r.pp=0;r.eq.h='hood';r.hp=X.calc(r).hp;G.roster.push(r)}
    FCHECK=true;const res=await X.autoBattle({f:['bandit','gob','orc','free'][i%4],mult:.6,biome:'plains',pilot:'sensible',src:{type:'test'},turnCap:4000});FCHECK=false;ok(res&&!res.stuck,'an auto battle ended');n++;if(res.win)wins++;X.B=null;X.mode='world'}
   X.ctx.useAbility=u0;console.log('AI use over '+n+' battles ('+wins+' won): '+JSON.stringify(use)+'; off-hand blows checked: '+FS.off);
-  for(const id of ABS.concat(['attack']))ok(use[id]>0,'the AI never used '+id) }
+  for(const id of ['twinstrike','attack'])ok(use[id]>0,'the AI never used '+id) }
 console.log('\nOK dualwield');process.exit(0)})();

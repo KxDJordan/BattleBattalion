@@ -41,7 +41,9 @@ function aiLockAt(u,k){if(u===AI_LMU&&AI_LM)return AI_LM[k]===1;const c=k%BW,r=(
 // The weapon u does not hold (its sidearm, or the main weapon while the sidearm is out), as a weapon object, or null.
 function aiAltW(u){if(u.wpnAlt)return u.wpnAlt;if(u.m&&u.alt&&typeof ITEMS==='object'&&ITEMS[u.alt]&&ITEMS[u.alt].k==='w')return ITEMS[u.alt];return null}
 // Does u carry a bow in either hand (its fighting role stays the archer's while the sidearm is out)?
-function aiHasBow(u){if(aiRngW(u.wpn))return true;const w=aiAltW(u);return aiRngW(w)}
+function aiHasBow(u){if(aiRngW(u.wpn)&&!aiSpent(u,u.wpn))return true;const w=aiAltW(u);return aiRngW(w)&&!aiSpent(u,w)}
+// a throwing weapon with no throws left (60p-passives.js): it fights in hand now, so its bearer is no longer an archer
+function aiSpent(u,w){return!!(w&&w.ammo&&typeof ammoLeft==='function'&&ammoLeft(u,w)<=0)}
 /* ---- the weapon swap: one look ahead ----
    aiHypo(u, fn): runs fn() with u's weapons swapped (swapWeapons() of the rules, the swap's AP paid) and puts every field of u back
    afterwards. Nothing reaches the scene or the log meanwhile, and nothing draws from rnd(). */
@@ -53,7 +55,8 @@ function aiHypo(u,fn){const snap=Object.assign({},u),abs=u.abs.slice(),buffs=u.b
    this turn's blows): a bow beside a foe is worth nothing, a melee weapon is worth what can reach a foe next turn. */
 function aiHandV(X,k){const u=X.u,w=u.wpn,atk=X.atk,c=k%BW,r=(k/BW)|0,d=X.nearTile(c,r),ap=u.apMax||9;let n,f=1;
  const bow=aiRngW(w);if(bow){if(!(u.flags&&u.flags.noLock)&&aiLockAt(u,k))return 0;n=Math.max(1,Math.floor(ap/(atk.ap||4)));if(d>atk.rng+1)f=.6;
-  if(w.reload){const rl=w.reload.ap||4;n=aiUnloaded(u)?Math.floor((ap-rl)/(atk.ap||4)):1;if(n<1){n=1;f*=.5}}}   // a reload weapon: one shot a turn at best, after reloading if spent
+  if(w.reload){const rl=w.reload.ap||4;n=aiUnloaded(u)?Math.floor((ap-rl)/(atk.ap||4)):1;if(n<1){n=1;f*=.5}}
+  if(w.ammo&&typeof ammoLeft==='function'){const L=ammoLeft(u,w);if(L<=0)return(w.d[0]+w.d[1])/2*.06;n=Math.min(n,L)}}   // throws left   // a reload weapon: one shot a turn at best, after reloading if spent
  else{const mv=Math.max(0,d-(w.rng||1))*2;if(mv>ap-(atk.ap||4))return(w.d[0]+w.d[1])/2*.06;n=Math.max(1,Math.floor((ap-mv)/(atk.ap||4)))}
  const sk=bow?eff(u,'rs'):eff(u,'ms'),hit=clamp((sk+(w.hit||0)-10)/100,.15,.9);
  return .3*(w.d[0]+w.d[1])/2*(1+(u.dmgB||0))*Math.min(3,n)*hit*f}

@@ -100,6 +100,7 @@ function eastPortraitSpec(id){if(!EN[id]||!EN[id].east||typeof PT_HEAD==='undefi
  switch(id){
   case'ashi':return S({armor:'leather',wrows:w('suyari'),over:(L,E)=>eaPtJingasa(L,E,'g')});
   case'ashiy':return S({armor:'leather',wrows:w('hankyu'),wpn:'quiver',over:(L,E)=>eaPtJingasa(L,E,'g')});
+  case'kageuchi':return S({build:'slim',armor:'leather',hat:'hood',hatC:'night',face:{iris:'0',brow:3,browC:'0',nose:0,mouth:9,lid:1},wrows:w(typeof usWpnOf==='function'?usWpnOf('shuriken'):'tanto'),over:(L,E)=>{if(typeof ptHat==='function')ptHat(L,{hat:'mask',hatC:'night',skin:sk.fair,ey:14,head:PT_HEAD.human},E)}});
   case'shinobi':return S({build:'slim',armor:'leather',hat:'hood',hatC:'night',face:{iris:'0',brow:2,browC:'0',nose:0,mouth:9,lid:1},wrows:w('wakizashi'),over:(L,E)=>{if(typeof ptHat==='function')ptHat(L,{hat:'mask',hatC:'night',skin:sk.fair,ey:14,head:PT_HEAD.human},E)}});
   case'sohei':return S({build:'broad',skin:sk.tan,armor:'robe',robeC:'white',hat:'hood',hatC:'white',face:{iris:'0',brow:3,browC:'0',nose:2,mouth:3},wrows:w('naginata'),beads:['i','j']});
   case'onna':return S({build:'slim',skin:sk.pale,hair:'long',face:{iris:'0',brow:1,browC:'0',nose:0,mouth:1,lid:1},armor:'scale',wrows:w('naginata'),over:(L,E)=>eaPtBand(L,E)});

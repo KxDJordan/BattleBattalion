@@ -131,9 +131,9 @@ if(!RO)section('trees');
 if(!RO){X.seedRng(SEED+44);X.newGame(true);closeAll(X);const G=X.G;const m=X.newMerc('gladiator');ok(m.trees.some(t=>X.BG.gladiator.pool.includes(t)),'a gladiator without its trees');ok(['w','s','a','h'].some(k=>m.eq[k]&&X.ITEMS[m.eq[k]].glad),'a gladiator without gladiator gear');
  // a hand-built gladiator who has every perk of both trees
  const g=X.newMerc('gladiator');g.trees=['gladiator','champion','duelist','brawler'];g.lvl=12;g.perks=X.MAST.gladiator.p.map(p=>p.id).concat(X.MAST.champion.p.map(p=>p.id));g.eq.w='trident';g.eq.s=null;g.eq.b=null;if(X.syncMast)X.syncMast(g);G.roster=[g];g.field=true;g.hp=X.calc(g).hp;
- const fl=X.calc(g).flags;ok(fl.crowdKill&&fl.pinHit&&fl.soloHit&&fl.secondWind&&fl.kbImm,'the passives do not reach calc()');
+ const fl=X.calc(g).flags;ok(fl.crowdKill&&fl.pinHit&&fl.soloHit&&fl.secondWind&&fl.kbImm&&fl.payHit&&fl.pinKillAP&&fl.crowdDef&&fl.readOpp,'the passives do not reach calc()');
  const b={rule:'duel',theme:'brig',seed:5,done:0},o=X.colFightOpts(b,[g],1);o.src={type:'test'};X.B=null;X.mode='world';const bt=X.startBattle(Object.assign({},o,{quiet:true,turnCap:1,onEnd(){}}));
- const u=bt.units.find(x=>x.side===0),t=bt.units.find(x=>x.side===1);for(const a of ['taunt','netthrow','showstop','crowdroar','feint','iugula'])ok(u.abs.includes(a),'ability '+a+' is not in hand');
+ const u=bt.units.find(x=>x.side===0),t=bt.units.find(x=>x.side===1);for(const a of ['netthrow','iugula'])ok(u.abs.includes(a),'ability '+a+' is not in hand');for(const a of ['taunt','showstop','crowdroar','feint'])ok(!u.abs.includes(a)&&X.AB[a],'ability '+a+' is no tree perk now (the masteries update), but still an ability');
  u.c=5;u.r=6;t.c=5;t.r=4;u.ap=12;u.fat=0;X.foeAuras();const net=X.abilityInfo(u,'netthrow');ok(X.canUse(u,net),'Throw net cannot be used with a trident and no shield');
  u.shield=true;ok(!X.canUse(u,net)&&/off hand/.test(X.useBlock(u,net)),'Throw net with a shield raised');u.shield=false;
  X.seedRng(1);t.st={};let hit=false;for(let k=0;k<20&&!hit;k++){hit=await X.strike(u,t,net);u.ap=12}ok(t.st.netted>0,'the net did not net');

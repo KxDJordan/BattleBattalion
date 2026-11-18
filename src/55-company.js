@@ -342,8 +342,8 @@ function lvConfirm(i){const m=G.roster[i];if(lvSel.length!==3)return;lvSel.forEa
 /* The v8 save migration (20-state.js) refunds perks of weapon and armor trees a background no longer allows; G.refund [{name, n}]
    lists who got points back and G.note 'refund' asks for this sheet once, on the map. showNote (40-world.js) knows only its own
    notes, so it is wrapped here: 'refund' opens refundSheet; after any other note, a pending refund is queued as the next one. */
-function refundSheet(){const L=Array.isArray(G.refund)?G.refund:[];delete G.refund;if(!L.length)return;const tot=L.reduce((a,r)=>a+r.n,0);
- sheet(`<h2>Perk points returned</h2><p>Each background now trains at most five weapon families and one or two weights of armor. Perks learned in a tree a sword can no longer learn were taken back, and the points returned to spend again:</p>
+function refundSheet(){const L=Array.isArray(G.refund)?G.refund:[],why=G.refundWhy;delete G.refund;delete G.refundWhy;if(!L.length)return;const tot=L.reduce((a,r)=>a+r.n,0);
+ sheet(`<h2>Perk points returned</h2><p>${why==='masteries'?'The masteries have changed: most tree abilities are now passives with effects of their own, and firearms and throwing weapons have trees of their own. Perks whose effect changed were taken back, and the points returned to spend again:':'Each background now trains at most five weapon families and one or two weights of armor. Perks learned in a tree a sword can no longer learn were taken back, and the points returned to spend again:'}</p>
  <ul class="rf-list">${L.map(r=>`<li><b>${htmlEsc(r.name)}</b> ${r.n} point${r.n===1?'':'s'}</li>`).join('')}</ul>
  <p class="dim">${tot} point${tot===1?'':'s'} in all. Spend them in the company screen, on a merc's Talents.</p><button class="pri" onclick="closeSheet()">Understood</button>`)}
 /* ================= COMPANY STANDING: renown tier, retinue, ambition (progression agent's 14-company.js) =================

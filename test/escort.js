@@ -59,7 +59,8 @@ const TS=X.TS;
 const toasts=[];{const t0=X.ctx.toast;X.ctx.toast=function(t){toasts.push(String(t));return t0(t)}}
 const onRoad=(x,y)=>X.onRoad(x,y);
 // an escort contract for town ti (one with a route the roads join), accepted at that town
-function escortAt(G,ti){ti=ti||0;const t=G.towns[ti];let c=null;for(let g=0;g<40&&!c;g++)c=X.CTYPES.escort.gen(t,ti);ok(c,'an escort is posted');c.twist=null;
+function escortAt(G,ti,far){ti=ti||0;const t=G.towns[ti];let c=null;const dd=x=>{const d=G.towns[x.to];return d?Math.hypot(d.x-t.x,d.y-t.y):0};
+ for(let g=0;g<(far?40:40)&&(far||!c);g++){const x=X.CTYPES.escort.gen(t,ti);if(x&&(!c||(far&&dd(x)>dd(c))))c=x}ok(c,'an escort is posted');c.twist=null;   // far: the longest road of 40 postings (a raid has time to come)
  G.p.x=t.x;G.p.y=t.y;G.town=ti;ok(X.ctrAccept(c)&&G.contract===c,'accepted');return c}
 // world frames until cond() (or n frames); sheets are closed as they come unless keep
 function run(cond,n,keep){for(let i=0;i<(n||200000);i++){if(cond&&cond())return true;if(X.mode!=='world')return cond?!!cond():true;if(X.sheetOpen){if(keep)return false;closeAll(X)}X.worldTick(.05)}return cond?!!cond():true}
@@ -106,7 +107,7 @@ section('the march');
 // a quiet road: every hostile band but the escort's own taken off the map (keep: also keep the waiting band)
 const quiet=(G,c,keep)=>{for(const p of G.parties)if(X.partyHostile(p)&&!(keep&&p.ambE===c.id))p.gone=1;G.parties=G.parties.filter(p=>!p.gone)};
 section('the raid rule: the whole escort');
-{ const G=fresh(SEED+2);keepAlive(G);const c=escortAt(G,0),C=X.escParty(c);quiet(G,c);const es=X.escStr(C),e=X.escOn();
+{ const G=fresh(SEED+2);keepAlive(G);const c=escortAt(G,0,true),C=X.escParty(c);quiet(G,c);const es=X.escStr(C),e=X.escOn();
   const sh=X.escGuardShare(C);let cost=0;for(const id of X.cvGuardIds(C.guard))cost+=X.cvCost(id);const bud=X.battleBudget({f:'bandit',mult:1})/X.runK('budget');
   ok(Math.abs(sh-Math.min(1.5,cost/bud))<.006&&es===Math.round((1+.5*sh)*100)/100&&e.s===es,'the escort\'s strength: the company\'s 1 + half the guards\' share ('+cost+' crowns of guards / '+Math.round(bud)+' budget = '+sh+'): '+es);
   // a stronger company: the same guards are a smaller share of the escort

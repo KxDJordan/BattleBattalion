@@ -24,7 +24,7 @@ function hwiItem(W,iid){if(!W||!W.id)return null;const wid=hwiBase(W.id);
  const R=hwiRev();return R.get(wid)||R.get(wid.replace(/\*/g,''))||null}
 /* the item's painted spec (06pc-specs.js); the gladiators' trident has its own painter in the icon set */
 const HWI_TRI={trident:{f:'tri'},fuscina:{f:'tri',bl:'silver',barbs:1,collar:1}};
-function hwiSpec(id){if(HWI_TRI[id])return Object.assign({},PKC_TIER[3],HWI_TRI[id]);return typeof pkcSpec==='function'?pkcSpec(id):null}
+function hwiSpec(id){if(HWI_TRI[id])return Object.assign({},PKC_TIER[3],HWI_TRI[id]);const sp=typeof pkcSpec==='function'?pkcSpec(id):null;return sp&&sp.hand?Object.assign({},sp,{f:sp.hand}):sp}   // hand: an icon painted whole (f:'fn') held by its own in-hand painter (06pt-arms.js)
 /* the figure's weapon info with the item's icon spec and geometry (or the plain info when it falls back) */
 function humWIc(W,iid){const wi=humWInfo(W);if(!HWI.on||!W||wi.fam==='fist'||typeof PKC_IT!=='object')return wi;const it=hwiItem(W,iid);if(!it)return wi;
  let m=HWI_INF.get(W);if(!m){m=new Map();HWI_INF.set(W,m)}let o=m.get(it);if(o!==undefined)return o||wi;
@@ -77,6 +77,7 @@ const HWI_P={
   pkcXbowL(g,q,a,b);if(op.loaded!==false)pkArrow(g,0,nut+.6,0,-b-3,{w:1.3,head:3.8,mat:'steel'})}},
  gn:{paint:(g,o,G)=>{if(o.pole){pkcGunL(g,o,G.a,G.b);return}const a=o.a||13.5,h=a-11.5;g.translate(0,-h);pkcGunL(g,o,a,G.b-h)}},
  ps:{fr:'fwd',paint:(g,o,G)=>{g.scale(G.k,G.k);g.translate(-11,-13);pkcPistol(g,o)},box:G=>[-8*G.k,-8*G.k,22*G.k,18*G.k]},
+ knife:{paint:(g,o,G)=>PKT_HAND.knife(g,o,G)},star:{paint:(g,o,G)=>PKT_HAND.star(g,o,G)},ring:{paint:(g,o,G)=>PKT_HAND.ring(g,o,G)},bolas:{paint:(g,o,G)=>PKT_HAND.bolas(g,o,G)},   // throwing weapons (06pt-arms.js)
  bw:{fr:'fwd',paint:hwiBow,box:(G,op)=>[-4/HWI_SC-G.rc-5,-G.H-5,(op.drawn?30:18)*2.2/HWI_SC+4,G.H+5]}};
 /* render one weapon (cached): the icon pipeline (paint, ink outline pass, post glints) on a canvas in the weapon frame */
 const HWI_SCR={l:null,s:null};

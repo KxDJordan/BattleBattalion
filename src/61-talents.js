@@ -108,7 +108,7 @@ function rollTrees(bg,r){const b=BG[bg],pool=(b&&b.pool||MUNDANE).filter(k=>MAST
    highest open tier that suits its style, gear and weapons; abilities it could not use with its gear are passed over.
    Deterministic (no randomness). Returns the ids learned. */
 function mercTags(m){const t=new Set([mercStyle(m)]),w=ITEMS[m.eq&&m.eq.w],a=ITEMS[m.eq&&m.eq.a];
- if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&isShieldId(m.eq.s)&&!(w&&w.two))t.add('shield');if(dwMainOK(w)&&offItem(m))t.add('dual');if(!a||a.fat<=10)t.add('light');if(typeof isLightW==='function'&&isLightW(w||FIST))t.add('lightw');   // lightw: a light weapon in hand (the rogues' trees)
+ if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow');if(w.wt==='flintlock')t.add('gun');if(w.wt==='throwing')t.add('throw')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&isShieldId(m.eq.s)&&!(w&&w.two))t.add('shield');if(dwMainOK(w)&&offItem(m))t.add('dual');if(!a||a.fat<=10)t.add('light');if(typeof isLightW==='function'&&isLightW(w||FIST))t.add('lightw');   // lightw: a light weapon in hand (the rogues' trees)
  if(m.gift&&MAST[m.gift])t.add(MAST[m.gift].style);return t}
 function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,rngd=isRangedW(w),bow=wt==='bow',two=!!(w&&w.two),
   sh=!!(m.eq&&isShieldId(m.eq.s)),up=sh&&!two,swUp=sh&&!!sw&&!sw.two,pw=p.wt||T.wt,ow=!!offItem(m),dw=ow&&dwMainOK(w),swDw=ow&&dwMainOK(sw);   // dw: a weapon in each hand with the main weapon (swDw: with the sidearm)   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm
@@ -125,7 +125,12 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
   if((md.stabDmg||md.wakeDmg||md.lightBleed||md.lightPoison)&&!lw)s-=slw?10:30;if(a&&a.light&&!lw)s-=slw?12:45;
   if(md.readInit){const ini=calc(m).init;s+=clamp(Math.floor((ini-100)/5),-10,10)}if(p.flag==='quickstep'&&rngd)s-=6}
  if((md.shieldDef||md.shieldHp||md.guard||md.deflect||md.shieldDr)&&!sh)s-=35;if((md.duelHit||md.duelDmg)&&(sh||ow||two||rngd))s-=30;if((md.dwDef||md.dwOffDmg||p.flag==='dwTrain'||p.flag==='dwAmbi')&&!dw)s-=swDw?10:30;   // the Twin blades' passives: only with a weapon in each handif(md.twoDmg&&!(two&&!rngd))s-=30;
- if((md.dmgRanged||md.coverIgn||md.longShot||p.flag==='noLock')&&!rngd)s-=30;if((md.rngB||p.flag==='eagle')&&!bow)s-=30;if(md.spellB&&!tags.has('caster'))s-=20;if(md.dmgMelee&&rngd)s-=20;
+ if((md.dmgRanged||md.coverIgn||md.longShot||p.flag==='noLock')&&!rngd)s-=30;
+ {const gun=wt==='flintlock'||swt==='flintlock',thr=wt==='throwing'||swt==='throwing',fist=wt==='fist',lw=tags.has('lightw'),duel=!(sh||ow||two||rngd);   // the masteries update's passives: only with their weapon (60p-passives.js)
+  if((md.smokeDef||md.gunPB||md.gunSteady||md.gunIgn||md.gunLine)&&!gun)s-=30;if((md.ammoB||md.recover||md.ricochet||md.throwRng||p.flag==='deadArc')&&!thr)s-=30;
+  if((md.hobbleShot||md.bindRoot||md.staticChg||p.flag==='drawLoose')&&!(rngd&&(bow||wt==='crossbow')))s-=30;if((md.koDmg||md.fistDaze)&&!fist)s-=25;if(md.follow&&!(two&&!rngd))s-=30;
+  if(md.counter&&!duel)s-=30;if((md.sfHit||md.doomHurt||md.cheapBlind)&&!lw)s-=25;if((md.dwBleed||md.dwFlow)&&!dw)s-=swDw?10:30;if(md.bindOff&&!sh)s-=35;
+  if((md.pressHit||md.chainHit||md.flowDmg||md.clinch||md.crowdDef)&&rngd)s-=15;if(md.overpen&&!rngd)s-=30;if(md.manaDmg&&!rngd&&!tags.has('melee'))s-=10}if((md.rngB||p.flag==='eagle')&&!bow)s-=30;if(md.spellB&&!tags.has('caster'))s-=20;if(md.dmgMelee&&rngd)s-=20;
  if(p.st){if(rngd&&p.st.ms)s-=8;if(!rngd&&p.st.rs&&!p.st.ms)s-=12}
  return s}
 function autoLearn(m){const got=[];if(!m||!Array.isArray(m.perks))return got;const tags=mercTags(m);let g=0;

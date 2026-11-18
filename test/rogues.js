@@ -68,7 +68,7 @@ section('catalog');
 { fresh(SEED);const M=X.MAST;
   for(const k of TREES){const T=M[k];ok(T&&T.kind==='style'&&T.tiers.length===6&&T.tiers.every((t,i)=>t.length===1&&t[0].id===k+'.'+(i+1)&&t[0].n&&t[0].d),k+': six tiers of one perk, ids pinned');
    ok(X.MUNDANE.includes(k)&&T.cap&&T.cap.tiers[0][0].id===k+'.cap','in MUNDANE, with a capstone');
-   const abs=T.tiers.map(t=>t[0].ab).filter(Boolean);ok(abs.length>=2&&abs.length<=3&&abs.every(id=>X.AB[id]&&X.AB[id].n&&X.AB[id].d.length>30),k+': 2-3 abilities with texts: '+abs)}
+   const abs=T.tiers.map(t=>t[0].ab).filter(Boolean);ok(abs.length>=1&&abs.length<=3&&abs.every(id=>X.AB[id]&&X.AB[id].n&&X.AB[id].d.length>30),k+': 1-3 abilities with texts: '+abs)}   // the masteries update: one ability a tree (Coup de grace, Pickpocket, Blur), the rest passives (60p-passives.js)
   ok(M.assassin.n==='Assassin'&&M.rogue.n==='Rogue'&&M.shadow.n==='Shadowdancer','tree names');
   for(const s of ['doomed','blinded','blur','untouchable','slipaway','flow'])ok(X.STATUS[s]&&X.STATUS[s].n&&X.STATUS[s].d,'status '+s);
   for(const bg of ['thief','cutthroat','acrobat','brigand','poacher','sailor','beggar','nomad','wildling'])ok(X.BG[bg].pool.some(k=>TREES.includes(k)),bg+' can draw a rogue tree');
@@ -153,7 +153,7 @@ section('autoLearn and the AI');
   let wins=0,n=0,stolen=0;for(let i=0;i<10;i++){const G=fresh(SEED+20+i);G.roster.length=0;for(const bg of ['cutthroat','thief','acrobat','cutthroat','thief','acrobat']){const r=rogue(bg,['rondel','stiletto','shortsword'][i%3]);X.gainXP(r,X.XPT[8]);r.lvl=8;r.pend=0;r.pp=0;r.eq.h='hood';r.hp=X.calc(r).hp;G.roster.push(r)}
    const res=await X.autoBattle({f:['bandit','gob','orc','free','east'][i%5],mult:.6,biome:'plains',pilot:'sensible',src:{type:'test'},turnCap:4000});ok(res&&!res.stuck,'an auto battle ended');n++;if(res.win)wins++;if(res.spoils&&res.spoils.stolen)stolen+=res.spoils.stolen.crowns;X.B=null;X.mode='world'}
   X.ctx.useAbility=u0;X.ctx.foeUse=f0;console.log('AI use over '+n+' battles ('+wins+' won, '+stolen+' crowns lifted): '+JSON.stringify(use));
-  for(const id of ['shadowstrike','deathmark','coupdegrace','pickpocket','pocketsand','slipaway','blur','untouchable'])ok(use[id]>0,'the AI never used '+id) }
+  for(const id of ['coupdegrace','pickpocket','blur'])ok(use[id]>0,'the AI never used '+id) }   // the trees' abilities since the masteries update (the others still work: tested above through abilityInfo)
 section('old saves: thieves and their kin reroll their empty tree slots (v17)');
 { const G=fresh(SEED+40);const t=X.newMerc('thief');t.trees=['marksman','sharpshooter','skirmisher','scout'];t.perks=['skirmisher.1'];t.pp=0;G.roster.push(t);
   const v=X.newMerc('vanguard'in X.BG?'vanguard':'militia');const vt=v.trees.join();G.roster.push(v);

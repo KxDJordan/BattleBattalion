@@ -50,7 +50,7 @@ function insTraits(u){const d=u.def||{},L=[],S=k=>typeof STATUS==='object'&&STAT
  return L.map(x=>`<div class="ins-ab">${insIc(x[0])}<div><b>${x[1]}</b><span>${x[2]}</span></div></div>`).join('')}
 /* ---- arms and talents (mercs): weapon in hand and backup, shield raised or slung, gift variant, trees, learned perks ---- */
 function insWn(w){return w?(w.n||w.wt||'Weapon'):'Bare hands'}
-const INS_WT={sword:'Sword',axe:'Axe',mace:'Mace',dagger:'Dagger',spear:'Spear',bow:'Bow',staff:'Staff',fist:'Unarmed',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Flintlock'};
+const INS_WT={sword:'Sword',axe:'Axe',mace:'Mace',dagger:'Dagger',spear:'Spear',bow:'Bow',staff:'Staff',fist:'Unarmed',hammer:'Hammer',polearm:'Polearm',greatsword:'Greatsword',crossbow:'Crossbow',flintlock:'Flintlock',throwing:'Throwing weapon'};
 // the weapon's family and what sets it apart: reach over the front rank, armor pierce, reload
 function insWl(w){if(!w||!w.d)return'';const L=[`${w.d[0]}–${w.d[1]} dmg`];if(w.rng>1)L.push((typeof shRangedW==='function'&&shRangedW(w)?'range ':'reach ')+w.rng);if(w.two)L.push('two-handed');
  if((w.ign||0)>=.35)L.push(Math.round(w.ign*100)+'% armor pierce');if(w.reload)L.push('reload '+(w.reload.ap|0)+' AP');

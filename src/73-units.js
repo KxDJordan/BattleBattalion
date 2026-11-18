@@ -269,6 +269,15 @@ function usWgen(id){const p=id.split(':'),wt=p[1],two=p[2]==='1',T=+p[3]||1,nm=p
   case'bow':{cls='bow';tw=1;bow=K(/great|long/)?8:K(/war/)?7:K(/short|self/)?5:6;tip=bow;break}
   case'crossbow':return usWdef(K(/windlass|dwarf/)?'arbalest:D':K(/hunt/)?'xbow:W':K(/arbal|siege/)?'arbalest':K(/heavy|steel|great/)?'xbow:H':K(/repeat|chu|box/)?'xbow:R':K(/hand|pistol|light/)?'xbow':T>=4?'arbalest':T>=3?'xbow:H':'xbow');
   case'flintlock':return usWdef(two?(K(/gonne|cannon/)?'musket:C':K(/blunder|scatter|dragon/)?'musket:B':K(/arque|match|caliver/)?'musket:A':K(/long|rifle|jezail/)?'musket:L':'musket'):(K(/duel|fine|long/)?'pistol:D':K(/blunder|dragon|scatter/)?'pistol:B':K(/hand.?cannon|cannon/)?'pistol:C':'pistol'));
+  case'throwing':{   // throwing weapons (11t-arms.js): small heads on short hafts, knives, darts, stars, a ring, bolas
+   if(K(/axe|francisca|hurlbat/)){const L=4+(T>2?1:0),sz=K(/francisca|storm/)?3:2;haft(-2,L,S.wood);axeh(L,sz,1,1,mt);if(K(/storm/))axeh(L,sz-1,-1,0,mt);put(L+1,0,S.iron,2,1);tip=L+1;break}
+   if(K(/hammer/)){haft(-2,4,S.wood);add(5,6,-1,1,S.iron,2);put(5,2,S.plate,2,-1);put(7,0,S.plate,2,1);tip=7;break}
+   if(K(/jav|pil/)){const pl=K(/pil/);cls='thrust';haft(-4,pl?4:6,S.wood);if(pl)add(5,8,0,0,S.iron,2);tip=blade(pl?9:7,2,0,mt,'leaf');break}
+   if(K(/dart/)){haft(-1,2,S.wood);put(-2,-1,S.red,0);put(-2,1,S.red,0);put(-1,-1,S.red,0);tip=blade(3,2,0,mt,null);break}
+   if(K(/star|shuriken/)){put(0,0,S.dleather,0);for(const [i,o,b] of [[1,0,0],[2,0,1],[1,-1,1],[1,1,-1],[0,-1,0],[0,1,0],[1,-2,1],[1,2,-1]])put(i,o,mt,2,b);tip=2;break}
+   if(K(/chakram/)){for(const [i,o] of [[0,-1],[0,1],[1,-2],[1,2],[2,-2],[2,2],[3,-1],[3,1]])put(i,o,mt,2,o<0?1:-1);put(0,0,S.brass,0);tip=3;break}
+   if(K(/bolas/)){put(-1,0,S.leather,0);put(0,0,S.leather,0);put(1,-1,S.leather,0);put(1,1,S.leather,0);put(2,-2,S.iron,2);put(2,2,S.iron,2,-1);put(2,0,S.iron,2,1);tip=2;break}
+   grip(1);pom(-2,'ring');tip=blade(1,3,0,mt,'falchion');break}
   default:return usWdef(wt==='fist'?'fist':'shortsword')}
  c.sort((a,b)=>a[4]-b[4]);return{id,c,cls,two:tw,h2,tip,gem,bow,bowR:wt==='bow'?(K(/horn|compos|recurve/)?'horn':K(/black|night|elf|elv/)?'blk':K(/war|ash/)?'dwood':'wood'):null,recurve:wt==='bow'&&K(/recurve|compos|horn|elf|elv/),nock:wt==='bow'&&K(/elf|elv|great|royal|gild/)?'gold':null,wrap:wt==='bow'&&K(/hunt/)?'red':null,reach:cls==='thrust'&&tw||wt==='greatsword'}}
 /* a famed item: its base weapon with a gilded guard and pommel, a gold collar below the head and one gold inlay on the blade; W.famed marks it for the glint */
@@ -933,7 +942,7 @@ function usArmLegend(S,A,v,x0,x1,ty,th,fc){const c=S.av.cr,y1=ty+th-1;
 const US_WMAP={knife:'knife',rondel:'rondel',club:'club',mace:'mace',shortsword:'shortsword',arming:'arming',runeblade:'runeblade',handaxe:'handaxe',waraxe:'waraxe',greataxe:'greataxe',spear:'spear',warspear:'warspear',pike:'pike',shortbow:'shortbow',warbow:'warbow',staff:'staff',focus:'focus',riftedge:'riftedge',
  mallet:'warhammer',warhammer:'pickhammer',maul:'maul',warmaul:'warmaul',bill:'bill',halberd:'halberd',glaive:'glaive',greatsword:'greatsword',zweihander:'zweihander',runegreat:'runegreat',
  lightxbow:'xbow',crossbow:'xbow',arbalest:'arbalest',pistol:'pistol',duelpistol:'pistol',musket:'musket'};
-const US_WT={dagger:'knife',sword:'shortsword',axe:'handaxe',mace:'club',spear:'spear',bow:'shortbow',staff:'staff',fist:'fist',hammer:'warhammer',polearm:'halberd',greatsword:'greatsword',crossbow:'xbow',flintlock:'pistol'},
+const US_WT={dagger:'knife',sword:'shortsword',axe:'handaxe',mace:'club',spear:'spear',bow:'shortbow',staff:'staff',fist:'fist',hammer:'warhammer',polearm:'halberd',greatsword:'greatsword',crossbow:'xbow',flintlock:'pistol',throwing:'g:throwing:0:1:taxe|throwing axe'},
  US_WT2={axe:'greataxe',spear:'pike',bow:'warbow',sword:'runeblade',staff:'staff',mace:'mace',hammer:'maul',polearm:'halberd',greatsword:'greatsword',crossbow:'xbow',flintlock:'musket'};
 /* the new families draw by tier: an item's `look` when it names a drawn weapon, else its price rank among its family (same hands) */
 const US_TIERS={hammer:['warhammer','pickhammer'],hammer2:['maul','warmaul'],polearm2:['bill','halberd','glaive'],greatsword2:['greatsword','zweihander','runegreat'],crossbow2:['xbow','arbalest'],flintlock:['pistol'],flintlock2:['musket'],
@@ -1009,6 +1018,7 @@ function usEnemySpec0(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined
      const cx=c.hcx-5,y=c.hy0;usPart();for(let i=0;i<6;i++){usP(cx+3+i,y-2,R.ember,-1);if(i>0&&i<5)usP(cx+3+i,y-3,R.ember);if(i>1&&i<4)usP(cx+3+i,y-4,R.ember,1)}}}});
   case'thug':return set({b:B.brute,skin:sk('fair'),armor:'rags',ragC:'brown',hair:'bald',stubble:1,brow:1,wd:usWdef('club')});
   case'bmark':return set({b:B.human,skin:sk('tan'),armor:'leather',hat:'hood',hatR:C('night'),mask:1,wd:usWdef('warbow'),quiver:1});
+  case'bknife':return set({b:B.slim,skin:sk('fair'),armor:'leather',hat:'bandana',hatR:C('red'),mask:1,wd:usWdef(usWpnOf('tknives'))});   // the masteries update (11t-arms.js)
   case'bxbow':return set({b:B.human,skin:sk('tan'),armor:'leather',hat:'hood',hatR:C('night'),mask:1,wd:usWdef('xbow')});
   case'braid':return set({b:B.human,skin:sk('fair'),armor:'mail',hair:'short',hairR:hr('H'),beard:'short',hat:'kettle',wd:usWdef('arming'),shield:'heater',shR:C('night')});
   case'blead':return set({b:B.knight,skin:sk('fair'),armor:'scale',hair:'mane',hairR:hr('G'),beard:'full',hat:'feather',hatR:C('red'),patch:1,wd:usWdef('arming'),cape:C('red'),ws:1});
@@ -1036,6 +1046,7 @@ function usEnemySpec0(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined
   case'ashi':return set({b:B.human,skin:sk('fair'),hair:'topknot',hairR:hr('G'),armor:'lamellar',av:usArmorV('tatami'),hat:'jingasa',wd:usWdef('suyari'),sashR:R.red,back:c=>usSashi(c,R.white,'g',0)});
   case'ashiy':return set({b:B.human,skin:sk('fair'),hair:'topknot',hairR:hr('G'),armor:'lamellar',av:usArmorV('tatami'),hat:'jingasa',wd:usWdef('hankyu'),quiver:1,sashR:R.red,back:c=>usSashi(c,R.white,'g',0)});
   case'shinobi':return set({b:B.slim,skin:sk('fair'),armor:'padded',clothR:C('black'),legR:usRamp('013',0),hat:'hood',hatR:C('black'),mask:1,eye:'0',wd:usWdef('wakizashi'),sashR:R.red});
+  case'kageuchi':return set({b:B.slim,skin:sk('fair'),armor:'padded',clothR:C('night'),legR:usRamp('013',0),hat:'hood',hatR:C('night'),mask:1,eye:'0',wd:usWdef(usWpnOf('shuriken')),sashR:R.blue||R.red});
   case'sohei':return set({b:B.brute,skin:sk('tan'),armor:'robe',robeC:'white',av:usArmorV('kesa'),hat:'hood',hatR:C('white'),beads:'i',brow:1,wd:usWdef('naginata'),trim:R.gold});
   case'onna':return set({b:B.slim,skin:sk('pale'),hair:'long',hairR:hr('G'),armor:'lamellar',av:usArmorV('do'),hat:'hachigane',hatR:R.white,wd:usWdef('naginata'),sashR:R.white,odoR:R.red});
   case'samurai':return set({b:B.human,skin:sk('fair'),hair:'topknot',hairR:hr('G'),armor:'lamellar',av:usArmorV('domaru'),hat:'kabuto',odoR:R.gold,wd:usWdef('katana'),brow:1,sashR:R.white,back:c=>usSashi(c,R.blk,'c',1)});

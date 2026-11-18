@@ -24,6 +24,9 @@
      injure     such a hit can also injure the target (company mercs only)
      shield     {min,max,hp,brk,sure} for shield-splitting abilities: damage to the shield, its hitpoints, whether it can / must break; else null
      riposte    a miss draws a riposte from the target
+   Masteries update (60p-passives.js; the hit chance and the damage figures already hold the new perks' terms):
+     counter    chance (0..1) that a miss draws the target's Counter-cut (a free attack), else 0
+     ammo       throws (or barrels) the attacker's weapon has left, or null       out   no throw left for this one: it cannot be ordered
    Talents and arms:
      locked     the attacker is ranged-locked (a foe next to it): a shot cannot be ordered (canUse/validTargets refuse it)
      undying    the target survives a killing blow at 1 hitpoint (Undying perk or Lucky trait not yet spent; kill / sure are false then)
@@ -92,12 +95,15 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const bl=bleedOf(u,a),po=poisonOf(u,a),pch=n?(()=>{const pb=posB/n,ph=posH/n;return(!useH||ph===1)&&(!useB||pb===1)?1:(useH?f.headCh/100*ph:0)+(useB?(1-f.headCh/100)*pb:0)})():0;
  if(bl&&pch>0)st.bleed={k:'bleed',n:Math.max(bl,st.bleed?st.bleed.n:0),ch:pch};
  if(po&&pch>0)st.poison={k:'poison',n:Math.max(po,st.poison?st.poison.n:0),ch:pch};   // Venomed blade (Rogue): poison rides on a hit that reaches hitpoints, like bleeding
+ if(!a.noDmg)pvFcStatus(u,t,a,st,pch,f.headCh);   // the masteries' statuses (60p-passives.js), with their odds
  statusConv(t,st);
  if(st.stun){const tf=t.flags||{};if(tf.noStun)delete st.stun;else if(tf.roll>0)st.stun.ch*=1-tf.roll}   // Unshakable, Rolling with it
  for(const k in st)if(st[k].n>0)f.statuses.push(st[k]);
  const kn=a.kb||u.kbN||0,imm=kbImmune(t),rl=1-((t.flags&&t.flags.roll)||0);if(kn)f.kb={n:kn,ch:imm?0:(a.kb?1:u.kbCh||0)*rl,crash:a.crash||u.crashD||0};if(a.pull)f.pull={n:a.pull,ch:imm||mdist(u,t)<=1?0:rl};
- if(kind===2&&!o.free&&!sure&&los.ff.length){const ch=(100-f.hit)*FFCH/los.ff.length;f.ff=los.ff.map(x=>({t:x,ch}))}
+ if(kind===2&&!o.free&&!sure&&los.ff.length&&!(u.flags&&u.flags.noStray)){const ch=(100-f.hit)*FFCH/los.ff.length;f.ff=los.ff.map(x=>({t:x,ch}))}
  f.riposte=!sure&&!o.free&&!a.magic&&mdist(u,t)===1&&buffSum(t,'rip')>0&&canFree(t);
+ {const g=t.flags||{};f.counter=!sure&&!o.free&&!a.magic&&mdist(u,t)===1&&!f.riposte&&g.counter>0&&isDuel(t,FREEAB)&&canFree(t)?g.counter:0}   // Counter-cut: the chance a miss draws one
+ f.ammo=ammoLeft(u);f.out=outOfThrows(u,a);   // throws left (null: not a throwing weapon), none left for this throw
  f.realm=fcRealm(u,a);   // a portal realm's say in this strike (24-endgame.js), already inside the figures
  f.lines=typeof legendFcLines==='function'?legendFcLines(u,t,a):[];   // legendary powers (25-legend.js): [{k,t}] for the HUD
  return f}

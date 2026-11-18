@@ -460,7 +460,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    /* -- weapon and shield skills -- */
    A.park();
    { const sk={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
-       hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
+       hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast'],throwing:['tstrike']},own={pike:'impale',greataxe:'split,round',maul:'batter,hsmash',warmaul:'batter,hsmash',bill:'hook'};
      for(const id in X.ITEMS){const it=X.ITEMS[id];if(it.k==='w'){const bid=it.famed&&it.base?it.base:id,ea=!!(X.ITEMS[bid]&&(X.ITEMS[bid].east||X.ITEMS[bid].glad));   // eastern and gladiator gear (19-east.js, 11-gladiators.js): their own skill lists, up to three
       ok(Array.isArray(it.sk)&&it.sk.length>=1&&it.sk.length<=(ea?3:2)&&it.sk.every(a=>X.AB[a]&&X.AB[a].n&&X.AB[a].d),'weapon '+id+' has no skills');ok(ea||it.sk.join()===(((X.WSKID&&X.WSKID[bid])||(own[bid]&&own[bid].split(','))||sk[it.wt]).join()),'weapon '+id+' has the wrong skills');
         ok(!!it.reload===it.sk.includes('reload')&&(!it.reload||(X.isRangedW(it)&&it.reload.ap>=2&&it.reload.fat>=0)),'weapon '+id+': reload weapons are ranged and carry the reload skill')}
@@ -661,7 +661,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    const styles=keys.filter(k=>kind(k)==='style'),gifts=keys.filter(k=>kind(k)==='gift'),wts=keys.filter(k=>kind(k)==='weapon');
    ok(styles.length>=12&&['vanguard','bulwark','marksman','skirmisher'].every(k=>kind(k)==='style'),'at least 12 style trees, the four old ones kept');
    ok(wts.join()==='weapons'&&M.weapons.tiers.length===1&&M.weapons.tiers[0].map(p=>p.wt).join()===X.WTS.join()&&M.weapons.tiers[0].every(p=>p.id==='weapons.'+p.wt),'one weapon tree: one mastery per family (13 families and the shield), ids weapons.<family>');
-   ok(X.WTS.length===14&&['sword','axe','mace','dagger','spear','bow','staff','fist','hammer','polearm','greatsword','crossbow','flintlock','shield'].every(w=>X.WTS.includes(w)),'WTS lists every weapon family');
+   ok(X.WTS.length===15&&['sword','axe','mace','dagger','spear','bow','staff','fist','hammer','polearm','greatsword','crossbow','flintlock','throwing','shield'].every(w=>X.WTS.includes(w)),'WTS lists every weapon family');
    ok(M.weapons.tiers[0].every(p=>!p.ab&&Object.keys(p.wmod||{}).length+Object.keys(p.mod||{}).length===1),'each weapon mastery has one clear effect');
    for(const k of styles.concat(gifts))ok(M[k].tiers.length===6&&M[k].tiers.every(t=>t.length>=1),k+': 6 tiers');
    ok(M.mana.style==='caster'&&M.aura.style==='melee'&&M.qi.style==='melee'&&M.chi.style==='support'&&['mana','aura','qi','chi'].every(k=>kind(k)==='gift'&&M[k].res===k),'the four old gift trees keep their keys');
@@ -891,8 +891,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    { X.store.clear();X.seedRng(SEED+7275);X.newGame(true);closeAll(X);const R0=X.G.roster;ok(R0.length>=4,'fixture roster');
      Object.assign(R0[0],{bg:'sellsword',race:'human',lvl:9,pp:0,trees:['vanguard','bulwark','brute','duelist'],perks:['vanguard.1','sword.1a','sword.2b','medarmor.1a','medarmor.1b','medarmor.2b','sword.cap'],deeds:{bane:1}});
      Object.assign(R0[1],{bg:'hunter',race:'human',lvl:9,pp:1,trees:['marksman','scout','survivor','skirmisher'],gift:null,perks:['marksman.1','scout.2','hunter.gob','hunter.wolf','lightarmor.3b']});
-     Object.assign(R0[2],{bg:'hunter',race:'human',lvl:4,pp:0,trees:['marksman','scout','survivor','skirmisher'],gift:null,perks:['marksman.1','scout.2','survivor.3','skirmisher.4']});
-     Object.assign(R0[3],{bg:'wildling',race:'human',lvl:6,pp:0,trees:['berserker','brute','survivor','vanguard'],gift:null,perks:['berserker.1','brute.2','survivor.3','vanguard.4','hunter.ogre']});
+     Object.assign(R0[2],{bg:'hunter',race:'human',lvl:4,pp:0,trees:['marksman','scout','survivor','skirmisher'],gift:null,perks:['marksman.1','scout.2','survivor.3','skirmisher.3']});
+     Object.assign(R0[3],{bg:'wildling',race:'human',lvl:6,pp:0,trees:['berserker','brute','survivor','vanguard'],gift:null,perks:['berserker.1','brute.3','survivor.3','vanguard.4','hunter.ogre']});
      const rv=X.G.rivals&&X.G.rivals[0]&&X.G.rivals[0].roster[0];if(rv)Object.assign(rv,{bg:'hunter',race:'human',perks:['shield.1a','lightarmor.1b'],pp:0});
      ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=14;X.store.set(X.SAVEKEY,JSON.stringify(g));
      const r=X.readSave();ok(r.state==='ok'&&r.v===14&&r.g.v===X.SAVEVER&&X.SAVEVER>=15,'a version 14 save was not migrated to 15+');const [A,H,H2,W]=r.g.roster;
@@ -909,11 +909,11 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const olds=[{vanguard:2,bulwark:0,aura:1},{marksman:4,skirmisher:1,qi:2},{bulwark:3,vanguard:1,chi:5},{skirmisher:0,mana:3,bulwark:1}];
      g.roster.forEach((m,i)=>{delete m.trees;delete m.gift;delete m.perks;delete m.eq.b;m.mast=olds[i%4];m.lvl=6;m.pp=1});g.towns.forEach(t=>t.recruits.forEach(m=>{delete m.trees;delete m.gift;delete m.perks;delete m.eq.b;m.mast={vanguard:0,skirmisher:0}}));
      X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.v===4&&r.g.v===X.SAVEVER,'a version 4 save was not migrated');
-     const R=r.g.roster;ok(R[0].perks.join()==='vanguard.1,vanguard.2,aura.1'&&R[0].gift==='aura'&&R[1].perks.join()==='marksman.1,marksman.2,marksman.3,marksman.4,skirmisher.1,qi.1,qi.2'&&R[1].gift==='qi'&&R[2].perks.length===9&&R[3].gift==='mana','old masteries must map to their tier perks: '+R.map(m=>m.perks.join(' ')).join(' | '));
+     const R=r.g.roster;ok(R[0].perks.join()==='vanguard.1,aura.1'&&R[0].pp===2&&R[0].gift==='aura'&&R[1].perks.join()==='marksman.1,marksman.2,marksman.4,skirmisher.1,qi.1'&&R[1].pp===3&&R[1].gift==='qi'&&R[2].perks.length===6&&R[3].gift==='mana','old masteries must map to their tier perks, and v20 hands back the perks that changed: '+R.map(m=>m.perks.join(' ')).join(' | '));
      ok(R.every(m=>m.trees.filter(k=>kind(k)==='style').length===4&&m.eq.b===null&&m.pp===1&&m.trees.includes(m.gift||'vanguard')||m.trees.filter(k=>kind(k)==='style').length===4&&m.eq.b===null),'migrated mercs must carry 4 style trees, an empty sidearm slot and their points');
      ok(R[0].trees.includes('vanguard')&&R[0].trees.includes('bulwark')&&R[1].trees.includes('marksman'),'migrated mercs keep their old trees');
-     const c0=X.calc(R[0]);ok(c0.res.aura&&c0.res.aura.max===X.GIFTBASE&&c0.abs.includes('astrike')&&c0.abs.includes('shove')&&c0.ms>=R[0].base.ms+8,'old perks keep their effects');
-     ok(X.calc(R[3]).res.mana.max===X.GIFTBASE&&X.calc(R[3]).abs.includes('blink')&&X.calc(R[2]).res.chi.max===X.GIFTBASE+15,'old gift pools');
+     const c0=X.calc(R[0]);ok(c0.res.aura&&c0.res.aura.max===X.GIFTBASE&&c0.abs.includes('astrike')&&!c0.abs.includes('shove')&&c0.ms>=R[0].base.ms+8,'old perks keep their effects');
+     ok(X.calc(R[3]).res.mana.max===X.GIFTBASE&&X.calc(R[3]).abs.includes('bolt')&&!X.calc(R[3]).abs.includes('blink')&&X.calc(R[2]).res.chi.max===X.GIFTBASE+15,'old gift pools');
      ok(r.g.towns.every(t=>t.recruits.every(m=>Array.isArray(m.perks)&&m.trees.length>=4)),'recruits in towns are migrated too');
      X.G=null;X.mode='title';X.continueGame();ok(X.mode==='world'&&X.G.roster.length===4,'a migrated v4 save did not load');scan(X.G,'G');
      const res=await X.autoBattle({f:'gob',mult:.6,biome:'plains',src:{type:'sim'},turnCap:TURNCAP});ok(res&&!res.stuck,'a migrated v4 company could not fight');X.settleBattle(res.win);X.store.clear() }
@@ -1187,7 +1187,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      for(let i=0;i<PER;i++){X.G.roster=X.clone(comps[ti][i%3]);X.G.day=tier.day;X.seedRng(SEED+5000+nb);
       const res=await X.autoBattle({f,mult:MULT[i%4],biome:biomes[(nb+i)%biomes.length],src:{type:'sim'},turnCap:TURNCAP});
       ok(res,'auto-battle did not start');if(res.stuck)fail(`auto-battle #${nb} vs ${f} (level ${tier.lvl}) did not end within ${TURNCAP} turns`);
-      scan(X.B,'B');const left=X.B.units.filter(u=>u.alive);ok(left.length&&left.every(u=>u.side===left[0].side)&&(left[0].side===0)===res.win,'battle ended with both sides standing or the wrong winner');
+      scan(X.B,'B');const left=X.B.units.filter(u=>u.alive);ok(left.length?left.every(u=>u.side===left[0].side)&&(left[0].side===0)===res.win:!res.win,'battle ended with both sides standing or the wrong winner');   // nobody left (a Volatile or Thorned elite's last blow takes the last sword with it): a loss
       X.settleBattle(res.win);scan(X.G,'G');nb++;stats[f].n++;byTier[ti].n++;if(res.win){stats[f].w++;byTier[ti].w++}turnsMax=Math.max(turnsMax,res.turns);roundsSum+=res.rounds;
       sim.push(`${f}${ti}:${res.win?'W':'L'}:${res.turns}:${res.crowns}:${res.dead.length}`);if(nb%16===0)await tick()}}}
    ok(QUICK||nb>=500,'fewer than 500 auto-battles ran');

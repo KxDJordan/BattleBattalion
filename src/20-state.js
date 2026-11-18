@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=19;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=20;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -134,8 +134,28 @@ const MIGRATE={
  17:g=>g,
  /* v19: the company's colours on its clothes (73q-parts2.js p2Recolour): G.wearCol {coat: surcoats and tabards in the flag's colours,
     cloth: every merc's fabric too}. Older companies keep the look they had: coats in their colours, everyday clothes as they were. */
- 18:g=>{g.wearCol={coat:true,cloth:false};return g}
+ 18:g=>{g.wearCol={coat:true,cloth:false};return g},
+ /* v20: the masteries update. Most tree abilities became passives under the same perk ids (PERKV20: every id whose perk changed);
+    the Gunnery and Throwing arms trees and the throwing weapon family joined (11t-arms.js: some backgrounds' weapon families and pools
+    changed: hunters and nomads trade the spear mastery for throwing weapons). The company's swords get every changed perk they had
+    learned taken back with its point returned, to spend again (an ability they had is gone with it; the abilities they keep come from the
+    perks they keep, as always), and so do perks of weapon families their background no longer allows (refundTrees); G.refund / G.note
+    'refund' list them as in v8. Recruits waiting in towns and the rival companies' swords keep the new passives in place of the old
+    perks (no points move) and lose only what refundTrees takes, its points spent again by autoLearn. Draws no randomness. */
+ 19:g=>{const out=[],fix=(m,own)=>{if(!svObj(m)||!Array.isArray(m.perks))return;m.perks=m.perks.filter(id=>typeof id==='string');let n=0;
+   if(own){const keep=m.perks.filter(id=>!PERKV20.includes(id));n=m.perks.length-keep.length;m.perks=keep;if(n)m.pp=Math.max(0,Math.floor(svNum(m.pp,0)))+n}
+   if(BG[m.bg]){const r=refundTrees(m);n+=r;if(r&&!own&&typeof autoLearn==='function')try{autoLearn(m)}catch(e){}}
+   if(typeof syncMast==='function')syncMast(m);if(n&&own)out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})};
+  if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
+  if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(m=>fix(m,false))});
+  if(out.length){const L=Array.isArray(g.refund)?g.refund:[];for(const x of out){const o=L.find(y=>svObj(y)&&y.name===x.name);if(o)o.n=Math.max(0,Math.floor(svNum(o.n,0)))+x.n;else L.push(x)}
+   g.refund=L;g.refundWhy='masteries';if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
 };
+// v20: the perk ids whose perk changed in the masteries update (an ability that became a passive); they keep their tier and tree
+const PERKV20=['vanguard.2','bulwark.4','marksman.3','marksman.5','skirmisher.2','skirmisher.4','duelist.2','duelist.6','brute.2','shieldbearer.4','tactician.2','tactician.4',
+ 'medic.3','medic.6','scout.6','berserker.6','sharpshooter.6','brawler.4','brawler.5','brawler.6','assassin.2','assassin.4','rogue.4','rogue.6','shadow.6','gladiator.2','gladiator.5',
+ 'gladiator.6','champion.2','dualwield.4','dualwield.5','mana.2','mana.3','mana.4','mana_m.2','mana_m.3','mana_r.3','mana_r.4','aura.2','aura.3','aura.4','aura_r.2','aura_r.4',
+ 'qi.2','qi.3','qi.4','qi_r.2','qi_r.3','qi_r.4','chi.1','chi.3','chi.4','chi_m.3','chi_r.3'];
 /* rerollRogueTrees(m, seed): a merc whose background may draw a light-blade tree but who has none: keeps the trees it has perks in (and the
    Monster hunter tree), fills the other slots from a fresh roll of its background's pool. Deterministic (its own stream from the world seed
    and the merc's id; the game stream is untouched). Fabled warriors keep their trees. Returns true when the trees changed. */

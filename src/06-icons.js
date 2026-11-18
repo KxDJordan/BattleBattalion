@@ -6335,7 +6335,7 @@ function abCategory(a,id){a=a||{};const s=(String(id||a.id||'')+' '+(a.n||'')+' 
 function abTint(a){a=a||{};if(a.cost&&IC_TINT[a.cost[0]])return a.cost[0];const st=a.status||{};
  if(st.burn||/fire|flame|burn/.test(a.fx||''))return'fire';if(st.chill||/frost|ice|chill/.test(a.fx||''))return'ice';if(st.poison||st.poisoned||/poison|venom/.test(a.fx||''))return'green';
  if(a.foe)return a.magic||a.summon||/void|hex|grave|curse|shadow/.test((a.fx||'')+(a.n||'').toLowerCase())?'void':'foe';return a.magic?'mana':'gold'}
-function icResolve0(name){name=String(name);if(icHas(name))return name;const al=IC_ALIAS[name];if(al&&icHas(al))return al;let rows=null,m;
+function icResolve0(name){name=String(name);if(icHas(name))return name;const al=IC_ALIAS[name];if(al&&icHas(al))return al;if(al&&al.slice(0,3)==='it-'){const r=icResolve(al);if(r!=='none')return r}let rows=null,m;
  if(name.slice(0,3)==='ab-'){const id=name.slice(3),a=typeof AB!=='undefined'&&AB&&AB[id]||null,s=(id+' '+(a&&a.n||'')+' '+(a&&a.fx||'')).toLowerCase();
   for(const k of IC_ABKEY)if(k[0].test(s)&&icHas(k[1]))return k[1];
   rows=icTinted(abCategory(a,id),abTint(a),icHash(id)&3)}

@@ -195,11 +195,11 @@ Object.assign(ITEMS,{
  heraldcoat:{k:'c',n:'Heraldic coat',coat:'herald',brv:7,rd:1,fat:1,price:650,tier:3,look:'heraldcoat',uniq:1,tailor:1,d:'Fine wool, the charge embroidered large and a bordered hem: the colours worn with pride.'},
  jinbaori:{k:'c',n:'Jinbaori',coat:'jinbaori',brv:5,init:2,fat:1,price:480,tier:3,look:'jinbaori',uniq:1,tailor:1,east:1,d:'An eastern sleeveless campaign coat with the mon on the back. Only eastern tailors cut it.'}
 });
-const RANGEDWT=['bow','crossbow','flintlock'];
+const RANGEDWT=['bow','crossbow','flintlock','throwing'];   // throwing: knives, axes, stars and javelins (11t-arms.js)
 // A ranged weapon (bow, crossbow, flintlock, or an enemy's ranged attack): it shoots with ranged skill, obeys the ranged lock, takes no free attacks.
 function isRangedW(w){return!!(w&&RANGEDWT.includes(w.wt))}
 const WSK={sword:['slash','riposte'],axe:['split'],mace:['stunblow'],dagger:['puncture'],spear:['thrust','spearwall'],bow:['quick'],staff:['sweep'],
-  hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast']},
+  hammer:['batter'],polearm:['hook','reap'],greatsword:['halfsword','gswing'],crossbow:['reload','xaim'],flintlock:['reload','blast'],throwing:['tstrike']},
  WSKID={greataxe:['split','round'],pike:['impale'],maul:['batter','hsmash'],warmaul:['batter','hsmash'],bill:['hook']},
  SHIELDHP={buckler:32,kite:64,heater:80,roundshield:50,ironround:66,spiked:56,warspiked:72,tower:110,steeltower:140},SHIELDSK={spiked:['shieldwall','spikebash'],warspiked:['shieldwall','spikebash']};
 // the new items' own skill sets (where one differs from its family's) and shield hitpoints
@@ -208,7 +208,7 @@ Object.assign(SHIELDHP,{targe:36,steelbuckler:44,pavise:100,kite2:84,heater2:96,
 for(const id in ITEMS){const i=ITEMS[id];if(i.k==='w')i.sk=WSKID[id]||WSK[i.wt]||[];else if(i.k==='s'){i.sk=SHIELDSK[id]||['shieldwall','bash'];i.hp=SHIELDHP[id]||48}}
 function itemDesc(id){const i=ITEMS[id];if(i.k==='t')return`Trade good, worth ${i.price} crowns where it is not made (half where it is)`;
  if(i.k==='c'){const L=[];if(i.brv)L.push('+'+i.brv+' resolve');if(i.md)L.push('+'+i.md+' melee def');if(i.rd)L.push('+'+i.rd+' ranged def');if(i.init)L.push('+'+i.init+' initiative');L.push(i.fat?'−'+i.fat+' fatigue':'no weight');return L.join(', ')}
- if(i.k==='w')return`${i.d[0]}–${i.d[1]} dmg, ${i.ap} AP${i.rng>1?(isRangedW(i)?', range ':', reach ')+i.rng:''}${i.two?', two-handed':''}${i.reload?', reload '+i.reload.ap+' AP':''}${i.crush?', crushes armor (+'+Math.round(i.crush*100)+'%)':''}${i.ign>=.5?', '+Math.round(i.ign*100)+'% through armor':''}${i.spell?', +'+Math.round(i.spell*100)+'% spell dmg':''}`;
+ if(i.k==='w')return`${i.d[0]}–${i.d[1]} dmg, ${i.ap} AP${i.rng>1?(isRangedW(i)?', range ':', reach ')+i.rng:''}${i.two?', two-handed':''}${i.reload?', reload '+i.reload.ap+' AP':''}${i.barrels>1?', '+i.barrels+' barrels':''}${i.ammo?', '+i.ammo+' throws':''}${i.brace?', braced (−'+i.brace+' to hit after moving)':''}${i.crush?', crushes armor (+'+Math.round(i.crush*100)+'%)':''}${i.ign>=.5?', '+Math.round(i.ign*100)+'% through armor':''}${i.spell?', +'+Math.round(i.spell*100)+'% spell dmg':''}`;
  if(i.k==='s')return`+${i.md} melee def, +${i.rd} ranged def, ${i.hp} shield hp, −${i.fat} fatigue${i.wallB?', shield wall +'+i.wallB:''}${i.guard?', covers allies beside it (−'+i.guard+' to be shot)':''}${i.spike?', spiked bash '+i.spike[0]+'–'+i.spike[1]:''}`;
  const cl=typeof armorPieceClass==='function'?armorPieceClass(id):null;return`${cl?cl[0].toUpperCase()+cl.slice(1)+' · ':''}${i.arm} ${i.k==='h'?'head ':''}armor, −${i.fat} fatigue`}
 const AB={
@@ -455,42 +455,42 @@ const INJ={
      the rogues' trees (assassin rogue shadow): stabDmg stabHit wakeDmg lightBleed lightPoison lightFingers dirtyDmg dirtyHit quickstep flow readInit firstHit firstDmg
      (light-weapon terms read isLightW; aff 'lightw' = a light weapon in hand, read by autoLearn) */
 const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
- WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','staff','fist','shield'];   // weapon families in display order (the weapon mastery perks; 'shield': a raised shield)
+ WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','throwing','staff','fist','shield'];   // weapon families in display order (the weapon mastery perks; 'shield': a raised shield)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
 const MAST={
  /* ---- style trees ---- */
  vanguard:{n:'Vanguard',kind:'style',aff:['melee'],d:'Front-line killing craft',tiers:[
-  [perkDef('Steady hand','+8 melee skill',{st:{ms:8}})],[perkDef('Shove','Ability: push an adjacent foe back 1 tile (3 AP)',{ab:'shove'})],
+  [perkDef('Steady hand','+8 melee skill',{st:{ms:8}})],[perkDef('Press the attack','+8 to hit and +10% damage in melee against the foe you last hit in melee',{mod:{pressHit:8,pressDmg:.1}})],
   [perkDef('Executioner','+25% damage to foes below half health',{flag:'exec'})],[perkDef('Berserk','Regain 4 AP on a kill, once per turn',{flag:'berserk'})],
   [perkDef('Cleaving blows','+10% damage with melee weapons',{mod:{dmgMelee:.1}})],[perkDef('Decapitate','Ability: a stroke at the neck: +60% damage against a foe below half health, +25% head chance',{ab:'decap'})]]},
  bulwark:{n:'Bulwark',kind:'style',aff:['melee','shield'],d:'Holding the line',tiers:[
   [perkDef('Stalwart','+6 melee and ranged defense',{st:{md:6,rd:6}})],[perkDef('Colossus','+15 hitpoints',{st:{hp:15}})],
-  [perkDef('Battle-forged','Take 15% less damage while your body armor holds',{flag:'forged'})],[perkDef('Indomitable','Ability: take half damage and ignore knockback for 2 turns (4 AP)',{ab:'indom'})],
+  [perkDef('Battle-forged','Take 15% less damage while your body armor holds',{flag:'forged'})],[perkDef('Unmoved','You cannot be knocked back or dragged; every melee attack that misses you gives +1 AP on your next turn (at most +2 between your turns)',{flag:'kbImm',mod:{missAP:1}})],
   [perkDef('Hold the line','+6 melee and ranged defense while an ally stands next to you',{mod:{adjDef:6}})],[perkDef('Bastion','Ability: +20 melee and ranged defense, 20% less damage and no knockback until your next turn',{ab:'bastion'})]]},
  marksman:{n:'Marksman',kind:'style',aff:['ranged','bow'],d:'Bow work',tiers:[
   [perkDef('Bullseye','+10 ranged skill',{st:{rs:10}})],[perkDef('Aimed shot','Ability: a slow shot at +25 to hit for 130% damage',{ab:'aimed'})],
-  [perkDef('Pinning shot','Ability: 70% damage and the target cannot move on its next turn',{ab:'pin'})],[perkDef('Eagle eye','+1 bow range, +5 ranged skill',{st:{rs:5},flag:'eagle'})],
-  [perkDef('Volley','Ability: arrows on a foe and everyone beside it: 80% damage to the target, 56% to each neighbour',{ab:'volley'})],
+  [perkDef('Hamstring shot','A bow or crossbow hit that reaches hitpoints hobbles the target: it loses 2 AP at the start of its next turn',{mod:{hobbleShot:1}})],[perkDef('Eagle eye','+1 bow range, +5 ranged skill',{st:{rs:5},flag:'eagle'})],
+  [perkDef('Draw and loose','Your first bow shot each turn (Shoot or a bow skill) costs 1 AP less (at least 2)',{flag:'drawLoose'})],
   [perkDef('Deadeye','+15% damage with ranged weapons, +10% head chance with weapon attacks',{mod:{dmgRanged:.15,headB:10}})]]},
  skirmisher:{n:'Skirmisher',kind:'style',aff:['melee','ranged','light'],d:'Movement and evasion',tiers:[
-  [perkDef('Pathfinder','Climbing and rough ground cost no extra AP',{flag:'path'})],[perkDef('Footwork','Ability: step 1 tile without drawing free attacks',{ab:'footwork'})],
-  [perkDef('Dodge','+8 melee and ranged defense',{st:{md:8,rd:8}})],[perkDef('Adrenaline','Ability: gain 4 AP, once per battle',{ab:'adren'})],
+  [perkDef('Pathfinder','Climbing and rough ground cost no extra AP',{flag:'path'})],[perkDef('Hit and run','After you attack on your turn, the next tile you leave draws no free attacks',{flag:'hitRun'})],
+  [perkDef('Dodge','+8 melee and ranged defense',{st:{md:8,rd:8}})],[perkDef('Momentum','+5% damage for every 2 tiles you have moved this turn (at most +15%)',{mod:{momentum:.05}})],
   [perkDef('Evasion','+10 melee and ranged defense while no ally stands next to you',{mod:{loneDef:10}})],[perkDef('Tumble','Ability: roll up to 3 tiles without drawing free attacks',{ab:'tumble'})]]},
  duelist:{n:'Duelist',kind:'style',aff:['melee','one'],d:'One blade, one free hand',tiers:[
-  [perkDef('En garde','+6 to hit in melee with a one-handed weapon and no shield raised',{mod:{duelHit:6}})],[perkDef('Lunge','Ability: close 1 tile and strike in one motion, +10 to hit',{ab:'lunge'})],
+  [perkDef('En garde','+6 to hit in melee with a one-handed weapon and no shield raised',{mod:{duelHit:6}})],[perkDef('Counter-cut','With a one-handed melee weapon, no shield raised and no off-hand weapon: a foe whose melee attack misses you takes a free counter-cut 30% of the time',{mod:{counter:.3}})],
   [perkDef('Precise cuts','+15% damage with a one-handed melee weapon and no shield raised',{mod:{duelDmg:.15}})],[perkDef('Parry','Ability: +15 melee defense and riposte every melee miss until your next turn',{ab:'parry'})],
-  [perkDef('Blade footwork','+6 melee defense, +10 initiative',{st:{md:6,init:10}})],[perkDef('Flurry','Ability: two strikes at 80% damage, +5 to hit each',{ab:'flurry'})]]},
+  [perkDef('Blade footwork','+6 melee defense, +10 initiative',{st:{md:6,init:10}})],[perkDef('Blade dance','Every melee hit you land on your turn gives +5 to hit for the rest of that turn (at most +15)',{mod:{chainHit:5}})]]},
  brute:{n:'Brute',kind:'style',aff:['melee','two'],d:'Two hands, one swing',tiers:[
-  [perkDef('Heavy grip','+10% damage with two-handed melee weapons',{mod:{twoDmg:.1}})],[perkDef('Cleave','Ability: a two-handed sweep at every adjacent foe for 80% damage',{ab:'cleave'})],
+  [perkDef('Heavy grip','+10% damage with two-handed melee weapons',{mod:{twoDmg:.1}})],[perkDef('Follow-through','With a two-handed melee weapon, a melee kill carries on into the weakest other foe next to you: a free blow at 50% damage',{mod:{follow:.5}})],
   [perkDef('Crush armor','+10% armor piercing on weapon attacks',{mod:{ignB:.1}})],[perkDef('Brute strength','+10 hitpoints, +10 fatigue',{st:{hp:10,fat:10}})],
   [perkDef('Merciless','+15% damage to foes below half health',{mod:{vsHurt:.15}})],[perkDef('Earthsplitter','Ability: a two-handed overhead blow: 160% damage, +20% armor piercing, stuns, −5 to hit',{ab:'earthsplit'})]]},
  shieldbearer:{n:'Shieldbearer',kind:'style',aff:['shield'],d:'The shield is a weapon too',tiers:[
   [perkDef('Shield training','A raised shield gives +5 more melee and ranged defense',{mod:{shieldDef:5}})],[perkDef('Cover','Shots and spells against allies next to you get −8 to hit',{mod:{guard:8}})],
-  [perkDef('Turtle','Take 15% less damage from shots and spells',{mod:{drRanged:.15}})],[perkDef('Shield slam','Ability: drive the rim into a foe: 70% damage, +5 to hit, stuns',{ab:'slam'})],
+  [perkDef('Turtle','Take 15% less damage from shots and spells',{mod:{drRanged:.15}})],[perkDef('Shield bind','While your shield is raised, a foe whose melee attack misses you is thrown off balance: −10 melee defense until its next turn',{mod:{bindOff:1}})],
   [perkDef('Reinforced rim','Your shield has 50% more hitpoints',{mod:{shieldHp:.5}})],[perkDef('Phalanx','Ability: you and every ally next to you get +10 melee and ranged defense until your next turn',{ab:'phalanx'})]]},
  tactician:{n:'Tactician',kind:'style',aff:['support'],d:'Orders that win fights',tiers:[
-  [perkDef('Battle orders','Allies next to you get +5 to hit',{mod:{cmd:5}})],[perkDef('Rally','Ability: allies within 3 tiles regain a step of morale (up to steady) and +10 resolve for 2 turns',{ab:'rally'})],
-  [perkDef('Inspiring presence','Allies within 3 tiles get +10 resolve on morale checks',{mod:{brvAura:10}})],[perkDef('Command','Ability: an ally within 4 tiles gets +3 AP on its next turn',{ab:'command'})],
+  [perkDef('Battle orders','Allies next to you get +5 to hit',{mod:{cmd:5}})],[perkDef('Steadying voice','At the start of each of your turns, the most shaken ally within 3 tiles (breaking or wavering, not fleeing) regains one step of morale',{mod:{steadyV:1}})],
+  [perkDef('Inspiring presence','Allies within 3 tiles get +10 resolve on morale checks',{mod:{brvAura:10}})],[perkDef('Seize the moment','Every foe you kill gives the nearest ally within 4 tiles +2 AP on its next turn',{mod:{seizeAP:2}})],
   [perkDef('Read the field','+15 initiative, +6 ranged defense',{st:{init:15,rd:6}})],[perkDef('Hold fast!','Ability: you and allies within 2 tiles get +10 melee and ranged defense and +15 resolve for 2 turns',{ab:'holdfast'})]]},
  survivor:{n:'Survivor',kind:'style',aff:['melee','ranged','caster','support'],d:'Hard to put down',tiers:[
   [perkDef('Thick skin','+8 hitpoints',{id:'survivor.1',st:{hp:8}}),perkDef('Stubborn','When struck down, 65% chance to live instead of 30% (an injury all the same)',{id:'survivor.stubborn',mod:{downSurv:.65}})],[perkDef('Second wind','Ability: once per battle, shed 40 fatigue and recover 8–14 hitpoints',{ab:'secwind'})],
@@ -498,60 +498,60 @@ const MAST={
   [perkDef('Grit','Recover 4 hitpoints at the start of each of your turns',{mod:{regenHP:4}})],[perkDef('Undying','Once per battle, a blow that would kill you leaves you at 1 hitpoint',{flag:'undying'})]]},
  medic:{n:'Field medic',kind:'style',aff:['support'],d:'Keeps the company standing',tiers:[
   [perkDef('Bandage','Ability: heal yourself or an adjacent ally 10–16 hitpoints and stop bleeding',{ab:'bandage'})],[perkDef('Steady hands','+25% healing from your abilities',{mod:{healB:.25}})],
-  [perkDef('Triage','Ability: heal 6–10 and clear bleeding, burning, poison, daze, chill, roots and weakness',{ab:'triage'})],[perkDef('Watchful eye','Allies next to you recover 3 hitpoints at the start of their turns',{mod:{medAura:3}})],
-  [perkDef('Field surgeon','+25% more healing from your abilities, +5 resolve',{mod:{healB:.25},st:{brv:5}})],[perkDef('Miracle','Ability: once per battle, you and every ally within 2 tiles heal 14–22',{ab:'surge'})]]},
+  [perkDef('Field triage','At the start of each of your turns, whoever is worst afflicted of you and the allies next to you sheds bleeding, poison, burning and daze',{mod:{fieldTri:1}})],[perkDef('Watchful eye','Allies next to you recover 3 hitpoints at the start of their turns',{mod:{medAura:3}})],
+  [perkDef('Field surgeon','+25% more healing from your abilities, +5 resolve',{mod:{healB:.25},st:{brv:5}})],[perkDef('Guardian angel','Once per battle, a blow that would kill or strike down an ally within 3 tiles of you leaves it at 1 hitpoint instead',{flag:'angel'})]]},
  scout:{n:'Scout',kind:'style',aff:['ranged','light'],d:'Eyes ahead of the company',tiers:[
   [perkDef('Quick start','+12 initiative',{st:{init:12}})],[perkDef('Mark target','Ability: mark a foe within 7 tiles: +15 to hit it for its next 2 turns (2 AP, cannot miss)',{ab:'mark'})],
   [perkDef('Ambush','+20% damage to foes still at full health',{mod:{vsFull:.2}})],[perkDef('Quick hands','The first weapon swap each turn costs no AP',{flag:'freeSwap'})],
-  [perkDef('Flanker','+10 to hit in melee against a foe one of your allies is also next to',{mod:{flank:10}})],[perkDef('Vanish','Ability: slip up to 4 tiles away over anything, +15 melee and ranged defense until your next turn',{ab:'vanish'})]]},
+  [perkDef('Flanker','+10 to hit in melee against a foe one of your allies is also next to',{mod:{flank:10}})],[perkDef('Hard to pin down','Shots and spells from 4 or more tiles away get −12 to hit you',{mod:{farDef:12}})]]},
  berserker:{n:'Berserker',kind:'style',aff:['melee'],d:'Blood and fury',tiers:[
   [perkDef('Battle hunger','Recover 6 hitpoints whenever you kill a foe',{mod:{killHeal:6}})],[perkDef('Rage','Ability: +25% damage and −10 melee defense for 2 turns (2 AP)',{ab:'rage'})],
   [perkDef('Blood rage','+20% damage while below half health',{mod:{lowHpDmg:.2}})],[perkDef('Reckless','+10 melee skill, −5 melee defense',{st:{ms:10,md:-5}})],
-  [perkDef('Pain-fed','Take 10% less damage below half health; recover 6 more hitpoints on a kill',{mod:{lastStand:.1,killHeal:6}})],[perkDef('Whirlwind','Ability: strike every adjacent foe for 110% damage',{ab:'whirl'})]]},
+  [perkDef('Pain-fed','Take 10% less damage below half health; recover 6 more hitpoints on a kill',{mod:{lastStand:.1,killHeal:6}})],[perkDef('Unstoppable fury','Every enemy blow that reaches your hitpoints gives +5% damage for the rest of the battle (at most +25%)',{mod:{furyHit:.05}})]]},
  sharpshooter:{n:'Sharpshooter',kind:'style',aff:['ranged','bow'],d:'One shot, one body',tiers:[
   [perkDef('Sure aim','Your shots ignore 1 step of cover',{mod:{coverIgn:1}})],[perkDef('Headshot','Ability: +40% head chance, −5 to hit',{ab:'headshot'})],
   [perkDef('Long shot','No hit penalty for distance; +4 ranged skill',{mod:{longShot:1},st:{rs:4}})],[perkDef('Bodkin points','+15% armor piercing on weapon attacks',{mod:{ignB:.15}})],
-  [perkDef('Killing shot','+20% damage to foes below half health',{mod:{vsHurt:.2}})],[perkDef('Through and through','Ability: 120% damage, +20% armor piercing, then on into up to 2 foes behind for 75%',{ab:'pshot'})]]},
+  [perkDef('Killing shot','+20% damage to foes below half health',{mod:{vsHurt:.2}})],[perkDef('Overpenetration','A shot that kills flies on into the next foe in line behind the target for 50% damage',{mod:{overpen:.5}})]]},
  brawler:{n:'Brawler',kind:'style',aff:['melee'],d:'Fists, boots and foreheads',tiers:[
   [perkDef('Scrapper','+4 melee skill, +4 hitpoints',{st:{ms:4,hp:4}})],[perkDef('Kick','Ability: boot a foe back 1 tile and daze it, +10 to hit (3 AP)',{ab:'kick'})],
-  [perkDef('Iron jaw','+8 resolve; take 10% less damage from melee blows',{st:{brv:8},mod:{drMelee:.1}})],[perkDef('Headbutt','Ability: the foe loses its next turn; −10 to hit',{ab:'headbutt'})],
-  [perkDef('Grapple','Ability: hold a foe: it cannot move for 2 turns and is marked for 1',{ab:'grapple'})],[perkDef('Haymaker','Ability: 150% damage, knockback 2 and daze, −10 to hit',{ab:'haymaker'})]]},
+  [perkDef('Iron jaw','+8 resolve; take 10% less damage from melee blows',{st:{brv:8},mod:{drMelee:.1}})],[perkDef('Dirty boxing','Fighting unarmed or with a fist weapon, a melee hit dazes the foe 30% of the time',{mod:{fistDaze:.3}})],
+  [perkDef('Clinch','+15 to hit with your free attack on a foe that steps away from you',{mod:{clinch:15}})],[perkDef('Knockout','Fighting unarmed or with a fist weapon: +20% melee damage, and a melee hit that lands on the head stuns',{mod:{koDmg:.2}})]]},
   /* ---- the rogues' trees (rules: 60-battle-core.js rogueHit / rogueDmg, 30-mercs.js calc, abilities and statuses in 64r-rogues.js).
          A light weapon: bare fists, any dagger, or a one-handed melee weapon of at most 8 fatigue (short swords, the wakizashi): isLightW.
          Ids pinned: assassin.1-6, rogue.1-6, shadow.1-6. ---- */
  assassin:{n:'Assassin',kind:'style',aff:['melee','lightw'],d:'A knife where it is least expected',tiers:[
   [perkDef('Backstab','With a light weapon in hand: +20% damage and +5 to hit in melee against a foe one of your allies also stands next to',{id:'assassin.1',mod:{stabDmg:.2,stabHit:5}})],
-  [perkDef('Shadow strike','Ability: once per battle, with a light weapon in hand: a strike out of nowhere for 150% damage, +15 to hit, +30% armor piercing (4 AP)',{id:'assassin.2',ab:'shadowstrike'})],
+  [perkDef('From the shadows','With a light weapon in hand, your first attack of the battle, in melee: +15 to hit and +30% damage',{id:'assassin.2',mod:{sfHit:15,sfDmg:.3}})],
   [perkDef('Before they wake','With a light weapon in hand: +20% damage in melee against a foe that has not acted yet this round',{id:'assassin.3',mod:{wakeDmg:.2}})],
-  [perkDef('Death mark','Ability: mark a foe within 6 tiles for death (2 AP, cannot miss): it takes 15% more damage from every blow until 3 of its turns have passed; if it dies marked, the mark leaps to the nearest of its allies within 4 tiles for at least 2 more',{id:'assassin.4',ab:'deathmark'})],
+  [perkDef('Marked for death','With a light weapon in hand, a melee hit that reaches the hitpoints of a foe already below half health marks it for death for 2 turns (it takes 15% more damage from every blow; if it dies marked, the mark leaps to its nearest ally)',{id:'assassin.4',mod:{doomHurt:2}})],
   [perkDef('Opening wounds','With a light weapon in hand, a weapon blow that reaches hitpoints makes the foe bleed for 2 turns (6 hitpoints a turn)',{id:'assassin.5',mod:{lightBleed:2}})],
   [perkDef('Coup de grâce','Ability: with a light weapon in hand: 125% damage, +10 to hit, +25% armor piercing, a further +75% against a foe below half health; a kill gives back 3 AP (5 AP)',{id:'assassin.6',ab:'coupdegrace'})]]},
  rogue:{n:'Rogue',kind:'style',aff:['melee','lightw','support'],d:'Quick fingers and dirty tricks',tiers:[
   [perkDef('Light fingers','+5 initiative; a won battle you fought in yields 10% more crowns from the field (up to +30% with three such rogues)',{id:'rogue.1',st:{init:5},flag:'lightFingers'})],
   [perkDef('Pickpocket','Ability: lift the purse of an adjacent foe that carries one (3 AP, +10 to hit, no damage): crowns, and one time in five a piece of its band’s gear, that come home with you if you live or the field is won; the foe loses 2 AP on its next turn. Each foe can be robbed once',{id:'rogue.2',ab:'pickpocket'})],
   [perkDef('Venomed blade','With a light weapon in hand, a weapon blow that reaches hitpoints poisons the foe for 2 turns (6 hitpoints a turn through armor, more against higher-ranked bands)',{id:'rogue.3',mod:{lightPoison:2}})],
-  [perkDef('Pocket sand','Ability: sand in the eyes of an adjacent foe (3 AP, +10 to hit, no damage): blinded through its next turn: −15 melee and ranged skill, −10 melee defense, and it makes no free attacks',{id:'rogue.4',ab:'pocketsand'})],
+  [perkDef('Cheap shot','With a light weapon in hand, a melee hit blinds the foe through its next turn 20% of the time (−15 melee and ranged skill, −10 melee defense, no free attacks)',{id:'rogue.4',mod:{cheapBlind:.2}})],
   [perkDef('Low blow','+20% damage and +10 to hit against a foe that is dazed, blinded, stunned, rooted, webbed or fleeing',{id:'rogue.5',mod:{dirtyDmg:.2,dirtyHit:10}})],
-  [perkDef('Slip away','Ability: slip up to 3 tiles away (2 AP, no climbing more than 1 step), drawing no free attacks; +10 melee skill and +10 melee and ranged defense until your next turn',{id:'rogue.6',ab:'slipaway'})]]},
+  [perkDef('Opportunist','+10 to hit and +15% damage against a foe that has made a free attack since its last turn',{id:'rogue.6',mod:{oppHit:10,oppDmg:.15}})]]},
  shadow:{n:'Shadowdancer',kind:'style',aff:['melee','light'],d:'Never where the blow lands',tiers:[
   [perkDef('Light step','The first tile you move each turn costs 2 AP less (it is free on open ground); +5 initiative',{id:'shadow.1',st:{init:5},flag:'quickstep'})],
   [perkDef('Blur','Ability: until your next turn, +10 melee and ranged defense, and you strike back at every melee attack that misses you (3 AP)',{id:'shadow.2',ab:'blur'})],
   [perkDef('Flow','Every attack that misses you gives +4 melee and ranged defense until your next turn (up to +12); moving costs 1 fatigue a tile instead of 2',{id:'shadow.3',mod:{flow:4},flag:'footing'})],
   [perkDef('Read the blade','+1 melee and ranged defense for every 8 initiative above 90 (at most +8; with Quicksilver, at most +20 defense from initiative in all)',{id:'shadow.4',mod:{readInit:1}})],
   [perkDef('Quicker than thought','+10 to hit and +10% damage in melee against a foe that has not acted yet this round',{id:'shadow.5',mod:{firstHit:10,firstDmg:.1}})],
-  [perkDef('Untouchable','Ability: once per battle, +25 melee and ranged defense until your next turn (2 AP)',{id:'shadow.6',ab:'untouchable'})]]},
+  [perkDef('Afterimage','The first attack aimed at you after each of your turns gets −20 to hit',{id:'shadow.6',mod:{afterImg:20}})]]},
  /* ---- the gladiators' trees (the colosseum update; rules: 60-battle-core.js glHit / glDmg, abilities, statuses and hooks in 64g-gladiators.js).
         Ids pinned: gladiator.1-6, champion.1-6. ---- */
  gladiator:{n:'Gladiator',kind:'style',aff:['melee','support','one'],d:'Blood and sand, for the crowd',tiers:[
   [perkDef('Crowd-pleaser','+5 resolve. Every kill you make heartens the company: allies within 3 tiles who are below steady regain one step of morale, and you recover 5 hitpoints',{id:'gladiator.1',st:{brv:5},mod:{crowdKill:5}})],
-  [perkDef('Taunt','Ability: jeer at a foe within 4 tiles you can see (2 AP, cannot miss): Taunted until 2 of its turns have passed: −10 melee defense, −10 resolve, and it would rather strike you than anyone else',{id:'gladiator.2',ab:'taunt'})],
+  [perkDef('Payback','+10 to hit and +10% damage against a foe that has attacked you since your last turn',{id:'gladiator.2',mod:{payHit:10,payDmg:.1}})],
   [perkDef('Throw net','Ability: with no shield raised and no two-handed weapon in hand, cast a weighted net at a foe within 3 tiles (4 AP, melee skill, +5 to hit; not at huge foes): Netted for 2 turns: it cannot move, −10 melee defense and −10 melee skill',{id:'gladiator.3',ab:'netthrow'})],
   [perkDef('Pinned prey','+15% damage and +10 to hit against a foe that is netted, rooted or webbed',{id:'gladiator.4',mod:{pinDmg:.15,pinHit:10}})],
-  [perkDef('Showstopper','Ability: a flourish to finish it: 130% damage, +10 to hit; a kill gives back 3 AP and lifts every ally within 4 tiles one step of morale, up to confident (5 AP)',{id:'gladiator.5',ab:'showstop'})],
-  [perkDef('Roar of the crowd','Ability: once per battle, play to the crowd (4 AP): you and every ally within 4 tiles regain one step of morale (up to steady) and get +8 melee skill, +5 melee defense and +15 resolve for 2 turns',{id:'gladiator.6',ab:'crowdroar'})]]},
+  [perkDef('Thumbs down','Killing a foe that is netted, rooted or webbed on your turn gives back 3 AP',{id:'gladiator.5',mod:{pinKillAP:3}})],
+  [perkDef('Surrounded by glory','For every foe next to you beyond the first: +5 melee defense and +5% melee damage (at most +15 and +15%)',{id:'gladiator.6',mod:{crowdDef:5,crowdDmg:.05}})]]},
  champion:{n:'Arena champion',kind:'style',aff:['melee','one','shield'],d:'The one who walks out of the sand',tiers:[
   [perkDef('Sand-hardened','+8 hitpoints, +3 melee defense, +5 maximum fatigue',{id:'champion.1',st:{hp:8,md:3,fat:5}})],
-  [perkDef('Feint','Ability: a feint to open the guard (2 AP): +15 melee skill until your next turn',{id:'champion.2',ab:'feint'})],
+  [perkDef('Read the opponent','+5 to hit against a foe for every attack you have already made on it this battle, hit or miss (at most +15)',{id:'champion.2',mod:{readOpp:5}})],
   [perkDef('Single combat','+10 to hit and +15% damage in melee against a foe that no other ally of yours stands next to',{id:'champion.3',mod:{soloHit:10,soloDmg:.15}})],
   [perkDef('Hold the sand','You cannot be knocked back or dragged; +8 resolve; take 8% less damage from melee blows',{id:'champion.4',flag:'kbImm',st:{brv:8},mod:{drMelee:.08}})],
   [perkDef('Iugula','Ability: the crowd’s verdict (5 AP, melee): 100% damage, +10 to hit, +40% armor piercing, and a further +80% against a foe below half health',{id:'champion.5',ab:'iugula'})],
@@ -562,49 +562,65 @@ const MAST={
   [perkDef('Off-hand training','With a weapon in each hand: the off-hand blow that follows every Attack strikes at 75% of the off-hand weapon\u2019s damage instead of 50%, and loses its \u221210 to hit',{id:'dualwield.1',flag:'dwTrain'})],
   [perkDef('Twin strike','Ability: with a weapon in each hand, strike with both (5 AP): the main hand at 100% damage and +10 to hit, then the off hand at 100% and +10 to hit',{id:'dualwield.2',ab:'twinstrike'})],
   [perkDef('Cross guard','+8 melee defense while you fight with a weapon in each hand: the off-hand blade turns aside what a shield would have',{id:'dualwield.3',mod:{dwDef:8}})],
-  [perkDef('Feint and cut','Ability: with a weapon in each hand, the off-hand blade feints and the main hand cuts (4 AP): 100% damage, +20 to hit; a wound that reaches flesh bleeds for 3 turns',{id:'dualwield.4',ab:'dwfeint'})],
-  [perkDef('Blade flurry','Ability: with a weapon in each hand, three quick blows, main hand, off hand, main hand, at 75% damage and +5 to hit each, while the foe stands (6 AP)',{id:'dualwield.5',ab:'bladeflurry'})],
+  [perkDef('Opening cut','With a weapon in each hand, an off-hand blow that reaches hitpoints makes the foe bleed for 2 turns',{id:'dualwield.4',mod:{dwBleed:2}})],
+  [perkDef('Whirling steel','With a weapon in each hand, every off-hand blow that hits gives +5 melee defense until your next turn (at most +15)',{id:'dualwield.5',mod:{dwFlow:5}})],
   [perkDef('Ambidextrous','+5 melee skill. With a weapon in each hand, the off-hand blow that follows every Attack strikes at the off-hand weapon\u2019s full damage, with no penalty to hit',{id:'dualwield.6',st:{ms:5},flag:'dwAmbi'})]]},
+ /* ---- the masteries update: Gunnery and Throwing arms (rules: 60p-passives.js; the throwing family and the new arms: 11t-arms.js).
+        Each works only with its weapon in hand where its text says so. Ids pinned: gunner.1-6, thrower.1-6. ---- */
+ gunner:{n:'Gunnery',kind:'style',aff:['ranged','gun'],d:'Powder, ball and patience',tiers:[
+  [perkDef('Powder smoke','After you fire a firearm, shots and spells at you get −10 to hit until your next turn',{id:'gunner.1',mod:{smokeDef:10}})],
+  [perkDef('Point-blank','With a firearm: +10 to hit and +15% damage against a foe 2 tiles away or closer',{id:'gunner.2',mod:{gunPBHit:10,gunPB:.15}})],
+  [perkDef('Steady aim','With a firearm: +10 to hit while you have not moved this turn',{id:'gunner.3',mod:{gunSteady:10}})],
+  [perkDef('Double charge','Ability: a double load of powder (6 AP, a loaded firearm): 140% damage, +20% armor piercing, −5 to hit',{id:'gunner.4',ab:'dcharge'})],
+  [perkDef('Armor-piercing ball','Firearm shots pierce 10% more armor and crush 25% more of it',{id:'gunner.5',mod:{gunIgn:.1,gunCrush:.25}})],
+  [perkDef('Gunline','With a firearm: +5 to hit and +5% damage for every ally within 2 tiles who also holds one (at most +15 and +15%)',{id:'gunner.6',mod:{gunLine:5,gunLineD:.05}})]]},
+ thrower:{n:'Throwing arms',kind:'style',aff:['ranged','throw'],d:'Axes, knives and stars, by hand',tiers:[
+  [perkDef('Bandolier','+2 throws with every throwing weapon you carry',{id:'thrower.1',mod:{ammoB:2}})],
+  [perkDef('Recover','A throw that kills its target comes back to you: one throw regained',{id:'thrower.2',mod:{recover:1}})],
+  [perkDef('Double throw','Ability: two throws in quick succession at one foe (6 AP, 2 throws): 80% damage each; the second flies only while the foe stands',{id:'thrower.3',ab:'dthrow'})],
+  [perkDef('Ricochet','A throw that misses glances off into the nearest other foe next to its target, for 50% damage (the glance cannot miss)',{id:'thrower.4',mod:{ricochet:.5}})],
+  [perkDef('Long arm','+1 range with throwing weapons; +5 ranged skill',{id:'thrower.5',st:{rs:5},mod:{throwRng:1}})],
+  [perkDef('Deadly arc','Your first throw of the battle cannot miss and deals +25% damage',{id:'thrower.6',flag:'deadArc'})]]},
  /* ---- gift trees: today's four under their old keys, the variants beside them ---- */
  mana:{n:'Arcana',kind:'gift',res:'mana',style:'caster',aff:['caster'],d:'Awakens Mana for spellcraft',tiers:[
-  [perkDef('Arcane bolt','Awakens Mana (30). Ability: a 22–34 magic bolt at 5 tiles',{ab:'bolt'})],[perkDef('Fireball','Ability: 20–32 magic damage at 5 tiles, 70% of it to every foe beside the target, all burn for 2 turns',{ab:'fireball'})],
-  [perkDef('Blink','Ability: teleport up to 4 tiles (3 AP)',{ab:'blink'})],[perkDef('Chain lightning','Ability: 26–40 magic damage, arcing to 2 more foes within 3 tiles for 60%',{ab:'chain'})],
+  [perkDef('Arcane bolt','Awakens Mana (30). Ability: a 22–34 magic bolt at 5 tiles',{ab:'bolt'})],[perkDef('Kindling','Your spells set what they hit burning for 2 turns',{mod:{spellBurn:2}})],
+  [perkDef('Spell echo','Once per turn, a spell of yours that kills gives its Mana back',{mod:{echo:1}})],[perkDef('Arcing spells','A spell that hits its target arcs on to 1 more foe within 3 tiles of it for 50% damage (the arc cannot miss)',{mod:{spellArc:.5}})],
   [perkDef('Deep well','+20 Mana, +3 Mana a turn',{res:20,regen:3})],[perkDef('Starfall','Ability: 34–52 magic damage within 6 tiles, 70% to every foe beside the target, all dazed',{ab:'starfall'})]]},
  mana_m:{n:'Runeblade',kind:'gift',res:'mana',style:'melee',aff:['melee'],d:'Mana etched into the blade',tiers:[
-  [perkDef('Runic edge','Awakens Mana (30). Ability: a weapon strike with +25% armor piercing, +5 to hit',{ab:'runeedge'})],[perkDef('Mana shield','Ability: take 30% less damage for 2 turns',{ab:'manashield'})],
-  [perkDef('Blink strike','Ability: appear beside a foe up to 4 tiles away and strike for 110%',{ab:'blinkstrike'})],[perkDef('Spellfed blade','Kills restore 8 Mana; +5 melee skill',{mod:{killRes:8},st:{ms:5}})],
+  [perkDef('Runic edge','Awakens Mana (30). Ability: a weapon strike with +25% armor piercing, +5 to hit',{ab:'runeedge'})],[perkDef('Warding runes','Take 10% less damage while you hold at least half your Mana',{mod:{manaWard:.1}})],
+  [perkDef('Runic recall','Every weapon hit you land restores 3 Mana',{mod:{manaHit:3}})],[perkDef('Spellfed blade','Kills restore 8 Mana; +5 melee skill',{mod:{killRes:8},st:{ms:5}})],
   [perkDef('Arcane surge','+20 Mana, +2 Mana a turn',{res:20,regen:2})],[perkDef('Runic overload','Ability: 160% damage, +30% armor piercing, dazes, arcs to 1 more foe for 60%',{ab:'overload'})]]},
  mana_r:{n:'Arcane archery',kind:'gift',res:'mana',style:'ranged',aff:['ranged','bow'],d:'Mana guides the arrow',tiers:[
   [perkDef('Seeker arrow','Awakens Mana (30). Ability: a shot that cannot miss, 85% damage',{ab:'seeker'})],[perkDef('Guided fletching','Shots ignore 1 step of cover and have no distance penalty',{mod:{coverIgn:1,longShot:1}})],
-  [perkDef('Arcane volley','Ability: 90% damage to the target, 63% to every foe beside it',{ab:'avolley'})],[perkDef('Binding rune','Ability: 60% damage, the target cannot move for 2 turns and is marked for 2',{ab:'bindshot'})],
+  [perkDef('Arcane resonance','+2% damage with weapon attacks for every 10 Mana you hold (at most +12%)',{mod:{manaDmg:.02}})],[perkDef('Binding rune','A bow hit that reaches hitpoints roots the target for 1 turn 25% of the time',{mod:{bindRoot:.25}})],
   [perkDef('Deep quiver','+20 Mana, +3 Mana a turn, +5 ranged skill',{res:20,regen:3,st:{rs:5}})],[perkDef('Starpiercer','Ability: 130% damage, +30% armor piercing, on through up to 3 foes behind for 75%',{ab:'starpierce'})]]},
  aura:{n:'Aura arts',kind:'gift',res:'aura',style:'melee',aff:['melee'],d:'Awakens Aura to augment weapon strikes',tiers:[
-  [perkDef('Aura strike','Awakens Aura (30). Ability: a weapon strike for 150%, +10 to hit',{ab:'astrike'})],[perkDef('Aura wave','Ability: a full weapon strike at a foe up to 3 tiles away',{ab:'awave'})],
-  [perkDef('Crushing blow','Ability: 120% damage, knockback 2 tiles, stuns',{ab:'crush'})],[perkDef('Aura dash','Ability: rush a foe up to 4 tiles away and strike for 120%',{ab:'adash'})],
+  [perkDef('Aura strike','Awakens Aura (30). Ability: a weapon strike for 150%, +10 to hit',{ab:'astrike'})],[perkDef('Focused aura','Abilities that cost Aura get +10 to hit',{mod:{auraHit:10}})],
+  [perkDef('Crushing aura','Hits of abilities that cost Aura crush 30% more armor',{mod:{auraCrush:.3}})],[perkDef('Battle aura','At the start of each of your turns, gain 2 Aura for every foe next to you',{mod:{auraAdj:2}})],
   [perkDef('Overflow','+15 Aura, +10% damage',{res:15,st:{dmg:.1}})],[perkDef('Avatar of war','Ability: +30% damage, +10 melee skill and defense for 2 turns',{ab:'avatar'})]]},
  aura_r:{n:'Aura archery',kind:'gift',res:'aura',style:'ranged',aff:['ranged','bow'],d:'Aura poured into the bowstring',tiers:[
-  [perkDef('Aura arrow','Awakens Aura (30). Ability: a shot for 140%, +5 to hit',{ab:'aarrow'})],[perkDef('Piercing volley','Ability: full damage, then on through up to 2 foes behind for 75%',{ab:'pvolley'})],
-  [perkDef('Aura sight','+8 ranged skill, +1 bow range',{st:{rs:8},mod:{rngB:1}})],[perkDef('Concussive arrow','Ability: 110% damage, knocks back 1 tile and dazes',{ab:'carrow'})],
+  [perkDef('Aura arrow','Awakens Aura (30). Ability: a shot for 140%, +5 to hit',{ab:'aarrow'})],[perkDef('Piercing aura','Abilities that cost Aura pierce 15% more armor',{mod:{auraIgn:.15}})],
+  [perkDef('Aura sight','+8 ranged skill, +1 bow range',{st:{rs:8},mod:{rngB:1}})],[perkDef('Concussive force','Shots of abilities that cost Aura daze what they hit',{mod:{auraDaze:1}})],
   [perkDef('Radiant quiver','+15 Aura, +10% damage with bows',{res:15,mod:{dmgRanged:.1}})],[perkDef('Sunburst arrow','Ability: 170% damage, +30% armor piercing, 70% to every foe beside the target',{ab:'sunarrow'})]]},
  qi:{n:'Elemental way',kind:'gift',res:'qi',style:'melee',aff:['melee'],d:'Awakens Qi for elemental weapon arts',tiers:[
-  [perkDef('Flame edge','Awakens Qi (30). Ability: 110% damage and the foe burns for 3 turns',{ab:'flame'})],[perkDef('Frost edge','Ability: 110% damage; the foe loses 3 AP on its next turn',{ab:'frost'})],
-  [perkDef('Gale step','Ability: leap up to 3 tiles over anything (2 AP)',{ab:'gale'})],[perkDef('Thunder cleave','Ability: strike every adjacent foe, +20% armor piercing',{ab:'thunder'})],
+  [perkDef('Flame edge','Awakens Qi (30). Ability: 110% damage and the foe burns for 3 turns',{ab:'flame'})],[perkDef('Frostbite','A weapon hit that reaches hitpoints chills the foe (−3 AP on its next turn) 20% of the time',{mod:{chillCh:.2}})],
+  [perkDef('Gale-touched','Your free attacks (on a foe stepping away, ripostes, spear wall, counter-cuts) knock the foe back 1 tile',{mod:{galeKb:1}})],[perkDef('Thunderclap','Hits of abilities that cost Qi daze the target',{mod:{qiDaze:1}})],
   [perkDef('Harmony','+15 Qi, +2 Qi a turn',{res:15,regen:2})],[perkDef('Storm dragon','Ability: 150% damage, burns and chills, leaps to 2 more foes for 60%',{ab:'dragon'})]]},
  qi_r:{n:'Elemental arrows',kind:'gift',res:'qi',style:'ranged',aff:['ranged','bow'],d:'Fire, frost and thunder on the string',tiers:[
-  [perkDef('Fire arrow','Awakens Qi (30). Ability: full damage and the target burns for 3 turns',{ab:'farrow'})],[perkDef('Frost arrow','Ability: full damage; the target loses 3 AP on its next turn',{ab:'iarrow'})],
-  [perkDef('Wind step','Ability: leap up to 3 tiles over anything (2 AP): out of melee, free to shoot again',{ab:'gale'})],[perkDef('Thunder arrow','Ability: 110% damage, dazes, arcs to 2 more foes for 60%',{ab:'tarrow'})],
+  [perkDef('Fire arrow','Awakens Qi (30). Ability: full damage and the target burns for 3 turns',{ab:'farrow'})],[perkDef('Frost-tipped','A weapon hit that reaches hitpoints chills the foe (−3 AP on its next turn) 20% of the time',{mod:{chillCh:.2}})],
+  [perkDef('Wind-read','Your missed shots never stray into allies, and your shots ignore 1 step of cover',{flag:'noStray',mod:{coverIgn:1}})],[perkDef('Static charge','Each bow hit builds a charge; the bow hit after two charges deals +40% damage, dazes, and spends them',{mod:{staticChg:.4}})],
   [perkDef('Harmony','+15 Qi, +2 Qi a turn',{res:15,regen:2})],[perkDef('Tempest volley','Ability: 120% damage, 84% to every foe beside the target, all burn and are chilled',{ab:'tempest'})]]},
  chi:{n:'Inner flow',kind:'gift',res:'chi',style:'support',aff:['support'],d:'Awakens Chi for reinforcement and support',tiers:[
-  [perkDef('Reinforce','Awakens Chi (30). Ability: +15 melee and ranged defense and 25% less damage for 2 turns',{ab:'reinforce'})],[perkDef('Mend','Ability: heal yourself or an adjacent ally 18–28',{ab:'mend'})],
-  [perkDef('Empower','Ability: an ally within 2 tiles gets +12 melee and ranged skill and +20% damage for 2 turns',{ab:'empower'})],[perkDef('Swift meridian','Ability: an ally within 2 tiles gets +3 AP on its next turn',{ab:'swift'})],
+  [perkDef('Shared breath','Awakens Chi (30). Allies next to you recover 5 more fatigue at the start of their turns',{mod:{breathFat:5}})],[perkDef('Mend','Ability: heal yourself or an adjacent ally 18–28',{ab:'mend'})],
+  [perkDef('Empowering touch','Whoever you heal also gets +10 melee and ranged skill for 2 turns',{mod:{healBuff:10}})],[perkDef('Quickening','Whoever you heal also gets +2 AP on their next turn',{mod:{healAP:2}})],
   [perkDef('Iron body','+15 Chi, +12 hitpoints',{res:15,st:{hp:12}})],[perkDef('Lotus circle','Ability: you and every ally within 2 tiles heal 12–20',{ab:'lotus'})]]},
  chi_m:{n:'Iron fist',kind:'gift',res:'chi',style:'melee',aff:['melee'],d:'Chi through hands and blade',tiers:[
   [perkDef('Chi palm','Awakens Chi (30). Ability: 120% damage and knockback 1',{ab:'palm'})],[perkDef('Iron skin','Take 10% less damage from everything',{mod:{drB:.1}})],
-  [perkDef('Hundred hands','Ability: three blows at 55% damage, +5 to hit each',{ab:'hundred'})],[perkDef('Inner calm','+6 melee and ranged defense, +10 resolve',{st:{md:6,rd:6,brv:10}})],
+  [perkDef('Flowing strikes','Every melee hit you land on your turn gives +10% damage for the rest of that turn (at most +30%)',{mod:{flowDmg:.1}})],[perkDef('Inner calm','+6 melee and ranged defense, +10 resolve',{st:{md:6,rd:6,brv:10}})],
   [perkDef('Iron body','+15 Chi, +12 hitpoints',{res:15,st:{hp:12}})],[perkDef('Shattering palm','Ability: 180% damage, +50% armor piercing, stuns',{ab:'shatter'})]]},
  chi_r:{n:'Steady breath',kind:'gift',res:'chi',style:'ranged',aff:['ranged','bow'],d:'Chi stills the archer',tiers:[
   [perkDef('Steady breathing','Awakens Chi (30). Ability: +15 ranged skill for 2 turns (2 AP)',{ab:'breath'})],[perkDef('Chi focus','+10% head chance with weapon attacks, +4 ranged skill',{mod:{headB:10},st:{rs:4}})],
-  [perkDef('Pressure-point arrow','Ability: 80% damage, dazes and weakens (−25% damage) for 2 turns',{ab:'pparrow'})],[perkDef('Calm mind','+15 Chi, +2 Chi a turn, +10 resolve',{res:15,regen:2,st:{brv:10}})],
+  [perkDef('Pressure points','A weapon shot that lands on the head weakens the target (−25% damage) for 2 turns',{mod:{ppHead:2}})],[perkDef('Calm mind','+15 Chi, +2 Chi a turn, +10 resolve',{res:15,regen:2,st:{brv:10}})],
   [perkDef('Point-blank','You may shoot with foes next to you (no ranged lock)',{flag:'noLock'})],[perkDef('Spirit arrow','Ability: full damage straight to hitpoints, ignoring armor, +10 to hit',{ab:'spiritarrow'})]]},
  /* ---- the weapon mastery tree: one perk per weapon family (p.wt), each working only while a weapon of that family is in hand
          (shield: only while a shield is raised). A merc sees and may learn only the families its background allows (weaponTypes).
@@ -621,6 +637,7 @@ const MAST={
   perkDef('Nimble fingers','Bow shots cost 1 less AP (at least 2), and so do weapon skills that cost the weapon’s AP',{id:'weapons.bow',wt:'bow',wmod:{ap:-1}}),
   perkDef('Crank drill','Reloading a crossbow costs 2 less AP (at least 2)',{id:'weapons.crossbow',wt:'crossbow',wmod:{rld:-2}}),
   perkDef('Ramrod drill','Reloading a firearm costs 2 less AP (at least 2)',{id:'weapons.flintlock',wt:'flintlock',wmod:{rld:-2}}),
+  perkDef('Practised arm','+10 to hit with a throwing weapon in hand',{id:'weapons.throwing',wt:'throwing',wmod:{hit:10}}),
   perkDef('Channeling','+15% spell damage with a staff in hand',{id:'weapons.staff',wt:'staff',wmod:{spell:.15}}),
   perkDef('Iron knuckles','Fighting unarmed: fists deal +8 minimum and +10 maximum damage',{id:'weapons.fist',wt:'fist',wmod:{d:[8,10]}}),
   perkDef('Shield discipline','A raised shield gives +5 more melee and ranged defense',{id:'weapons.shield',wt:'shield',mod:{shieldDef:5}})]]},

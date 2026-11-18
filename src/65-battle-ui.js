@@ -32,7 +32,7 @@ function shWName(w){return w?w.n||(w.wt?w.wt[0].toUpperCase()+w.wt.slice(1):'Wea
 // a shield that is carried but slung on the back (two-handed weapon in hand): no defence, no shield skills
 function shSlung(u){if(!u||!(u.shpMax>0))return false;if(u.slung!==undefined)return!!u.slung&&u.shp>0;if(!u.shield)return false;try{if(typeof shieldSlung==='function')return!!shieldSlung(u)}catch(e){}if(u.shUp!==undefined)return!u.shUp;const w=shHand(u);return!!(w&&w.two)}
 /* ranged weapons: bows, crossbows, flintlocks (and any item the rules mark ranged); the rules' isRangedAtk wins when it is loaded */
-const SH_RW={bow:1,crossbow:1,flintlock:1};
+const SH_RW={bow:1,crossbow:1,flintlock:1,throwing:1};
 function shRangedW(w){return!!w&&(!!SH_RW[w.wt]||!!w.ranged)}
 function shBowAb(u,a){if(!a||a.magic)return false;try{if(typeof isRangedAtk==='function')return!!isRangedAtk(u,a)}catch(e){}return a.needs==='bow'||(!!a.wpn&&!!u.wpn&&shRangedW(u.wpn))}
 function shLockedNow(u){if(!u||!u.alive||!B)return false;try{if(typeof rangedLocked==='function')return!!rangedLocked(u)}catch(e){}
@@ -111,7 +111,10 @@ function aimAt(k){if(!B||B.busy||B.over||!B.cur||B.cur.side!==0||B.auto||k<0)ret
   if(mdist(u,t)<=a.rng&&shLocked(u,a))return{u,t,a,k,blocked:true,lock:true};
   if(mdist(u,t)<=a.rng&&a.wpn&&shLoaded(u)===false&&shBowAb(u,a))return{u,t,a,k,blocked:true,unl:true};
   return mdist(u,t)<=a.rng&&canUse(u,a)&&shLos(u,t,a).blocked?{u,t,a,k,blocked:true}:null}
- const a=abilityInfo(u,'attack');if(mdist(u,t)<=a.rng&&shLocked(u,a))return{u,t,a,k,blocked:true,lock:true};
+ const a=abilityInfo(u,'attack');
+ if(u.wpn&&u.wpn.wt==='throwing'&&u.abs.includes('tstrike')&&(shLocked(u,a)||(typeof outOfThrows==='function'&&outOfThrows(u,a)))){const s=abilityInfo(u,'tstrike');if(mdist(u,t)<=1&&canUse(u,s))return{u,t,a:s,k,blocked:!!shLos(u,t,s).blocked};   // a throwing weapon engaged or spent: it strikes in hand
+  if(mdist(u,t)<=a.rng&&!shLocked(u,a))return{u,t,a,k,blocked:true,out:true}}
+ if(mdist(u,t)<=a.rng&&shLocked(u,a))return{u,t,a,k,blocked:true,lock:true};
  if(mdist(u,t)<=a.rng&&shLoaded(u)===false&&shBowAb(u,a))return{u,t,a,k,blocked:true,unl:true};return mdist(u,t)<=a.rng&&canUse(u,a)?{u,t,a,k,blocked:!!shLos(u,t,a).blocked}:null}
 function unitLine(t){const m=shMor(t);return t.name+': '+t.hp+'/'+t.hpMax+' HP'+(t.helmMax>0?', helmet '+t.helm:'')+(t.armMax>0?', armor '+t.arm:'')+(t.shpMax>0?(t.shield?', shield '+t.shp:shSlung(t)?', shield slung':', shield split'):'')+(m>=0&&m!==3?', '+shMorN(m).toLowerCase():'')}
 /* ---- two-tap movement planning ----
@@ -154,7 +157,7 @@ function planInfo(){const p=planOK();if(!p)return null;if(PLN.reach!==B.reach||P
 function planHit(t,a){const p=planOK();if(!p)return null;return planSim(B.cur,p,()=>{let blk=false;try{blk=typeof losInfo==='function'&&losInfo(B.cur,t,a).blocked}catch(e){}return blk?-1:hitChance(B.cur,t,a)})}
 function battleTap(mx,my,touch){if(!B||B.busy||B.over||B.cur.side!==0||B.cur.ally)return;const u=B.cur,k=pickKey(mx,my),plan=planOK();logClose();
  if(k<0){fcClear();B.sel=null;B.targets=null;planClear();updateBUI();return}const c=k%BW,r=(k/BW)|0,t=unitAt(c,r),aim=aimAt(k);
- if(aim&&aim.blocked){fcShow(aim,false);if(aim.lock){say(SH_LOCKTXT+': '+u.name+' cannot shoot. Swap to a sidearm or step away.');fxLockPopSafe(u)}else if(aim.unl)say(u.name+'\'s '+shWName(shHand(u)).toLowerCase()+' is not loaded: reload first.');else say('No line of fire to '+t.name+'.');updateBUI();return}
+ if(aim&&aim.blocked){fcShow(aim,false);if(aim.lock){say(SH_LOCKTXT+': '+u.name+' cannot shoot. Swap to a sidearm or step away.');fxLockPopSafe(u)}else if(aim.unl)say(u.name+'\'s '+shWName(shHand(u)).toLowerCase()+' is not loaded: reload first.');else if(aim.out)say(u.name+' has no throws left: strike in hand at a foe next to you, or swap weapons.');else say('No line of fire to '+t.name+'.');updateBUI();return}
  if(aim){if(SET.confirm&&!(FC.armed&&FC.k===k&&FC.id===aim.a.id)){fcShow(aim,true);updateBUI();return}fcClear();planClear();useAbility(u,aim.a,k);return}
  fcClear();
  if(B.sel){if(B.targets.has(k)){planClear();useAbility(u,abilityInfo(u,B.sel),k);return}
@@ -200,7 +203,7 @@ function setHTMLs(L){let n=0;for(const x of L){const e=$(x[0]);if(!e||e._h===x[1
 function focusUnit(id){if(!B)return;const u=B.units[id];if(!u||!u.alive)return;B.cam.tx=u.sx;B.cam.ty=u.sy-10;say(unitLine(u)+'.')}
 const ABICO={shove:'a-shove',aimed:'a-aim',pin:'a-pin',footwork:'a-step',adren:'a-bolt',indom:'a-ward',bolt:'a-orb',fireball:'a-flame',blink:'a-blink',chain:'a-chain',astrike:'a-slash',awave:'a-wave',crush:'a-hammer',adash:'a-dash',flame:'a-flame',frost:'a-snow',gale:'a-wind',thunder:'a-burst',reinforce:'a-guard',mend:'a-cross',empower:'a-up',swift:'a-clock'};
 const WTICO={sword:1,axe:1,mace:1,dagger:1,spear:1,bow:1,staff:1,fist:1};
-const WTICO2={crossbow:'w-xbow',flintlock:'w-pistol',hammer:'w-warhammer',polearm:'w-halberd',greatsword:'w-greatsword'};   // families with no icon of their own: a weapon of the kind
+const WTICO2={crossbow:'w-xbow',flintlock:'w-pistol',throwing:'it-taxe',hammer:'w-warhammer',polearm:'w-halberd',greatsword:'w-greatsword'};   // families with no icon of their own: a weapon of the kind
 function abIcon(u,id,size){if(id==='attack'||id==='aoo'){const wt=u.wpn&&u.wpn.wt,ih=n=>typeof icHas==='function'&&icHas(n),alt=WTICO2[wt]&&ih(WTICO2[wt])?WTICO2[wt]:null;return pic((WTICO[wt]||(wt&&ih(wt)))?wt:alt||'ab-attack',size,shRangedW(u.wpn)?'a-bow':'sword')}
  if(id==='spell')return pic('ab-bolt',size,'a-orb');return pic('ab-'+id,size,ABICO[id]||'a-burst')}
 const STSVG={burn:'a-flame',chill:'a-snow',root:'a-pin',stun:'a-burst',buff:'a-up',indom:'a-ward'},STC={burn:'#ff8a3c',chill:'#8fd8ff',root:'#9bd96f',stun:'#ecc64f',buff:'#e9e0c9',indom:'#c8d0d8'};
@@ -215,7 +218,7 @@ function stVal(k,v){const S=shStatus(k),col=STC[k]||(S&&S.good?'#9bd96f':'#ef8a7
 function shTired(u){try{return typeof tiredPen==='function'&&u?Math.max(0,tiredPen(u)|0):0}catch(e){return 0}}
 function tiredMark(u){const p=shTired(u);if(!p)return'';return'<span class="utired" title="'+esc('Tired: −'+p+' to hit and −'+p+' defense (fatigue '+u.fat+' of '+u.fatMax+')')+'" aria-label="Tired, minus '+p+' to hit and defense">'+pic('st-tired',16,'drop')+'<small>Tired</small><b>−'+p+'</b></span>'}
 let ABDESC=null;
-const SH_ATKD={bow:'Loose an arrow at a foe in range',crossbow:'Loose a bolt at a foe in range; then it must be reloaded',flintlock:'Fire at a foe in range; then it must be reloaded',polearm:'Strike a foe up to 2 tiles away, over the front rank',greatsword:'Strike a foe up to 2 tiles away, over the front rank',hammer:'Crush a foe in reach: hard on armor'};
+const SH_ATKD={bow:'Loose an arrow at a foe in range',crossbow:'Loose a bolt at a foe in range; then it must be reloaded',flintlock:'Fire at a foe in range; then it must be reloaded',throwing:'Throw at a foe in range: each throw spends one of the stack (picked up after the battle)',polearm:'Strike a foe up to 2 tiles away, over the front rank',greatsword:'Strike a foe up to 2 tiles away, over the front rank',hammer:'Crush a foe in reach: hard on armor'};
 function abDesc(id,u){if(id==='attack'){const w=u.wpn||{};return SH_ATKD[w.wt]||(shRangedW(w)?'Shoot at a foe in range':w.rng>1?'Strike a foe up to '+w.rng+' tiles away':'Strike a foe in reach')}
  if(id==='reload'&&!(AB.reload&&AB.reload.d)){const L=shLoaded(u);return L===false?'Load the weapon in hand so it can fire again':'The weapon in hand is loaded'}if(AB[id]&&AB[id].d)return AB[id].d;
  if(!ABDESC){ABDESC={};for(const k in MAST){const T=MAST[k],L=Array.isArray(T.tiers)?[].concat(...T.tiers):Array.isArray(T.p)?T.p:[];for(const p of L)if(p&&p.ab&&p.d)ABDESC[p.ab]=p.d.replace(/^Unlocks[^.]*\.\s*/,'').replace(/^Ability:\s*/,'')}}
@@ -252,8 +255,8 @@ function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),b
 function resBar(icon,svg,cur,max,cls,title,col,plan){const p=v=>(max>0?Math.max(0,Math.min(100,v/max*100)):0).toFixed(1)+'%',keep=Math.max(0,cur-(plan||0));
  return'<span class="ub '+cls+'" title="'+esc(title)+'"'+(col?' style="--c:'+col+'"':'')+'>'+pic(icon,16,svg)+'<span class="ubt"><i style="width:'+p(keep)+'"></i>'+(plan?'<em style="left:'+p(keep)+';width:'+p(cur-keep)+'"></em>':'')+'</span><b>'+cur+'</b></span>'}
 /* the weapon in hand (and, small, the backup) on the chip's name row; a lock when a bow in hand is pinned by an adjacent foe */
-function chipArms(u){const w=shHand(u),a=shAlt(u);if(!w&&!a)return'';const lk=shLocked(u),ld=shLoaded(u),rc=ld===false?shReloadCost(u,w):null;
- return'<span class="uwp'+(lk?' lk':'')+(ld===false?' unl':'')+'" title="'+esc('In hand: '+shWName(w)+(ld===false?' (unloaded: reload'+(rc?' for '+rc.ap+' AP':'')+')':ld?' (loaded)':'')+(a?' · backup: '+shWName(a)+(shLoaded(u,a)===false?' (unloaded)':''):'')+(lk?' · '+SH_LOCKTXT:''))+'"><span class="uwh">'+pic(shWIcon(w),16,'sword')+(ld===false?shUnlMark():'')+'</span>'+(a?'<i>'+pic(shWIcon(a),16,'sword')+'</i>':'')+(lk?pic('ranged-lock',16,'a-burst'):'')+'</span>'}
+function chipArms(u){const w=shHand(u),a=shAlt(u);if(!w&&!a)return'';const lk=shLocked(u),ld=shLoaded(u),rc=ld===false?shReloadCost(u,w):null,am=typeof ammoLeft==='function'&&w===u.wpn?ammoLeft(u):null;   // throws (or barrels) left
+ return'<span class="uwp'+(lk?' lk':'')+(ld===false?' unl':'')+'" title="'+esc('In hand: '+shWName(w)+(am!=null?' ('+am+(w.ammo?' throw':' barrel')+(am===1?'':'s')+' left)':'')+(ld===false?' (unloaded: reload'+(rc?' for '+rc.ap+' AP':'')+')':ld?' (loaded)':'')+(a?' · backup: '+shWName(a)+(shLoaded(u,a)===false?' (unloaded)':''):'')+(lk?' · '+SH_LOCKTXT:''))+'"><span class="uwh">'+pic(shWIcon(w),16,'sword')+(ld===false?shUnlMark():'')+(am!=null?'<b class="uam'+(am?'':' none')+'">'+am+'</b>':'')+'</span>'+(a?'<i>'+pic(shWIcon(a),16,'sword')+'</i>':'')+(lk?pic('ranged-lock',16,'a-burst'):'')+'</span>'}
 /* the "unloaded" marker: the art's icon when it has one, else a pixel badge (an empty chamber) drawn in CSS */
 function shUnlMark(){if(typeof icHas==='function'){for(const n of ['unloaded','st-unloaded'])if(icHas(n))return'<em class="unl">'+pic(n,16,'a-burst')+'</em>'}return'<em class="unl unlc" aria-hidden="true"></em>'}
 function chipInspect(){try{if(!B||!B.cur||typeof Inspect==='undefined'||typeof unitCard!=='function')return;if(Inspect.visible){Inspect.hide();return}const r=$('uinfo').getBoundingClientRect();Inspect.show(unitCard(B.cur),r.left+8,r.bottom+60,false);Inspect.release()}catch(e){}}
@@ -357,6 +360,7 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  if(f.pierce)st+='<span class="sd" style="--sc:#f3d98b" title="Bypasses armor altogether">'+pic('ab-puncture',16,'a-burst')+'</span>';
  else{let ig=typeof f.ign==='number'?f.ign:null;if(ig==null&&a.wpn&&!a.magic){try{if(typeof ignOf==='function')ig=ignOf(u,a)}catch(e){}}
   if(ig>=.35&&(t.armMax>0||t.helmMax>0))st+='<span class="sd" style="--sc:#f3d98b" title="Armor pierce: '+Math.round(ig*100)+'% of the damage goes past armor">'+pic('ab-puncture',16,'a-burst')+'<b>'+Math.round(ig*100)+'%</b></span>'}
+ if(a.wpn&&shBowAb(u,a)&&u.wpn&&u.wpn.ammo&&typeof ammoLeft==='function'){const n=ammoLeft(u);st+='<span class="sd" style="--sc:#b9ad8f" title="'+n+' throw'+(n===1?'':'s')+' left'+(a.ammoN>1?' (this uses '+a.ammoN+')':'')+'">'+pic('it-'+(u.wpn.id||'taxe'),16,'a-burst')+'<b>'+n+'</b></span>'}
  if(a.wpn&&shBowAb(u,a)&&shLoaded(u)===true){const rc=shReloadCost(u);st+='<span class="sd" style="--sc:#b9ad8f" title="Fires, then must be reloaded'+(rc?' ('+rc.ap+' AP)':'')+'">'+pic('ab-reload',16,'a-burst')+'<b>'+(rc?rc.ap:'')+'</b></span>'}
  const ov=fcOver(u,t,a);if(ov)st+=ov;
  if(f.realm&&Array.isArray(f.realm.notes)&&f.realm.notes.length)st+='<span class="sd" style="--sc:#c9a6ff" title="'+htmlEsc(f.realm.n+': '+f.realm.notes.join('; '))+'">'+pic('ab-riftstep',16,'a-burst')+'</span>';   // realm rules (portal worlds)
