@@ -237,11 +237,13 @@ function statI(icon,svg,val,cls,title,col){return'<span class="si '+cls+'" title
 function chipStatuses(u){let h='';const L=shStatuses(u).filter(x=>(x.key!=='unloaded'||shLoaded(u)===null)&&x.key!=='tired');   // the weapon carries the unloaded badge; Tired has its own marker by the stamina
  for(let i=0;i<L.length&&i<6;i++)h+=SH_VALST[L[i].key]?stVal(L[i].key,L[i].turns|0):stIcon(L[i].key,L[i].turns|0);if(L.length>6)h+='<span class="sd" style="--sc:#b9ad8f"><b>+'+(L.length-6)+'</b></span>';return h}
 /* unit chip: name, level, morale (flag icon in the state's colour) with resolve, statuses; hitpoints, head and body armor, shield, stamina, gifts; action pips */
+// the share of a blow the unit's armor turns aside now (armorMitOf, with its perks), against a plain blow and a 30%-piercing one
+const shMitT=(u,head)=>{if(typeof armorMitOf!=='function')return'';const p=x=>Math.round(armorMitOf(u,head,x)*100);return p(0)>0?': turns '+p(0)+'% of a blow aside ('+p(.3)+'% against 30% piercing)':''};
 function cardHTML(u){const mine=u.side===0,n=Math.max(u.apMax,u.ap),m=shMor(u),brv=shBrv(u),P=B.plan&&B.plan.u===u?B.plan:null,keep=P?u.ap-P.cost:u.ap;const pc=v=>Math.max(0,Math.min(100,v/n*100)).toFixed(1)+'%';
  const apBar='<span class="ub ap'+(P?' plan':'')+(u.ap>u.apMax?' over':'')+'" title="Action points '+u.ap+' of '+u.apMax+(P?': the planned move spends '+P.cost+', '+P.left+' left':'')+'"><span class="ubk">AP</span><span class="ubt"><i style="width:'+pc(P?Math.max(0,keep):u.ap)+'"></i>'+(P&&keep<u.ap?'<em style="left:'+pc(Math.max(0,keep))+';width:'+pc(u.ap-Math.max(0,keep))+'"></em>':'')+'<s style="--n:'+n+'"></s></span><b>'+(P?Math.max(0,keep)+'<small>/'+u.ap+'</small>':u.ap)+'</b></span>';
  let h='<span class="uport s'+u.side+'">'+port(u,32)+'</span><div class="ubody"><div class="uname"><b>'+esc(u.name)+'</b>'+(mine||u.m?'<small class="ulv'+(mine?'':' foe')+'" title="Level '+u.lvl+(u.m&&!mine&&typeof BG==='object'&&BG[u.m.bg]?' '+BG[u.m.bg].n.toLowerCase():'')+'">'+u.lvl+'</small>':'')+(!mine&&u.m&&u.rival&&typeof rivalMiniHTML==='function'?'<span class="urv">'+rivalMiniHTML(u.rival,16)+'</span>':'')+chipArms(u)+(u.elite&&typeof eliteChip==='function'?eliteChip(u):'')+chipStatuses(u)+(u.m?chipTraits(u):'')+'</div><div class="ustats">'+statI('hp','heart',u.hp,'hp','Hitpoints '+u.hp+' of '+u.hpMax);
- if(u.helmMax>0)h+=statI('helmet','shield',u.helm,'arm hd'+(u.helm<=0?' out':''),'Head armor '+u.helm+' of '+u.helmMax);
- if(u.armMax>0)h+=statI('armor','shield',u.arm,'arm'+(u.arm<=0?' out':''),'Body armor '+u.arm+' of '+u.armMax);
+ if(u.helmMax>0)h+=statI('helmet','shield',u.helm,'arm hd'+(u.helm<=0?' out':''),'Head armor '+u.helm+' of '+u.helmMax+shMitT(u,true));
+ if(u.armMax>0)h+=statI('armor','shield',u.arm,'arm'+(u.arm<=0?' out':''),'Body armor '+u.arm+' of '+u.armMax+shMitT(u,false));
  if(u.shpMax>0){const sl=shSlung(u),ok=u.shield||sl;const sn=shShieldName(u);h+=statI(!ok?'st-splitshield':sl?'slung':shShieldIcon(u),'shield',ok?u.shp:0,'arm sh'+(ok?'':' out')+(sl?' sl':''),!ok?sn+' split':sl?sn+' slung on the back ('+u.shp+' of '+u.shpMax+'): no defence and no shield skills while a two-handed weapon is in hand':sn+' raised: '+u.shp+' of '+u.shpMax)}
  h+='</div><div class="urow">'+apBar;
  if(m>=0)h+='<span class="umor m'+m+'" style="--sc:'+SH_MORC[m]+'" title="'+shMorN(m)+(brv!=null?': resolve '+brv:'')+'">'+pic('morale-'+m,16,'flag')+(brv!=null?'<b>'+brv+'</b>':'')+'</span>';
@@ -330,9 +332,9 @@ function fcEl(){if(FC.el)return FC.el;try{const app=$('app');if(!app||typeof doc
      last row   lethal marker, statuses with chance and turns, knockback, a morale check, a likely injury, allies in the line of fire
    A field this build's forecast() does not return is skipped; one it adds and this window does not know is ignored. */
 function fcRange(lo,hi){return lo===hi?''+lo:lo+'–'+hi}
-function fcLoc(icon,svg,title,pct,L,armNow){if(!L)return'';
- return'<span class="fcl'+(L.sure?' sure':L.kill?' kill':'')+'" title="'+title+'">'+pic(icon,16,svg)+(pct!=null?'<em>'+pct+'%</em>':'')+'<span class="fcd hp">'+pic('hp',16,'heart')+'<b>'+fcRange(L.hpMin,L.hpMax)+'</b></span>'
-  +(armNow>0||L.armMax>0?'<span class="fcd arm" title="Armor lost"><i class="pip"></i><b>'+fcRange(L.armMin,L.armMax)+'</b></span>':'')+(L.kill?pic('skull',16,'skull'):'')+'</span>'}
+function fcLoc(icon,svg,title,pct,L,armNow,mit){if(!L)return'';const mp=Math.round((mit||0)*100);
+ return'<span class="fcl'+(L.sure?' sure':L.kill?' kill':'')+'" title="'+title+(mp>0?' · the armor turns '+mp+'% of the blow aside':'')+'">'+pic(icon,16,svg)+(pct!=null?'<em>'+pct+'%</em>':'')+'<span class="fcd hp">'+pic('hp',16,'heart')+'<b>'+fcRange(L.hpMin,L.hpMax)+'</b></span>'
+  +(armNow>0||L.armMax>0?'<span class="fcd arm" title="Armor lost'+(mp>0?' (after the '+mp+'% the armor turns aside)':'')+'"><i class="pip"></i><b>'+fcRange(L.armMin,L.armMax)+'</b>'+(mp>0?'<em>−'+mp+'%</em>':'')+'</span>':'')+(L.kill?pic('skull',16,'skull'):'')+'</span>'}
 function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.blocked=true;FC.lock=true;const alt=shAlt(u),sw=AB.swap&&alt&&!shRangedW(alt);
   return'<span class="fcp">'+port(t,32)+'</span><span class="fcb"><span class="fcn"><b>'+esc(t.name)+'</b><i>'+pic('hp',16,'heart')+t.hp+'</i></span><span class="fcr"><span class="fch lo blk" title="'+SH_LOCKTXT+': a ranged weapon cannot be used with a foe this close">'+pic('ranged-lock',16,'a-burst')+'<b>'+SH_LOCKTXT+'</b></span></span>'
    +'<span class="fcs fclk">'+(sw?pic('swap',16,'a-burst')+'<i>Swap to '+esc(shWName(alt))+', or step away</i>':'<i>Step away first, or fight hand to hand</i>')+'</span></span>'}
@@ -353,9 +355,9 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  if(f.shield){const S=f.shield;rows+='<span class="fcl'+(S.sure?' sure':S.brk?' kill':'')+'" title="Damage to the shield ('+S.hp+' left)">'+pic('shield',16,'shield')+'<span class="fcd arm"><i class="pip"></i><b>'+fcRange(S.min,S.max)+'</b><small>/'+S.hp+'</small></span>'+(S.brk?'<span class="fck'+(S.sure?' sure':'')+'">'+pic('st-splitshield',16,'shield')+'<b>'+(S.sure?'Splits':'May split')+'</b></span>':'')+'</span>'}
  else if(a.noDmg)rows+='<span class="fcl"><span class="fcd" title="No damage">'+esc(a.n)+'</span></span>';
  else if(f.body!==undefined||f.head!==undefined){
-  rows+=fcLoc('armor','shield','A hit on the body',f.head&&f.body?100-f.headCh:null,f.body,t.arm);
-  rows+=fcLoc('helmet','shield','A hit on the head: '+(typeof HEADMULT==='number'?'×'+HEADMULT+' to hitpoints':'more to hitpoints'),f.headCh,f.head,t.helm)}
- else rows+=fcLoc('armor','shield','A hit',null,{hpMin:f.hpMin,hpMax:f.hpMax,armMin:f.armMin,armMax:f.armMax,kill:f.kill,sure:f.sure},t.arm);
+  rows+=fcLoc('armor','shield','A hit on the body',f.head&&f.body?100-f.headCh:null,f.body,t.arm,f.mitB);
+  rows+=fcLoc('helmet','shield','A hit on the head: '+(typeof HEADMULT==='number'?'×'+HEADMULT+' to hitpoints':'more to hitpoints'),f.headCh,f.head,t.helm,f.mitH)}
+ else rows+=fcLoc('armor','shield','A hit',null,{hpMin:f.hpMin,hpMax:f.hpMax,armMin:f.armMin,armMax:f.armMax,kill:f.kill,sure:f.sure},t.arm,f.mitB);
  if(f.off&&!a.noDmg){const O=f.off;rows+='<span class="fcl fco'+(O.sure?' sure':O.kill?' kill':'')+'" title="Then the off hand: '+esc(O.n)+', '+Math.round(O.mult*100)+'% damage, '+O.hit+'% to hit (if the foe still stands)">'+(O.id&&typeof pnItemIcon==='function'?'<span class="fcoi">'+pnItemIcon(O.id,16)+'</span>':pic('dagger',16,'sword'))+'<em>'+O.hit+'%</em><span class="fcd hp">'+pic('hp',16,'heart')+'<b>'+fcRange(O.hpMin,O.hpMax)+'</b></span>'+(O.armMax>0?'<span class="fcd arm" title="Armor lost"><i class="pip"></i><b>'+fcRange(O.armMin,O.armMax)+'</b></span>':'')+(O.kill?pic('skull',16,'skull'):'')+'</span>'}   // Twin blades: the off-hand blow that follows (64w-dualwield.js)
  if(f.pierce)st+='<span class="sd" style="--sc:#f3d98b" title="Bypasses armor altogether">'+pic('ab-puncture',16,'a-burst')+'</span>';
  else{let ig=typeof f.ign==='number'?f.ign:null;if(ig==null&&a.wpn&&!a.magic){try{if(typeof ignOf==='function')ig=ignOf(u,a)}catch(e){}}

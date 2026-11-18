@@ -33,7 +33,10 @@
      hits       strikes the ability makes on the target (a second or third only while it stands; each one is this forecast)
      through    foes behind the target the shot flies on into, for THROUGH (75%) of the damage: [unit]
    Arms update:
-     crush      armor crushing of the blow (hammers): the struck armor loses dmg x (1 + crush), already in arm*
+     crush      armor crushing of the blow (hammers; below 0: light blades glance off): the struck armor loses d x (1 + crush), already in arm*
+   Armor update:
+     mitB, mitH the share of the blow the body armor / helmet turns aside (armorMitOf: on a curve of the armor left, less the piercing
+                share; 60-battle-core.js); already inside hp* and arm*. 0 against bare skin, a piercing ability or a shove.
      unloaded   the attacker's reload weapon is spent: the shot cannot be ordered until it reloads (canUse/validTargets refuse it)
      reach      the blow reaches over the tile between (a polearm, greatsword or pike 2 tiles away: walls stop it, bodies do not)
      pull       tiles a hit drags the target toward the attacker {n, ch} or null      scare   a hit tests the target's morale
@@ -60,8 +63,7 @@ function fcDamage(u,t,a,roll,o){if(a.noDmg)return 0;return dmgAfter(u,t,a,a.magi
 // hurt() without the hurting: what `dmg` takes from hitpoints and from the armor of the struck location.
 // The armor-tree terms of hurt() are here too (Padded under-layer, Unbowed, Sidestep, Juggernaut): a forecast is always of a weapon or spell hit.
 function fcSoak(t,dmg,ign,head,pierce,crush){if(t.ward>0&&dmg>0)dmg=Math.max(0,dmg-t.ward);if(!(dmg>0))return{hp:0,arm:0};const a0=(head?t.helm:t.arm)||0,tf=t.flags||{};let hp,arm=0;
- if(pierce)hp=dmg;else if(a0>0){arm=Math.min(a0,crush>0?Math.round(dmg*(1+crush)):dmg);if(tf.unbowed)arm=Math.min(arm,armCap(t,head));
-  hp=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*(!head&&tf.padIgn?ign*(1-tf.padIgn):ign)-(a0-arm)*.1),0)}else hp=dmg;
+ if(pierce)hp=dmg;else if(a0>0){const s=armorSoak(t,dmg,ign,head,crush);arm=s.arm;hp=s.hp}else hp=dmg;
  if(head)hp=Math.round(hp*HEADMULT);if(tf.sidestep&&!t.ss&&hp>t.hpMax*tf.sidestep)hp=Math.round(hp/2);if(tf.hpSoak&&hp>0)hp=Math.max(1,hp-tf.hpSoak);return{hp,arm}}
 // What the rules turn a status into on this target (monStatus in 66-monsters.js): a rooted flier is also Grounded for its root turns + 2;
 // a size-2 flier is too big to pin, so the root itself is dropped and only Grounded stays.
@@ -71,11 +73,12 @@ function fcQuarry(u,t,a,sure){const q=quarryVs(u,t);if(!q.key)return null;const 
 function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u,t,a),los=losInfo(u,t,a),mu=morOf(u),mt=morOf(t);
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],
   headCh:0,head:null,body:null,cover:los.cover,blocked:los.blocked,ff:[],mor:{att:mu.hit,def:mt.def},shake:false,injure:false,shield:null,riposte:false,
-  locked:isRangedAtk(u,a)&&rangedLocked(u),undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
+  locked:isRangedAtk(u,a)&&rangedLocked(u),mitB:0,mitH:0,undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
   crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),fire:t.fw&&fireAb(a)?t.fw:0,
   tiredAtt:sure?0:tiredPen(u),tiredDef:sure?0:tiredPen(t),armDef:sure?0:armorDef(u,t,a),armDr:a.split||a.noDmg?0:armorDr(t),sidestep:false,soak:(t.flags&&t.flags.hpSoak)||0,quarry:fcQuarry(u,t,a,sure)};
  if(a.split){const m=splitMult(u,a),lo=Math.round(u.wpn.d[0]*m),hi=Math.round(u.wpn.d[1]*m);if(t.shield)f.shield={min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp};f.body={hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false};return f}
  let lo=0,hi=0;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];f.ign=ignOf(u,a)}else{const wd=rollOf(u,a);lo=wd[0];hi=wd[1];f.ign=ignOf(u,a)}
+ if(!a.noDmg&&!a.pierce){f.mitB=armorMitOf(t,false,f.ign);f.mitH=armorMitOf(t,true,f.ign)}   // the armor's mitigation at each location (inside hp* and arm*)
  const hc=headChance(u,t,a),mk=()=>({hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false}),H=mk(),Bd=mk();let first=true,n=0,posB=0,posH=0;
  for(let r=lo;r<=hi;r++){const d=fcDamage(u,t,a,r,o),sb=fcSoak(t,d,f.ign,false,a.pierce,f.crush),sh=fcSoak(t,d,f.ign,true,a.pierce,f.crush);n++;if(sb.hp>0)posB++;if(sh.hp>0)posH++;
   if(first){f.dmgMin=f.dmgMax=d;Bd.hpMin=Bd.hpMax=sb.hp;Bd.armMin=Bd.armMax=sb.arm;H.hpMin=H.hpMax=sh.hp;H.armMin=H.armMax=sh.arm;first=false}

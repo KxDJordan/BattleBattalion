@@ -14,7 +14,7 @@
 let BUDGETK=1;      // scales every enemy budget (tuned by test/balance.js)
 let FOE_TICK=1;
 const FOE_FURY={dmg:.09,ms:3};   // orc battle fury per turn of fury left (they start with 6): the reason to outlast them   // 0 if the rules ever tick every u.st key themselves
-const FOE_RANK={base:21,hp:.35,dmg:.55,arm:.25,ms:8,md:3,max:24};  // how enemy quality follows the budget (see foeRank; the exponents g and cap are per faction, FACT[f].rank)
+const FOE_RANK={base:21,hp:.43,dmg:.46,arm:.35,ms:8,md:3,max:24};  // how enemy quality follows the budget (see foeRank; the exponents g and cap are per faction, FACT[f].rank)
 const FOE_ST={
  poison:{n:'Poisoned',d:'Loses 6 hitpoints at the start of each of its turns.',icon:'st-poison',good:0,t:1},
  hex:{n:'Hexed',d:'−15 melee and ranged skill, −15 resolve.',icon:'st-hex',good:0,t:1},

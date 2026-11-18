@@ -108,7 +108,7 @@ section('powers in the rules');
   u.flags=Object.assign({},u.flags,{leech:0});t.flags=Object.assign({},t.flags,{thorns:15});u.hp=50;X.hurt(t,30,1,u,{loc:1});ok(u.hp===35,'thorns: the attacker loses 15');u.hp=5;X.hurt(t,30,1,u,{loc:1});ok(u.hp===1&&u.alive,'thorns never kill');
   u.c=9;u.hp=50;X.hurt(t,30,1,u,{loc:1});ok(u.hp>=50,'thorns only in melee');u.c=5;t.flags=Object.assign({},t.flags,{thorns:0});
   // chain lightning: a kill sends arcs to the nearest foes within 3 tiles of the fallen
-  u.flags=Object.assign({},u.flags,{chain:2,leech:0});const e1=eu[1],e2=eu[2],e3=eu[3];e1.c=7;e1.r=5;e2.c=6;e2.r=7;e3.c=12;e3.r=5;[e1,e2,e3].forEach(e=>{e.hp=e.hpMax=500;e.alive=true});
+  u.flags=Object.assign({},u.flags,{chain:2,leech:0});const e1=eu[1],e2=eu[2],e3=eu[3];e1.c=7;e1.r=5;e2.c=6;e2.r=7;e3.c=12;e3.r=5;[e1,e2,e3].forEach(e=>{e.hp=e.hpMax=500;e.alive=true;e.arm=e.helm=0});   // bare: an arc's hitpoint damage is what is counted (armor mitigation would soak a weak arc whole)
   t.hp=5;t.alive=true;X.seedRng(4242);const s0=X.rngState();X.hurt(t,400,1,u,{loc:1});ok(!t.alive,'the target falls');ok(e1.hp<500&&e2.hp<500&&e3.hp===500,'two arcs to the nearest foes in range, none beyond: '+e1.hp+' '+e2.hp+' '+e3.hp);
   ok(500-e1.hp<=X.LG_CHAIN.d[1]&&500-e2.hp<=X.LG_CHAIN.d[1],'arc damage within its roll');ok(X.rngState()!==s0,'arcs roll on the seeded stream');
   u.flags=Object.assign({},u.flags,{chain:0});e1.hp=500;t.alive=true;t.hp=5;X.hurt(t,400,1,u,{loc:1});ok(e1.hp===500,'no arcs without the power');

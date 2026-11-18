@@ -54,9 +54,9 @@ FACT.east={n:'The Shogunate',g:'K',col:'#c4493f',skin:'#f0c8a0',tier:'early',spa
    Skills: katana -> the sword tree (slash, riposte) plus Iaijutsu; nodachi -> greatsword; wakizashi / tanto -> sword / dagger;
    naginata -> polearm (hook) plus Naginata sweep; yari -> spear (thrust, spear wall; the omi yari impales at reach 2); yumi -> bow. */
 Object.assign(ITEMS,{
- tanto:{k:'w',n:'Tanto',wt:'dagger',d:[16,26],ap:3,fat:4,rng:1,ign:.3,hit:5,price:85,tier:1},
- kunai:{k:'w',n:'Kunai',wt:'dagger',d:[16,26],ap:3,fat:4,rng:1,ign:.3,price:150,tier:2},   // a shinobi's tool: stabs, and throws on a cord (kthrow)
- yoroidoshi:{k:'w',n:'Yoroi-doshi',wt:'dagger',d:[26,40],ap:3,fat:5,rng:1,ign:.6,hit:10,price:1250,tier:4},
+ tanto:{k:'w',n:'Tanto',wt:'dagger',d:[16,26],ap:3,fat:4,rng:1,ign:.3,hit:5,crush:-.2,price:85,tier:1},
+ kunai:{k:'w',n:'Kunai',wt:'dagger',d:[16,26],ap:3,fat:4,rng:1,ign:.3,crush:-.2,price:150,tier:2},   // a shinobi's tool: stabs, and throws on a cord (kthrow)
+ yoroidoshi:{k:'w',n:'Yoroi-doshi',wt:'dagger',d:[26,40],ap:3,fat:5,rng:1,ign:.6,hit:10,crush:-.2,price:1250,tier:4},
  wakizashi:{k:'w',n:'Wakizashi',wt:'sword',d:[24,34],ap:4,fat:6,rng:1,ign:.25,hit:10,price:240,tier:2},
  katana:{k:'w',n:'Katana',wt:'sword',d:[36,50],ap:4,fat:9,rng:1,ign:.25,hit:10,price:820,tier:3},
  katana2:{k:'w',n:'Folded-steel katana',wt:'sword',d:[44,60],ap:4,fat:9,rng:1,ign:.3,hit:10,price:1900,tier:4},

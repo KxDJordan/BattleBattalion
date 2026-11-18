@@ -507,7 +507,7 @@ const isBigFoe=t=>!!(t&&(t.boss||t.fabled||(t.sz||1)>1||(t.def&&t.def.boss)));
 function nimbleDr(t){const f=t&&t.flags;if(!f||!f.nimble)return 0;const fr=t.fatMax>0&&t.fatMax<999?1-clamp((t.fat||0)/t.fatMax,0,1):1;return Math.round(Math.max(0,30-1.5*(t.aw||0))*(.5+.5*fr))/100}
 // The share of damage the armor trees take off a blow on t (inside drOf): Nimble, Brace (first hit between its turns), an ally's Bulwark of steel.
 function armorDr(t){const f=t.flags||{};let dr=0;if(f.nimble)dr+=nimbleDr(t);if(f.brace&&!t.brc)dr+=f.brace;if(B&&B.wallOn)dr+=bestAdj(t,'steelWall');return dr}
-function drOf(u,t,a){let dr=buffSum(t,'dr')+armorDr(t);const f=t.flags||{};if(f.forged&&t.arm>0)dr+=.15;if(f.drB)dr+=f.drB;if(f.lastStand&&t.hp<t.hpMax/2)dr+=f.lastStand;
+function drOf(u,t,a){let dr=buffSum(t,'dr')+armorDr(t);const f=t.flags||{};if(f.drB)dr+=f.drB;if(f.lastStand&&t.hp<t.hpMax/2)dr+=f.lastStand;
  if(f.drRanged||f.drMelee){if(shotKind(u,t,a)===2)dr+=f.drRanged||0;else dr+=f.drMelee||0}
  if(t.shield){if(f.shieldDr)dr+=f.shieldDr;if(f.deflect&&shotKind(u,t,a)===2)dr+=f.deflect}return dr+pvDr(u,t,a)}
 function dmgAfter(u,t,a,dmg,o){const f=u.flags||{};dmg*=1+buffSum(u,'dmg')+(u.dmgB||0)+dmgBonus(u,t,a)+quarryVs(u,t).dmg;   // quarry: a Monster hunter's bonus against its species
@@ -560,9 +560,32 @@ function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.k
  for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,d<=1?25:35,-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
  if(t.grd&&typeof cvGuardDown==='function')cvGuardDown(t,src);   // a caravan guard falls: struck down by the company, the caravan turns on it (42-caravans.js)
  if(t.side===1&&B.rival)checkRout(1)}
+/* ---- Armor mitigation (Armor update) ----
+   Besides soaking a blow into its pool, the armor of the struck location turns part of the blow aside altogether: the mitigation, a
+   share that rises on a curve with the armor the location still has (light armor turns little, heavy plate a lot, a stripped piece
+   nothing):  mit = (MIT.cap + flags.mitCap) x (A / (A + MIT.k)) ^ MIT.p, at most MIT.max, to whole percent, where
+   A = the armor left x (1 + flags.mitK) x (1 - the blow's piercing share). A piercing weapon sees less of the armor (a musket at 60%
+   piercing meets 40% of it); a crushing one tears the pool faster instead (armorSoak), so the curve falls sooner.
+   flags.mitK / flags.mitCap (perks: Battle-forged, Layered defense, Immovable, Unbowed, Turtle; any tree can carry them, they add up):
+   mitK makes the armor count for more on the curve, mitCap raises its ceiling. Both are worth more the heavier the armor.
+   armorMit(t,a,ign): the share for armor a; armorMitOf(t,head,ign): t's current one at that location (0 without armor). */
+const MIT={cap:.65,k:140,p:1.5,max:.75};
+function armorMit(t,a,ign){if(!(a>0))return 0;const f=(t&&t.flags)||{},A=a*(1+(f.mitK||0))*Math.max(0,1-(ign||0));if(!(A>0))return 0;
+ return Math.round(Math.min(MIT.max,(MIT.cap+(f.mitCap||0))*Math.pow(A/(A+MIT.k),MIT.p))*100)/100}
+// the piercing share that meets the struck location's armor: Layered defense's padIgn makes it smaller on the body
+const locIgn=(t,ign,head)=>!head&&t.flags&&t.flags.padIgn?ign*(1-t.flags.padIgn):ign;
+const armorMitOf=(t,head,ign)=>armorMit(t,(head?t.helm:t.arm)||0,locIgn(t,ign,head));
+/* armorSoak(t,dmg,ign,head,crush): what a blow of dmg does against the armor of the struck location (hurt() and the forecast's fcSoak
+   both call it, so they cannot drift). The mitigation comes off first (d = round(dmg x (1 - mit))); the armor then loses
+   round(d x (1 + crush)) (crush > 0: hammers tear it up; crush < 0: light blades and darts glance off) but at most what it has
+   (Unbowed caps it further); the hitpoints lose what goes past the armor, or the piercing share of d less a tenth of the armor still
+   standing, whichever is more. Returns {arm (armor lost), hp (hitpoints, before the head multiplier), mit, d}. */
+function armorSoak(t,dmg,ign,head,crush){const a0=(head?t.helm:t.arm)||0,tf=t.flags||{};if(!(a0>0))return{arm:0,hp:dmg,mit:0,d:dmg};
+ const ig=locIgn(t,ign,head),mit=armorMit(t,a0,ig),d=Math.round(dmg*(1-mit));let ad=Math.min(a0,crush?Math.max(0,Math.round(d*(1+crush))):d);if(tf.unbowed)ad=Math.min(ad,armCap(t,head));
+ return{arm:ad,hp:Math.max(d-Math.min(a0,d),Math.round(d*ig-(a0-ad)*.1),0),mit,d}}
 /* hurt(t,dmg,ign,src,o): applies damage. The armor of the struck location soaks first (o.head: the helmet, else body armor);
    `ign` is the share that pierces it; o.pierce skips armor altogether; head hits do HEADMULT to hitpoints.
-   o.crush (hammers): the armor loses round(dmg x (1 + crush)) instead of dmg (capped by what it has); what it soaks stays dmg.
+   The armor's mitigation and o.crush (hammers tear the armor up, light blades glance off it) work as armorSoak() says.
    src is the attacker (null for terrain, burn and bleeding); o.loc marks a weapon or spell hit (it reports its location and can injure).
    Returns the hitpoints taken. */
 /* Armor trees in hurt() (fcSoak mirrors them): Padded under-layer (padIgn: the piercing share against body armor is smaller), Unbowed
@@ -570,8 +593,7 @@ function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.k
    blow over sidestep x max hitpoints is halved, after the head multiplier), Juggernaut (hpSoak fewer hitpoints, at least 1); a hit
    spends Brace. Unshakable (noStun): heavy blows do not test morale. */
 function hurt(t,dmg,ign,src,o){o=o||{};if(o.loc&&t.ward>0&&typeof eliteWard==='function')dmg=eliteWard(t,dmg);const head=!!o.head,pool=head?'helm':'arm',a0=t[pool]||0,tf=t.flags||{};let hpd;
- if(o.pierce)hpd=dmg;else if(a0>0){let ad=Math.min(a0,o.crush>0?Math.round(dmg*(1+o.crush)):dmg);if(tf.unbowed)ad=Math.min(ad,armCap(t,head));t[pool]=a0-ad;
-  hpd=Math.max(dmg-Math.min(a0,dmg),Math.round(dmg*(!head&&tf.padIgn?ign*(1-tf.padIgn):ign)-t[pool]*.1),0)}else hpd=dmg;
+ if(o.pierce)hpd=dmg;else if(a0>0){const s=armorSoak(t,dmg,ign,head,o.crush);t[pool]=a0-s.arm;hpd=s.hp}else hpd=dmg;
  if(head)hpd=Math.round(hpd*HEADMULT);
  if(o.loc){if(tf.sidestep&&!t.ss&&hpd>t.hpMax*tf.sidestep){hpd=Math.round(hpd/2);t.ss=1;float(t,'Sidestep','#8fd8ff')}
   if(tf.hpSoak&&hpd>0)hpd=Math.max(1,hpd-tf.hpSoak);if(tf.brace)t.brc=1}

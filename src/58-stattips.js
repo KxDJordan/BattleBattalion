@@ -5,8 +5,8 @@
    UI only: no game state, no randomness. A tap inside a roster card shows the tip instead of opening the card. */
 const STATTIP={
  hp:{n:'Hitpoints',d:'Damage that gets past armor comes off these. At 0 the sword is struck down: they may die, or live with an injury. Hitpoints come back with rest: on the road, in camp, and fastest at an inn.'},
- arm:{n:'Body armor',d:'Soaks hits to the body before they reach hitpoints. Each weapon pierces part of it (its armor-ignore share goes straight to hitpoints). Armor is beaten down in battle and stays damaged until mended with tools.'},
- helm:{n:'Helmet',d:'Soaks hits to the head. About 1 hit in 4 lands on the head (25%), and a head hit does ×1.5 damage to hitpoints once past the helmet. Mended with tools like armor.'},
+ arm:{n:'Body armor',d:'Soaks hits to the body before they reach hitpoints, and turns part of every blow aside altogether (its mitigation: more the heavier it is, less as it is beaten down, less against weapons that pierce armor). Each weapon pierces part of it (its armor-ignore share goes straight to hitpoints). Armor is beaten down in battle and stays damaged until mended with tools.'},
+ helm:{n:'Helmet',d:'Soaks hits to the head and turns part of each aside, like body armor. About 1 hit in 4 lands on the head (25%), and a head hit does ×1.5 damage to hitpoints once past the helmet. Mended with tools like armor.'},
  fat:{n:'Fatigue',d:'Stamina for the fight. Every step and blow costs fatigue, and 15 comes back each turn. Past half of it, a tired sword loses up to 10 to hit and is up to 10 easier to hit. Armor and helmets lower the maximum by their weight.'},
  init:{n:'Initiative',d:'Turn order. Each round the highest initiative acts first (with a small random spread), so a quick sword can strike before the foe moves.'},
  ms:{n:'Melee skill',d:'Chance to hit in close combat. The hit chance is melee skill minus the target’s melee defense, plus the weapon’s accuracy and the situation (height, flanking, morale, fatigue), always between 5% and 95%.'},
@@ -19,10 +19,13 @@ const STATTIP={
 const STTIP={el:null,t:0,cur:null,at:0};
 function stTipEl(){if(STTIP.el)return STTIP.el;if(typeof document==='undefined')return null;const e=document.createElement('div');e.className='st-tip';e.setAttribute('role','tooltip');e.hidden=true;document.body.appendChild(e);STTIP.el=e;return e}
 function stTipHide(){const e=STTIP.el;if(e)e.hidden=true;STTIP.cur=null;if(STTIP.t){clearTimeout(STTIP.t);STTIP.t=0}}
+// Body armor and helmet: the mitigation the armor in hand gives now (armorMit, 60-battle-core.js, before perks), from the shown value (current/max)
+function stMitLine(k,v){if((k!=='arm'&&k!=='helm')||typeof armorMit!=='function')return'';const a=parseInt(String(v||''),10);if(!(a>0))return'';const p=x=>Math.round(armorMit(null,a,x)*100)+'%';
+ return`<p>At ${a} it turns ${p(0)} of a blow aside (${p(.3)} against a weapon that pierces 30%, ${p(.6)} against 60%); armor perks raise it.</p>`}
 function stTipShow(target){const k=target&&target.getAttribute('data-stat'),T=STATTIP[k];if(!T)return false;const e=stTipEl();if(!e)return false;
  if(STTIP.cur===target&&!e.hidden){stTipHide();return true}                                 // a second tap on the same stat closes it
  const v=target.getAttribute('data-v'),ic=typeof STATIC==='object'&&STATIC[k]?STATIC[k]:k==='dmg'?'swords':k==='sh'?'shield':k==='arm'?'armor-light':k==='helm'?'helmet':null;
- e.innerHTML=`<b>${typeof pnIcon==='function'&&ic?pnIcon(ic,'',16):''}${htmlEsc(T.n)}${v!=null&&v!==''?`<span class="st-v">${htmlEsc(v)}</span>`:''}</b><p>${htmlEsc(T.d)}</p>`;
+ e.innerHTML=`<b>${typeof pnIcon==='function'&&ic?pnIcon(ic,'',16):''}${htmlEsc(T.n)}${v!=null&&v!==''?`<span class="st-v">${htmlEsc(v)}</span>`:''}</b><p>${htmlEsc(T.d)}</p>${stMitLine(k,v)}`;
  e.hidden=false;STTIP.cur=target;STTIP.at=Date.now();
  const r=target.getBoundingClientRect(),W=window.innerWidth,H=window.innerHeight,w=Math.min(280,W-16);e.style.width=w+'px';
  const h=e.offsetHeight,x=Math.max(8,Math.min(W-w-8,r.left+r.width/2-w/2)),below=r.bottom+8+h<=H-8,y=below?r.bottom+8:Math.max(8,r.top-8-h);

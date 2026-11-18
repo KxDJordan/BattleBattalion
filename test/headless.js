@@ -369,12 +369,20 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
    const A=await arena(SEED+600),b=A.b,[m0,m1,m2,m3,m4,m5]=A.P,[e0,e1,e2,e3]=A.E;ok(A.P.length>=6&&A.E.length>=4,'the arena is too small');
 
    /* -- hit locations, helmets, persistent armor, repair -- */
+   const mitCap0=X.MIT.cap;X.MIT.cap=0;   // the plumbing below (locations, events, pierce) is checked with the armor's mitigation off; the curve itself right after
    put(m0,2,mid);put(e0,3,mid);tough(e0);e0.armMax=e0.arm=100;e0.helmMax=e0.helm=40;ev.length=0;
    ok(X.hurt(e0,30,.2,m0,{head:true,loc:1})===8&&e0.helm===10&&e0.arm===100&&e0.hp===4992,'a head hit must wear the helmet and do x1.5 to hitpoints');
    ok(seen('hit')[0].d.head===true&&seen('hit')[0].d.armor===30&&seen('loc').length===1&&seen('loc')[0].d.head===true&&seen('loc')[0].d.t===e0,'head hit events are wrong');
    ok(X.hurt(e0,30,.2,m0,{loc:1})===0&&e0.arm===70&&e0.helm===10&&seen('loc')[1].d.head===false,'a body hit must wear body armor only');
    ok(X.hurt(e0,40,.2,m0,{head:true,loc:1})===45&&e0.helm===0,'breaking through a helmet: (40-10) x1.5');ok(X.hurt(e0,20,.2,m0,{head:true})===30&&X.hurt(e0,20,.2,null)===0&&e0.arm===50,'bare head x1.5, plain hurt() goes to body armor');
    ok(X.hurt(e0,20,.2,m0,{pierce:1,loc:1})===20&&e0.arm===50,'a piercing blow must skip armor');
+   X.MIT.cap=mitCap0;
+   { // armor mitigation (60-battle-core.js armorMit / armorSoak): a share of the blow turned aside, rising with the armor left, less against piercing
+     const fl=e0.flags;e0.flags={};const M=(a,ig)=>X.armorMit(e0,a,ig);ok(M(0,.2)===0&&M(50,.2)<M(150,.2)&&M(150,.2)<M(300,.2)&&M(300,.2)<=X.MIT.max&&M(300,0)>M(300,.6)&&M(300,1)===0,'mitigation must rise with armor and fall with piercing');
+     ok(M(300,.3)>=.25&&M(300,.3)<=.45&&M(60,.3)<=.1,'mitigation: heavy plate a lot, light cloth little');
+     e0.arm=e0.armMax=300;const m=M(300,.3),d=Math.round(60*(1-m)),h0=e0.hp,hp=X.hurt(e0,60,.3,m0,{loc:1});ok(e0.arm===300-d&&hp===Math.max(0,Math.round(d*.3-(300-d)*.1))&&e0.hp===h0-hp,'a body hit must lose the mitigated share first');
+     e0.arm=300;X.hurt(e0,60,.3,m0,{loc:1,crush:.5});ok(e0.arm===300-Math.round(d*1.5),'crush tears the armor after mitigation');e0.arm=300;X.hurt(e0,60,.3,m0,{loc:1,crush:-.2});ok(e0.arm===300-Math.round(d*.8),'a light blade glances off');
+     e0.flags={mitK:.5,mitCap:.1};ok(X.armorMit(e0,300,.3)>m,'mitK / mitCap raise the curve');e0.flags=fl;e0.arm=50;e0.helm=0 }
    { const hs=Object.keys(X.ITEMS).filter(id=>X.ITEMS[id].k==='h'&&!X.ITEMS[id].famed&&!X.ITEMS[id].east&&!X.ITEMS[id].glad).map(id=>X.ITEMS[id]).sort((x,y)=>x.price-y.price||x.arm-y.arm);ok(hs.length>=12&&hs.every((h,i)=>h.arm>0&&h.price>0&&h.fat>=0&&(!i||(h.arm>hs[i-1].arm&&h.price>hs[i-1].price&&h.fat>=hs[i-1].fat))),'helmet tiers must rise in armor, weight and price');
      const m=X.clone(roster[0]);m.eq.a='mail';m.eq.h=null;delete m.cond;const s0=X.calc(m);m.eq.h='nasal';const s1=X.calc(m);ok(s0.helm===0&&s1.helm===140&&s1.fat===s0.fat-7&&s1.arm===150,'calc() does not count the helmet');
      let u=X.mkPlayerUnit(m);ok(u.helm===140&&u.helmMax===140&&u.arm===150,'a fresh helmet must be whole');m.cond={a:10,h:50};u=X.mkPlayerUnit(m);ok(u.helm===50&&u.arm===10&&u.armMax===150&&u.helmMax===140,'armor condition must carry into battle');
@@ -564,7 +572,8 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      const mer=(w,b2,s,perks,bg)=>{const m=X.clone(roster[0]);m.id=7000+Math.floor(X.rnd()*1e6);m.bg=bg||'knight';m.race='human';m.eq.w=w;m.eq.b=b2||null;m.eq.s=s||null;m.inj=[];delete m.cond;m.perks=perks||[];m.gift=null;m.trees=['vanguard','bulwark','brute','duelist'];m.lvl=Math.max(m.lvl,9);m.hp=X.calc(m).hp;return m};
      // hammers crush armor: hurt(), the forecast and the item
      Z.park();arm(p0,'warhammer');put(p0,2,mid);put(f0,3,mid);tough(f0);
-     f0.arm=60;ok(X.hurt(f0,50,.5,p0,{crush:.6})===25&&f0.arm===0,'a crushing blow must strip the armor: '+f0.arm);f0.arm=60;ok(X.hurt(f0,50,.5,p0,{})===24&&f0.arm===10,'the same blow without crushing');
+     {const c0=X.MIT.cap;X.MIT.cap=0;   // the old arithmetic, mitigation off (the curve has its own checks under combat depth)
+      f0.arm=60;ok(X.hurt(f0,50,.5,p0,{crush:.6})===25&&f0.arm===0,'a crushing blow must strip the armor: '+f0.arm);f0.arm=60;ok(X.hurt(f0,50,.5,p0,{})===24&&f0.arm===10,'the same blow without crushing');X.MIT.cap=c0}
      f0.arm=f0.armMax=200;f0.helm=f0.helmMax=200;{const w0=p0.wpn;p0.wpn=Object.assign({},w0,{crush:0});const fa=X.forecast(p0,f0,ab(p0,'attack'));p0.wpn=w0;const fb=X.forecast(p0,f0,ab(p0,'attack')),fc=X.forecast(p0,f0,ab(p0,'batter'));
        ok(fb.crush===w0.crush&&fb.armMax>fa.armMax&&fb.armMin>fa.armMin&&fc.crush===w0.crush+X.AB.batter.crushB,'the forecast must price armor crushing')}
      ok(['mallet','warhammer','maul','warmaul'].every(id=>X.ITEMS[id].wt==='hammer'&&X.ITEMS[id].crush>0)&&X.ITEMS.maul.two&&!X.ITEMS.warhammer.two,'hammers: 1H war hammers, 2H mauls, all crushing');
@@ -588,7 +597,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        for(const id of it.sk.filter(id=>id!=='reload'))ok(!X.canUse(p0,Object.assign(ab(p0,id),{ap:0,fat:0})),w+': '+id+' cannot fire unloaded');
        put(f1,2,mid-1);p0.ap=9;ok(X.rangedLocked(p0)&&X.canUse(p0,rl),w+': reloading is allowed with a foe next to you');await Z.use(p0,'reload');ok(p0.loaded===true&&p0.ap===9-it.reload.ap&&p0.fat===it.reload.fat&&seen('reload',d=>d.u===p0).length===1&&!X.statusList(p0).some(s=>s.key==='unloaded'),w+': reload');
        ok(!X.canUse(p0,at)&&/Engaged/.test(X.useBlock(p0,at)),w+': loaded but engaged, it cannot fire');put(f1,0,0);p0.ap=9;ok(X.canUse(p0,at),w+': clear again, it fires');ok(!X.canFree(p0),w+': no free attacks with a ranged weapon')}
-     ok(X.ITEMS.pistol.two!==1&&X.ITEMS.musket.two===1&&X.ITEMS.musket.ign>=.7&&X.ITEMS.pistol.ign>=.7,'pistols are one-handed, muskets two-handed, both pierce armor');
+     ok(X.ITEMS.pistol.two!==1&&X.ITEMS.musket.two===1&&X.ITEMS.musket.ign>=.55&&X.ITEMS.pistol.ign>=.55,'pistols are one-handed, muskets two-handed, both pierce armor');
      // a swapped-away weapon keeps its load; each starts loaded
      { const q=spawnM(mer('lightxbow','pistol',null,[],'thief'),2,mid+2);put(f0,6,mid+2);tough(f0);ok(q.loaded&&q.ld.lightxbow===true&&q.ld.pistol===true&&q.wpn.wt==='crossbow','both weapons start loaded');
        q.ap=9;q.rs=300;zb.cur=q;await X.useAbility(q,ab(q,'attack'),KU(f0));await rest(zb);ok(q.loaded===false&&q.ld.lightxbow===false,'the crossbow is spent');
@@ -842,7 +851,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      { const Md=fl('mail');Pl.flags=Md.flags;Pl.aw=Md.aw;Pl.fat=0;Pl.arm=200;ok(X.armorDr(Pl)===.15&&X.forecast(e0,Pl,ea).armDr===.15,'Braced mail: 15% off the first blow');X.hurt(Pl,10,0,e0,{loc:1});ok(Pl.brc===1&&X.armorDr(Pl)===0,'Brace is spent by a hit');Pl.brc=0;
        Pl.arm=200;ok(X.hitChance(e0,Pl,ea)===g0-5,'Layered defense: +5 while the armor is above half');Pl.arm=100;ok(X.hitChance(e0,Pl,ea)===g0,'Layered defense: not at half');Pl.arm=200;
        { const t2=X.clone({}),h0=Pl.hp;Pl.arm=200;X.hurt(Pl,100,.6,e0,{loc:1});const a1=Pl.arm,l1=h0-Pl.hp;Pl.hp=h0;Pl.arm=200;const f0=Pl.flags;Pl.flags=Object.assign({},f0,{padIgn:0});X.hurt(Pl,100,.6,e0,{loc:1});const l2=h0-Pl.hp;Pl.flags=f0;Pl.hp=h0;Pl.arm=200;
-         ok(l1<l2&&l1===Math.max(0,Math.round(100*.6*.75-(200-100)*.1))&&a1===100,'Layered defense: a quarter less of the piercing share: '+l1+' vs '+l2) }
+         const sx=X.armorSoak(Object.assign({},Pl,{arm:200}),100,.6,false,0);ok(l1<l2&&sx.mit>0&&l1===sx.hp&&a1===200-sx.arm&&sx.hp===Math.max(0,Math.round(sx.d*.6*.75-(200-sx.d)*.1)),'Layered defense: a quarter less of the piercing share: '+l1+' vs '+l2) }
        let kb=0,st=0;for(let i=0;i<200;i++){put(Pl,5,5);await X.knockback(e0,Pl,1,0);if(Pl.c!==5)kb++;Pl.st={};X.addStatus(Pl,'stun',1);if(Pl.st.stun)st++}put(Pl,5,5);Pl.st={};
        ok(kb>70&&kb<130&&st>70&&st<130,'Rolling with it: half the knockbacks and stuns land: '+kb+' / '+st);
        const kbA={id:'kbt',n:'kbt',wpn:1,mult:1,kb:1,status:{stun:1},rng:1,tgt:'enemy'},fk=X.forecast(e0,Pl,kbA);ok(fk.kb&&fk.kb.ch===.5&&fk.statuses.some(s=>s.k==='stun'&&s.ch===.5),'forecast: Rolling with it halves knockback and stun chances');

@@ -15,24 +15,24 @@
 const THROWITEMS=['tknives','darts','taxe','bolas','javelin','shuriken','throwhammer','francisca','pilum','chakram','hurlbat','stormaxes'];
 const GUNITEMS=['caliver','dragon','carbine','twinpistol','jezail','wallgun'];
 Object.assign(ITEMS,{
- tknives:{k:'w',n:'Throwing knives',wt:'throwing',d:[14,22],ap:3,fat:4,rng:4,ign:.25,hit:5,ammo:6,shot:'knife',price:80,tier:1},
- darts:{k:'w',n:'Weighted darts',wt:'throwing',d:[16,24],ap:3,fat:4,rng:5,ign:.3,ammo:5,shot:'dart',price:95,tier:1},
+ tknives:{k:'w',n:'Throwing knives',wt:'throwing',d:[14,22],ap:3,fat:4,rng:4,ign:.25,hit:5,ammo:6,shot:'knife',crush:-.2,price:80,tier:1},
+ darts:{k:'w',n:'Weighted darts',wt:'throwing',d:[16,24],ap:3,fat:4,rng:5,ign:.3,ammo:5,shot:'dart',crush:-.2,price:95,tier:1},
  taxe:{k:'w',n:'Throwing axe',wt:'throwing',d:[22,34],ap:4,fat:8,rng:3,ign:.3,ammo:3,shot:'axe',price:120,tier:1},
  bolas:{k:'w',n:'Bolas',wt:'throwing',d:[8,14],ap:4,fat:6,rng:4,ign:.1,hit:5,ammo:3,shot:'bolas',wst:{root:1},price:190,tier:2},
  javelin:{k:'w',n:'Javelins',wt:'throwing',d:[28,40],ap:4,fat:9,rng:5,ign:.35,ammo:3,shot:'jav',price:280,tier:2},
- shuriken:{k:'w',n:'Shuriken',wt:'throwing',d:[10,16],ap:3,fat:3,rng:4,ign:.15,hit:5,ammo:8,bleed:2,shot:'star',price:220,tier:2,east:1},
- throwhammer:{k:'w',n:'Throwing hammer',wt:'throwing',d:[24,36],ap:4,fat:10,rng:3,ign:.25,crush:.3,stun:.1,ammo:3,shot:'hammer',price:360,tier:2},
+ shuriken:{k:'w',n:'Shuriken',wt:'throwing',d:[10,16],ap:3,fat:3,rng:4,ign:.15,hit:5,ammo:8,bleed:2,shot:'star',crush:-.2,price:220,tier:2,east:1},
+ throwhammer:{k:'w',n:'Throwing hammer',wt:'throwing',d:[24,36],ap:4,fat:10,rng:3,ign:.25,crush:.2,stun:.1,ammo:3,shot:'hammer',price:360,tier:2},
  francisca:{k:'w',n:'Francisca',wt:'throwing',d:[36,54],ap:5,fat:14,rng:2,ign:.35,hit:-5,ammo:2,shot:'haxe',price:640,tier:3},
- pilum:{k:'w',n:'Pila',wt:'throwing',d:[34,50],ap:5,fat:11,rng:4,ign:.5,ammo:2,shot:'jav',price:820,tier:3},
+ pilum:{k:'w',n:'Pila',wt:'throwing',d:[34,50],ap:5,fat:11,rng:4,ign:.45,ammo:2,shot:'jav',price:820,tier:3},
  chakram:{k:'w',n:'Chakram',wt:'throwing',d:[28,42],ap:4,fat:6,rng:5,ign:.3,hit:10,ammo:3,ret:1,shot:'chakram',price:1350,tier:4},
  hurlbat:{k:'w',n:'Bearded hurlbats',wt:'throwing',d:[32,48],ap:4,fat:10,rng:3,ign:.4,ammo:3,shot:'axe',price:1250,tier:4},
  stormaxes:{k:'w',n:'Dwarven storm-axes',wt:'throwing',d:[44,64],ap:5,fat:13,rng:3,ign:.45,ammo:3,shot:'haxe',price:2700,tier:5},
- caliver:{k:'w',n:'Matchlock caliver',wt:'flintlock',two:1,d:[42,62],ap:5,fat:8,rng:6,ign:.7,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:520,tier:2},
- dragon:{k:'w',n:'Dragon pistol',wt:'flintlock',d:[40,62],ap:4,fat:7,rng:3,ign:.65,hit:5,reload:{ap:5,fat:10},shot:'ball',fx:'smoke',price:980,tier:3},
- carbine:{k:'w',n:'Wheellock carbine',wt:'flintlock',two:1,d:[54,78],ap:4,fat:9,rng:6,ign:.75,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:1250,tier:3},
- twinpistol:{k:'w',n:'Twin-barrel pistol',wt:'flintlock',d:[36,54],ap:4,fat:7,rng:4,ign:.7,barrels:2,reload:{ap:6,fat:12},shot:'ball',fx:'smoke',price:1900,tier:4},
- jezail:{k:'w',n:'Jezail',wt:'flintlock',two:1,d:[76,108],ap:5,fat:11,rng:9,ign:.8,hit:5,reload:{ap:6,fat:16},shot:'ball',fx:'smoke',price:2200,tier:4},
- wallgun:{k:'w',n:'Wall gun',wt:'flintlock',two:1,d:[100,140],ap:6,fat:16,rng:8,ign:.9,hit:-5,brace:15,reload:{ap:7,fat:20},shot:'ball',fx:'smoke',price:3400,tier:5}
+ caliver:{k:'w',n:'Matchlock caliver',wt:'flintlock',two:1,d:[42,62],ap:5,fat:8,rng:6,ign:.55,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:520,tier:2},
+ dragon:{k:'w',n:'Dragon pistol',wt:'flintlock',d:[40,62],ap:4,fat:7,rng:3,ign:.5,hit:5,reload:{ap:5,fat:10},shot:'ball',fx:'smoke',price:980,tier:3},
+ carbine:{k:'w',n:'Wheellock carbine',wt:'flintlock',two:1,d:[54,78],ap:4,fat:9,rng:6,ign:.6,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:1250,tier:3},
+ twinpistol:{k:'w',n:'Twin-barrel pistol',wt:'flintlock',d:[36,54],ap:4,fat:7,rng:4,ign:.55,barrels:2,reload:{ap:6,fat:12},shot:'ball',fx:'smoke',price:1900,tier:4},
+ jezail:{k:'w',n:'Jezail',wt:'flintlock',two:1,d:[76,108],ap:5,fat:11,rng:9,ign:.6,hit:5,reload:{ap:6,fat:16},shot:'ball',fx:'smoke',price:2200,tier:4},
+ wallgun:{k:'w',n:'Wall gun',wt:'flintlock',two:1,d:[100,140],ap:6,fat:16,rng:8,ign:.7,hit:-5,brace:15,reload:{ap:7,fat:20},shot:'ball',fx:'smoke',price:3400,tier:5}
 });
 Object.assign(WSKID,{wallgun:['reload']});   // the wall gun is too heavy for a scattershot
 for(const id of THROWITEMS.concat(GUNITEMS)){const i=ITEMS[id];i.look=i.look||id;i.sk=(WSKID[id]||WSK[i.wt]||[]).slice()}

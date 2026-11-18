@@ -6383,7 +6383,7 @@ const IC_COMP={'ab-swap':['swap'],'ab-cleave':['ab-roundswing',{r:'e',q:'d',p:'c
  'weak':['melee',{r:'n',q:'o',p:'4'},'dn','br'],'undying':['skull',{l:'d',m:'c',n:'b',r:'e'},'up','br'],'marked':['ab-mark'],'evasive':['ab-vanish'],'steady':['ab-breath']};
 const IC_PKFLAG={exec:'skull',berserk:'enraged',forged:'armor',path:'ab-footwork',eagle:'ranged',freeSwap:'swap',noLock:'ranged-lock',undying:'undying',
  slip:'ab-gslip',footing:'ab-footwork',kbImm:'indom',ironLung:'fatigue',noStun:'resolve'};   // armor trees (QoL update)
-const IC_PKMOD={initDef:'init',nimble:'ab-swift',fleet:'st-fleet',sidestep:'ab-adash',freshDef:'fresh',dance:'st-dance',brace:'shielded',armRegen:'tools',roll:'ab-shove',layerDef:'mdef',padIgn:'armor-light',unbowed:'armor-heavy',steelWall:'shieldwall',hpSoak:'ab-reinforce',
+const IC_PKMOD={mitK:'armor',mitCap:'armor-heavy',initDef:'init',nimble:'ab-swift',fleet:'st-fleet',sidestep:'ab-adash',freshDef:'fresh',dance:'st-dance',brace:'shielded',armRegen:'tools',roll:'ab-shove',layerDef:'mdef',padIgn:'armor-light',unbowed:'armor-heavy',steelWall:'shieldwall',hpSoak:'ab-reinforce',
  dmgMelee:'swords',twoDmg:'axe',duelDmg:'sword',duelHit:'melee',lowHpDmg:'enraged',flankDmg:'ab-backstab',vsHurt:'skull',vsFull:'star',dmgRanged:'ranged',
  drB:'armor',drRanged:'rdef',drMelee:'mdef',lastStand:'indom',adjDef:'shieldwall',loneDef:'mdef',shieldDef:'shield',shieldHp:'shield',guard:'shielded',cmd:'banner',brvAura:'rallied',
  regenHP:'hp',medAura:'ab-mend',killHeal:'hp',healB:'ab-mend',killRes:'mana',coverIgn:'cover',longShot:'ranged',rngB:'ranged',headB:'helmet',ignB:'ab-puncture',bleedOn:'bleed',

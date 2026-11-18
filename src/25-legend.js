@@ -91,7 +91,7 @@ const CAPS={
  shield:[['Aegis','A raised shield takes 15% off every blow and has 20% more hitpoints',{mod:{shieldDr:.15,shieldHp:.2}}]],
  lightarmor:[['Windborne','In light armor: shots on you lose 15% of their damage; +4 melee defense',{st:{md:4},mod:{drRanged:.15}}]],
  medarmor:[['Veteran’s harness','In medium armor: every blow on you loses 10%; steps cost half the fatigue',{mod:{drB:.1},flag:'footing'}]],
- heavyarmor:[['Walking fortress','In heavy armor: every blow that reaches your hitpoints loses 5 more; cannot be knocked back',{mod:{hpSoak:5},flag:'kbImm'}]],
+ heavyarmor:[['Walking fortress','In heavy armor: every blow that reaches your hitpoints loses 5 more; your armor\'s mitigation ceiling is 10 points higher; cannot be knocked back',{mod:{hpSoak:5,mitCap:.1},flag:'kbImm'}]],
  hunter:[['Monster’s bane','+4 melee and ranged skill; +20% damage against bosses, fabled and huge foes',{st:{ms:4,rs:4},mod:{vsBoss:.2}}]]};
 // fabled personal trees: one capstone each (owner id -> perk)
 const CAPS_FAB={

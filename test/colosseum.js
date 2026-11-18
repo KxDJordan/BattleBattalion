@@ -145,7 +145,8 @@ if(!RO){X.seedRng(SEED+44);X.newGame(true);closeAll(X);const G=X.G;const m=X.new
  // Taunt
  const ta=X.abilityInfo(u,'taunt');await ta.run(u,X.key(t.c,t.r),ta);ok(t.st.taunted>0&&t.tauntBy===u.id,'Taunt did not taunt');
  // Undefeated: the second wind once
- u.hp=u.hpMax;u.swd=0;X.hurt(u,Math.round(u.hpMax*.6),1,null,{pierce:1});ok(u.swd===1&&u.bonusAP>=2&&u.hp>u.hpMax*.4-1,'no second wind');const h1=u.hp;X.hurt(u,5,1,null,{pierce:1});ok(u.hp===h1-5,'a second second wind');
+ u.alive=true;u.hp=u.hpMax;u.swd=0;   // (alive again: the foe in the fixture above can fell it first, by the seeded rolls)
+ X.hurt(u,Math.round(u.hpMax*.6),1,null,{pierce:1});ok(u.swd===1&&u.bonusAP>=2&&u.hp>u.hpMax*.4-1,"no second wind");const h1=u.hp;X.hurt(u,5,1,null,{pierce:1});ok(u.hp===h1-5,'a second second wind');
  X.B=null;X.mode='world';
  // autoLearn spends a gladiator's points in its trees
  const r=X.newMerc('gladiator');r.trees=['gladiator','champion','vanguard','duelist'];X.gainXP(r,X.XPT[6]);X.autoLearn(r);ok(r.perks.some(p=>/^(gladiator|champion)\./.test(p)),'autoLearn ignores the gladiator trees: '+r.perks.join(' '));
