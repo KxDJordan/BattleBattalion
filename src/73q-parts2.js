@@ -97,7 +97,7 @@ function p2Piece(n,skin,hair,k1,k2){const id=n+'|'+(skin||'')+'|'+(hair||'')+'|'
  const lay=(m,col)=>{const l=P.L[m];if(!l)return;const I=p2Img(l[0]);if(!I)return;if(!col){g.drawImage(I,l[1],l[2],l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k);return}
   const t=humTmp(l[3],l[4]),q=t.getContext('2d');q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);q.globalCompositeOperation='multiply';q.fillStyle=col;q.fillRect(0,0,l[3],l[4]);q.globalCompositeOperation='destination-in';q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);
   g.drawImage(t,0,0,l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k)};
- lay('c');if(k1)lay('k1',k1);if(k2)lay('k2',k2||k1);if(skin)lay('s',skin);   // k1 / k2: the cloth recoloured (a flag's colours)if(P.L.h)lay('h',hair||'#6b4a2b');
+ lay('c');if(k1)lay('k1',k1);if(k2)lay('k2',k2||k1);if(skin)lay('s',skin);if(P.L.h)lay('h',hair||'#6b4a2b');   // k1 / k2: the cloth recoloured (a flag's colours); h hair / beard multiplied by the hair colour
  P2_PC.set(id,c);return c}
 // a piece's rig record (SU, origin at the pivot): what 73m-skel.js reads (px, py, wx, wy, len, ang, fy, ...)
 function p2Rig(n,px,py,extra){const P=P2A.p[n];const R=Object.assign({w:P.w,h:P.h,px,py},extra||{});if(R.wx!=null){R.len=Math.hypot(R.wx-R.px,R.wy-R.py);R.ang=Math.atan2(R.wy-R.py,R.wx-R.px)}return R}
