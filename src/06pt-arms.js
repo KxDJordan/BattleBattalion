@@ -23,7 +23,7 @@ if(typeof IC_ALIAS==='object'&&!IC_ALIAS.throwing)IC_ALIAS.throwing='it-taxe';
 const PKT={
  // a fan of three throwing knives (knives: also the darts' fletched heads, the hand painter)
  knives(g,o){const k=Object.assign({},o,{len:11.6,w:4,grip:4.8,shape:'knife',gd:'none',pom:'ring',fuller:false,s:.86,wrap:'cloth',wrapC:o.wrapC||'#3a2a1c'});
-  for(const [a,dx,dy] of [[-30,-3.4,1.2],[30,3.4,1.2],[0,0,0]])pkAt(g,16+dx,16+dy,a,.82,g=>{g.translate(-16,-16);pkcSword(g,k)})},
+  for(const [a,dx,dy] of [[-30,-3.6,1.2],[30,3.6,1.2],[0,0,0]])pkAt(g,16+dx,16+dy,a,1.08,g=>{g.translate(-16,-16);pkcSword(g,k)})},
  darts(g,o){for(const [a,dx] of [[-22,-3],[22,3],[0,0]])pkAt(g,16+dx,17,a,.8,g=>{g.translate(-16,-16);pkcDiag(g,8,12,g=>{const M=pkcM(o.bl);
    pkFill(g,pkRect(-.9,-6,1.8,13,.6),pkcM(o.hf||'wood'),{k:.4,lw:PK.lw*.8});pkFill(g,pkPoly([0,-12,2.2,-6.4,0,-5,-2.2,-6.4]),M,{k:.5});
    for(const s of [-1,1])pkFill(g,pkPoly([0,4.6,s*3.6,7.8,s*2.8,9.6,0,7.4]),'blood',{k:.3,lw:PK.lw*.7})},1)})},
@@ -38,7 +38,7 @@ const PKT={
  twin(g,o){const bm=pkcM(o.barrel||'iron');pkFill(g,pkRect(5.6,3.6,22.6,3.8,1.3),bm,{k:.7,inside:(g,m)=>pkHi(g,'M7 4.7 L26.8 4.7',.7,.6)});pkFill(g,pkRect(27.4,3.2,2.2,4.6,.7),pkcM(o.fit||'brass'),{k:.3,lw:PK.lw*.8});pkcPistol(g,o)}};
 // in-hand painters (local frame: grip at the origin, the weapon along -y, icon units; 73l-wpnicons.js HWI_P)
 const PKT_HAND={
- knife:(g,o,G)=>pkcSwordL(g,Object.assign({},o,{len:Math.max(7,G.b),grip:Math.max(3.4,G.gl||4),shape:'knife',gd:'none',pom:'ring',fuller:false})),
+ knife:(g,o,G)=>pkcSwordL(g,Object.assign({},o,{len:Math.max(7,G.b||8),grip:Math.max(3.4,G.gl||4),w:3.8,guard:4,shape:'knife',gd:'none',pom:'ring',fuller:false,wrap:'cloth',wrapC:'#3a2a1c'})),
  star:(g,o,G)=>{g.translate(0,-3.6);PKT.star(g,o,0,0,4.6)},
  ring:(g,o,G)=>{g.translate(0,-4.4);PKT.chakram(g,o,0,0,5)},
  bolas:(g,o,G)=>{pkLine(g,'M0 0 L-2.6 5.2 M0 0 L2.4 5.6 M0 0 L0 -4.8',.9,'#6a4a2a',1);for(const [x,y] of [[-2.6,5.6],[2.4,6],[0,-5.2]])pkFill(g,pkCirc(x,y,1.8),pkcM(o.bl||'iron'),{ball:1,k:.4,lw:PK.lw*.7})}};

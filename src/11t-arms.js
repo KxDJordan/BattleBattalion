@@ -62,6 +62,5 @@ Object.assign(STATUS,{
 Object.assign(EN,{
  bknife:{n:'Brigand knife-thrower',hp:52,arm:30,helm:18,ms:50,rs:55,md:8,rd:10,init:115,d:[16,26],w:'tknives',xp:120,role:'sniper',brv:25,flee:.35,abs:['tstrike'],side:{n:'Seax',wt:'dagger',d:[18,28],ap:3,fat:0,rng:1,ign:.25}},
  kageuchi:{n:'Shuriken thrower',hp:50,arm:20,helm:10,ms:58,rs:62,md:18,rd:22,init:145,ap:10,d:[12,20],w:'shuriken',xp:200,role:'sniper',brv:42,flee:.2,east:1,abs:['tstrike'],side:'tanto'}});
-if(EN.barbax){Object.assign(EN.barbax,{w:'taxe'});delete EN.barbax.rng}   // the northmen's axe thrower now throws real axes, three to a battle
 if(FACT.bandit){FACT.bandit.units.splice(2,0,['bknife',28]);for(const id of ['taxe','tknives','javelin'])if(!FACT.bandit.loot.includes(id))FACT.bandit.loot.push(id)}
 if(FACT.gob)for(const id of ['darts','tknives'])if(!FACT.gob.loot.includes(id))FACT.gob.loot.push(id);

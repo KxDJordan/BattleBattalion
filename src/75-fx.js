@@ -547,11 +547,11 @@ function fxDrawShape(o,t,dt){const q=DQ,p=Math.min(1,(t-o.t0)/o.dur),cx=Math.flo
    else if(p<.62){q.fillStyle=Rm[Rm.length-1];aLine(cx,cy,x2,y2,p<.4?5:3);q.fillStyle=Rm[2];aLine(cx,cy,x2,y2,3);q.fillStyle=Rm[0];aLine(cx,cy,x2,y2,1);q.fillStyle=Rm[0];A(x2-2,y2-2,5,5);
     if(!reduced){const f=Math.random();spawn(K_SQ,o.r,o.x+(o.x2-o.x)*f,o.y+(o.y2-o.y)*f,rr(-30,30),rr(-50,10),rr(.2,.4),1,0,2)}}
    else{const dx=x2-cx,dy=y2-cy,n=Math.max(4,(Math.hypot(dx,dy)/2)|0);q.fillStyle=Rm[p<.8?2:4];for(let i=0;i<n;i++){if((i+tick)&(p<.8?1:3))continue;A(Math.round(cx+dx*i/n),Math.round(cy+dy*i/n),2,1)}}break}
-  case T_PROJ:{const kind=o.a,dx=o.x2-o.x,dy=o.y2-o.y;let x=o.x+dx*p,y=o.y+dy*p,vx=dx,vy=dy;const arc=kind===0||kind===2||kind===5||kind===6?o.b:0;if(arc){y-=Math.sin(p*Math.PI)*arc;vy-=Math.cos(p*Math.PI)*arc*Math.PI}
+  case T_PROJ:{const kind=o.a,dx=o.x2-o.x,dy=o.y2-o.y;let x=o.x+dx*p,y=o.y+dy*p,vx=dx,vy=dy;const arc=kind===0||kind===2||kind===5||kind===6||kind===9?o.b:0;if(arc){y-=Math.sin(p*Math.PI)*arc;vy-=Math.cos(p*Math.PI)*arc*Math.PI}
    const L=Math.hypot(vx,vy)||1,ux=vx/L,uy=vy/L;let ax=Math.floor(x/2),ay=Math.floor(y/2);o.acc+=dt;
    if(kind===0){const tx=ax-ux*7,ty=ay-uy*7;q.fillStyle=PAL['0'];aLine(tx,ty+1,ax,ay+1,1);q.fillStyle=PAL.k;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.l;A(Math.round(tx),Math.round(ty),1,1);A(Math.round(tx+ux),Math.round(ty+uy),1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);q.fillStyle=PAL.q;A(Math.round(ax-ux),Math.round(ay-uy),1,1);
     if(o.r>=0&&!reduced)while(o.acc>.012){o.acc-=.012;spawn(o.r===R_WHITE?K_STREAK:K_SQ,o.r,x-ux*8+rr(-2,2),y-uy*8+rr(-2,2),o.r===R_WHITE?-ux*60:rr(-14,14),o.r===R_WHITE?-uy*60:rr(-40,-6),rr(.14,.3),Math.random()<.4?2:1,0,1)}}
-   else if(kind===6||kind===7)fxDrawShot(o,kind,x,y,ax,ay,ux,uy,p,tick);
+   else if(kind===6||kind===7||kind===9)fxDrawShot(o,kind,x,y,ax,ay,ux,uy,p,tick);
    else{const wob=kind===1?Math.sin(p*20+o.seed)*2:kind===3?(((p*9+o.seed)%2)<1?-3:3):kind===4?Math.sin(p*9+o.seed)*3:0;ax+=Math.round(-uy*wob);ay+=Math.round(ux*wob);
     const id=kind===1?(tick&1?'orb0':'orb1'):kind===2?(tick&1?'fire0':'fire1'):kind===3?(tick&1?'hex0':'hex1'):'skull',c=kind===5&&o.s?o.s[tick&1]:fxSpr(id);
     if(kind===4&&c){q.fillStyle=PAL.D;A(ax-3,ay-3,7,7);q.fillStyle=PAL.C;A(ax-3,ay-4,7,1);A(ax-4,ay-3,1,7);A(ax+4,ay-3,1,7)}
@@ -825,7 +825,12 @@ function fxReach(u,t,miss,sp,ss,ramp,arc){const a=fxUP(u),ax=a.x,ay=a.y-a.h*.5,b
  FXS.sty=S_PUNC;return lead}
 // the default shot / reach of the weapon in hand; -1 when it is a plain arrow (bows keep theirs)
 function fxArmsShot(u,t,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy){if(fxReachW(u)&&d<=Math.max(2,fxW(u).rng|0))return fxReach(u,t,miss,sp,ss);
- const sh=fxShotOf(u);if(sh==='bolt')return fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(sh==='ball')return fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);return-1}
+ const sh=fxShotOf(u);if(sh==='bolt')return fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(sh==='ball')return fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(FX_THROWN[sh])return fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh);return-1}
+/* a thrown weapon (11t-arms.js w.shot): it leaves the hand at the top of the swing and flies in an arc, spinning (axes, knives, stars, the
+   chakram, the hammer, bolas) or point first (javelins, pila, darts); T_PROJ kind 9 draws it (fxDrawShot) */
+const FX_THROWN={axe:{spin:1,imp:'slash'},haxe:{spin:1,big:1,imp:'slash'},knife:{spin:1,imp:'bolt'},star:{spin:1,imp:'bolt'},chakram:{spin:1,imp:'slash'},hammer:{spin:1,imp:'hammer'},bolas:{spin:1,imp:'bolt'},jav:{imp:'bolt'},dart:{imp:'bolt'}};
+function fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh){const K=FX_THROWN[sh],lead=150*sp*AN_HIT_AT,fly=Math.max(70,L/(K.spin?1.5:1.9))*ss,o=fxo(T_PROJ,ax+ux*6,ay-8,lead,fly,R_WHITE);
+ o.x2=bx;o.y2=by;o.a=9;o.b=Math.min(K.spin?26:18,L*(K.spin?.16:.1));o.c=miss?1:0;o.s=sh;FXS.sty=K.imp==='hammer'?S_HAMMER:K.imp==='slash'?S_SLASH:S_BOLT;return lead+fly}
 function fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const ab=FXS.cab||FXO_NIL;let o,ld;
  switch(id){
   case'xshot':{let pre=0;if(ab.id==='xaim'||ab.id==='xheart'){pre=150*sp;o=fxo(T_RET,bx,by,0,pre+300,0);o.a=pre+130}const r=fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre);
@@ -871,11 +876,25 @@ function fxOnReload(u){if(!u||!u.alive)return;const p=fxUB(u),x=p.x,y=p.y,h=p.h,
  else for(let i=0;i<3;i++){glyphFx('glint:rd',x+(i-1)*5,y-h*.45,0,90,(i*130)*sp);for(let j=0;j<fxN(3);j++)spawn(K_SQ,R_GOLD,x+(i-1)*5,y-h*.45,rr(-40,40),rr(-70,-20),.25,1,300,1,i*.13*sp)}
  ringFx(x,y,3,13,280*sp,R_GOLD,300*sp,.5)}
 function fxDrawShot(o,kind,x,y,ax,ay,ux,uy,p,tick){const q=DQ;
+ if(kind===9){fxDrawThrown(o,ax,ay,ux,uy,p);if(p>=1&&o.c)puff(o.x2,o.y2,3);return}
  if(kind===6){const tx=ax-ux*5,ty=ay-uy*5;q.fillStyle=PAL['0'];aLine(tx,ty+1,ax,ay+1,1);q.fillStyle=PAL.j;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.g;A(Math.round(tx),Math.round(ty),1,1);q.fillStyle=PAL.q;A(Math.round(ax-ux),Math.round(ay-uy),1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);
   if(!reduced)while(o.acc>.016){o.acc-=.016;spawn(K_STREAK,R_WHITE,x-ux*8,y-uy*8,-ux*50,-uy*50,.1,1,0,1)}}
  else{const tx=ax-ux*7,ty=ay-uy*7;q.fillStyle=PAL.E;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.y;aLine(ax-ux*3,ay-uy*3,ax,ay,1);q.fillStyle=PAL['0'];A(ax-1,ay,1,1);q.fillStyle=PAL.e;A(ax,ay-1,1,2);A(ax+1,ay,1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);
   if(!reduced)while(o.acc>.02){o.acc-=.02;spawn(K_SQ,R_SMOKE,x-ux*10+rr(-2,2),y-uy*10+rr(-2,2),rr(-6,6),rr(-16,-4),rr(.3,.5),1,-6,1)}}
  if(p>=1&&o.c)puff(o.x2,o.y2,3)}
+// a thrown weapon in flight (half-resolution pixels): its shape turned by the spin (8 steps a flight for the slow axes, 12 for knives and stars)
+function fxDrawThrown(o,ax,ay,ux,uy,p){const q=DQ,sh=o.s,K=FX_THROWN[sh]||{},px=(c,x,y)=>{q.fillStyle=PAL[c];A(Math.round(x),Math.round(y),1,1)};
+ const ang=K.spin?p*Math.PI*2*(sh==='haxe'||sh==='hammer'?1.5:sh==='axe'?2:3)+(o.seed||0):Math.atan2(uy,ux),c=Math.cos(ang),s=Math.sin(ang),at=(i,j)=>[ax+c*i-s*j,ay+s*i+c*j];
+ const line=(i0,i1,col,j)=>{for(let i=i0;i<=i1;i++){const [x,y]=at(i,j||0);px(col,x,y)}};
+ if(sh==='star'){for(const [i,j] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]])px(i||j?'r':'0',...at(i,j));for(const [i,j] of [[2,0],[-2,0],[0,2],[0,-2]])px('q',...at(i,j));return}
+ if(sh==='chakram'){for(let k=0;k<8;k++){const a=ang+k*Math.PI/4;px(k&1?'q':'r',ax+Math.cos(a)*2.2,ay+Math.sin(a)*2.2)}return}
+ if(sh==='bolas'){line(-2,2,'k');for(const i of [-3,3])px('q',...at(i,0));px('q',...at(0,-2));return}
+ if(sh==='jav'||sh==='dart'){const n=sh==='jav'?7:3;for(let i=-n;i<=0;i++){px(i===-n?'0':'j',ax+ux*i,ay+uy*i)}px('r',ax+ux,ay+uy);px('q',ax,ay);if(sh==='dart')px('E',ax-ux*3,ay-uy*3);return}
+ if(sh==='knife'){line(-2,0,'k');line(1,2,'r');px('q',...at(3,0));return}
+ // axes and the hammer: a haft and a head at its end
+ const big=K.big?1:0;line(-3-big,1,'j');px('0',...at(-4-big,0));
+ if(sh==='hammer'){for(const j of [-1,0,1])for(const i of [2,3])px(j?'q':'r',...at(i,j));return}
+ for(const [i,j] of [[1,1],[2,1],[1,2],[2,2],[3,1],[2,3]].concat(big?[[3,2],[3,3],[1,3]]:[]))px(j>=2?'q':'r',...at(i,j));px('l',...at(2,0))}
 // a smoke cloud: three overlapping, growing discs that drift and thin out in steps
 function fxDrawSmoke(o,t,p,cx,cy){const q=DQ,age=(t-o.t0)/1000,X=Math.floor((o.x+o.c*age)/2),Y=Math.floor((o.y+o.d*age-6*age*age)/2),s=o.b||1,R0=Math.max(1,Math.round((2+5*Math.sqrt(p))*s)),tick=(t/70)|0;
  const L=[[0,0,R0],[Math.round(R0*.7),Math.round(R0*.3),Math.round(R0*.75)],[-Math.round(R0*.6),Math.round(R0*.35),Math.round(R0*.7)]];
