@@ -72,8 +72,8 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
  // the user's part sheets (73q-parts2.js): every armour set, helmet, hair drawn; game items mapped; no hair under a helmet; heads by situation
  const P2ON=typeof p2On==='function'&&p2On();
  if(P2ON){const k=humK();n.p2={armor:0,helm:0,hair:0,face:0};
-  if(Object.keys(P2A.p).length!==283)bad.push('parts atlas: '+Object.keys(P2A.p).length+' pieces');
-  for(const nm of ['head0','head7','headf7','elfm7','elff7','ehair15','hand_a','hand_b','leg4_b','hair29','helm39','torso50','sh50_a','sh50_b'])if(!P2A.p[nm]||!P2A.p[nm].L.c&&!P2A.p[nm].L.h)bad.push('parts atlas: '+nm+' missing');
+  if(Object.keys(P2A.p).length!==307)bad.push('parts atlas: '+Object.keys(P2A.p).length+' pieces');
+  for(const nm of ['head0','head7','headf7','elfm7','elff7','ehair15','hand_a','hand_b','leg4_b','hair29','beard0','beard23','helm39','torso50','sh50_a','sh50_b'])if(!P2A.p[nm]||!P2A.p[nm].L.c&&!P2A.p[nm].L.h)bad.push('parts atlas: '+nm+' missing');
   const u=merc({race:'human',fem:0,eq:{w:'arming',s:'heater2',a:'padded'}}),L=usLook(u);
   for(let i=0;i<P2_ARMOR.length;i++){const L2=Object.assign({},L,{skA:null,hs:null});L2.S=Object.assign({},L.S,{armId:'__t',av:null,coat:null});P2_ARMOR_OF.__t=P2_ARMOR[i][0];
    for(const face of[0,1,2,3]){const A=humSkAssets(L2,face,k);if(A.armor!==i||P2_LEGS[A.leg]!==P2_ARMOR[i][1])bad.push('armour '+i+': set '+A.armor+' legs '+A.leg);const Fr=humSkFrame(L2,face,'idle',0,k,'',{head:0});
@@ -87,6 +87,12 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
   for(const sx of['m','w'])for(const st in P2_HAIR_OF[sx])if(P2_HAIR.indexOf(P2_HAIR_OF[sx][st])<0)bad.push('hair style '+sx+':'+st+' -> unknown part');
   for(let i=0;i<30;i++){const A=humSkAssets(L,0,k),kh=A.helm,kr=A.hair;A.helm=-1;A.hair=i;A.bk.clear();humSkFrame(L,0,'idle',0,k,'',{head:0});if(!A.drawn||A.drawn.hair!=='hair'+i)bad.push('hair '+i+' not drawn');A.helm=kh;A.hair=kr;A.bk.clear();n.p2.hair++}
   {let v=null;for(let i=0;i<60;i++){const w=merc({race:'human',fem:1,bg:['sellsword','farmhand','thief','squire'][i&3],eq:{a:'padded'}});const Sw=usLook(w).S;if(!Sw.hat&&Sw.hair&&Sw.hair!=='bald'){v=w;break}}const Lv=v&&usLook(v);if(Lv){humSkFrame(Lv,0,'idle',0,k,'',{head:0});const A=humSkAssets(Lv,0,k);if(!A.drawn||!A.drawn.hair)bad.push('a woman without a helmet shows no hair')}}
+  // beards (beards.webp): all 24 drawn on a man's head, none under a full-face helmet; bearded men and dwarves get one, women and elves none
+  for(let i=0;i<24;i++){const A=humSkAssets(L,0,k),kh=A.helm,kb=A.beard;A.helm=-1;A.beard=i;A.bk.clear();humSkFrame(L,0,'idle',0,k,'',{head:0});if(!A.drawn||A.drawn.beard!=='beard'+i)bad.push('beard '+i+' not drawn');
+   for(const h of P2_NOBEARD){A.helm=h;A.bk.clear();humSkFrame(L,0,'idle',0,k,'',{head:0});if(A.drawn&&A.drawn.beard)bad.push('beard '+i+' under full-face helmet '+h)}A.helm=kh;A.beard=kb;A.bk.clear();n.p2.beard=(n.p2.beard||0)+1}
+  for(const T of[P2_BEARD,P2_BEARD_GREY,P2_BEARD_DW])for(const t in T)for(const i of T[t])if(!P2A.p['beard'+i])bad.push('beard table '+t+' -> '+i);
+  for(const [race,fem] of [['human',0],['dwarf',0],['human',1],['elf',0],['dwarf',1]]){let got=0,seen=0;for(let i=0;i<40&&seen<6;i++){const v=merc({race,fem,eq:{a:'padded'}});const P=ptMercSpec(v.m);if(!!P.fem!==!!fem||(!fem&&race!=='elf'&&!P.beard))continue;seen++;const A=humSkAssets(usLook(v),0,k);if(A.beard>=0)got++;if(race==='dwarf'&&!fem&&A.beard>=0&&[0,1,2,3,4,5,8,9,16,17].includes(A.beard))bad.push('dwarf with a small beard '+A.beard)}
+   if(seen&&(fem||race==='elf'?got:got<seen))bad.push(race+(fem?' woman':' man')+': '+got+' of '+seen+' with a sheet beard')}
   // heads by race and sex; elves only wear the elf styles
   for(const [race,fem,hf] of [['human',0,'head'],['human',1,'headf'],['elf',0,'elfm'],['elf',1,'elff']]){let v=null;for(let i=0;i<80;i++){v=merc({race,eq:{a:'padded'}});if(!!ptMercSpec(v.m).fem===!!fem)break}const A=humSkAssets(usLook(v),0,k);if(A.hf!==hf)bad.push(race+(fem?' woman':' man')+': head '+A.hf);if(race==='elf'&&A.hair>=0&&!A.ehair)bad.push('elf with a human hair style')}
   for(const sx of['m','w'])for(const st in P2_EHAIR_OF[sx]){const i=P2_EHAIR_OF[sx][st];if(!(i>=(sx==='m'?0:8)&&i<(sx==='m'?8:16)))bad.push('elf hair '+sx+':'+st+' -> '+i)}

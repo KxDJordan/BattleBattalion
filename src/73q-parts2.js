@@ -1,13 +1,13 @@
 /* ================= PART SHEETS 2: THE BATTLE FIGURES BUILT FROM THE USER'S MODULAR PARTS (Detail High) =================
    The parts (assets/parts2/*, cut into P2A by assets/make-parts2-atlas.py) replace the earlier parts sheet on the skeleton of 73m-skel.js:
-   one human head per expression, the two hands, five leg colours, 30 hair styles, 40 helmets and 51 armours (torso + its shoulder caps).
+   one human head per expression, the two hands, five leg colours, 30 hair styles, 24 beards, 40 helmets and 51 armours (torso + its shoulder caps).
    Paper cut-out facing: there is only front art (three-quarter, facing bottom-right), used for all four faces and mirrored for the ones that
    look left (1 bottom-left, 2 top-left). The weapon hand stays the character's right after the mirror (73m-skel.js composes those faces
    with the hands swapped), so swords and shields keep their sides.
    Tables below, easy to edit: P2_ARMOR (the 51 sets, with the leg colour each wears), P2_ARMOR_OF (game armour look / item -> set),
    P2_HELM (the 40 helmets) and P2_HELM_OF (helmet shape -> helmet), P2_HAIR / P2_HAIR_OF (hair styles), HEAD_RULES (expressions).
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
-   pointed ear, half-orcs green-grey skin, a pointed ear and tusks, dwarves their braided beard (vector overlays in the sheet's style).
+   pointed ear, half-orcs green-grey skin, a pointed ear and tusks (vector overlays in the sheet's style); men and dwarves a sheet beard (P2_BEARD).
    The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
 const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05]};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
@@ -125,6 +125,25 @@ const P2_EHAIR_OF={m:{crop:0,short:0,swept:4,shaggy:7,mane:7,mohawk:3,tail:5,lon
 function p2EHair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const i=P2_EHAIR_OF[fem?'w':'m'][st];return i!=null?i:fem?9:0}
 function p2Hair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const n=(P2_HAIR_OF[fem?'w':'m'][st])||(fem?'long':'short, side part');return P2_HAIR.indexOf(n)}
 
+/* the 24 beards (beards.webp: row 1 brown: soul patch, chin strap, chin curtain, moustache, moustache and goatee, three full beards growing;
+   row 2 brown: two chin straps, four full beards growing, a ringed braid, a long braid; row 3 grey: two chin straps, two full beards, a ringed
+   braid, a long ringed braid, two with twin braids). Every beard is recoloured to the merc's beard colour (its grey shade multiplied, as hair),
+   so the rows are shapes: grey / white beards pick from the grey row's shapes (old men's), the others from rows 1-2. The portrait's beard kind
+   (07-portraits.js) picks the list, the look's seed the beard in it. Dwarves: the big half (full, braided). Men of every race but elves and
+   half-orcs (those keep the vector beard of 73k-humans.js humBeard); women none. */
+const P2_BEARD={stache:[3],goatee:[4,0,2],chops:[1,8],short:[5,8,9,6],full:[6,7,10,11],long:[12,13,14,15],fork:[14,15,22,23],dwarf:[13,14,15]};
+const P2_BEARD_GREY={stache:[3],goatee:[4,0],chops:[1,16],short:[16,17,18],full:[18,19,20],long:[20,21,22,23],fork:[22,23],dwarf:[20,21,22,23]};
+const P2_BEARD_DW={dark:[7,11,12,13,14,15],grey:[19,20,21,22,23],fork:[14,15,22,23],long:[13,14,15,21]};
+// full-face helmets (P2_HELM): no beard under them
+const P2_NOBEARD=new Set(['armet','sallet','bascinet','gold-visored helm','great helm','gilded great helm','ninja mask','wrapped cloth','visor helm A','visor helm B'].map(P2H));
+function p2BeardCol(S){const br=S.beardR||S.hairR||usHairR(['i','H','k']);return humMix(humRC(br),humRC(br,1),.25)}
+function p2Grey(col){const c=p2Hex(col),mx=Math.max(...c),mn=Math.min(...c);return mx>120&&(mx-mn)/mx<.16}
+// the sheet beard of a look: its index, or -1 (none / the vector beard)
+function p2Beard(S,hs){const bd=S.beard;if(!bd||hs.fem||hs.el||hs.race==='halforc'||hs.race==='elf'||S.b===US_BUILD.halforc||S.ears==='elf')return-1;
+ const dw=hs.race==='dwarf'||S.b===US_BUILD.dwarf||bd==='dwarf',grey=p2Grey(p2BeardCol(S)),h=((S.seed|0)*167+13)>>>0;
+ let L;if(dw)L=bd==='fork'?P2_BEARD_DW.fork:grey?P2_BEARD_DW.grey:bd==='long'?P2_BEARD_DW.long:P2_BEARD_DW.dark;
+ else L=(grey?P2_BEARD_GREY:P2_BEARD)[bd]||(grey?P2_BEARD_GREY:P2_BEARD).short;
+ const i=L[(h>>3)%L.length];return P2A.p['beard'+i]?i:-1}
 /* ---- the asset record of a look x face (same fields as humSkAssets, from these parts) ---- */
 /* the flag's colours on the clothes: a surcoat / tabard / house coat in its livery (G.wearCol.coat, default on), and with
    G.wearCol.cloth (default off) every company merc's cloth (tunic, robe, gambeson, sleeves, trousers; the atlas's k1 / k2 layers leave
@@ -150,7 +169,7 @@ function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1
  const hf=hs.el?(fem?'elff':'elfm'):fem?'headf':'head',HP=P2A.p[hf+'0'].a,hR=p2Rig(hf+'0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
  return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,legk,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
   head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand(wSide==='a'?'hand_a':'hand_b'),HO:hand(oSide==='a'?'hand_a':'hand_b'),bk:new Map(),armor:ai,leg,tone,
-  hf,helm:p2Helm(S),hair:hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25)}}
+  hf,helm:p2Helm(S),hair:hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25),beard:p2Beard(S,hs),beardC:p2BeardCol(S)}}
 /* the head attachment for an expression: head piece, hair (none under a helmet), helmet, race cues */
 function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
  return hskAtt(A,'p2head:'+ex,[-480,-640,480,420],g=>{const n=(A.hf||'head')+ex,c=p2Piece(n,A.tone),R=A.hR,pk=P2A.k;
@@ -169,8 +188,10 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   if(HPc)put(hp,HPc,hs_,hx,hy);   // the hair straight over the head: its art leaves the face and the ear open
   g.save();g.translate(sk.x,sk.y);
   if(hs.orc&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
-  if(S.beard&&(hs.dw||S.beard))humBeard(g,S,R0*.98,hs.dw);
+  if(S.beard&&A.beard<0)humBeard(g,S,R0*.98,hs.dw);   // elves, half-orcs: the vector beard
   g.restore();
+  // the sheet beard: its mouth on the head's mouth (P2A anchors mx, my / bmx, bmy), over the hair, under the helmet; none under a full-face helmet
+  if(A.beard>=0&&!P2_NOBEARD.has(A.helm)){const bn='beard'+A.beard,Ba=P2A.p[bn].a;put(bn,p2Piece(bn,null,A.beardC),1,HA.bmx-R.px-Ba.mx,HA.bmy-R.py-Ba.my);A.drawn.beard=bn}
   if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[(A.hf||'head')+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation (eyePick's context), held HEAD_HOLD ms, instant on hit and death */

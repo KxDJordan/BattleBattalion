@@ -1,4 +1,4 @@
-# Cuts the character part sheets in assets/parts2/ (heads, hands, legs, hair, helmets, armor) into labelled pieces and packs them into
+# Cuts the character part sheets in assets/parts2/ (heads, hands, legs, hair, beards, helmets, armor) into labelled pieces and packs them into
 # src/73p-parts2atlas.js (P2A). Run: python3 assets/make-parts2-atlas.py [--sheet out.png]   (Pillow + numpy)
 # Every piece is cut by its alpha (rows, then columns; touching neighbours are split at the thinnest column, stray bits join the nearest
 # piece), scaled from sheet px into the figure's units (SU: about 390 SU from feet to the top of the head, as the old parts sheet) with one
@@ -131,7 +131,7 @@ def layers(P, kind, nm=''):
     mx = np.maximum(np.maximum(r, g), b); lum = .3 * r + .59 * g + .11 * b
     ol = (mx < 62) & (al > 0)
     skin = (r > 180) & (g > r * .5) & (g < r * .86) & (b > r * .3) & (b < r * .72) & (r - b > 55)
-    if kind == 'hair': sk = (~ol) & (al > 0); hl = sk; sk = np.zeros_like(ol)
+    if kind in ('hair', 'beard'): sk = (~ol) & (al > 0); hl = sk; sk = np.zeros_like(ol)
     elif kind == 'ehair':   # an elf style: its ear is skin (the skin-coloured blob on the left, below the crown; blond hair is skin-coloured too)
         hh_, ww_ = al.shape; reg = np.zeros_like(ol); reg[int(hh_ * .3):int(hh_ * .8), :int(ww_ * .38)] = True
         seed = (r > 230) & (b > r * .58) & (g > r * .65) & (g < r * .85) & (~ol) & (al > 0) & reg   # the ears on this sheet are pink skin (240,184,156); blond hair is yellower (b/r ~.5)   # the ear's skin is brighter than blond hair: seed there, grow over its shading
@@ -155,7 +155,7 @@ def layers(P, kind, nm=''):
     if kind == 'ehair':
         if sk.any(): L['s'] = grey(sk, False)
         L['h'] = grey(hl, True)
-    elif kind == 'hair': L['h'] = grey(hl, True)          # grey shade with the outline in it: multiplied by the hair colour, the outline stays black
+    elif kind in ('hair', 'beard'): L['h'] = grey(hl, True)          # grey shade with the outline in it: multiplied by the hair colour, the outline stays black
     else:
         L['c'] = P.copy()                                 # the piece in its own colours
         if kind in ('torso', 'arm', 'leg'):   # the cloth, for recolouring to a flag: k1 its main colour, k2 the rest (trim, device)
@@ -247,6 +247,32 @@ for i, b in enumerate(lb): add('leg%d_%s' % (i // 2, 'ab'[i % 2]), 'leg', LG, b,
 k = 0
 for row in rb:
     for b in row: add('hair%d' % k, 'hair', HR, b, sf_hair); k += 1
+# beards.webp: 3 rows x 8 beards drawn three-quarter like the heads (facing right, the near sideburn long, the mouth right of centre). The rows
+# touch (row 2's braids reach row 3), so each beard keeps the ink nearest its cell. Each is drawn to the head sheet's scale x BSC, squashed
+# to BSY of its height (the chibi heads' eyes sit low: the sideburns then end in front of the ear, below the eye), and anchored by its
+# MOUTH (mx, my): the centre of its mouth opening (transparent in the sheet), or for the beards without one (soul patch, chin straps, the
+# moustache, the big grey beards whose moustache covers the mouth) the point read off the sheet in BMOUTH. At run time the mouth goes on
+# the head's mouth (head anchors bmx, bmy: head0's mouth registered on each head's jaw).
+BD_ = load('beards.webp')[1]; BRY = [(0, 215), (215, 430), (430, 667)]
+bown = own_pixels(BD_, [[c * 250, y0, (c + 1) * 250, y1] for (y0, y1) in BRY for c in range(8)])
+BMOUTH = {0: (135, 95), 1: (410, 90), 2: (650, 92), 3: (890, 128), 19: (905, 515), 20: (1150, 517), 21: (1413, 500), 22: (1662, 498), 23: (1913, 497)}   # sheet px
+BSC, BSY = .92, .78 / .92; BSX = {2: .8}   # scale on the head sheet's; height squash; per-beard width (the chin curtain's far horn)
+HMOUTH = (178, 207)   # head0's mouth (its piece px): the beard's mouth goes here
+def enclosed(al):
+    """transparent pixels not reachable from outside the piece (the mouth opening)"""
+    fr = np.pad(~al, 1, constant_values=True); ext = np.zeros_like(fr); ext[0, :] = ext[-1, :] = ext[:, 0] = ext[:, -1] = True
+    while True:
+        n_ = (ext | np.roll(ext, 1, 0) | np.roll(ext, -1, 0) | np.roll(ext, 1, 1) | np.roll(ext, -1, 1)) & fr
+        if (n_ == ext).all(): break
+        ext = n_
+    return (fr & ~ext)[1:-1, 1:-1]
+sf_beard = sf_head * BSC; BANC = {}
+for i, (c_, b) in enumerate(bown):
+    x0, y0, x1, y1 = b; P = c_[y0:y1, x0:x1]
+    if i in BMOUTH: mx, my = BMOUTH[i]
+    else: ys, xs = np.where(enclosed(P[:, :, 3] > 100)); mx, my = x0 + xs.mean(), y0 + ys.mean()
+    sx = BSX.get(i, 1); im = Image.fromarray(P, 'RGBA').convert('RGBa').resize((max(1, round(P.shape[1] * sx)), max(1, round(P.shape[0] * BSY))), Image.LANCZOS).convert('RGBA')
+    PIECES.append(('beard%d' % i, 'beard', np.array(im).astype(np.float32), sf_beard, b)); BANC['beard%d' % i] = {'mx': (mx - x0) * sx * sf_beard, 'my': (my - y0) * BSY * sf_beard}
 k = 0
 for row in mb:
     for b in row: add('helm%d' % k, 'helm', HM, b, sf_head); k += 1
@@ -465,6 +491,16 @@ for n in [q[0] for q in PIECES if q[1] == 'head']:
             reg = np.zeros_like(A_); reg[10 + int(h_ * .55):10 + int(h_ * .95), 10:10 + int(w_ * .3)] = True; c = (A_ ^ B_)[reg].sum()
             if best is None or c < best[0]: best = (c, dx, dy)
     HEAR[n] = best
+# the mouth on every head: head0's (HMOUTH) moved by the shift that best overlays the head's jaw (lower right) on head0's
+HJAW = {}
+for n in [q[0] for q in PIECES if q[1] == 'head']:
+    M = _mask(n); h_, w_ = _M0.shape; best = None
+    for dy in range(-8, 9):
+        for dx in range(-8, 9):
+            A_ = np.zeros((h_ + 40, w_ + 40), bool); A_[20:20 + h_, 20:20 + w_] = _M0; B_ = np.zeros_like(A_); hh_, ww_ = M.shape; B_[20 + dy:20 + dy + hh_, 20 + dx:20 + dx + ww_] = M
+            reg = np.zeros_like(A_); reg[20 + int(h_ * .6):20 + h_, 20 + int(w_ * .45):20 + w_] = True; c = (A_ ^ B_)[reg].sum()
+            if best is None or c < best[0]: best = (c, dx, dy)
+    HJAW[n] = (HMOUTH[0] * sf_head - best[1], HMOUTH[1] * sf_head - best[2])
 
 # ---- layers, scaled, packed ----
 items = []; meta = {}
@@ -472,6 +508,8 @@ for name, kind, P, sf, box in PIECES:
     h0, w0 = P.shape[:2]; s = sf   # SU per sheet px
     meta[name] = {'w': round(w0 * s, 1), 'h': round(h0 * s, 1), 'a': anchors(kind, P, s), 'L': {}, 'k': kind}
     if name in HFIT: b = HFIT[name]; meta[name]['a'].update({'fx': float(b[1]), 'fy': float(b[2]), 'fs': float(b[3])})
+    if name in BANC: meta[name]['a'].update({k_: round(float(v), 1) for k_, v in BANC[name].items()})
+    if name in HJAW: meta[name]['a'].update({'bmx': round(float(HJAW[name][0]), 1), 'bmy': round(float(HJAW[name][1]), 1)})
     if name in HEAR: meta[name]['a'].update({'edx': -float(HEAR[name][1]), 'edy': -float(HEAR[name][2])})   # its ear relative to head0's
     for m, arr in layers(P, kind, name).items():
         im = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA'); bb = im.getbbox()
@@ -497,7 +535,7 @@ js = ('/* ================= CHARACTER PARTS ATLAS 2 (generated by assets/make-pa
       '   P2A.p[name] = {w,h (SU), k (kind), a (anchors, SU, piece-local), L:{layer:[atlas, ax,ay,aw,ah, ox,oy,ow,oh]}}: the layer\'s rect in atlas P2A.src[atlas]\n'
       '   and the box it covers in the piece (SU). Layers: c own colours, s skin only (grey shade, over c for other skin tones), h hair (grey shade with the outline). P2A.k atlas px per SU.\n'
       '   Pieces: head0..7 (neutral, gritted, shouting, happy, content, surprised, nervous, knocked out), hand_a / hand_b, leg<c>_a / _b (c: tan, blue,\n'
-      '   green, rust, grey), hair0..29, helm0..39, torso0..50 with sh<i>_a / sh<i>_b (the shoulder caps below it). Names in 73q-parts2.js. */\n'
+      '   green, rust, grey), hair0..29, beard0..23 (h layer only), helm0..39, torso0..50 with sh<i>_a / sh<i>_b (the shoulder caps below it). Names in 73q-parts2.js. */\n'
       'const P2A={k:%s,p:%s,\n src:%s};\n') % (K, json.dumps(meta, separators=(',', ':')), json.dumps(srcs))
 open(OUT, 'w').write(js)
 print('parts', len(meta), 'atlases', [im.size for im in ims], 'KB', [round(len(s_) * 3 / 4 / 1024) for s_ in srcs], 'scales head %.2f torso %.2f legs %.2f hand %.2f' % (sf_head, sf_torso, sf_legs, sf_hand))
