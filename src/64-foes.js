@@ -182,7 +182,7 @@ const FOE_AB={
   ai(u,X){const n=foeAllies(u,4).filter(o=>o!==u&&!o.st.warcry&&X.near(o)<=5).length;return n>=2?[{k:X.at,v:9*n}]:[]},
   async run(u){for(const o of foeAllies(u,4)){if(o!==u){o.bonusAP=(o.bonusAP||0)+3;float(o,'+3 AP','#ffd27a')}o.st.warcry=2;foeMor(o,1);FX.emit('buff',{t:o})}}},
  /* ---------- brigands: a mercenary company of their own ---------- */
- brally:{n:'Rally',d:'Brigands within 4 tiles find their nerve: the fleeing turn back, the shaken steady, and all gain +10 resolve for 2 turns.',ap:4,fat:0,rng:4,tgt:'self',cd:2,fx:'rally',
+ brally:{n:'Rally',d:'Allies within 4 tiles find their nerve: the fleeing turn back, the shaken steady, and all gain +10 resolve for 2 turns.',ap:4,fat:0,rng:4,tgt:'self',cd:2,fx:'rally',
   ai(u,X){const A=foeAllies(u,4).filter(o=>o!==u),n=A.filter(o=>o.mor<3).length,f=A.filter(o=>o.mor===0).length;return n?[{k:X.at,v:12*n+14*f}]:[]},
   async run(u){for(const o of foeAllies(u,4)){if(o===u)continue;if(o.mor<3){setMorale(o,o.mor===0?2:3)}addBuff(o,{key:'rallied',brv:10},2);FX.emit('buff',{t:o})}}},
  /* ---------- riftspawn: nothing stands where you left it ---------- */
