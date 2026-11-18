@@ -43,8 +43,13 @@ function perkById(id){return PERKIX[id]||null}
 function mercStyle(m){return m&&m.cc&&TALSTYLE.includes(m.cc.sty)?m.cc.sty:m&&BG[m.bg]&&BG[m.bg].style||'melee'}
 // The gift tree for resource res in a fighting style: that style's variant if the gift has one, else the melee one.
 function giftKey(res,style){const V=GIFTV[res];return V?V[style]||V.melee:null}
-// The merc's gift tree key (stored at creation), or null. For a merc without one stored, the variant its background implies.
-function giftVariant(m,res){if(!m)return null;if(!res&&m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift')return m.gift;const r=res||mercRes(m);return r?giftKey(r,mercStyle(m)):null}
+/* The style a merc's gift variant follows: 'throwing' (the throwing gifts mana_t aura_t qi_t chi_t) for a merc that leans to throwing,
+   i.e. its background allows the throwing family (weaponTypes) and it carries a throwing weapon in the main hand or as its sidearm
+   (the Isekai hero: the throwing family chosen); else mercStyle (bows and the rest of the ranged: the archery variants). */
+function throwLean(m){if(!m)return false;if(m.cc&&WTS.includes(m.cc.wt))return m.cc.wt==='throwing';if(!weaponTypes(m).includes('throwing'))return false;const e=m.eq||{},w=ITEMS[e.w],b=ITEMS[e.b];return!!((w&&w.wt==='throwing')||(b&&b.wt==='throwing'))}
+function giftStyle(m){return throwLean(m)?'throwing':mercStyle(m)}
+// The merc's gift tree key (stored at creation), or null. For a merc without one stored, the variant its background (and weapon) implies.
+function giftVariant(m,res){if(!m)return null;if(!res&&m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift')return m.gift;const r=res||mercRes(m);return r?giftKey(r,giftStyle(m)):null}
 // True once the gift is awakened (a perk of the gift tree is learned).
 function giftAwake(m){const g=m&&m.gift;return!!(g&&Array.isArray(m.perks)&&m.perks.some(id=>PERKIX[id]&&PERKIX[id].key===g))}
 // The weapon families whose mastery perks the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order. The Isekai hero (m.cc,
@@ -109,7 +114,7 @@ function rollTrees(bg,r){const b=BG[bg],pool=(b&&b.pool||MUNDANE).filter(k=>MAST
    highest open tier that suits its style, gear and weapons; abilities it could not use with its gear are passed over.
    Deterministic (no randomness). Returns the ids learned. */
 function mercTags(m){const t=new Set([mercStyle(m)]),w=ITEMS[m.eq&&m.eq.w],a=ITEMS[m.eq&&m.eq.a];
- if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow');if(w.wt==='flintlock')t.add('gun');if(w.wt==='throwing')t.add('throw')}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&isShieldId(m.eq.s)&&!(w&&w.two))t.add('shield');if(dwMainOK(w)&&offItem(m))t.add('dual');if(!a||a.fat<=10)t.add('light');if(typeof isLightW==='function'&&isLightW(w||FIST))t.add('lightw');if(typeof armorClass==='function'&&armorClass(m)==='heavy')t.add('heavy');   // lightw: a light weapon in hand (the rogues' trees)
+ if(isRangedW(w)){t.add('ranged');if(w.wt==='bow')t.add('bow');if(w.wt==='flintlock')t.add('gun');if(w.wt==='throwing'){t.add('throw');t.add('throwing')}}else{t.add('melee');t.add(w&&w.two?'two':'one')}if(m.eq&&isShieldId(m.eq.s)&&!(w&&w.two))t.add('shield');if(dwMainOK(w)&&offItem(m))t.add('dual');if(!a||a.fat<=10)t.add('light');if(typeof isLightW==='function'&&isLightW(w||FIST))t.add('lightw');if(typeof armorClass==='function'&&armorClass(m)==='heavy')t.add('heavy');   // lightw: a light weapon in hand (the rogues' trees)
  if(m.gift&&MAST[m.gift])t.add(MAST[m.gift].style);return t}
 function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEMS[m.eq&&m.eq.b],wt=w?w.wt:'fist',swt=sw?sw.wt:null,rngd=isRangedW(w),bow=wt==='bow',two=!!(w&&w.two),
   sh=!!(m.eq&&isShieldId(m.eq.s)),up=sh&&!two,swUp=sh&&!!sw&&!sw.two,pw=p.wt||T.wt,ow=!!offItem(m),dw=ow&&dwMainOK(w),swDw=ow&&dwMainOK(sw);   // dw: a weapon in each hand with the main weapon (swDw: with the sidearm)   // up: the shield is raised with the main weapon in hand; swUp: with the sidearm

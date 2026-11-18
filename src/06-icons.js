@@ -6399,7 +6399,7 @@ const IC_RESLMN={mana:{L:'F',M:'x',N:'X'},aura:{L:'e',M:'y',N:'Y'},qi:{L:'6',M:'
 function icTreeTone(T){return!T?'brass':T.kind==='hunter'?'hunt':T.kind==='armor'?'verd':T.kind==='weapon'?'steel':T.kind==='gift'&&T.res?T.res:'brass'}
 function icMast(key){const T=typeof MAST==='object'&&MAST&&MAST[key]||(IC_ARMT.includes(key)?{kind:'armor'}:null);if(!T||!IC_RING)return null;const tone=icTreeTone(T);let mo=null;
  if(T.kind==='weapon')mo=IC_MO['w-'+(T.wt||key)]||IC_MO['w-sword'];
- else if(T.kind==='gift'){const m=IC_RESLMN[T.res]||IC_RESLMN.aura,st=T.style||'melee';const tpl=st==='ranged'?'garrow':T.res==='chi'&&st==='melee'?'gfist':st==='melee'?'gblade':null;
+ else if(T.kind==='gift'){const m=IC_RESLMN[T.res]||IC_RESLMN.aura,st=T.style||'melee';const tpl=st==='ranged'?((T.aff||[]).includes('throwing')&&IC_MO.gthrow?'gthrow':'garrow'):T.res==='chi'&&st==='melee'?'gfist':st==='melee'?'gblade':null;
   if(tpl&&IC_MO[tpl])mo=_icMap(IC_MO[tpl],m);else mo=_icMap(IC_MO.garrow,m)}
  else if(T.kind==='hunter')mo=IC_MO.hunter;
  else if(T.kind==='armor')mo=IC_MO[key]||IC_MO[/heavy/.test(key)?'heavyarmor':/med/.test(key)?'medarmor':'lightarmor'];

@@ -89,7 +89,7 @@ section('catalog');
   for(const k in M){const T=M[k],n=T.p.filter(p=>p.ab).length;actives+=n;
    if(T.kind==='style')ok(n<=1,k+': at most one ability in a style tree ('+n+')');if(T.kind==='gift')ok(n===2,k+': two abilities in a gift tree ('+n+')');if(T.kind==='fabled')ok(n<=1,k+': at most one ability');
    for(const p of T.p){ok(typeof p.d==='string'&&p.d.length>=8,p.id+': a text');if(p.ab)ok(AB[p.ab]&&AB[p.ab].n&&AB[p.ab].d,p.id+': ability '+p.ab)}}
-  ok(actives<=60,'tree abilities in all: '+actives);
+  ok(actives<=64,'tree abilities in all: '+actives);   // 56, and the 8 of the four throwing gift trees (test/throwgifts.js)
   for(const id of X.PERKV20){const P=X.perkById(id);ok(P&&!P.perk.ab&&(P.perk.mod||P.perk.flag)&&P.perk.d.length>20,'a changed perk is a passive with a text: '+id)}
   ok(X.PERKV20.length===54&&new Set(X.PERKV20).size===54,'54 perks changed: '+X.PERKV20.length);
   // the abilities that left the trees are still abilities (foes, fabled trees, elites use some)

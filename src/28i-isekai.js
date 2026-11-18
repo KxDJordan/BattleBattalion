@@ -30,6 +30,8 @@ ISK.wts=WTS.filter(w=>w!=='shield'&&ISK.gear.w[w]);
 ISK.ranged=['bow','crossbow','flintlock','throwing'];
 function iskStyles(){return Object.keys(MAST).filter(k=>MAST[k].kind==='style')}
 function iskGifts(){return Object.keys(MAST).filter(k=>MAST[k].kind==='gift')}
+// a gift tree that suits the weapon chosen: its style, and for a ranged style the throwing gifts (aff 'throwing') with the throwing family only
+function iskGiftFit(T,st,wt){if(!T||T.style!==st)return false;const th=(T.aff||[]).includes('throwing');return st!=='ranged'||th===(wt==='throwing')}
 function iskArmors(){return(typeof ARMORT!=='undefined'?ARMORT:['lightarmor','medarmor','heavyarmor']).filter(k=>MAST[k]&&ISK.gear.a[k])}
 // the hero's name: letters (any script), digits, spaces, '-' and '.'; no markup characters can survive. '' when nothing is left.
 function isekaiName(s){return typeof s==='string'?s.normalize('NFC').replace(/[^\p{L}\p{M}\p{N} .\-]/gu,'').replace(/\s+/g,' ').trim().slice(0,ISK.nameMax).trim():''}
@@ -153,7 +155,7 @@ function iskBodyHTML(k){const it=id=>ITEMS[id]?ITEMS[id].n:id;
  if(k==='at'){return`<p class="isk-lead">One <b>armor tree</b>. Its perks work only in armor of its weight; the hero starts dressed for it.</p><div class="isk-arms" role="radiogroup" aria-label="Armor tree">${iskArmors().map(a=>{const on=ISKS.at===a,T=MAST[a];
    return`<button class="ncs-tog isk-a${on?' on':''}" role="radio" aria-checked="${on}" onclick="iskSet('at','${a}')">${iskIc(typeof tlTreeIcon==='function'?tlTreeIcon(a):a,32)}<span><b>${htmlEsc(T.n)}</b><small>${htmlEsc(T.role||'')}</small><small class="isk-kit">${ISK.gear.a[a].map(it).join(' and ')}${a==='heavyarmor'?' (battered)':''}</small></span></button>`}).join('')}</div>`}
  if(k==='gift'){const st=isekaiStyle(ISKS.wt,null);return`<p class="isk-lead">A <b>gift</b> from the crossing, or none. It sleeps until the first perk in its tree awakens it.</p><div class="isk-grid" role="radiogroup" aria-label="Gift">
-   <button class="ncs-or isk-o${ISKS.gift==='none'?' on':''}" role="radio" aria-checked="${ISKS.gift==='none'}" onclick="iskSet('gift','none')">${iskIc('banner',32)}<b>No gift</b><small>Steel alone</small></button>${iskGifts().map(g=>{const on=ISKS.gift===g,T=MAST[g],fit=T.style===st;
+   <button class="ncs-or isk-o${ISKS.gift==='none'?' on':''}" role="radio" aria-checked="${ISKS.gift==='none'}" onclick="iskSet('gift','none')">${iskIc('banner',32)}<b>No gift</b><small>Steel alone</small></button>${iskGifts().map(g=>{const on=ISKS.gift===g,T=MAST[g],fit=iskGiftFit(T,st,ISKS.wt);
    return`<button class="ncs-or isk-o g-${T.res}${on?' on':''}${fit?' fit':''}" role="radio" aria-checked="${on}" onclick="iskSet('gift','${g}')">${iskIc(typeof tlTreeIcon==='function'?tlTreeIcon(g):T.res,32)}<b>${htmlEsc(tlGiftLabelSafe(g))}</b><small>${htmlEsc(T.style||'')}${fit?' · fits':''}</small></button>`}).join('')}</div>`}
  if(k==='mode'){const M=(m,ic,n,t)=>{const on=ISKS.mode===m;return`<button class="ncs-tog isk-m${on?' on':''}" role="radio" aria-checked="${on}" onclick="iskSet('mode','${m}')">${iskIc(ic,32)}<span><b>${n}</b><small>${htmlEsc(t)}</small><small class="isk-kit">Level ${ISK.lvl[m]} · ${ISK.crowns[m].toLocaleString('en')} crowns</small></span></button>`};
   return`<p class="isk-lead">How does the story go?</p><div class="isk-arms isk-modes" role="radiogroup" aria-label="Mode">${M('solo','or-slayer','Solo',isekaiRule('solo'))}${M('rpg','company','RPG',isekaiRule('rpg'))}</div>`}

@@ -364,7 +364,7 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  if(f.pierce)st+='<span class="sd" style="--sc:#f3d98b" title="Bypasses armor altogether">'+pic('ab-puncture',16,'a-burst')+'</span>';
  else{let ig=typeof f.ign==='number'?f.ign:null;if(ig==null&&a.wpn&&!a.magic){try{if(typeof ignOf==='function')ig=ignOf(u,a)}catch(e){}}
   if(ig>=.35&&(t.armMax>0||t.helmMax>0))st+='<span class="sd" style="--sc:#f3d98b" title="Armor pierce: '+Math.round(ig*100)+'% of the damage goes past armor">'+pic('ab-puncture',16,'a-burst')+'<b>'+Math.round(ig*100)+'%</b></span>'}
- if(a.wpn&&shBowAb(u,a)&&u.wpn&&u.wpn.ammo&&typeof ammoLeft==='function'){const n=ammoLeft(u);st+='<span class="sd" style="--sc:#b9ad8f" title="'+n+' throw'+(n===1?'':'s')+' left'+(a.ammoN>1?' (this uses '+a.ammoN+')':'')+'">'+pic('it-'+(u.wpn.id||'taxe'),16,'a-burst')+'<b>'+n+'</b></span>'}
+ if(a.wpn&&shBowAb(u,a)&&u.wpn&&u.wpn.ammo&&typeof ammoLeft==='function'){const n=ammoLeft(u);st+='<span class="sd" style="--sc:#b9ad8f" title="'+n+' throw'+(n===1?'':'s')+' left'+(a.conj?' (a conjured blade: this spends none)':a.ammoN>1?' (this uses '+a.ammoN+')':'')+'">'+pic('it-'+(u.wpn.id||'taxe'),16,'a-burst')+'<b>'+n+'</b></span>'}
  if(a.wpn&&shBowAb(u,a)&&shLoaded(u)===true){const rc=shReloadCost(u);st+='<span class="sd" style="--sc:#b9ad8f" title="Fires, then must be reloaded'+(rc?' ('+rc.ap+' AP)':'')+'">'+pic('ab-reload',16,'a-burst')+'<b>'+(rc?rc.ap:'')+'</b></span>'}
  const ov=fcOver(u,t,a);if(ov)st+=ov;
  if(f.realm&&Array.isArray(f.realm.notes)&&f.realm.notes.length)st+='<span class="sd" style="--sc:#c9a6ff" title="'+htmlEsc(f.realm.n+': '+f.realm.notes.join('; '))+'">'+pic('ab-riftstep',16,'a-burst')+'</span>';   // realm rules (portal worlds)
