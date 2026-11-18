@@ -44,9 +44,12 @@ function mercStyle(m){return m&&m.cc&&TALSTYLE.includes(m.cc.sty)?m.cc.sty:m&&BG
 // The gift tree for resource res in a fighting style: that style's variant if the gift has one, else the melee one.
 function giftKey(res,style){const V=GIFTV[res];return V?V[style]||V.melee:null}
 /* The style a merc's gift variant follows: 'throwing' (the throwing gifts mana_t aura_t qi_t chi_t) for a merc that leans to throwing,
-   i.e. its background allows the throwing family (weaponTypes) and it carries a throwing weapon in the main hand or as its sidearm
+   i.e. its background allows the throwing family (weaponTypes) and it carries a throwing weapon in the main hand, or as its sidearm
+   beside a melee weapon
    (the Isekai hero: the throwing family chosen); else mercStyle (bows and the rest of the ranged: the archery variants). */
-function throwLean(m){if(!m)return false;if(m.cc&&WTS.includes(m.cc.wt))return m.cc.wt==='throwing';if(!weaponTypes(m).includes('throwing'))return false;const e=m.eq||{},w=ITEMS[e.w],b=ITEMS[e.b];return!!((w&&w.wt==='throwing')||(b&&b.wt==='throwing'))}
+function throwLean(m){if(!m)return false;if(m.cc&&WTS.includes(m.cc.wt))return m.cc.wt==='throwing';if(!weaponTypes(m).includes('throwing'))return false;return throwKit((m.eq||{}).w,(m.eq||{}).b)}
+// a throwing weapon in the main hand, or as the sidearm beside a melee weapon (or fists): a bow or gun in hand keeps the archery variant
+function throwKit(w,b){const W=ITEMS[w],S=ITEMS[b];return!!((W&&W.wt==='throwing')||(S&&S.wt==='throwing'&&!(W&&isRangedW(W))))}
 function giftStyle(m){return throwLean(m)?'throwing':mercStyle(m)}
 // The merc's gift tree key (stored at creation), or null. For a merc without one stored, the variant its background (and weapon) implies.
 function giftVariant(m,res){if(!m)return null;if(!res&&m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift')return m.gift;const r=res||mercRes(m);return r?giftKey(r,giftStyle(m)):null}

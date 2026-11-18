@@ -218,7 +218,7 @@ section('gift rolls: throwers roll the throwing variant, rivals too; the Isekai 
   ok(!bad.length,'the variant follows the weapon: '+bad.slice(0,4).join('; '));for(const k of TG)ok(got[k]>0,k+' rolled by a throw-leaning recruit ('+(got[k]||0)+')');
   ok(bow>0,'bow carriers still roll the archery variants ('+bow+')');
   // a hunter with a bow keeps the archery gift; the same background with a throwing weapon in hand leans to throwing
-  const h=X.newMerc('hunter');h.eq.w='huntbow';h.eq.b='knife';ok(!X.throwLean(h)&&X.giftStyle(h)==='ranged','a hunter with a bow: archery');h.eq.b='javelin';ok(X.throwLean(h)&&X.giftStyle(h)==='throwing','… with javelins as the sidearm: the throwing gift');
+  const h=X.newMerc('hunter');h.eq.w='huntbow';h.eq.b='knife';ok(!X.throwLean(h)&&X.giftStyle(h)==='ranged','a hunter with a bow: archery');h.eq.b='javelin';ok(!X.throwLean(h),'… javelins as the sidearm beside the bow: still archery');h.eq.w='javelin';h.eq.b='huntbow';ok(X.throwLean(h)&&X.giftStyle(h)==='throwing','… javelins in hand: the throwing gift');
   const sw=X.newMerc('sellsword');sw.eq.w='taxe';ok(!X.throwLean(sw),'a background without the throwing family never leans to it');
   // the academy origin and the deed gifts (giftStyle): a thrower gets the throwing variant
   const w=X.newMerc('woodcutter');w.eq.w='taxe';w.gift=null;w.trees=w.trees.filter(k=>X.MAST[k].kind!=='gift');X.orGift(X.G,w,'qi');ok(w.gift==='qi_t'&&w.trees.includes('qi_t'),'a deed gift for a thrower: Storm throws ('+w.gift+')');

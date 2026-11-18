@@ -43,7 +43,7 @@ function newMerc(bg){const b=BG[bg],race=rnd()<.55?'human':pick(['elf','dwarf','
  const eq={w:null,b:null,s:null,a:null,h:null,c:null};b.gear.forEach(gs=>{const id=pick(gs.split('|'));if(ITEMS[id])eq[ITEMS[id].k]=id});
  if(b.side){const id=pick(b.side.split('|'));if(ITEMS[id]&&ITEMS[id].k==='w')eq.b=id}
  if(eq.s&&ITEMS[eq.w]&&ITEMS[eq.w].two)eq.s=null;   // a recruit who carries a two-hander brings no shield
- if(gres){const th=(b.wt||[]).includes('throwing')&&!(RACE[race].noWt||[]).includes('throwing')&&[eq.w,eq.b].some(id=>ITEMS[id]&&ITEMS[id].wt==='throwing');gift=giftKey(gres,th?'throwing':b.style||'melee')}   // a thrower rolls the throwing variant (giftStyle, 61-talents.js)
+ if(gres){const th=(b.wt||[]).includes('throwing')&&!(RACE[race].noWt||[]).includes('throwing')&&throwKit(eq.w,eq.b);gift=giftKey(gres,th?'throwing':b.style||'melee')}   // a thrower rolls the throwing variant (giftStyle, 61-talents.js)
  const traits=rollTraits(bg);
  const m={id:G.nid++,name:pick(NAMES),bg,race,lvl:1,xp:0,pp:1,pend:0,base,tal,trees:gift?trees.concat([gift]):trees,gift,perks:[],eq,hp:base.hp,field:false,inj:[],traits,slain:{}};
  fixHands(m);syncMast(m);m.hp=calc(m).hp;return m}
