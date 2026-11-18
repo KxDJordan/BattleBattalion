@@ -47,9 +47,17 @@ const HUM_AN={
  reloadX:{k:[[0,{w:[26,84],wa:84,o:[18,34],g:0,ck:1},'io'],[.33,{w:[26,84],wa:84,o:[34,26],g:0,ck:2},'io'],[.66,{w:[26,84],wa:84,o:[26,44],g:0,ck:3},'io'],[1,{w:[26,84],wa:84,o:[18,34],g:0,ck:1}]]},
  reloadG:{k:[[0,{w:[26,82],wa:-86,o:[30,-30],g:0,rd:1},'io'],[.5,{w:[26,82],wa:-86,o:[30,-6],g:0,rd:1},'io'],[1,{w:[26,82],wa:-86,o:[30,-30],g:0,rd:1}]]},
  reloadB:{k:[[0,{},'io'],[.4,{w:[-46,-30]},'io'],[.7,{w:[-40,-14]},'io'],[1,{}]]},
- reload:{k:[[0,{},'io'],[.5,{w:[14,82]},'io'],[1,{}]]}};
+ reload:{k:[[0,{},'io'],[.5,{w:[14,82]},'io'],[1,{}]]},
+ // throws (74-anim.js animThrow): wind-up with the weapon back over the shoulder and the off hand pointing at the foe, the arm whips over
+ // the top and lets go at AN_THR_REL (.3: em, the hand empty from there), follows through across the body, then draws a fresh one from
+ // the belt (throw) or over the shoulder (throwJ, javelins thrown point first); throwK keeps the weapon in hand (a conjured blade leaves it)
+ throw:{k:[[0,{},[.4,0,.6,1]],[.17,{w:[-36,-34],wa:-160,o:[52,6],lean:-11,lA:-9,lB:8,bob:3,head:-4},[.5,0,.9,.6]],[.25,{w:[-2,-76],wa:-96,o:[40,22],lean:-1,lA:4,lB:0,bob:1},'l'],
+  [.3,{w:[70,-62],wa:-36,o:[20,40],lean:11,lA:18,lB:-10,em:1},'o'],[.5,{w:[82,44],wa:40,o:[-8,56],lean:15,lA:22,lB:-12,bob:3,em:1},'io'],[.72,{w:[-8,84],wa:90,lean:4,lA:8,lB:-4,em:1},'io'],[.8,{w:[-8,82],wa:84,lean:3,lA:6,lB:-3},'io'],[1,{}]]},
+ throwJ:{k:[[0,{},[.4,0,.6,1]],[.17,{w:[-50,-14],wa:-16,o:[56,8],lean:-13,lA:-9,lB:8,bob:3,head:-4},[.5,0,.9,.6]],[.3,{w:[68,-54],wa:-14,o:[24,36],lean:12,lA:18,lB:-10,em:1},'o'],
+  [.5,{w:[84,40],wa:20,o:[-6,54],lean:15,lA:22,lB:-12,bob:3,em:1},'io'],[.72,{w:[-16,-24],wa:-118,lean:2,lA:6,lB:-3,em:1},'io'],[.8,{w:[-14,-20],wa:-118,lean:1},'io'],[1,{}]]}};
+HUM_AN.throwK={k:HUM_AN.throw.k.map(k=>[k[0],Object.assign({},k[1],{em:0}),k[2]])};
 const HUM_ATK={swing:'swing',two:'two',thrust:'thrust',dagger:'dagger',staff:'staff',gun:'gun',bow:'bow',fist:'punch'};
-const HSK_NUM=['lean','bob','lA','lB','uA','uB','kneel','fall','head','wa'],HSK_FLG={g:'grip',bd:'bowD',ar:'arrow',sp:'spark',dr:'drop',fi:'fire',rd:'rod',ck:'crank'};
+const HSK_NUM=['lean','bob','lA','lB','uA','uB','kneel','fall','head','wa'],HSK_FLG={g:'grip',bd:'bowD',ar:'arrow',sp:'spark',dr:'drop',fi:'fire',rd:'rod',ck:'crank',em:'empty'};
 function hskName(state,cls,fam,va){if(state==='attack'){if(va&&HUM_AN[va])return va;return HUM_ATK[cls]||'swing'}if(state==='reload')return fam==='xbow'?'reloadX':cls==='gun'?'reloadG':cls==='bow'?'reloadB':'reload';
  return HUM_AN[state]?state:'idle'}
 // resolve a key against the guard: full numbers + flags
@@ -158,11 +166,11 @@ function hskShieldAtt(L,k,look,colR,front,crack){const A=hskShared(L,k);return h
 function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAssets(L,face,k),hs=A.hs,S=A.S,f=A.f,back=A.back,mf=A.mf,mir=A.mir,hA=hs.A;
  let W=S.wd;const att=state==='attack';if(W&&W.cls==='xbow'&&!/:L$/.test(W.id)&&((S.ld&&state!=='reload')||(att&&t<.38))){try{W=usWdef(W.id+':L')}catch(e){}}
  const wi=humWIc(W,S.wdI),cls=humWCls(wi.fam,W);hs.fam=wi.fam;hs.two=wi.two;
- const P=humAnimPose(cls,state,t,{two:wi.two,fam:wi.fam},att&&S.shield&&(va==='bash'||va==='shieldbash')?'bash':'');
+ const P=humAnimPose(cls,state,t,{two:wi.two,fam:wi.fam},att&&S.shield&&(va==='bash'||va==='shieldbash')?'bash':att&&(va==='throw'||va==='throwK')?(cls==='thrust'?'throwJ':va):'');
  if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1;if((cls==='swing'||cls==='dagger')&&!att)P.wa+=(cls==='dagger'?-28:-42)}   // braced (approved look): the blade held up as before   // Shield wall (usWall)
  if(ex===undefined&&A.p2){try{ex=headPick(null,L,state,t,P.name,cls)}catch(e){ex=null}}
  if(ex===undefined&&typeof eyePick==='function'&&!A.back){try{ex=eyePick(null,L,state,t,P.name,cls)}catch(e){ex=null}}   // the baked path: the expression from the state alone
- if(S.spearw&&cls==='thrust'&&state!=='death'&&state!=='walk'&&state!=='swap'&&state!=='reload'){   // Spear wall: braced, knees bent, the spear levelled forward
+ if(S.spearw&&cls==='thrust'&&P.name!=='throwJ'&&state!=='death'&&state!=='walk'&&state!=='swap'&&state!=='reload'){   // Spear wall: braced, knees bent, the spear levelled forward
   const two=wi.two||!S.shield,hit=state==='hit'?Math.sin(Math.PI*Math.min(1,t/.5)):0,lunge=att?Math.max(0,Math.sin(Math.PI*Math.min(1,Math.max(0,(t-.2)/.5)))):0;
   P.lA=16;P.lB=-14;P.uA=0;P.uB=0;P.lg=[P.lA,0,P.lB,0];P.bob=12;P.lean=8+lunge*6-hit*10;P.head=-4;P.kneel=0;
   if(two){P.w=[40+lunge*46-hit*14,46];P.wa=-6;P.grip=1}else{P.w=[46+lunge*40-hit*10,36];P.wa=-3;P.grip=0}}
@@ -194,7 +202,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
   const pa=hskPaulAtt(A);if(pa){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);g.img(pa,'paul');g.restore()}};
  const drawHand=(p,a)=>{if(A.p2)return;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(p,'hand');g.restore()};
  const fire=cls==='gun'&&att&&P.fire,loaded=S.ld!==0&&!(att&&t>=.38);
- const drawWeapon=()=>{if(P.drop||cls==='bow'||wi.fam==='fist')return;let wa2=wa;
+ const drawWeapon=()=>{if(P.drop||P.empty||cls==='bow'||wi.fam==='fist')return;let wa2=wa;
   if(P.wa>95&&state!=='death'){const tip=wi.len-(A.p2&&wi.gripC?wi.gripC:0)+8,sn=Math.sin(wa);if(armW.gy+sn*tip>-4){const s2=Math.max(.05,Math.min(1,(-4-armW.gy)/tip));wa2=Math.PI-Math.asin(s2)}}   // trailing behind: lowered only until the tip touches the ground
   g.save();g.translate(armW.gx,armW.gy);g.scale(f,1);g.rotate(wa2);if(A.p2&&wi.gripC)g.translate(-wi.gripC,0);{const hang=P.wa>95?0:Math.max(0,Math.min(1,(P.wa-45)/45));let back=0;if(hang>0&&(wi.fam==='axe'||wi.fam==='mace'||wi.fam==='hammer'||wi.fam==='club'))back=wi.len*.62*hang;
   if(hang>0&&state!=='death'){const tip=wi.len-(A.p2&&wi.gripC?wi.gripC:0)-back+8,low=armW.gy+Math.sin(wa)*tip;if(low>-6)back+=(low+6)/Math.max(.3,Math.sin(wa))}   // hanging: the tip stops just above the ground
@@ -252,10 +260,10 @@ function humSkDraw(q,Fr,x,y,mapImg,skipFn){const t0=performance.now(),s=HUM_A*Fr
 function humSkBox(Fr){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const it of Fr.list){const m=it.m;const pts=it.a?[[it.a.x,it.a.y],[it.a.x+it.a.w,it.a.y],[it.a.x,it.a.y+it.a.h],[it.a.x+it.a.w,it.a.y+it.a.h]]:[[-40,-40],[40,40]];
   for(const [px,py] of pts){const X=m[0]*px+m[2]*py+m[4],Y=m[1]*px+m[3]*py+m[5];if(X<x0)x0=X;if(X>x1)x1=X;if(Y<y0)y0=Y;if(Y>y1)y1=Y}}return[x0,y0,x1,y1]}
 /* ---- the baked path (unitSpritePx for effects, the tailor, tests and the first frames): one sampled pose in a canvas ---- */
-const HSK_SAMPLE={idle:[0,.5],walk:[0,.25,.5,.75],attack:[.24,.38,.56],cast:[.22,.5,.66],hit:[.22,.8],death:[.18,.5,1],swap:[.3,.62,.9],reload:[0,.33,.66]};
+const HSK_SAMPLE={idle:[0,.5],walk:[0,.25,.5,.75],attack:[.24,.38,.56],throw:[.17,.27,.5,.8],throwK:[.17,.27,.5,.8],cast:[.22,.5,.66],hit:[.22,.8],death:[.18,.5,1],swap:[.3,.62,.9],reload:[0,.33,.66]};
 function humSkT(state,fr){const a=HSK_SAMPLE[state]||HSK_SAMPLE.idle;return a[Math.max(0,Math.min(a.length-1,fr|0))]}
 function humBuild(L,face,st,fr,tt){const I=humImg();if(!I||typeof document==='undefined')return null;const t0=performance.now(),k=humK();
- const Fr=humSkFrame(L,face,st,tt!=null?tt:humSkT(st,fr),k,'');const b=humSkBox(Fr),s=HUM_A*Fr.sc;
+ const th=st==='throw'||st==='throwK',Fr=humSkFrame(L,face,th?'attack':st,tt!=null?tt:humSkT(st,fr),k,th?st:'');const b=humSkBox(Fr),s=HUM_A*Fr.sc;
  let X0=b[0]*s,X1=b[2]*s;if(Fr.mir){const t=X0;X0=-X1;X1=-t}const Y0=b[1]*s,Y1=b[3]*s,w=Math.max(2,Math.ceil((X1-X0)*k)+2),h=Math.max(2,Math.ceil((Y1-Y0)*k)+2);
  const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.hdk=k;const q=cv.getContext('2d');q.imageSmoothingEnabled=true;try{q.imageSmoothingQuality='high'}catch(e){}
  const ax=-X0+1/k,ay=-Y0+1/k;q.setTransform(k,0,0,k,0,0);humSkDraw(q,Fr,ax,ay);HUM.builds++;HUM.bytes+=w*h*4;HUM.ms+=performance.now()-t0;
@@ -265,7 +273,7 @@ const HSK_LOOP={idle:1,walk:1,flee:1};
 function humLiveFrame(u,v){if(!u||!humImg()||(typeof hdArt==='function'&&!hdArt()))return null;if(u.def&&!u.m&&typeof monsterSpritePx==='function'){try{if(monsterSpritePx(u,0,'idle',0))return null}catch(e){}}
  const L=usLook(u);if(!humWant(L))return null;let st=v.pS||'idle';if(st==='walk'&&v.pAn==='flee')st='flee';
  let t=HSK_LOOP[st]?(v.pCy||0):(v.pPh!=null?v.pPh:humSkT(st,v.pF));if(st==='idle'&&typeof reduced!=='undefined'&&reduced)t=0;
- let va='';if(st==='attack'&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
+ let va='';if(st==='attack'&&(v.pAn==='throw'||v.pAn==='throwK'))va=v.pAn;else if(st==='attack'&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
  const face=((v.pD|0)%4+4)%4;let ex=null;if(typeof p2On==='function'&&p2On()){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=headPick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
  else if(face<2&&typeof eyePick==='function'){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=eyePick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
  return humSkFrame(L,face,st==='flee'?'flee':st,t,humK(),va,ex)}

@@ -826,11 +826,11 @@ function fxReach(u,t,miss,sp,ss,ramp,arc){const a=fxUP(u),ax=a.x,ay=a.y-a.h*.5,b
 // the default shot / reach of the weapon in hand; -1 when it is a plain arrow (bows keep theirs)
 function fxArmsShot(u,t,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy){if(fxReachW(u)&&d<=Math.max(2,fxW(u).rng|0))return fxReach(u,t,miss,sp,ss);
  const sh=fxShotOf(u);if(sh==='bolt')return fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(sh==='ball')return fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(FX_THROWN[sh])return fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh);return-1}
-/* a thrown weapon (11t-arms.js w.shot): it leaves the hand at the top of the swing and flies in an arc, spinning (axes, knives, stars, the
+/* a thrown weapon (11t-arms.js w.shot): it leaves the hand at the release of the throw (74-anim.js animThrow, anThrowLead) and flies in an arc, spinning (axes, knives, stars, the
    chakram, the hammer, bolas) or point first (javelins, pila, darts); T_PROJ kind 9 draws it (fxDrawShot) */
 const FX_THROWN={axe:{spin:1,imp:'slash'},haxe:{spin:1,big:1,imp:'slash'},knife:{spin:1,imp:'bolt'},star:{spin:1,imp:'bolt'},chakram:{spin:1,imp:'slash'},hammer:{spin:1,imp:'hammer'},bolas:{spin:1,imp:'bolt'},jav:{imp:'bolt'},dart:{imp:'bolt'}};
-function fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh){const K=FX_THROWN[sh],lead=150*sp*AN_HIT_AT,fly=Math.max(70,L/(K.spin?1.5:1.9))*ss,o=fxo(T_PROJ,ax+ux*6,ay-8,lead,fly,R_WHITE);
- o.x2=bx;o.y2=by;o.a=9;o.b=Math.min(K.spin?26:18,L*(K.spin?.16:.1));o.c=miss?1:0;o.s=sh;FXS.lastThrow=o;FXS.sty=K.imp==='hammer'?S_HAMMER:K.imp==='slash'?S_SLASH:S_BOLT;return lead+fly}
+function fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh,keep){const K=FX_THROWN[sh],lead=anThrowLead(sp),fly=Math.max(70,L/(K.spin?1.5:1.9))*ss,o=fxo(T_PROJ,ax+ux*6,ay-8,lead,fly,R_WHITE);
+ o.x2=bx;o.y2=by;o.a=9;o.b=Math.min(K.spin?26:18,L*(K.spin?.16:.1));o.c=miss?1:0;o.s=sh;FXS.lastThrow=o;if(typeof animThrow==='function')animThrow(u,keep);FXS.sty=K.imp==='hammer'?S_HAMMER:K.imp==='slash'?S_SLASH:S_BOLT;return lead+fly}
 function fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const ab=FXS.cab||FXO_NIL;let o,ld;
  if(id&&id.charCodeAt(0)===116&&id[1]==='g'){const n=fxStrikeTG(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}   // the throwing gifts
  switch(id){
@@ -904,18 +904,18 @@ function fxDrawThrown(o,ax,ay,ux,uy,p){const q=DQ,sh=o.s,K=FX_THROWN[sh]||{},px=
    hurl's splash lands as its burst. Keys tgconj tghurl tgcomet tgstar tgball tgvital tgsever (FX_ID). */
 const S_TG0=86,S_TGCONJ=86,S_TGHURL=87,S_TGCOMET=88,S_TGSTAR=89,S_TGVITAL=90,S_TGSEVER=91;
 const FX_TGNIL=[null,null];
-function fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,ramp,sh,rate){const shape=sh||(FX_THROWN[fxShotOf(u)]?fxShotOf(u):'knife'),at=fxThrow(u,null,miss,sp,ss,ax,ay,bx,by,L,ux,uy,shape),th=FXS.lastThrow,K=FX_THROWN[shape],lead=150*sp*AN_HIT_AT;
+function fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,ramp,sh,keep){const shape=sh||(FX_THROWN[fxShotOf(u)]?fxShotOf(u):'knife'),at=fxThrow(u,null,miss,sp,ss,ax,ay,bx,by,L,ux,uy,shape,keep),th=FXS.lastThrow,K=FX_THROWN[shape],lead=anThrowLead(sp);
  const o=fxo(T_PROJ,ax+ux*6,ay-8,lead,at-lead,ramp);o.x2=bx;o.y2=by;o.a=5;o.b=Math.min(K.spin?26:18,L*(K.spin?.16:.1));o.s=FX_TGNIL;if(th)th.d=ramp+1;glowFx(ax+ux*6,ay-8,30,ramp===R_MANA?'x':ramp===R_AURA?'y':ramp===R_QI?'z':'A',.55,140,lead);return at}
 // the gift's halo around a thrown weapon in flight (o.d = ramp + 1, set by fxGThrow only): a flickering diamond of the gift's colour
 function fxThrowHalo(o,ax,ay,tick){const R=FXR[o.d-1];if(!R)return;const q=DQ,a0=q.globalAlpha,r=4+(tick&1);q.globalAlpha=a0*.6;q.fillStyle=R[Math.min(2,R.length-1)];
  for(let j=-r;j<=r;j++){const w=r-Math.abs(j);A(ax-w,ay+j,w*2+1,1)}q.globalAlpha=a0*.85;q.fillStyle=R[1];for(let j=-2;j<=2;j++)A(ax-(2-Math.abs(j)),ay+j,(2-Math.abs(j))*2+1,1);q.globalAlpha=a0}
 function fxStrikeTG(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){let o,r;const prev=fxPrev(t,k);
  switch(id){
-  case'tgconj':{const sx=ax+(k?(k&1?-5:5):0),sy=ay+(k?-3:0);r=fxGThrow(u,miss,sp,ss,sx,sy,bx,by,Math.hypot(bx-sx,by-sy),ux,uy,R_MANA,'knife');FXS.sty=S_TGCONJ;return r}
+  case'tgconj':{const sx=ax+(k?(k&1?-5:5):0),sy=ay+(k?-3:0);r=fxGThrow(u,miss,sp,ss,sx,sy,bx,by,Math.hypot(bx-sx,by-sy),ux,uy,R_MANA,'knife',1);FXS.sty=S_TGCONJ;return r}
   case'tghurl':r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_AURA);FXS.sty=S_TGHURL;return r;
   case'tgcomet':if(k>0){FXS.sty=S_AURA;return Math.max(30*sp,FXS.cAt-now+40*sp)}r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_AURA);FXS.cAt=now+r;FXS.sty=S_TGCOMET;return r;
   case'tgstar':case'tgball':{if(prev){const s0=fxUP(prev),dl=Math.max(40*sp,FXS.cAt-now+30*sp);o=fxo(T_BOLT,s0.x,s0.y-s0.h*.48,dl,230*ss,R_QI);o.x2=bx;o.y2=by;o.a=8;FXS.clast=t;FXS.cAt=now+dl+50*sp;FXS.sty=S_TGSTAR;return dl+50*sp}
-   r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_QI);if(id==='tgball'){o=fxo(T_PROJ,ax+ux*6,ay-8,150*sp*AN_HIT_AT,r-150*sp*AN_HIT_AT,R_QI);o.x2=bx;o.y2=by;o.a=5;o.b=Math.min(26,L*.16);o.s=fxOrb(R_QI)}
+   r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_QI);if(id==='tgball'){o=fxo(T_PROJ,ax+ux*6,ay-8,anThrowLead(sp),r-anThrowLead(sp),R_QI);o.x2=bx;o.y2=by;o.a=5;o.b=Math.min(26,L*.16);o.s=fxOrb(R_QI)}
    FXS.clast=t;FXS.cAt=now+r;FXS.sty=S_TGSTAR;return r}
   case'tgvital':r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_CHI);FXS.sty=S_TGVITAL;return r;
   case'tgsever':r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_CHI);FXS.sty=S_TGSEVER;return r}
