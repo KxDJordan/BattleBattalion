@@ -234,7 +234,7 @@ function menuExtra(){if(!G)return'';let h='';
  return h}
 // the world shell's run duties (chromeTick): the crisis outcome and the victory summary, an ironman book written every new day
 let _ironDay=0;
-function runShellTick(){if(!G)return;if(typeof runTick==='function')runTick();if(G.ironman&&!sheetOpen&&G.day!==_ironDay){if(_ironDay)save();_ironDay=G.day}}
+function runShellTick(){if(!G)return;if(typeof isekaiWatch==='function'&&isekaiWatch())return;if(typeof runTick==='function')runTick();if(G.ironman&&!sheetOpen&&G.day!==_ironDay){if(_ironDay)save();_ironDay=G.day}}
 function menuSave(){save();toast('Saved');closeSheet()}
 function quitToTitle(){save();closeSheet(true);mode='title';setUI()}
 function confirmNew(){const st=saveStatus(),nm=st.name?htmlEsc(st.name):'This company';
@@ -247,18 +247,21 @@ const NCNAMES=['The Ashen Banner','The Grey Wolves','The Brass Lanterns','The Su
 const NCS={name:'',wsize:'small',c1:'5',c2:'c',emblem:'swords',bn:{c1:'5',c2:'c',emblem:'swords',div:'plain',c3:'l',shape:'swallow'},origin:'free',diff:'normal',iron:false,tut:false,slot:0,open:false};
 /* origins (events agent's ORIGINS): icon, name, the story, and the one rule each, picked in the setup dialog */
 const NCORIC={slayer:'or-slayer',free:'or-free',deserters:'or-deserters',noble:'or-noble',academy:'or-academy',beast:'or-hunters',hunters:'or-hunters',pilgrims:'or-pilgrims'};
-function ncOrigins(){return typeof ORIGINS==='object'&&ORIGINS?Object.keys(ORIGINS):[]}
+function ncOrigins(){const L=typeof ORIGINS==='object'&&ORIGINS?Object.keys(ORIGINS):[],i=L.indexOf('isekai'),j=L.indexOf('slayer');if(i>j&&j>=0){L.splice(i,1);L.splice(j+1,0,'isekai')}return L}   // The Isekai (open from the start) beside the other open origins
 function ncOrIcon(k){const O=ORIGINS[k]||{},a=NCORIC[k];if(a&&typeof icHas==='function'&&icHas(a))return a;return O.icon||'banner'}
 function ncOriginHTML(){const L=ncOrigins();if(!L.length)return'';const U=k=>typeof originUnlocked!=='function'||originUnlocked(k);if(!ORIGINS[NCS.origin]||!U(NCS.origin))NCS.origin=L.includes('free')?'free':L[0];const O=ORIGINS[NCS.origin];
  return`<div class="ncs-sec"><b>Origin</b><small>How the company began: its first swords, purse and one rule</small></div><div class="ncs-ors" role="radiogroup" aria-label="Origin">${L.map(k=>{const o=ORIGINS[k];if(!U(k)&&typeof achOrLockBtn==='function')return achOrLockBtn(k);return`<button class="ncs-or${NCS.origin===k?' on':''}" role="radio" aria-checked="${NCS.origin===k}" onclick="ncSet('origin','${k}')">${pnIcon(ncOrIcon(k),'',32)}<b>${htmlEsc(o.n)}</b></button>`}).join('')}</div>
- <div class="ncs-ord">${pnIcon(ncOrIcon(NCS.origin),'',32)}<div><b>${htmlEsc(O.n)}</b><p>${htmlEsc(O.d||'')}</p>${O.rule?`<p class="ncs-rule"><i>Rule</i>${htmlEsc(O.rule)}</p>`:''}${typeof O.crowns==='number'?`<p class="ncs-orf">${pnIcon('coin','',16)}${O.crowns} crowns${Array.isArray(O.roster)?` · ${O.roster.length} swords`:''}</p>`:''}</div></div>`}
+ <div class="ncs-ord">${pnIcon(ncOrIcon(NCS.origin),'',32)}<div><b>${htmlEsc(O.n)}</b><p>${htmlEsc(O.d||'')}</p>${O.rule?`<p class="ncs-rule"><i>Rule</i>${htmlEsc(O.rule)}</p>`:''}${O.ncLine?`<p class="ncs-orf">${pnIcon('coin','',16)}${htmlEsc(O.ncLine)}</p>`:typeof O.crowns==='number'?`<p class="ncs-orf">${pnIcon('coin','',16)}${O.crowns} crowns${Array.isArray(O.roster)?` · ${O.roster.length} swords`:''}</p>`:''}</div></div>`}
 function ncRand(a){return a[Math.floor(Math.random()*a.length)]}
 function newCompanySetup(){let st=saveStatus();if(st.state!=='none'){const f=slotFree();if(f<0){if(st.state==='newer'||st.state==='corrupt'){saveNotice(st);return}ncFull();return}slotUse(f);st=saveStatus()}
- NCS.slot=SLOT;NCS.name=ncRand(NCNAMES);NCS.wsize='small';NCS.origin='free';NCS.diff='normal';NCS.shape='continent';NCS.biomes='temperate';NCS.iron=false;NCS.mods='random';NCS.modPick=[];NCS.tut=typeof tutWanted==='function'?tutWanted():false;const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.bn={c1:d.c1,c2:d.c2,emblem:d.emblem,div:'plain',c3:typeof bnC3==='function'?bnC3(d.c1,d.c2):'l',shape:'swallow'};NCS.open=true;
- sheet(`<div class="row sp seth ncs-h"><h2>Raise a company</h2><button onclick="ncCancel()">Back</button></div>
+ NCS.slot=SLOT;if(typeof ISKS==='object')ISKS.fresh=true;NCS.name=ncRand(NCNAMES);NCS.wsize='small';NCS.origin='free';NCS.diff='normal';NCS.shape='continent';NCS.biomes='temperate';NCS.iron=false;NCS.mods='random';NCS.modPick=[];NCS.tut=typeof tutWanted==='function'?tutWanted():false;const d=BANNERDEF;NCS.c1=d.c1;NCS.c2=d.c2;NCS.emblem=d.emblem;NCS.bn={c1:d.c1,c2:d.c2,emblem:d.emblem,div:'plain',c3:typeof bnC3==='function'?bnC3(d.c1,d.c2):'l',shape:'swallow'};NCS.open=true;
+ ncSheet()}
+// the dialog itself, with the choices NCS holds (ncReopen: back from The Isekai's hero screens, nothing reset)
+function ncReopen(){NCS.open=true;ncSheet()}
+function ncSheet(){sheet(`<div class="row sp seth ncs-h"><h2>Raise a company</h2><button onclick="ncCancel()">Back</button></div>
 <div class="ncs"><div class="ncs-l"><div class="ncs-flag" id="ncsFlag"></div>
  <label class="ncs-nl" for="ncsName">Company name</label><div class="ncs-name"><input id="ncsName" type="text" maxlength="${NAMEMAX}" autocomplete="off" spellcheck="false" value="${htmlEsc(NCS.name)}" oninput="ncName(this.value)" onkeydown="if(event.key==='Enter'){this.blur()}"><button class="pxb sm icon" aria-label="Suggest a name" title="Suggest a name" onclick="ncDice()">${pnIcon('dice','',16)}</button></div>
- <button class="pri big ncs-go" onclick="ncBegin()"><b>Begin</b><small id="ncsGoSub"></small></button></div>
+ <button class="pri big ncs-go" onclick="ncBegin()"><b id="ncsGoB">Begin</b><small id="ncsGoSub"></small></button></div>
  <div class="ncs-r" id="ncsOpts"></div></div>`,'wide');ncDraw()}
 function ncFull(){sheet(`<h2>Every book is full</h2><p>Three companies are already kept in this browser. Burn a book, or export one to keep it safe, to raise a new company.</p><div class="row"><button onclick="${mode==='title'?'closeSheet(true)':'menuSheet()'}">Back</button><button class="pri" style="flex:1" onclick="slotsSheet()">${pic('ledger',16)}<span>The books</span></button></div>`)}
 function ncDiffHTML(){const D=DIFF[NCS.diff]||DIFF.normal;
@@ -275,12 +278,14 @@ function ncBn(k,v){const B=NCS.bn;if(/^c[123]$/.test(k))bnSetCol(B,k,v);else if(
 function ncShuffle(){const B=NCS.bn;bnRoll(B);NCS.c1=B.c1;NCS.c2=B.c2;NCS.emblem=B.emblem;ncDraw()}
 function ncFlag(){const f=$('ncsFlag');if(!f)return;const b=Object.assign({},NCS.bn,{name:NCS.name});
  f.innerHTML=`${bannerHTML(b,128,'ncs-big')}<div class="ncs-cap"><b>${htmlEsc(cleanName(NCS.name))}</b><small>${htmlEsc(bnBlazon(b))}</small></div>`;
- const g=$('ncsGoSub');if(g)g.textContent=`${typeof ORIGINS==='object'&&ORIGINS&&ORIGINS[NCS.origin]&&NCS.origin!=='free'?ORIGINS[NCS.origin].n+', ':''}${WORLDSZ[NCS.wsize].name}${NCS.shape&&NCS.shape!=='continent'&&typeof MAPSHAPES==='object'&&MAPSHAPES[NCS.shape]?' '+MAPSHAPES[NCS.shape].n.toLowerCase():NCS.shape==='random'?' random':''} world${NCS.biomes&&NCS.biomes!=='temperate'&&typeof MAPBIOMES==='object'&&MAPBIOMES[NCS.biomes]?', '+MAPBIOMES[NCS.biomes].n.toLowerCase():''} · ${DIFF[NCS.diff].n}${NCS.mods==='none'?' · no twists':NCS.mods==='pick'&&NCS.modPick&&NCS.modPick.length?' · '+NCS.modPick.length+' twist'+(NCS.modPick.length>1?'s':''):''}${NCS.iron?' · Ironman':''} · book ${NCS.slot+1}`}
+ {const b=$('ncsGoB');if(b)b.textContent=NCS.origin==='isekai'?'Make your hero':'Begin'}const g=$('ncsGoSub');if(g)g.textContent=`${typeof ORIGINS==='object'&&ORIGINS&&ORIGINS[NCS.origin]&&NCS.origin!=='free'?ORIGINS[NCS.origin].n+', ':''}${WORLDSZ[NCS.wsize].name}${NCS.shape&&NCS.shape!=='continent'&&typeof MAPSHAPES==='object'&&MAPSHAPES[NCS.shape]?' '+MAPSHAPES[NCS.shape].n.toLowerCase():NCS.shape==='random'?' random':''} world${NCS.biomes&&NCS.biomes!=='temperate'&&typeof MAPBIOMES==='object'&&MAPBIOMES[NCS.biomes]?', '+MAPBIOMES[NCS.biomes].n.toLowerCase():''} · ${DIFF[NCS.diff].n}${NCS.mods==='none'?' · no twists':NCS.mods==='pick'&&NCS.modPick&&NCS.modPick.length?' · '+NCS.modPick.length+' twist'+(NCS.modPick.length>1?'s':''):''}${NCS.iron?' · Ironman':''} · book ${NCS.slot+1}`}
 function ncDraw(){const o=$('ncsOpts');if(!o)return;const st=o.scrollTop;
  o.innerHTML=ncOriginHTML()+ncDiffHTML()+(typeof ncShapeHTML==='function'?ncShapeHTML():'')+(typeof ncModsHTML==='function'?ncModsHTML():'')+`<div class="ncs-sec"><b>Land</b><small>${WORLDSZ[NCS.wsize].note}</small></div><div class="ncs-sizes" role="radiogroup" aria-label="World size">${Object.keys(WORLDSZ).map(k=>{const z=WORLDSZ[k];return`<button class="ncs-size${NCS.wsize===k?' on':''}" role="radio" aria-checked="${NCS.wsize===k}" onclick="ncSet('wsize','${k}')"><b>${z.name}</b><small>${z.n}×${z.n} · ${z.towns} towns</small></button>`}).join('')}</div>
  ${bnPickHTML(NCS.bn,'ncBn','ncShuffle')}`;
  o.scrollTop=st;ncFlag()}
-function ncBegin(){NCS.open=false;newGame(false,{name:cleanName(NCS.name),wsize:NCS.wsize,banner:Object.assign({},NCS.bn),origin:NCS.origin,diff:NCS.diff,shape:NCS.shape,biomes:NCS.biomes,ironman:NCS.iron,tutorial:NCS.tut,slot:NCS.slot,mods:typeof ncModsOpt==='function'?ncModsOpt():undefined})}
+// Begin: The Isekai first makes its hero (iskOpen, 28i-isekai.js: its own Begin raises the company with ncOpts() and the hero)
+function ncOpts(){return{name:cleanName(NCS.name),wsize:NCS.wsize,banner:Object.assign({},NCS.bn),origin:NCS.origin,diff:NCS.diff,shape:NCS.shape,biomes:NCS.biomes,ironman:NCS.iron,tutorial:NCS.tut,slot:NCS.slot,mods:typeof ncModsOpt==='function'?ncModsOpt():undefined}}
+function ncBegin(){if(NCS.origin==='isekai'&&typeof iskOpen==='function'){iskOpen();return}NCS.open=false;newGame(false,ncOpts())}
 
 /* ---- how to play, credits ---- */
 function howSheet(){const r=(ic,svg,t,d)=>`<div class="how-r">${ic==='map'?'<i class="pxi pxi-map s32" aria-hidden="true"></i>':pic(ic,32,svg)}<div><b>${t}</b><p>${d}</p></div></div>`;

@@ -179,7 +179,8 @@ function endBattle(win){const b=B;if(!b)return null;if(b.result)return b.result;
 // {kind:'wiped',days} | {kind:'world',toast?} | {kind:'dunNext',stage,realm} | {kind:'dunDone',pay,ended}
 // src is only given when there is no battle to read it from (a withdrawal before the first blow, see fleeEncounter).
 function settleBattle(win,src){const s=src||B&&B.opts.src||{},B0res=B&&B.result||null;B=null;mode='world';
- if(!G.roster.length){clearSave();return{kind:'wiped',days:G.day,solo:typeof isSolo==='function'&&isSolo()}}   // a solo run ends with its one sword
+ if(!G.roster.length){clearSave();return{kind:'wiped',days:G.day,solo:typeof isSolo==='function'&&isSolo(),isekai:typeof isekaiOn==='function'&&isekaiOn()}}   // a solo run ends with its one sword
+ if(typeof isekaiLost==='function'&&isekaiLost(G)){G.isekai.lost=1;clearSave();return{kind:'wiped',days:G.day,solo:isSolo(),isekai:true}}   // The Isekai: the run ends with its hero, whoever is left (28i-isekai.js)
  G.grace=3;const out={kind:'world',toast:null};
  // the world's consequences first (caravan loot, reputation, sieges broken, nests cleared: 40-world.js), while the beaten party is still on the map
  if(typeof worldBattleEnd==='function'){try{out.world=worldBattleEnd(s,win,B0res)}catch(e){out.world=null}}   // (the result record rides along: res.rival, res.cargo)
@@ -213,6 +214,7 @@ function fleeEncounter(o){const c0=G.crowns;if(o&&o.src&&o.src.type==='arena')re
  const hp=o&&o.src&&o.src.type==='party'&&G.parties.find(q=>q.id===o.src.id);if(hp&&hp.hunt)G.grace=Math.max(G.grace||0,12);return out}
 function afterBattle(win){if(!B)return null;const f0=B.opts&&B.opts.f;const out=settleBattle(win);setUI();closeSheet(true);
  if(out.kind==='wiped'&&typeof runEnd==='function'){try{runEnd('wipe')}catch(e){}}
+ if(out.kind==='wiped'&&out.isekai&&typeof isekaiEndHTML==='function'){sheet(isekaiEndHTML(out.days),'isk-over');return out}   // the hero has fallen: the last page names them
  if(out.kind==='wiped'){sheet((out.solo?`<h2>The hunt is over</h2><p>The slayer is dead, and nobody rides on in their name. The hunt lasted ${out.days} days.</p>`:`<h2>The company is no more</h2><p>Nobody is left to carry the banner. It lasted ${out.days} days.</p>`)+`<button class="pri" onclick="if(typeof newCompanySetup==='function')newCompanySetup();else newGame()">Raise a new company</button>`);return out}
  if(typeof egAfterSheet==='function'&&/^(portal|dgn)/.test(out.kind)){egAfterSheet(out);save();return out}
  if(out.kind==='arena'&&typeof colAfterSheet==='function'){colAfterSheet(out);save();return out}   // the colosseum (58c-colosseum-ui.js)

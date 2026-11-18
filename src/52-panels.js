@@ -277,7 +277,7 @@ function tlArmClass(m){if(!m)return null;if(typeof armorClass==='function'){cons
  return null}
 /* the armor trees this merc's background allows (BG[bg].at via mercTrees), and a short line naming them */
 function tlArmKeys(m){return tlTrees(m).filter(x=>x.kind==='armor').map(x=>x.key)}
-function tlBgA(m){const n=BG[m.bg]?BG[m.bg].n.toLowerCase():'sword';return(/^[aeiou]/.test(n)?'an ':'a ')+n}
+function tlBgA(m){const n=BG[m.bg]?bgLow(m.bg):'sword';return(/^[aeiou]/.test(n)?'an ':'a ')+n}
 function tlArmNote(m,short){const L=tlArmKeys(m).map(k=>(TL_ARMN[tlTreeArm(k)]||MAST[k].n).toLowerCase()),b=tlBgA(m),J=L.join(' and ');
  if(short)return L.length?J[0].toUpperCase()+J.slice(1)+' only':'None';if(!L.length)return'No armor tree for '+b;
  return(b[0].toUpperCase()+b.slice(1))+' learns '+(L.length===1?'only the '+J+' armor tree':'only the '+J+' armor trees')}
@@ -291,7 +291,7 @@ function tlStyle(m){if(typeof mercStyle==='function'){const s=tlTry(()=>mercStyl
 /* the gift label: "Aura: Archer's way" */
 function tlGiftLabel(g){const T=MAST[g];if(!T)return'';const r=T.res&&typeof RESN!=='undefined'?RESN[T.res]:'';return r&&T.n.indexOf(r)!==0?r+': '+T.n:T.n}
 /* the weapon families this merc's background allows (minus its race's), and the weapon tree key of each (MAST.weapons holds them all) */
-function tlWtAllowed(m){const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[];return(Array.isArray(b.wt)?b.wt:[]).filter(w=>!no.includes(w))}
+function tlWtAllowed(m){if(typeof weaponTypes==='function'){const L=tlTry(()=>weaponTypes(m),null);if(Array.isArray(L))return L}const b=BG[m.bg]||{},no=(RACE[m.race]&&RACE[m.race].noWt)||[];return(Array.isArray(b.wt)?b.wt:[]).filter(w=>!no.includes(w))}
 function tlWtKey(w){if(MAST[w]&&tlKind(MAST[w])==='weapon')return w;for(const k in MAST)if(tlKind(MAST[k])==='weapon'&&(MAST[k].wt===w||(MAST[k].tiers||[]).some(t=>t.some(p=>p&&p.wt===w))))return k;return null}
 function tlWeaponKeys(m){if(typeof weaponTrees==='function'){const L=tlTry(()=>weaponTrees(m),null);if(Array.isArray(L))return L.map(x=>typeof x==='string'?(MAST[x]?x:tlWtKey(x)):x&&x.key).filter(k=>k&&MAST[k])}
  return tlWtAllowed(m).map(tlWtKey).filter(Boolean)}

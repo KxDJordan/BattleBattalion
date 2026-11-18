@@ -102,7 +102,7 @@ section('catalog: a role for every tree, perks that build on it');
   const all=[];for(const k in M){const T=M[k];all.push(...T.p);if(T.cap)all.push(...T.cap.tiers.flat())}
   for(const p of all){for(const q in p.mod||{}){nk++;ok(read(q),p.id+': mod '+q+' is read nowhere')}if(p.flag){nk++;ok(read(p.flag),p.id+': flag '+p.flag+' is read nowhere')}}
   // the changed perks: listed for the save migration, still passives where they were (abilities only where the tree has its one)
-  ok(X.SAVEVER===21&&X.PERKV21.length>=30&&new Set(X.PERKV21).size===X.PERKV21.length&&X.PERKV21.every(id=>X.perkById(id)),'PERKV21: '+X.PERKV21.length+' changed perks, all real');
+  ok(X.SAVEVER>=21&&X.PERKV21.length>=30&&new Set(X.PERKV21).size===X.PERKV21.length&&X.PERKV21.every(id=>X.perkById(id)),'PERKV21: '+X.PERKV21.length+' changed perks, all real');
   for(const id of X.PERKV21)ok(X.pkHas('perk-'+id)||X.perkById(id).perk.ab,'painted icon perk-'+id);
   for(const id of X.RL_ICONS){ok(X.icResolve('perk-'+id)!=='none','pixel icon perk-'+id);ok(X.pkHas('perk-'+id),'painted icon perk-'+id)}
   ok(X.icResolve('st-suppr')!=='none'&&X.pkHas('st-suppr')&&X.STATUS.suppr,'the Suppressed status: both icons');
@@ -192,7 +192,7 @@ section('saves: v20 -> v21 (the changed perks refunded)');
 { const G=fresh(SEED+7);const m=G.roster[0];m.lvl=8;m.trees=['vanguard','bulwark','marksman','skirmisher'];m.perks=['vanguard.1','vanguard.2','vanguard.4','bulwark.2','bulwark.3','skirmisher.1','marksman.6'];m.pp=0;
   const t=G.towns.find(t=>t.recruits&&t.recruits.length),rc=t&&t.recruits[0];if(rc){rc.lvl=5;rc.trees=['vanguard','bulwark','survivor','brute'];rc.perks=['vanguard.1','bulwark.4'];rc.pp=0}
   ok(X.save(),'save failed');const g=JSON.parse(X.store.get(X.SAVEKEY));g.v=20;delete g.refund;delete g.refundWhy;g.note=null;X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();
-  ok(r.state==='ok'&&r.v===20&&r.g.v===21,'a v20 save migrates to v21');const M2=r.g.roster.find(q=>q.id===m.id);
+  ok(r.state==='ok'&&r.v===20&&r.g.v===X.SAVEVER,'a v20 save migrates to the current version');const M2=r.g.roster.find(q=>q.id===m.id);
   ok(M2.perks.join()==='vanguard.2,vanguard.4,bulwark.3,skirmisher.1'&&M2.pp===3,'the changed perks come back as points: '+M2.perks.join()+' pp '+M2.pp);
   ok(r.g.refund.some(x=>x.name===m.name&&x.n===3)&&r.g.note==='refund'&&r.g.refundWhy==='roles','the one-time sheet is asked for');
   if(rc){const T=r.g.towns.find(q=>q.name===t.name),R0=T.recruits.find(q=>q.id===rc.id);ok(R0.perks.join()==='vanguard.1,bulwark.4','recruits keep theirs')}

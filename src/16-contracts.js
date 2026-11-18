@@ -285,7 +285,7 @@ const BETRAY={grace:30,short:.6,extra:.1,base:.22,tier:.06,rep:.005,brv:.006,brv
 function ctrBetrayBites(c){return!!(c&&c.twist&&c.twist.k==='betrayal'&&!c.twist.fired&&(svObj(c.twist.bt)||ctrRep(c.emp)<BETRAY.grace))}
 // the company's best talker: resolve, background and traits -> {m, k (its share of the odds), why}
 function ctrTalker(){let best=null;for(const m of (G&&G.roster)||[]){const st=typeof calc==='function'?calc(m):{brv:40},brv=svNum(st.brv,40);let k=(brv-BETRAY.brv0)*BETRAY.brv;const bits=[`resolve ${Math.round(brv)}`];
-  const bk=BETRAY.bg[m.bg];if(bk){k+=bk;bits.push(BG[m.bg]?BG[m.bg].n.toLowerCase():m.bg)}for(const t of m.traits||[]){const tk=BETRAY.tr[t];if(tk){k+=tk;bits.push(TRAITS[t]?TRAITS[t].n.toLowerCase():t)}}
+  const bk=BETRAY.bg[m.bg];if(bk){k+=bk;bits.push(BG[m.bg]?bgLow(m.bg):m.bg)}for(const t of m.traits||[]){const tk=BETRAY.tr[t];if(tk){k+=tk;bits.push(TRAITS[t]?TRAITS[t].n.toLowerCase():t)}}
   k=Math.round(k*100)/100;if(!best||k>best.k)best={m,k,why:bits.join(', ')}}return best}
 // the odds of arguing for the full pay -> {p, lines:[{t, v (percent points)}], talker}
 function ctrBetrayOdds(c){const L=[],T=ctrRenownT(),rep=ctrRep(c.emp),tk=ctrTalker();let p=BETRAY.base;L.push({t:'A steward who has made up his mind',v:Math.round(BETRAY.base*100)});

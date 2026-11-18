@@ -71,7 +71,7 @@ section('the catalog');
    if(a.unlock)ok(X.ORIGINS[a.unlock]&&X.ORIGINS[a.unlock].lock.ach===k,k+' unlocks '+a.unlock)}
   for(const c of cats)ok(K.some(k=>A[k].cat===c),'category '+c+' has achievements');
   ok(NEWOR.every(k=>X.ORIGINS[k]&&X.ORIGINS[k].lock&&A[X.ORIGINS[k].lock.ach]),'six new origins, each locked by an achievement');
-  ok(Object.keys(X.ORIGINS).filter(k=>!X.ORIGINS[k].lock).length===7,'the seven old origins stay open');
+  ok(Object.keys(X.ORIGINS).filter(k=>!X.ORIGINS[k].lock).length===8,'the seven old origins and The Isekai stay open');
   for(const k of NEWOR){const O=X.ORIGINS[k];ok(O.n&&O.d&&O.rule&&O.roster.length===4&&O.roster.every(b=>X.BG[b])&&typeof O.setup==='function'&&O.crowns>0,k+': n d rule roster setup crowns');
    ok(X.icHas(O.icon)&&typeof X.PAINT[O.icon]==='function',k+': icon '+O.icon+' has pixel and painted art')}
   for(const n of ['ach','ach-lock'])ok(X.icHas(n)&&typeof X.PAINT[n]==='function',n+' icon');
@@ -133,6 +133,7 @@ section('every trigger, from the real hook');
   for(const k of ['sunder','deadmarch','horde','barbarian']){G=fresh(SEED+7+k.length,null,{ironman:k==='horde'});G.crisisKind=k;G.crisis=null;X.startCrisis();ok(G.crisis&&G.crisis.k===k,k+' begins');
    ok(!has(k),k+': not before it ends');X.crisisEnd(false);ok(!has(k),k+': not when lost');G.crisis.ended=false;X.crisisEnd(true);ok(has(k),k+': earned by ending it (crisisEnd)')}
   ok(has('ironcrisis'),'an ironman crisis ended');
+  ok(!has('isekaicrisis'),'the Isekai feat: not for another origin');G=fresh(SEED+40,'isekai');ok(G.isekai,'an Isekai run');G.crisis=null;X.startCrisis();X.crisisEnd(true);ok(has('isekaicrisis'),'the Isekai hero ends the crisis');
   // the Eastern War
   G=fresh(SEED+20);ok(G.east,'the East');let w=X.eastStart();ok(w,'the war begins');closeAll(X);X.eastWarChoose('out');X.eastEnd();ok(!has('eastwar'),'staying out earns nothing');
   G=fresh(SEED+20);w=X.eastStart();closeAll(X);X.eastWarChoose('houses');X.eastEnd();ok(w.outcome==='houses'&&has('eastwar'),'the houses side won: earned (eastEnd)');

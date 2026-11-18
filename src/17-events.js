@@ -83,12 +83,12 @@ function evRep(f,n,why){if(!f||!n||FACT[f])return;if(f!=='free'&&!evHouse(f)&&!(
  if(typeof repGain==='function'){try{repGain(f,n,why||'an event')}catch(e){}}else{if(!G.rep||typeof G.rep!=='object')G.rep={};G.rep[f]=clamp((G.rep[f]||0)+n,-100,100)}
  evLog(`${n>0?'+':'−'}${Math.abs(n)} standing with ${evFacName(f)}`,n>0?'good':'bad')}
 // a recruit joins (room permitting): background bg at level lvl; returns the merc or null
-function evRecruit(bg,lvl,o){if(!BG[bg])return null;if(!canRecruit()){evLog(`${SOLOWHY}: the ${BG[bg].n.toLowerCase()} goes their own way`,'');return null}if(G.roster.length>=MAXROSTER){evLog(`No room in the roster (${MAXROSTER}): the ${BG[bg].n.toLowerCase()} goes on alone`,'');return null}
+function evRecruit(bg,lvl,o){if(!BG[bg])return null;if(!canRecruit()){evLog(`${SOLOWHY}: the ${bgLow(bg)} goes their own way`,'');return null}if(G.roster.length>=MAXROSTER){evLog(`No room in the roster (${MAXROSTER}): the ${bgLow(bg)} goes on alone`,'');return null}
  const m=newMerc(bg);lvl=clamp(lvl|0||1,1,MAXLV);if(lvl>1)gainXP(m,XPT[lvl]-m.xp);if(o&&o.name)m.name=o.name;if(o&&o.trait)evTraitQuiet(m,o.trait);m.hp=evMaxHp(m);m.field=G.roster.filter(x=>x.field).length<(typeof MAXFIELD==='number'?MAXFIELD:12);
- G.roster.push(m);evLog(`${m.name} the ${BG[bg].n.toLowerCase()} joins (level ${m.lvl})`,'good');return m}
+ G.roster.push(m);evLog(`${m.name} the ${bgLow(bg)} joins (level ${m.lvl})`,'good');return m}
 function evTraitQuiet(m,k){const n=EVLOG.length;evTrait(m,k);EVLOG.length=n}
 // m leaves the company (never the last sword, never a noble guard's lord); returns true when gone
-function evLeave(m,why){if(!m||G.roster.length<=1||evLord(m))return false;const i=G.roster.indexOf(m);if(i<0)return false;G.roster.splice(i,1);evLog(`${m.name} ${why||'leaves the company'}`,'bad');return true}
+function evLeave(m,why){if(!m||G.roster.length<=1||evLord(m)||(typeof isekaiIsHero==='function'&&isekaiIsHero(m)))return false;const i=G.roster.indexOf(m);if(i<0)return false;G.roster.splice(i,1);evLog(`${m.name} ${why||'leaves the company'}`,'bad');return true}
 function evHours(h){if(!h)return;EVS.busy=true;try{if(typeof advanceTime==='function')advanceTime(h)}finally{EVS.busy=false}evLog(`${h} hours lost`,'bad')}
 /* evFight(f, mult, why): a band of faction f forms beside the company; the battle starts when the card is closed (engage). */
 function evFight(f,mult,why){if(!FACT[f])return null;const p={id:G.nid++,x:G.p.x,y:G.p.y,tx:G.p.x,ty:G.p.y,f,mult:mult||.8,goal:'roam',ev:1,ch:1};
@@ -182,7 +182,7 @@ const ORIGINS={
    checks it: tavern hire (50-towns.js), a rival's parley hire (40-world.js), a beaten rival who asks to join (68-battle-flow.js), event
    recruits (evRecruit; options with recruit:1 are shown disabled with the reason). Followers (the retinue) are not members: still allowed. */
 const SOLOWHY='You ride alone';
-function isSolo(g){g=g||G;const O=g&&typeof g.origin==='string'?ORIGINS[g.origin]:null;return!!(O&&O.solo)}
+function isSolo(g){g=g||G;if(g&&g.origin==='isekai')return!!(g.isekai&&g.isekai.mode==='solo');const O=g&&typeof g.origin==='string'?ORIGINS[g.origin]:null;return!!(O&&O.solo)}   // The Isekai: solo by its mode (28i-isekai.js)
 function canRecruit(g){return!isSolo(g)}
 function recruitWhy(g){return isSolo(g)?SOLOWHY:''}
 function originK(key){const O=G&&ORIGINS[G.origin];const v=O&&O.k?O.k[key]:undefined;return typeof v==='number'&&isFinite(v)?v:1}
@@ -190,10 +190,11 @@ function originK(key){const O=G&&ORIGINS[G.origin];const v=O&&O.k?O.k[key]:undef
 function evStartHouse(g,own){const H=Array.isArray(g.houses)?g.houses:[];if(!H.length)return null;const t0=g.towns&&g.towns[0]&&g.towns[0].own;return(own?H.find(h=>h.id===t0):H.find(h=>h.id!==t0))||H[0]}
 function evSetRep(f,v){if(!f)return;if(!G.rep||typeof G.rep!=='object')G.rep={};const cur=G.rep[f]||0;if(typeof repGain==='function'){try{repGain(f,v-cur,'origin');return}catch(e){}}G.rep[f]=clamp(v,-100,100)}
 function evGear(m,ids){for(const id of ids){const it=ITEMS[id];if(!it)continue;m.eq[it.k]=id;if(it.k==='w'&&it.two)m.eq.s=null}if(typeof fixHands==='function')fixHands(m);m.hp=evMaxHp(m)}
-/* originApply(g, k): replaces the default roster and stores with the origin's (seeded), sets g.origin. Called by createCampaign. */
-function originApply(g,k){const O=ORIGINS[k]?ORIGINS[k]:ORIGINS.free;k=ORIGINS[k]?k:'free';g.origin=k;if(!g.evt)g.evt=evtNew();
+/* originApply(g, k, opts?): replaces the default roster and stores with the origin's (seeded), sets g.origin. Called by createCampaign
+   with its opts (the setup reads what it needs: The Isekai's opts.isekai). */
+function originApply(g,k,opts){const O=ORIGINS[k]?ORIGINS[k]:ORIGINS.free;k=ORIGINS[k]?k:'free';g.origin=k;if(!g.evt)g.evt=evtNew();
  if(k!=='free'){g.roster=[];O.roster.forEach(b=>{const m=newMerc(BG[b]?b:'sellsword');m.field=true;g.roster.push(m)})}
- g.crowns=O.crowns;if(typeof O.setup==='function')O.setup(g);return g}
+ g.crowns=O.crowns;if(typeof O.setup==='function')O.setup(g,opts||{});return g}
 ORIGINS.deserters.setup=g=>{const H=evStartHouse(g);if(!H)return;for(const h of g.houses)evSetRep(h.id,h===H?-60:-10);
  if(typeof repTier==='function'){let n=0;while(n++<5&&evTier(H.id)!=='hostile')evSetRep(H.id,Math.max(-100,evRepOf(H.id)-10))}g.evt.flags.fled=H.id};
 ORIGINS.noble.setup=g=>{const L=g.roster[0];L.name='Ser '+L.name;gainXP(L,XPT[3]-L.xp);evGear(L,['mail','arming','heater','nasal']);g.evt.flags.lord=L.id;

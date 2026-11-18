@@ -54,6 +54,7 @@ const ACH={
  wyvern:{n:'Wyvernbane',d:'Kill a wyvern.',icon:'part-wscale',cat:'feat',check:(g,ev)=>achSlew(ev,/^wyvern/)},
  slayogre:{n:'One spear, one ogre',d:'As the lone Beast Slayer, kill an ogre.',icon:'q-ogre',cat:'feat',check:(g,ev)=>g.origin==='slayer'&&achSlew(ev,/^a?ogre$/)},
  slayent:{n:'Woodcutter of legend',d:'As the lone Beast Slayer, fell an elder ent.',icon:'q-ent',cat:'feat',check:(g,ev)=>g.origin==='slayer'&&achSlew(ev,/^elder$/)},
+ isekaicrisis:{n:'Summoned for this',d:'As the hero of The Isekai, end the crisis.',icon:'or-isekai',cat:'feat',check:(g,ev)=>g.origin==='isekai'&&!!g.isekai&&ev.name==='crisis'&&ev.win},
  /* ---- ironman ---- */
  iron30:{n:'No second chances',d:'On an ironman march, reach day 30.',icon:'ironman',cat:'iron',prog:(S,g)=>[g&&g.ironman?Math.min(30,g.day|0):0,30],check:g=>!!g.ironman&&(g.day|0)>=30},
  iron10w:{n:'Iron nerve',d:'On an ironman march, win 10 battles.',icon:'ironman',cat:'iron',prog:(S,g)=>[g&&g.ironman&&g.run?Math.min(10,g.run.won|0):0,10],check:g=>!!g.ironman&&g.run&&(g.run.won|0)>=10},

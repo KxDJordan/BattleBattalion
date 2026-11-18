@@ -107,7 +107,7 @@ function coFormation(){if(fmAnySet())fmCommit();const F=formation(),n=fmCols(),W
  const row=r=>{let h=`<div class="fm-row${r?' back':''}">`;for(let c=0;c<n;c++){const o=F.find(o=>o.row===r&&o.col===c);
    h+=`<div class="fm-cell${FM.pick!=null?' can':''}" data-cell="${r}:${c}" role="button" tabindex="0" aria-label="${r?'Back':'Front'} row, tile ${c+1}${o?', '+htmlEsc(o.m.name):''}" onclick="fmCell(${r},${c})">${o?fmTok(o.m,G.roster.indexOf(o.m),sz):''}</div>`}return h+'</div>'};
  const res=G.roster.map((m,i)=>[m,i]).filter(([m])=>!m.field),p=FM.pick!=null?G.roster[FM.pick]:null;
- let info;if(p){const s=calc(p);info=`${portraitHTML(p,32)}<p><b>${htmlEsc(p.name)}</b> <span class="dim">Level ${p.lvl} ${BG[p.bg].n.toLowerCase()}, ${coRole(p,s).toLowerCase()}</span><small>${p.field?'Tap a tile to move, or another sword to trade places.':'Tap a tile to field this sword there.'}</small></p>
+ let info;if(p){const s=calc(p);info=`${portraitHTML(p,32)}<p><b>${htmlEsc(p.name)}</b> <span class="dim">Level ${p.lvl} ${bgLow(p.bg)}, ${coRole(p,s).toLowerCase()}</span><small>${p.field?'Tap a tile to move, or another sword to trade places.':'Tap a tile to field this sword there.'}</small></p>
   ${p.field?`<button type="button" class="pn-btn sm" onclick="fmBench(${FM.pick})">To reserve</button>`:`<button type="button" class="pn-btn sm pri" onclick="fmField(${FM.pick})">Field</button>`}<button type="button" class="pn-btn sm" onclick="mercSheet(${FM.pick})">Open</button>`}
  else info=`<p><b>Set the lines</b><small>Drag a sword to a tile, or tap one and then tap where it should stand. Swords you never place line up on their own.</small></p><button type="button" class="pn-btn sm" ${fmAnySet()?'':'disabled'} onclick="fmReset()">Reset</button>`;
  return`<div class="fm"><div class="fm-foe">${coIc('skull')}The enemy comes from here</div>
@@ -164,7 +164,7 @@ function coGiftChips(m,s){const g=tlGift(m),r=g?MAST[g].res:null;let h='';
  if(r){const R=s.res[r],lab=tlGiftLabel(g);h+=R&&R.max>0?`<span class="pn-chip g-${r}" title="${lab}">${coIc(r)}${RESN[r]} ${R.max} <small>+${R.regen}</small></span>`:`<span class="pn-chip g-${r} dorm" title="${lab}: sleeps until a perk of the tree is learned">${coIc(r)}${RESN[r]} sleeps</span>`}
  else h+=`<span class="pn-chip dorm">No gift</span>`;return h}
 function coLeft(m,i,s,ask){const cd=cpCond(m),g=tlGift(m),st=tlStyle(m);
- let h=`<div class="ch"><div class="ch-id">${portraitHTML(m,64)}<div class="ch-idm"><div class="pn-kick">${m.fabled?'<span class="ch-fab">Fabled</span> ':''}${RACE[m.race].n} ${BG[m.bg].n.toLowerCase()}${TL_STYN[st]?' · '+TL_STYN[st].toLowerCase():''}</div>${m.fabled&&m.title?`<div class="ch-fti">${htmlEsc(m.title)}</div>`:''}<div class="pn-h ch-nm">${coRenaming(m,'ch')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'ch')}`}</div>
+ let h=`<div class="ch"><div class="ch-id">${portraitHTML(m,64)}<div class="ch-idm"><div class="pn-kick">${m.fabled?'<span class="ch-fab">Fabled</span> ':''}${RACE[m.race].n} ${bgLow(m.bg)}${TL_STYN[st]?' · '+TL_STYN[st].toLowerCase():''}</div>${m.fabled&&m.title?`<div class="ch-fti">${htmlEsc(m.title)}</div>`:''}<div class="pn-h ch-nm">${coRenaming(m,'ch')?coRenField(m,i):`<span>${htmlEsc(m.name)}</span>${coRenBtn(m,i,'ch')}`}</div>
 <div class="ch-xp"><b>Lv ${m.lvl}</b>${pnBar(m.lvl<MAXLV?100*(m.xp-XPT[m.lvl])/(XPT[m.lvl+1]-XPT[m.lvl]):100,'xp')}<small>${m.lvl<MAXLV?m.xp+'/'+XPT[m.lvl+1]:'max'}</small></div>
 <div class="ch-res">${coGiftChips(m,s)}${coArmChip(m)}</div>${g?`<div class="ch-gv g-${tlGiftRes(g)}">${tlGiftLabel(g)}</div>`:''}</div></div>
 ${coInjList(m)}<div class="pd" aria-label="Equipment">${coSlotBtn(m,i,'w')}<div class="pd-fig" style="background-image:url(${coDoll()})">${coSlotBtn(m,i,'h','helm')}${coSlotBtn(m,i,'a','arm')}</div>${coSlotBtn(m,i,'s')}
@@ -206,7 +206,7 @@ function coHunterTrees(m,T,O){const hk=T.filter(x=>x.kind==='hunter');if(!hk.len
  return h}
 /* the Weapon mastery tree (kind 'weapon', MAST.weapons): one cell per weapon family the background allows, each with its one perk and the
    family's name; the family in hand (or the raised shield) is lit. All open at tlTierLv('weapon', 1). */
-function coWeaponTree(m,wk,O,wLv){const lv=m.lvl;if(!wk.length)return`<div class="tg-wh lk">${coIc('swords')}<b>Weapon mastery</b><span>None for a ${BG[m.bg].n.toLowerCase()}${RACE[m.race]&&RACE[m.race].noWt?' of this blood':''}</span></div>`;
+function coWeaponTree(m,wk,O,wLv){const lv=m.lvl;if(!wk.length)return`<div class="tg-wh lk">${coIc('swords')}<b>Weapon mastery</b><span>None for a ${bgLow(m.bg)}${RACE[m.race]&&RACE[m.race].noWt?' of this blood':''}</span></div>`;
  const s=calc(m),inW=s.wpn&&s.wpn.wt,up=!!(s.shield&&s.shield.raised);let h='';
  for(const x of wk){const L=O.filter(o=>o.key===x.key),n=L.filter(o=>o.owned).length;
   h+=`<div class="tg-sec tg-wpn" style="--tgc:${Math.max(4,L.length)}"><div class="tg-wh${lv<wLv?' lk':''}">${coIc(lv<wLv?'lock':'swords')}<b>${htmlEsc(x.tree.n)}</b><span title="${htmlEsc(x.tree.d||'')}">${lv<wLv?'Opens at level '+wLv+' · ':''}one mastery a weapon · works only with that weapon in hand</span>${n?`<em class="tg-acw">${n} learned</em>`:''}</div>`;
@@ -323,7 +323,7 @@ function coAutoLearn(i){const m=G.roster[i];if(!m)return[];const before=new Set(
 function coSwap(i,stay){const m=G.roster[i];if(!m||!(m.eq.w||m.eq.b))return false;const w=m.eq.w;m.eq.w=m.eq.b||null;m.eq.b=w||null;
  if(typeof toast==='function')toast(m.eq.w?`${ITEMS[m.eq.w].n} in hand`+(m.eq.b?`, ${ITEMS[m.eq.b].n} at the hip`:''):'Bare hands, '+ITEMS[m.eq.b].n+' at the hip');
  if(stay&&coView==='slot')slotSheet(i,coSlot);else mercSheet(i);save();return true}
-function dismiss(i){if(G.roster.length<=1){toast('A company needs at least one sword');return}const m=G.roster.splice(i,1)[0];SLOTKEYS.forEach(k=>{if(m.eq&&m.eq[k])G.stash.push(m.eq[k])});toast(m.name+' leaves the company');FM.pick=null;coScreen='roster';coRender()}
+function dismiss(i){if(G.roster.length<=1){toast('A company needs at least one sword');return}if(typeof isekaiIsHero==='function'&&isekaiIsHero(G.roster[i])){toast('The hero leads this company: they cannot be dismissed');return}const m=G.roster.splice(i,1)[0];SLOTKEYS.forEach(k=>{if(m.eq&&m.eq[k])G.stash.push(m.eq[k])});toast(m.name+' leaves the company');FM.pick=null;coScreen='roster';coRender()}
 function slotSheet(i,k){coSel=G.roster[i].id;coLast=i;coView='slot';coSlot=k;coScreen='merc';coRender()}
 /* equip(i, slot, stashIndex): slot 'w' main weapon, 'b' backup weapon, 's' shield, 'a' armor, 'h' helmet; stashIndex -1 unequips.
    The rules' equipRules decides what may go where; a refusal is toasted with its reason and nothing changes. */

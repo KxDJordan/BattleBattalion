@@ -29,7 +29,7 @@ function tierLevel(kind,t){return kind==='weapon'?3*t:kind==='armor'?3*t-1:kind=
    works only while the body armor worn is of that tree's weight class (armorClass(m) in 30-mercs.js; calc() puts the others in .off).
    armorTrees(m) -> the keys it may learn, in ARMORT order. */
 const ARMORT=['lightarmor','medarmor','heavyarmor'].filter(k=>MAST[k]&&MAST[k].kind==='armor');
-function armorTrees(m){const b=m&&BG[m.bg],ok=b&&Array.isArray(b.at)?b.at:[];return ARMORT.filter(k=>ok.includes(k))}
+function armorTrees(m){if(m&&m.cc&&ARMORT.includes(m.cc.at))return[m.cc.at];const b=m&&BG[m.bg],ok=b&&Array.isArray(b.at)?b.at:[];return ARMORT.filter(k=>ok.includes(k))}   // m.cc: The Isekai hero's own choice
 const isArmorPerk=id=>!!(PERKIX[id]&&PERKIX[id].kind==='armor');
 /* refundTrees(m): takes back every learned perk of a weapon, armor, hunter or fabled tree the merc may not learn (its background or race
    does not allow the weapon family or armor class; the hunter tree is not one of its trees) and returns the points to m.pp. Returns how
@@ -40,15 +40,16 @@ function refundTrees(m){if(!m||!Array.isArray(m.perks))return 0;const ok=new Set
  if(n)m.pp=Math.max(0,Math.floor(Number(m.pp)||0))+n;return n}
 // {perk, tree, key, tier, kind} for a perk id, or null.
 function perkById(id){return PERKIX[id]||null}
-function mercStyle(m){return m&&BG[m.bg]&&BG[m.bg].style||'melee'}
+function mercStyle(m){return m&&m.cc&&TALSTYLE.includes(m.cc.sty)?m.cc.sty:m&&BG[m.bg]&&BG[m.bg].style||'melee'}
 // The gift tree for resource res in a fighting style: that style's variant if the gift has one, else the melee one.
 function giftKey(res,style){const V=GIFTV[res];return V?V[style]||V.melee:null}
 // The merc's gift tree key (stored at creation), or null. For a merc without one stored, the variant its background implies.
 function giftVariant(m,res){if(!m)return null;if(!res&&m.gift&&MAST[m.gift]&&MAST[m.gift].kind==='gift')return m.gift;const r=res||mercRes(m);return r?giftKey(r,mercStyle(m)):null}
 // True once the gift is awakened (a perk of the gift tree is learned).
 function giftAwake(m){const g=m&&m.gift;return!!(g&&Array.isArray(m.perks)&&m.perks.some(id=>PERKIX[id]&&PERKIX[id].key===g))}
-// The weapon families whose mastery perks the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order.
-function weaponTypes(m){const b=m&&BG[m.bg]||{},no=m&&RACE[m.race]&&RACE[m.race].noWt||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w))}
+// The weapon families whose mastery perks the merc may learn (BG[bg].wt minus RACE[race].noWt), in WTS order. The Isekai hero (m.cc,
+// 28i-isekai.js): only the family chosen at creation, whatever the background or race; armorTrees and mercStyle likewise.
+function weaponTypes(m){if(m&&m.cc&&WTS.includes(m.cc.wt))return[m.cc.wt];const b=m&&BG[m.bg]||{},no=m&&RACE[m.race]&&RACE[m.race].noWt||[],ok=Array.isArray(b.wt)?b.wt:[];return WTS.filter(w=>ok.includes(w)&&!no.includes(w))}
 // The weapon tree keys the merc has: ['weapons'] when its background allows a weapon family, else [].
 function weaponTrees(m){return MAST.weapons&&weaponTypes(m).length?['weapons']:[]}
 // True when perk p (a MAST perk) is listed for merc m: a weapon mastery perk only for the families weaponTypes(m) allows.

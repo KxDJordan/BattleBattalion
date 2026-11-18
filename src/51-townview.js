@@ -704,7 +704,7 @@ function tvbStock(k,sel){const r=tvbSv(k,{op:'stock'}),L=r.ok&&Array.isArray(r.i
 function tvbView(t,k){const ti=G.town,info=tvbSv(k,{}),B=typeof BLD==='object'&&BLD?BLD[k]:null,shut=lkHostile(ti);let sel=TVB.sel[k]||'',list='',detail='',foot='';
  const head=`${twHead(tvIcon(tvBldIcon(k),48),htmlEsc(t.name),htmlEsc(tvBldName(k)))}<p class="pn-p">${htmlEsc(B?B.d:'')}</p>${shut?'<p class="pn-p warn">'+htmlEsc(lkFacName(t.own))+' has closed its doors to the company.</p>':''}`;
  const offers=(info.ok&&info.offers||[]).map(o=>[htmlEsc(o.n),htmlEsc(o.d)+(o.cost?' <b>'+o.cost+' crowns</b>':'')]);
- const mercRow=(m,mi,right,sub)=>pnRow({on:`tvbPick('m${m.id}')`,sel:sel==='m'+m.id,cls:'tw-row',lead:twPortrait(m,32),title:htmlEsc(m.name),sub:sub||`Level ${m.lvl} ${BG[m.bg]?BG[m.bg].n.toLowerCase():''}`,right});
+ const mercRow=(m,mi,right,sub)=>pnRow({on:`tvbPick('m${m.id}')`,sel:sel==='m'+m.id,cls:'tw-row',lead:twPortrait(m,32),title:htmlEsc(m.name),sub:sub||`Level ${m.lvl} ${BG[m.bg]?bgLow(m.bg):''}`,right});
  const selM=()=>{const id=sel[0]==='m'?sel.slice(1):null;return G.roster.find(m=>String(m.id)===id)||null};
  if(k==='armorer'||k==='weaponsmith'||k==='fletcher'||k==='college'){
   let svc='';if(k==='armorer'){const o=(info.offers||[]).find(x=>x.op==='repair');if(o)svc+=pnRow({on:`tvbPick('repair')`,sel:sel==='repair',cls:'tw-row',lead:tvIcon('tools',32),title:'Full repair',sub:htmlEsc(o.d),right:o.cost?pnCoin(o.cost,G.crowns<o.cost?'short':''):''})}
@@ -740,7 +740,8 @@ function tvbOpen(k){const t=G.towns[G.town];if(!t||typeof showPanel!=='function'
 /* ---- a solo run (canRecruit() false): the tavern's recruits are shown greyed, with the reason and no Hire button.
    townView (50-towns.js) builds the page; this wraps its result so the rules' tavern stays the one source. ---- */
 function twSoloTavern(v){const why=htmlEsc(typeof tlSoloWhy==='function'?tlSoloWhy():'You ride alone');
- const note=`<div class="pn-hint tw-hint tw-alone">${twIcon(typeof icHas==='function'&&icHas('or-slayer')?'or-slayer':'skull',32)}<span><b>${why}</b>No sword signs on with a lone hunter. Followers can still be hired.</span></div>`;
+ const isk=G&&G.origin==='isekai',ic=isk?'or-isekai':'or-slayer';   // The Isekai's solo hero, or the lone slayer
+ const note=`<div class="pn-hint tw-hint tw-alone">${twIcon(typeof icHas==='function'&&icHas(ic)?ic:'skull',32)}<span><b>${why}</b>${isk?'No sword signs on with a stranger from another world.':'No sword signs on with a lone hunter.'} Followers can still be hired.</span></div>`;
  const i=v.list.indexOf('<div class="pn-sec');v.list=(i>=0?v.list.slice(0,i)+'<div class="tw-solo">'+v.list.slice(i):'<div class="tw-solo">'+v.list)+'</div>';
  v.detail=note+(v.detail&&!/pn-blank/.test(v.detail)?`<div class="tw-solo-d">${v.detail}</div>`:v.detail||'');
  v.foot=`<span class="pn-fl"><small><em class="tw-alone-f">${why}</em></small></span>`;

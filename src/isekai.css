@@ -1,0 +1,68 @@
+/* The Isekai's hero creation (28i-isekai.js): a fixed head and foot, the step's choices scroll between them */
+#sheetBody.isk{display:flex;flex-direction:column;overflow:hidden;max-width:860px;height:100%}
+#sheetBody.isk>.isk-h{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+#sheetBody.isk>.isk-h h2{flex:none;margin:0;white-space:nowrap}
+.isk-steps{display:flex;gap:3px;margin:0;padding:0;list-style:none;flex:1;min-width:0;justify-content:flex-end}
+.isk-steps li{flex:0 1 auto;min-width:0}
+#sheetBody button.isk-st{min-height:34px;padding:0 6px;gap:4px;font-size:.78rem;border-width:3px 3px 4px}
+#sheetBody button.isk-st i{font-style:normal;font-size:.9rem;color:var(--brass)}
+#sheetBody button.isk-st.on i{color:#1b1608}
+#sheetBody button.isk-st.done:not(.on){color:#bfe3d5}
+.isk-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:2px 2px 6px}
+.isk-foot{flex:none;display:flex;align-items:center;gap:8px;padding-top:6px;margin-top:4px;border-top:2px solid #0b1514;box-shadow:inset 0 2px 0 #213a36}
+#sheetBody .isk-foot button{min-width:96px}
+#sheetBody .isk-foot button.isk-next[aria-disabled="true"]{filter:saturate(.35) brightness(.8)}
+.isk-hint{flex:1;min-width:0;font-size:.8rem;line-height:1.2;color:var(--dim);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.isk-hint.need{color:#e9c87a}
+.isk-lead{margin:0 0 6px;font-size:.84rem;line-height:1.3;color:#e9e0c9}
+.isk-lead b{color:#fff4c8;font-weight:600}
+/* name */
+.isk-name{display:flex;gap:14px;align-items:flex-start}
+.isk-face{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}
+.isk-face .ptr{box-shadow:0 0 0 2px #0b1514,0 0 0 4px #35554f}
+#sheetBody .isk-dice{min-height:40px;font-size:.82rem}
+.isk-nf{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.isk-cap{margin:2px 0 0}.isk-cap b{display:block;font-family:var(--pxfont);font-size:1.25rem;color:#fff4c8;overflow-wrap:anywhere;line-height:1.05}
+.isk-cap small{display:block;margin-top:4px;font-size:.78rem;color:var(--dim);line-height:1.25}
+/* talents */
+.isk-tals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+#sheetBody .isk-tal{display:grid;grid-template-columns:auto 1fr;grid-template-areas:'i n' 's s' 'r r';align-items:center;justify-items:start;gap:1px 5px;min-height:62px;padding:3px 7px;text-align:left}
+.isk-tal>.pn-i,.isk-tal>.pxi{grid-area:i;width:16px;height:16px}
+.isk-tal b{grid-area:n;font-size:.9rem;line-height:1.05}
+.isk-stars{grid-area:s;display:flex;gap:1px}.isk-stars .pn-i,.isk-stars .pxi{width:16px;height:16px}
+.isk-tal:not(.on) .isk-stars{opacity:.22;filter:grayscale(1)}
+.isk-tal small{grid-area:r;font-family:'Alegreya Sans',system-ui,sans-serif;font-size:.7rem;font-weight:500;color:var(--dim);white-space:nowrap}
+.isk-tal.on small{color:#3a2c12}
+/* trees, weapons, gifts */
+.isk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:4px}
+#sheetBody .isk-o{min-height:62px}
+.isk-o small{font-family:'Alegreya Sans',system-ui,sans-serif;font-size:.68rem;font-weight:500;line-height:1.05;color:var(--dim)}
+.isk-o.on small{color:#3a2c12}
+.isk-o.fit:not(.on){box-shadow:inset 0 0 0 2px #58b39c55}
+/* armor and mode */
+.isk-arms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.isk-modes{grid-template-columns:repeat(2,minmax(0,1fr))}
+#sheetBody .isk-a,#sheetBody .isk-m{min-height:96px}
+.isk-kit{margin-top:4px!important;color:#bfe3d5!important}
+.ncs-tog.on .isk-kit{color:#3a2c12!important}
+/* summary */
+.isk-sum{display:flex;gap:12px;align-items:flex-start}
+.isk-sp{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;width:118px;text-align:center}
+.isk-sp .ptr{box-shadow:0 0 0 2px #0b1514,0 0 0 4px #d1a94e}
+.isk-sp b{font-family:var(--pxfont);font-size:1.1rem;color:#fff4c8;line-height:1.05;overflow-wrap:anywhere}
+.isk-sp small{font-size:.74rem;color:var(--dim);line-height:1.15}
+.isk-sl{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.isk-sr{display:flex;gap:8px;align-items:baseline}
+.isk-sr>i{flex:none;width:74px;font-style:normal;font-family:var(--pxfont);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brass)}
+.isk-sr>span{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:3px;font-size:.8rem;line-height:1.25}
+.isk-chip{display:inline-flex;align-items:center;gap:3px;padding:1px 5px;background:#101d1c;box-shadow:inset 0 0 0 1px #35554f;font-size:.78rem;white-space:nowrap}
+.isk-chip .pn-i,.isk-chip .pxi{width:16px;height:16px}
+.isk-rule{margin:2px 0 0;font-size:.78rem;line-height:1.25;color:#e9e0c9}
+/* the last page */
+.isk-endh{display:flex;align-items:center;gap:10px}.isk-endh h2{margin:0}
+.isk-end p{margin:8px 0 0}
+#sheetBody.isk-over{max-width:520px}
+@media (max-height:440px){#sheetBody.isk>.isk-h h2{font-size:1.3rem}#sheetBody .isk-o{min-height:56px}#sheetBody .isk-tal{min-height:56px}#sheetBody .isk-a,#sheetBody .isk-m{min-height:84px}
+ #sheetBody.isk .isk-foot button{min-height:42px}}
+@media (max-width:720px){.isk-st:not(.on) span{display:none}#sheetBody button.isk-st{min-width:30px;padding:0 4px}}
+@media (max-width:520px){.isk-tals{grid-template-columns:repeat(2,minmax(0,1fr))}.isk-arms{grid-template-columns:1fr}.isk-sum,.isk-name{flex-direction:column;align-items:center}}

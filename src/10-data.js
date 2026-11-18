@@ -810,6 +810,15 @@ BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,st:{hp:12,ms:10,rs:8,
  gear:['boarspear','leather','cap'],side:'huntxbow',
  style:'melee',pool:['survivor','vanguard','skirmisher','scout','berserker','duelist','brute'],wt:['spear','axe','sword','crossbow','dagger'],at:['medarmor','lightarmor'],
  tr:{beastwise:4,tough:2,brave:2,athletic:2,craven:0,fragile:.3,superstitious:.3},look:{hat:'hood',cloth:'black',accent:'charcoal',trim:'steel',garb:'bandolier',beard:'short'}};
+/* Isekai: the background of The Isekai origin's hero (ORIGINS.isekai, 28i-isekai.js), balanced and a little better than a recruit everywhere. w 0 and noHire:
+   never in a tavern, a rival roster or an event. The hero's own trees, weapon family and armor tree are chosen (m.cc); these are the
+   background's defaults for anything else that makes one. */
+BG.isekai={n:'Isekai',proper:1,d:'A stranger from another world: woke in a field under two moons with strange clothes, no past here and a knack for learning fast.',cost:700,wage:12,w:0,noHire:1,st:{hp:6,fat:6,init:6,ms:6,rs:6,md:3,rd:3,brv:6},r:[],
+ gear:['oldsword','padded','cap'],style:'melee',pool:['vanguard','duelist','skirmisher','survivor','tactician','scout','marksman','brute','bulwark'],
+ wt:['sword','spear','bow','dagger','shield'],at:['lightarmor','medarmor'],tr:{},
+ look:{hat:'',cloth:'black',accent:'white',trim:'gold',garb:'fine',hair:'swept'}};
+// a background's name inside a sentence: lowercased ('a level 3 sellsword'), unless it is a proper name (proper: 'Isekai')
+function bgLow(k){const b=BG[k];return b?b.proper?b.n:b.n.toLowerCase():''}
 /* The Monster hunter tree as one of a recruit's 4 trees: hw is the chance rollTrees puts it in place of the 4th style tree ('hunter' in pool). */
 for(const [k,w] of [['slayer',1],['hunter',.6],['poacher',.6],['witchhunter',.5],['wildling',.5],['woodcutter',.15],['nomad',.15],['butcher',.1]])if(BG[k]){BG[k].hw=w;if(!BG[k].pool.includes('hunter'))BG[k].pool.push('hunter')}
 for(const k in BG)if(!BG[k].m)BG[k].m=BG[k].pool.slice(0,2);

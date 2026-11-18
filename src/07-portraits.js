@@ -380,7 +380,9 @@ const PT_BGLOOK={
  minstrel:{hat:'feathercap',hatC:'red',garb:'motley',accent:'ochre',cloth:'red',prop:'lute'},
  cultist:{hat:'hood',hatC:'purple',cloth:'purple',garb:'eye'},
  // the Beast slayer (Solo origin): a dark hood (drawn over a light helmet too), trophies of the hunt on a strap, old claw scars; ours wins over BG.look
- slayer:{own:1,hat:'hood',hatC:'night',cloth:['night','brown'],accent:'red',garb:'trophies',beard:['short','stache',''],marks:{scar:1,stubble:1},hoodOver:1}};
+ slayer:{own:1,hat:'hood',hatC:'night',cloth:['night','brown'],accent:'red',garb:'trophies',beard:['short','stache',''],marks:{scar:1,stubble:1},hoodOver:1},
+ // the Isekai hero: a dark high-collared coat with gold buttons and a white collar, nothing of this world; no beard, no hat
+ isekai:{own:1,cloth:'black',accent:'white',trim:'gold',garb:'fine',hair:['swept','short','crop','long'],beard:['']}};
 const PT_BGRX=[[/grave/,'gravedigger'],[/butcher/,'butcher'],[/smith/,'blacksmith'],[/miner|mine/,'miner'],[/fish/,'fisherman'],[/shepherd|herd/,'shepherd'],[/wood|lumber/,'woodcutter'],[/poach/,'poacher'],
  [/bowyer|fletch/,'bowyer'],[/mason|stone/,'mason'],[/caravan|guard/,'caravan'],[/desert/,'deserter'],[/bandit|brigand|outlaw|raider/,'bandit'],[/pit/,'pitfighter'],[/gladia|arena/,'gladiator'],
  [/retire|veteran|old.?soldier/,'retired'],[/watch|guard/,'watchman'],[/noble|scion|lord|heir/,'noble'],[/hedge.?knight|knight.?errant/,'hedgeknight'],[/witch|inquis/,'witchhunter'],[/pilgrim/,'pilgrim'],
@@ -525,7 +527,7 @@ function ptColSig(m){const c=typeof mercLook==='function'?mercLook(m):m&&m.color
 function ptLivery(P,m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;if(!c||typeof c!=='object')return;const cl=ptDye(c.cloth),ac=ptDye(c.accent),mt=ptFin(c.metal);if(!cl&&!ac&&!mt)return;
  P.liv={cl,ac,mt};if(cl){P.ragC=cl;P.robeC=cl;P.clothC=cl;if(P.hat==='hood')P.hatC=cl}if(ac){P.shC=ac;if(P.hat==='band'||P.hat==='feather')P.hatC=ac}}
 function ptPick(R,a){return a[R(a.length)]}
-function ptMercSpec(m){const FB=m.fabled&&typeof FABLED==='object'?FABLED[m.fabled]:null;if(FB)m={id:0,name:'fabled:'+m.fabled,race:m.race,bg:m.bg,eq:m.eq,gift:m.gift,perks:m.perks,mast:m.mast,colors:m.colors};const seed=ptHash((m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
+function ptMercSpec(m){const FB=m.fabled&&typeof FABLED==='object'?FABLED[m.fabled]:null;if(FB)m={id:0,name:'fabled:'+m.fabled,race:m.race,bg:m.bg,eq:m.eq,gift:m.gift,perks:m.perks,mast:m.mast,colors:m.colors};const seed=ptHash(Number.isInteger(m.pseed)?'hero:'+m.pseed:(m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
  const P={seed,race,fem,face:{},marks:{}};
  // race
  if(race==='elf'){P.head=PT_HEAD.elf;P.ears='elf';P.skin=PT_SKIN[ptPick(R,['pale','pale','fair','tan'])];P.build='slim'}
@@ -749,7 +751,7 @@ function ptVoidHelm(L,E){for(let y=E.y0-1;y<=E.y1;y++){const x0=y<E.y0?E.X0(E.y0
 /* ---- public API ---- */
 let PT_HELMS=null;function ptHelmsExist(){if(PT_HELMS===null){PT_HELMS=false;for(const k in ITEMS)if(ITEMS[k].k==='h'){PT_HELMS=true;break}}return PT_HELMS}
 function ptKey(x){if(!x)return null;if(typeof x==='string')return EN[x]?'e:'+x:null;
- const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+(m.fabled?'F'+m.fabled:m.id)+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)+(typeof coatOf==='function'&&coatOf(m)?':'+coatOf(m)+'|'+mercLivery(m).sig:'')}
+ const m=x.m&&x.m.base?x.m:x.base&&x.eq?x:null;if(m){const e=m.eq||{};return'm:'+(m.fabled?'F'+m.fabled:m.id)+(Number.isInteger(m.pseed)?'p'+m.pseed:'')+':'+m.name+':'+m.race+':'+m.bg+':'+(e.w||'')+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+ptColSig(m)+(typeof coatOf==='function'&&coatOf(m)?':'+coatOf(m)+'|'+mercLivery(m).sig:'')}
  if(x.def){let k0=null;for(const k in EN)if(EN[k]===x.def){k0=k;break}if(!k0&&x.eid&&EN[x.eid])k0=x.eid;if(!k0)return null;const cs=typeof usCoatSig==='function'?usCoatSig(x):'';return'e:'+k0+(cs?'@'+cs:'')}return null}
 function portraitRows(x){let key=null;try{key=ptKey(x)}catch(e){}if(!key)key='e:?';let r=PTC.rows.get(key);if(r)return r;
  try{if(key[0]==='m'){const m=x.m&&x.m.base?x.m:x;r=ptBust(ptMercSpec(m))}else{const p=key.slice(2).split('@');r=ptEnemyRows(p[0],x&&x.f,p[1]&&typeof ptUnitCoat==='function'?ptUnitCoat(x):null)}}catch(e){r=null}

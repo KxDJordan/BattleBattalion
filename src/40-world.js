@@ -285,7 +285,8 @@ function spawnParty(f){let pos=null;
  const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5,goal:'roam'};if(typeof runModF==='function')p.mult*=runModF('mult',f,1);setPatrol(p);G.parties.push(p);return p}
 // Wages: wageOf(m) (14-company.js: background, traits, paymaster). Rations: one a sword a day, 0.8 with the quartermaster (G.foodAcc keeps the fraction).
 function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();let wage=0;if(typeof companyWages==='function')wage=companyWages();else G.roster.forEach(m=>wage+=BG[m.bg].wage);G.crowns-=wage;let msg=`Day ${G.day}: paid ${wage} crowns in wages`;
- if(G.crowns<0){G.crowns=0;if(G.roster.length>1&&rnd()<.35){const m=G.roster.splice(ri(0,G.roster.length-1),1)[0];msg=`Day ${G.day}: unpaid, ${m.name} deserted`}else msg=`Day ${G.day}: you cannot pay the men`}
+ if(G.crowns<0){G.crowns=0;const D=typeof isekaiIsHero==='function'?G.roster.filter(m=>!isekaiIsHero(m)):G.roster;   // The Isekai's hero never deserts (the same draws for every other company)
+  if(G.roster.length>1&&D.length&&rnd()<.35){const m=D[ri(0,D.length-1)];G.roster.splice(G.roster.indexOf(m),1);msg=`Day ${G.day}: unpaid, ${m.name} deserted`}else msg=`Day ${G.day}: you cannot pay the men`}
  {const qm=typeof followerHas==='function'&&followerHas('quarter'),rk=typeof runModK==='function'?runModK('ration',1):1;if(qm||rk!==1){const e=G.roster.length*(qm?.8:1)*rk+(G.foodAcc||0),n=Math.floor(e+1e-9);G.foodAcc=Math.max(0,e-n);G.food-=n}else G.food-=G.roster.length}if(G.food<0){G.food=0;G.roster.forEach(m=>m.hp=Math.max(1,m.hp-10));msg+='. The company starves'}
  const news=worldDay();                                                     // the living world: parties with goals, nests, towns, wars (below)
  wsKeepBands();                                                             // the land near the company stays as busy as ever
@@ -782,7 +783,7 @@ function rivalParley(p){const r=p&&rivalById(p.f);if(!r||!r.alive)return null;co
  const ti=nearestTown(p.x,p.y),own=G.towns[ti]&&G.towns[ti].own;
  const talk=r.talk===G.day;opts.push({k:'news',n:'Trade news',d:talk?'You have already traded news today.':'Swap road talk: what they are about and the nearest nest. +2 standing.',cost:0,ok:!hostile&&!talk,why:hostile?'They are not here to talk':talk?'Already traded news today':''});
  const m=rvHireCand(r),fee=m?rvHireFee(r,m):0,full=G.roster.length>=MAXROSTER,solo=!(typeof canRecruit!=='function'||canRecruit());
- opts.push({k:'hire',n:m?`Hire ${m.name}`:'Hire a sword',d:m?`Level ${m.lvl} ${BG[m.bg].n.toLowerCase()} joins the company for ${fee} crowns. +3 standing.`:'They cannot spare anyone.',cost:fee,m:m?m.id:null,
+ opts.push({k:'hire',n:m?`Hire ${m.name}`:'Hire a sword',d:m?`Level ${m.lvl} ${bgLow(m.bg)} joins the company for ${fee} crowns. +3 standing.`:'They cannot spare anyone.',cost:fee,m:m?m.id:null,
   ok:!!m&&!solo&&!hostile&&T.min>=-10&&!full&&G.crowns>=fee,why:solo?recruitWhy():!m?'Too few to spare a sword':hostile?'They are not here to talk':T.min<-10?`Their standing is ${T.n.toLowerCase()}`:full?'The roster is full':G.crowns<fee?'Not enough crowns':''});
  if(hostile){const bf=rvBuyFee(r);opts.push({k:'buyoff',n:'Buy them off',d:`${bf} crowns and they leave the company alone for three days${r.hired?`, breaking their contract with ${factName(r.hired.by)}`:''}.`,cost:bf,ok:G.crowns>=bf,why:G.crowns<bf?'Not enough crowns':''})}
  opts.push({k:'challenge',n:'Challenge them',d:`An open fight, banner against banner. No town minds. ${P.honour?'They accept with honour: +50% renown if you win.':''} −10 standing.`.replace('  ',' '),cost:0,ok:true});

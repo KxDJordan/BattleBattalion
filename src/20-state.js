@@ -17,7 +17,7 @@ let W=null,G=null,B=null,mode='title',sheetOpen=false,townTab='contracts';
    v and count as version 1. To change the save format: bump SAVEVER and add MIGRATE[old]=g=>g (one step,
    old -> old+1). readSave() runs the chain, then repairSave() fills defaults and rejects broken data.
    A save from a NEWER version than this code is never loaded and never silently overwritten. */
-const SAVEKEY='wyrdmarch_save_v1',SAVEVER=21;
+const SAVEKEY='wyrdmarch_save_v1',SAVEVER=22;
 /* save slots (phase 8): SLOTS books, slot 0 under SAVEKEY (every older save is slot 0), slot i under SAVEKEY+'_s'+i. SLOT is the
    slot the running company reads and writes; the title's slot picker changes it (22-run.js slotUse). */
 const SLOTS=3;let SLOT=0;
@@ -158,7 +158,10 @@ const MIGRATE={
    if(n){m.perks=keep;m.pp=Math.max(0,Math.floor(svNum(m.pp,0)))+n;out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})}if(typeof syncMast==='function')syncMast(m)};
   if(Array.isArray(g.roster))g.roster.forEach(fix);
   if(out.length){const L=Array.isArray(g.refund)?g.refund:[];for(const x of out){const o=L.find(y=>svObj(y)&&y.name===x.name);if(o)o.n=Math.max(0,Math.floor(svNum(o.n,0)))+x.n;else L.push(x)}
-   g.refund=L;g.refundWhy=g.refundWhy==='masteries'?'masteries':'roles';if(typeof g.note!=='string'||!g.note)g.note='refund'}return g}
+   g.refund=L;g.refundWhy=g.refundWhy==='masteries'?'masteries':'roles';if(typeof g.note!=='string'||!g.note)g.note='refund'}return g},
+ /* v22: The Isekai origin (28i-isekai.js) adds G.isekai {mode, hero, name} and, on its hero, m.cc {wt, at, sty} and m.pseed. No older
+    company has any of them, so nothing changes: a v21 save loads exactly as it was (repairSave validates the new fields when present). */
+ 21:g=>g
 };
 // v21: the perk ids whose effect changed in the roles update (same tier and tree; a rename alone, like Vanguard's Breakthrough, keeps its perk)
 const PERKV21=['vanguard.1','vanguard.3','vanguard.5','vanguard.6','bulwark.1','bulwark.2','bulwark.5','bulwark.cap','marksman.1','marksman.2','marksman.6','skirmisher.3',
@@ -215,6 +218,7 @@ function saveVersion(g){return svFin(g.v)&&g.v>=1?Math.floor(g.v):1}
 function migrateSave(g){let v=saveVersion(g);while(v<SAVEVER){const f=MIGRATE[v];if(!f)throw new Error('no migration from version '+v);g=f(g)||g;g.v=++v}return g}
 function repairMerc(m){if(!svObj(m)||!BG[m.bg]||!svObj(m.base))return false;
  for(const k of ['hp','fat','init','ms','rs','md','rd'])if(!svFin(m.base[k]))return false;
+ if(typeof isekaiFixMerc==='function')isekaiFixMerc(m);else{delete m.cc;delete m.pseed}   // The Isekai hero's own trees and face: before the perks are checked against them
  if(!Array.isArray(m.trees)&&!Array.isArray(m.perks))migrateMerc(m);                      // an unmigrated record (written by older code)
  { const seen={};m.trees=(Array.isArray(m.trees)?m.trees:[]).filter(k=>typeof k==='string'&&MAST[k]&&MAST[k].kind!=='weapon'&&!seen[k]&&(seen[k]=1));
    const gifts=m.trees.filter(k=>MAST[k].kind==='gift');m.gift=typeof m.gift==='string'&&gifts.includes(m.gift)?m.gift:gifts[0]||null;m.trees=m.trees.filter(k=>MAST[k].kind==='style'||MAST[k].kind==='hunter'||k===m.gift||(m.fabled&&MAST[k].kind==='fabled'));
@@ -284,6 +288,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(typeof craftRepair==='function')craftRepair(g);if(typeof companyRepair==='function')companyRepair(g);
  if(typeof evtRepair==='function')evtRepair(g);else if(!svObj(g.evt)||!svObj(g.evt.seen)||!svObj(g.evt.flags))g.evt={seen:svObj(g.evt)&&svObj(g.evt.seen)?g.evt.seen:{},flags:svObj(g.evt)&&svObj(g.evt.flags)?g.evt.flags:{}};
  if(typeof g.origin!=='string'||(typeof ORIGINS==='object'&&ORIGINS&&!ORIGINS[g.origin]&&g.origin!=='free'))g.origin='free';
+ if(typeof isekaiRepair==='function')isekaiRepair(g);else if(g.origin!=='isekai')delete g.isekai;   // The Isekai's hero and mode (28i-isekai.js)
  // phase 8: the East, fabled warriors, the run (difficulty, ironman, stats), each validated by its owner's helper when present
  if(typeof eastRepair==='function')eastRepair(g);g.fabled=svObj(g.fabled)?g.fabled:{};if(typeof fabledRepair==='function')fabledRepair(g);
  if(typeof colRepair==='function')colRepair(g);   // the colosseums, their cards and records (29-colosseum.js); old saves get theirs
@@ -302,8 +307,9 @@ function readSaveRaw(raw){if(raw==null||raw==='')return{state:'none'};let g;
  return{state:'ok',g,v}}
 function loadSave(){const r=readSave();return r.state==='ok'?r.g:null}          // a loadable campaign, or null
 function saveStatus(slot){const r=readSave(slot),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns;s.name=r.g.name;s.banner=r.g.banner;s.wsize=r.g.wsize;s.renown=r.g.renown;s.diff=r.g.diff;s.ironman=!!r.g.ironman;s.origin=r.g.origin;s.crisisKind=r.g.crisisKind}return s}
-// save(): the running company's famed items are registered again first, whatever readSave() put into ITEMS meanwhile.
-function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length)return false;G.v=SAVEVER;if(svObj(G.famed)&&typeof registerFamed==='function')registerFamed(G.famed);G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(slotKey(SLOT),s)}
+// save(): the running company's famed items are registered again first, whatever readSave() put into ITEMS meanwhile. An Isekai run
+// whose hero fell (G.isekai.lost) is over and is never written again.
+function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length||(G.isekai&&G.isekai.lost))return false;G.v=SAVEVER;if(svObj(G.famed)&&typeof registerFamed==='function')registerFamed(G.famed);G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(slotKey(SLOT),s)}
 function clearSave(slot){return storeDel(slotKey(slot))}
 // Keeps a copy of a save this version cannot read before a new company replaces it.
 function backupUnreadableSave(){const st=readSave().state;if(st!=='newer'&&st!=='corrupt')return false;const raw=storeGet(slotKey(SLOT));return raw!=null&&storeSet(slotKey(SLOT)+'_bak',raw)}
