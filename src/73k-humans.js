@@ -192,7 +192,7 @@ function humDrawW(g,wi,o){o=o||{};const L=wi.len,B=wi.back,f=wi.fam,bb=(x,y,r)=>
 function humRR2(x,y,w,h,r){return humP(p=>humRR(p,x,y,w,h,r))}
 /* a bow held upright in the off hand: local frame, grip at the origin, the belly towards +x (forward) */
 /* hx false: the bow body only (the skeleton draws the string and the arrow live, humDrawBowString) */
-function humDrawBowString(g,wi,draw,arrow,hx){const n=Math.max(5,wi.bow||6),H=n*22+30,bend=draw?30:18,sx=draw&&hx!=null?hx:-6;g.strokeStyle='#ece4d2';g.lineWidth=2.5;g.lineCap='round';g.beginPath();g.moveTo(-4,-H+6);g.lineTo(sx,0);g.lineTo(-4,H-6);g.stroke();
+function humDrawBowString(g,wi,draw,arrow,hx){const n=Math.max(5,wi.bow||6),H=n*22+30,bend=draw?30:18,sx=draw&&hx!=null?hx:-6;g.strokeStyle=wi.str||'#ece4d2';g.lineWidth=2.5;g.lineCap='round';g.beginPath();g.moveTo(-4,-H+6);g.lineTo(sx,0);g.lineTo(-4,H-6);g.stroke();
  if(arrow){const ax=sx;humSh(g,humPoly([ax,-2.5,bend+46,-2.5,bend+46,2.5,ax,2.5]),'#c8a070',{lw:4});humSh(g,humPoly([bend+42,-8,bend+62,0,bend+42,8]),'#c0c8d0',{lw:4});humSh(g,humPoly([ax-2,-2,ax+16,-10,ax+18,-2]),humHex('g'),{lw:3})}}
 function humDrawBow(g,wi,draw,arrow,hx){const n=Math.max(5,wi.bow||6),H=n*22+30,bend=draw?30:18,bc=wi.bowc||(n>=7?humHex('a'):humHex('i'));humBBp(g,0,-H,10);humBBp(g,0,H,10);humBBp(g,bend+10,0,10);humBBp(g,hx!=null&&hx!==false?hx:-40,0,10);
  const sx=draw&&hx!=null&&hx!==false?hx:-6;if(hx!==false){g.strokeStyle='#ece4d2';g.lineWidth=2.5;g.beginPath();g.moveTo(-4,-H+6);g.lineTo(sx,0);g.lineTo(-4,H-6);g.stroke()}

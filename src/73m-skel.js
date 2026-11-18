@@ -134,12 +134,12 @@ function hskBackAtt(A){const S=A.S,back=A.back,shA=A.shA,shB=A.shB,sw0=A.sw0,UBy
  return hskAtt(A,'back',[-420,-560,420,420],g=>{const bx={x:sw0*10,y:-70};
   if(S.cape){const c=humLit(S.cape),y1=-40-UBy,y2=-18-UBy,P2=humP(q=>{q.moveTo(shA.x-6,shA.y-8);q.lineTo(shB.x+6,shB.y-8);q.quadraticCurveTo(shB.x+30,y1,shB.x+26,y2);q.quadraticCurveTo(0,-6-UBy,shA.x-26,y2);q.quadraticCurveTo(shA.x-30,y1,shA.x-6,shA.y-8);q.closePath()});humSh(g,P2,c,{dk:.25})}
   if(S.slung){g.save();g.translate(bx.x,bx.y);g.scale(.8,.8);humDrawShield(g,S.slung,S.shR,back,0);g.restore()}
-  if(S.alt&&(S.altCls==='back'||S.altCls==='bow')){const oi=humWInfo(S.alt);g.save();g.translate(bx.x,bx.y+30);if(oi.fam==='bow'){g.rotate(-sw0*.45);g.scale(sw0*.9,.9)}else g.rotate(sw0*.7-Math.PI/2);if(oi.fam==='bow')humDrawBow(g,oi,0,0,null);else{g.translate(-oi.len*.35,0);humDrawW(g,oi,{})}g.restore()}
+  if(S.alt&&(S.altCls==='back'||S.altCls==='bow')){const oi=humWIc(S.alt,S.altI);g.save();g.translate(bx.x,bx.y+30);if(oi.fam==='bow'){g.rotate(-sw0*.45);g.scale(sw0*.9,.9)}else g.rotate(sw0*.7-Math.PI/2);if(oi.fam==='bow')humDrawBowAny(g,oi,0,0,null);else{g.translate(-oi.len*.35,0);humDrawWAny(g,oi,{})}g.restore()}
   if(S.back&&/usSashi/.test(String(S.back))){const fl=/R\.blk/.test(String(S.back))?'#2a2a34':'#efe9da';g.save();g.translate(sw0*30,-60);humInkLine(g,[0,40,0,-300],humLit(USR.dwood),7);
    const F=humP(p=>{p.moveTo(0,-290);p.lineTo(sw0*62,-290);p.lineTo(sw0*62,-150);p.lineTo(0,-150);p.closePath()});humSh(g,F,fl,{dk:.12});g.fillStyle=fl==='#2a2a34'?humHex('c'):humHex('g');g.beginPath();g.arc(sw0*31,-220,15,0,7);g.fill();g.restore()}
   if(S.quiver){g.save();g.translate(sw0*34,-120);g.rotate(-sw0*.45);humSh(g,humP(p=>humRR(p,-16,-20,32,96,10)),humLit(USR.leather),{dk:.25});for(let i=0;i<3;i++){humSh(g,humPoly([-12+i*10,-20,-6+i*10,-46,0+i*10,-20]),'#e8e2d4',{lw:4})}g.restore()}})}
-function hskHipAtt(A){const S=A.S;if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return null;const oi=humWInfo(S.alt),so0=A.so0;
- return hskAtt(A,'hip',[-360,-200,360,420],g=>{g.save();g.translate(so0*24,-18);g.rotate(so0*.35+Math.PI/2);g.scale(.85,.85);humDrawW(g,oi,{});g.restore()})}
+function hskHipAtt(A){const S=A.S;if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return null;const oi=humWIc(S.alt,S.altI),so0=A.so0;
+ return hskAtt(A,'hip',[-360,-200,360,420],g=>{g.save();g.translate(so0*24,-18);g.rotate(so0*.35+Math.PI/2);g.scale(.85,.85);humDrawWAny(g,oi,{});g.restore()})}
 function hskSkirtAtt(A){if(A.p2)return null;const n=A.hs.A.skirt;if(!n||n===1)return null;const S=A.S,hs=A.hs,C=hs.C,f=A.f;
  return hskAtt(A,'skirt',[-140,-40,140,420],g=>{const c=n<0?C.body:humLit(hs.A.skB||hs.A.body),y0=-6,ln=n<0?(-A.UBy0-24):n===2?36:56,w=60*hs.wid;
   const P2=humP(p=>{p.moveTo(-w,y0);p.lineTo(w,y0);p.lineTo(w+(n<0?14:6),y0+ln);p.quadraticCurveTo(0,y0+ln+8,-w-(n<0?14:6),y0+ln);p.closePath()});humSh(g,P2,c,{dk:.2});
@@ -150,14 +150,14 @@ function hskPaulAtt(A){if(A.p2)return null;const S=A.S,hA=A.hs.A;if(!(hA.paul||(
   else{const P2=humP(q=>{q.moveTo(-34,8);q.quadraticCurveTo(-36,-30,0,-30);q.quadraticCurveTo(36,-30,34,8);q.quadraticCurveTo(0,20,-34,8);q.closePath()});humSh(g,P2,pc2,{dk:.22});if(S.spike)humSh(g,humPoly([-8,-26,0,-56,8,-26]),humLit(S.spikeR||USR.steel))}})}
 // weapon / bow / shield attachments do not depend on the face: shared by the look at this scale (A0: face 0's asset record)
 function hskShared(L,k){return humSkAssets(L,0,k)}
-function hskWpnAtt(L,k,wi,o,key){const A=hskShared(L,k);return hskAtt(A,'w:'+wi.id+':'+key,[-260,-200,620,200],g=>humDrawW(g,wi,o))}
-function hskBowAtt(L,k,wi,drawn){const A=hskShared(L,k);return hskAtt(A,'b:'+wi.id+':'+drawn,[-80,-360,140,360],g=>humDrawBow(g,wi,drawn,0,false))}
+function hskWpnAtt(L,k,wi,o,key){const A=hskShared(L,k);return hskAtt(A,'w:'+wi.id+':'+key,[-260,-200,620,200],g=>humDrawWAny(g,wi,o))}
+function hskBowAtt(L,k,wi,drawn){const A=hskShared(L,k);return hskAtt(A,'b:'+wi.id+':'+drawn,[-80,-360,140,360],g=>humDrawBowAny(g,wi,drawn,0,false))}
 function hskShieldAtt(L,k,look,colR,front,crack){const A=hskShared(L,k);return hskAtt(A,'s:'+look+':'+front+':'+crack,[-130,-150,130,150],g=>humDrawShield(g,look,colR,front,crack))}
 
 /* ---- one frame: pose the skeleton and list the slots in draw order (world matrices in canonical SU space) ---- */
 function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAssets(L,face,k),hs=A.hs,S=A.S,f=A.f,back=A.back,mf=A.mf,mir=A.mir,hA=hs.A;
  let W=S.wd;const att=state==='attack';if(W&&W.cls==='xbow'&&!/:L$/.test(W.id)&&((S.ld&&state!=='reload')||(att&&t<.38))){try{W=usWdef(W.id+':L')}catch(e){}}
- const wi=humWInfo(W),cls=humWCls(wi.fam,W);hs.fam=wi.fam;hs.two=wi.two;
+ const wi=humWIc(W,S.wdI),cls=humWCls(wi.fam,W);hs.fam=wi.fam;hs.two=wi.two;
  const P=humAnimPose(cls,state,t,{two:wi.two,fam:wi.fam},att&&S.shield&&(va==='bash'||va==='shieldbash')?'bash':'');
  if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1;if((cls==='swing'||cls==='dagger')&&!att)P.wa+=(cls==='dagger'?-28:-42)}   // braced (approved look): the blade held up as before   // Shield wall (usWall)
  if(ex===undefined&&A.p2){try{ex=headPick(null,L,state,t,P.name,cls)}catch(e){ex=null}}
@@ -201,7 +201,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
   if(back)g.translate(-back,0)}   // hanging at the side: a hafted weapon is held up by its neck, its head just under the fist
   g.img(hskWpnAtt(L,k,wi,{loaded,fire,crank:P.crank},(loaded?'L':'u')+(fire?'F':'')+(P.crank||'')),'weapon');g.restore();
   if(P.rod){g.save();g.translate(armO.gx,armO.gy);g.fn(q=>humInkLine(q,[0,-20,0,60],humLit(USR.steel),5),'rod');g.restore()}};
- const drawOW=()=>{if(!S.ow||P.drop||state==='cast')return;const oi=humWInfo(S.ow);g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);if(A.p2&&oi.gripC)g.translate(-oi.gripC,0);g.img(hskWpnAtt(L,k,oi,{},'ow'),'offweapon');g.restore()};
+ const drawOW=()=>{if(!S.ow||P.drop||state==='cast')return;const oi=humWIc(S.ow,S.owId);g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);if(A.p2&&oi.gripC)g.translate(-oi.gripC,0);g.img(hskWpnAtt(L,k,oi,{},'ow'),'offweapon');g.restore()};
  const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);if(!att)g.rotate(-.12);const bd=!!P.bowD,hx=(armW.gx-armO.gx)*f;g.img(hskBowAtt(L,k,wi,bd),'bow');
   g.fn(q=>humDrawBowString(q,wi,bd,!!P.arrow,hx),'string');g.restore()};
  const shFar=oSide==='b',shieldAt=()=>A.p2?{x:armO.gx+(shFar?Math.sign(sO.x)*22:f*6),y:armO.gy-6}:({x:armO.wx+f*(shFar?14:24)+(shFar?Math.sign(sO.x)*26:0),y:armO.wy-18});   // part sheets: the shield's centre at the off hand's palm

@@ -950,7 +950,7 @@ function usWpnOf(x){if(!x)return'fist';if(typeof x==='object'){const w=x.wt||'fi
  if(US_WMAP[x])return US_WMAP[x];const I=typeof ITEMS!=='undefined'&&ITEMS[x];if(!I||I.k!=='w')return'fist';const w=I.wt||'fist';
  if(I.look&&US_LOOKW[I.look])return US_LOOKW[I.look];if(US_TIERS[w]||US_TIERS[w+'2']){const t=usTierOf(x);if(t)return t}
  if(I.two)return US_WT2[w]||US_WT[w]||'fist';if(w==='sword')return(I.price||0)>=500?'arming':'shortsword';if(w==='mace')return(I.price||0)>=300?'mace':'club';if(w==='axe')return(I.price||0)>=400?'waraxe':'handaxe';if(w==='dagger')return(I.price||0)>=200?'rondel':'knife';return US_WT[w]||'fist'}
-function usSetAlt(S,a){S.alt=null;S.altCls=null;if(!a)return;const W=a&&a.c&&a.cls?a:usWdef(usWpnOf(a));const cl=usStowCls(W);if(cl){S.alt=W;S.altCls=cl}}
+function usSetAlt(S,a,ai){S.alt=null;S.altCls=null;S.altI=null;if(!a)return;S.altI=typeof a==='string'&&ITEMS[a]?a:ai||null;const W=a&&a.c&&a.cls?a:usWdef(usWpnOf(a));const cl=usStowCls(W);if(cl){S.alt=W;S.altCls=cl}}
 function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMercSpec(m)}catch(e){}
  const eq=m.eq||{},race=typeof RACE!=='undefined'&&RACE[m.race]?m.race:'human',S={kind:'hum',seed:P?P.seed&255:(m.id|0)&255};
  S.b=US_BUILD[race];S.fem=P?P.fem:0;if(S.fem&&race==='human')S.b=Object.assign({},S.b,{jaw:2});
@@ -964,7 +964,7 @@ function usMercSpec(m,H){let P=null;try{if(typeof ptMercSpec==='function')P=ptMe
   if(av.trim==='white')S.trim=USR.white;else if(av.trim==='steel')S.trim=USR.steel;else if(av.trim==='gold')S.trim=USR.gold}if(!(typeof ptHelmsExist==='function'&&ptHelmsExist())){if(S.armor==='plate')S.hat='great';else if(S.armor==='scale')S.hat='nasal'}   // helmets are gear now (eq.h -> P.hat); without that rule the armor tier still picks one
  if(S.hat==='cap'&&ITEMS[eq.h])S.hatR=USR.leather;
  if(/^(hood|great|kettle|cap|straw|nasal|coif|barbute|armcap|spangen|sallet|bascinet|armet)$/.test(S.hat||'')){if(S.hair==='mohawk'||S.hair==='bun'||S.hair==='curly'||S.hair==='mane'||S.hair==='shaggy'||S.hair==='swept')S.hair='short'}
- const wid=H?H.w:eq.w,alt=H?H.a:(eq.b||null);S.wd=usWdef(usWpnOf(wid));
+ const wid=H?H.w:eq.w,alt=H?H.a:(eq.b||null);S.wd=usWdef(usWpnOf(wid));S.wdI=typeof wid==='string'&&ITEMS[wid]?wid:null;   // the item ids: the weapons are drawn as their icons (73l-wpnicons.js)
  const two=typeof wid==='string'&&ITEMS[wid]?!!ITEMS[wid].two:!!S.wd.two;
  if(ITEMS[eq.s]&&ITEMS[eq.s].k==='s'){if(two)S.slung=eq.s;else S.shield=eq.s;if(!S.shR)S.shR=usCloth('red')}
  else if(ITEMS[eq.s]&&ITEMS[eq.s].k==='w'&&typeof dwMainOK==='function'&&typeof wid==='string'&&dwMainOK(ITEMS[wid])){S.ow=usWdef(usWpnOf(eq.s));S.owId=eq.s}   // Twin blades: the off-hand weapon, held where the shield would be (11w-dualwield.js)
@@ -1151,7 +1151,7 @@ function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=u
  const key=usLookKey(u);let L=US.looks.get(key);
  if(!L){let S=null;try{S=u.m&&u.m.eq?usMercSpec(u.m,{w:hw,a:ha}):usEnemySpec(usEnKey(u.def)||u.eid,u)}catch(er){S=null}
   if(!S)S={kind:'hum',seed:1,b:US_BUILD.human,skin:usSkin(['s','t','u','i']),armor:'rags',wd:usWdef('fist')};
-  if(u.def&&S.kind==='hum'){const main=S.wd;if(hw!=='@main'&&hw){S.wd=usWdef(usWpnOf(hw));S.quiver=S.quiver||main.cls==='bow'}if(ha)usSetAlt(S,ha==='@main'?main:ha)}   // an archer's sidearm: in hand once it has swapped, else at the belt
+  if(u.def&&S.kind==='hum'){const main=S.wd,mainI=S.wdI;if(hw!=='@main'&&hw){S.wd=usWdef(usWpnOf(hw));S.wdI=typeof hw==='string'&&ITEMS[hw]?hw:null;S.quiver=S.quiver||main.cls==='bow'}if(ha)usSetAlt(S,ha==='@main'?main:ha,ha==='@main'?mainI:null)}   // an archer's sidearm: in hand once it has swapped, else at the belt
   if(u.def&&S.kind==='hum'&&u.shpMax>0&&!S.shield&&!(S.wd&&S.wd.two)){S.shield=u.shpMax>=60?'heater':'buckler';if(!S.shR)S.shR=usCloth(u.f==='bandit'?'night':'red')}   // an enemy type that carries a shield in the rules shows one
   if(u.def&&S.kind==='hum'&&cv&&typeof usHouseDress==='function'){try{S=usHouseDress(S,u,unitCoat(u))}catch(er){}}   // house soldiers in their house's coat and colours (73c-coats.js)
   if(shs===2){S.shield=null;S.slung=null}else if(shs===1&&S.shield)S.shCrack=1;
