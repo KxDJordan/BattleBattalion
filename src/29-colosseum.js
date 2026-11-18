@@ -27,7 +27,8 @@
    achEvent('arena', {win, streak, wins, title}) for the achievements (28-achieve.js). The colosseum's town tavern hires gladiators
    (BG.gladiator; colRecruits after stockTown). colRepair(g) validates the saves (20-state.js repairSave); old saves get their colosseums. */
 const COL={every:5,bouts:[3,5],near:[2.2,4.4],sep:18,count:{small:1,medium:1,large:2,vast:3},
- k:{story:1.09,normal:1.15,hard:1.22,brutal:1.29},kLvl:.01,rp:1.15,death:.3,fee:.1,
+ k:{story:1.065,normal:1.12,hard:1.17,brutal:1.26},kLvl:.01,   // (eased a little when the human foes got their masteries, 64m-foemast.js)
+ rp:1.15,death:.3,fee:.1,
  purse:{base:420,k:52,e:.75},renown:{base:3,k:.9},streak:{per:.08,max:.4},acclaim:[[3,10],[5,20],[8,35]],prize:.35,armory:6};
 const COLTITLE=[{w:0,n:'Tiro',d:'a recruit of the sand'},{w:3,n:'Contender',d:'a name the crowd knows',ren:5},{w:6,n:'Veteran of the sands',d:'feared in the pens',ren:10},
  {w:10,n:'Champion',d:'champion of the arena',ren:20},{w:16,n:'Grand champion',d:'the crowd’s god',ren:35}];

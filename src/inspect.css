@@ -79,3 +79,5 @@
 #inspect .ins-ab.ins-lg b{color:#ffc069}
 #inspect .ins-ab.ins-lg.idle{opacity:.6}
 #inspect .ins-lgd{color:#d9a6ff}
+/* a foe's masteries (insFoeMast): the perk, its tree, its effect in two lines at most; idle ones dimmed */
+#inspect .ins-fm{margin-bottom:3px}#inspect .ins-fm span{-webkit-line-clamp:2}#inspect .ins-fm i{margin-left:1px}#inspect .ins-fm.idle{opacity:.6}#inspect .ins-fm.idle i{color:#ef8a78}

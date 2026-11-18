@@ -78,22 +78,29 @@ function armorPieceClass(id){const r=armorBase(id);if(!r||(r.it.k!=='a'&&r.it.k!
 function armorClassOf(id,h){if(arguments.length<2)return armorPieceClass(id)||'light';const w=armorWeight(id)+armorWeight(h);return w<=ACLASSW.light?'light':w<=ACLASSW.medium?'medium':'heavy'}
 function armorClass(m){if(!m)return'light';if(m.m&&m.side!=null)m=m.m;else if(m.side!=null&&!m.eq){const a=(m.armMax||0)+(m.helmMax||0);return a<=ACLASS.light*1.6?'light':a<=ACLASS.medium*1.7?'medium':'heavy'}
  return armorClassOf(m.eq&&m.eq.a,m.eq&&m.eq.h)}
+/* perkSum(ids, wpn, raised, acl, sh): what a list of perks makes of a fighter, the one rule for mercs (calc) and for the foes that carry
+   masteries (foePerks, 64m-foemast.js). wpn is the weapon in hand (a copy: its wmods are applied to it), raised whether a shield is up,
+   acl the armor weight class, sh the shield item carried (or null). Weapon mastery perks work only with their family in hand (p.wt; 'shield':
+   only while a shield is raised, though its shield hitpoints count whenever one is carried: shHpOff); armor trees only in their class.
+   Returns {perks (working), off (idle), st (stat deltas), abs, flags, res (gift pools), shHpOff}. */
+function perkSum(ids,wpn,raised,acl,sh){const o={perks:[],off:[],st:{},abs:[],flags:{},res:{},shHpOff:0};
+ for(const id of ids||[]){const P=perkById(id);if(!P)continue;const p=P.perk,T=P.tree;
+  const pw=p.wt||T.wt;if(T.kind==='weapon'&&pw&&(pw==='shield'?!raised:pw!==wpn.wt)){o.off.push(id);if(pw==='shield'&&sh&&p.mod&&p.mod.shieldHp)o.shHpOff+=p.mod.shieldHp;continue}
+  if(T.kind==='armor'&&T.aw!==acl){o.off.push(id);continue}   // armor trees: only in body armor of their weight class
+  o.perks.push(id);
+  if(p.st)for(const q in p.st)o.st[q]=(o.st[q]||0)+p.st[q];if(p.ab&&AB[p.ab]&&!o.abs.includes(p.ab))o.abs.push(p.ab);
+  if(p.flag)o.flags[p.flag]=1;if(p.mod)for(const q in p.mod)o.flags[q]=(o.flags[q]||0)+p.mod[q];
+  if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.fat){wpn.fat=Math.max(0,(wpn.fat||0)+x.fat);wpn.fatCut=(wpn.fatCut||0)-x.fat}if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
+   if(x.hit)wpn.hit=(wpn.hit||0)+x.hit;if(x.stun)wpn.stun=(wpn.stun||0)+x.stun;if(x.spell)wpn.spell=(wpn.spell||0)+x.spell;if(x.crush)wpn.crush=(wpn.crush||0)+x.crush;
+   if(x.rld&&wpn.reload)wpn.reload.ap=Math.max(2,wpn.reload.ap+x.rld)}
+  if(T.kind==='gift'&&T.res){const R=o.res[T.res]||(o.res[T.res]={max:GIFTBASE,regen:GIFTREGEN});if(p.res)R.max+=p.res;if(p.regen)R.regen+=p.regen}}
+ return o}
 function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a,eq.h);
  const s={hp:m.base.hp,fat:m.base.fat,init:m.base.init,ms:m.base.ms,rs:m.base.rs,md:m.base.md,rd:m.base.rd,brv:typeof m.base.brv==='number'?m.base.brv:40,ap:9,arm:0,helm:0,res:{},abs:[],flags:{},dmg:0,shield:null,inj:[],
   hand,wid:wi?wid:null,alt:(hand==='w'?eq.b:eq.w)||null,perks:[],off:[],acl,aw:0};
  const wpn=Object.assign({},wi||FIST,{id:wi?wid:null});wpn.d=wpn.d.slice();if(wpn.reload)wpn.reload=Object.assign({},wpn.reload);
  const sh=ITEMS[eq.s]&&ITEMS[eq.s].k==='s'?ITEMS[eq.s]:null,raised=!!sh&&!wpn.two;let shHpOff=0;
- for(const id of (Array.isArray(m.perks)?m.perks:legacyPerks(m.mast))){const P=perkById(id);if(!P)continue;const p=P.perk,T=P.tree;
-  // weapon mastery perks work only with their family in hand (p.wt); the shield's only while a shield is raised (its shield hitpoints count whenever one is carried)
-  const pw=p.wt||T.wt;if(T.kind==='weapon'&&pw&&(pw==='shield'?!raised:pw!==wpn.wt)){s.off.push(id);if(pw==='shield'&&sh&&p.mod&&p.mod.shieldHp)shHpOff+=p.mod.shieldHp;continue}
-  if(T.kind==='armor'&&T.aw!==acl){s.off.push(id);continue}   // armor trees: only in body armor of their weight class
-  s.perks.push(id);
-  if(p.st)for(const q in p.st)s[q]=(s[q]||0)+p.st[q];if(p.ab&&AB[p.ab]&&!s.abs.includes(p.ab))s.abs.push(p.ab);
-  if(p.flag)s.flags[p.flag]=1;if(p.mod)for(const q in p.mod)s.flags[q]=(s.flags[q]||0)+p.mod[q];
-  if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.fat){wpn.fat=Math.max(0,(wpn.fat||0)+x.fat);wpn.fatCut=(wpn.fatCut||0)-x.fat}if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
-   if(x.hit)wpn.hit=(wpn.hit||0)+x.hit;if(x.stun)wpn.stun=(wpn.stun||0)+x.stun;if(x.spell)wpn.spell=(wpn.spell||0)+x.spell;if(x.crush)wpn.crush=(wpn.crush||0)+x.crush;
-   if(x.rld&&wpn.reload)wpn.reload.ap=Math.max(2,wpn.reload.ap+x.rld)}
-  if(T.kind==='gift'&&T.res){const R=s.res[T.res]||(s.res[T.res]={max:GIFTBASE,regen:GIFTREGEN});if(p.res)R.max+=p.res;if(p.regen)R.regen+=p.regen}}
+ {const P=perkSum(Array.isArray(m.perks)?m.perks:legacyPerks(m.mast),wpn,raised,acl,sh);s.perks=P.perks;s.off=P.off;shHpOff=P.shHpOff;s.abs=P.abs;s.flags=P.flags;s.res=P.res;for(const q in P.st)s[q]=(s[q]||0)+P.st[q]}
  const a=ITEMS[eq.a],h=ITEMS[eq.h];s.wpn=wpn;
  if(sh){const sd=s.flags.shieldDef||0;s.fat-=sh.fat;s.shield={id:eq.s,look:sh.look||'heater',hp:Math.round((sh.hp||48)*(1+(s.flags.shieldHp||0)+shHpOff)),md:sh.md+sd,rd:sh.rd+sd,raised,
    guard:sh.guard||0,wallB:sh.wallB||0,spike:sh.spike?sh.spike.slice():null};

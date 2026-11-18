@@ -82,6 +82,12 @@ function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&M
    if(I){h+=`<div class="ins-ab ins-pk ins-q${I.max?' max':''}" title="${htmlEsc(I.n+': '+I.slain+' slain, +'+I.dmg+'% damage, +'+I.hit+' to hit (cap '+I.cap+' kills)')}">${insIc(icn)}<div><b>${p.n}</b><i>${I.slain} slain</i><span>+${I.dmg}% dmg${I.hit?', +'+I.hit+' hit':''}${I.max?' (full)':''}</span></div></div>`;continue}}
   h+=`<div class="ins-ab ins-pk${idle?' idle':''}" title="${(r.tree&&r.tree.n||'')+(r.tier?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b>${idle?`<i>${why}</i>`:''}<span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
  return h}
+/* a foe's masteries (64m-foemast.js): each perk as the company's talents show it, its tree and tier in the title, idle while it cannot work */
+function insFoeMast(u){if(!u||u.m||!Array.isArray(u.fpk)||!u.fpk.length)return'';let h='';
+ for(const id of u.fpk){let r=null;try{r=typeof perkById==='function'?perkById(id):null}catch(e){}const p=r&&r.perk;if(!p)continue;const icn=p.ab&&AB[p.ab]?'ab-'+p.ab:'perk-'+id;
+  const idle=typeof foePerkIdle==='function'&&foePerkIdle(u,id),why=idle?(p.wt==='shield'?'idle: no shield raised':'idle: another weapon in hand'):'',tn=r.tree&&r.tree.kind==='weapon'?'Weapon mastery':r.tree&&r.tree.n||'';
+  h+=`<div class="ins-ab ins-fm${idle?' idle':''}" title="${tn+(r.cap?' · final tier':r.tier&&r.tree.kind!=='weapon'?' tier '+r.tier:'')}">${insIc(icn)}<div><b>${p.n}</b><i>${idle?why:tn}</i><span>${insPerkFx(p).replace(/^Ability:\s*/,'')}</span></div></div>`}
+ return h}
 /* legendary pieces a merc unit carries (25-legend.js): each power, lit while it counts (the weapon in hand, a raised shield, armor and helmet) */
 function insLegend(u){const m=u&&u.m;if(!m||!m.eq)return'';let h='';
  for(const k of ['w','b','s','a','h']){const id=m.eq[k],it=ITEMS[id];if(!it||!it.legend||!it.power)continue;const on=k==='w'||k==='b'?u.wid===id:k==='s'?!!u.shield:true;
@@ -110,6 +116,7 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;
  const lg=insLegend(u);if(lg)r+=`<div class="ins-hd lgd">Legendary</div>`+lg;
  if(m){const tl=insTalents(m);if(tl)r+=`<div class="ins-hd">Talents</div>`+tl}
+ if(!m){const fm=insFoeMast(u);if(fm)r+=`<div class="ins-hd">Masteries</div>`+fm}   // a human foe's perks (64m-foemast.js)
  if(m){const tr=insMercTraits(m),rt=pl?insRetinue():'';if(tr||rt)r+=`<div class="ins-hd">Traits</div>`+tr+rt}
  const ab=m?insAbChips(u):insAbs(u),tr=m?'':insTraits(u);if(ab||tr)r+=`<div class="ins-hd">${m?'Abilities':'What it does'}</div>`+tr+ab;
  let note=`Stands on ${tileName(tl).toLowerCase()}, height ${tl.h}.`;

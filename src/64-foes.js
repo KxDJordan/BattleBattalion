@@ -77,6 +77,7 @@ u.cds={};u.usedN={};u.spell=undefined;
   if(typeof u.helm==='number'){u.helm=u.helmMax=Math.round(u.helm*Math.pow(x,R.arm))}
   const k=Math.pow(x,R.dmg);u.wpn.d=[Math.round(d.d[0]*k),Math.round(d.d[1]*k)];if(u.wpnAlt&&d.side&&typeof d.side==='object'){const sd=d.side.d;u.wpnAlt.d=[Math.round(sd[0]*k),Math.round(sd[1]*k)]}u.wpn.spell=k-1;u.ms+=Math.round(R.ms*L);if(u.rs)u.rs+=Math.round(R.ms*L);u.md+=Math.round(R.md*L);u.rd+=Math.round(R.md*L);u.dmgK=k;if(u.side===1&&B)B.venom=Math.round(6*k);
   if(L>=1.5)u.name=(L>=2.75?'Elite ':'Veteran ')+String(d.n).toLowerCase()}
+ if(typeof foePerks==='function')foePerks(u);   // a human foe's masteries (64m-foemast.js), after its rank
  return u}
 // Adds a unit mid-battle through the rules' spawnUnit() when it exists.
 function foeSpawn(id,f,c,r,o){const e=mkEnemy(id,f);e.spawned=1;if(o&&o.def)e.def=o.def;enemyInit(e,id);e.c=c;e.r=r;if(o)for(const k in o)if(k!=='def')e[k]=o[k];
