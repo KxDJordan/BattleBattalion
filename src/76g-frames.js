@@ -1,17 +1,18 @@
 /* ================= FRAME SHEETS: foes drawn from the user's frame-by-frame animation sheets (Detail High) =================
    A foe whose sheet holds its animations as drawn frames (the Direwolf: run, hurt, death, paw scratch, bite; the Goblin skirmisher:
-   idle, run, attack, hit, death; the Goblin archer: idle, run, attack, cast, hit, death) plays them frame by frame on the game's
+   idle, run, attack, hit, death; the Goblin archer and the Goblin shaman: idle, run, attack, cast, hit, death) plays them frame by frame on the game's
    animation clock (74-anim.js). Loops (idle, walk, flee) run on unitPose's cycle P.cyc (rate: row cycles per animation cycle).
    One-shots run on their own clock in ms from the moment 74-anim.js started them (the attack's s.at0, the blow's s.hitT, the death's
    s.deadT; normalised by the game speed), so a drawn swing or yelp is not squeezed into the game's 240 ms attack or 230 ms flinch:
    - a blow: the frames from `from` up to the impact frame `imp` share the wind-up, `imp` shows at the impact (hit: 'melee' =
-     AN_HIT_AT of the 240 ms attack, when 75-fx.js lands a melee blow; 'shot' = 40 ms, when it looses a plain or poison arrow), the
+     AN_HIT_AT of the 240 ms attack, when 75-fx.js lands a melee blow; 'shot' = 40 ms, when it looses a plain or poison arrow; 'spell'
+     = 90 ms, when it launches a bolt spell such as the shaman's hex), the
      rest share the follow-through until `ms`; the figure keeps playing them after unitPose has gone back to idle, until a newer
      event (a move, a blow taken, death) takes over.
    - hit: the hurt row over `ms` from the blow landing; death: over the collapse and its hold (420 + 150 ms at normal speed), then its
      last frame stays while the corpse fades.
-   - Registry FS_DEF[enemy id] = {atl() -> the generated atlas (76e-wolfatlas.js WFA, 76f-gobatlas.js GBA / GAA), an: {state or variant:
-     row}, pick(u, st, s) -> a variant row for an attack (the wolf's bite, the archer's poison arrow and knife), rig + rigSt: the states
+   - Registry FS_DEF[enemy id] = {atl() -> the generated atlas (76e-wolfatlas.js WFA, 76f-gobatlas.js GBA / GAA / GSA), an: {state or variant:
+     row}, pick(u, st, s) -> a variant row (the wolf's bite, the archer's poison arrow and knife, the shaman's chant), rig + rigSt: the states
      drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js)}.
    - Frames are anchored on the body's centre over the feet (the atlas's ax / ay); a figure stands SHEETS[id].h art px tall like its
      old painted sheet, its feet SHEETS[id].dy art px under the tile point as the painted figure's were. Faces: the sheets face screen-right
@@ -21,7 +22,7 @@
      fsBuild bakes one for sheetSpritePx (effects, tests, the first frames). null at Detail Low, before the atlas has loaded or for any
      other foe: the pixel figure is drawn then. No rnd(). */
 const FS={img:{},pc:new Map(),bk:new Map(),bkN:[],off:0,err:0,frames:0,bakes:0};
-const FS_SHOT_MS=40;                      // 75-fx.js: a plain or poison arrow leaves the bow 40 ms after the shot
+const FS_SHOT_MS=40,FS_SPELL_MS=90;       // 75-fx.js: a plain or poison arrow leaves the bow 40 ms after the shot; a bolt spell (the hex) 90 ms after the cast
 const FS_DEF={
  gob:{atl:()=>typeof GBA==='object'?GBA:null,an:{idle:{f:'idle',loop:1,rate:2},walk:{f:'run',loop:1,rate:1},flee:{f:'run',loop:1,rate:1},
   attack:{f:'attack',imp:3,hit:'melee',ms:520},hit:{f:'hit',ms:600},death:{f:'death'},cast:{f:'idle',loop:1,rate:2},swap:{f:'idle',loop:1,rate:2},reload:{f:'idle',loop:1,rate:2}}},
@@ -29,7 +30,13 @@ const FS_DEF={
   attack:{f:'attack',from:3,imp:5,hit:'shot',ms:560},stab:{f:'attack',from:3,imp:5,hit:'melee',ms:560},poison:{f:'cast',from:4,imp:5,hit:'shot',ms:640},
   cast:{f:'cast',ms:760},hit:{f:'hit',ms:600},death:{f:'death'},swap:{f:'idle',loop:1,rate:2},reload:{f:'idle',loop:1,rate:2}},
   // the poison arrow plays the cast row (the purple glow on the bow as it looses); a knife thrust at a neighbour (the attack lunges) is timed as a blow
-  pick:(u,st,s)=>st!=='attack'||!s?'':s.vaId==='gpoison'&&fsNow()-(s.vaT||-1e9)<2500?'poison':(s.lc||s.lr)?'stab':''}};
+  pick:(u,st,s)=>st!=='attack'||!s?'':s.vaId==='gpoison'&&fsNow()-(s.vaT||-1e9)<2500?'poison':(s.lc||s.lr)?'stab':''},
+ // the shaman: a spell (the hex, any bolt) gathers the glow in the hand and lets it go from the staff's skull (cast frame 5) when the bolt
+ // leaves; the war chant (no bolt: its rings start at once) begins on the skull's glow; a staff blow lands on the swing's arc (attack frame 5)
+ gobsham:{atl:()=>typeof GSA==='object'?GSA:null,an:{idle:{f:'idle',loop:1,rate:2},walk:{f:'run',loop:1,rate:1},flee:{f:'run',loop:1,rate:1},
+  attack:{f:'attack',imp:4,hit:'melee',ms:600},cast:{f:'cast',from:2,imp:4,hit:'spell',ms:760},chant:{f:'cast',from:4,ms:700},hit:{f:'hit',ms:600},death:{f:'death'},
+  swap:{f:'idle',loop:1,rate:2},reload:{f:'idle',loop:1,rate:2}},
+  pick:(u,st,s)=>st==='cast'&&s&&s.vaId==='gchant'&&fsNow()-(s.vaT||-1e9)<2500?'chant':''}};
 function fsNow(){return typeof anNow==='function'?anNow():0}
 function fsId(u){if(!u||!u.def||u.m)return null;const id=typeof msEnKey==='function'?msEnKey(u.def):null;return id&&FS_DEF[id]?id:null}
 function fsImg(id){const D=FS_DEF[id],A=D&&D.atl();if(!A||typeof Image==='undefined'||FS.off)return null;let I=FS.img[id];if(!I){I=FS.img[id]=new Image();I.decoding='async';I.src=A.src}return I.complete&&I.naturalWidth?I:null}
@@ -43,7 +50,7 @@ function fsPc(id,key,R,ox,oy,K){const k=id+':'+key+':'+K;let a=FS.pc.get(k);if(a
  const W=Math.max(2,Math.ceil(R.w*K)+2),H=Math.max(2,Math.ceil(R.h*K)+2),cv=document.createElement('canvas');cv.width=W;cv.height=H;const q=cv.getContext('2d');if(!q)return null;
  q.imageSmoothingEnabled=true;try{q.imageSmoothingQuality='high'}catch(e){}q.drawImage(I,R.r[0],R.r[1],R.r[2],R.r[3],1,1,R.w*K,R.h*K);FS.bakes++;
  a={cv,x:-ox-1/K,y:-oy-1/K,w:W/K,h:H/K};FS.pc.set(k,a);return a}
-function fsHitMs(d){return d.hit==='shot'?FS_SHOT_MS:d.hit==='melee'?240*(typeof AN_HIT_AT==='number'?AN_HIT_AT:.38):0}
+function fsHitMs(d){return d.hit==='shot'?FS_SHOT_MS:d.hit==='spell'?FS_SPELL_MS:d.hit==='melee'?240*(typeof AN_HIT_AT==='number'?AN_HIT_AT:.38):0}
 /* which frame of a row (n frames): loops by the cycle c; timed rows by el (ms since the event, at normal speed); others by the phase t */
 function fsIdx(n,d,c,el,t){if(n<=1)return 0;if(d.loop){const x=c*(d.rate||1);return Math.min(n-1,Math.floor((x-Math.floor(x))*n))}
  if(d.ms){el=Math.max(0,el);const a=d.from|0;if(d.imp!=null){const H=fsHitMs(d);if(el<H)return Math.min(d.imp-1,a+Math.floor(el/H*(d.imp-a)));return Math.min(n-1,d.imp+Math.floor((el-H)/(d.ms-H)*(n-d.imp)))}
@@ -66,10 +73,10 @@ function fsTime(u,v,D){let st=v.pS||'idle';const an=v.pAn||'';if(st==='walk'&&an
  if(st==='death'){if(s&&s.deadT>-1e8&&sp){const C=Math.max(210,420*sp),hold=150;tm.t=Math.min(1,(now0-s.deadT)/(C+hold))}else tm.t=1;return[st,tm]}
  if(s&&sp&&(st==='idle'||st==='attack'||st==='hit'||st==='cast')){let best=null,bt=-1e18;
   const hr=D.an.hit;if(hr&&hr.ms&&s.hitT>-1e8){const el=(now0-s.hitT)/sp;if(el>=0&&el<hr.ms&&s.hitT>bt){best=['hit',{el}];bt=s.hitT}}
-  if((s.act===1||s.act===2)&&s.at0>-1e8){const k=s.act===1?'attack':'cast',row=s.act===1&&D.pick?D.pick(u,'attack',s):'',d=D.an[row]||D.an[k];
+  if((s.act===1||s.act===2)&&s.at0>-1e8){const k=s.act===1?'attack':'cast',row=D.pick?D.pick(u,k,s):'',d=D.an[row]||D.an[k];
    if(d&&d.ms){const el=(now0-s.at0)/sp;if(el>=0&&el<d.ms&&s.at0>bt){best=[k,{el,row}];bt=s.at0}}}
   if(best)return best;
-  if(st==='attack'||st==='cast'){const row=st==='attack'&&D.pick?D.pick(u,st,s):'';tm.row=row}}
+  if(st==='attack'||st==='cast'){const row=D.pick?D.pick(u,st,s):'';tm.row=row}}
  if(st==='hit'&&tm.t>0)tm.el=tm.t*((D.an.hit&&D.an.hit.ms)||600);
  if(st==='idle'&&typeof reduced!=='undefined'&&reduced)tm.c=0;
  return[st,tm]}

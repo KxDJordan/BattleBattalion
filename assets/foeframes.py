@@ -151,3 +151,29 @@ def webp_b64(atlas, k, q=90):
     half = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS) if k != 1 else im
     buf = io.BytesIO(); half.save(buf, 'WEBP', quality=q, method=6, exact=True)
     return base64.b64encode(buf.getvalue()).decode('ascii'), len(buf.getvalue())
+
+
+def split_comp(im, lab, c, gx, new_id, win=45):
+    """Two figures that touch, found as one component c: the pixels right of the least-alpha vertical seam near x = gx get the
+    label new_id. Returns the two components (n, size, x0, y0, x1, y1)."""
+    n, _, x0, y0, x1, y1 = c
+    A = np.where(lab[y0:y1 + 1, x0:x1 + 1] == n, im[y0:y1 + 1, x0:x1 + 1, 3], 0)
+    h, w = A.shape
+    lo, hi = max(0, gx - x0 - win), min(w - 1, gx - x0 + win)
+    cost = A[:, lo:hi + 1] + 1.0
+    acc = cost.copy(); back = np.zeros(acc.shape, int)
+    for y in range(1, h):
+        prev = acc[y - 1]
+        l = np.r_[np.inf, prev[:-1]]; r = np.r_[prev[1:], np.inf]
+        st = np.stack([l, prev, r]); k = st.argmin(0)
+        acc[y] += st[k, np.arange(st.shape[1])]; back[y] = k - 1
+    x = int(acc[-1].argmin())
+    for y in range(h - 1, -1, -1):
+        row = lab[y0 + y, x0:x1 + 1]
+        row[(np.arange(w) > x + lo) & (row == n)] = new_id
+        if y: x += int(back[y, x])
+    out = []
+    for m in (n, new_id):
+        ys, xs = np.nonzero(lab[y0:y1 + 1, x0:x1 + 1] == m)
+        out.append((m, len(ys), x0 + int(xs.min()), y0 + int(ys.min()), x0 + int(xs.max()), y0 + int(ys.max())))
+    return out
