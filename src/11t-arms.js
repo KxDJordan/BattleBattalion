@@ -27,10 +27,10 @@ Object.assign(ITEMS,{
  chakram:{k:'w',n:'Chakram',wt:'throwing',d:[28,42],ap:4,fat:6,rng:5,ign:.3,hit:10,ammo:3,ret:1,shot:'chakram',price:1350,tier:4},
  hurlbat:{k:'w',n:'Bearded hurlbats',wt:'throwing',d:[32,48],ap:4,fat:10,rng:3,ign:.4,ammo:3,shot:'axe',price:1250,tier:4},
  stormaxes:{k:'w',n:'Dwarven storm-axes',wt:'throwing',d:[44,64],ap:5,fat:13,rng:3,ign:.45,ammo:3,shot:'haxe',price:2700,tier:5},
- caliver:{k:'w',n:'Matchlock caliver',wt:'flintlock',two:1,d:[42,62],ap:5,fat:8,rng:6,ign:.55,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:520,tier:2},
+ caliver:{k:'w',n:'Matchlock caliver',wt:'flintlock',two:1,d:[42,62],ap:4,fat:8,rng:6,ign:.55,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:520,tier:2},
  dragon:{k:'w',n:'Dragon pistol',wt:'flintlock',d:[40,62],ap:4,fat:7,rng:3,ign:.5,hit:5,reload:{ap:5,fat:10},shot:'ball',fx:'smoke',price:980,tier:3},
- carbine:{k:'w',n:'Wheellock carbine',wt:'flintlock',two:1,d:[54,78],ap:4,fat:9,rng:6,ign:.6,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:1250,tier:3},
- twinpistol:{k:'w',n:'Twin-barrel pistol',wt:'flintlock',d:[36,54],ap:4,fat:7,rng:4,ign:.55,barrels:2,reload:{ap:6,fat:12},shot:'ball',fx:'smoke',price:1900,tier:4},
+ carbine:{k:'w',n:'Wheellock carbine',wt:'flintlock',two:1,d:[54,78],ap:4,fat:9,rng:6,ign:.6,hit:5,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:1250,tier:3},
+ twinpistol:{k:'w',n:'Twin-barrel pistol',wt:'flintlock',d:[36,54],ap:4,fat:7,rng:4,ign:.55,barrels:2,reload:{ap:5,fat:12},shot:'ball',fx:'smoke',price:1900,tier:4},
  jezail:{k:'w',n:'Jezail',wt:'flintlock',two:1,d:[76,108],ap:5,fat:11,rng:9,ign:.6,hit:5,reload:{ap:6,fat:16},shot:'ball',fx:'smoke',price:2200,tier:4},
  wallgun:{k:'w',n:'Wall gun',wt:'flintlock',two:1,d:[100,140],ap:6,fat:16,rng:8,ign:.7,hit:-5,brace:15,reload:{ap:7,fat:20},shot:'ball',fx:'smoke',price:3400,tier:5}
 });

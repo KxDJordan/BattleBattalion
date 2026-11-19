@@ -627,7 +627,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
        ok(Math.abs(W('mace',['weapons.mace']).stun-base('mace').stun-.1)<1e-9&&Math.abs(W('mace',['weapons.mace']).crush-(base('mace').crush||0)-.2)<1e-9,'mace mastery: +10% stun, +20% crush');ok(Math.abs(W('warhammer',['weapons.hammer']).crush-base('warhammer').crush-.4)<1e-9,'hammer mastery: crush');
        ok(W('rondel',['weapons.dagger']).ap===2&&W('shortbow',['weapons.bow']).ap===3&&W('warbow',['weapons.bow']).ap===4,'dagger and bow masteries: 1 less AP, at least 2');
        const gs=W('greatsword',['weapons.greatsword']);ok(gs.fat===X.ITEMS.greatsword.fat-6&&gs.fatCut===6,'greatsword mastery: 6 less fatigue');
-       ok(W('crossbow',['weapons.crossbow']).reload.ap===2&&W('musket',['weapons.flintlock']).reload.ap===3,'crossbow and firearm masteries: reload 2 AP cheaper');
+       ok(W('crossbow',['weapons.crossbow']).reload.ap===2&&W('musket',['weapons.flintlock']).reload.ap===Math.max(2,X.ITEMS.musket.reload.ap-2)&&W('arquebus',['weapons.flintlock']).reload.ap===3,'crossbow and firearm masteries: reload 2 AP cheaper');
        ok(Math.abs(W('staff',['weapons.staff']).spell-base('staff').spell-.15)<1e-9,'staff mastery: +15% spell damage');const fw=W(null,['weapons.fist']);ok(fw.d[0]===X.FIST.d[0]+8&&fw.d[1]===X.FIST.d[1]+10,'fist mastery: +8/+10');
        ok(X.calc(mer('halberd',null,null,['weapons.polearm'])).flags.reachHit===10&&!X.calc(mer('greatsword',null,null,['weapons.polearm'])).flags.reachHit,'polearm mastery: +10 to hit at 2 tiles, only with a polearm');
        const off=X.calc(mer('arming',null,null,['weapons.axe','weapons.bow']));ok(off.off.length===2&&off.wpn.ign===base('arming').ign,'a mastery of another family sleeps') }
