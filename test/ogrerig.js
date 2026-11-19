@@ -8,7 +8,7 @@
 // Browser part: the back facings are the front frames (face 3 = face 0, face 2 = face 1); every state x facing x sampled time draws a non-empty frame with the main slots, feet on the ground (a blow may reach a
 // little below it, the legs swing as the people's) and about the painted
 // sheet's height; the faces follow the state; faces 1 and 2 are mirrored; the board's live frame and the baked sprite come from the rig;
-// the painted sheet is the fallback while the rig is off; the armoured ogre keeps its art; Detail Low draws the same pixels as main.
+// the pixel ogre is the fallback while the rig is off (its painted sheet is gone); the armoured ogre keeps its art; Detail Low draws the same pixels as main.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const ROOT=path.join(__dirname,'..'),F=f=>path.join(ROOT,f);
@@ -62,7 +62,7 @@ const {chromium}=require('playwright');
 (async()=>{const html=path.resolve(process.argv[2]||'dist/index.html'),main=process.argv[3]||'/home/user/owlbear-wt/index.html';
 const b=await chromium.launch(),errs=[];
 const open=async f=>{const p=await b.newPage({viewport:{width:667,height:375}});p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::/.test(m.text()))errs.push(m.text())});
- await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();if(typeof ogImg==='function')ogImg();sheetImg('ogre')});await p.waitForFunction(()=>(typeof ogImg!=='function'||!!ogImg())&&!!sheetImg('ogre'),null,{timeout:20000});return p};
+ await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();if(typeof ogImg==='function')ogImg()});await p.waitForFunction(()=>typeof ogImg!=='function'||!!ogImg(),null,{timeout:20000});return p};
 const p=await open(html);
 const R=await p.evaluate(()=>{const bad=[],n={frames:0,px:0},k=humK(),H=SHEETS.ogre.h;let uid=950;
  const mk=id=>{const u=mkEnemy(id,'ogre');u.id=++uid;return u};const u=mk('ogre');
@@ -99,8 +99,8 @@ const R=await p.evaluate(()=>{const bad=[],n={frames:0,px:0},k=humK(),H=SHEETS.o
  const v={pS:'attack',pF:1,pPh:.38,pCy:0,pD:1,pAn:''};const L=ogreLiveFrame(u,v);if(!L||!L.ogre)bad.push('no live frame');if(humLiveFrame(u,v))bad.push('drawn as a person');
  for(const face of[0,1,2,3]){const o=monsterSpritePx(u,face,'idle',0);if(!o||!o.ogre){bad.push('f'+face+': the sprite is not the rig');continue}if(monsterSpritePx(u,face,'idle',0)!==o)bad.push('f'+face+': rebuilt on the second call');
   const w=o.cv.width/o.k,h=o.cv.height/o.k;if(!(o.ax>=0&&o.ax<=w&&o.ay>0&&o.ay<=h+.5))bad.push('f'+face+': anchor outside the sprite')}
- // the painted sheet is the fallback while the rig is off; the armoured ogre keeps its art
- OG.off=1;{const o=sheetSpritePx(u,0,'idle',0);if(!o||o.ogre)bad.push('no painted fallback with the rig off');if(ogreLiveFrame(u,{pS:'idle',pD:0}))bad.push('a live rig while it is off')}OG.off=0;
+ // the pixel ogre is the fallback while the rig is off (no painted sheet any more); the armoured ogre keeps its art
+ OG.off=1;{if(sheetSpritePx(u,0,'idle',0))bad.push('a sheet sprite with the rig off');const o=monsterSpritePx(u,0,'idle',0);if(!o||o.ogre||o.smooth)bad.push('no pixel fallback with the rig off');if(ogreLiveFrame(u,{pS:'idle',pD:0}))bad.push('a live rig while it is off')}OG.off=0;
  {const a=mk('aogre');if(ogOn(a)||ogreLiveFrame(a,{pS:'idle',pD:0}))bad.push('the armoured ogre drawn with the plain rig');const o=monsterSpritePx(a,0,'idle',0);if(o&&o.ogre)bad.push('the armoured ogre sprite is the rig')}
  // Detail Low: the rig is off
  SET.detail='low';artChanged();if(ogreLiveFrame(u,{pS:'idle',pD:0}))bad.push('rig at Detail Low');{const o=unitSpritePx(u,0,'idle',0);if(!o||o.ogre||o.smooth)bad.push('Detail Low drew '+(o&&o.ogre?'the rig':o?'a painted figure':'nothing'))}

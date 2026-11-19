@@ -22,8 +22,8 @@
      a big wind-up and a body drop), ogRoar (cast: club raised, a war cry). Every blow lands at AN_HIT_AT (the slam at the quake's
      later impact). Hand targets and bob are the people's SU times OG.Q (a heavier, bigger body).
    - Runtime: ogreLiveFrame(u, v) -> the display list for 70-render.js drawUnitPx; ogreBuild bakes a sampled pose for sheetSpritePx
-     (effects, tests, the first frames). null at Detail Low, before the atlas has loaded, or for any other unit: the painted sheet
-     (76s-sheets.js SHEETS.ogre) or the pixel ogre are drawn then. assets/make-ogre-db.js samples ogFrame into the DragonBones
+     (effects, tests, the first frames). null at Detail Low, before the atlas has loaded, or for any other unit: the pixel ogre is
+     drawn then (76s-sheets.js SHEETS.ogre keeps only its size on the board). assets/make-ogre-db.js samples ogFrame into the DragonBones
      project (assets/foes/ogre_ske.json). No rnd(); the idle grin comes from the unit's id. */
 const OG={img:null,pc:new Map(),bk:new Map(),bkN:[],frames:0,ms:0,bakes:0,off:0,err:0,
  Q:1.45,                                  // OU per people SU for hand targets and bob
@@ -71,7 +71,7 @@ function ogPc(n,K){const k=n+':'+K;let a=OG.pc.get(k);if(a)return a;const I=ogIm
  const pv=P.a.pv;a={cv,x:-pv[0]-1/K,y:-pv[1]-1/K,w:W/K,h:H/K};OG.pc.set(k,a);return a}
 function ogAng(n){const P=OGA.p[n],A=P.a;return Math.atan2(A.ax[1]-A.pv[1],A.ax[0]-A.pv[0])}
 function ogLen(n){const A=OGA.p[n].a;return Math.hypot(A.ax[0]-A.pv[0],A.ax[1]-A.pv[1])}
-const OG_SC=()=>OG.H>0?(typeof SHEETS==='object'&&SHEETS.ogre?SHEETS.ogre.h:36)/OG.H/HUM_A:1;   // the painted sheet's size on the board
+const OG_SC=()=>OG.H>0?(typeof SHEETS==='object'&&SHEETS.ogre?SHEETS.ogre.h:36)/OG.H/HUM_A:1;   // the board size of the old painted sheet (76s-sheets.js SHEETS.ogre.h)
 /* ---- one frame: the pose of the state at t (0..1; idle / walk / flee loop), the slots in draw order. K: device px per OU (0: no
    images, bones only, for the DragonBones export). Returns {list, tags, bones, sc, mir, anim, face} ---- */
 function ogFrame(face,st,t,mv,K,seed,opt){const t0=typeof performance==='object'?performance.now():0;face=((face|0)%4+4)%4;face=face===3?0:face===2?1:face;   // the back facings: the front frames

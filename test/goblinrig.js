@@ -6,7 +6,7 @@
 // non-empty figure whose body centre is over the tile point and whose feet are on the ground line (within 1.5 art px), about the
 // painted sheet's height; the back facings are the front frames (face 3 = face 0, face 2 = face 1), faces 1 and 2 mirrored; the archer's
 // poison arrow plays the cast row and a thrust at a neighbour is timed as a blow; the live board frame shows the impact / release frame
-// at its time and the hit row past the game's short flinch, death its last frame; the baked sprite is the figure; the painted sheet
+// at its time and the hit row past the game's short flinch, death its last frame; the baked sprite is the figure; the pixel goblin
 // is the fallback while it is off; the goblin shaman keeps its art; Detail Low draws the same pixels as main for all three goblins.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
@@ -34,8 +34,8 @@ const {chromium}=require('playwright');
  if(!main){main=path.join(os.tmpdir(),'goblinrig-main.html');try{fs.writeFileSync(main,cp.execSync('git show HEAD:index.html',{cwd:ROOT,maxBuffer:1<<30}))}catch(e){main=''}}
  const b=await chromium.launch(),errs=[];
  const open=async f=>{const p=await b.newPage({viewport:{width:667,height:375}});p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::/.test(m.text()))errs.push(m.text())});
-  await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();if(typeof fsImg==='function'){fsImg('gob');fsImg('gobarch')}sheetImg('gob');sheetImg('gobarch')});
-  await p.waitForFunction(()=>(typeof fsImg!=='function'||!!fsImg('gob')&&!!fsImg('gobarch'))&&!!sheetImg('gob')&&!!sheetImg('gobarch'),null,{timeout:20000});return p};
+  await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();if(typeof fsImg==='function'){fsImg('gob');fsImg('gobarch')}});
+  await p.waitForFunction(()=>typeof fsImg!=='function'||!!fsImg('gob')&&!!fsImg('gobarch'),null,{timeout:20000});return p};
  const p=await open(html);
  const R=await p.evaluate(()=>{const bad=[],n={frames:0};let uid=950;
   const c=document.createElement('canvas');c.width=300;c.height=240;const q=c.getContext('2d');
@@ -72,7 +72,7 @@ const {chromium}=require('playwright');
    // sprites, fallback
    if(humLiveFrame(u,{pS:'idle',pD:0}))bad.push(id+': drawn as a person');
    for(const face of[0,1,2,3]){const o=monsterSpritePx(u,face,'attack',1);if(!o||o.fs!==id){bad.push(id+' f'+face+': the sprite is not the figure');continue}if(monsterSpritePx(u,face,'attack',1)!==o)bad.push(id+' f'+face+': rebuilt')}
-   FS.off=1;{const o=sheetSpritePx(u,0,'idle',0);if(!o||o.fs)bad.push(id+': no painted fallback while off');if(fsLiveFrame(u,{pS:'idle',pD:0}))bad.push(id+': a live figure while off')}FS.off=0;
+   FS.off=1;{if(sheetSpritePx(u,0,'idle',0))bad.push(id+': a sheet sprite while off');const o=unitSpritePx(u,0,'idle',0);if(!o||o.fs||o.smooth)bad.push(id+': no pixel fallback while off');if(fsLiveFrame(u,{pS:'idle',pD:0}))bad.push(id+': a live figure while off')}FS.off=0;
    SET.detail='low';artChanged();if(fsLiveFrame(u,{pS:'idle',pD:0}))bad.push(id+': figure at Detail Low');{const o=unitSpritePx(u,0,'idle',0);if(!o||o.fs)bad.push(id+': Detail Low drew the figure')}SET.detail='high';artChanged()}
   {const sh=mkEnemy('gobsham','gob');sh.id=++uid;if(fsOn(sh))bad.push('the shaman drawn from a frame sheet')}
   return{bad,n}});

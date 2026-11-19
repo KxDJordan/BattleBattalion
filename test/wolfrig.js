@@ -11,7 +11,7 @@
 // on the ground line (within 2 art px), about the painted wolf's height; the back facings are the front frames (face 3 = face 0, face 2
 // = face 1), faces 1 and 2 mirrored; the expressions follow the state; a bite ability plays the bite, a plain attack the scratch or (two
 // in five) the bite; the live board frame plays the scratch's impact frame at the blow and the hurt row past the game's short flinch; the
-// baked sprite is the figure; the painted sheet is the fallback while it is off; the war hound keeps its art; Detail Low draws the same
+// baked sprite is the figure; the pixel wolf is the fallback while it is off; the war hound keeps its art; Detail Low draws the same
 // pixels as main for the wolf and the war hound.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
@@ -71,8 +71,8 @@ const {chromium}=require('playwright');
  if(!main){main=path.join(os.tmpdir(),'wolfrig-main.html');try{fs.writeFileSync(main,cp.execSync('git show HEAD:index.html',{cwd:ROOT,maxBuffer:1<<30}))}catch(e){main=''}}
  const b=await chromium.launch(),errs=[];
  const open=async f=>{const p=await b.newPage({viewport:{width:667,height:375}});p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::/.test(m.text()))errs.push(m.text())});
-  await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();if(typeof fsImg==='function')fsImg('wolf');sheetImg('wolf')});
-  await p.waitForFunction(()=>(typeof fsImg!=='function'||!!fsImg('wolf'))&&!!sheetImg('wolf'),null,{timeout:20000});return p};
+  await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();if(typeof fsImg==='function')fsImg('wolf')});
+  await p.waitForFunction(()=>typeof fsImg!=='function'||!!fsImg('wolf'),null,{timeout:20000});return p};
  const p=await open(html);
  const R=await p.evaluate(()=>{const bad=[],n={frames:0},S=SHEETS.wolf;let uid=950;
   const mk=id=>{const u=mkEnemy(id,'beast');u.id=++uid;return u};const u=mk('wolf');
@@ -113,11 +113,11 @@ const {chromium}=require('playwright');
   v0.pS='idle';tt(400);if(row()!=='scratch4')bad.push('the follow-through after the game\'s attack: '+row());tt(600);if(row()!=='rig')bad.push('back to the idle rig: '+row());
   s.hitT=A0+700;tt(1000);if(!/^hurt/.test(row()))bad.push('the hurt row is not playing 300 ms after the blow: '+row());tt(1400);if(row()!=='rig')bad.push('after the hurt row: '+row());
   s.dead=true;s.deadT=A0;tt(3000);v0.pS='death';v0.pPh=1;if(row()!=='death7')bad.push('the corpse is '+row());s.dead=false;s.deadT=-1e9;s.act=0;s.hitT=-1e9;SPEEDF=SP;now=N0;
-  // board / sprites: not a person; the baked sprite is the figure; the painted sheet while it is off; the war hound keeps its art
+  // board / sprites: not a person; the baked sprite is the figure; the pixel wolf while it is off; the war hound keeps its art
   if(humLiveFrame(u,{pS:'idle',pD:0}))bad.push('drawn as a person');
   for(const face of[0,1,2,3]){const o=monsterSpritePx(u,face,'idle',0);if(!o||o.fs!=='wolf'){bad.push('f'+face+': the sprite is not the figure');continue}if(monsterSpritePx(u,face,'idle',0)!==o)bad.push('f'+face+': rebuilt');
    const w=o.cv.width/o.k,h=o.cv.height/o.k;if(!(o.ax>=0&&o.ax<=w&&o.ay>0&&o.ay<=h+.5))bad.push('f'+face+': anchor outside the sprite')}
-  FS.off=1;{const o=sheetSpritePx(u,0,'idle',0);if(!o||o.fs)bad.push('no painted fallback while off');if(fsLiveFrame(u,{pS:'idle',pD:0}))bad.push('a live figure while off')}FS.off=0;
+  FS.off=1;{if(sheetSpritePx(u,0,'idle',0))bad.push('a sheet sprite while off');const o=unitSpritePx(u,0,'idle',0);if(!o||o.fs||o.smooth)bad.push('no pixel fallback while off');if(fsLiveFrame(u,{pS:'idle',pD:0}))bad.push('a live figure while off')}FS.off=0;
   {const h=mkEnemy('barbhound','barb');h.id=++uid;if(fsOn(h)||fsLiveFrame(h,{pS:'idle',pD:0}))bad.push('the war hound drawn as the wolf')}
   SET.detail='low';artChanged();if(fsLiveFrame(u,{pS:'idle',pD:0}))bad.push('figure at Detail Low');{const o=unitSpritePx(u,0,'idle',0);if(!o||o.fs||o.smooth)bad.push('Detail Low drew '+(o&&o.fs?'the figure':o?'a painted figure':'nothing'))}
   SET.detail='high';artChanged();if(monsterSpritePx(u,0,'idle',0).fs!=='wolf')bad.push('not the figure again after Detail Low');

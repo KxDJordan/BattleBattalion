@@ -14,12 +14,12 @@
      row}, pick(u, st, s) -> a variant row for an attack (the wolf's bite, the archer's poison arrow and knife), rig + rigSt: the states
      drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js)}.
    - Frames are anchored on the body's centre over the feet (the atlas's ax / ay); a figure stands SHEETS[id].h art px tall like its
-     painted sheet, its feet SHEETS[id].dy art px under the tile point as the painted figure's are. Faces: the sheets face screen-right
+     old painted sheet, its feet SHEETS[id].dy art px under the tile point as the painted figure's were. Faces: the sheets face screen-right
      (the front three-quarter view): face 0 as drawn, face 1 mirrored, the back facings the front frames (face 3 = face 0, face 2 =
      face 1), as the ogre's.
    - Runtime: fsLiveFrame(u, v) -> a display list for 70-render.js drawUnitPx (humSkDraw: the turn outline, tint and hit flash apply);
      fsBuild bakes one for sheetSpritePx (effects, tests, the first frames). null at Detail Low, before the atlas has loaded or for any
-     other foe: the painted sheet (76s-sheets.js) or the pixel figure is drawn then. No rnd(). */
+     other foe: the pixel figure is drawn then. No rnd(). */
 const FS={img:{},pc:new Map(),bk:new Map(),bkN:[],off:0,err:0,frames:0,bakes:0};
 const FS_SHOT_MS=40;                      // 75-fx.js: a plain or poison arrow leaves the bow 40 ms after the shot
 const FS_DEF={
