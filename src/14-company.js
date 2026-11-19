@@ -16,11 +16,11 @@
    Known is there by day 5-8. Legendary (1000) is a late campaign: the crisis rifts, five-skull hunts and a dozen ambitions. */
 const RENOWN=[
  {n:'Unknown',  min:0,   diff:2,ft:'early',dw:[3,2,0,0,0],pay:1,   lv:[1,1],vet:0,  slots:1,rare:.35,d:'Nobody has heard of the banner yet.'},
- {n:'Known',    min:50,  diff:3,ft:'mid',  dw:[2,3,1,0,0],pay:1.1, lv:[2,3],vet:.3,slots:2,rare:.6, d:'Innkeepers know the name and boards post grave work.'},
- {n:'Respected',min:150, diff:3,ft:'mid',  dw:[1,3,2,0,0],pay:1.25,lv:[3,5],vet:.4,slots:2,rare:1,  d:'Captains ask for the company by name.'},
- {n:'Renowned', min:330, diff:4,ft:'late', dw:[0,2,3,1,0],pay:1.45,lv:[4,7],vet:.5,slots:3,rare:1.5,d:'Lords send for the company with deadly work.'},
- {n:'Famed',    min:600, diff:5,ft:'end',  dw:[0,1,3,2,1],pay:1.7, lv:[5,9],vet:.55,slots:4,rare:2.2,d:'Songs are sung of it in every tavern.'},
- {n:'Legendary',min:1000,diff:5,ft:'end',  dw:[0,1,2,3,2],pay:2,   lv:[6,10],vet:.65,slots:5,rare:3,  d:'A name that wins battles before they start.'}];
+ {n:'Known',    min:50,  diff:3,ft:'mid',  dw:[2,3,1,0,0],pay:1.08,lv:[2,3],vet:.3,slots:2,rare:.6, d:'Innkeepers know the name and boards post grave work.'},
+ {n:'Respected',min:150, diff:3,ft:'mid',  dw:[1,3,2,0,0],pay:1.15,lv:[3,5],vet:.4,slots:2,rare:1,  d:'Captains ask for the company by name.'},
+ {n:'Renowned', min:330, diff:4,ft:'late', dw:[0,2,3,1,0],pay:1.22,lv:[4,7],vet:.5,slots:3,rare:1.5,d:'Lords send for the company with deadly work.'},
+ {n:'Famed',    min:600, diff:5,ft:'end',  dw:[0,1,3,2,1],pay:1.3, lv:[5,9],vet:.55,slots:4,rare:2.2,d:'Songs are sung of it in every tavern.'},
+ {n:'Legendary',min:1000,diff:5,ft:'end',  dw:[0,1,2,3,2],pay:1.38,lv:[6,10],vet:.65,slots:5,rare:3,  d:'A name that wins battles before they start.'}];
 const FT_RANK={early:0,mid:1,late:2,end:3};
 const DIFFN=['Light','Serious','Grave','Deadly','Dire'];
 function cmpG(g){return g||G}
@@ -68,11 +68,14 @@ function dismissFollower(id){if(!followerHas(id))return false;G.retinue=G.retinu
 
 /* ---- economy helpers read by 40-world.js and 50-towns.js ---- */
 // a merc's daily wage: the rules' mercWage(m) when they provide one, else the background's wage plus trait wages
-// (TRAITS[k].wage: a fraction below 1 is a share of the base wage, else crowns), then the paymaster.
+// (TRAITS[k].wage: a fraction below 1 is a share of the base wage, else crowns), then the sword's level (WAGELV: a veteran asks more, +7% a level
+// past the first), then the paymaster.
+const WAGELV=.07;
+function wageLvK(m){return 1+WAGELV*Math.max(0,Math.min(typeof MAXLV==='number'?MAXLV:15,(m&&m.lvl)|0||1)-1)}
 function wageOf(m){if(!m||!BG[m.bg])return 0;let w;
  if(typeof mercWage==='function'){try{w=mercWage(m)}catch(e){w=null}}
  if(typeof w!=='number'||!isFinite(w)){const b=BG[m.bg].wage||0;w=b;if(Array.isArray(m.traits)&&typeof TRAITS==='object'&&TRAITS)for(const k of m.traits){const T=TRAITS[k];if(T&&typeof T.wage==='number'&&isFinite(T.wage))w+=Math.abs(T.wage)<1?b*T.wage:T.wage}}
- return Math.max(0,w*(followerHas('paymaster')?.85:1)*(typeof originK==='function'?originK('wage'):1)*(typeof runModK==='function'?runModK('wage',1):1))}
+ return Math.max(0,w*wageLvK(m)*(followerHas('paymaster')?.85:1)*(typeof originK==='function'?originK('wage'):1)*(typeof runModK==='function'?runModK('wage',1):1))}
 function companyWages(){let w=0;if(G&&G.roster)G.roster.forEach(m=>w+=wageOf(m));return Math.round(w)}
 // hiring price of a recruit: the background's price, a third more per level beyond the first, a quarter off with the recruiter
 function recruitCost(m){if(!m||!BG[m.bg])return 0;const c=BG[m.bg].cost*(1+.35*Math.max(0,(m.lvl||1)-1));return Math.max(5,Math.round(c*(followerHas('recruiter')?.75:1)/5)*5)}

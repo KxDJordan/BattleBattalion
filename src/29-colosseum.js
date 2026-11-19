@@ -29,7 +29,7 @@
 const COL={every:5,bouts:[3,5],near:[2.2,4.4],sep:18,count:{small:1,medium:1,large:2,vast:3},
  k:{story:1.065,normal:1.12,hard:1.17,brutal:1.26},kLvl:.01,   // (eased a little when the human foes got their masteries, 64m-foemast.js)
  rp:1.15,death:.3,fee:.1,
- purse:{base:420,k:52,e:.75},renown:{base:3,k:.9},streak:{per:.08,max:.4},acclaim:[[3,10],[5,20],[8,35]],prize:.35,armory:6};
+ purse:{base:400,k:46,e:.62},renown:{base:3,k:.9},streak:{per:.08,max:.4},acclaim:[[3,10],[5,20],[8,35]],prize:.35,armory:6};
 const COLTITLE=[{w:0,n:'Tiro',d:'a recruit of the sand'},{w:3,n:'Contender',d:'a name the crowd knows',ren:5},{w:6,n:'Veteran of the sands',d:'feared in the pens',ren:10},
  {w:10,n:'Champion',d:'champion of the arena',ren:20},{w:16,n:'Grand champion',d:'the crowd’s god',ren:35}];
 /* rules: swords (a set number of the company's swords, else everyone fielded), k (strength factor, beside COL.k), pay / ren (purse and renown

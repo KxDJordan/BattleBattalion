@@ -18,6 +18,10 @@ function unitNewInj(u,snap){const m=u.m,all=typeof cpInj==='function'?cpInj(m):[
 // Rules: casualties, xp, crowns and loot; armor wear and injuries carried home. Returns the result record (also kept as B.result).
 // res.men lists every sword that was fielded: {id,name,state:'ok'|'down'|'dead'|'withdrew'|'fled',hp,hpMax,arm,helm,inj:[{id,n,d,days,perm}],lvl}
 // (arm / helm = armor points lost in this battle; shield = its shield was destroyed; lvl = the new level when one was gained, else 0).
+// the crowns stripped from the field of a won battle: 12-24% of its xp (was 15-30%), and a big battle's purse grows slower than its xp
+// (past STRIPK.xp xp, by (xp/STRIPK.xp)^STRIPK.e). r: one draw of the stream, in [0,1)
+const STRIPK={lo:.12,hi:.12,xp:1500,e:.75};
+function stripCrowns(xp,r){xp=Math.max(0,+xp||0);const big=xp>STRIPK.xp?STRIPK.xp*Math.pow(xp/STRIPK.xp,STRIPK.e):xp;return Math.round(big*(STRIPK.lo+r*STRIPK.hi))}
 function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSync();const pu=b.units.filter(u=>u.side===0&&u.m),dead=[],snap=b.opts&&b.opts.inj0||null,
   res={win:!!win,fled:!!b.fled,stuck:false,famed:[],f:b.opts.f,rounds:b.round,turns:b.turns,foes:b.units.filter(u=>u.side===1).length,down:[],dead:[],levels:[],xp:0,share:0,crowns:0,loot:[],
    withdrew:[],routed:[],injuries:[],men:[],armorLost:0,helmLost:0,repair:0,toolsNeed:0,tools:0,slain:[],foeKeys:[],parts:[],xpK:1};
@@ -43,7 +47,7 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
  if(win){const en=b.units.filter(u=>u.side!==0);en.forEach(e=>res.xp+=foeXpOf(e));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=(typeof followerHas==='function'&&followerHas('drill')?1.2:1)*(typeof originK==='function'?originK('xp'):1);const pool=res.xp*res.xpK;res.share=Math.round(pool*AAR.base/Math.max(1,surv.length));   // the drillmaster: +20%
   res.bonus=0;surv.forEach(m=>{const l=m.lvl,x0=m.xp,r=rows.get(m),bo=r&&r.st?aarBonus(r.st,tot,pool,res.share):0;gainXP(m,res.share+bo);res.bonus+=bo;if(r)r.xp={base:res.share,bonus:bo,p0:aarPct(l,x0),p1:aarPct(m.lvl,m.xp),lvl0:l};   // base + bonus for kills and damage
    if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});r.lvl=m.lvl;r.from=l}});
-  res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<(e.elite&&typeof eliteLootCh==='function'?eliteLootCh(e,.18):.18))res.loot.push(e.elite&&typeof eliteLootPick==='function'?eliteLootPick(e,L):pick(L))});
+  res.crowns=stripCrowns(res.xp,rnd());G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<(e.elite&&typeof eliteLootCh==='function'?eliteLootCh(e,.18):.18))res.loot.push(e.elite&&typeof eliteLootPick==='function'?eliteLootPick(e,L):pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
   {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq&&!ITEMS[k].famed&&!ITEMS[k].glad);
    if(!b.rival&&H.length&&L.length&&!L.some(id=>ITEMS[id]&&ITEMS[id].k==='h')){const top=Math.max(...L.map(id=>ITEMS[id]?ITEMS[id].price||0:0)),ok=H.filter(k=>(ITEMS[k].price||0)<=top);

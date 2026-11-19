@@ -691,7 +691,9 @@ function rvWipe(r,how,news){if(!r||!r.alive)return;r.alive=false;r.roster=[];r.c
  if(G.contract&&G.contract.rival===r.id)delete G.contract.rival;rvDeed(r,'Wiped out'+(how?' '+how:''));const t=worldNews(`${r.n} ${how?'were wiped out '+how:'are no more'}`);if(news)news.unshift(t)}
 
 /* ---- the abstract fight off-screen: power against the work's strength. -> {win, dead:[names]} (game rnd) ---- */
-function rvFoeK(diff,f){return(4+G.day*.3)*CTR_PAYK[clamp(diff|0,1,5)-1]*((typeof CTR_TIERK==='object'&&FACT[f]&&CTR_TIERK[FACT[f].tier])||1)}
+// the strength of a rival's contract foes by danger and faction tier (its own scale: the contract pay tables were bent, the rivals' odds were not)
+const RV_FOEDK=[1,1.5,2.2,3,4],RV_FOETK={early:1,mid:1.35,late:1.7,end:2.6,crisis:1.5};
+function rvFoeK(diff,f){return(4+G.day*.3)*RV_FOEDK[clamp(diff|0,1,5)-1]*((FACT[f]&&RV_FOETK[FACT[f].tier])||1)}
 function rvFight(r,diff,f){const P=rivalPower(r),E=rvFoeK(diff,f),q=P/Math.max(1,E),win=rnd()<clamp(.5+(q-1)*.7,.1,.92),dead=[];
  const die=win?clamp(.06/q,.02,.15):clamp(.28/q,.12,.45);r.roster=r.roster.filter(m=>{if(r.roster.length-dead.length>1&&rnd()<die){dead.push(m.name);return false}return true});
  if(!win&&r.roster.length>1&&!dead.length){dead.push(r.roster[r.roster.length-1].name);r.roster.pop()}

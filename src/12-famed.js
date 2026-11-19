@@ -5,7 +5,7 @@
    makeFamed(baseId, power) rolls one with the game RNG (it is loot): 2 to 4 improvements drawn from FAMED_ROLL[kind] (what suits the
    item), each between its bounds, larger and more numerous with power (0..1, from the fight that dropped it).
    Famed items are never stocked by markets; they sell for FAMED_SELL of their price. Drops: see famedPlan() (used by resolveBattle). */
-const FAMED_SELL=.6;
+const FAMED_SELL=.45,SELLK=.3;   // what a market pays of the price: famed .45 (was .6), the rest .3 (was .4)
 /* roll tables: [stat, lo, hi, weight, when(item)?]. Amounts are added to the base (fat and ap and rld are reductions).
    dmg is a share of the base damage (min and max both rise by that share, at least +1 / +2); arm too (at least +5). */
 const FAMED_ROLL={
@@ -89,7 +89,7 @@ const M=it.mods||{},out=[],pc=v=>Math.round(v*100)+'%',add=(k,t)=>out.push({k,t}
 // one line of flavour: what it was made from and where it was taken
 function famedFlavour(id){const it=ITEMS[id];if(!it||!it.famed)return'';if(it.legend)return it.lore||'A legendary piece.';const B=ITEMS[it.base];return`A famed ${B?B.n.toLowerCase():'piece'}${it.from?', taken from '+it.from:''}${it.day?' on day '+it.day:''}.`}
 // the price a market pays for item id
-function sellPrice(id){const it=ITEMS[id];if(!it)return 0;return Math.floor((it.price||0)*(it.famed?FAMED_SELL:.4))}
+function sellPrice(id){const it=ITEMS[id];if(!it)return 0;return Math.floor((it.price||0)*(it.famed?FAMED_SELL:SELLK))}
 /* ---- drops ----
    famedPlan(en, o): en = the enemy units of a won battle, o = {day, rank (log2 of the faction's rank), f}.
    Returns {p (chance of one famed drop), power, sure:[{from, power}] (guaranteed: end-game kills: def.endgame / def.famed,
