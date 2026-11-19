@@ -232,7 +232,7 @@ function mkGear(mi,k){if(typeof slotSheet==='function'&&G.roster[mi])slotSheet(m
 function mkRestockText(day){const n=mkRestockIn(day);return n===1?'Restocks tomorrow':`Restocks in ${n} days`}
 function mkDayHTML(ti){if(ti==null||ti<0||!G.towns[ti])return'';const E=mkEcon(ti),SZ=['Village','Town','City'][E.size-1];
  const why=[SZ+' market',E.n+' stalls','up to tier '+(typeof TIERN!=='undefined'&&TIERN[E.tier]?TIERN[E.tier]:E.tier)].concat(E.why);
- return`<p class="pn-hint tw-why mk-day" id="mkRestock">${twIcon('day',16)}<span><b>${mkRestockText()}</b> ${htmlEsc(why.join(', '))}</span></p>`}
+ return`<p class="pn-hint tw-why mk-day" id="mkRestock">${twIcon('day',16)}<span><b>${mkRestockText()}</b> · ${htmlEsc(why.join(', '))}</span></p>`}
 function marketView(t){let list='',detail='',foot='';const W=mkWorn();let sel=String(townSel.market||'food'),kind=sel[0],i=+sel.slice(1),wi=-1;
  if(sel==='inv')kind='n';
  else if(kind==='b'){i=Math.min(i,t.stock.length-1);if(!(i>=0))kind='f'}
