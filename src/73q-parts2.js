@@ -67,16 +67,36 @@ const P2_HAIR=['short, side part','spiky','spiky, swept up','undercut','swept ba
 const P2_HAIR_OF={m:{crop:'short, side part',short:'short, side part 2',shaggy:'shaggy',mohawk:'undercut',tail:'short topknot',bun:'top bun',braids:'braid',long:'long straight',curly:'curly',
   mane:'shaggy 2',bowl:'bowl',swept:'swept back',tonsure:'bowl',topknot:'short topknot',wisps:'swept, grey',spiky:'spiky'},
  w:{long:'long',short:'bob',bun:'bun',braids:'braid',tail:'ponytail',bowl:'bob 2',swept:'long side-swept',curly:'long wavy',mane:'twin tails',crop:'tousled',shaggy:'messy',mohawk:'undercut 2',topknot:'high ponytail',wisps:'long 2'}};
+/* half-orcs (Detail High): their own heads (halforc-heads.webp row 1, cut by assets/make-halforc-atlas.py into orch0..7, one per expression in
+   P2_FACE order) for men and women alike (the sheet's heads are not sexed: the hair tells them apart), and their own ten styles (row 2, ohair0..9).
+   A hair's drawn ear is only its placement cue: the build cuts it out and fits the hair by it; the head's ear (oear, cut from orch0) is drawn
+   over the hair, so the sideburn passes behind the one ear. Skin: the sheet's olive is the common half-orc tone (PT_SKIN.orc), other tones
+   (ash) multiply the skin layer. The look's hair style (ptMercSpec: bald, mohawk, crop, tail, shaggy, bun / tail, braids, mohawk, long, bun)
+   keeps its kind; within a kind the merc's seed picks among the closest of the ten (P2_OHAIR_OF), so every style turns up. Bald stays bald. */
+const P2_OHAIR=['spiky crop','swept spikes','slicked back','shaggy','topknot','ponytail','braids','long mane','high tail and braid','mohawk'];
+const P2_OHAIR_OF={m:{crop:[0,1,2],short:[1,0,2],spiky:[0,1],swept:[2,1],mohawk:[9],tail:[4,5],topknot:[4,8],bun:[4,8],shaggy:[3,7],mane:[7,3],long:[7,5],braids:[6],curly:[3],bowl:[1],tonsure:[2],wisps:[2,3]},
+ w:{tail:[5,8],braids:[6],mohawk:[9],long:[7,5],bun:[4,8],topknot:[8,4],short:[1,0,2],crop:[0,2],shaggy:[3,7],mane:[7],swept:[2],curly:[3],bowl:[1],wisps:[7]}};
+const P2_OSKIN='#968b62';   // the sheet's olive (its skin layer's light tone): hands and bare arms of the common tone match the head
+function p2OHair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const L=P2_OHAIR_OF[fem?'w':'m'][st],h=(((S.seed|0)*2654435761)>>>0)>>>7;return L?L[h%L.length]:h%P2_OHAIR.length}
+function p2Orc(hs,S){return hs.race==='halforc'&&!!P2A.p.orch0}
 // expressions: the eight heads (heads.webp)
 const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','nervous','knocked out'];
 // per-hair tweak after the ear-hole alignment: [dx, dy (head radii), scale]
 const P2_EHAIRADJ={9:[0,0,1.14]};   // elf styles whose ear tip the build misreads (blond hair), or drawn narrower (the braid)
 const P2_HAIRADJ={8:[0,.1,1],11:[0,.1,1]};   // [dx, dy (head radii), scale] on top of the placement: bob and long sit a little lower (user review)   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
 const HEAD_HOLD=380;
-/* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed) */
+/* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed); the rules
+   marked ho are the half-orcs' alone (their sheet's mapping; c.ho), with c.hpf (hp / max), c.lvl (ms since a level gained), c.miss (ms since
+   a big blow missed them: two-handed or a big monster's, 74-anim.js headNote), c.drop (ms since their morale fell to wavering or worse),
+   c.blink (an idle half-orc's few calm moments: a 1.4 s window in every ~7 s, by unit id and the clock, no rnd()) */
 const HEAD_RULES=[
  ['dead',c=>c.st==='death'?(c.t<.18?'surprised':'knocked out'):null],
+ ['ho hit braced',c=>c.ho&&c.st==='hit'&&(c.S.wall||c.S.spearw||c.buffs.shieldwall||c.sts.brace)?'gritted':null],
  ['hit',c=>c.st==='hit'?'surprised':null],
+ ['ho missed by a big blow',c=>c.ho&&c.miss<900?'surprised':null],
+ ['ho shaken',c=>c.ho&&c.drop<700?'surprised':null],
+ ['ho attack',c=>c.ho&&c.st==='attack'&&c.cls!=='bow'&&c.cls!=='gun'?(c.t<.22?'gritted':'shouting'):null],
+ ['ho aim',c=>c.ho&&(c.st==='attack'||c.st==='reload')?'gritted':null],
  ['stunned',c=>c.sts.stun||c.sts.daze?'knocked out':null],
  ['fleeing',c=>c.an==='flee'||c.mor<=1?'nervous':null],
  ['cast',c=>c.st==='cast'?'shouting':null],
@@ -85,8 +105,12 @@ const HEAD_RULES=[
  ['battle cry',c=>c.buffs.rallied||c.sts.warcry||c.sts.taunted||c.buffs.shieldwall?'shouting':null],
  ['won',c=>c.won?'happy':null],
  ['kill',c=>c.kill<1600?'happy':null],
+ ['ho level up',c=>c.ho&&c.lvl<2400?'happy':null],
+ ['ho braced',c=>c.ho&&(c.S.wall||c.S.spearw||c.buffs.shieldwall)&&c.st==='idle'?'gritted':null],
+ ['ho low hp',c=>c.ho&&c.hpf<.3&&c.st!=='attack'?'nervous':null],
  ['wavering',c=>c.mor===2?'nervous':null],
  ['healed',c=>c.heal<1500?'content':null],
+ ['ho calm',c=>c.ho&&c.blink&&c.st==='idle'&&c.mor>=3?'content':null],
  ['confident',c=>c.mor>=4&&c.st==='idle'?'content':null],
  ['rest',()=>'neutral']];
 
@@ -202,7 +226,7 @@ function p2CoatTorso(tc,tn,C){const rec=!(typeof G==='object'&&G&&G.wearCol&&G.w
   try{const ec=bnEmCanvas(C.em,cs.em,cs.fld,px);if(ec)g.drawImage(ec,(ox-x0+E.ex-sz/2)*k,(oy-y0+E.ey-sz/2)*k,sz*k,sz*k)}catch(e){}}
  c.coat=d;P2_PC.set(id,c);return c}
 function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1,K=k*HUM_A*hs.sc*P2.sc*(hs.race==='dwarf'?.96:1),mf=mir?-1:1;
- const ai=p2Armor(L),leg=P2_LEGS.indexOf(P2_ARMOR[ai][1]),skin=hs.orc?humLit(hs.S.skin):hs.C.skin,fem=!!hs.fem;
+ const ho=p2Orc(hs,S),ai=p2Armor(L),leg=P2_LEGS.indexOf(P2_ARMOR[ai][1]),skin=ho&&S.skin===usSkin(PT_SKIN.orc)?P2_OSKIN:hs.orc?humLit(hs.S.skin):hs.C.skin,fem=!!hs.fem;
  const tone=hs.race==='human'&&!hs.orc&&/^s/.test((S.skin&&S.skin.t)||'')?null:skin;   // the sheet's own skin is a fair human's
  const dr=p2Dress(L,ai),RC=dr&&dr.R,lk=dr&&dr.leg;   // tailored colours or the company's cloth in the flag's colours
  const tn='torso'+ai,TP=P2A.p[tn].a,T={n:tn,R:p2Rig(tn,TP.hx,TP.hy),c:p2Piece(tn,tone,null,null,null,RC)};
@@ -215,28 +239,29 @@ function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1
  const a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py),c:p2Piece(n,tone)}};
  const legk=hs.race==='dwarf'?.62:1,legL=(LA.R.fy-LA.R.py)*legk,legY=-24*legk,hipY0=-(legL+legY),hx=P2A.p[ln('a')].w*.36;
  const loc=(x,y)=>({x,y}),shA=loc(TP.sax-16-TP.hx,TP.sy+4-TP.hy),shB=loc(TP.sbx+16-TP.hx,TP.sy+4-TP.hy),neck=loc(TP.nx-TP.hx+4,-TP.hy+P2A.p.torso10.h*P2.neck);   // the chin sits in the collar: the head overlaps the torso's top by P2.neck of a tunic's height (same for every torso)   // the sleeves sit at the torso's upper corners, half outside it
- const hf=hs.el?(fem?'elff':'elfm'):fem?'headf':'head',HP=P2A.p[hf+'0'].a,hR=p2Rig(hf+'0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
+ const hf=ho?'orch':hs.el?(fem?'elff':'elfm'):fem?'headf':'head',HP=P2A.p[hf+'0'].a,hR=p2Rig(hf+'0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
  return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,legk,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
   head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand(wSide==='a'?'hand_a':'hand_b'),HO:hand(oSide==='a'?'hand_a':'hand_b'),bk:new Map(),armor:ai,leg,tone,
-  hf,helm:p2Helm(S),hair:hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25),beard:p2Beard(S,hs),beardC:p2BeardCol(S)}}
+  hf,ho,helm:p2Helm(S),hair:ho?p2OHair(S,fem):hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el&&!ho,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25),beard:p2Beard(S,hs),beardC:p2BeardCol(S)}}
 /* the head attachment for an expression: head piece, hair (none under a helmet), helmet, race cues */
 function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
  return hskAtt(A,'p2head:'+ex,[-480,-640,480,420],g=>{const n=(A.hf||'head')+ex,c=p2Piece(n,A.tone),R=A.hR,pk=P2A.k;
   const top=sk.y-A.hR.h*.5;   // the head's top (SU, from the neck point)
   const put=(pn,canvas,s,dx,dy)=>{if(!canvas)return;g.drawImage(canvas,dx-1/pk*s,dy-1/pk*s,canvas.width/pk*s,canvas.height/pk*s)};
   // hair behind the head (long styles hang behind the neck): the whole hair piece first, the head over it, then the hair again clipped to above the eyes
-  let hp=A.helm<0&&A.hair>=0?(A.ehair?'ehair':'hair')+A.hair:null,HPc=hp?(A.ehair?p2Piece(hp,A.tone||P2.skin0,A.hairC):p2Piece(hp,null,A.hairC)):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=(A.ehair?P2_EHAIRADJ[A.hair]:P2_HAIRADJ[A.hair])||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
+  let hp=A.helm<0&&A.hair>=0?(A.ho?'ohair':A.ehair?'ehair':'hair')+A.hair:null,HPc=hp?(A.ehair?p2Piece(hp,A.tone||P2.skin0,A.hairC):p2Piece(hp,null,A.hairC)):null,Ha=hp?P2A.p[hp].a:null,HA=P2A.p[n].a,ha=(A.ho?null:A.ehair?P2_EHAIRADJ[A.hair]:P2_HAIRADJ[A.hair])||[0,0,1],hs_=Ha?ha[2]:1;   // the hair sheet is drawn to the heads' scale
   // the hair's ear notch (the left edge of its face opening, P2A ehx / ehy) is the TOP of the ear: it goes on the head's ear top (etx / ety);
   // an elf style's drawn ear tip (tipx / tipy) goes on the elf head's ear tip; a human style is placed as fitted at build time
   // (assets/make-parts2-atlas.py: its ear arc on the head's ear outline, fx / fy / fs)
   let hx=0,hy=0;if(Ha){if(A.ehair&&Ha.tipx!=null&&HA.tipx!=null){hx=HA.tipx-R.px-Ha.tipx*hs_+ha[0]*R0;hy=HA.tipy-R.py-Ha.tipy*hs_+ha[1]*R0}
    else if(Ha.fx!=null){hs_=Ha.fs*ha[2];hx=-R.px+Ha.fx+(HA.edx||0)+ha[0]*R0;hy=-R.py+Ha.fy+(HA.edy||0)+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
   A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};   // for the tests: no hair under a helmet
-  if(hs.orc){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
+  if(hs.orc&&!A.ho){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
   if(c)put(n,c,1,-R.px,-R.py);
   if(HPc)put(hp,HPc,hs_,hx,hy);   // the hair straight over the head: its art leaves the face and the ear open
+  if(A.ho&&HPc){const ec=p2Piece('oear',A.tone);put('oear',ec,1,-R.px+(HA.edx||0),-R.py+(HA.edy||0));A.drawn.ear='oear'}   // a half-orc's ear over the hair's sideburn
   g.save();g.translate(sk.x,sk.y);
-  if(hs.orc&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
+  if(hs.orc&&!A.ho&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
   if(S.beard&&A.beard<0)humBeard(g,S,R0*.98,hs.dw);   // elves, half-orcs: the vector beard
   g.restore();
   // the sheet beard: its mouth on the head's mouth (P2A anchors mx, my / bmx, bmy), over the hair, under the helmet; none under a full-face helmet
@@ -245,12 +270,18 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation (eyePick's context), held HEAD_HOLD ms, instant on hit and death */
 const P2_MEM=new WeakMap();
+// a big blow missed u (74-anim.js on 'miss'): a two-handed weapon's or a big monster's; presentation only
+function headNote(u,type,by){if(!u||type!=='miss'||!by)return;const big=!!(by.wpn&&by.wpn.two)||!!(by.def&&(by.def.big||by.def.size>1));if(!big)return;
+ let M=P2_MEM.get(u);if(!M)return;M.missT=typeof anNow==='function'?anNow():performance.now()}
 function headPick(u,L,st,t,an,cls){const S=L.S,now=typeof anNow==='function'?anNow():performance.now();
  const sts={},buffs={};if(u&&u.st)for(const k in u.st)if(u.st[k]>0)sts[k]=1;if(u&&Array.isArray(u.buffs))for(const b of u.buffs)if(b&&b.key)buffs[b.key]=1;
- let M=u?P2_MEM.get(u):null;if(u&&!M){M={cur:-1,t0:-1e9,kills:u.m?u.m.kills|0:0,killT:-1e9,hp:u.hp,healT:-1e9};P2_MEM.set(u,M)}
- if(M){if(u.m&&(u.m.kills|0)>M.kills){M.kills=u.m.kills|0;M.killT=now}if(u.hp>M.hp)M.healT=now;M.hp=u.hp}
+ let M=u?P2_MEM.get(u):null;if(u&&!M){M={cur:-1,t0:-1e9,kills:u.m?u.m.kills|0:0,killT:-1e9,hp:u.hp,healT:-1e9,lvl:u.m?u.m.lvl|0:0,lvlT:-1e9,mor:u.mor,dropT:-1e9,missT:-1e9};P2_MEM.set(u,M)}
+ if(M){if(u.m&&(u.m.kills|0)>M.kills){M.kills=u.m.kills|0;M.killT=now}if(u.hp>M.hp)M.healT=now;M.hp=u.hp;
+  if(u.m&&(u.m.lvl|0)>M.lvl){M.lvl=u.m.lvl|0;M.lvlT=now}if(u.mor!=null&&M.mor!=null&&u.mor<M.mor&&u.mor<=2)M.dropT=now;M.mor=u.mor}
+ const ho=!!(S.b===US_BUILD.halforc&&L.key&&L.key[0]==='m'&&P2A.p.orch0),hpm=u&&(u.hpMax||u.hp)||1,uid=u?(u.id!=null?u.id:u.m?u.m.id:0)|0:0,ph=((uid*2654435761)>>>0)%7000;
  const won=!!(u&&typeof B==='object'&&B&&B.over&&B.result&&B.result.win!=null?(B.result.win===(u.side===0)):false);
- const c={u,S,st,t,an,cls,mor:u&&u.mor!=null?u.mor:3,sts,buffs,won,kill:M?now-M.killT:1e9,heal:M?now-M.healT:1e9};
+ const c={u,S,st,t,an,cls,mor:u&&u.mor!=null?u.mor:3,sts,buffs,won,kill:M?now-M.killT:1e9,heal:M?now-M.healT:1e9,
+  ho,hpf:u?u.hp/hpm:1,lvl:M?now-M.lvlT:1e9,miss:M?now-M.missT:1e9,drop:M?now-M.dropT:1e9,blink:!!u&&((now+ph)%7000)<1400};
  let name='neutral';for(const r of HEAD_RULES){let v=null;try{v=r[1](c)}catch(e){}if(v){name=v;break}}
  let h=P2_FACE.indexOf(name);if(h<0)h=0;if(!M)return{head:h,name};
  if(M.cur<0||(h!==M.cur&&(now-M.t0>=HEAD_HOLD||st==='hit'||st==='death'))){M.cur=h;M.name=name;M.t0=now}

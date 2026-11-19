@@ -69,7 +69,8 @@ function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
   s.spT=t;s.spK=u.side===0?0:u.risen?1:2;s.spD=(s.spK===1?620:s.spK===2?420:260)*sp;
   if(s.spK===0){const e=typeof EDGE==='object'&&EDGE?EDGE[0]:BH-1;s.fc=u.c;s.fr=u.r+(e>BH/2?1.4:-1.4);s.fh=s.h;s.mv=true;s.mt0=t;s.mdur=460*sp;s.mk=AN_WALK;s.hop=0;s.wt0=t;anFace(s,0,u.r-s.fr)}}   // a reserve walks in from beyond its own edge
  else if(type==='withdraw'){const u=d.u;if(!u)return;const s=anOf(u);s.wd=true;s.dead=false}
- else if(type==='hit'||type==='miss'){const u=d.u,tg=d.t;if(!u||!tg||u===tg)return;const s=anOf(u),dc=tg.c-u.c,dr=tg.r-u.r,ad=Math.abs(dc)+Math.abs(dr);anFace(s,dc,dr);
+ else if(type==='hit'||type==='miss'){const u=d.u,tg=d.t;if(!u||!tg||u===tg)return;if(type==='miss'&&typeof headNote==='function')headNote(tg,'miss',u);   // a half-orc's face (73q-parts2.js)
+  const s=anOf(u),dc=tg.c-u.c,dr=tg.r-u.r,ad=Math.abs(dc)+Math.abs(dr);anFace(s,dc,dr);
   if(t-(s.ffT||-1e9)<900&&type==='hit')return;                                                          // a stray shot's hit on the ally: the shooter already loosed it
   const ln=ad===1||(ad===2&&(!dc||!dr)&&tg.alive&&u.wpn&&(u.wpn.rng|0)>=2&&!(typeof isRangedW==='function'&&isRangedW(u.wpn)));
   if(s.hold&&s.act===2){s.adur=Math.max(s.adur,t-s.at0+240*sp)}else anAct(s,1,t,240*sp,ln?s.dc:0,ln?s.dr:0)}
