@@ -165,9 +165,10 @@ function drawTitleLogo(){const c=typeof document==='object'&&document.querySelec
  // bevel: the deep gold of the letters' lower edge
  g.fillStyle='#8a4f17';g.fillText(word,x,y+F*.045);
  // the gilded face
- const gr=g.createLinearGradient(0,y-F*.78,0,y+F*.05);gr.addColorStop(0,'#fff8d8');gr.addColorStop(.38,'#ffd75e');gr.addColorStop(.7,'#eda23a');gr.addColorStop(1,'#c9741f');g.fillStyle=gr;g.fillText(word,x,y);
- // gloss: a light band over the upper half of the letters
- g.save();g.globalCompositeOperation='source-atop';g.fillStyle='rgba(255,255,255,.38)';g.beginPath();g.moveTo(0,y-F*.82);g.lineTo(W,y-F*.82);g.lineTo(W,y-F*.5);g.quadraticCurveTo(W/2,y-F*.36,0,y-F*.48);g.closePath();g.fill();g.restore();
+ // the gilded face and its gloss (a light band over the upper half of the letters) on a canvas of their own, so the gloss lands on the gold only
+ const o=document.createElement('canvas');o.width=W;o.height=H;const q=o.getContext('2d')||g;q.font=g.font;q.textBaseline='alphabetic';
+ const gr=q.createLinearGradient(0,y-F*.78,0,y+F*.05);gr.addColorStop(0,'#fff8d8');gr.addColorStop(.38,'#ffd75e');gr.addColorStop(.7,'#eda23a');gr.addColorStop(1,'#c9741f');q.fillStyle=gr;q.fillText(word,x,y);
+ if(q!==g){q.globalCompositeOperation='source-atop';q.fillStyle='rgba(255,255,255,.38)';q.beginPath();q.moveTo(0,y-F*.82);q.lineTo(W,y-F*.82);q.lineTo(W,y-F*.5);q.quadraticCurveTo(W/2,y-F*.36,0,y-F*.48);q.closePath();q.fill();g.drawImage(o,0,0)}
  // a thin dark line inside the outline gives the gold its edge
  g.lineWidth=F*.012;g.strokeStyle='rgba(120,60,10,.55)';g.strokeText(word,x,y);
  c.classList.add('on')}
