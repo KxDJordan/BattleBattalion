@@ -201,18 +201,36 @@ for name, kind, P, box in PIECES:
         print(name, 'on orch0 at %d,%d x%.2f: ear off %.1f px, crown bare %.2f, eyes covered %.2f; ties px %d' % (b[1], b[2], S, b[4], b[5], b[6], ties.sum()), file=sys.stderr)
 # the head's ear, drawn over the hair (from orch0; each head's edx / edy moves it)
 EA = ear_alpha(H0); OE = H0.copy(); OE[:, :, 3] *= EA; PIECES.append(('oear', 'ear', OE, None))
+# each head's tusks (otusk0..7, the head's own frame): the cream pixels low in the face with their outline, drawn over a sheet beard at run time so
+# the tusks stand in front of it; and the mouth (bmx, bmy: where a beard's mouth goes): between the tusks, on the lip line at their roots
+def tusks(P):
+    h, w = P.shape[:2]; px = P[:, :, :3]; lum = .3 * px[:, :, 0] + .59 * px[:, :, 1] + .11 * px[:, :, 2]; sat = px.max(2) - px.min(2)
+    t = (P[:, :, 3] > 100) & (lum > 175) & (sat < 70); t[:int(h * .6)] = False; t[:, :int(w * .35)] = False
+    lab_, cs = components(t); keep = [j for j, c in enumerate(cs) if c[0] >= 12 and c[2] > h * .64]   # not the eye whites (higher up)
+    t = np.isin(lab_, keep)
+    o = t.copy()
+    for _ in range(3): o = o | np.roll(o, 1, 0) | np.roll(o, -1, 0) | np.roll(o, 1, 1) | np.roll(o, -1, 1)
+    return t, o & (t | ink(P))
+for i in range(8):
+    nm = 'orch%d' % i; P = [q for q in PIECES if q[0] == nm][0][2]; t, o = tusks(P); T = P.copy(); T[~o] = 0
+    PIECES.append(('otusk%d' % i, 'tusk', T, None)); ANC['otusk%d' % i] = {'ox': 0.0, 'oy': 0.0}
+    ys, xs = np.where(t); xm = (xs.min() + xs.max()) / 2; L_ = xs < xm; R_ = ~L_   # the two tusks: their roots (bottom rows) and centres
+    yb = max(ys[L_].max(), ys[R_].max()); ANC[nm]['bmx'] = round(float((xs[L_].mean() + xs[R_].mean()) / 2 * sf), 1); ANC[nm]['bmy'] = round(float(yb * sf), 1)
+    print(nm, 'tusk px %d, mouth at %.0f,%.0f px' % (t.sum(), (xs[L_].mean() + xs[R_].mean()) / 2, yb), file=sys.stderr)
 ANC['oear'] = {'ox': 0.0, 'oy': 0.0}
 
 items = []
 for name, kind, P, box in PIECES:
     h0, w0 = P.shape[:2]; L = {}
-    if kind in ('head', 'ear'):
+    if kind == 'tusk':
+        L['c'] = P.copy()
+    elif kind in ('head', 'ear'):
         L['c'] = P.copy(); sk = skin_mask(P) & ~ink(P); L['s'] = grey(P, sk, False)
     else:
         Q, hl, ties = ANC.pop(name + '_m')
         L['h'] = grey(Q, hl, True)
         if ties.any(): c = Q.copy(); c[~ties] = 0; L['c'] = c
-    meta[name] = {'w': round(w0 * sf, 1), 'h': round(h0 * sf, 1), 'a': {k_: round(float(v), 1) for k_, v in ANC[name].items()}, 'L': {}, 'k': {'head': 'ohead', 'ear': 'oear'}.get(kind, 'ohair')}
+    meta[name] = {'w': round(w0 * sf, 1), 'h': round(h0 * sf, 1), 'a': {k_: round(float(v), 1) for k_, v in ANC[name].items()}, 'L': {}, 'k': {'head': 'ohead', 'ear': 'oear', 'tusk': 'otusk'}.get(kind, 'ohair')}
     for m, arr in L.items():
         im = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA'); bb = im.getbbox()
         if not bb: continue

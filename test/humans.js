@@ -72,7 +72,7 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
  // the user's part sheets (73q-parts2.js): every armour set, helmet, hair drawn; game items mapped; no hair under a helmet; heads by situation
  const P2ON=typeof p2On==='function'&&p2On();
  if(P2ON){const k=humK();n.p2={armor:0,helm:0,hair:0,face:0};
-  if(Object.keys(P2A.p).length!==317+19)bad.push('parts atlas: '+Object.keys(P2A.p).length+' pieces');
+  if(Object.keys(P2A.p).length!==317+27)bad.push('parts atlas: '+Object.keys(P2A.p).length+' pieces');
   for(const nm of ['head0','head7','headf7','elfm7','elff7','ehair15','hand_a','hand_b','leg4_b','hair29','beard0','beard23','helm39','torso50','sh50_a','sh50_b'])if(!P2A.p[nm]||!P2A.p[nm].L.c&&!P2A.p[nm].L.h)bad.push('parts atlas: '+nm+' missing');
   const u=merc({race:'human',fem:0,eq:{w:'arming',s:'heater2',a:'padded'}}),L=usLook(u);
   for(let i=0;i<P2_ARMOR.length;i++){const L2=Object.assign({},L,{skA:null,hs:null});L2.S=Object.assign({},L.S,{armId:'__t',av:null,coat:null});P2_ARMOR_OF.__t=P2_ARMOR[i][0];

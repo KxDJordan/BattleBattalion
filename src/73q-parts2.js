@@ -9,7 +9,7 @@
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
    pointed ear, half-orcs green-grey skin, a pointed ear and tusks (vector overlays in the sheet's style); men and dwarves a sheet beard (P2_BEARD).
    The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
-const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05],coatDy:0};
+const P2={oBeard:1.12,on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05],coatDy:0};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
 const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
@@ -159,7 +159,8 @@ function p2Hair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const n=(P2_
    braid, a long ringed braid, two with twin braids). Every beard is recoloured to the merc's beard colour (its grey shade multiplied, as hair),
    so the rows are shapes: grey / white beards pick from the grey row's shapes (old men's), the others from rows 1-2. The portrait's beard kind
    (07-portraits.js) picks the list, the look's seed the beard in it. Dwarves: the big half (full, braided). Men of every race but elves and
-   half-orcs (those keep the vector beard of 73k-humans.js humBeard); women none. */
+   elves (those keep the vector beard of 73k-humans.js humBeard); women none. Half-orc men wear them on the half-orc heads, a little larger
+   (P2.oBeard: the broad jaw), their mouth on the head's (orch anchors bmx, bmy: between the tusks' roots) and the head's tusks (otusk<i>) drawn over them. */
 const P2_BEARD={stache:[3],goatee:[4,0,2],chops:[1,8],short:[5,8,9,6],full:[6,7,10,11],long:[12,13,14,15],fork:[14,15,22,23],dwarf:[13,14,15]};
 const P2_BEARD_GREY={stache:[3],goatee:[4,0],chops:[1,16],short:[16,17,18],full:[18,19,20],long:[20,21,22,23],fork:[22,23],dwarf:[20,21,22,23]};
 const P2_BEARD_DW={dark:[7,11,12,13,14,15],grey:[19,20,21,22,23],fork:[14,15,22,23],long:[13,14,15,21]};
@@ -168,7 +169,7 @@ const P2_NOBEARD=new Set(['armet','sallet','bascinet','gold-visored helm','great
 function p2BeardCol(S){const br=S.beardR||S.hairR||usHairR(['i','H','k']);return humMix(humRC(br),humRC(br,1),.25)}
 function p2Grey(col){const c=p2Hex(col),mx=Math.max(...c),mn=Math.min(...c);return mx>120&&(mx-mn)/mx<.16}
 // the sheet beard of a look: its index, or -1 (none / the vector beard)
-function p2Beard(S,hs){const bd=S.beard;if(!bd||hs.fem||hs.el||hs.race==='halforc'||hs.race==='elf'||S.b===US_BUILD.halforc||S.ears==='elf')return-1;
+function p2Beard(S,hs){const bd=S.beard;if(!bd||hs.fem||hs.el||hs.race==='elf'||S.ears==='elf')return-1;if((hs.race==='halforc'||S.b===US_BUILD.halforc)&&!P2A.p.orch0)return-1;   // half-orcs: on their own heads (orch), under their tusks
  const dw=hs.race==='dwarf'||S.b===US_BUILD.dwarf||bd==='dwarf',grey=p2Grey(p2BeardCol(S)),h=((S.seed|0)*167+13)>>>0;
  let L;if(dw)L=bd==='fork'?P2_BEARD_DW.fork:grey?P2_BEARD_DW.grey:bd==='long'?P2_BEARD_DW.long:P2_BEARD_DW.dark;
  else L=(grey?P2_BEARD_GREY:P2_BEARD)[bd]||(grey?P2_BEARD_GREY:P2_BEARD).short;
@@ -262,10 +263,11 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   if(A.ho&&HPc){const ec=p2Piece('oear',A.tone);put('oear',ec,1,-R.px+(HA.edx||0),-R.py+(HA.edy||0));A.drawn.ear='oear'}   // a half-orc's ear over the hair's sideburn
   g.save();g.translate(sk.x,sk.y);
   if(hs.orc&&!A.ho&&ex!==7)for(const x of[R0*.3,R0*.68])humSh(g,humPoly([x-8,R0*.72,x,R0*.4,x+8,R0*.72]),'#f2ead6',{lw:6});
-  if(S.beard&&A.beard<0)humBeard(g,S,R0*.98,hs.dw);   // elves, half-orcs: the vector beard
+  if(S.beard&&A.beard<0&&!A.ho)humBeard(g,S,R0*.98,hs.dw);   // elves: the vector beard
   g.restore();
   // the sheet beard: its mouth on the head's mouth (P2A anchors mx, my / bmx, bmy), over the hair, under the helmet; none under a full-face helmet
-  if(A.beard>=0&&!P2_NOBEARD.has(A.helm)){const bn='beard'+A.beard,Ba=P2A.p[bn].a;put(bn,p2Piece(bn,null,A.beardC),1,HA.bmx-R.px-Ba.mx,HA.bmy-R.py-Ba.my);A.drawn.beard=bn}
+  if(A.beard>=0&&!P2_NOBEARD.has(A.helm)){const bn='beard'+A.beard,Ba=P2A.p[bn].a,bs=A.ho?P2.oBeard:1;put(bn,p2Piece(bn,null,A.beardC),bs,HA.bmx-R.px-Ba.mx*bs,HA.bmy-R.py-Ba.my*bs);A.drawn.beard=bn;
+   const tn='otusk'+ex;if(A.ho&&P2A.p[tn]){put(tn,p2Piece(tn),1,-R.px,-R.py);A.drawn.tusk=tn}}   // a half-orc's tusks in front of the beard
   if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[(A.hf||'head')+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation (eyePick's context), held HEAD_HOLD ms, instant on hit and death */

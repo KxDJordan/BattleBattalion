@@ -6,6 +6,7 @@
 //    the common tone shows the sheet's olive, the ash tone differs;
 //  - the expression rules give each battle state its head (idle, braced, attack, aim, hit, a big blow missed, kill, level up, victory, healed,
 //    calm, wavering, breaking, low hp, death), and the live pick follows the unit (a kill, a level, a morale drop, a missed big blow);
+//  - half-orc men wear the sheet beards (tinted by hair colour) with the head's tusks drawn over them, no vector beard; women none;
 //  - the hair varies across mercs (all ten styles turn up), is stable per merc, bald mercs stay bald, every old style maps to a new one;
 //  - under a helmet no hair, the helmet over the crown;
 //  - humans, dwarves and elves are untouched: with --ref (a build of main) their sprites are compared pixel for pixel, and Detail Low too.
@@ -29,7 +30,7 @@ const DIGEST=()=>{const base=G.roster[0],out={};
 const R=await p.evaluate(()=>{const bad=[],n={};const k=humK(),base=G.roster[0];let mid=0;
  const merc=o=>{let m=null;for(let i=0;i<2000;i++){m=JSON.parse(JSON.stringify(base));m.id=80000+(++mid);m.name='Ho'+mid;m.race=o.race||'halforc';m.bg=o.bg||'sellsword';m.colors=null;
    m.eq=Object.assign({w:'arming',b:null,s:null,a:'padded',h:null,c:null},o.eq||{});const P=ptMercSpec(m);
-   if((o.fem==null||!!P.fem===!!o.fem)&&(!o.skin||P.skin===PT_SKIN[o.skin])&&(o.hair==null||P.hair===o.hair)&&(o.hat==null||!P.hat===!o.hat))break}
+   if((o.fem==null||!!P.fem===!!o.fem)&&(!o.skin||P.skin===PT_SKIN[o.skin])&&(o.hair==null||P.hair===o.hair)&&(o.hat==null||!P.hat===!o.hat)&&(o.beard===undefined||(P.beard||null)===o.beard))break}
   return mkPlayerUnit(m)};
  const AS=u=>humSkAssets(usLook(u),0,k);
  // ---- the pieces ----
@@ -57,6 +58,17 @@ const R=await p.evaluate(()=>{const bad=[],n={};const k=humK(),base=G.roster[0];
  {const a=AS(merc({skin:'orc'})),c=AS(merc({skin:'ashorc'}));if(a.tone!==P2_OSKIN)bad.push('common half-orc tone '+a.tone);if(c.tone===a.tone)bad.push('ash half-orcs share the common tone')}
  // humans, dwarves, elves keep their heads
  for(const [race,fem,hf] of[['human',0,'head'],['human',1,'headf'],['elf',0,'elfm'],['dwarf',0,'head']]){const u=merc({race,fem}),A=AS(u);if(A.hf!==hf||A.ho)bad.push(race+(fem?' woman':'')+': head '+A.hf)}
+ // ---- beards: half-orc men wear the sheet beards (tinted like hair), the tusks over them in every expression; no vector beard; women none ----
+ {let vec=0;const hb=window.humBeard;window.humBeard=function(){vec++;return hb.apply(this,arguments)};
+  try{for(const bd of['stache','goatee','short','full','chops']){const u=merc({fem:0,hat:0,beard:bd});if(ptMercSpec(u.m).beard!==bd){n['beard '+bd]='not found';continue}const L=usLook(u),A=humSkAssets(L,0,k);
+    if(!(A.beard>=0))bad.push('half-orc '+bd+' beard: no sheet beard');else{const L2=Object.assign({},L);for(let i=0;i<8;i++){A.bk.clear();humSkFrame(L,0,'idle',0,k,'',{head:i});
+     if(A.drawn.beard!=='beard'+A.beard)bad.push(bd+' beard not drawn on orch'+i);if(A.drawn.tusk!=='otusk'+i)bad.push(bd+' beard: tusks of orch'+i+' not drawn over it')}}
+    const v=mkPlayerUnit(JSON.parse(JSON.stringify(u.m)));if(humSkAssets(usLook(v),0,k).beard!==A.beard)bad.push(bd+' beard changes between looks');
+    if(A.beardC!==p2BeardCol(L.S))bad.push(bd+' beard colour')}
+   for(let i=0;i<20;i++){const u=merc({fem:1}),A=AS(u);if(A.beard>=0)bad.push('a half-orc woman has a beard')}
+   const uh=merc({fem:0,beard:'full',eq:{h:'armet',a:'plate'}}),Lh=usLook(uh),Ah=humSkAssets(Lh,0,k);humSkFrame(Lh,0,'idle',0,k,'',{head:0});if(Ah.drawn.beard)bad.push('beard under a full-face helmet');
+   if(vec)bad.push('the vector beard was drawn '+vec+' times on half-orcs')}finally{window.humBeard=hb}
+  for(let i=0;i<8;i++){const T=P2A.p['otusk'+i];if(!T||!T.L.c)bad.push('otusk'+i+' missing');const a=P2A.p['orch'+i].a;if(!isFinite(a.bmx)||!isFinite(a.bmy))bad.push('orch'+i+': no mouth anchor')}}
  // ---- hair: varied, stable, bald stays bald ----
  {const seen={},bald={n:0,ok:0};let unstable=0;for(let i=0;i<500;i++){const u=merc({}),A=AS(u),P=ptMercSpec(u.m);if(P.hair==='bald'){bald.n++;if(A.hair===-1)bald.ok++;continue}if(A.hair>=0)seen[A.hair]=(seen[A.hair]||0)+1;
    const v=mkPlayerUnit(JSON.parse(JSON.stringify(u.m))),B2=humSkAssets(usLook(v),0,k);if(B2.hair!==A.hair)unstable++}
