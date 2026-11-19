@@ -14,7 +14,7 @@
      bonus = min(round(share x AAR.cap), round(pool x AAR.pool x score))           for each survivor
    so the company's bonuses together come to at most AAR.pool of the pool (when its swords did all the killing and all the damage), a
    sword that did nothing earns the base, and nobody earns more than (1 + AAR.cap) x the base. */
-const AAR={base:1,pool:.2,kill:.5,dmg:.5,cap:1};
+const AAR={base:.9,pool:.2,kill:.5,dmg:.5,cap:1};   // base .9: in the campaign sim (test/economy.js) the bonuses add about a fifth of the base back, so the company as a whole levels about as fast as before (+5..7% xp) while the swords who carry a fight level faster
 // What one foe on the field is worth to the company (the battle's xp, before the drillmaster): its kind, its rank, its elite marks.
 function foeXpOf(e){if(!e)return 0;return Math.round((e.def&&e.def.xp||(e.m&&typeof rivalXP==='function'?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))*(e.elite&&typeof eliteXpK==='function'?eliteXpK(e):1))}
 function aarOf(u){if(!u.aar||typeof u.aar!=='object')u.aar={k:0,kx:0,ff:0,dmg:0,adm:0,taken:0,hits:0};return u.aar}
