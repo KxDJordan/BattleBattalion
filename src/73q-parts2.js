@@ -9,7 +9,7 @@
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
    pointed ear, half-orcs green-grey skin, a pointed ear and tusks (vector overlays in the sheet's style); men and dwarves a sheet beard (P2_BEARD).
    The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
-const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05]};
+const P2={on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05],coatDy:0};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
 const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
@@ -95,15 +95,15 @@ function p2Ready(){if(typeof P2A!=='object')return false;let ok=true;for(let i=0
 function p2On(){return P2.on&&typeof P2A==='object'&&p2Ready()}
 const P2_PC=new Map();   // tinted piece canvases, by piece + colour
 // a piece canvas at atlas resolution (P2A.k px per SU), its own colours; skin (s) / hair (h) multiplied by col; pk = canvas px per SU;
-// k1 / k2 a leg's cloth; R {r,g,b,y} an armour piece's colour-mask regions (primary, secondary, metal, emblem), each multiplied by its colour
-function p2Piece(n,skin,hair,k1,k2,R){const rs=R?(R.r||'')+','+(R.g||'')+','+(R.b||'')+','+(R.y||''):'';const id=n+'|'+(skin||'')+'|'+(hair||'')+'|'+(k1||'')+'|'+(k2||'')+'|'+rs;let c=P2_PC.get(id);if(c)return c;const P=P2A.p[n];if(!P)return null;const k=P2A.k,W=Math.ceil(P.w*k)+2,H=Math.ceil(P.h*k)+2;
+// k1 / k2 a leg's cloth; R {r,g,b,y,m} an armour piece's colour-mask regions (primary, secondary, metal, emblem, straps), each multiplied by its colour
+function p2Piece(n,skin,hair,k1,k2,R){const rs=R?(R.r||'')+','+(R.g||'')+','+(R.b||'')+','+(R.y||'')+','+(R.m||''):'';const id=n+'|'+(skin||'')+'|'+(hair||'')+'|'+(k1||'')+'|'+(k2||'')+'|'+rs;let c=P2_PC.get(id);if(c)return c;const P=P2A.p[n];if(!P)return null;const k=P2A.k,W=Math.ceil(P.w*k)+2,H=Math.ceil(P.h*k)+2;
  c=document.createElement('canvas');c.width=W;c.height=H;c.pk=k;const g=c.getContext('2d');
  const lay=(m,col)=>{const l=P.L[m];if(!l)return;const I=p2Img(l[0]);if(!I)return;if(!col){g.drawImage(I,l[1],l[2],l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k);return}
   const t=humTmp(l[3],l[4]),q=t.getContext('2d');q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);q.globalCompositeOperation='multiply';q.fillStyle=col;q.fillRect(0,0,l[3],l[4]);q.globalCompositeOperation='destination-in';q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);
   g.drawImage(t,0,0,l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k)};
- lay('c');if(k1)lay('k1',k1);if(k2)lay('k2',k2||k1);if(R)for(const m of['r','g','b','y'])if(R[m])lay(m,R[m]);if(skin)lay('s',skin);if(P.L.h)lay('h',hair||'#6b4a2b');   // k1 / k2: a leg's cloth recoloured; r / g / b / y: the armour's mask regions; h hair / beard multiplied by the hair colour
+ lay('c');if(k1)lay('k1',k1);if(k2)lay('k2',k2||k1);if(R)for(const m of['r','g','b','y','m'])if(R[m])lay(m,R[m]);if(skin)lay('s',skin);if(P.L.h)lay('h',hair||'#6b4a2b');   // k1 / k2: a leg's cloth recoloured; r / g / b / y: the armour's mask regions; h hair / beard multiplied by the hair colour
  if(P2_PC.size>900)P2_PC.delete(P2_PC.keys().next().value);
- P2_PC.set(id,c);return c}
+ c.pid=id;P2_PC.set(id,c);return c}
 // a piece's rig record (SU, origin at the pivot): what 73m-skel.js reads (px, py, wx, wy, len, ang, fy, ...)
 function p2Rig(n,px,py,extra){const P=P2A.p[n];const R=Object.assign({w:P.w,h:P.h,px,py},extra||{});if(R.wx!=null){R.len=Math.hypot(R.wx-R.px,R.wy-R.py);R.ang=Math.atan2(R.wy-R.py,R.wx-R.px)}return R}
 /* ---- choosing the parts of a look ---- */
@@ -116,7 +116,7 @@ function p2Armor(L){const S=L.S,hs=humSpec(L);let n=null;const id=S.armId;
  if(!n){const k=p2AvKey(S.av);if(k)n=P2_ARMOR_OF[k]||null}
  if(!n&&S.armor==='robe'){const c=S.robeC||'';n=P2_ROBE[c]||null}
  if(!n)n=P2_ARMOR_OF['k_'+S.armor]||'rags';
- if(S.coat){const F=humLit(S.coat.F),plate=/plate/.test(n),fc=p2Hex(F),blue=fc[2]>fc[0]+20,red=fc[0]>fc[2]+40&&fc[0]>fc[1]+20,light=fc[0]+fc[1]+fc[2]>500;   // a surcoat / house coat: the tabards
+ if(S.coat&&!P2A.p.coat0){const F=humLit(S.coat.F),plate=/plate/.test(n),fc=p2Hex(F),blue=fc[2]>fc[0]+20,red=fc[0]>fc[2]+40&&fc[0]>fc[1]+20,light=fc[0]+fc[1]+fc[2]>500;   // a surcoat / house coat: the tabards
   const rec=!(typeof G==='object'&&G&&G.wearCol&&G.wearCol.coat===false);   // recoloured to the livery: one tabard of each kind, its colours from the flag
   n=rec?(plate?'plate, blue fleur-de-lis surcoat':'white star tabard'):plate?(blue?'plate, blue fleur-de-lis surcoat':'plate, white crusader cross'):blue?'blue cross tabard':red?'dark red cloak':light?'white star tabard':'blue cross tabard'}
  return P2A_IDX(n)}
@@ -157,7 +157,9 @@ function p2Beard(S,hs){const bd=S.beard;if(!bd||hs.fem||hs.el||hs.race==='halfor
    A surcoat with the coat option (G.wearCol.coat, default on) is drawn over the torso by p2Coat in its livery and leaves the armour's own colours alone.
    Per class (P2_ACLASS): cloth / leather bodies: r <- cloth, g <- accent; metal bodies: r <- metal finish, g (their cloth: surcoats, skirts) <- cloth;
    b <- metal finish always; y (an emblem) <- the colour that is not its ground's (on an r ground the accent, on a g ground the cloth; on metal the accent).
-   In the flag mode leather and metal bodies keep their own primary. Nothing set: null, the armour exactly as drawn. Legs: their cloth (k1) <- cloth. */
+   An armour with no trim or emblem in the accent's way (no g / y region it would dye) gets the accent on its belts and straps (m), so the
+   tailor's every swatch shows. In the flag mode leather and metal bodies keep their own primary. Nothing set: null, the armour exactly as drawn.
+   Legs: their cloth (k1) <- cloth. */
 function p2LivCol(c,i){const B=typeof BANNERC==='object'&&BANNERC[c];return B?humMix(humHex(B.r[1]),humHex(B.r[2]),.35):i?'#d1a94e':'#2f7868'}
 function p2RampCol(r){if(!r||!r.t)return null;const n=r.t.length,b=r.b==null?1:r.b;return b+1<n?humMix(humRC(r),humRC(r,1),.5):humRC(r)}
 function p2DyeCol(k){return k&&typeof usDye==='function'?p2RampCol(usDye(k)):null}
@@ -171,12 +173,38 @@ function p2Dress(L,ai){const S=L.S,w=typeof G==='object'&&G&&G.wearCol||{},m=L.m
  if(cls==='c'){R.r=cl;R.g=ac;R.y=eg==='g'?cl:ac}
  else if(cls==='l'&&!flag){R.r=cl;R.g=ac;R.y=eg==='g'?cl:ac}
  else{R.r=cls==='p'?mt:null;R.g=cl;R.y=ac}
+ const TL=P2A.p['torso'+ai].L;if(ac&&!flag&&!(TL.g&&(R.g===ac))&&!(TL.y&&R.y===ac))R.m=ac;   // no trim to take the accent: the belts and straps do
  return{R:R.r||R.g||R.b||R.y?R:null,leg:cl}}
+/* ---- surcoats (Detail High): the user's surcoat sheet (assets/parts2/surcoats.webp, cut by assets/make-surcoats.py into P2A coat0..9:
+   0 plain, 1 per pale, 2 pales, 3 cross, 4 bend, 5 bordure, 6-9 a plain field with the place of a charge) drawn over the torso only, so
+   the armour's own shoulders, collar and arms show. The design follows the livery's banner: its division (P2_COATDIV: per pale, paly,
+   cross / saltire, bend, bordure) picks the drawing and the division's colour (c3) is its second colour; a plain (or other) banner gives
+   the field with the company's emblem, the place by the coat's cut (P2_COATCUT); the heraldic coat is bordered in the charge colour (c2),
+   as at Detail Low. The field is c1, the emblem c2, painted by the banner's own emblem painter (46-banner.js bnEmCanvas) at the charge's
+   place (P2A anchors ex, ey, ew, eh; the bordure and the plain field borrow coat6's). The four division designs carry no emblem (the
+   division is the arms). With the coat option off (G.wearCol.coat false) the design is drawn in the sheet's own colours with a brass emblem. */
+const P2_COATDIV={pale:1,paly:2,cross:3,saltire:3,bend:4,bordure:5};
+const P2_COATCUT={tabard:6,surcoat:7,quilted:8,mantle:9,jinbaori:9,herald:5};
+const P2_COATEM=[1,0,0,0,0,1,1,1,1,1];
+function p2CoatDesign(C){const d=P2_COATDIV[C.dv];if(d!=null)return d;const c=P2_COATCUT[C.cut];return c!=null?c:6}
+function p2CoatCols(C,d,rec){if(!rec)return{R:null,em:'c',fld:'g'};const sec=d>=1&&d<=4||d===5&&P2_COATDIV[C.dv]===5?C.c3||C.c2:C.c2;
+ return{R:{r:p2LivCol(C.c1,0),g:d>=1&&d<=5?p2LivCol(sec,1):null},em:C.c2,fld:C.c1}}
+// the torso canvas with the surcoat over it (a bigger canvas: c.ox / c.oy its origin in the torso's SU, 73m-skel.js reads them)
+function p2CoatTorso(tc,tn,C){const rec=!(typeof G==='object'&&G&&G.wearCol&&G.wearCol.coat===false),d=p2CoatDesign(C),cn='coat'+d,CP=P2A.p[cn];if(!CP||!tc)return tc;
+ const id='coat|'+(tc.pid||tn)+'|'+d+'|'+(rec?C.sig:'own');let c=P2_PC.get(id);if(c)return c;
+ const cs=p2CoatCols(C,d,rec),cc=p2Piece(cn,null,null,null,null,cs.R);if(!cc)return tc;const k=P2A.k,TP=P2A.p[tn],Ta=TP.a,Ca=CP.a;
+ const ox=Ta.nx-Ca.nx,oy=Ta.ny-Ca.ny+P2.coatDy*TP.h,x0=Math.min(0,ox),y0=Math.min(0,oy),x1=Math.max(TP.w,ox+CP.w),y1=Math.max(TP.h,oy+CP.h);
+ c=document.createElement('canvas');c.width=Math.ceil((x1-x0)*k)+2;c.height=Math.ceil((y1-y0)*k)+2;c.pk=k;c.ox=x0;c.oy=y0;const g=c.getContext('2d');
+ g.drawImage(tc,-x0*k,-y0*k);g.drawImage(cc,(ox-x0)*k,(oy-y0)*k);
+ if(P2_COATEM[d]&&typeof bnEmCanvas==='function'){const E=Ca.ex!=null?Ca:P2A.p.coat6.a,sz=Math.min(E.ew,E.eh)*1.05,px=Math.max(16,Math.round(sz*k));
+  try{const ec=bnEmCanvas(C.em,cs.em,cs.fld,px);if(ec)g.drawImage(ec,(ox-x0+E.ex-sz/2)*k,(oy-y0+E.ey-sz/2)*k,sz*k,sz*k)}catch(e){}}
+ c.coat=d;P2_PC.set(id,c);return c}
 function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1,K=k*HUM_A*hs.sc*P2.sc*(hs.race==='dwarf'?.96:1),mf=mir?-1:1;
  const ai=p2Armor(L),leg=P2_LEGS.indexOf(P2_ARMOR[ai][1]),skin=hs.orc?humLit(hs.S.skin):hs.C.skin,fem=!!hs.fem;
  const tone=hs.race==='human'&&!hs.orc&&/^s/.test((S.skin&&S.skin.t)||'')?null:skin;   // the sheet's own skin is a fair human's
  const dr=p2Dress(L,ai),RC=dr&&dr.R,lk=dr&&dr.leg;   // tailored colours or the company's cloth in the flag's colours
  const tn='torso'+ai,TP=P2A.p[tn].a,T={n:tn,R:p2Rig(tn,TP.hx,TP.hy),c:p2Piece(tn,tone,null,null,null,RC)};
+ if(S.coat&&P2A.p.coat0&&T.c)T.c=p2CoatTorso(T.c,tn,S.coat)   // a surcoat over the torso
  const ln=s=>'leg'+leg+'_'+s,LPa=P2A.p[ln('a')].a,LPb=P2A.p[ln('b')].a;
  const LA={n:ln('a'),R:p2Rig(ln('a'),LPa.px,LPa.py,{fy:LPa.fy}),c:p2Piece(ln('a'),null,null,lk)},LB={n:ln('b'),R:p2Rig(ln('b'),LPb.px,LPb.py,{fy:LPb.fy}),c:p2Piece(ln('b'),null,null,lk)};
  const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sw0=wSide==='a'?-1:1,so0=-sw0;

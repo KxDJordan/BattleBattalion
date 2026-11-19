@@ -12,7 +12,7 @@
 function usCoatR(c,b){const k='v'+c+(b==null?1:b);let r=US_RC.get(k);if(!r){const B=typeof BANNERC==='object'&&BANNERC[c];r=usRamp(B?B.r.join(''):'fgh',b==null?1:b);US_RC.set(k,r)}return r}
 const USC_SP=new Map();
 function usCoatSpec(c){if(!c||!c.liv)return null;const L=c.liv,k=c.id+'|'+L.sig;let s=USC_SP.get(k);if(s)return s;
- s={id:c.id,cut:c.cut||(typeof coatCut==='function'?coatCut(c.id):null)||'tabard',F:usCoatR(L.c1),K:usCoatR(L.c2),em:L.emblem,c1:L.c1,c2:L.c2,sig:k};USC_SP.set(k,s);return s}
+ s={id:c.id,cut:c.cut||(typeof coatCut==='function'?coatCut(c.id):null)||'tabard',F:usCoatR(L.c1),K:usCoatR(L.c2),em:L.emblem,c1:L.c1,c2:L.c2,dv:L.div||'plain',c3:L.c3||null,sig:k};USC_SP.set(k,s);return s}
 function usCoatOfMerc(m){if(typeof coatOf!=='function')return null;const id=coatOf(m);if(!id)return null;return usCoatSpec({id,cut:coatCut(id),liv:mercLivery(m)})}
 /* the look-cache signature of what a unit wears over its armor ('' = no coat) */
 function usCoatSig(u){if(typeof unitCoat!=='function'||!u)return'';const c=unitCoat(u);return c?c.id+'|'+c.liv.sig:''}

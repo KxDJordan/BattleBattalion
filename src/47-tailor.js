@@ -83,14 +83,16 @@ function tailorView(t){if(TLR.mode==='coat'&&typeof tailorCoatView==='function')
    coatColoursText(); the tailor's tab: tailorMode(k), tailorCoatPick(id), tailorCoatFit(), tailorCoatBuy(), tailorCoatAll(), tailorCoatOff().
    Liveries are frozen objects cached per colours (identity holds for the sprite caches). Nothing here draws rnd(). */
 const LIVC=new Map();
-function livMake(c1,c2,emblem){const raw=c1+'.'+c2+'.'+emblem;let v=LIVC.get(raw);if(v)return v;   // read every frame: a hit allocates nothing but the key
- const b=typeof bannerFix==='function'?bannerFix({c1,c2,emblem}):{c1:c1||'5',c2:c2||'c',emblem:emblem||'swords'},k=b.c1+'.'+b.c2+'.'+b.emblem;
- v=LIVC.get(k)||Object.freeze({c1:b.c1,c2:b.c2,emblem:b.emblem,sig:k});LIVC.set(k,v);LIVC.set(raw,v);return v}
-function houseLivery(id){const h=typeof houseById==='function'?houseById(id):null;if(h)return livMake(h.c1,h.c2,h.emblem);
- const r=typeof rivalById==='function'?rivalById(id):null;return r?livMake(r.c1,r.c2,r.emblem):null}
-function liveryOf(x){if(!x)return null;if(typeof x==='string')return houseLivery(x);if(typeof x==='object'&&x.c1)return livMake(x.c1,x.c2,x.emblem);return null}
-function companyLivery(){const b=typeof G!=='undefined'&&G&&G.banner||null;return b?livMake(b.c1,b.c2,b.emblem):livMake()}
-function mercLivery(m){const r=typeof rivalOfMerc==='function'?rivalOfMerc(m):null;return r?livMake(r.c1,r.c2,r.emblem):companyLivery()}
+/* div / c3: the banner's division and its colour (46-banner.js BNDIV), worn by the Detail High surcoats (73q-parts2.js p2CoatDesign);
+   a plain banner's livery (and its sig) is exactly the old one */
+function livMake(c1,c2,emblem,div,c3){const raw=c1+'.'+c2+'.'+emblem+(div&&div!=='plain'?'.'+div+'.'+c3:'');let v=LIVC.get(raw);if(v)return v;   // read every frame: a hit allocates nothing but the key
+ const b=typeof bannerFix==='function'?bannerFix({c1,c2,emblem,div,c3}):{c1:c1||'5',c2:c2||'c',emblem:emblem||'swords',div:'plain'},dv=b.div&&b.div!=='plain'?b.div:'plain',k=b.c1+'.'+b.c2+'.'+b.emblem+(dv!=='plain'?'.'+dv+'.'+b.c3:'');
+ v=LIVC.get(k)||Object.freeze({c1:b.c1,c2:b.c2,emblem:b.emblem,div:dv,c3:dv!=='plain'?b.c3:null,sig:k});LIVC.set(k,v);LIVC.set(raw,v);return v}
+function houseLivery(id){const h=typeof houseById==='function'?houseById(id):null;if(h)return livMake(h.c1,h.c2,h.emblem,h.div,h.c3);
+ const r=typeof rivalById==='function'?rivalById(id):null;return r?livMake(r.c1,r.c2,r.emblem,r.div,r.c3):null}
+function liveryOf(x){if(!x)return null;if(typeof x==='string')return houseLivery(x);if(typeof x==='object'&&x.c1)return livMake(x.c1,x.c2,x.emblem,x.div,x.c3);return null}
+function companyLivery(){const b=typeof G!=='undefined'&&G&&G.banner||null;return b?livMake(b.c1,b.c2,b.emblem,b.div,b.c3):livMake()}
+function mercLivery(m){const r=typeof rivalOfMerc==='function'?rivalOfMerc(m):null;return r?livMake(r.c1,r.c2,r.emblem,r.div,r.c3):companyLivery()}
 function coatIds(){const L=[];for(const k in ITEMS)if(ITEMS[k].k==='c')L.push(k);return L}
 function coatCut(id){const i=ITEMS[id];return i&&i.k==='c'?i.coat||'tabard':null}
 function coatOf(m){const id=m&&m.eq&&m.eq.c;return ITEMS[id]&&ITEMS[id].k==='c'?id:null}
