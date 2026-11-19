@@ -21,8 +21,8 @@ function aarOf(u){if(!u.aar||typeof u.aar!=='object')u.aar={k:0,kx:0,ff:0,dmg:0,
 // a blow: src (may be null: bleeding, burning, terrain) took hp hitpoints and arm armor points off t
 function aarHit(src,t,hp,arm){if(!t)return;hp=Math.max(0,+hp||0);arm=Math.max(0,+arm||0);if(hp>0)aarOf(t).taken+=hp;
  if(src&&src!==t&&src.side!==t.side&&(hp>0||arm>0)){const a=aarOf(src);a.dmg+=hp;a.adm+=arm;a.hits++}}
-// a killing blow (killUnit): counted once per fallen unit
-function aarKill(t,src){if(!t||t.aarK)return;t.aarK=1;if(!src||src===t)return;const a=aarOf(src);if(src.side!==t.side){a.k++;a.kx+=foeXpOf(t)}else a.ff++}
+// a killing blow (killUnit; a foe raised again and cut down again counts again, as m.kills does)
+function aarKill(t,src){if(!t||!src||src===t)return;const a=aarOf(src);if(src.side!==t.side){a.k++;a.kx+=foeXpOf(t)}else a.ff++}
 // The tally of unit u as the results sheet keeps it (plain numbers; a unit that never struck or was struck has zeros).
 function aarStats(u){const a=u&&u.aar||{};return{k:a.k|0,kx:a.kx|0,ff:a.ff|0,dmg:Math.round(a.dmg||0),adm:Math.round(a.adm||0),taken:Math.round(a.taken||0),hits:a.hits|0}}
 // The foes' side of the field, for the shares: their worth in xp and their hitpoints.
@@ -49,11 +49,11 @@ function aarCard(r,res,mvp){const u=typeof B!=='undefined'&&B&&B.units?B.units.f
  else if(res.win&&r.state==='dead')xp='<span class="aar-xp none">No xp: fell in the battle</span>';
  const bits=[];if(r.state==='down')bits.push('Lives, at 1 hitpoint');if(r.shield)bits.push(`<span class="br-w">${ic('shield')}shield lost</span>`);
  if(r.arm||r.helm)bits.push(`<span class="br-w">${r.arm?ic('armor')+'−'+r.arm:''}${r.helm?ic('helmet')+'−'+r.helm:''}</span>`);
- const inj=(r.inj||[]).map(j=>`<span class="br-inj aar-inj">${typeof cpInjIcon==='function'?cpInjIcon(j.id):''}<b>${j.n}</b> <small>${j.d}${j.perm?', for good':j.days>0?', '+j.days+' day'+(j.days===1?'':'s'):''}</small></span>`).join('');
+ const inj=(r.inj||[]).map(j=>`<span class="br-inj aar-inj" title="${String(j.d||'').replace(/"/g,'&quot;')}">${typeof cpInjIcon==='function'?cpInjIcon(j.id):''}<b>${j.n}</b> <small>${j.perm?'for good':j.days>0?j.days+' day'+(j.days===1?'':'s'):''}</small></span>`).join('');   // the effect in the tooltip (and the plain lines below)
  const opens=r.lvl&&typeof brOpens==='function'?brOpens(r.from!=null?r.from:r.lvl-1,r.lvl).map(t=>`<span class="br-tier">${ic(/Weapon/.test(t)?'swords':'level')}${t}</span>`).join(''):'';
  return`<div class="aar-c ${r.state}${r.id===mvp?' mvp':''}${r.lvl?' lvup':''}">${por}<div class="aar-b">`+
-  `<span class="br-nm"><b>${r.name}</b>${r.id===mvp?'<em class="mvp" title="Most valuable: kills and damage">MVP</em>':''}${tag?`<em class="${tag[0]}">${tag[1]}</em>`:''}</span>`+
-  `<span class="aar-st"><span title="Killing blows">${ic('skull')}<b>${st.k}</b> kill${st.k===1?'':'s'}</span><span title="Hitpoints dealt${st.adm?', and armor stripped':''}">${ic('swords')}<b>${aarNum(st.dmg)}</b> dmg${st.adm?` <small>+${aarNum(st.adm)} arm</small>`:''}</span><span class="tk" title="Hitpoints lost">${ic('hp')}−${aarNum(st.taken)}</span></span>`+
+  `<span class="br-nm"><b>${r.name}</b>${m&&m.lvl?`<small class="aar-lv">Lv ${m.lvl}</small>`:''}${r.id===mvp?`<em class="mvp" title="Most valuable: kills and damage">${ic('laurel')}MVP</em>`:''}${tag?`<em class="${tag[0]}">${tag[1]}</em>`:''}</span>`+
+  `<span class="aar-st"><span title="Killing blows">${ic('skull')}<b>${st.k}</b><i class="w"> kill${st.k===1?'':'s'}</i></span><span title="Hitpoints dealt${st.adm?', and armor stripped':''}">${ic('sword')}<b>${aarNum(st.dmg)}</b><i class="w"> dmg</i>${st.adm?` <small>+${aarNum(st.adm)}<i class="w"> arm</i></small>`:''}</span><span class="tk${st.taken?'':' no'}" title="Hitpoints lost">${ic('hp')}${st.taken?'−'+aarNum(st.taken):'0'}</span></span>`+
   xp+(bits.length?`<span class="br-bits">${bits.join(' ')}</span>`:'')+opens+inj+`</div></div>`}
 function aarHTML(res){const L=res.men||[];if(!L.length)return'';const mvp=aarMvp(res);
  const tk=L.reduce((n,r)=>n+(r.st?r.st.k:0),0),bon=L.reduce((n,r)=>n+(r.xp?r.xp.bonus:0),0);

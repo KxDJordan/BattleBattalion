@@ -547,7 +547,7 @@ const heavyHit=t=>Math.max(8,Math.ceil(t.hpMax*HEAVYHIT));              // hitpo
 // Applies injury id to a unit in the field: its stats drop at once, as they will in calc(m).
 function applyInjury(u,id){const st=INJ[id].st;for(const k in st){const v=st[k];if(k==='hp'){u.hpMax=Math.max(5,u.hpMax+v);u.hp=Math.min(u.hp,u.hpMax)}else if(k==='fat')u.fatMax=Math.max(20,u.fatMax+v);else if(k==='dmg')u.dmgB=(u.dmgB||0)+v;else u[k]+=v}}
 // Rolls an injury for the merc behind unit t (head or body, permanent or not). Returns its id, or null.
-function inflictInjury(t,head,perm,slow){if(!t.m)return null;const id=rollInjury(t.m,head,perm,slow);if(!id)return null;if(t.alive)applyInjury(t,id);float(t,INJ[id].n,'#ff7a6b');say(`${t.name}: ${INJ[id].n.toLowerCase()}.`);FX.emit('injury',{t,id});return id}
+function inflictInjury(t,head,perm,slow){if(!t.m)return null;const id=rollInjury(t.m,head,perm,slow);if(!id)return null;(t.injNew||(t.injNew=[])).push(id);if(t.alive)applyInjury(t,id);float(t,INJ[id].n,'#ff7a6b');say(`${t.name}: ${INJ[id].n.toLowerCase()}.`);FX.emit('injury',{t,id});return id}
 /* Difficulty (22-run.js diffK, 1 on Normal): the company's own swords only. 'death' scales the chance a fallen merc is killed rather than
    struck down, 'injury' the chance a heavy blow injures and that a struck-down merc's wound is permanent. Rival mercs keep the plain odds. */
 const runK=k=>typeof diffK==='function'?diffK(k):1;
