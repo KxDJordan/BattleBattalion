@@ -38,8 +38,11 @@ function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSy
  G.roster=G.roster.filter(m=>!dead.includes(m));dead.forEach(m=>{res.dead.push(m.name);if(win)['w','b','s','a','h','c'].forEach(k=>{if(m.eq[k])G.stash.push(m.eq[k])})});
  if(b.rival)rivalResolve(b,res,win);   // the rival company's dead, wounded and fled; its purse, gear and a beaten sword who asks to join
  if(win)res.cargo=caravanCargo(b.opts.src);
- if(win){const en=b.units.filter(u=>u.side!==0);en.forEach(e=>res.xp+=Math.round((e.def&&e.def.xp||(e.m?rivalXP(e.m):0))*(1+XPRANK*Math.max(0,+e.rank||0))*(e.elite&&typeof eliteXpK==='function'?eliteXpK(e):1)));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=(typeof followerHas==='function'&&followerHas('drill')?1.2:1)*(typeof originK==='function'?originK('xp'):1);res.share=Math.round(res.xp*res.xpK/Math.max(1,surv.length));   // the drillmaster: +20%
-  surv.forEach(m=>{const l=m.lvl;gainXP(m,res.share);if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});const r=rows.get(m);r.lvl=m.lvl;r.from=l}});
+ // the battle's tally for every sword (68a-aar.js): kills, damage dealt and taken; the score that earns bonus xp on a win
+ const tot=aarFoeTotals(b);for(const u of pu){const r=rows.get(u.m);if(!r)continue;r.st=aarStats(u);r.score=aarScore(r.st,tot)}
+ if(win){const en=b.units.filter(u=>u.side!==0);en.forEach(e=>res.xp+=foeXpOf(e));const surv=pu.filter(u=>!dead.includes(u.m)).map(u=>u.m);res.xpK=(typeof followerHas==='function'&&followerHas('drill')?1.2:1)*(typeof originK==='function'?originK('xp'):1);const pool=res.xp*res.xpK;res.share=Math.round(pool*AAR.base/Math.max(1,surv.length));   // the drillmaster: +20%
+  res.bonus=0;surv.forEach(m=>{const l=m.lvl,x0=m.xp,r=rows.get(m),bo=r&&r.st?aarBonus(r.st,tot,pool,res.share):0;gainXP(m,res.share+bo);res.bonus+=bo;if(r)r.xp={base:res.share,bonus:bo,p0:aarPct(l,x0),p1:aarPct(m.lvl,m.xp),lvl0:l};   // base + bonus for kills and damage
+   if(m.lvl>l){res.levels.push({name:m.name,lvl:m.lvl,from:l,opens:brOpens(l,m.lvl)});r.lvl=m.lvl;r.from=l}});
   res.crowns=Math.round(res.xp*(.15+rnd()*.15));G.crowns+=res.crowns;en.forEach(e=>{const L=FACT[e.f]&&!e.m?(FACT[e.f].loot||[]).filter(id=>ITEMS[id]):[];if(L.length&&rnd()<(e.elite&&typeof eliteLootCh==='function'?eliteLootCh(e,.18):.18))res.loot.push(e.elite&&typeof eliteLootPick==='function'?eliteLootPick(e,L):pick(L))});
   // helmets come off the fallen too, where the faction's own loot table carries none
   {const L=FACT[b.opts.f]&&FACT[b.opts.f].loot||[],H=Object.keys(ITEMS).filter(k=>ITEMS[k].k==='h'&&!ITEMS[k].uniq&&!ITEMS[k].famed&&!ITEMS[k].glad);
@@ -146,7 +149,7 @@ function brRival(res){const rr=res.rival;if(!rr)return'';const r=typeof battleRi
  return h}
 // The joiner's answer from the results sheet (UI: no randomness). Redraws the sheet.
 function brJoin(yes){const res=B&&B.result;if(!res||!res.rival||!res.rival.joiner)return;const j=res.rival.joiner;if(yes){if(!rivalJoin(res)&&typeof toast==='function')toast(j.solo?(typeof recruitWhy==='function'?recruitWhy():'You ride alone'):j.room?'He cannot join now':'The roster is full')}else j.declined=true;
- if(typeof sheet==='function')sheet(battleResultHTML(res))}
+ if(typeof sheet==='function')sheet(battleResultHTML(res),'brw')}
 // The fabled warriors of the battle (res.fabled from 21-fabled.js fabledResolve): who fell for good, who yielded, what named gear was taken.
 function brFabled(res){const L=res.fabled||[];if(!L.length)return'';return L.map(x=>{const nm=`<b>${x.n}</b>, ${x.title},`;
  if(x.side===0)return x.fate==='dead'?`<p class="bad br-fab">${nm} has fallen. The songs will end there.</p>`:'';
@@ -154,7 +157,7 @@ function brFabled(res){const L=res.fabled||[];if(!L.length)return'';return L.map
  if(x.fate==='dead')return`<p class="good br-fab">${nm} is dead, for good.${x.drops.length?' You take '+x.drops.map(g=>`<b class="fmd-n">${ITEMS[g].n}</b>`).join(' and ')+'.':''}</p>`;
  return`<p class="dim br-fab">${nm} ${x.fate==='down'?'is carried from the field by their own':x.fate==='fled'?'leaves the field':'still stands'}.</p>`}).join('')}
 function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'||r.inj.length||r.arm||r.helm||r.lvl||r.shield),fine=(res.men||[]).length-men.length;let h;
- if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
+ if(res.win)h=`<h2>Victory</h2><p>Each survivor earns ${res.share} xp${res.bonus>0?', more for kills and damage':''}. You strip <span class="coin">${res.crowns} crowns</span> from the field${res.loot.length?' and carry off:':'.'}</p>`;
  else h=`<h2>${res.fled?'Retreat':'Defeat'}</h2><p>${res.fled?'The company breaks away and regroups.':'The line is broken.'}</p>`;
  h+=brObjLine(res);
  if(res.win&&res.loot.length)h+=`<div class="br-loot">${res.loot.map(brItem).join('')}</div>`;
@@ -168,13 +171,15 @@ function battleResultHTML(res){const men=(res.men||[]).filter(r=>r.state!=='ok'|
  // the plain lines stay (and stay first) for anyone reading the dialog as text
  const lines=res.down.map(n=>`${n} was struck down but lives.`).concat(res.dead.map(n=>`<span class="bad">${n} is dead.</span>`),res.levels.map(l=>`<span class="coin">${l.name} reached level ${l.lvl}${(l.opens||[]).length?'. '+l.opens.join('. '):''}.</span>`),
   (res.withdrew||[]).map(n=>`${n} withdrew from the field.`),(res.routed||[]).map(n=>`<span class="bad">${n} broke and fled.</span>`),(res.injuries||[]).map(j=>`<span class="bad">${j.name}: ${j.n.toLowerCase()} (${j.d}).</span>`));
- if(men.length)h+=`<div class="br-men">${men.map(brMan).join('')}</div><div class="br-txt">${lines.map(l=>`<p>${l}</p>`).join('')}</div>`;
+ // every sword that fought: the after-action cards (68a-aar.js); the older cards of the swords with news only when that file is missing
+ if(typeof aarHTML==='function'&&(res.men||[]).length)h+=aarHTML(res)+`<div class="br-txt">${lines.map(l=>`<p>${l}</p>`).join('')}</div>`;
+ else if(men.length)h+=`<div class="br-men">${men.map(brMan).join('')}</div><div class="br-txt">${lines.map(l=>`<p>${l}</p>`).join('')}</div>`;
  else h+=lines.map(l=>`<p>${l}</p>`).join('');
- if(men.length&&fine>0)h+=`<p class="dim br-fine">${fine===1?'One sword':fine+' swords'} came through untouched.</p>`;
+ if(typeof aarHTML!=='function'&&men.length&&fine>0)h+=`<p class="dim br-fine">${fine===1?'One sword':fine+' swords'} came through untouched.</p>`;
  if(res.repair>0)h+=`<p class="br-rep ${res.tools>=res.toolsNeed?'':'short'}">${brIcon('tools')}<span>Armor and helmets need <b>${res.repair}</b> points of mending: <b>${res.toolsNeed} tool${res.toolsNeed===1?'':'s'}</b>. You carry ${res.tools}.${res.tools>=res.toolsNeed?' Make camp or rest at an inn to repair.':' Buy tools at a market.'}</span></p>`;
  return`<div class="br">${h}</div><button class="pri" onclick="afterBattle(${res.win?1:0})">Continue</button>`}
 function endBattle(win){const b=B;if(!b)return null;if(b.result)return b.result;b.over=true;b.busy=true;const res=resolveBattle(win);
- if(!b.opts.quiet&&typeof sheet==='function')sheet(battleResultHTML(res));if(b.onEnd)b.onEnd(res);return res}
+ if(!b.opts.quiet&&typeof sheet==='function')sheet(battleResultHTML(res),'brw');if(b.onEnd)b.onEnd(res);return res}
 // Rules: leaves the battle and applies its consequences to the campaign. Returns what happened:
 // {kind:'wiped',days} | {kind:'world',toast?} | {kind:'dunNext',stage,realm} | {kind:'dunDone',pay,ended}
 // src is only given when there is no battle to read it from (a withdrawal before the first blow, see fleeEncounter).

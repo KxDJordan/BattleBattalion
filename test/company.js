@@ -117,7 +117,7 @@ section('followers');
     ok(i0>=0,'a straight road for the test');const step=q=>{G.retinue=q?['carto']:[];G.grace=99;G.parties=[];G.contract=null;const x=(i0%X.WN+.5)*X.TS,y=(((i0/X.WN)|0)+.5)*X.TS;G.p={x,y};G.path=[{x:x+3*X.TS,y}];G.moving=true;G.note=null;X.sheetOpen=false;if(G.amb)G.amb.cel=[];X.worldTick(.05);return G.p.x-x};
     const a=step(0),b=step(1);ok(Math.abs(b/a-1.15)<1e-6,'cartographer: '+a.toFixed(3)+' -> '+b.toFixed(3));G.moving=false;G.path=[] }
   // drillmaster and herbalist through resolveBattle
-  { G=fresh(SEED+4);const share=q=>{G.retinue=q?['drill']:[];X.seedRng(SEED+40);return fightOnce({f:'gob'})};const a=share(0),b=share(1);ok(b.xpK===1.2&&b.share===Math.round(b.xp*1.2/Math.max(1,G.roster.length)),'drillmaster: '+a.share+' -> '+b.share+' xp');
+  { G=fresh(SEED+4);const share=q=>{G.retinue=q?['drill']:[];X.seedRng(SEED+40);return fightOnce({f:'gob'})};const a=share(0),b=share(1);ok(b.xpK===1.2&&b.share===Math.round(b.xp*1.2*X.AAR.base/Math.max(1,G.roster.length)),'drillmaster: '+a.share+' -> '+b.share+' xp');
     ok(Array.isArray(a.slain)&&a.slain.length===a.foeKeys.length&&a.slain.every(k=>X.EN[k]),'the result lists the slain foes by EN key');
     const had=X.partsDrop;X.partsDrop=res=>[{key:'pt_a',n:2},{key:'pt_b',n:1}];const PP=X.PARTS;if(PP){PP.pt_a={n:'Test A',d:'',tier:1,icon:'skull'};PP.pt_b={n:'Test B',d:'',tier:1,icon:'skull'}}
     let tot0=0,tot1=0;for(let i=0;i<30;i++){G.parts={};G.retinue=[];X.seedRng(SEED+60+i);const r0=fightOnce({f:'gob'});tot0+=G.parts.pt_a+G.parts.pt_b;ok(r0.parts.length===2,'parts listed in the result');
