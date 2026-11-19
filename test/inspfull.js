@@ -131,7 +131,10 @@ async function run(b,W,H,touch,shot){const tag=W+'x'+H+(touch?' touch':' mouse')
   ok(st.full&&!st.on,tag+': a long press on the chip should list its tooltips, not open the card '+JSON.stringify(st));ok(f.inside&&(f.unclipped||await p.evaluate(()=>{const e=document.getElementById('insfull');e.scrollTop=1e6;const ok=e.scrollTop>0&&getComputedStyle(e).overflowY==='auto';e.scrollTop=0;return ok})),tag+': the chip tooltips are clipped and do not scroll');
   ok(f.text.includes(await p.evaluate(()=>STATUS.burn.d)),tag+': the chip list lacks the Burning rule text');await p.keyboard.press('Escape');await p.waitForTimeout(60)}
  // the forecast window's tooltips by a long press (no strike)
- const fc=await p.evaluate(()=>{B.sel=null;const u=B.cur;for(const t of B.units){if(t.side!==1||!t.alive)continue;const a=aimAt(key(t.c,t.r));if(a&&a.t){fcShow(a,true);return{ap:u.ap,hp:t.hp,n:t.name}}}return null});
+ const fc=await p.evaluate(()=>{B.sel=null;const u=B.cur;
+  // a foe brought next to the acting unit (placement only, no rules run) so the forecast has someone to read
+  if(!B.units.some(t=>t.side===1&&t.alive&&aimAt(key(t.c,t.r)))){const t=B.units.find(x=>x.side===1&&x.alive&&(x.sz||1)===1);if(t)for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){const c=u.c+dc,r=u.r+dr;if(inb(c,r)&&footFree(c,r,1,t)){t.c=c;t.r=r;if(typeof reseatUnits==='function')reseatUnits();break}}}
+  for(const t of B.units){if(t.side!==1||!t.alive)continue;const a=aimAt(key(t.c,t.r));if(a&&a.t){fcShow(a,true);return{ap:u.ap,hp:t.hp,n:t.name}}}return null});
  if(fc&&await p.locator('#fcw').isVisible()){const bb=await p.locator('#fcw').boundingBox();await longPress(p,bb.x+bb.width/2,bb.y+Math.min(20,bb.height/2));await p.waitForTimeout(250);
   const after=await p.evaluate(n=>({ap:B.cur.ap,hp:B.units.find(x=>x.name===n).hp,busy:B.busy}),fc.n);st=await cardState(p);f=await fullState(p);
   ok(after.ap===fc.ap&&after.hp===fc.hp&&!after.busy,tag+': the long press on the forecast struck');ok(st.full&&/Forecast/.test(f.name)&&f.inside,tag+': no forecast tooltip list '+JSON.stringify(f));
