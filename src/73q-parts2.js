@@ -25,10 +25,13 @@ const P2_ARMOR=[
  ['red and gold jacket','rust'],['green ranger','green'],['navy officer','blue'],['fur coat','rust'],['purple mage, gem','grey'],['teal eastern robe','green'],['steel and gold','grey'],['brown leather, pouches','rust'],['white star tabard','blue'],['black, red and gold','grey'],
  ['rags','tan'],['torn leather','rust'],['quilted gambeson','tan'],['red studded','rust'],['mail','blue'],['brigandine','rust'],['scale','grey'],['lamellar','grey'],['red lamellar','rust'],['blue robe','blue'],
  ['monk robe','tan'],['purple mage robe','grey'],['blue cross tabard','blue'],['dark red cloak','rust'],['green ranger, baldric','green'],['brown jerkin','rust'],['quilted, laced','tan'],['dark leather','grey'],['blue patterned robe','blue'],['red and gold vestment','rust'],
- ['black, crescent','grey'],['white and blue wrap','blue'],['green leaf robe','green'],['dark rogue','grey']];
-/* each armour's class for recolouring (sheet order): p metal body (plate, mail, scale, lamellar: its primary follows the metal finish), l leather body,
+ ['black, crescent','grey'],['white and blue wrap','blue'],['green leaf robe','green'],['dark rogue','grey'],
+ // 51-62: the tribal armour sheet (tribal-armor.webp, assets/make-tribal-armor.py), worn by the tribal figures (P2_TRIBAL_ARMOR)
+ ['tribal fur vest','rust'],['stitched hide','tan'],['claw necklace vest','rust'],['hide wraps, red sash','tan'],['dark hide, claws','grey'],['painted spirals','rust'],
+ ['scaled hide vest','grey'],['cord and pendant tunic','tan'],['studded hide','rust'],['fur mantle','tan'],['green wrap','green'],['tooth necklace vest','rust']];
+/* each armour's class for recolouring (sheet order, then the tribal sheet's 12): p metal body (plate, mail, scale, lamellar: its primary follows the metal finish), l leather body,
    c cloth body (tunics, robes, gambesons, tabards). See p2Dress. */
-const P2_ACLASS='pppppppcpp'+'ccccclcccc'+'lccplccclc'+'lplpppcccc'+'cclclcccccc';
+const P2_ACLASS='pppppppcpp'+'ccccclcccc'+'lccplccclc'+'lplpppcccc'+'cclclcccccc'+'lllclllcllcl';   // + the tribal sheet (51-62)
 const P2A_IDX=n=>{for(let i=0;i<P2_ARMOR.length;i++)if(P2_ARMOR[i][0]===n)return i;return 0};
 // game armour (item id, its look, or the figure's armour kind) -> armour set
 const P2_ARMOR_OF={
@@ -96,7 +99,7 @@ function p2Tribal(L,hs){if(!P2A.p.trh0||!L.key)return null;const k=L.key.split('
  if(k[0]==='m'){if(hs.race!=='human'||hs.el||hs.orc||!P2_TRIBAL_BG[k[4]])return null;id='m'+k[1]}
  else if(k[0]==='e'){if(!P2_TRIBAL_FOE[k[1]])return null;id='e'+k[1]}else return null;
  const h=p2Hash(id),i=h%20,v=(h>>>8)%10,pc=P2_PAINT_OF[L.S.paint]||['red','woad','clay'][(h>>>12)%3];
- return{i,paint:v===8?'ochre':v===9?'soot':pc}}
+ return{i,h,paint:v===8?'ochre':v===9?'soot':pc}}
 function p2PaintCol(n){return P2_PAINT[n]||(typeof TRA==='object'&&TRA.mark)||'#8f3421'}
 // a layer of piece P drawn on g (canvas origin = the piece's top-left with p2Piece's 1 px margin), col multiplies it
 function p2Lay(g,P,m,col){const l=P.L[m];if(!l)return;const I=p2Img(l[0]);if(!I)return;const k=P2A.k;if(!col){g.drawImage(I,l[1],l[2],l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k);return}
@@ -165,7 +168,13 @@ function p2Rig(n,px,py,extra){const P=P2A.p[n];const R=Object.assign({w:P.w,h:P.
 function p2Hex(c){return(String(c).match(/[0-9a-f]{2}/gi)||['80','80','80']).map(h=>parseInt(h,16))}
 function p2Near(col,list){const a=p2Hex(col);let best=0,bd=1e9;list.forEach((q,i)=>{const b=p2Hex(q[1]);const d=(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;if(d<bd){bd=d;best=i}});return best}
 function p2AvKey(av){if(!av||typeof US_AV!=='object')return null;for(const k in US_AV)if(US_AV[k]===av)return k;return null}
+/* the tribal figures (p2Tribal: Wildlings, the barbarian crisis warriors) wear the tribal sheet's armours for the light armours a tribe would
+   make (the item, or a foe's armour kind): each item lists the fitting tribal pieces, the figure's id picks one (stable). Every other armour,
+   and everyone else, as before. Only the drawing changes, never the item. */
+const P2_TRIBAL_ARMOR={rags:[3,7,10],hide:[0,1,2,4,5,9,11],leather:[0,1,5,8,11],jack:[1,7,8],padded:[7,3,10],studded:[8],
+ k_rags:[3,10],k_bare:[2,11],k_fur:[9,0,4],k_leather:[1,8,0,5],k_padded:[7,3]};
 function p2Armor(L){const S=L.S,hs=humSpec(L);let n=null;const id=S.armId;
+ const tri=p2Tribal(L,hs),tl=tri&&(id?P2_TRIBAL_ARMOR[id]:P2_TRIBAL_ARMOR['k_'+S.armor]);if(tl&&!S.coat)return 51+tl[(tri.h>>>16)%tl.length];
  if(id){n=P2_ARMOR_OF[id]||null;if(!n&&typeof usFamedBase==='function'&&usFamedBase(id))n=P2_ARMOR_OF[usFamedBase(id)]||null;if(!n&&typeof usLookOf==='function')n=P2_ARMOR_OF[usLookOf(id)]||null}
  if(!n&&L.key[0]==='m'&&!id){const t=P2_TUNIC[p2Near(hs.C.body,P2_TUNIC)];n=t[0]}   // no armour: the plain tunic in the look's cloth colour
  if(!n){const k=p2AvKey(S.av);if(k)n=P2_ARMOR_OF[k]||null}
