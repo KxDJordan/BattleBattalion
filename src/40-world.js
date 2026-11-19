@@ -278,11 +278,16 @@ function rollFaction(ctx){ctx=ctx||{};let pool=factionPool(ctx).filter(e=>!ctx.o
 // The contract title for a hunt of faction f at (x,y): FACT[f].lair, with {place} filled from the land around it (no rnd draw).
 const PEAKN=['Greyspire','the Cold Teeth','Ravenfell','the Black Crag','Hollowpeak','Skarnholt','the Widow\'s Tor','Frostmantle'];
 function lairTitle(f,x,y){const L=FACT[f]&&FACT[f].lair||'Clear a lair';if(!L.includes('{place}'))return L;const h=Math.abs(Math.floor((x||0)/TS)*31+Math.floor((y||0)/TS)*17);return L.replace('{place}',PEAKN[h%PEAKN.length])}
-function spawnParty(f){let pos=null;
- if(!f&&G.crisis&&(G.crisis.k||'sunder')==='sunder'&&rnd()<2/7)f='void';
- if(!f){const r=rollFaction({x:G.p.x,y:G.p.y,minT:9,maxT:26,crisis:false});if(r){f=r.f;pos={x:r.x,y:r.y}}}
- if(!f)f=pick(['gob','bandit','beast','undead']);if(!pos)pos=randOk(G.p.x,G.p.y,9,26);
- const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5,goal:'roam'};if(typeof runModF==='function')p.mult*=runModF('mult',f,1);setPatrol(p);G.parties.push(p);return p}
+/* spawnParty(f, o): a band forms 9..26 tiles from the company. With no faction named, the place comes first and the family second, by
+   habitat (habRoll, 40s-spawns.js: the night-bound dead only by night); o = {only: [factions], night} narrows it (the dusk rising).
+   Its strength: .65..1.15 (end tier .8..1.2) x the wilds' factor for its distance from civilization (habWild: p.wild, x.9..x1.4). */
+function spawnParty(f,o){let pos=null,fam=null;o=o||{};
+ if(!f&&!o.only&&G.crisis&&(G.crisis.k||'sunder')==='sunder'&&rnd()<2/7)f='void';
+ if(!f){const r=typeof habRoll==='function'?habRoll({x:G.p.x,y:G.p.y,minT:9,maxT:26,crisis:false,only:o.only,night:o.night}):rollFaction({x:G.p.x,y:G.p.y,minT:9,maxT:26,crisis:false});if(r){f=r.f;fam=r.fam||null;pos={x:r.x,y:r.y}}else if(o.only)return null}
+ if(!f)f=pick(typeof isNight==='function'&&!isNight()?['gob','bandit','beast']:['gob','bandit','beast','undead']);if(!pos)pos=randOk(G.p.x,G.p.y,9,26);
+ const T=FACT[f].tier,p={id:G.nid++,x:pos.x,y:pos.y,tx:pos.x,ty:pos.y,f,mult:T==='end'?.8+rnd()*.4:.65+rnd()*.5,goal:'roam'};if(typeof runModF==='function')p.mult*=runModF('mult',f,1);
+ if(!fam&&typeof habFamAt==='function'&&habFams(f).length>1)fam=habFamAt(f,p.x,p.y);if(fam&&fam!==f)p.fam=fam;if(typeof habWild==='function')habWild(p);
+ setPatrol(p);G.parties.push(p);return p}
 // Wages: wageOf(m) (14-company.js: background, traits, paymaster). Rations: one a sword a day, 0.8 with the quartermaster (G.foodAcc keeps the fraction).
 function newDay(){if(typeof healInjuriesDaily==='function')healInjuriesDaily();let wage=0;if(typeof companyWages==='function')wage=companyWages();else G.roster.forEach(m=>wage+=BG[m.bg].wage);G.crowns-=wage;let msg=`Day ${G.day}: paid ${wage} crowns in wages`;
  if(G.crowns<0){G.crowns=0;const D=typeof isekaiIsHero==='function'?G.roster.filter(m=>!isekaiIsHero(m)):G.roster;   // The Isekai's hero never deserts (the same draws for every other company)
@@ -317,13 +322,16 @@ function partyBattle(p){if(p&&p.goal==='caravan'&&typeof cvCaravanBattle==='func
  if(p&&p.gar!=null&&typeof grPartyBattle==='function')return grPartyBattle(p);   // a town's garrison: the house's soldiers in its livery (43-garrisons.js)
  const o0=partyBattle0(p);if(o0&&!o0.livery&&isHouse(o0.f)&&typeof grLivery==='function'){const L=grLivery(o0.f);if(L)o0.livery=L}return o0}   // house soldiers carry the house's livery (o.livery: houseLivery, 46-banner.js)
 function partyBattle0(p){   // its guards, as the home town hired them (42-caravans.js)
- if(p&&p.goal==='merc'){const r=rivalById(p.f);if(r)return{f:p.f,rival:p.f,mult:rvMult(r),src:{type:'party',id:p.id,goal:'merc',pf:p.f}}}const o={f:FACT[p.f]?p.f:'bandit',mult:p.mult,src:{type:'party',id:p.id,goal:p.goal||'roam',pf:p.f}};const r=p&&p.cr&&typeof crPartyBattle==='function'?crPartyBattle(p,o):o;if(p&&p.fab){const L=Array.isArray(r.fabled)?r.fabled.slice():[];if(!L.includes(p.fab))L.push(p.fab);r.fabled=L.slice(0,2)}return r}   // a fabled leader of a host (p.fab, 19-east.js)
+ if(p&&p.goal==='merc'){const r=rivalById(p.f);if(r)return{f:p.f,rival:p.f,mult:rvMult(r),src:{type:'party',id:p.id,goal:'merc',pf:p.f}}}const o={f:FACT[p.f]?p.f:'bandit',mult:p.mult,src:{type:'party',id:p.id,goal:p.goal||'roam',pf:p.f}};const r=p&&p.cr&&typeof crPartyBattle==='function'?crPartyBattle(p,o):o;
+ if(r===o){const U=typeof habUnits==='function'?habUnits(p):null;if(U&&U.length)o.units=U;if(p.wild>0)o.wild=p.wild}   // a beast family's own warband; the wilds' elites (40s-spawns.js)
+ if(!r.biome&&!r.realm){const bk=BIOKEY[tileAt(p.x,p.y)];if(bk&&BIO[bk])r.biome=bk}   // the battle is fought on the band's own ground
+ if(p&&p.fab){const L=Array.isArray(r.fabled)?r.fabled.slice():[];if(!L.includes(p.fab))L.push(p.fab);r.fabled=L.slice(0,2)}return r}   // a fabled leader of a host (p.fab, 19-east.js)
 function partyLabel(p){const f=factName(p.f),T=n=>G.towns[n]?G.towns[n].name:'';if(p.cr&&typeof crHostName==='function'){const n=crHostName(p).replace(/^./,c=>c.toUpperCase());return p.siegeT!=null?`${n}, besieging ${T(p.siegeT)}`:p.back?`${n}, carrying plunder north`:p.cr==='hhost'?`${n}, marching north against the Emperor`:`${n}, bound for ${T(p.to)}`}switch(p.goal){
   case 'merc':return rivalLabel(rivalById(p.f))||f;
   case 'caravan':return`Caravan of ${f==='Free towns'?T(p.from):f}, bound for ${T(p.to)}`;
   case 'patrol':if(p.gar!=null&&typeof grLabel==='function')return grLabel(p);return p.siege!=null?`The host of ${f} besieging ${T(p.siege)}`:p.hunt?`${f} riders hunting the company`:`Patrol of ${f}`;
   case 'raid':return`${f} raiders, bound for ${T(p.to)}`;
-  case 'nest':return`${f} from a nest`;default:return f}}
+  case 'nest':return`${(typeof habName==='function'&&habName(p))||f} from a nest`;default:return(typeof habName==='function'&&habName(p))||f}}
 // The player attacks a party that would not attack it: costs standing with its owner (caravans more). Returns the battle options used.
 function attackParty(id){const p=G.parties.find(q=>q.id===id);if(!p)return null;
  if(p.goal==='merc'){const r=rivalParleyDo(p,'attack');if(!r.fight)return null;G.moving=false;G.route=[];engage(r.fight);return r.fight}   // a rival company: as the parley's 'attack' (rivalParleyDo)
@@ -432,10 +440,10 @@ function wsNestSpot(){const F=worldFields();if(!F)return null;for(let a=0;a<80;a
 function wsNests(news){const day=G.day,fs=['gob','bandit','beast'];if(day>=12)fs.push('orc','undead');if(typeof runModNestFs==='function')runModNestFs(fs);
  for(const n of G.nests){n.str=Math.round(Math.min(WSIM.nestMax,n.str+WSIM.nestGrow+day*.0012)*100)/100;n.n=svNum(n.n,0)+1;
   let bands=0;for(const p of G.parties)if(p.home===n.id)bands++;
-  if(bands<1+Math.floor(n.str)&&n.n>=Math.max(2,Math.round(7-n.str*1.5))){n.n=0;const mult=Math.round((.55+n.str*.22)*100)/100;
-   if(n.str>=2&&rnd()<.55){const ti=nearestTown(n.x,n.y);const p=wsSpawnRaid(n.f,n.x,n.y,ti,mult,n.id);if(p&&Math.hypot(n.x-G.p.x,n.y-G.p.y)<WSIM.live*TS*1.5)news.push(`${FACT[n.f].n} march out of their nest toward ${G.towns[ti].name}`)}
-   else{const pos=randOk(n.x,n.y,1,3),p=wsAdd({x:pos.x,y:pos.y,f:n.f,goal:'nest',home:n.id,mult});setPatrol(p)}}}
- const maxN=Math.round(2+WN/32);if(G.nests.length<maxN&&rnd()<.16*(typeof runModK==='function'?runModK('nests',1):1)){const pos=wsNestSpot();if(pos){const f=pick(fs);G.nests.push({id:G.nid++,x:pos.x,y:pos.y,f,str:1,day,n:0})}}}
+  if(bands<1+Math.floor(n.str)&&n.n>=Math.max(2,Math.round(7-n.str*1.5))&&!(typeof nightBoundF==='function'&&nightBoundF(n.f)&&!isNight())){n.n=0;const mult=Math.round((.55+n.str*.22)*100)/100;
+   if(n.str>=2&&rnd()<.55){const ti=nearestTown(n.x,n.y);const p=wsSpawnRaid(n.f,n.x,n.y,ti,mult,n.id);if(p&&typeof habFamAt==='function'){const fm=habFamAt(n.f,n.x,n.y);if(fm!==n.f)p.fam=fm}if(p&&Math.hypot(n.x-G.p.x,n.y-G.p.y)<WSIM.live*TS*1.5)news.push(`${FACT[n.f].n} march out of their nest toward ${G.towns[ti].name}`)}
+   else{const pos=randOk(n.x,n.y,1,3),p=wsAdd({x:pos.x,y:pos.y,f:n.f,goal:'nest',home:n.id,mult});if(typeof habFamAt==='function'){const fm=habFamAt(n.f,pos.x,pos.y);if(fm!==n.f)p.fam=fm}setPatrol(p)}}}
+ const maxN=Math.round(2+WN/32);if(G.nests.length<maxN&&rnd()<.16*(typeof runModK==='function'?runModK('nests',1):1)){const pos=wsNestSpot();if(pos){const f=typeof habPickF==='function'?habPickF(fs,pos.x,pos.y):pick(fs);G.nests.push({id:G.nid++,x:pos.x,y:pos.y,f,str:1,day,n:0})}}}
 
 /* ---- towns: situations, prosperity ---- */
 function wsTowns(news){G.towns.forEach((t,i)=>{const keep=[],ended=[];for(const s of t.sit){s.days--;(s.days>0?keep:ended).push(s)}t.sit=keep;
@@ -509,9 +517,10 @@ function newLandsSheet(){const t=G.towns[0],n=G.portals.length;
  <p class="dim">Your swords, crowns, stores and renown came with you. Contracts from the old country were left behind${n?`, but the rifts have followed: ${n===1?'one burns':n+' burn'} in this land`:''}.</p><button class="pri" onclick="closeSheet()">March on</button>`)}
 function siteSheet(id){const s=G.sites&&G.sites.find(s=>s.id===id);if(!s)return;if(s.kind==='colo'&&typeof colSheet==='function')return colSheet(s.id);if((s.kind==='dgn'||s.kind==='dgnc')&&typeof dungeonSheet==='function')return dungeonSheet(s.id);if(s.cr&&typeof crSiteSheet==='function'&&crSiteSheet(s))return;const R=RUINS[s.n%RUINS.length]||RUINS[0],first=!s.v;s.v=1;
  sheet(`<h2>${R[0]}</h2><p>${R[1]}</p><p class="dim">${first?'The company rests a moment among the stones. There is nothing here to carry off.':'Nothing has changed since the company last passed.'}</p><button class="pri" onclick="closeSheet()">Move on</button>`)}
-function advanceTime(h,rate){G.hour+=h;if(G.grace>0)G.grace-=h;G.healAcc+=h*(rate||1)*(typeof followerHas==='function'&&followerHas('cook')?1.25:1);while(G.healAcc>=1){G.healAcc--;G.roster.forEach(m=>{const mx=calc(m).hp;if(m.hp<mx)m.hp++})}
+function advanceTime(h,rate){const t0=G.day*24+G.hour;G.hour+=h;if(G.grace>0)G.grace-=h;G.healAcc+=h*(rate||1)*(typeof followerHas==='function'&&followerHas('cook')?1.25:1);while(G.healAcc>=1){G.healAcc--;G.roster.forEach(m=>{const mx=calc(m).hp;if(m.hp<mx)m.hp++})}
  stepWeather(h);while(G.hour>=24){G.hour-=24;G.day++;newDay()}fogReveal();
  if(typeof cvTick==='function')cvTick(h);                                    // caravans and raiders: ambushes and clashes, an hour at a time (42-caravans.js)
+ if(typeof nightTick==='function')nightTick(t0);                            // the dead rise at dusk and go back to their graves at dawn (40s-spawns.js)
  if(typeof ctrTick==='function')ctrTick(h);                                  // contracts in hand: deadlines, escorts on the move (16-contracts.js)
  if(G.moving)travelTick(h)}
 /* travel events: on the march, the events agent's eventTick('travel', ctx) is offered a turn every 24..48 hours of travel (the gap is

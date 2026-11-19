@@ -9,6 +9,7 @@
      s = ELITE.share x ELITE.diff[difficulty] x p x runMod,   p = clamp((average fielded level - lvl0) / lvlSpan, 0, 1)
    (Story .15, Normal 1, Hard 1.6, Brutal 2.2; a level 2 company sees none; Normal at level 4 1.25%, 8 3.75%, 10+ 5%), capped at maxShare.
    runMod('elites') (27-runmods.js, when present) doubles it and lifts p to at least .5; runModK('elite',1) multiplies it.
+   A band from the wilds (o.wild 0..1, 40s-spawns.js) lifts p to at least ELITE.wildP x wild and multiplies s by 1 + ELITE.wild x wild.
    previewEnemies buys bodies with (1 - s) of the budget (eliteKeep); elitePlan then prices the elites at E = s/(1-s) x what the bodies
    cost (at most s x budget), and eliteSetup spends E: a foe is drawn weighted by its cost (leaders more often), a modifier it can carry
    at random, until E runs out (the last one with the chance what is left buys) or ELITE.maxPer of the band is elite. A warband
@@ -18,7 +19,7 @@
    own stream is not advanced, so a battle without elites rolls exactly as before.
    Rewards: XP x (1 + ELITE.xp a modifier); the loot roll of an elite succeeds with .18 + ELITE.loot a modifier (to lootMax) and
    picks from the dearer half of the faction's loot table (the same one draw either way). */
-const ELITE={share:.05,lvl0:2,lvlSpan:8,maxShare:.4,maxPer:.35,two:.6,rankCut:.6,xp:.5,loot:.22,lootMax:.7,
+const ELITE={wild:1,wildP:.25,share:.05,lvl0:2,lvlSpan:8,maxShare:.4,maxPer:.35,two:.6,rankCut:.6,xp:.5,loot:.22,lootMax:.7,
  diff:{story:.15,normal:1,hard:1.6,brutal:2.2},
  ward:.35,wardMin:10,split:.4,splitDmg:.7,boom:[10,.15],thorns:.25,bloodHeal:1/3};
 const elLc=s=>String(s||'').replace(/^./,c=>c.toLowerCase());
@@ -63,7 +64,9 @@ const ELITEK=Object.keys(ELITES);
 function eliteMods(){let k=1,on=false;try{if(typeof runMod==='function'&&runMod('elites')){k*=2;on=true}if(typeof runModK==='function'){const v=+runModK('elite',1);if(isFinite(v)&&v>=0)k*=v}}catch(e){}return{k,on}}
 function eliteShare(o){if(!o||o.rival||Array.isArray(o.roster)||o.fabledOnly||o.noElite)return 0;let F=[];try{F=battleField(o)}catch(e){F=[]}if(!F.length)return 0;
  const L=F.reduce((s,m)=>s+(+m.lvl||1),0)/F.length,D=ELITE.diff[typeof diffOf==='function'?diffOf():'normal'];if(!(D>0))return 0;
- const M=eliteMods();let p=clamp((L-ELITE.lvl0)/ELITE.lvlSpan,0,1);if(M.on)p=Math.max(p,.5);return clamp(ELITE.share*D*p*M.k,0,ELITE.maxShare)}
+ const M=eliteMods();let p=clamp((L-ELITE.lvl0)/ELITE.lvlSpan,0,1);if(M.on)p=Math.max(p,.5);
+ const w=svFin(o.wild)?clamp(o.wild,0,1):0;if(w>0)p=Math.max(p,ELITE.wildP*w);   // a band from deep in the wilds (40s-spawns.js): elites even for a young company, and more of them
+ return clamp(ELITE.share*D*p*M.k*(1+ELITE.wild*w),0,ELITE.maxShare)}
 function eliteKeep(o){return 1-eliteShare(o)}
 function eliteCost(id,f){const U=FACT[f]&&Array.isArray(FACT[f].units)?FACT[f].units:null;if(U){const e=U.find(x=>x[0]===id);if(e)return e[1];return U.reduce((s,x)=>s+x[1],0)/U.length}return 20}
 /* elitePlan(b,o,pv): called by startBattle before the foes are made: b.elitePlan = {s, E, p, D, capped} (and b.eRankK for a full band) */

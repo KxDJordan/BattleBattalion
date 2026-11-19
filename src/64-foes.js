@@ -55,7 +55,7 @@ function foeBleed(u,n){hurt(u,n,1,null,{pierce:1})}
    A company's level, the days passed, the band's strength (mult) and BUDGETK all reach the foes this way. */
 function foeBudget(o){if(typeof battleBudget==='function')return battleBudget(o);let b=0;(typeof battleField==='function'?battleField(o):fielded()).forEach(m=>b+=typeof mercBud==='function'?mercBud(m.lvl):12+m.lvl*5);return b*(o&&o.mult||1)*BUDGETK}
 function foeRank(f){const b=B;if(!b||!FACT[f])return 1;if(b.frank&&b.frank.f===f)return b.frank.x;
- const U=FACT[f].units;let avg=0;U.forEach(u=>avg+=u[1]);avg/=U.length;let bud=foeBudget(b.opts)*(b.eRankK||1);   // eRankK: a full warband's elites come out of its rank (64e-elites.js)
+ const U0=FACT[f].units,OU=b.opts&&b.opts.f===f&&Array.isArray(b.opts.units)&&b.opts.units.length?b.opts.units:null,U=OU||U0;let avg=0;U.forEach(u=>avg+=u[1]);avg/=U.length;let bud=foeBudget(b.opts)*(b.eRankK||1);   // eRankK: a full warband's elites come out of its rank (64e-elites.js)
 
  for(const id of b.opts.fixed||[]){const e=U.find(u=>u[0]===id);bud-=e?e[1]:0}
  const R=FOE_RANK,n=Math.max(1,(typeof battleField==='function'?battleField(b.opts):fielded()).length);
