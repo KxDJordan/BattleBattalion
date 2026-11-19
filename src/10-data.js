@@ -71,7 +71,7 @@ Object.assign(ITEMS,{
  arbalest:{k:'w',n:'Arbalest',wt:'crossbow',two:1,d:[54,80],ap:4,fat:12,rng:8,ign:.55,hit:10,reload:{ap:5,fat:16},price:2100,look:'arbalest',shot:'bolt'},
  pistol:{k:'w',n:'Wheellock pistol',wt:'flintlock',d:[36,54],ap:4,fat:6,rng:4,ign:.55,reload:{ap:5,fat:10},price:760,look:'pistol',shot:'ball',fx:'smoke'},
  duelpistol:{k:'w',n:'Duelling pistol',wt:'flintlock',d:[44,64],ap:4,fat:6,rng:5,ign:.6,hit:5,reload:{ap:5,fat:10},price:1600,look:'pistol',shot:'ball',fx:'smoke'},
- musket:{k:'w',n:'Musket',wt:'flintlock',two:1,d:[70,100],ap:5,fat:10,rng:7,ign:.6,hit:-5,reload:{ap:5,fat:14},price:1400,look:'musket',shot:'ball',fx:'smoke'},
+ musket:{k:'w',n:'Musket',wt:'flintlock',two:1,d:[70,100],ap:5,fat:10,rng:7,ign:.6,hit:-5,reload:{ap:4,fat:14},price:1400,look:'musket',shot:'ball',fx:'smoke'},
  roundshield:{k:'s',n:'Round shield',md:14,rd:14,fat:7,price:150,look:'round'},
  ironround:{k:'s',n:'Iron-rimmed round shield',md:18,rd:18,fat:9,price:520,look:'round'},
  spiked:{k:'s',n:'Spiked shield',md:12,rd:8,fat:8,spike:[16,26],price:340,look:'spiked'},
@@ -141,10 +141,12 @@ Object.assign(ITEMS,{
  huntxbow:{k:'w',n:'Hunting crossbow',wt:'crossbow',two:1,d:[24,38],ap:4,fat:7,rng:5,ign:.35,hit:10,reload:{ap:3,fat:6},price:150,shot:'bolt'},
  repeater:{k:'w',n:'Repeating crossbow',wt:'crossbow',two:1,d:[28,40],ap:4,fat:8,rng:5,ign:.35,hit:5,reload:{ap:2,fat:6},price:760,shot:'bolt'},
  windlass:{k:'w',n:'Dwarven windlass',wt:'crossbow',two:1,d:[64,92],ap:4,fat:12,rng:8,ign:.6,hit:10,reload:{ap:6,fat:18},price:3200,shot:'bolt'},
- // firearms: the deepest bite through armor, slow to load
- handgonne:{k:'w',n:'Hand cannon',wt:'flintlock',two:1,d:[30,50],ap:5,fat:6,rng:3,ign:.5,hit:-15,reload:{ap:5,fat:12},price:140,shot:'ball',fx:'smoke'},
- arquebus:{k:'w',n:'Arquebus',wt:'flintlock',two:1,d:[48,72],ap:5,fat:9,rng:6,ign:.55,hit:-10,reload:{ap:6,fat:14},price:420,shot:'ball',fx:'smoke'},
- blunder:{k:'w',n:'Blunderbuss',wt:'flintlock',two:1,d:[52,80],ap:5,fat:10,rng:3,ign:.5,hit:5,reload:{ap:5,fat:12},price:900,shot:'ball',fx:'smoke'},
+ // firearms: the deepest bite through armor, slow to load. The rebalance (test/firearms.js): no gun worse than -5 to hit, and every gun
+ // below tier 4 (and the musket) fires once a turn standing still (shot + reload = 9 AP, nothing left to step); Ramrod drill frees 2 AP
+ // for a step, and lets the jezail and the rifled long gun fire every turn. The wall gun stays a two-turn piece.
+ handgonne:{k:'w',n:'Hand cannon',wt:'flintlock',two:1,d:[30,50],ap:4,fat:6,rng:4,ign:.5,hit:5,reload:{ap:5,fat:12},price:140,shot:'ball',fx:'smoke'},
+ arquebus:{k:'w',n:'Arquebus',wt:'flintlock',two:1,d:[48,72],ap:4,fat:9,rng:6,ign:.55,hit:-5,reload:{ap:5,fat:14},price:420,shot:'ball',fx:'smoke'},
+ blunder:{k:'w',n:'Blunderbuss',wt:'flintlock',two:1,d:[52,80],ap:4,fat:10,rng:3,ign:.5,hit:5,reload:{ap:5,fat:12},price:900,shot:'ball',fx:'smoke'},
  longrifle:{k:'w',n:'Rifled long gun',wt:'flintlock',two:1,d:[84,118],ap:5,fat:11,rng:9,ign:.65,hit:5,reload:{ap:6,fat:16},price:3000,shot:'ball',fx:'smoke'},
  // shields
  targe:{k:'s',n:'Hide targe',md:8,rd:8,fat:3,price:55,look:'targe'},

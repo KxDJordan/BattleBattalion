@@ -97,6 +97,8 @@ section('making the hero, RPG (headless, through the creation screens)');
   const O=X.perkOptions(m);ok(O.filter(o=>o.kind==='weapon').every(o=>o.perk.wt==='flintlock')&&O.some(o=>o.kind==='weapon'),'the weapon tree offers only the firearm perk');
   ok(O.every(o=>o.kind!=='armor'||o.key==='heavyarmor'),'only the heavy armor tree');
   ok(X.ITEMS[m.eq.w].wt==='flintlock'&&X.armorClass(m)==='heavy'&&m.eq.b==='knife','kit: a firearm, heavy armor, a knife: '+JSON.stringify(m.eq));ok(m.cond&&m.cond.a<X.ITEMS[m.eq.a].arm,'the heavy kit comes battered');
+  { const W=X.ISK.gear.w,I=X.ITEMS,g=I[W.flintlock],bw=I[W.bow],h=it=>it.hit||0;ok(g&&bw&&h(g)>=h(bw),`the firearm start aims no worse than the bow start: ${W.flintlock} ${h(g)} to hit, ${W.bow} ${h(bw)}`);
+    ok(g.ap+g.reload.ap<=9,'the firearm start fires once a turn standing still: '+g.ap+' + '+g.reload.ap+' AP') }
   ok(m.lvl===1&&m.race==='human'&&m.bg==='isekai'&&X.BG[m.bg].n==='Isekai'&&m.traits.length===0&&Number.isInteger(m.pseed),'level 1 human of the Isekai background, with a face of their own');
   ok(G.crowns>=1200||(G.mods&&G.mods.length),'1,200 crowns (twists aside): '+G.crowns);ok(!X.isSolo()&&X.canRecruit()&&X.recruitWhy()==='','RPG: not solo, recruits welcome');
   // the trees bind: another family's perk and another armor class's cannot be learned; autoLearn keeps to the chosen trees
