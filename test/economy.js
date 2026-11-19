@@ -203,9 +203,15 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   return false};
  // the deploy screen's withdraw: a band the company did not choose to fight, met hurt, thin or outmatched, is declined (10% of the purse)
  {const eng=X.ctx.engage;X.ctx.engage=function(o){const s=o&&o.src||{};if(s.type==='party'&&(hpFrac()<.6||field().length<3||(o.mult||1)>appetite()+.05)){st.fled=(st.fled||0)+1;X.fleeEncounter(o);return null}return eng.apply(this,arguments)}}
- // the ledger: crowns in and out by kind (the game's own functions, wrapped)
- st.led={};for(const [fn,k] of [['newDay','wages'],['afterBattle','battle'],['ctrTurnIn','contracts'],['ctrAccept','contracts'],['buyItem','gear'],['hire','hire'],['buyFood','food'],['innRest','inn'],['sellItem','sales'],['sellTrade','sales'],['templeTreat','temple'],['buyTools','tools'],['campTrain','drill'],['fleeEncounter','withdraw'],['eventTick','events'],['evtPick','events']]){const f=X.ctx[fn];if(typeof f!=='function')continue;
-  X.ctx[fn]=function(){const c0=G()?G().crowns:0;const r=f.apply(this,arguments);const g=G();if(g){const d=g.crowns-c0;if(d)st.led[k]=(st.led[k]||0)+d}return r}}
+ // the ledger: crowns in and out by source (the game's own functions, wrapped; a nested call's crowns go to the inner one), in total
+ // (st.led) and by ten-day window (st.ledT[window][source]: the income and the spending of days 1-10, 11-20, ...)
+ st.led={};st.ledT=[];const LSTK=[];
+ const ledAdd=(k,d)=>{if(!d)return;st.led[k]=(st.led[k]||0)+d;const w=Math.floor(Math.max(0,(G().day||1)-1)/10),T=st.ledT[w]||(st.ledT[w]={});T[k]=(T[k]||0)+d};
+ for(const [fn,k] of [['newDay','wages'],['worldTick','world'],['afterBattle','battle'],['resolveBattle','strip'],['cargoTake','cargo'],['nestClear','nest'],['rvBattleEnd','rival'],['portalGo','endgame'],['portalSettle','endgame'],
+   ['dungeonSettle','dungeon'],['colSettle','colosseum'],['crisisEnd','crisis'],['eastEnd','east'],['cvBattleEnd','caravan'],['grBattleEnd','garrison'],['cvEscArrive','escort'],
+   ['ctrTurnIn','contracts'],['ctrAccept','contracts'],['openTown','town'],['buyItem','gear'],['hire','hire'],['buyFood','food'],['innRest','inn'],['sellItem','sales'],['sellTrade','trade'],['templeTreat','temple'],
+   ['buyTools','tools'],['repairAll','repairs'],['campTrain','drill'],['fleeEncounter','withdraw'],['eventTick','events'],['evtPick','events'],['orDay','events']]){const f=X.ctx[fn];if(typeof f!=='function')continue;
+  X.ctx[fn]=function(){const c0=G()?G().crowns:0;LSTK.push(0);let r;try{r=f.apply(this,arguments)}finally{const inner=LSTK.pop();const g=G();if(g){const d=g.crowns-c0;ledAdd(k,d-inner);if(LSTK.length)LSTK[LSTK.length-1]+=d}}return r}}
  // the line-up: the hurt and the injured sit out while at least five whole swords can take the field
  const setField=()=>{const R=G().roster,bad=m=>(m.inj||[]).some(j=>j.days>0)||m.hp<X.calc(m).hp*.5;const ok=R.filter(m=>!bad(m));const n=ok.length>=5?ok.length:R.length;
   R.forEach(m=>m.field=false);(ok.length>=5?ok:R).slice(0,X.MAXFIELD).forEach(m=>m.field=true);if(ok.length>=5&&ok.length<X.MAXFIELD)R.filter(bad).slice(0,Math.max(0,Math.min(X.MAXFIELD,7)-ok.length)).forEach(m=>m.field=true)};
