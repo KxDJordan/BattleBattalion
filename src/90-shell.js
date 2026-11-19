@@ -11,7 +11,7 @@
      SET.vol / SET.music / SET.sfx  0..1 master, music and effects (ambience rides on effects) volumes; SET.mute true: silent (26-audio.js)
    reducedMotion() is true when either SET.motion==='reduce' or the device asks for it; #app carries class .rm then. */
 const SETKEY='wyrdmarch_settings_v1';
-const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,rolls:true,detail:'high',awake:true,vol:.8,music:.6,sfx:.8,mute:false};
+const SET={speed:1,confirm:false,motion:'auto',deploy:true,theme:'verdigris',allyBars:true,rolls:true,detail:'high',bandNames:true,awake:true,vol:.8,music:.6,sfx:.8,mute:false};
 const setVol=v=>typeof v==='number'&&isFinite(v)?Math.round(Math.max(0,Math.min(1,v))*100)/100:null;
 let _setConfirmUser=false,_rmq=null;
 function coarsePointer(){try{return!!window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
@@ -21,12 +21,12 @@ function applyMotion(){const rm=reducedMotion();try{const a=$('app');if(a)a.clas
 function loadSettings(){SET.confirm=coarsePointer();
  try{const o=JSON.parse(storeGet(SETKEY)||'null');if(o&&typeof o==='object'){if(o.speed===1||o.speed===.35)SET.speed=o.speed;
    if(typeof o.confirm==='boolean'){SET.confirm=o.confirm;_setConfirmUser=true}if(o.motion==='auto'||o.motion==='reduce')SET.motion=o.motion;if(typeof o.deploy==='boolean')SET.deploy=o.deploy;
-   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.rolls==='boolean')SET.rolls=o.rolls;if(typeof o.awake==='boolean')SET.awake=o.awake;if(o.detail==='low'||o.detail==='high')SET.detail=o.detail;
+   if(typeof THEMES!=='undefined'&&THEMES[o.theme])SET.theme=o.theme;if(typeof o.allyBars==='boolean')SET.allyBars=o.allyBars;if(typeof o.rolls==='boolean')SET.rolls=o.rolls;if(typeof o.awake==='boolean')SET.awake=o.awake;if(o.detail==='low'||o.detail==='high')SET.detail=o.detail;if(typeof o.bandNames==='boolean')SET.bandNames=o.bandNames;
    for(const k of ['vol','music','sfx']){const v=setVol(o[k]);if(v!=null)SET[k]=v}if(typeof o.mute==='boolean')SET.mute=o.mute}}catch(e){}
  SPEEDF=SET.speed;
  try{_rmq=window.matchMedia('(prefers-reduced-motion: reduce)');const f=()=>applyMotion();if(_rmq.addEventListener)_rmq.addEventListener('change',f);else if(_rmq.addListener)_rmq.addListener(f)}catch(e){_rmq=null}
  applyMotion();applyTheme(SET.theme)}
-function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,rolls:SET.rolls,detail:SET.detail,awake:SET.awake,vol:SET.vol,music:SET.music,sfx:SET.sfx,mute:SET.mute};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
+function saveSettings(){const o={v:1,speed:SET.speed,motion:SET.motion,deploy:SET.deploy,theme:SET.theme,allyBars:SET.allyBars,rolls:SET.rolls,detail:SET.detail,bandNames:SET.bandNames,awake:SET.awake,vol:SET.vol,music:SET.music,sfx:SET.sfx,mute:SET.mute};if(_setConfirmUser)o.confirm=SET.confirm;return storeSet(SETKEY,JSON.stringify(o))}
 function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=SET.speed}
  else if(k==='deploy'){SET.deploy=!!v}
  else if(k==='confirm'){SET.confirm=!!v;_setConfirmUser=true;if(typeof fcClear==='function')fcClear()}
@@ -36,6 +36,7 @@ function setOpt(k,v){if(k==='speed'){SET.speed=v===.35?.35:1;if(SPEEDF>0)SPEEDF=
  else if(k==='allyBars'){SET.allyBars=!!v;try{if(typeof _allyBars!=='undefined')_allyBars=SET.allyBars}catch(e){}}
  else if(k==='rolls'){SET.rolls=!!v;if(typeof logRender==='function')logRender()}
  else if(k==='detail'){const v2=v==='low'?'low':'high';if(SET.detail!==v2){SET.detail=v2;if(typeof artChanged==='function')artChanged()}}
+ else if(k==='bandNames'){SET.bandNames=!!v;if(typeof WSG==='object')WSG.ok=false}
  else if(k==='mute'){SET.mute=!!v;if(!SET.mute&&typeof AUDIO!=='undefined')AUDIO.unlock();if(typeof AUDIO!=='undefined')AUDIO.apply()}
  else if(k==='vol'||k==='music'||k==='sfx'){const x=setVol(+v);if(x!=null)SET[k]=x;if(typeof AUDIO!=='undefined')AUDIO.apply()}
  saveSettings();settingsRefresh();if(mode==='battle'&&B)updateBUI()}
@@ -70,6 +71,7 @@ function settingsHTML(){const fs=canFullscreen(),full=isFullscreen();
  +row('hp','heart','Ally bars','Health and armor bars over your own swords in battle',seg('allyBars',[[true,'Show'],[false,'Hide']],SET.allyBars!==false))
  +row('ledger','ledger','Show rolls in log','The combat log shows each attack\'s roll against its hit chance, the head roll and other chance rolls',seg('rolls',[[true,'On'],[false,'Off']],SET.rolls!==false))
  +row('gem','gem','Detail','High-resolution art for battle tiles, figures, gear, icons and portraits; Low draws the original pixel art (lighter on older phones)',seg('detail',[['high','High'],['low','Low']],SET.detail==='low'?'low':'high'))
+ +row('banner','banner','Band names on map','Name plates under rival mercenary companies and town guards on the world map',seg('bandNames',[[true,'On'],[false,'Off']],SET.bandNames!==false))
  +(themes?row('banner','banner','Colours',(THEMES[SET.theme]||THEMES.verdigris).d,themes,'wide'):'')
  +row('info','sun','Motion','Auto follows this device'+(reducedMotion()&&SET.motion!=='reduce'?' (it asks for less motion)':''),seg('motion',[['auto','Auto'],['reduce','Reduced']],SET.motion))
  +(fs?row('fullscreen','full','Fullscreen','Hide the browser frame',seg('full',[[true,'On'],[false,'Off']],full)):'')

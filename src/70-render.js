@@ -416,10 +416,11 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  if(Array.isArray(G.nests))for(const n of G.nests){if(!n)continue;const x=n.x/WVU,y=n.y/WVU;if(!inV(x,y)||!worldSeen(n.x,n.y))continue;const ti=waNestTierSafe(n),fk=n.f||'bandit';
   wvPush(y,wvSprite('N'+fk+ti+(night>.5?'n':'d')+WV.f4%4,'N'+fk+ti,'site',{kind:'nest',f:fk,tier:ti,frame:WV.f4%4,night:night>.5}),x,false)}
  let pglow=false;for(const o of G.portals){const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y)||!vis(o.x,o.y))continue;pglow=true;wvPush(y,wvSprite('P'+o.realm+fs%12,'P'+o.realm,'site',{kind:'portal',realm:o.realm,size:1,frame:fs%12,night:night>.5}),x,false)}
+ const MLON=typeof mlBegin==='function';if(MLON)mlBegin();   // band names (70n-maplabels.js): candidates from the bands drawn
  for(const o of G.parties){const x=o.x/WVU,y=o.y/WVU;let b=WV.bd.get(o.id);if(!b){if(WV.bd.size>200)WV.bd.clear();b={x:o.x,dir:(o.tx||0)<o.x?-1:1,t:-1e9};WV.bd.set(o.id,b)}
   if(Math.abs(o.x-b.x)>.02){b.dir=o.x<b.x?-1:1;b.t=now}else if(o.x!==b.x||Math.abs((o.y-(b.y||0)))>.02)b.t=now;b.x=o.x;b.y=o.y;
   if(o.clash&&typeof cvOf==='function'){const cl=cvOf(o);if(cl)b.dir=o.x<cl.x?1:-1}   // a clash (42-caravans.js): the two face each other and fight on the spot
-  if(!inV(x,y)||!vis(o.x,o.y))continue;const mv=!!o.clash||now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
+  if(!inV(x,y)||!vis(o.x,o.y))continue;if(MLON)mlCand(o,x,y);const mv=!!o.clash||now-b.t<200,str=typeof partyStrength==='function'?partyStrength(o):o.mult<.8?1:o.mult<1?2:3,f=mv?fs%12:0;
   if(o.f==='east'&&WVE.on&&o.goal!=='caravan'){wvPush(y,wvEastBand(o,str,f,b.dir,mv),x,true);continue}   // a host of the Shogunate (77-east-art.js)
   if(o.goal==='merc'){const rv=wvRivalArt(o.f),sz=rv.n>8?'L':'s';   // a rival company under its own banner (41-worldart.js waMercPaint); the banner's colours are part of the key
    wvPush(y,wvSprite('Bm'+rv.sig+str+sz+b.dir+(mv?'m':'s')+f,'Bm'+rv.sig+str+sz+b.dir,'band',{f:o.f,str,n:rv.n,frame:f,dir:b.dir,moving:mv,goal:'merc',house:rv.bn}),x,true);continue}
@@ -434,6 +435,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
   let R=WV.ringR,k=1;const still=Math.abs(tr-WV.vr)<.75;if(still)WV.vr=tr;    // the rim is redrawn exact once the radius settles; while it moves the old rim is stretched
   if(R<0||(still&&R!==Math.round(tr))||WV.vr/R<.72||WV.vr/R>1.38)R=Math.round(WV.vr);if(!still)k=WV.vr/R;
   rc=wvRing(R);rD=Math.round(rc.width*k*sc)/sc;rX=Math.round((p.x/WVU-rD/2)*sc)/sc;rY=Math.round((p.y/WVU-rD/2)*sc)/sc}
+ if(MLON){try{mlLayout(dt,WV.plates,Math.max(1,Math.round(dpr*1.5)))}catch(e){ML.dn=0;if(!ML.warn){ML.warn=1;try{console.warn('world: band names failed: '+(e&&e.message||e))}catch(x){}}}}
  const wk=G.weather&&G.weather.kind,wx=!!(wk&&wk!=='clear'&&WVA.wx),wind=wx?Math.sin(G.day*1.7+Math.floor(G.hour/6)):0,dots=!!(G.moving&&G.path.length);
  // the draw list (see WSG)
  const cvOn=typeof cvDrawMap==='function'&&Array.isArray(G.clashes)&&G.clashes.some(c=>inV(c.x/WVU,c.y/WVU)&&vis(c.x,c.y));
@@ -448,6 +450,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  if(insW){wsg(insW.x);wsg(insW.y);wsg(insW.r);wsg(reduced||(now/260|0)&1)}else wsg(null);
  if(night>.02&&!reduced)for(let i=0;i<G.towns.length;i++){const o=G.towns[i];if(inV(o.x/WVU,o.y/WVU)&&worldSeen(o.x,o.y)){live=true;break}}
  for(let i=0;i<WV.np;i++){const q=WV.plates[i];wsg(q.c);wsg(q.x);wsg(q.y)}
+ if(MLON){mlSig(wsg);if(ML.live)live=true}
  if(wvCovered()){WSG.ok=false;for(let i=0;i<WSN;i++)wvSprCv(WSL[i].e);drawVignette(.42+night*.2);WV.boot=false;return}   // under the town view or the map: the sprites still take the light at a drawn frame's pace
  if(WSG.ok&&!live&&!WSG.live&&!WV.boot&&now-WSG.at<1000&&wsgSame()){drawVignette(.42+night*.2);return}
  {const a=WSG.a;WSG.a=WSG.b;WSG.b=a;WSG.pn=WSG.n;WSG.ok=true;WSG.at=now;WSG.live=live}
@@ -478,7 +481,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  // weather, in screen space at the art scale
  if(wx){g.setTransform(sc,0,0,sc,0,0);try{if(WVHD&&typeof whWeather==='function')whWeather(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind},WQ.K||WV.s);else drawWeatherPx(g,Math.ceil(W_/sc),Math.ceil(H_/sc),{kind:wk,frame:reduced?0:now/80,wind})}catch(e){wvFail('wx',e)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
  // name plates
- g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;const P=Math.max(1,Math.round(dpr*1.5));for(let i=0;i<WV.np;i++){const q=WV.plates[i],w=q.c.width*(q.hd?1:P),h=q.c.height*(q.hd?1:P);g.drawImage(q.c,Math.round(bx+q.x*sc-w/2),Math.round(by+q.y*sc-h),w,h)}
+ g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;if(MLON)mlDraw(g);const P=Math.max(1,Math.round(dpr*1.5));for(let i=0;i<WV.np;i++){const q=WV.plates[i],w=q.c.width*(q.hd?1:P),h=q.c.height*(q.hd?1:P);g.drawImage(q.c,Math.round(bx+q.x*sc-w/2),Math.round(by+q.y*sc-h),w,h)}
  g.setTransform(dpr,0,0,dpr,0,0);drawVignette(.42+night*.2);WV.boot=false;WV.cost+=(performance.now()-t0-WV.cost)*.1}
 
 /* ---- what is under a world point: the nearest thing the player can see there, else the tile ---- */
@@ -488,6 +491,7 @@ function worldPick(wx,wy,withCompany){if(!G||!W)return null;const pad=Math.max(0
  const c=G.contract,CM=lkCtrMarks();for(const m of CM)if(m.kind!=='turnin'&&(b=hit(m.x,m.y,16,14)))return{type:'lair',o:m,c,x:b.x,y:b.y,r:b.r,vis:worldVisible(m.x,m.y)};
  if(Array.isArray(G.nests))for(const n of G.nests)if(n&&worldSeen(n.x,n.y)&&(b=hit(n.x,n.y,22,16)))return{type:'nest',o:n,x:b.x,y:b.y,r:b.r,vis:worldVisible(n.x,n.y)};
  for(const o of G.parties)if(worldVisible(o.x,o.y)&&(b=hit(o.x,o.y,16,14)))return{type:'band',o,x:b.x,y:b.y,r:b.r};
+ if(typeof mlPick==='function'){const o=mlPick(wx,wy);if(o&&worldVisible(o.x,o.y))return{type:'band',o,x:o.x,y:o.y-14*WVU*.45,r:16*WVU*.5+3}}   // a band's name plate (70n-maplabels.js)
  if(withCompany&&(b=hit(G.p.x,G.p.y,16,16)))return{type:'company',x:b.x,y:b.y,r:b.r};
  if(G.sites)for(const o of G.sites)if(worldSeen(o.x,o.y)&&(b=hit(o.x,o.y,14,10)))return{type:'site',o,x:b.x,y:b.y,r:b.r};
  if(wx<0||wy<0||wx>=WS||wy>=WS)return null;const tx=Math.floor(wx/TS),ty=Math.floor(wy/TS);return{type:'tile',tx,ty,x:(tx+.5)*TS,y:(ty+.5)*TS,r:TS*.5,seen:worldSeen(wx,wy)}}
