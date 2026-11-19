@@ -37,7 +37,7 @@ function ctrRenownT(){return typeof renownTier==='function'?renownTier():1}
 function ctrPayRep(){return typeof renownDef==='function'?renownDef().pay:1+G.renown/300}
 // Contract pay follows the company's strength (companyPower: levels + gear of the fielded swords; a solo run counts its one sword twice),
 // renown (ctrPayRep) and the job's danger (CTR_PAYK by difficulty): never the day. CTRPAY = {base, k, e}: base + k x power^e crowns.
-const CTRPAY={base:250,k:36,e:.62};   // was {240,30,.75}: the pay of a strong company grows slower
+const CTRPAY={base:290,k:30,e:.66};   // was {240,30,.75}: the pay of a strong company grows slower
 function ctrPower(){let P=typeof companyPower==='function'&&G?companyPower():fielded().length*3;if(typeof isSolo==='function'&&isSolo())P=Math.max(P*2,8);return Math.max(0,P||0)}
 function ctrStrPay(){return CTRPAY.base+CTRPAY.k*Math.pow(ctrPower(),CTRPAY.e)}
 function ctrPayBase(diff,k){return Math.max(30,Math.round(ctrStrPay()*CTR_PAYK[clamp(diff,1,5)-1]*(k||1)*ctrPayRep()/10)*10)}
