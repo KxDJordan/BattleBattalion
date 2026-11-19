@@ -1033,7 +1033,7 @@ const HUDF=['f1','f2','f3','f4','f5'];
 function hudFit(){const h=typeof document==='object'?$('hud'):null;if(!h||h.classList.contains('hidden'))return 0;h.classList.remove(...HUDF);let k=0;
  const over=()=>{if(h.scrollWidth>h.clientWidth+1)return true;const L=h.lastElementChild,r=L&&L.getBoundingClientRect(),b=h.getBoundingClientRect();return!!(r&&r.width&&r.right>b.right+.5)};
  while(k<HUDF.length&&over())h.classList.add(HUDF[k++]);return k}
-if(typeof document==='object'&&document&&document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{try{hudFit()}catch(e){}});
+try{const R=typeof document==='object'&&document&&document.fonts?document.fonts.ready:null;if(R&&typeof R.then==='function')R.then(()=>{try{hudFit()}catch(e){}},()=>{})}catch(e){}
 function frame(t){requestAnimationFrame(frame);if(window.innerWidth!==cw||window.innerHeight!==ch)screenRecover(false);const raw=t-now,dt=Math.min(.05,raw/1000||0),t0=performance.now();now=t;perfTick(raw);
  if(mode!==lastMode){lastMode=mode;setRes();refreshScene();if(mode==='world')WV.boot=true}
  g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
