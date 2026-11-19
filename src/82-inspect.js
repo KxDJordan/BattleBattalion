@@ -13,10 +13,12 @@ const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,src:null,
   const bd=this.body=document.createElement('div');bd.className='ins-body';el.appendChild(bd);
   const x=document.createElement('button');x.type='button';x.className='ins-x';x.setAttribute('aria-label','Close');x.innerHTML='&times;';el.appendChild(x);const hn=document.createElement('div');hn.className='ins-hint';hn.textContent='Tap a line to read all of it';el.appendChild(hn);
   ($('app')||document.body).appendChild(el);
-  el.addEventListener('pointerdown',e=>{if(!el.classList.contains('live'))return;e.stopPropagation();this.pin()});
+  // the row under the finger is taken at pointerdown: pinning adds the close bar, which may shift the rows before the click lands
+  el.addEventListener('pointerdown',e=>{if(!el.classList.contains('live'))return;e.stopPropagation();const t=e.target;this.down=t&&t.closest?t.closest(INS_ROW+',.ins-x'):null;this.pin()});
   el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')clearTimeout(this.timer)});
   el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!this.pinned)this.release()});
-  el.addEventListener('click',e=>{const t=e.target;if(!t||!t.closest)return;if(t.closest('.ins-x')){this.hide();return}const r=t.closest(INS_ROW);if(r&&el.contains(r))insFullRow(r);else insFullClose()});
+  el.addEventListener('click',e=>{const t=e.target;if(!t||!t.closest)return;const d=this.down&&el.contains(this.down)?this.down:null;this.down=null;const r=d||t.closest(INS_ROW+',.ins-x');
+   if(r&&r.classList.contains('ins-x')){this.hide();return}if(r&&el.contains(r))insFullRow(r);else insFullClose()});
   el.addEventListener('contextmenu',e=>e.preventDefault());
   return el},
  fill(html){const el=this.el,bd=this.body;bd.innerHTML=html;bd._h=html;el.classList.toggle('wide',html.indexOf('ins-c2')>=0);el.classList.toggle('live',!!bd.querySelector(INS_ROW));insMarkClip(bd)},
@@ -32,7 +34,8 @@ const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,src:null,
  hide(){clearTimeout(this.timer);insFullClose();this.unpin();if(this.el)this.el.classList.remove('on');this.visible=false;this.src=null;insK=-1;insW=null},
  // the finger lifted: the card fades after a moment unless it was touched (pinned); longer when some row is cut short
  release(){clearTimeout(this.timer);if(this.visible&&!this.pinned)this.timer=setTimeout(()=>this.hide(),this.body&&this.body.querySelector('.ins-more')?4200:2400)},
- pin(){if(!this.visible||!this.el||!this.el.classList.contains('live'))return;clearTimeout(this.timer);if(this.pinned)return;this.pinned=true;this.el.classList.add('pin');this.el.setAttribute('role','dialog');this.fit()},
+ pin(){if(!this.visible||!this.el||!this.el.classList.contains('live'))return;clearTimeout(this.timer);if(this.pinned)return;const el=this.el,p0=el.clientTop+parseFloat(getComputedStyle(el).paddingTop)||0;this.pinned=true;el.classList.add('pin');el.setAttribute('role','dialog');
+  const p1=el.clientTop+parseFloat(getComputedStyle(el).paddingTop)||0;el.style.top=Math.round(el.offsetTop-(p1-p0))+'px';this.fit()},   // the close bar grows upward: the rows stay put
  fit(){const el=this.el,m=6;if(!el)return;el.style.left=Math.round(clamp(el.offsetLeft,m,Math.max(m,innerWidth-m-el.offsetWidth)))+'px';el.style.top=Math.round(clamp(el.offsetTop,m,Math.max(m,innerHeight-m-el.offsetHeight)))+'px'},
  unpin(){this.pinned=false;if(this.el){this.el.classList.remove('pin');this.el.setAttribute('role','tooltip')}},
  // the battle moved on under an open card: rewrite it in place (same spot, same scroll), or close it once its unit is gone
@@ -41,7 +44,9 @@ const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,src:null,
 /* rows whose text the card clamps (three lines, two for masteries, one for perks) get .ins-more: the chevron that says "tap for the rest";
    ability and talent chips show names only, so they always have more to say */
 function insMarkClip(bd){for(const r of bd.querySelectorAll(INS_ROW)){if(r.dataset.insd){r.classList.add('ins-more');continue}
-  const s=r.querySelector(':scope>div>span');if(s&&(s.scrollHeight>s.clientHeight+1||s.scrollWidth>s.clientWidth+1))r.classList.add('ins-more')}}
+  const s=r.querySelector(':scope>div>span');if(s&&insClipped(s))r.classList.add('ins-more')}}
+// a line-clamped box reports its clamped height as its scroll height: measure it once unclamped
+function insClipped(s){if(s.scrollWidth>s.clientWidth+1)return true;const h=s.clientHeight,st=s.style;st.webkitLineClamp='none';st.display='block';const full=s.scrollHeight;st.webkitLineClamp='';st.display='';return full>h+1}
 /* ---- the full-text card ---- */
 const INSF={el:null,open:false,eat:false};
 function insFullEl(){if(INSF.el)return INSF.el;if(typeof document==='undefined')return null;const F=INSF.el=document.createElement('div');F.id='insfull';F.setAttribute('role','dialog');
