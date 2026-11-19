@@ -597,7 +597,7 @@ function hurt(t,dmg,ign,src,o){o=o||{};if(o.loc&&t.ward>0&&typeof eliteWard==='f
  if(head)hpd=Math.round(hpd*HEADMULT);
  if(o.loc){if(tf.sidestep&&!t.ss&&hpd>t.hpMax*tf.sidestep){hpd=Math.round(hpd/2);t.ss=1;float(t,'Sidestep','#8fd8ff')}
   if(tf.hpSoak&&hpd>0)hpd=Math.max(1,hpd-tf.hpSoak);if(tf.brace)t.brc=1}
- t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false,ang=null;if(undy){if(tf.undying&&!t.undy)t.undy=1;else if(tf.lucky&&!t.lck){t.lck=1;lk=true}else{ang=pvAngel(t);ang.angU=1}t.hp=1}if(hpd>0||dmg>0)float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,ang?'Guardian angel':lk?'Lucky':'Undying','#ffd27a');if(ang)say(`${ang.name} will not let ${t.name} fall.`);FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
+ t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false,ang=null;if(undy){if(tf.undying&&!t.undy)t.undy=1;else if(tf.lucky&&!t.lck){t.lck=1;lk=true}else{ang=pvAngel(t);ang.angU=1}t.hp=1}if(hpd>0||dmg>0)float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',o.roll?{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head,roll:o.roll}:{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,ang?'Guardian angel':lk?'Lucky':'Undying','#ffd27a');if(ang)say(`${ang.name} will not let ${t.name} fall.`);FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
  if(t.hp<=0){killUnit(t,src||null,head);return hpd}
  if(t.boss&&B.boss)bossHit(t);   // boss phases (21-fabled.js)
  if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH*injK(t))inflictInjury(t,head,false);if(!tf.noStun)moraleCheck(t,30,-1)}   // (moraleCheck skips the Beast-wise against beasts)
@@ -623,6 +623,18 @@ async function knockback(u,t,n,crash){if(kbImmune(t))return;if(rollsWith(t))retu
  for(let i=0;i<n&&t.alive;i++){const nc=t.c+dc,nr=t.r+dr,cur=T(t),x=inb(nc,nr)?unitAt(nc,nr):null;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||x||B.tiles[key(nc,nr)].h>cur.h+1){
    if(x&&crash>0){float(t,'Crash','#ffd27a');hurt(t,crash,1);if(x.alive){float(x,'Crash','#ffd27a');hurt(x,crash,1)}FX.emit('kb',{t,crash:x})}else{float(t,'Slam','#ffd27a');hurt(t,8,1)}break}
   const drop=cur.h-B.tiles[key(nc,nr)].h;t.c=nc;t.r=nr;FX.emit('kb',{t});await sleep(120);if(drop>=1)hurt(t,6*drop,1);if(t.alive&&T(t).t==='haz')hurt(t,12,1)}}
+/* ---- roll records for the combat log (65-battle-ui.js) ----
+   Recording only: these never draw from rnd(); strike() keeps every draw where it was and hands the numbers here.
+   Scale 0..99: a draw x in [0,1) shows as floor(x*100), and a roll succeeds when the number shown is BELOW the chance in percent
+   (the code's own test is x*100 < chance, or x < chance as a fraction: the same thing for whole percents). rollShow() keeps the shown
+   number on the right side of the line even for a fractional chance, so the shown rule always agrees with what happened.
+   R: {u,t (names), side, k: 'roll' | 'sure' (cannot miss: no roll decides it) | 'auto' (an arc, a ricochet: no roll) | 'stray' (a missed
+   shot landing on an ally), L: [{k, n (shown), c (chance in percent), on, x (the draw), v (a stray's victim)}], logged}. */
+function rollRec(u,t,a,o){return{u:u.name,t:t.name,side:u.side,k:o.stray?'stray':o.auto?'auto':a.sure?'sure':'roll',L:[],logged:0}}
+function rollShow(x,ch,on){const p=ch*100,c=Math.abs(p-Math.round(p))<1e-6?Math.round(p):Math.round(p*10)/10;let n=Math.floor(x*100);
+ if(on&&!(n<c))n=Math.max(0,Math.ceil(c)-1);else if(!on&&n<c)n=Math.ceil(c)>n?Math.ceil(c):n+1;return{n,c}}
+function rollAdd(R,k,x,ch,on,v){if(!R)return;const s=rollShow(x,ch,on),e={k,n:s.n,c:s.c,on:!!on,x};if(v)e.v=v;if(k==='hit'&&s.c>=100)R.k='sure';R.L.push(e)}
+function rollDone(R){if(R&&!R.logged&&typeof rollLog==='function'){try{rollLog(R)}catch(e){}}}
 /* strike(u,t,a,o): one attack of u on t with ability a. Returns true on a hit.
    o: splash (damage factor of a secondary hit), auto (cannot miss: arcs, stray shots), free (a free attack: it provokes neither
    a riposte nor a stray shot), stray (this is a missed shot landing on an ally), noShot (the caller drew the projectile: strays,
@@ -635,19 +647,21 @@ async function knockback(u,t,n,crash){if(kbImmune(t))return;if(rollsWith(t))retu
 async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const d=mdist(u,t),shot=(d>1||a.magic)&&!o.noShot&&!o.stray,
   col=a.magic?'#c9a8ff':a.cost?RESC[a.cost[0]]:'#e9e0c9',fly=x=>{if(shot)FX.shot(u,x,col,26,22)};
  if(a.split){fly(t);if(!t.shield)return false;damageShield(t,Math.round(ri(u.wpn.d[0],u.wpn.d[1])*splitMult(u,a)),u);await sleep(240);return true}
- if(!o.auto&&!a.sure&&rnd()*100>=hitChance(u,t,a)){let v=null;
-  if(!o.free&&shotKind(u,t,a)===2&&!(u.flags&&u.flags.noStray)){const ff=losInfo(u,t,a).ff;if(ff.length&&rnd()<FFCH)v=ff[Math.floor(rnd()*ff.length)]}   // Wind-read: no strays
-  fly(v||t);float(t,'Miss','#c8d0d8');FX.emit('miss',v?{u,t,stray:v}:{u,t});if(t.flags&&(t.flags.dance||t.flags.flow))t.dnc=Math.min(3,(t.dnc||0)+1);await sleep(230);
+ const R=rollRec(u,t,a,o);let hx=0,hc=100;if(!o.auto&&!a.sure){hx=rnd();hc=hitChance(u,t,a);rollAdd(R,'hit',hx,hc/100,hx*100<hc)}   // the hit roll (the same one draw, then hitChance, as ever)
+ if(!o.auto&&!a.sure&&hx*100>=hc){let v=null;
+  if(!o.free&&shotKind(u,t,a)===2&&!(u.flags&&u.flags.noStray)){const ff=losInfo(u,t,a).ff;if(ff.length){const x=rnd(),on=x<FFCH;if(on)v=ff[Math.floor(rnd()*ff.length)];rollAdd(R,'stray',x,FFCH,on,v&&v.name)}}   // Wind-read: no strays
+  fly(v||t);float(t,'Miss','#c8d0d8');FX.emit('miss',v?{u,t,stray:v,roll:R}:{u,t,roll:R});rollDone(R);if(t.flags&&(t.flags.dance||t.flags.flow))t.dnc=Math.min(3,(t.dnc||0)+1);await sleep(230);
   if(v){if(v.alive&&u.alive){say(`${u.name}'s shot strays into ${v.name}.`);FX.emit('ff',{u,t:v,from:t});await strike(u,v,a,{auto:1,stray:1,free:'stray',noShot:1,splash:(o.splash||1)*FFDMG})}}
   else if(!o.free&&!a.magic&&d===1&&t.alive&&u.alive&&buffSum(t,'rip'))await freeAttack(t,u,'riposte');
-  pvStruck(u,t,a,o);await pvMiss(u,t,a,o,v);return false}
+  pvStruck(u,t,a,o);await pvMiss(u,t,a,o,v,R);return false}
  fly(t);
 const hp0=t.hp;let dmg=0;const ign=a.noDmg?1:ignOf(u,a),wd=rollOf(u,a);if(a.noDmg){}else if(a.magic)dmg=ri(a.magic[0],a.magic[1])*spellMult(u);else dmg=ri(wd[0],wd[1])*(a.mult||1);
  if(!a.noDmg)dmg=dmgAfter(u,t,a,dmg,o);
- let hpd=0,head=false;const crush=crushOf(u,a);if(dmg>0){head=rnd()*100<headChance(u,t,a);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1,crush})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
- if(t.alive){const st=Object.assign({},u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc&&rnd()<sc)st.stun=Math.max(st.stun||0,1);if(u.onhit&&rnd()<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root);if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);{const po=poisonOf(u,a);if(po&&hpd>0)st.poison=Math.max(st.poison||0,po)}
-  if(!a.noDmg)pvStatus(u,t,a,o,hpd,head,hp0,st);for(const k in st)addStatus(t,k,st[k]);pvStruck(u,t,a,o);pvHitDone(u,t,a,o,hpd);
-  const kb=a.kb||(u.kbN&&rnd()<u.kbCh?u.kbN:0);if(kb&&!kbImmune(t)&&!o.stray)await knockback(u,t,kb,a.crash||u.crashD||0);
+ let hpd=0,head=false;const crush=crushOf(u,a);if(dmg>0){const x=rnd(),hch=headChance(u,t,a);head=x*100<hch;rollAdd(R,'head',x,hch/100,head);hpd=hurt(t,dmg,ign,u,{head,pierce:!!a.pierce,loc:1,crush,roll:R})}else if(a.noDmg)float(t,a.noDmgTxt||'Shoved','#ffd27a');
+ rollDone(R);   // no 'hit' came (a shove, a blow that does nothing): the roll still goes to the log
+ if(t.alive){const st=Object.assign({},u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{}),sc=stunOf(u,a),bl=bleedOf(u,a);if(sc){const x=rnd();rollAdd(R,'stun',x,sc,x<sc);if(x<sc)st.stun=Math.max(st.stun||0,1)}if(u.onhit){const x=rnd();rollAdd(R,'root',x,u.onhit.ch,x<u.onhit.ch);if(x<u.onhit.ch)st.root=Math.max(st.root||0,u.onhit.root)}if(bl&&hpd>0)st.bleed=Math.max(st.bleed||0,bl);{const po=poisonOf(u,a);if(po&&hpd>0)st.poison=Math.max(st.poison||0,po)}
+  if(!a.noDmg)pvStatus(u,t,a,o,hpd,head,hp0,st,R);for(const k in st)addStatus(t,k,st[k]);pvStruck(u,t,a,o);pvHitDone(u,t,a,o,hpd);
+  let kb=a.kb;if(!kb&&u.kbN){const x=rnd();rollAdd(R,'knock',x,u.kbCh,x<u.kbCh);kb=x<u.kbCh?u.kbN:0}if(kb&&!kbImmune(t)&&!o.stray)await knockback(u,t,kb,a.crash||u.crashD||0);
   if(a.pull&&t.alive&&u.alive&&!kbImmune(t))await pullUnit(u,t,a.pull);
   if(a.scare&&t.alive&&!t.fearless)moraleCheck(t,0,-1);rlShock(u,t,a,o,hpd)}   // Shock (Vanguard, 64v-roles.js)
  else{pvStruck(u,t,a,o);pvHitDone(u,t,a,o,hpd);if(u.flags.berserk&&!u.bzk){u.bzk=1;u.ap+=4;float(u,'Berserk','#ffd27a');FX.emit('buff',{t:u})}if(a.killAP&&u.alive&&!o.stray){u.ap+=a.killAP;float(u,'+'+a.killAP+' AP','#ffd27a');FX.emit('buff',{t:u})}if(a.killRally&&u.alive&&!o.stray&&typeof crowdRally==='function')crowdRally(u,a.killRally,4);if(!t.gone&&u.alive){onKill(u);await pvKill(u,t,a,o)}}

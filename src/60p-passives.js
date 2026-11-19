@@ -105,8 +105,8 @@ function pvStCases(u,t,a,melee,shot,hp){const f=u.flags||{},w=u.wpn||{},L=[];   
  if(f.twoDaze&&melee&&w.two&&!isRangedW(w))L.push(['daze',1,'hp',f.twoDaze]);
  if(f.arrowBurn&&w.wt==='bow'&&pvRng(u,a))L.push(['burn',2,'hp',f.arrowBurn]);
  return L}
-function pvStatus(u,t,a,o,hpd,head,hp0,st){const melee=!!a.melee||mdist(u,t)<=1,shot=shotKind(u,t,a)===2;
- for(const [k,n,kind,ch] of pvStCases(u,t,a,melee,shot,hp0)){if(kind==='hp'&&!(hpd>0))continue;if(kind==='head'&&!head)continue;if(ch<1&&!(rnd()<ch))continue;st[k]=Math.max(st[k]||0,n)}}
+function pvStatus(u,t,a,o,hpd,head,hp0,st,R){const melee=!!a.melee||mdist(u,t)<=1,shot=shotKind(u,t,a)===2;
+ for(const [k,n,kind,ch] of pvStCases(u,t,a,melee,shot,hp0)){if(kind==='hp'&&!(hpd>0))continue;if(kind==='head'&&!head)continue;if(ch<1){const x=rnd();if(typeof rollAdd==='function')rollAdd(R,k,x,ch,x<ch);if(!(x<ch))continue}st[k]=Math.max(st[k]||0,n)}}
 // forecast: the same cases with their odds (pch: chance a hit reaches hitpoints; hc: head chance in percent, 0 when nothing lands)
 function pvFcStatus(u,t,a,st,pch,hc){const melee=!!a.melee||mdist(u,t)<=1,shot=shotKind(u,t,a)===2;
  for(const [k,n,kind,ch] of pvStCases(u,t,a,melee,shot,t.hp)){const p=(kind==='hp'?pch:kind==='head'?hc/100:1)*ch;if(!(p>0))continue;const S=st[k];
@@ -127,11 +127,13 @@ function pvHitDone(u,t,a,o,hpd){const f=u.flags||{},melee=!!a.melee||mdist(u,t)<
   if(f.staticChg&&u.wpn&&u.wpn.wt==='bow'&&pvRng(u,a))u.chg=u.chg>=PV.chgMax?0:(u.chg||0)+1;
   if(f.dwFlow&&pvOff(u,a))u.wsN=Math.min(PV.wsMax,(u.wsN||0)+1)}
  const g=t.flags||{};if(g.furyHit&&hpd>0&&t.alive&&u.side!==t.side)t.fury=Math.min(PV.furyMax,(t.fury||0)+1)}
-async function pvMiss(u,t,a,o,v){if(!u||!t||o.stray)return;const b=B,g=t.flags||{},melee=!a.magic&&mdist(u,t)===1;
+// Counter (a miss in melee): the one draw, recorded on the miss's roll line
+function rollCounter(R,ch){const x=rnd();if(typeof rollAdd==='function')rollAdd(R,'counter',x,ch,x<ch);return x<ch}
+async function pvMiss(u,t,a,o,v,R){if(!u||!t||o.stray)return;const b=B,g=t.flags||{},melee=!a.magic&&mdist(u,t)===1;
  if(melee&&!o.free&&t.alive&&u.side!==t.side){
   if(g.missAP&&(t.umvN||0)<PV.missAP){t.umvN=(t.umvN||0)+1;t.bonusAP=(t.bonusAP||0)+g.missAP;float(t,'+'+g.missAP+' AP','#ffd27a')}
   if(g.bindOff&&t.shield&&u.alive)addStatus(u,'offbal',1)}
- if(melee&&!o.free&&g.counter&&t.alive&&u.alive&&!buffSum(t,'rip')&&isDuel(t,FREEAB)&&canFree(t)&&rnd()<g.counter){await freeAttack(t,u,'counter');if(B!==b)return}
+ if(melee&&!o.free&&g.counter&&t.alive&&u.alive&&!buffSum(t,'rip')&&isDuel(t,FREEAB)&&canFree(t)&&rollCounter(R,g.counter)){await freeAttack(t,u,'counter');if(B!==b)return}
  const f=u.flags||{};
  if(isThrowW(u.wpn)&&pvRng(u,a)&&!v){
   if(u.wpn.ret&&u.alive){setAmmo(u,ammoLeft(u)+(a.ammoN||1));float(u,'Returns','#e9e0c9')}      // the chakram flies back
