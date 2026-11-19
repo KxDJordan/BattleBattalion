@@ -11,7 +11,7 @@
    capitals (WFONT). One cached canvas per text / colours / stance / detail / dpr. Only bands drawn this frame get a plate (fog of war:
    drawWorld's own visibility test). Zoomed out (below .8 of the default scale) the names shorten; at the farthest zoom only rival
    companies keep theirs. Plates never cover a town's plate or each other: the most important first (out to fight the company, then a
-   rival company, then the nearest), a plate wholly inside the scene (not under the HUD's bars), a plate shown last frame keeps its place against a newcomer; the losers fade out, newcomers fade in.
+   rival company, then the nearest), a plate wholly inside the scene and clear of the HUD's overlays (the bars and rail, the minimap, a toast, a readout card: mlBlocked), a plate shown last frame keeps its place against a newcomer; the losers fade out, newcomers fade in.
    Settings > "Band names on map" (SET.bandNames, default on). Tapping a plate is tapping its band (worldPick).
    Public: mlOn mlName mlBegin mlCand mlLayout mlSig mlDraw mlPick */
 const ML={st:new Map(),c:[],n:0,cache:new Map(),live:false,far:0,drawn:[],dn:0,bx:0,by:0,sc:1};
@@ -62,6 +62,7 @@ const ML_GAP=2;
 function mlLayout(dt,plates,P){const sc=WV.sc,bx=WV.bx,by=WV.by,dp=ML.dp=Math.max(2,Math.round(dpr*1.5)-1),R=[];ML.bx=bx;ML.by=by;ML.sc=sc;ML.dn=0;
  // the towns' plates are fixed obstacles
  for(let i=0;i<WV.np;i++){const q=plates[i],w=q.c.width*(q.hd?1:P),h=q.c.height*(q.hd?1:P),x=Math.round(bx+q.x*sc-w/2),y=Math.round(by+q.y*sc-h);R.push(x,y,x+w,y+h)}
+ mlBlocked(R);
  const cx=G.p.x/WVU,cy=G.p.y/WVU,L=[];
  for(let i=0;i<ML.n;i++){const C=ML.c[i],c=mlPlate(C.N,C.host,ML.far),w=c.width*(WVHD?1:dp),h=c.height*(WVHD?1:dp),st=ML.st.get(C.o.id);
   C.c=c;C.w=w;C.h=h;C.sx=Math.round(bx+Math.round(C.x*sc)-w/2);C.sy=Math.round(by+Math.round((C.y+2)*sc));
@@ -77,6 +78,14 @@ function mlLayout(dt,plates,P){const sc=WV.sc,bx=WV.bx,by=WV.by,dp=ML.dp=Math.ma
  for(const id of ML.st.keys())if(!seen.has(id))ML.st.delete(id)}   // a band out of sight loses its plate at once (and fades in again when seen)
 function mlSig(wsg){wsg(ML.dn);for(let i=0;i<ML.dn;i++){const D=ML.drawn[i];wsg(D.c);wsg(D.x);wsg(D.y);wsg(D.a)}}
 function mlDraw(g){if(!ML.dn)return;const a0=g.globalAlpha;g.imageSmoothingEnabled=false;for(let i=0;i<ML.dn;i++){const D=ML.drawn[i];g.globalAlpha=a0*D.a;g.drawImage(D.c,D.x,D.y,D.w,D.h)}g.globalAlpha=a0}
+// the HUD's overlays on the scene (the minimap, a toast, the readout card of a tapped town or band, a cost popup, the bars and rail):
+// device-px rects every plate keeps clear of. Read from the page at most every 200 ms (a getBoundingClientRect each, no work per frame).
+const ML_OVL=['wmap','toast','inspect','costPop','hud','wbar'];
+function mlBlocked(R){if(typeof document!=='object'||!document||!document.getElementById)return;const t=typeof performance==='object'?performance.now():0;
+ if(!ML.bk||t-ML.bkt>200||t<ML.bkt){ML.bkt=t;const B=ML.bk=[];for(const id of ML_OVL){const e=document.getElementById(id);if(!e||e.hidden||e.classList.contains('hidden'))continue;
+   if((id==='toast'||id==='inspect')&&!e.classList.contains('on'))continue;let cs=null;try{cs=getComputedStyle(e)}catch(x){}if(cs&&(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity===0))continue;
+   const r=e.getBoundingClientRect();if(r.width>0&&r.height>0)B.push(Math.floor(r.left*dpr),Math.floor(r.top*dpr),Math.ceil(r.right*dpr),Math.ceil(r.bottom*dpr))}}
+ for(let i=0;i<ML.bk.length;i++)R.push(ML.bk[i])}
 // worldPick: a tap on a plate is a tap on its band (world coords in, the band out)
 function mlPick(wx,wy){if(!ML.dn||!(ML.sc>0))return null;const sx=ML.bx+wx/WVU*ML.sc,sy=ML.by+wy/WVU*ML.sc;
  for(let i=ML.dn-1;i>=0;i--){const D=ML.drawn[i];if(D.a<.5)continue;if(sx>=D.x-4&&sx<=D.x+D.w+4&&sy>=D.y-2&&sy<=D.y+D.h+4&&G.parties.includes(D.o)&&!D.o.gone)return D.o}return null}

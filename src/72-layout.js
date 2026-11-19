@@ -19,6 +19,7 @@ const Layout={w:0,h:0,safe:{t:0,r:0,b:0,l:0},scene:{x:0,y:0,w:0,h:0},mini:null,t
   if(app){app.classList.toggle('tall',this.tall);app.classList.toggle('touch',this.touch);
    ['title','world','battle'].forEach(m=>app.classList.toggle('m-'+m,mode===m))}
   const ro=$('rotate');if(ro)ro.classList.toggle('hidden',!this.rotate);
+  if(mode==='world'&&typeof hudFit==='function'){try{hudFit()}catch(e){}}
   const s=this.safe;let x0=s.l,y0=s.t,x1=this.w-s.r,y1=this.h-s.b;this.mini=null;
   if(mode==='world'){const top=this._rect('hud'),rr=this._rect('wbar'),mm=this._rect('wmap');
    if(top)y0=Math.max(y0,top.bottom);if(rr)x1=Math.min(x1,rr.left);if(mm)this.mini={x:mm.left,y:mm.top,w:mm.width,h:mm.height}}

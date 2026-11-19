@@ -312,5 +312,12 @@ button.ghost:not(.pxb){background:#0b1514;color:var(--vellum);box-shadow:inset 0
 #costPop .rn-now{font-size:.78rem;color:var(--dim);border-top:2px solid #182a28;padding-top:4px}
 #costPop .rn-act{display:flex;gap:6px;flex-wrap:wrap}#costPop .rn-act button{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;font-size:.8rem;min-height:34px}
 #costPop .rn-act button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:600px){#hud button.hud-tap.am{display:none}#hud .hud-tap.rn .rn-bar{display:none}}
+@media (max-width:600px){#hud .hud-tap.rn .rn-bar{display:none}}
+/* the top bar's fitting steps (70-render.js hudFit): shed detail rather than run under the rail; every button stays */
+#hud{min-width:0}#hud>*{flex-shrink:0}
+#hud.f1 .stat.co b,#hud.f1 .hud-tap.rn .rn-n,#hud.f1 .hud-tap.am .am-n{display:none}#hud.f1 .stat.co{padding-right:8px}
+#hud.f2 .hw{display:none}
+#hud.f3 .hud-tap .rn-bar,#hud.f3 .hud-tap.am .am-p{display:none}#hud.f3 .stat.wx .pxi+.pxi{display:none}
+#app #hud.f4{font-size:.86rem;padding-left:calc(var(--sal) + 6px);padding-right:6px}#app #hud.f4 .stat{padding:0 5px;gap:3px}#app #hud.f4 button.hud-tap:not(.pxb){padding:0 3px 0 5px;gap:3px}#app #hud.f4 .stat:first-child{padding-left:0}
+#hud.f5 .stat.co,#hud.f5 .stat.wx{display:none}#hud.f5 .stat.day{margin-left:auto}#hud.f5{overflow:hidden}
 @media (max-width:600px){#app #hud .stat{padding:0 6px}#app #hud button.hud-tap:not(.pxb){padding:0 4px 0 6px}#app #hud button.hud-tap.rn:not(.pxb){padding:0 4px}}

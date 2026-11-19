@@ -386,7 +386,7 @@ function hudCompany(){const rb=$('hRen'),ab=$('hAmb');if(!rb||!ab||!G)return;if(
  rb.hidden=false;rb.className='stat hud-tap rn t'+R.tier;rb.title=R.n+': '+R.renown+' renown'+(R.next!=null?', '+(R.next-R.renown)+' to '+R.nextN:'');rb.setAttribute('aria-label','Renown '+R.n+', '+R.renown);
  rb.innerHTML=pic('rt-'+R.tier,16)+`<span class="rn-n">${htmlEsc(R.n)}</span><span class="rn-bar" aria-hidden="true"><i style="width:${Math.round(100*R.progress)}%"></i></span>`;
  ab.hidden=false;ab.classList.toggle('none',!am);ab.title=am?am.A.n+': '+am.p+' / '+am.goal:'Choose an ambition';ab.setAttribute('aria-label',am?'Ambition '+am.A.n+', '+am.p+' of '+am.goal:'Choose an ambition');
- ab.innerHTML=pic(am&&am.A.icon&&typeof icHas==='function'&&icHas(am.A.icon)?am.A.icon:'ambition',16)+(am?`<span class="am-n">${htmlEsc(am.A.n)}</span><span class="am-p">${am.p}/${am.goal}</span>`:'<span class="am-n">Ambition</span>')}
+ ab.innerHTML=pic(am&&am.A.icon&&typeof icHas==='function'&&icHas(am.A.icon)?am.A.icon:'ambition',16)+(am?`<span class="am-n">${htmlEsc(am.A.n)}</span><span class="am-p">${am.p}/${am.goal}</span>`:'<span class="am-n">Ambition</span>');if(typeof hudFit==='function')hudFit()}
 function renownPop(btn){costPop('renown',btn)}
 function rnBody(){if(typeof renownInfo!=='function')return'';const R=renownInfo(),ic=(n,s)=>pic(n,s||16),nx=R.tier<RENOWN.length?R.tier+1:0,U=nx&&typeof renownUnlocks==='function'?renownUnlocks(nx):[],D=R.def||{};
  let am=null;try{am=typeof coAmbNow==='function'?coAmbNow():null}catch(e){}const sl=typeof followerSlots==='function'?followerSlots():1,rn=(G.retinue||[]).length;

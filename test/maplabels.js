@@ -5,7 +5,7 @@
 //   - every rival company and every guard band in sight gets a plate with the right name (r.n; "<Town> Watch", "<Town> Garrison",
 //     "<Town> Guard", "<House> Riders"); other bands (monsters, raiders, caravans, a siege host) get none;
 //   - a band out of sight (fog of war) gets none;
-//   - two bands on the same spot: one plate, the more important one (a hostile company over a friendly one); no plate covers a town's plate;
+//   - two bands on the same spot: one plate, the more important one (a hostile company over a friendly one); no plate covers a town's plate, the minimap or a toast;
 //   - zoomed far out: rival companies keep a short name, guards lose theirs;
 //   - Detail High draws Fredoka plates, Detail Low the pixel ones (whole device pixels, one step under the towns' plates); High -> Low leaves no painted plate;
 //   - Settings "Band names on map" off: no plates (and the setting is saved); a tap on a plate picks its band;
@@ -24,13 +24,13 @@ function stage(o){o=o||{};seedRng(11);newGame(true,{shape:'continent',biomes:'te
  while(G.rivals.length<4&&typeof rvForm==='function')rvForm([]);
  G.rivals.slice(0,4).forEach(r=>{r.alive=true;r.hired=false;r.calm=null});
  G.parties.length=0;const A=(o)=>{G.parties.push(Object.assign({tx:0,ty:0,mult:1},o))};
- A({id:900,x:p.x-4*T,y:p.y+1.6*T,f:G.rivals[0].id,goal:'merc'});
+ A({id:900,x:p.x-3*T,y:p.y+1.2*T,f:G.rivals[0].id,goal:'merc'});
  A({id:901,x:p.x+3.5*T,y:p.y+1.4*T,f:G.rivals[1].id,goal:'merc'});
  A({id:902,x:p.x-1*T,y:p.y-2.4*T,f:G.rivals[2].id,goal:'merc'});
  A({id:910,x:tf.x+1.5*T,y:tf.y+1.6*T,f:'free',goal:'patrol',gar:0,tgt:-1,from:0,oh:0});
  A({id:911,x:th.x-1.5*T,y:th.y+1.8*T,f:h.id,goal:'patrol',gar:1,tgt:-1,from:1,oh:0});
  A({id:912,x:p.x+6*T,y:p.y+3.9*T,f:h2.id,goal:'patrol',from:2,to:2});
- A({id:913,x:p.x-5.5*T,y:p.y+3.4*T,f:h.id,goal:'patrol',from:1,hunt:1});
+ A({id:913,x:p.x-3.2*T,y:p.y+2.6*T,f:h.id,goal:'patrol',from:1,hunt:1});
  A({id:920,x:p.x+1*T,y:p.y+3.8*T,f:'gob',goal:'roam'});A({id:921,x:p.x-2*T,y:p.y+4.5*T,f:'orc',goal:'raid',to:0});
  A({id:922,x:p.x+5*T,y:p.y-1*T,f:h.id,goal:'caravan',from:1,to:0});A({id:923,x:p.x-8*T,y:p.y-1*T,f:h.id,goal:'patrol',siege:0});
  A({id:930,x:p.x+11*T,y:p.y-.5*T,f:G.rivals[3].id,goal:'merc'});   // out of sight
@@ -68,6 +68,13 @@ const plates=()=>{WSG.ok=false;drawWorld(0);const L=[];for(let i=0;i<ML.dn;i++){
  // faded, not cut: without reduced motion the loser eases out
  const F=await p.evaluate(()=>{reduced=false;const a=G.parties.find(q=>q.id===901),c=G.parties.find(q=>q.id===902);const x0=c.x,y0=c.y;drawWorld(0);c.x=a.x-3;c.y=a.y;WSG.ok=false;drawWorld(1/60);const s=ML.st.get(902),s1=ML.st.get(901),m=[s.a,s1.a,ML.live];for(let i=0;i<60;i++){WSG.ok=false;drawWorld(1/30)}m.push(ML.st.get(902).a,ML.st.get(901).a);c.x=x0;c.y=y0;reduced=true;return m});
  ok(F[2]&&((F[0]>0&&F[0]<1)||(F[1]>0&&F[1]<1)),`no fade on a new overlap (${F.slice(0,3)})`);ok(Math.min(F[3],F[4])===0&&Math.max(F[3],F[4])===1,`after the fade: ${F[3]} / ${F[4]}`);
+ // the HUD's overlays: a band whose plate would fall on the minimap, then a toast over the plates: no plate under either
+ const OV=await p.evaluate(async()=>{const m=Layout.mini;if(!m)return{err:'no minimap'};const r=G.rivals[3],w=worldXY(m.x+m.w*.6,m.y+m.h*.3);G.parties.push({id:940,x:w.x,y:w.y,tx:0,ty:0,mult:1,f:r.id,goal:'merc'});
+  ML.bk=null;const a=plates();const box={x:m.x*dpr,y:m.y*dpr,w:m.w*dpr,h:m.h*dpr},on=a.L.filter(q=>q.a>.01&&q.x<box.x+box.w&&q.x+q.w>box.x&&q.y<box.y+box.h&&q.y+q.h>box.y).map(q=>q.t);
+  G.parties=G.parties.filter(q=>q.id!==940);toast('A long message that covers the lower middle of the scene for a while');await new Promise(res=>setTimeout(res,350));ML.bk=null;const b=plates(),t=document.getElementById('toast').getBoundingClientRect(),tb={x:t.left*dpr,y:t.top*dpr,w:t.width*dpr,h:t.height*dpr};
+  const ont=b.L.filter(q=>q.a>.01&&q.x<tb.x+tb.w&&q.x+q.w>tb.x&&q.y<tb.y+tb.h&&q.y+q.h>tb.y).map(q=>q.t);const tOn=document.getElementById('toast').classList.contains('on');
+  document.getElementById('toast').classList.remove('on');ML.bk=null;plates();return{on,ont,tOn,tw:t.width,n940:a.L.some(q=>q.id===940&&q.a>.01)}});
+ if(OV.err)fail(OV.err);else{ok(!OV.on.length,'plates on the minimap: '+OV.on);ok(!OV.n940,'the band by the minimap kept a plate under it');ok(OV.tOn&&OV.tw>0,'no toast to test');ok(!OV.ont.length,'plates under a toast: '+OV.ont)}
  // the tap: a plate picks its band
  const T=await p.evaluate(()=>{plates();const D=[...Array(ML.dn).keys()].map(i=>ML.drawn[i]).find(d=>d.o.id===910&&d.a>.5);if(!D)return'no plate';const sx=D.x+D.w/2,sy=D.y+D.h-3,wx=(sx-WV.bx)/WV.sc*WVU,wy=(sy-WV.by)/WV.sc*WVU,k=worldPick(wx,wy,true);return k&&k.type==='band'?k.o.id:k&&k.type})
  ok(T===910,'a tap on a plate picks '+T);

@@ -1025,11 +1025,20 @@ function viewIcon(n,size){if(typeof pkHas==='function'&&pkHas('pa-'+n)&&hdArt())
 
 /* ================= FRAME ================= */
 let hudStr='';
+/* the top bar never runs under the rail: when its contents overflow (a narrow phone, safe-area insets, long numbers, a large system font)
+   it sheds detail a step at a time (f1: the company's name and the renown/ambition names; f2: the words after the numbers and "Day";
+   f3: the renown bar and the ambition's count, one weather glyph; f4: tighter spacing and type; f5: the company banner and the weather;
+   last of all it clips). Every button stays, as its icon. Called when the bar's text or the layout changes. */
+const HUDF=['f1','f2','f3','f4','f5'];
+function hudFit(){const h=typeof document==='object'?$('hud'):null;if(!h||h.classList.contains('hidden'))return 0;h.classList.remove(...HUDF);let k=0;
+ const over=()=>{if(h.scrollWidth>h.clientWidth+1)return true;const L=h.lastElementChild,r=L&&L.getBoundingClientRect(),b=h.getBoundingClientRect();return!!(r&&r.width&&r.right>b.right+.5)};
+ while(k<HUDF.length&&over())h.classList.add(HUDF[k++]);return k}
+if(typeof document==='object'&&document&&document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{try{hudFit()}catch(e){}});
 function frame(t){requestAnimationFrame(frame);if(window.innerWidth!==cw||window.innerHeight!==ch)screenRecover(false);const raw=t-now,dt=Math.min(.05,raw/1000||0),t0=performance.now();now=t;perfTick(raw);
  if(mode!==lastMode){lastMode=mode;setRes();refreshScene();if(mode==='world')WV.boot=true}
  g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
  if(mode==='world'&&G&&W){if(!sheetOpen)worldTick(dt);if(mode==='world'){drawWorld(dt);drawMinimap();const hh=Math.floor(G.hour),s=G.crowns+'|'+G.food+'|'+G.roster.length+'|'+G.day+'|'+hh+'|'+(G.weather?G.weather.kind:'');
-   if(s!==hudStr){hudStr=s;const set=(id,v)=>{const e=$(id);if(e)e.textContent=v};set('hCoin',G.crowns+' crowns');set('hFood',G.food+' food');set('hMen',G.roster.length+' swords');set('hDay','Day '+G.day+', '+String(hh).padStart(2,'0')+':00');if(typeof mapHudWeather==='function')mapHudWeather()}}}
+   if(s!==hudStr){hudStr=s;const set=(id,v,w,pre)=>{const e=$(id);if(e)e.innerHTML=(pre?'<span class="hw">'+pre+'</span>':'')+v+(w?'<span class="hw"> '+w+'</span>':'')};set('hCoin',G.crowns,'crowns');set('hFood',G.food,'food');set('hMen',G.roster.length,'swords');set('hDay',G.day+', '+String(hh).padStart(2,'0')+':00','','Day ');if(typeof mapHudWeather==='function')mapHudWeather();hudFit()}}}
  g.imageSmoothingEnabled=true;if(mode==='battle'&&B)drawBattle(dt);
  else if(mode==='title'){drawBackdrop('title');if(typeof fxAmbient==='function')fxAmbient('title',dt);drawVignette(.9)}
  PERF.draw+=(performance.now()-t0-PERF.draw)*.05}
