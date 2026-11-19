@@ -1,5 +1,5 @@
 // Human figures test (browser):  node test/humans.js [html]
-// The Detail High battle figures composed from the parts sheets (73j-humanatlas.js + 73k-humans.js): every background x race (human,
+// The Detail High battle figures composed from the part sheets (73q-parts2.js, 73k-humans.js, 73m-skel.js): every background x race (human,
 // elf, half-orc in both skin tones, dwarf) x man / woman, every person enemy type, every helmet, body armour, shield and weapon on a
 // figure, all four faces and every state and frame. Checks: no page errors, the sprite is the composed one (hum), not empty, the feet
 // anchor inside the frame, the weapon in the right hand and the shield on the left arm (its inside, behind the body on the far arm; its face with
@@ -26,11 +26,11 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
  // every background x race x sex: front and back idle; one per race x sex: every face, state and frame
  for(const bg in BG)for(const [race,skin] of RACES)for(const fem of[0,1]){const u=merc({race,bg,fem,skin,eq:(()=>{const m=newMerc(bg);return m.eq})()});chk(u,bg+'/'+race+(skin||'')+(fem?'F':'M'),[0,2],['idle'],0)}
  for(const [race,skin] of RACES)for(const fem of[0,1])chk(merc({race,fem,skin,eq:{w:'arming',s:'kite',a:'mail',h:'kettle'}}),'all/'+race+(skin||'')+(fem?'F':'M'),[0,1,2,3],ST,1);
- // the race's own pieces
- const pcs=(u,v)=>{const L=usLook(u),hs=humSpec(L);return hs.pn('head',v)+' '+hs.pn('torso',v)+' '+hs.pn('leg',v,'a')};
- const want={human:/^head_f torso_[mw]f leg_/,elf:/^elf_f torso_/,halforc:/^ohead2?_f otorso_/,dwarf:/^dhead2?_f dtorso_/};
- for(const race in want){const u=merc({race,fem:0});if(!want[race].test(pcs(u,'f')))bad.push(race+': pieces '+pcs(u,'f'))}
- {const uf=merc({race:'dwarf',fem:1}),uo=merc({race:'halforc',fem:1});if(!/^dhead2_f dtorso_wf/.test(pcs(uf,'f')))bad.push('dwarf woman: pieces '+pcs(uf,'f'));if(!/^ohead2_f otorso_wf/.test(pcs(uo,'f')))bad.push('half-orc woman: pieces '+pcs(uo,'f'))}
+ // the race's own pieces: the head set (P2A) and the race the spec reads
+ const pcs=u=>{const L=usLook(u),hs=humSpec(L),A=humSkAssets(L,0,humK());return hs.race+(hs.orc?' orc':'')+(hs.dw?' dw':'')+(hs.el?' el':'')+' '+A.hf};
+ const want={human:/^human head$/,elf:/^elf el elfm$/,halforc:/^halforc orc orch$/,dwarf:/^dwarf dw head$/};
+ for(const race in want){const u=merc({race,fem:0});if(!want[race].test(pcs(u)))bad.push(race+': pieces '+pcs(u))}
+ {const uf=merc({race:'dwarf',fem:1}),uo=merc({race:'halforc',fem:1});if(!/^dwarf dw headf$/.test(pcs(uf)))bad.push('dwarf woman: pieces '+pcs(uf));if(!/^halforc orc orch$/.test(pcs(uo)))bad.push('half-orc woman: pieces '+pcs(uo))}
  {const o1=merc({race:'halforc',skin:'orc'}),o2=merc({race:'halforc',skin:'ashorc'});if(humSpec(usLook(o1)).C.skin===humSpec(usLook(o2)).C.skin)bad.push('half-orc skin tones are not tinted apart')}
  // dwarves stand shorter (bald, no helmet: the head top)
  {const top=race=>{let best=null;for(let i=0;i<40&&!best;i++){const u=merc({race,fem:0,eq:{a:'padded',w:'knife'}});if(ptMercSpec(u.m).hair==='bald'||ptMercSpec(u.m).hair==='crop')best=u}const u=best||merc({race,fem:0,eq:{a:'padded',w:'knife'}});return unitSpritePx(u,0,'idle',0).ay};
@@ -70,7 +70,7 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
   for(const u of us)for(let f=0;f<4;f++)for(const st of['idle','walk'])humLiveFrame(u,{pS:st,pF:0,pPh:0,pCy:0,pD:f,pAn:''});const t1=performance.now();let nf=0;for(let r=0;r<20;r++)for(const u of us){const F=humLiveFrame(u,{pS:r&1?'walk':'idle',pF:0,pPh:0,pCy:r/7,pD:r&3,pAn:''});humSkDraw(q,F,100,180);nf++}
   n.liveMs=+((performance.now()-t1)/nf).toFixed(3);if(n.liveMs>0.3)bad.push('a live figure costs '+n.liveMs+' ms')}
  // the user's part sheets (73q-parts2.js): every armour set, helmet, hair drawn; game items mapped; no hair under a helmet; heads by situation
- const P2ON=typeof p2On==='function'&&p2On();
+ const P2ON=typeof p2On==='function'&&p2On();if(!P2ON)bad.push('the part sheets are not on once the figures are ready');
  if(P2ON){const k=humK();n.p2={armor:0,helm:0,hair:0,face:0};
   if(Object.keys(P2A.p).length!==317+27)bad.push('parts atlas: '+Object.keys(P2A.p).length+' pieces');
   for(const nm of ['head0','head7','headf7','elfm7','elff7','ehair15','hand_a','hand_b','leg4_b','hair29','beard0','beard23','helm39','torso50','sh50_a','sh50_b'])if(!P2A.p[nm]||!P2A.p[nm].L.c&&!P2A.p[nm].L.h)bad.push('parts atlas: '+nm+' missing');
@@ -103,28 +103,12 @@ const R=await p.evaluate(()=>{const bad=[],n={sprites:0,looks:0,hits:0},t0=perfo
   for(let i=0;i<8;i++){const Fr=humSkFrame(L,0,'idle',0,k,'',{head:i});if(!Fr.list.some(x=>x.tag==='head'))bad.push('head '+i+' not drawn');n.p2.face++}
   // paper facing: the face shows in every facing (front art, mirrored for the left-facing ones); no eye overlay on these heads
   for(const face of[0,1,2,3]){const Fr=humSkFrame(L,face,'idle',0,k,'',{head:0});if(!Fr.list.some(x=>x.tag==='head'))bad.push('face '+face+': no head');if(Fr.list.some(x=>/^eye/.test(x.tag)))bad.push('face '+face+': eye overlay on a parts-sheet head');if(Fr.mir!==(face===1||face===2))bad.push('face '+face+': mirror '+Fr.mir)}}
- // eyes (the earlier parts sheet; dormant while the user's part sheets are on): every cell cut; the expression rules; eyes on front views only
- if(!P2ON){if(typeof EYA!=='object'||EYA.c.length!==54||EYA.c.some(c=>!c||!c[0]||!c[1]))bad.push('eye sheet: not every cell has a near and a far eye');
-  const pick=(o,st,t,cls)=>{const u=merc(Object.assign({race:'human',fem:0},o.spec||{eq:{w:'arming',a:'mail'}}));if(o.st)u.st=Object.assign({},o.st);if(o.buffs)u.buffs=o.buffs;if(o.mor!=null)u.mor=o.mor;const L=usLook(u);return eyePick(u,L,st,t||0,o.an||'',cls||'swing')};
-  const ir=u=>0;const CASES=[['idle',{},'idle',0,'swing',c=>c<6],['melee attack',{},'attack',.4,'swing',c=>c>=12&&c<18],['bow attack',{},'attack',.4,'bow',c=>c>=6&&c<12],
-   ['hit',{},'hit',.2,'swing',c=>c===24||c===21],['death',{},'death',.9,'swing',c=>c===28],['stunned',{st:{stun:1}},'idle',0,'swing',c=>c===33],['chilled',{st:{chill:2}},'idle',0,'swing',c=>c===52],
-   ['poisoned',{st:{poison:2}},'idle',0,'swing',c=>c===51],['fleeing',{an:'flee'},'walk',0,'swing',c=>c===34],['breaking',{mor:1},'idle',0,'swing',c=>c===36],['wavering',{mor:2},'idle',0,'swing',c=>c===18],
-   ['rallied',{buffs:[{key:'rallied'}]},'idle',0,'swing',c=>c===31],['shield wall',{buffs:[{key:'shieldwall'}]},'idle',0,'swing',c=>c>=6&&c<12],['rage',{st:{fury:2}},'idle',0,'swing',c=>c===16],['walk',{},'walk',0,'swing',c=>c>=6&&c<12]];
-  for(const [nm,o,st,t,cls,ok] of CASES){const e=pick(o,st,t,cls);if(!e||!ok(e.set))bad.push('expression '+nm+': got '+(e&&e.name)+' ('+(e&&e.set)+')')}
-  {const u=merc({race:'human',eq:{w:'focus',a:'robe'}});const L=usLook(u);L.S.res='mana';const e=eyePick(u,L,'cast',.5,'cast','staff');if(e.set!==47)bad.push('mana cast eyes: '+e.name)}
-  const k=humK();for(const race of['human','elf','halforc','dwarf'])for(const fem of[0,1]){const u=merc({race,fem,eq:{w:'arming',a:'padded'}}),L=usLook(u);
-   for(const face of[0,1,2,3]){const Fr=humSkFrame(L,face,'idle',0,k,'',{set:0,prev:null,fade:1}),N=Fr.list.find(x=>x.tag==='eyeN'),F=Fr.list.find(x=>x.tag==='eyeF'),id='eyes '+race+(fem?'F':'M')+' f'+face;
-    if(face>=2){if(N||F)bad.push(id+': eyes on a back view');continue}if(!N||!F){bad.push(id+': eyes missing');continue}
-    if(!(N.a.w*N.a.h>F.a.w*F.a.h))bad.push(id+': the near eye is not the bigger');if(!(N.a.x+N.a.w/2<F.a.x+F.a.w/2))bad.push(id+': the near eye is not on the near side (before the mirror)');
-    const hi=Fr.list.findIndex(x=>x.tag==='head'),ht=Fr.list.findIndex(x=>x.tag==='headTop'),ni=Fr.list.indexOf(N);if(!(hi<ni&&(ht<0||ni<ht)))bad.push(id+': eyes not between the head and its top')}}
-  {const u=merc({race:'human',eq:{w:'arming',a:'plate',h:'greathelm'}});const Fr=humSkFrame(usLook(u),0,'idle',0,k,'',{set:0,prev:null,fade:1});if(Fr.list.some(x=>x.tag==='eyeN'))bad.push('eyes show through a great helm')}}
- else{if(typeof EYA!=='object'||EYA.c.length!==54)bad.push('eye data missing (kept for later)')}
  // Detail Low: the old figure, never the composed one; back to High: composed again
  const u0=merc({race:'elf',fem:1,eq:{w:'warbow',a:'leather',h:'hood'}});const hi=unitSpritePx(u0,0,'idle',0);
  SET.detail='low';artChanged();const lo=unitSpritePx(u0,0,'idle',0);if(!lo||lo.hum||lo.k)bad.push('Detail Low drew the composed figure');
  const box=unitSpriteBox(u0);if(humLiveFrame(u0,{pS:'idle',pF:0,pPh:0,pCy:0,pD:0,pAn:''}))bad.push('Detail Low drew the skeleton');SET.detail='high';artChanged();const hi2=unitSpritePx(u0,0,'idle',0);if(!hi2||!hi2.hum)bad.push('Detail High after Low is not composed');if(!hi||!hi.hum)bad.push('first high draw not composed');
  if(!(unitSpriteBox(u0).h>=26&&unitSpriteBox(u0).h<=34))bad.push('figure box height '+unitSpriteBox(u0).h);
- const ms=performance.now()-t0;return{bad,n,people:people.length,ms:Math.round(ms),builds:HUM.builds,buildMs:+(HUM.ms/Math.max(1,HUM.builds)).toFixed(2),tint:HUM.tint,live:Math.round((HUM.live||0)/1e6)}});
+ const ms=performance.now()-t0;return{bad,n,people:people.length,ms:Math.round(ms),builds:HUM.builds,buildMs:+(HUM.ms/Math.max(1,HUM.builds)).toFixed(2),live:Math.round((HUM.live||0)/1e6)}});
 console.log(JSON.stringify(Object.assign({},R,{bad:R.bad.length})));
 const fails=R.bad.concat(errs);if(fails.length)console.log('FAIL:\n'+fails.slice(0,40).join('\n')+(fails.length>40?'\n... '+(fails.length-40)+' more':''));else console.log('OK');
 await b.close();process.exit(fails.length?1:0)})();

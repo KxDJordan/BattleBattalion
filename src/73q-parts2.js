@@ -8,8 +8,8 @@
    P2_HELM (the 40 helmets) and P2_HELM_OF (helmet shape -> helmet), P2_HAIR / P2_HAIR_OF (hair styles), HEAD_RULES (expressions).
    No hair under any helmet. Skin and hair are recoloured per merc (the sheet's skin / hair layers are grey shade, multiplied). Elves get a
    pointed ear, half-orcs green-grey skin, a pointed ear and tusks (vector overlays in the sheet's style); men and dwarves a sheet beard (P2_BEARD).
-   The separate eye overlay (73o-eyes.js) is off for these heads (P2.eyes false); its code and data stay for later eye parts. No rnd(). */
-const P2={oBeard:1.12,on:true,img:[],ok:0,eyes:false,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05],coatDy:0};
+   The heads carry their own eyes (one head per expression). No rnd(). */
+const P2={oBeard:1.12,on:true,img:[],ok:0,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05],coatDy:0};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
 const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
@@ -85,7 +85,7 @@ const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','ner
 const P2_EHAIRADJ={9:[0,0,1.14]};   // elf styles whose ear tip the build misreads (blond hair), or drawn narrower (the braid)
 const P2_HAIRADJ={8:[0,.1,1],11:[0,.1,1]};   // [dx, dy (head radii), scale] on top of the placement: bob and long sit a little lower (user review)   // [dx, dy (head radii), scale]: styles whose ear notch the build reads too high (long hair covering the ear)   // [dx, dy (head radii), scale]: hairs whose ear notch is hidden by a strand or merged into the face opening
 const HEAD_HOLD=380;
-/* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c as eyePick's (73o-eyes.js) plus heal (ms since healed); the rules
+/* HEAD_RULES: [name, test(c) -> expression | null], first match wins; c (the unit's situation: state, morale, statuses, buffs, kills) plus heal (ms since healed); the rules
    marked ho are the half-orcs' alone (their sheet's mapping; c.ho), with c.hpf (hp / max), c.lvl (ms since a level gained), c.miss (ms since
    a big blow missed them: two-handed or a big monster's, 74-anim.js headNote), c.drop (ms since their morale fell to wavering or worse),
    c.blink (an idle half-orc's few calm moments: a 1.4 s window in every ~7 s, by unit id and the clock, no rnd()) */
@@ -270,7 +270,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
    const tn='otusk'+ex;if(A.ho&&P2A.p[tn]){put(tn,p2Piece(tn),1,-R.px,-R.py);A.drawn.tusk=tn}}   // a half-orc's tusks in front of the beard
   if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[(A.hf||'head')+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
-/* which head: HEAD_RULES over the unit's situation (eyePick's context), held HEAD_HOLD ms, instant on hit and death */
+/* which head: HEAD_RULES over the unit's situation, held HEAD_HOLD ms, instant on hit and death */
 const P2_MEM=new WeakMap();
 // a big blow missed u (74-anim.js on 'miss'): a two-handed weapon's or a big monster's; presentation only
 function headNote(u,type,by){if(!u||type!=='miss'||!by)return;const big=!!(by.wpn&&by.wpn.two)||!!(by.def&&(by.def.big||by.def.size>1));if(!big)return;

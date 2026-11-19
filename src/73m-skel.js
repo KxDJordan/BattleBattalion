@@ -6,9 +6,9 @@
      shield / bow / off-hand weapon; torso -> back gear, hip gear; hip -> skirt; ground -> a dropped weapon. root carries the fall.
    - Slots draw attachments on bones in a draw order that depends on the view, on which arm is near (faces 1 and 3 are composed
      with the hand roles swapped, then mirrored, so everyone stays right-handed) and on the animation (shield front / back art,
-     weapon dropped, bow string and arrow, spark). Attachments are images baked once per look: the tinted body pieces
-     (humPiece) and the vector gear (weapons, shields, bows, head with hair / beard / helmet, torso with coat / mantle, back gear)
-     rendered at device resolution in their bone's local frame.
+     weapon dropped, bow string and arrow, spark). Attachments are images baked once per look: the part-sheet pieces of
+     73q-parts2.js (p2Assets: head with hair / beard / helmet, torso with its surcoat, arms, hands, legs) and the vector gear
+     (weapons, shields, bows, back gear) rendered at device resolution in their bone's local frame.
    - Animations (HUM_AN): keyframe tracks in body space (x forward) for the hand targets, weapon angle, lean, bob, legs, kneel and
      fall, plus stepped slot keys (grip, bow drawn, arrow, spark, drop, fire, rod, crank); per-segment easing (l linear, i in, o out,
      io in-out, or [x1,y1,x2,y2] cubic-bezier). idle and walk / flee loop; the rest run 0..1 over the state's duration taken from
@@ -93,51 +93,16 @@ function hskBake(K,ext,fn){const t0=performance.now(),x0=ext[0],y0=ext[1],w=ext[
  HSK.bakes++;HSK.bakeMs+=performance.now()-t0;if(a1<0)return null;a0=Math.max(0,a0-1);b0=Math.max(0,b0-1);a1=Math.min(W-1,a1+1);b1=Math.min(H-1,b1+1);
  const cw=a1-a0+1,ch=b1-b0+1,cv=document.createElement('canvas');cv.width=cw;cv.height=ch;cv.getContext('2d').drawImage(c,a0,b0,cw,ch,0,0,cw,ch);
  return{cv,x:x0+a0/K,y:y0+b0/K,w:cw/K,h:ch/K}}
-// a body piece canvas (atlas resolution, humPiece) as an attachment with its pivot at the local origin
-function hskPc(c,R){if(!c)return null;const hk=c.pk||HPA.k;return{cv:c,x:-R.px-1/hk+(c.ox||0),y:-R.py-1/hk+(c.oy||0),w:c.width/hk,h:c.height/hk}}
+// a body piece canvas (atlas resolution, p2Piece) as an attachment with its pivot at the local origin
+function hskPc(c,R){if(!c)return null;const hk=c.pk;return{cv:c,x:-R.px-1/hk+(c.ox||0),y:-R.py-1/hk+(c.oy||0),w:c.width/hk,h:c.height/hk}}
 
 /* ---- per look x face x device scale: the rig constants and the baked attachments (lazily) ---- */
-function humSkAssets(L,face,k){const hs=humSpec(L),c=L.skA||(L.skA={}),pp=typeof p2On==='function'&&p2On()?1:0;const key=face+':'+k+':'+pp;let A=c[key];if(A)return A;
+function humSkAssets(L,face,k){const c=L.skA||(L.skA={});const key=face+':'+k+':1';let A=c[key];if(A)return A;
  if(c.k!==k){for(const n in c)if(n!=='k')delete c[n];c.k=k}
- if(pp){A=p2Assets(L,face,k);c[key]=A;return A}   // the user's part sheets (73q-parts2.js)
- const S=L.S,v=face>=2?'b':'f',f=v==='f'?1:-1,mir=face===1||face===3,K=k*HUM_A*hs.sc,back=v==='b',mf=mir?-1:1;
- const pc=(kind,side,deco,dl,key2)=>{const n=hs.pn(kind,v,side);return{n,R:humRig(n),c:humPiece(hs,n,hs.col[kind],deco,key2||'',dl)}};
- const T=pc('torso',null,humTorsoDeco(hs,v,hs.pn('torso',v)),'c',mir&&HPA.p[hs.pn('torso',v)].L.g?'mb':''),LA=pc('leg','a',humLegDeco(hs),'p'),LB=pc('leg','b',humLegDeco(hs),'p');
- const tR=T.R,tw=hs.wid,legL=(LA.R.fy-LA.R.py)*hs.legk,hx=24*hs.wid,hipY0=-(legL+4),UBy0=hipY0-14;
- const loc=(x,y)=>({x,y}),shA=loc((tR.sa.x-tR.hx)*tw,tR.sa.y-tR.hy),shB=loc((tR.sb.x-tR.hx)*tw,tR.sb.y-tR.hy),neck=loc((tR.nx-tR.hx)*tw*.6,tR.ny-tR.hy+18);
- const wSide=face===0||face===3?'a':'b',oSide=wSide==='a'?'b':'a',sw0=wSide==='a'?-1:1,so0=-sw0;
- const head=pc('head',null,null,'s'),hR=head.R,R0=hR.r,skull=loc(hR.cx-hR.px,hR.cy-hR.py);
- A={hs,S,v,f,mir,K,back,mf,face,T,LA,LB,tR,tw,legL,hx,hipY0,UBy0,shA,shB,neck,wSide,oSide,sw0,so0,head,hR,R0,skull,
-  AW:pc('arm',wSide,humArmDeco(hs),'c'),AO:pc('arm',oSide,humArmDeco(hs),'c'),HW:pc('hand',wSide,null,'s'),HO:pc('hand',oSide,null,'s'),bk:new Map()};
- c[key]=A;return A}
+ A=p2Assets(L,face,k);c[key]=A;return A}   // the user's part sheets (73q-parts2.js)
 // a baked attachment of the look (cached by name)
 function hskAtt(A,name,ext,fn){let a=A.bk.get(name);if(a!==undefined)return a;a=hskBake(A.K,ext,fn);A.bk.set(name,a);return a}
-function hskHeadAtt(A,part){if(A.p2)return null;const S=A.S,hs=A.hs,R0=A.R0,back=A.back,f=A.f,mir=A.mir,head=A.head,sk=A.skull;
- const inHead=(g,fn)=>{g.save();g.translate(sk.x,sk.y);g.scale(f,1);fn();g.restore()};
- if(part==='hairB')return hskAtt(A,'hairB',[-420,-520,420,320],g=>inHead(g,()=>humHair(g,S,R0,false,'behind')));
- if(part==='head')return hskAtt(A,'head',[-420,-560,420,360],g=>{
-  inHead(g,()=>{humHair(g,S,R0,back,'behind');humHat(g,S,R0,back,'behind');if(back&&!/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|coif|hood|cowl)$/.test(S.hat||''))humHair(g,S,R0,back,'over')});
-  const hk=HPA.k,R=head.R;if(head.c)g.drawImage(head.c,-R.px-1/hk,-R.py-1/hk,head.c.width/hk,head.c.height/hk);
-  inHead(g,()=>{const hat=S.hat,covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');   // the hair cap: under the eyes (73o-eyes.js), so the brows sit over a fringe
-   if(!covers&&!/^(kabuto|menpo|kawari|lgoni|jingasa)$/.test(hat||''))humHair(g,S,R0,back,'cap');else if(/^(kabuto|menpo|kawari|jingasa|lgoni)$/.test(hat||'')&&S.hair==='topknot')humHair(g,S,R0,back,'cap');
-  })});
- return hskAtt(A,'headTop',[-420,-560,420,360],g=>{
-  inHead(g,()=>{const hat=S.hat;const covers=/^(great|barbute|tuskbarbute|armet|bascinet|voidhelm|wyvcrest|sallet|coif|hood|cowl|murm|galea|thraex)$/.test(hat||'');
-   if(!back&&!covers){if(S.patch){const ex=mir?.1:.8,ey=mir?.44:.28;humLine(g,[-R0*.7,-R0*.3,R0*1.0,R0*(ey-.25)],HUM_INK,4);humSh(g,humEll(R0*ex,R0*ey,R0*.17,R0*.15),HUM_INK,{flat:1,lw:0})}
-    if(S.paint){humLine(g,[R0*.0,R0*.55,R0*.95,R0*.48],humHex(S.paint),6)}if(S.stubble){g.fillStyle='rgba(30,25,20,.22)';g.beginPath();g.ellipse(R0*.45,R0*.75,R0*.5,R0*.22,0,0,7);g.fill()}
-    if(S.tusk&&!hs.orc){for(const x of[R0*.35,R0*.85])humSh(g,humPoly([x-6,R0*.72,x,R0*.5,x+6,R0*.72]),'#efe7cf',{lw:4})}}
-   if(!back&&!covers)humBeard(g,S,R0,hs.dw);
-   if(S.mask&&!back){humSh(g,humP(p=>{p.moveTo(-R0*.2,R0*.42);p.lineTo(R0*1.08,R0*.28);p.quadraticCurveTo(R0*1.05,R0*.95,R0*.45,R0*1.0);p.quadraticCurveTo(-R0*.1,R0*.9,-R0*.2,R0*.42);p.closePath()}),humLit(S.hatR||usCloth('night')))}
-   humHat(g,S,R0,back,'over')})})}
-function hskTorsoAtt(A){if(A.p2){const T=A.T;return hskAtt(A,'torso',[-260,-300,260,200],g=>{const pk=T.c.pk,R=T.R;g.drawImage(T.c,-R.px-1/pk+(T.c.ox||0),-R.py-1/pk+(T.c.oy||0),T.c.width/pk,T.c.height/pk)})}
- const S=A.S,hs=A.hs,T=A.T,tR=A.tR,tw=A.tw,C=hs.C,shA=A.shA,shB=A.shB,neck=A.neck,f=A.f,back=A.back,mf=A.mf;
- return hskAtt(A,'torso',[-260,-300,260,200],g=>{const hk=HPA.k,R=T.R;if(T.c){g.save();g.scale(tw,1);g.drawImage(T.c,-R.px-1/hk,-R.py-1/hk,T.c.width/hk,T.c.height/hk);g.restore()}
-  if(S.coat){const F=humLit(S.coat.F),Kc=humLit(S.coat.K),cut=S.coat.cut,long=cut==='surcoat'||cut==='herald'||cut==='jinbaori',bot=long?66:cut==='quilted'?44:28,w=(cut==='tabard'||cut==='mantle'?36:44)*tw;
-   const top=tR.top-tR.hy+22,P2=humP(p=>{p.moveTo(-w,top);p.lineTo(w,top);p.lineTo(w+8,bot);if(long&&!back){p.lineTo(f*6+5,bot);p.lineTo(f*6,bot-30);p.lineTo(f*6-5,bot)}p.lineTo(-w-8,bot);p.closePath()});
-   humSh(g,P2,F,{dk:.18});if(cut==='herald'){g.save();g.clip(P2);g.strokeStyle=Kc;g.lineWidth=10;g.stroke(P2);g.restore();g.lineWidth=HUM_LW;g.strokeStyle=HUM_INK;g.stroke(P2)}
-   humInkLine(g,[-w+4,-4,w-4,-4],C.belt,8);if(!back||cut==='jinbaori'){const es=Math.min(2*w*.8,50);g.save();g.translate(f*4,top+(-4-top)*.5);g.scale(mf,1);humEmblem(g,S.coat.em,0,0,es,Kc);g.restore()}
-   if(cut==='mantle'){const m=humP(p=>{p.moveTo(shA.x-12,shA.y+6);p.quadraticCurveTo(neck.x,neck.y-36,shB.x+12,shB.y+6);p.quadraticCurveTo(neck.x,neck.y+26,shA.x-12,shA.y+6);p.closePath()});humSh(g,m,Kc)}}
-  if(S.av&&S.av.mantle){const c=humLit(S.armor==='robe'?(S.accR||usCloth('purple')):USR.fur),m=humP(p=>{p.moveTo(shA.x-14,shA.y+4);p.quadraticCurveTo(neck.x,neck.y-40,shB.x+14,shB.y+4);p.quadraticCurveTo(neck.x,neck.y+20,shA.x-14,shA.y+4);p.closePath()});humSh(g,m,c)}})}
+function hskTorsoAtt(A){const T=A.T;return hskAtt(A,'torso',[-260,-300,260,200],g=>{const pk=T.c.pk,R=T.R;g.drawImage(T.c,-R.px-1/pk+(T.c.ox||0),-R.py-1/pk+(T.c.oy||0),T.c.width/pk,T.c.height/pk)})}
 function hskBackAtt(A){const S=A.S,back=A.back,shA=A.shA,shB=A.shB,sw0=A.sw0,UBy=A.UBy0;if(!(S.cape||S.slung||S.alt&&(S.altCls==='back'||S.altCls==='bow')||S.quiver||S.back&&/usSashi/.test(String(S.back))))return null;
  return hskAtt(A,'back',[-420,-560,420,420],g=>{const bx={x:sw0*10,y:-70};
   if(S.cape){const c=humLit(S.cape),y1=-40-UBy,y2=-18-UBy,P2=humP(q=>{q.moveTo(shA.x-6,shA.y-8);q.lineTo(shB.x+6,shB.y-8);q.quadraticCurveTo(shB.x+30,y1,shB.x+26,y2);q.quadraticCurveTo(0,-6-UBy,shA.x-26,y2);q.quadraticCurveTo(shA.x-30,y1,shA.x-6,shA.y-8);q.closePath()});humSh(g,P2,c,{dk:.25})}
@@ -148,14 +113,6 @@ function hskBackAtt(A){const S=A.S,back=A.back,shA=A.shA,shB=A.shB,sw0=A.sw0,UBy
   if(S.quiver){g.save();g.translate(sw0*34,-120);g.rotate(-sw0*.45);humSh(g,humP(p=>humRR(p,-16,-20,32,96,10)),humLit(USR.leather),{dk:.25});for(let i=0;i<3;i++){humSh(g,humPoly([-12+i*10,-20,-6+i*10,-46,0+i*10,-20]),'#e8e2d4',{lw:4})}g.restore()}})}
 function hskHipAtt(A){const S=A.S;if(!S.alt||S.altCls==='back'||S.altCls==='bow'||!S.altCls)return null;const oi=humWIc(S.alt,S.altI),so0=A.so0;
  return hskAtt(A,'hip',[-360,-200,360,420],g=>{g.save();g.translate(so0*24,-18);g.rotate(so0*.35+Math.PI/2);g.scale(.85,.85);humDrawWAny(g,oi,{});g.restore()})}
-function hskSkirtAtt(A){if(A.p2)return null;const n=A.hs.A.skirt;if(!n||n===1)return null;const S=A.S,hs=A.hs,C=hs.C,f=A.f;
- return hskAtt(A,'skirt',[-140,-40,140,420],g=>{const c=n<0?C.body:humLit(hs.A.skB||hs.A.body),y0=-6,ln=n<0?(-A.UBy0-24):n===2?36:56,w=60*hs.wid;
-  const P2=humP(p=>{p.moveTo(-w,y0);p.lineTo(w,y0);p.lineTo(w+(n<0?14:6),y0+ln);p.quadraticCurveTo(0,y0+ln+8,-w-(n<0?14:6),y0+ln);p.closePath()});humSh(g,P2,c,{dk:.2});
-  if(S.armor==='mail'||n===3&&S.armor!=='brig'&&S.armor!=='lamellar')humMailTex(g,P2,-w-14,y0,w+14,y0+ln+8,c);if(S.armor==='lamellar'){g.save();g.clip(P2);for(let y=y0+12;y<y0+ln;y+=14)humLine(g,[-w-10,y,w+10,y],humLit(USR.red),4);g.restore()}
-  if(n<0){humLine(g,[f*14,y0+4,f*18,y0+ln],humLit(S.trim||USR.brass),7)}})}
-function hskPaulAtt(A){if(A.p2)return null;const S=A.S,hA=A.hs.A;if(!(hA.paul||(S.av&&S.av.sode)))return null;
- return hskAtt(A,'paul',[-80,-90,80,90],g=>{const pc2=humLit(hA.paul||USR.steel);if(S.av&&S.av.sode){const P2=humP(q=>humRR(q,-30,-6,60,58,6));humSh(g,P2,humLit(USR[(S.av.A||{}).paul]||USR.blk),{dk:.2});g.save();g.clip(P2);for(let y=8;y<56;y+=14)humLine(g,[-32,y,32,y],humLit(USR.red),4);g.restore()}
-  else{const P2=humP(q=>{q.moveTo(-34,8);q.quadraticCurveTo(-36,-30,0,-30);q.quadraticCurveTo(36,-30,34,8);q.quadraticCurveTo(0,20,-34,8);q.closePath()});humSh(g,P2,pc2,{dk:.22});if(S.spike)humSh(g,humPoly([-8,-26,0,-56,8,-26]),humLit(S.spikeR||USR.steel))}})}
 // weapon / bow / shield attachments do not depend on the face: shared by the look at this scale (A0: face 0's asset record)
 function hskShared(L,k){return humSkAssets(L,0,k)}
 function hskWpnAtt(L,k,wi,o,key){const A=hskShared(L,k);return hskAtt(A,'w:'+wi.id+':'+key,[-260,-200,620,200],g=>humDrawWAny(g,wi,o))}
@@ -168,8 +125,7 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const wi=humWIc(W,S.wdI),cls=humWCls(wi.fam,W);hs.fam=wi.fam;hs.two=wi.two;
  const P=humAnimPose(cls,state,t,{two:wi.two,fam:wi.fam},att&&S.shield&&(va==='bash'||va==='shieldbash')?'bash':att&&(va==='throw'||va==='throwK')?(cls==='thrust'?'throwJ':va):'');
  if(S.wall&&S.shield&&cls!=='bow'&&!P.grip&&state!=='death'){const far=face===0||face===3,hi=face===3?(att?[-34,22]:state==='hit'?[-30,24]:[-38,16]):far?(att?[62,22]:state==='hit'?[54,24]:[66,16]):(att?[30,30]:state==='hit'?[22,30]:[36,24]);P.o=[hi[0],hi[1]-(P.bob||0)];P.wall=1;if((cls==='swing'||cls==='dagger')&&!att)P.wa+=(cls==='dagger'?-28:-42)}   // braced (approved look): the blade held up as before   // Shield wall (usWall)
- if(ex===undefined&&A.p2){try{ex=headPick(null,L,state,t,P.name,cls)}catch(e){ex=null}}
- if(ex===undefined&&typeof eyePick==='function'&&!A.back){try{ex=eyePick(null,L,state,t,P.name,cls)}catch(e){ex=null}}   // the baked path: the expression from the state alone
+ if(ex===undefined){try{ex=headPick(null,L,state,t,P.name,cls)}catch(e){ex=null}}   // the baked path: the expression from the state alone
  if(S.spearw&&cls==='thrust'&&P.name!=='throwJ'&&state!=='death'&&state!=='walk'&&state!=='swap'&&state!=='reload'){   // Spear wall: braced, knees bent, the spear levelled forward
   const two=wi.two||!S.shield,hit=state==='hit'?Math.sin(Math.PI*Math.min(1,t/.5)):0,lunge=att?Math.max(0,Math.sin(Math.PI*Math.min(1,Math.max(0,(t-.2)/.5)))):0;
   P.lA=16;P.lB=-14;P.uA=0;P.uB=0;P.lg=[P.lA,0,P.lB,0];P.bob=12;P.lean=8+lunge*6-hit*10;P.head=-4;P.kneel=0;
@@ -186,44 +142,38 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
  const fSh=f*shA.x>f*shB.x?shA:shB,rSh=fSh===shA?shB:shA,abs=cls==='bow'||cls==='gun';
  const tw0=rest(abs?rSh:sW,P.w),armW=aim(AW,sW,tw0.x,tw0.y);
  const wa=P.wa*Math.PI/180,wdx=f*Math.cos(wa),wdy=Math.sin(wa);
- const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(abs?fSh:sO,P.o);if(P.wall&&A.p2&&S.shield)to0={x:neck.x+A.R0*.3,y:neck.y+A.R0*.6};   // braced: the off hand behind the raised shield
+ const grip=P.grip&&!P.drop&&cls!=='bow';let to0=rest(abs?fSh:sO,P.o);if(P.wall&&S.shield)to0={x:neck.x+A.R0*.3,y:neck.y+A.R0*.6};   // braced: the off hand behind the raised shield
  if(grip){const d=(wi.h2||-3)*HUM_CELL*(cls==='gun'?.8:1);to0={x:armW.wx+wdx*d,y:armW.wy+wdy*d}}
  let armO=aim(AO,sO,to0.x,to0.y,abs&&sO===rSh?1.5:1.28);
  // the part sheets: weapons are held at the palm (the centre of the hand part, after its offset), not the wrist
  const palm=(a,h)=>{const o=h.n==='hand_a'?P2.handA:[0,0],lx=h.R.w*(.5+o[0])-h.R.px,ly=h.R.h*(.55+o[1])-h.R.py,r=a.th-Math.PI/2,c=Math.cos(r),s_=Math.sin(r);return{x:a.wx+lx*c-ly*s_,y:a.wy+lx*s_+ly*c}};
- if(A.p2){let pW=palm(armW,HW);armW.gx=pW.x;armW.gy=pW.y;let pO=palm(armO,HO);
+ {let pW=palm(armW,HW);armW.gx=pW.x;armW.gy=pW.y;let pO=palm(armO,HO);
   if(grip){const d=(wi.h2||-3)*HUM_CELL*(cls==='gun'?.8:1)+(wi.gripC||0);for(let it=0;it<2;it++){const tx=pW.x+wdx*d,ty=pW.y+wdy*d;armO=aim(AO,sO,to0.x+(tx-pO.x),to0.y+(ty-pO.y),1.4);to0={x:to0.x+(tx-pO.x),y:to0.y+(ty-pO.y)};pO=palm(armO,HO)}}
   armO.gx=pO.x;armO.gy=pO.y}
- else{armW.gx=armW.wx;armW.gy=armW.wy;armO.gx=armO.wx;armO.gy=armO.wy}
  // slots
  const pcImg=(p,tag)=>g.img(hskPc(p.c,p.R),tag);
- const drawArm=(p,a)=>{if(A.p2){const h=p===AW?HW:HO,o=h.n==='hand_a'?P2.handA:null;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);if(o)g.translate(o[0]*h.R.w,o[1]*h.R.h);pcImg(h,'hand');g.restore()}   // the right hand (near arm) sits a little outward and up, under its sleeve's curve   // the part sheets: the hand under its own sleeve cap
-  g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);pcImg(p,'arm');g.restore();
-  const pa=hskPaulAtt(A);if(pa){g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th-Math.PI/2);g.img(pa,'paul');g.restore()}};
- const drawHand=(p,a)=>{if(A.p2)return;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);pcImg(p,'hand');g.restore()};
+ const drawArm=(p,a)=>{{const h=p===AW?HW:HO,o=h.n==='hand_a'?P2.handA:null;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);if(o)g.translate(o[0]*h.R.w,o[1]*h.R.h);pcImg(h,'hand');g.restore()}   // the right hand (near arm) sits a little outward and up, under its sleeve's curve   // the part sheets: the hand under its own sleeve cap
+  g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);pcImg(p,'arm');g.restore()};
+ const drawHand=()=>{};   // the part sheets: each hand is drawn with its arm (drawArm)
  const fire=cls==='gun'&&att&&P.fire,loaded=S.ld!==0&&!(att&&t>=.38);
  const drawWeapon=()=>{if(P.drop||P.empty||cls==='bow'||wi.fam==='fist')return;let wa2=wa;
-  if(P.wa>95&&state!=='death'){const tip=wi.len-(A.p2&&wi.gripC?wi.gripC:0)+8,sn=Math.sin(wa);if(armW.gy+sn*tip>-4){const s2=Math.max(.05,Math.min(1,(-4-armW.gy)/tip));wa2=Math.PI-Math.asin(s2)}}   // trailing behind: lowered only until the tip touches the ground
-  g.save();g.translate(armW.gx,armW.gy);g.scale(f,1);g.rotate(wa2);if(A.p2&&wi.gripC)g.translate(-wi.gripC,0);{const hang=P.wa>95?0:Math.max(0,Math.min(1,(P.wa-45)/45));let back=0;if(hang>0&&(wi.fam==='axe'||wi.fam==='mace'||wi.fam==='hammer'||wi.fam==='club'))back=wi.len*.62*hang;
-  if(hang>0&&state!=='death'){const tip=wi.len-(A.p2&&wi.gripC?wi.gripC:0)-back+8,low=armW.gy+Math.sin(wa)*tip;if(low>-6)back+=(low+6)/Math.max(.3,Math.sin(wa))}   // hanging: the tip stops just above the ground
+  if(P.wa>95&&state!=='death'){const tip=wi.len-(wi.gripC||0)+8,sn=Math.sin(wa);if(armW.gy+sn*tip>-4){const s2=Math.max(.05,Math.min(1,(-4-armW.gy)/tip));wa2=Math.PI-Math.asin(s2)}}   // trailing behind: lowered only until the tip touches the ground
+  g.save();g.translate(armW.gx,armW.gy);g.scale(f,1);g.rotate(wa2);if(wi.gripC)g.translate(-wi.gripC,0);{const hang=P.wa>95?0:Math.max(0,Math.min(1,(P.wa-45)/45));let back=0;if(hang>0&&(wi.fam==='axe'||wi.fam==='mace'||wi.fam==='hammer'||wi.fam==='club'))back=wi.len*.62*hang;
+  if(hang>0&&state!=='death'){const tip=wi.len-(wi.gripC||0)-back+8,low=armW.gy+Math.sin(wa)*tip;if(low>-6)back+=(low+6)/Math.max(.3,Math.sin(wa))}   // hanging: the tip stops just above the ground
   if(back)g.translate(-back,0)}   // hanging at the side: a hafted weapon is held up by its neck, its head just under the fist
   g.img(hskWpnAtt(L,k,wi,{loaded,fire,crank:P.crank},(loaded?'L':'u')+(fire?'F':'')+(P.crank||'')),'weapon');g.restore();
   if(P.rod){g.save();g.translate(armO.gx,armO.gy);g.fn(q=>humInkLine(q,[0,-20,0,60],humLit(USR.steel),5),'rod');g.restore()}};
- const drawOW=()=>{if(!S.ow||P.drop||state==='cast')return;const oi=humWIc(S.ow,S.owId);g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);if(A.p2&&oi.gripC)g.translate(-oi.gripC,0);g.img(hskWpnAtt(L,k,oi,{},'ow'),'offweapon');g.restore()};
+ const drawOW=()=>{if(!S.ow||P.drop||state==='cast')return;const oi=humWIc(S.ow,S.owId);g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);g.rotate((P.wa-8)*Math.PI/180);if(oi.gripC)g.translate(-oi.gripC,0);g.img(hskWpnAtt(L,k,oi,{},'ow'),'offweapon');g.restore()};
  const drawBow=()=>{if(cls!=='bow'||P.drop)return;g.save();g.translate(armO.gx,armO.gy);g.scale(f,1);if(!att)g.rotate(-.12);const bd=!!P.bowD,hx=(armW.gx-armO.gx)*f;g.img(hskBowAtt(L,k,wi,bd),'bow');
   g.fn(q=>humDrawBowString(q,wi,bd,!!P.arrow,hx),'string');g.restore()};
- const shFar=oSide==='b',shieldAt=()=>A.p2?{x:armO.gx+(shFar?Math.sign(sO.x)*22:f*6),y:armO.gy-6}:({x:armO.wx+f*(shFar?14:24)+(shFar?Math.sign(sO.x)*26:0),y:armO.wy-18});   // part sheets: the shield's centre at the off hand's palm
+ const shFar=oSide==='b',shieldAt=()=>({x:armO.gx+(shFar?Math.sign(sO.x)*22:f*6),y:armO.gy-6});   // part sheets: the shield's centre at the off hand's palm
  const drawShield=front=>{if(!S.shield||P.drop||P.wall)return;tags.push(front?'front':'back');const c=shieldAt();g.save();g.translate(c.x,c.y);g.scale(front?mf:f*mf*.92,1.1);g.img(hskShieldAtt(L,k,S.shield,S.shR,front,!!S.shCrack),front?'shieldF':'shieldB');g.restore()};
  const torsoBone=fn=>{g.save();g.translate(UB.x,UB.y);g.rotate(rot);fn();g.restore()};
  const drawBackGear=()=>{const a=hskBackAtt(A);if(a)torsoBone(()=>g.img(a,'back'))};
  const drawHip=()=>{const a=hskHipAtt(A);if(a)torsoBone(()=>g.img(a,'hip'))};
  const drawTorso=()=>{tags.push('torso');torsoBone(()=>g.img(hskTorsoAtt(A),'torso'))};
- const drawSkirt=()=>{const a=hskSkirtAtt(A);if(a){g.save();g.translate(0,UB.y);g.img(a,'skirt');g.restore()}};
  const headBone=fn=>{g.save();g.translate(neck.x,neck.y);g.rotate(rot*.5+f*(P.head||0)*Math.PI/180);fn();g.restore()};
- const drawHead=()=>headBone(()=>{if(A.p2){g.img(p2HeadAtt(A,ex&&ex.head!=null?ex.head:0),'head');return}g.img(hskHeadAtt(A,'head'),'head');
-  if(ex&&typeof eyeAtts==='function'){const E1=eyeAtts(A,ex.set),E0=ex.prev!=null?eyeAtts(A,ex.prev):null,a=E0?ex.fade:1;
-   if(E0){g.img(E0.n,'eyeN0',1-a);g.img(E0.f,'eyeF0',1-a)}if(E1){g.img(E1.n,'eyeN',a);g.img(E1.f,'eyeF',a)}}
-  g.img(hskHeadAtt(A,'headTop'),'headTop')});
+ const drawHead=()=>headBone(()=>g.img(p2HeadAtt(A,ex&&ex.head!=null?ex.head:0),'head'));
  const drawLegs=()=>{const lg=P.lg;for(const [p,side,ix] of[[A.LB,'b',2],[A.LA,'a',0]]){const x=(side==='a'?-A.hx:A.hx),r=-f*lg[ix]*Math.PI/180,lift=lg[ix+1]||0,kr=-f*(side==='a'?.9:.15),ks=side==='a'?.55:.7;
    g.save();g.translate(x+f*(side==='a'?24:-10)*kn,hipY+(A.legY!=null?A.legY:6)-lift*(1-kn));const lk=A.legk!=null?A.legk:hs.legk;g.rotate(r*(1-kn)+kr*kn);g.scale(1,lk+(ks-lk)*kn);pcImg(p,'leg');g.restore()}};
  const drawSpark=()=>{if(!P.spark)return;const col=HUM_SPK[S.spark||S.res]||'#ffe27a';let x,y;const R0=A.R0,sk={x:neck.x+A.skull.x,y:neck.y+A.skull.y};
@@ -231,26 +181,26 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
   const r=P.spark===3?30:P.spark===2?22:14;g.save();g.translate(x,y);g.fn(q=>{q.fillStyle=col;q.globalAlpha*=.35;q.beginPath();q.arc(0,0,r*1.6,0,7);q.fill();q.globalAlpha/=.35;const st4=humP(p=>{for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i&1?r*.4:r;i?p.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):p.moveTo(rr,0)}p.closePath()});humSh(q,st4,humLt(col,.3),{lw:5,flat:1})},'spark');g.restore()};
  // ---- draw order (weapon arm near: faces 0 and 3; far: faces 1 and 2, before the mirror)
  const offHand=()=>{if(S.shield){drawHand(HO,armO);drawShield(true)}else if(cls==='bow'){drawBow();drawHand(HO,armO)}else{if(!grip)drawOW();if(!grip)drawHand(HO,armO)}};
- const wSet=()=>{if(A.p2){drawWeapon();drawArm(AW,armW);return}drawArm(AW,armW);drawWeapon();drawHand(HW,armW)};   // part sheets: the weapon under the hand, the hand under its sleeve
+ const wSet=()=>{drawWeapon();drawArm(AW,armW)};   // part sheets: the weapon under the hand, the hand under its sleeve
  const wall=!!(P.wall&&S.shield&&!P.drop);
  // Shield wall: the shield's front raised in front of body and head, its top just below the eyes of the head drawn now (all faces)
  let wDone=0;const drawWallShield=()=>{if(!wall||wDone)return;const fam=usShFam(S.shield),D=HUM_SHS[fam]||HUM_SHS.round,sy=1.1,top=fam==='kite'?D[1]*.86:fam==='buckler'||fam==='targe'||fam==='round'||fam==='spiked'?D[0]:D[1];
-  let eyb=0,cx=0;if(A.p2){const hn=(A.hf||'head')+(ex&&ex.head!=null?ex.head:0),HA=P2A.p[hn].a;eyb=HA.eyb-HA.ny;cx=HA.cx-HA.nx+A.R0*.18}else{eyb=A.skull.y+A.R0*.35;cx=A.skull.x+A.R0*.2}
+  const hn=(A.hf||'head')+(ex&&ex.head!=null?ex.head:0),HA=P2A.p[hn].a,eyb=HA.eyb-HA.ny,cx=HA.cx-HA.nx+A.R0*.18;
   const c={x:neck.x+cx,y:neck.y+eyb+4+top*sy};tags.push('front');g.save();g.translate(c.x,c.y);g.scale(mf,sy);g.img(hskShieldAtt(L,k,S.shield,S.shR,true,!!S.shCrack),'shieldF');g.restore()};
  const farShield=()=>{if(!wall)drawShield(false);drawArm(AO,armO);drawHand(HO,armO)};
- if(!back){drawBackGear();const hb=hskHeadAtt(A,'hairB');if(hb)headBone(()=>g.img(hb,'hairB'));
+ if(!back){drawBackGear();
   if(nearW){if(S.shield)farShield();else{drawArm(AO,armO);if(!grip&&cls!=='bow'){drawOW();drawHand(HO,armO)}}}else wSet();
-  drawLegs();drawSkirt();drawTorso();drawHip();drawHead();
+  drawLegs();drawTorso();drawHip();drawHead();
   if(nearW){if(cls==='bow'){drawBow();drawHand(HO,armO)}if(wall){drawWallShield();wDone=1}wSet()}else{drawArm(AO,armO);offHand()}   // braced, weapon arm near: the sword arm ready in front of the shield
   if(grip)drawHand(HO,armO);drawWallShield();drawSpark()}
  else{
   if(nearW){if(S.shield)farShield();else{drawArm(AO,armO);if(cls==='bow')drawBow();if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}}else wSet();
-  drawLegs();drawSkirt();drawTorso();drawBackGear();drawHip();drawHead();
+  drawLegs();drawTorso();drawBackGear();drawHip();drawHead();
   if(nearW){wSet();if(grip)drawHand(HO,armO)}else{if(cls==='bow')drawBow();drawArm(AO,armO);if(S.shield){drawHand(HO,armO);drawShield(true)}else{if(!grip&&cls!=='bow')drawOW();drawHand(HO,armO)}}drawWallShield();drawSpark()}
  // the weapon on the ground once dropped (ground bone: not part of the falling body)
  if(P.drop&&W&&(W.c&&W.c.length||cls==='bow')){const m0=g.m;g.m=[1,0,0,1,0,0];g.save();g.translate(fall>.5?-f*30:f*70,-8);g.scale(f,1);if(cls==='bow'){g.rotate(Math.PI/2);g.img(hskBowAtt(L,k,wi,false),'dropped')}else{g.translate(fall>.5?-wi.len*.4:-wi.back,0);g.img(hskWpnAtt(L,k,wi,{},'u'),'dropped')}g.restore();g.m=m0}
  HSK.frames++;HSK.ms+=performance.now()-t0;
-  return{list:g.list,tags,pose:P,anim:P.name,eyes:ex||null,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc*(A.p2?P2.sc*(hs.race==='dwarf'?.96:1):1),p2:!!A.p2}}
+  return{list:g.list,tags,pose:P,anim:P.name,eyes:ex||null,hand:{w:wSide,o:oSide,right:face===0||face===3?'a':'b',shield:S.shield&&!P.drop?oSide:null,layers:tags.join(',')},mir,sc:hs.sc*P2.sc*(hs.race==='dwarf'?.96:1),p2:true}}
 /* blit a frame: base = the target context's transform at the feet, in art px (x right, y down); mirror for faces 1 and 3.
    mapImg(cv) may swap an attachment for its tinted / silhouette version (70-render.js tintedOf / silOf, cached per canvas). */
 function humSkDraw(q,Fr,x,y,mapImg,skipFn){const t0=performance.now(),s=HUM_A*Fr.sc,m0=q.getTransform(),B0=[m0.a,m0.b,m0.c,m0.d,m0.e,m0.f],base=hskMul(B0,[Fr.mir?-s:s,0,0,s,x,y]);
@@ -274,8 +224,7 @@ function humLiveFrame(u,v){if(!u||!humImg()||(typeof hdArt==='function'&&!hdArt(
  const L=usLook(u);if(!humWant(L))return null;let st=v.pS||'idle';if(st==='walk'&&v.pAn==='flee')st='flee';
  let t=HSK_LOOP[st]?(v.pCy||0):(v.pPh!=null?v.pPh:humSkT(st,v.pF));if(st==='idle'&&typeof reduced!=='undefined'&&reduced)t=0;
  let va='';if(st==='attack'&&(v.pAn==='throw'||v.pAn==='throwK'))va=v.pAn;else if(st==='attack'&&typeof anVariant==='function'){try{va=anVariant(u)||''}catch(e){}}
- const face=((v.pD|0)%4+4)%4;let ex=null;if(typeof p2On==='function'&&p2On()){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=headPick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
- else if(face<2&&typeof eyePick==='function'){try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=eyePick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}}
+ const face=((v.pD|0)%4+4)%4;let ex=null;try{const W=L.S.wd,cl=W?humWCls(humWInfo(W).fam,W):'fist';ex=headPick(u,L,st==='flee'?'walk':st,t,st==='flee'?'flee':'',cl)}catch(e){ex=null}
  return humSkFrame(L,face,st==='flee'?'flee':st,t,humK(),va,ex)}
 /* warm a look: bake its attachments for every face (one face per call while a deadline allows) */
 function humSkWarm(L,until){let n=0;const k=humK();for(let f=0;f<4;f++){const c=L.skA&&L.skA[f+':'+k];if(c&&c.warm)continue;if(until&&performance.now()>=until)return n;
