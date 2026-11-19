@@ -1,6 +1,6 @@
 /* ================= FRAME SHEETS: foes drawn from the user's frame-by-frame animation sheets (Detail High) =================
    A foe whose sheet holds its animations as drawn frames (the Direwolf: run, hurt, death, paw scratch, bite; the Goblin skirmisher:
-   idle, run, attack, hit, death; the Goblin archer and the Goblin shaman: idle, run, attack, cast, hit, death) plays them frame by frame on the game's
+   idle, run, attack, hit, death; the Goblin archer, the Goblin shaman and the Owlbear: idle, run, attack, cast, hit, death) plays them frame by frame on the game's
    animation clock (74-anim.js). Loops (idle, walk, flee) run on unitPose's cycle P.cyc (rate: row cycles per animation cycle).
    One-shots run on their own clock in ms from the moment 74-anim.js started them (the attack's s.at0, the blow's s.hitT, the death's
    s.deadT; normalised by the game speed), so a drawn swing or yelp is not squeezed into the game's 240 ms attack or 230 ms flinch:
@@ -11,8 +11,9 @@
      event (a move, a blow taken, death) takes over.
    - hit: the hurt row over `ms` from the blow landing; death: over the collapse and its hold (420 + 150 ms at normal speed), then its
      last frame stays while the corpse fades.
-   - Registry FS_DEF[enemy id] = {atl() -> the generated atlas (76e-wolfatlas.js WFA, 76f-gobatlas.js GBA / GAA / GSA), an: {state or variant:
-     row}, pick(u, st, s) -> a variant row (the wolf's bite, the archer's poison arrow and knife, the shaman's chant), rig + rigSt: the states
+   - Registry FS_DEF[enemy id] = {atl() -> the generated atlas (76e-wolfatlas.js WFA, 76f-gobatlas.js GBA / GAA / GSA, 76i-owlatlas.js OBA), an: {state or variant:
+     row}, pick(u, st, s) -> a variant row (the wolf's bite, the archer's poison arrow and knife, the shaman's chant, the owlbear's
+     swipe and charge), rig + rigSt: the states
      drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js)}.
    - Frames are anchored on the body's centre over the feet (the atlas's ax / ay); a figure stands SHEETS[id].h art px tall like its
      old painted sheet, its feet SHEETS[id].dy art px under the tile point as the painted figure's were. Faces: the sheets face screen-right
@@ -36,7 +37,14 @@ const FS_DEF={
  gobsham:{atl:()=>typeof GSA==='object'?GSA:null,an:{idle:{f:'idle',loop:1,rate:2},walk:{f:'run',loop:1,rate:1},flee:{f:'run',loop:1,rate:1},
   attack:{f:'attack',imp:4,hit:'melee',ms:600},cast:{f:'cast',from:2,imp:4,hit:'spell',ms:760},chant:{f:'cast',from:4,ms:700},hit:{f:'hit',ms:600},death:{f:'death'},
   swap:{f:'idle',loop:1,rate:2},reload:{f:'idle',loop:1,rate:2}},
-  pick:(u,st,s)=>st==='cast'&&s&&s.vaId==='gchant'&&fsNow()-(s.vaT||-1e9)<2500?'chant':''}};
+  pick:(u,st,s)=>st==='cast'&&s&&s.vaId==='gchant'&&fsNow()-(s.vaT||-1e9)<2500?'chant':''},
+ // the owlbear: its claw swipe lands on the swoosh (attack frame 5); Swipe (bswipe, every adjacent foe) is the cast row: the purple glow
+ // gathers in the claws and its purple arcs (cast frame 6) rake at the blow; Trample (bcharge) gallops on the run row while it charges,
+ // then strikes with the attack row; any other cast plays the cast row whole
+ bear:{atl:()=>typeof OBA==='object'?OBA:null,an:{idle:{f:'idle',loop:1,rate:2},walk:{f:'run',loop:1,rate:1},flee:{f:'run',loop:1,rate:1},
+  attack:{f:'attack',imp:4,hit:'melee',ms:600},swipe:{f:'cast',from:2,imp:5,hit:'melee',ms:640},charge:{f:'run',loop:1,cyc:300},cast:{f:'cast',ms:760},
+  hit:{f:'hit',ms:600},death:{f:'death'},swap:{f:'idle',loop:1,rate:2},reload:{f:'idle',loop:1,rate:2}},
+  pick:(u,st,s)=>st!=='attack'||!s?'':s.mv&&s.mk===(typeof AN_DASH==='number'?AN_DASH:4)?'charge':s.vaId==='bswipe'&&fsNow()-(s.vaT||-1e9)<2500?'swipe':''}};
 function fsNow(){return typeof anNow==='function'?anNow():0}
 function fsId(u){if(!u||!u.def||u.m)return null;const id=typeof msEnKey==='function'?msEnKey(u.def):null;return id&&FS_DEF[id]?id:null}
 function fsImg(id){const D=FS_DEF[id],A=D&&D.atl();if(!A||typeof Image==='undefined'||FS.off)return null;let I=FS.img[id];if(!I){I=FS.img[id]=new Image();I.decoding='async';I.src=A.src}return I.complete&&I.naturalWidth?I:null}
@@ -76,7 +84,7 @@ function fsTime(u,v,D){let st=v.pS||'idle';const an=v.pAn||'';if(st==='walk'&&an
   if((s.act===1||s.act===2)&&s.at0>-1e8){const k=s.act===1?'attack':'cast',row=D.pick?D.pick(u,k,s):'',d=D.an[row]||D.an[k];
    if(d&&d.ms){const el=(now0-s.at0)/sp;if(el>=0&&el<d.ms&&s.at0>bt){best=[k,{el,row}];bt=s.at0}}}
   if(best)return best;
-  if(st==='attack'||st==='cast'){const row=D.pick?D.pick(u,st,s):'';tm.row=row}}
+  if(st==='attack'||st==='cast'){const row=D.pick?D.pick(u,st,s):'',d=D.an[row];tm.row=row;if(d&&d.loop)tm.c=(now0-(s.mt0||0))/Math.max(sp,.01)/(d.cyc||300)}}   // a looping variant (the owlbear's charge) runs on its own clock
  if(st==='hit'&&tm.t>0)tm.el=tm.t*((D.an.hit&&D.an.hit.ms)||600);
  if(st==='idle'&&typeof reduced!=='undefined'&&reduced)tm.c=0;
  return[st,tm]}

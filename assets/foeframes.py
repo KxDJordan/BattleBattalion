@@ -177,3 +177,61 @@ def split_comp(im, lab, c, gx, new_id, win=45):
         ys, xs = np.nonzero(lab[y0:y1 + 1, x0:x1 + 1] == m)
         out.append((m, len(ys), x0 + int(xs.min()), y0 + int(ys.min()), x0 + int(xs.max()), y0 + int(ys.max())))
     return out
+
+
+def frame_sheet(path, ROWS, N, k, loose=None):
+    """A sheet of drawn frames: ROWS [(anim, y0, y1)] bands of N frames each, facing right. Each frame is its figure plus the loose bits
+    (a glow, a swoosh) whose centre is in its cell; figures that touch are split along least-alpha seams at the cell grid (the sheet's
+    width / N). Anchor: the body's centre (median x of the figure's opaque pixels) over its feet (its lowest row; a frame with both feet
+    off the ground uses the row's ground line). loose: {anim: [(x, win)]}: a swoosh drawn touching the next figure is cut off it
+    along the seam near x (within win px) and goes, as a loose bit, to the cell its centre is in. Returns (atlas record {k, w, h, H: the first idle frame's height, f}, webp base64, bytes)."""
+    S = load(path)
+    lab, allc = components(S, keep=12)
+    big = [c for c in allc if c[1] > 2000]
+    cell = S.shape[1] / N
+    FR = {}
+    for name, y0, y1 in ROWS:
+        for gx, win in (loose or {}).get(name, []):
+            c = next(c for c in allc if y0 <= (c[3] + c[5]) / 2 < y1 and c[2] < gx < c[4])
+            a, b2 = split_comp(S, lab, c, gx, int(lab.max()) + 1, win)
+            allc = [d for d in allc if d[0] != c[0]] + [(a[0], 0) + a[2:], b2]     # the left part (the swoosh) is a loose bit
+            big = [d for d in allc if d[1] > 2000]
+        cs = sorted([c for c in big if y0 <= (c[3] + c[5]) / 2 < y1], key=lambda c: c[2])
+        while len(cs) < N:
+            w = max(cs, key=lambda c: c[4] - c[2]); nid = int(lab.max()) + 1
+            mid = (w[2] + w[4]) / 2
+            # the cell boundary inside it nearest its middle, or its middle
+            gs = [round(j * cell) for j in range(1, N) if w[2] + 20 < j * cell < w[4] - 20]
+            gx = int(min(gs, key=lambda g: abs(g - mid))) if gs else int(mid)
+            a, b2 = split_comp(S, lab, w, gx, nid)
+            allc = [c for c in allc if c[0] != w[0]] + [a, b2]
+            cs = sorted([c for c in cs if c[0] != w[0]] + [a, b2], key=lambda c: c[2])
+        assert len(cs) == N, (path, name, len(cs))
+        cx = [(c[2] + c[4]) / 2 for c in cs]
+        bounds = [-1e9] + [(cx[i] + cx[i + 1]) / 2 for i in range(N - 1)] + [1e9]
+        bots = [c[5] + 1 for c in cs]; ground = float(np.median(bots))
+        out = []
+        for i, c in enumerate(cs):
+            ids = [c[0]] + [d[0] for d in allc if d[1] <= 2000 and y0 <= (d[3] + d[5]) / 2 < y1 and bounds[i] <= (d[2] + d[4]) / 2 < bounds[i + 1]]
+            m = np.isin(lab, ids)
+            grow = m.copy()
+            for _ in range(2):
+                g2 = grow.copy(); g2[1:] |= grow[:-1]; g2[:-1] |= grow[1:]; g2[:, 1:] |= grow[:, :-1]; g2[:, :-1] |= grow[:, 1:]; grow = g2
+            keep = grow & (m | (lab == 0))
+            img = S.copy(); img[~keep, 3] = 0; img[img[..., 3] == 0, :3] = 0
+            t, (ox, oy) = trim(img)
+            tf, (fx, fy) = trim(cut(S, lab, c)[0])
+            ax, ay = anchor(tf)                      # from the figure alone: a glow must not move it
+            ax += max(0, c[2] - 2) + fx - ox; ay += max(0, c[3] - 2) + fy - oy
+            if bots[i] < ground - 8:
+                ay += ground - bots[i]
+            out.append((t, ax, ay))
+        FR[name] = out
+    H = float(FR['idle'][0][0].shape[0])
+    items = [('%s_%d' % (kk, i), t) for kk, L in FR.items() for i, (t, _, _) in enumerate(L)]
+    atlas, rects = pack(items, 2048)
+    b64, nbytes = webp_b64(atlas, k)
+    R2 = lambda v: round(float(v), 2)
+    frames = {kk: [{'r': [v * k for v in rects['%s_%d' % (kk, i)]], 'w': t.shape[1], 'h': t.shape[0], 'ax': R2(ax), 'ay': R2(ay)}
+                   for i, (t, ax, ay) in enumerate(L)] for kk, L in FR.items()}
+    return {'k': k, 'w': atlas.shape[1] // 2, 'h': atlas.shape[0] // 2, 'H': H, 'f': frames}, b64, nbytes
