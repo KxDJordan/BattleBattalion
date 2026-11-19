@@ -18,7 +18,7 @@ const SHEETS={
  gob:{h:22,dy:1},
  gobarch:{h:22,dy:1},
  gobsham:{h:25,dy:1},
- wolf:{h:22,dy:3}};
+ wolf:{h:22,dy:0}};   // the wolf's drawn frames and rig stand side-on: the paw line on the tile centre
 const SHT={img:new Map(),cv:new Map(),idx:new Map()};
 function sheetImg(id){const S=SHEETS[id];if(!S||!S.src||typeof Image==='undefined')return null;let I=SHT.img.get(id);if(!I){I=new Image();I.decoding='async';I.src=S.src;SHT.img.set(id,I)}return I.complete&&I.naturalWidth?I:null}
 function sheetIdx(id){let X=SHT.idx.get(id);if(X)return X;X={};for(const f of SHEETS[id].fr){const k=f[0]+':'+f[1];(X[k]||(X[k]=[]))[f[2]]=f}SHT.idx.set(id,X);return X}

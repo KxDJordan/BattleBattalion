@@ -75,7 +75,7 @@ const {chromium}=require('playwright');
  // an untouched seeded battle (units placed by the game, no tile edits): each owlbear's tile centre, its ring's centre and its figure
  // (body centre over the paws) agree within 1 art px, idle in every facing
  await p.evaluate(()=>{SET.detail='high';artChanged();SET.deploy=false;seedRng(77);newGame(true);closeSheet();seedRng(78);startBattle({f:'beast',mult:1,foes:['bear','bear','wolf'],src:{type:'sim'}});try{if(typeof deployDone==='function')deployDone()}catch(e){}});
- await p.waitForTimeout(1500);
+ await p.waitForTimeout(500);await p.waitForFunction(()=>B.cur&&B.cur.side===0&&!B.busy&&B.units.every(u=>!u.alive||!anOf(u).mv&&!(VIS.get(u)||{}).mv),null,{timeout:60000});await p.waitForTimeout(400);   // the game's own opening moves done
  const T=await p.evaluate(()=>{const bad=[],out=[];const c=document.createElement('canvas');c.width=600;c.height=400;const q=c.getContext('2d');
   for(const u of B.units.filter(u=>u.alive&&u.side&&msEnKey(u.def)==='bear')){const v=VIS.get(u),t=tpos(u.c,u.r,T(u).h),tx=t.x/2,ty=t.y/2;
    const x=Math.round((u.sx+v.pX)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),y=Math.round((u.sy+v.pY)/2),E=ELL.ok?ELL:ellInit(),rg=ellRing(E,u,false,true),rx=x-(rg.width>>1)+rg.width/2,ry=gy-(rg.height>>1)+rg.height/2;

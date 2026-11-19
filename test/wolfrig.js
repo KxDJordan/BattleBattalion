@@ -88,8 +88,8 @@ const {chromium}=require('playwright');
   for(const face of[0,1,2,3])for(const [st,T] of ST)for(const tm of T){const Fr=fsFrame('wolf',face,st,tm,K,0);n.frames++;const tag='f'+face+' '+st+' '+JSON.stringify(tm)+' '+(Fr.rig?'rig '+Fr.face:Fr.anim+Fr.fi);
    if(Fr.mir!==(face===1||face===2))bad.push(tag+': mirror '+Fr.mir);if(!Fr.list.length||Fr.list.some(x=>!(x.a&&x.a.cv&&x.a.cv.width>0)))bad.push(tag+': an empty piece');
    const M=measure(Fr);if(M.n<1500)bad.push(tag+': nearly empty ('+M.n+')');
-   if(Math.abs(M.mx)>(Fr.rig?2.5:1.5))bad.push(tag+': body centre '+M.mx.toFixed(2)+' art px off the tile point');
-   if(!air.has(Fr.anim+Fr.fi)&&Math.abs(M.lo-S.dy)>1.5)bad.push(tag+': feet '+M.lo.toFixed(2)+' art px under the tile point (want '+S.dy+')');
+   if(Math.abs(M.mx)>(st==='idle'?1:Fr.rig?2.5:1.5))bad.push(tag+': body centre '+M.mx.toFixed(2)+' art px off the tile point');
+   if(!air.has(Fr.anim+Fr.fi)&&Math.abs(M.lo-S.dy)>1)bad.push(tag+': feet '+M.lo.toFixed(2)+' art px under the tile point (want '+S.dy+')');
    if(air.has(Fr.anim+Fr.fi)&&!(M.lo<S.dy-.5))bad.push(tag+': an airborne run frame on the ground');
    if((st==='idle'||st==='walk')&&Math.abs(M.h-S.h)>S.h*.2)bad.push(tag+': height '+M.h.toFixed(1)+' vs the painted '+S.h)}
   // the rig's idle meets the drawn frames: same height and body centre as the scratch's first frame
@@ -123,6 +123,21 @@ const {chromium}=require('playwright');
   SET.detail='high';artChanged();if(monsterSpritePx(u,0,'idle',0).fs!=='wolf')bad.push('not the figure again after Detail Low');
   return{bad,n}});
  for(const x of R.bad)bad.push(x);
+ // an untouched seeded battle (units placed by the game, no tile edits): each wolf's tile centre, its ring's centre and its figure
+ // (body centre over the paws) agree within 1 art px, idle in every facing
+ await p.evaluate(()=>{SET.detail='high';artChanged();SET.deploy=false;seedRng(77);newGame(true);closeSheet();seedRng(78);startBattle({f:'beast',mult:1,foes:['wolf','wolf','wolf'],src:{type:'sim'}});try{if(typeof deployDone==='function')deployDone()}catch(e){}});
+ await p.waitForTimeout(500);await p.waitForFunction(()=>B.cur&&B.cur.side===0&&!B.busy&&B.units.every(u=>!u.alive||!anOf(u).mv&&!(VIS.get(u)||{}).mv),null,{timeout:60000});await p.waitForTimeout(400);   // the game's own opening moves done
+ const T=await p.evaluate(()=>{const bad=[],out=[];const c=document.createElement('canvas');c.width=600;c.height=400;const q=c.getContext('2d');
+  for(const u of B.units.filter(u=>u.alive&&u.side&&msEnKey(u.def)==='wolf')){const v=VIS.get(u),t=tpos(u.c,u.r,T(u).h),tx=t.x/2,ty=t.y/2;
+   const x=Math.round((u.sx+v.pX)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),y=Math.round((u.sy+v.pY)/2),E=ELL.ok?ELL:ellInit(),rg=ellRing(E,u,false,!!(u.def&&u.def.big)),rx=x-(rg.width>>1)+rg.width/2,ry=gy-(rg.height>>1)+rg.height/2;
+   for(const face of[0,1,2,3]){const Fr=fsLiveFrame(u,Object.assign({},v,{pS:'idle',pD:face,pCy:0,pPh:0,pAn:''}));if(!Fr){bad.push('no live wolf');continue}
+    q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,600,400);q.setTransform(4,0,0,4,0,0);humSkDraw(q,Fr,75+(x-tx),60+(y-ty));q.setTransform(1,0,0,1,0,0);   // the tile centre at (75, 60) art px
+    const d=q.getImageData(0,0,600,400).data,xs=[];let y1=-1;for(let j=3;j<d.length;j+=4)if(d[j]>128){const i=j>>2;xs.push(i%600);const yy=(i/600)|0;if(yy>y1)y1=yy}xs.sort((a,b)=>a-b);
+    const fx=xs[xs.length>>1]/4-75,fy=(y1+1)/4-60;out.push({c:u.c,r:u.r,face,ring:[+(rx-tx).toFixed(2),+(ry-ty).toFixed(2)],figure:[+fx.toFixed(2),+fy.toFixed(2)]});
+    if(Math.abs(rx-tx)>1||Math.abs(ry-ty)>1)bad.push('wolf at '+u.c+','+u.r+': ring centre off its tile centre by '+(rx-tx)+','+(ry-ty));
+    if(Math.abs(fx)>1||Math.abs(fy)>1)bad.push('wolf at '+u.c+','+u.r+' face '+face+': figure (body centre, paws) off its tile centre by '+fx.toFixed(2)+','+fy.toFixed(2))}}
+  if(!out.length)bad.push('no wolf in the seeded battle');return{bad,out}});
+ for(const x of T.bad)bad.push(x);
  const lowSig=async pg=>pg.evaluate(()=>{SET.detail='low';artChanged();const out={};let uid=990;
   for(const [id,f] of[['wolf','beast'],['barbhound','barb']]){const u=mkEnemy(id,f);u.id=++uid;for(const st of['idle','walk','attack','cast','hit','death'])for(let fr=0;fr<4;fr++)for(const face of[0,1,2,3]){let o=null;try{o=unitSpritePx(u,face,st,fr)}catch(e){}
    if(!o||!o.cv){out[id+st+fr+face]='-';continue}const d=o.cv.getContext('2d').getImageData(0,0,o.cv.width,o.cv.height).data;let h=2166136261;for(let i=0;i<d.length;i++){h^=d[i];h=Math.imul(h,16777619)>>>0}out[id+st+fr+face]=o.cv.width+'x'+o.cv.height+':'+o.ax+','+o.ay+':'+h}}return out});
