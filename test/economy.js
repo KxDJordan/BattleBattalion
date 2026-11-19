@@ -15,13 +15,28 @@
 // contracts done, battles; the day the crisis starts and how it ends, the day the Eastern War fires and its outcome; an estimate of
 // the play time (battles x minutes a battle by its length + days x minutes of map play). Judged (exit 1) on: no wipe-outs before day 40
 // on Normal, crowns never above RUNAWAY on Normal by day 60, food never at 0 for 3 days running, mean level rising, the crisis
-// arriving after day 20 and the Eastern War after day 25 (mean level flat is noted, not judged).
+// arriving after day 20 and the Eastern War after day 25 (mean level flat is noted, not judged); the flows (contract pay in days of wages for
+// model companies, FLOWBAND; --flows runs only these) and the hoard (the median Normal purse on days 60-100 under HOARD).
+// The ledger (per run and ten-day window, --json): crowns in and out by source: contracts, strip (crowns off the field), sales, trade, cargo,
+// rival, caravan, escort, garrison, crisis, east, endgame, dungeon, colosseum, events; wages, hire, gear, temple, food, inn, tools, drill, withdraw.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
 const SRC=path.join(__dirname,'..','src'),QUICK=has('--quick'),DAYS=+arg('--days',QUICK?60:100),TURNCAP=4000;
 const SEEDS=arg('--seeds',QUICK?'11,23':'11,23,37,41').split(',').map(Number),ORIG=arg('--origins',QUICK?'free':'free,noble,deserters').split(','),DIFFS=arg('--diffs',QUICK?'normal':'normal,hard,story').split(',');
-const RUNAWAY=60000;
+const RUNAWAY=60000,HOARD=15000;   // runaway: no Normal or Hard run above it by day 60; hoard: the median Normal run below it on days 60-100
+/* The flows (judged, policy-free, a second): what a contract pays in days of the company's wages, for the balance profiles (test/balance.js:
+   L1x4 a new company, L4x6 day 12 Known, L8x9 day 30 Renowned, L12x12 day 50 Famed and Legendary), the mean of 300 boards' notices.
+   Target band FLOWBAND: early work pays about a week of wages, late work no more than about two weeks (wages grow with level, 14-company.js
+   WAGELV; pay with power, renown and danger, 16-contracts.js CTRPAY / RENOWN.pay / CTR_PAYK). Before the econ rebalance late work paid
+   26-51 days of wages, the mid and late game's runaway purse. */
+const FLOWBAND=[5,13];
+function flows(){process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();const X=L.makeContext(),rows=[];
+ for(const [pid,ren] of [['L1x4',0],['L4x6',60],['L8x9',340],['L12x12',620],['L12x12',1000]]){const P=L.PROFILES.find(p=>p.id===pid),R=L.buildCompany(X,P,1234),G=X.G;
+  G.roster=X.clone(R);G.roster.forEach(m=>m.field=true);G.day=P.day;G.renown=ren;const w=X.companyWages();let s=0,n=0;X.seedRng(77);
+  for(let k=0;k<300;k++){const ti=k%G.towns.length,c=X.genContract2(G.towns[ti],ti);if(c){s+=c.pay;n++}}
+  rows.push({pid,ren,wages:w,power:X.companyPower(),pay:Math.round(s/n),days:s/n/w,purse:typeof X.colPurseBase==='function'?Math.round(X.colPurseBase(X.companyPower())):0})}
+ return rows}
 /* ---------- DOM stubs (as in test/balance.js) ---------- */
 function hole(props){const store=Object.assign(Object.create(null),props||{});
  return new Proxy(function(){},{get(t,k){if(k in store)return store[k];if(k==='then'||k==='toJSON')return undefined;if(k===Symbol.toPrimitive)return h=>h==='number'?0:'';
@@ -245,6 +260,10 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
 if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')process.exit(0);try{X=makeContext();const T=Date.now();const r=await campaign(X,m);r.ms=Date.now()-T;process.send({id:m.id,r})}catch(e){process.send({id:m.id,err:String(e&&e.stack||e)})}});return}
 /* ---------- main ---------- */
 (async()=>{const J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length))),T0=Date.now();const runs=[];let id=0;
+ const FL=flows(),fbad=[];console.log('flows: contract pay in days of wages (target '+FLOWBAND.join('-')+')');
+ for(const r of FL){console.log(`  ${r.pid.padEnd(7)} renown ${String(r.ren).padStart(4)}: wages ${String(r.wages).padStart(4)}/day, power ${String(r.power).padStart(5)}, contract ${String(r.pay).padStart(5)} = ${r.days.toFixed(1)} days, arena purse ${r.purse}`);
+  if(r.days<FLOWBAND[0]||r.days>FLOWBAND[1])fbad.push(`flows: ${r.pid} at renown ${r.ren}: a contract pays ${r.days.toFixed(1)} days of wages (band ${FLOWBAND.join('-')})`)}
+ if(has('--flows')){if(fbad.length){console.log('\nFAIL:\n  '+fbad.join('\n  '));process.exit(1)}console.log('\nPASS');process.exit(0)}
  for(const diff of DIFFS)for(const origin of ORIG)for(const seed of SEEDS)runs.push({id:id++,seed,origin,diff,days:DAYS,crisis:['sunder','deadmarch','horde','barbarian'][id%4]});
  console.log(`economy: ${runs.length} campaigns of ${DAYS} days, ${J} workers`);
  const res=new Array(runs.length);
@@ -252,7 +271,7 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   for(let w=0;w<Math.min(J,runs.length);w++){const ch=cp.fork(__filename,['--worker'].concat(sets));const feed=()=>{if(next<runs.length)ch.send(runs[next++]);else ch.send('quit')};
    ch.on('message',m=>{if(m.err){ch.kill();fail(new Error(`run ${JSON.stringify(runs[m.id])}: ${m.err}`));return}res[m.id]=m.r;process.stderr.write('.');if(--left===0)done();else feed()});
    ch.on('exit',c=>{if(c&&left)fail(new Error('worker died '+c))});feed()}});
- process.stderr.write('\n');const pad=(s,n)=>String(s).padEnd(n),lp=(s,n)=>String(s).padStart(n),bad=[];
+ process.stderr.write('\n');const pad=(s,n)=>String(s).padEnd(n),lp=(s,n)=>String(s).padStart(n),bad=fbad.slice();
  const est=r=>{const mins=r.battles*(3+.45*(r.rounds/Math.max(1,r.battles)))+r.end.day*2.2;return mins/60};
  for(const k in runs){const R=runs[k],r=res[k];
   console.log(`\n== ${R.origin} / ${R.diff} / seed ${R.seed}: crisis ${r.crisisKind} (due day ${r.crisisStart}) started ${r.crisisDay??'-'}, ${r.crisisHow||'-'}${r.crisisEnd?' day '+r.crisisEnd:''}; Eastern War ${r.eastDay??'-'}${r.eastHow?' -> '+r.eastHow+' day '+r.eastEnd:''}${r.wiped?'; WIPED day '+r.wiped:''} ==`);
@@ -275,6 +294,7 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   for(const d of days){const W=L.map(r=>r.rows.find(w=>w.day===d)).filter(Boolean);if(!W.length)continue;const m=k=>W.reduce((s,w)=>s+w[k],0)/W.length;
    console.log(pad(d,5)+lp(Math.round(m('crowns')),8)+lp(Math.round(m('food')),6)+lp(m('n').toFixed(1),6)+lp(m('lvl').toFixed(1),6)+lp(m('gear').toFixed(2),6)+lp(Math.round(m('renown')),8)+lp(m('deaths').toFixed(1),6)+lp(m('ctr').toFixed(1),6)+lp(m('battles').toFixed(0),8)+lp(W.length+'/'+L.length,7))}
   const cs=L.filter(r=>r.crisisDay!=null),es=L.filter(r=>r.eastDay!=null),won=L.filter(r=>/^won/.test(r.crisisHow||''));
+  if(diff==='normal')for(const d of days.filter(d=>d>=60&&d<=100)){const C=L.map(r=>{const w=r.rows.find(w=>w.day===d);return w?w.crowns:null}).filter(v=>v!=null).sort((a,b)=>a-b);if(C.length<3)continue;const med=C[C.length>>1];if(med>HOARD)bad.push(`hoard: the median Normal purse on day ${d} is ${med} (> ${HOARD})`)}
   console.log(`crisis: started in ${cs.length}/${L.length} (mean day ${cs.length?(cs.reduce((s,r)=>s+r.crisisDay,0)/cs.length).toFixed(0):'-'}), won in ${won.length} (mean day ${won.length?(won.reduce((s,r)=>s+r.crisisEnd,0)/won.length).toFixed(0):'-'}); Eastern War: in ${es.length}/${L.length} (mean day ${es.length?(es.reduce((s,r)=>s+r.eastDay,0)/es.length).toFixed(0):'-'}); wiped ${L.filter(r=>r.wiped).length}; play time ~${(L.reduce((s,r)=>s+est(r),0)/L.length).toFixed(1)} h for ${DAYS} days`)}
  console.log(`\nplay-time estimate: battles x (3 + 0.45 x rounds) minutes + days x 2.2 minutes of map, town and camp.   Wall time ${((Date.now()-T0)/1000).toFixed(0)} s.`);
  if(arg('--json',null))fs.writeFileSync(arg('--json'),JSON.stringify({runs,res},null,1));
