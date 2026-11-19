@@ -39,10 +39,11 @@ function newMerc(bg){const b=BG[bg],race=rnd()<.55?'human':pick(['elf','dwarf','
  for(const k in b.st)base[k]+=b.st[k];for(const k in RACE[race].st)base[k]+=RACE[race].st[k];
  const tal={};shuffle(Object.keys(base)).slice(0,3).forEach(k=>tal[k]=ri(1,3));
  const trees=rollTrees(bg);let gift=null;
- let x=rnd();for(const [k,p] of (b.r||[])){if(x<p){gift=giftKey(k,b.style||'melee');break}x-=p}   // one resource only
+ let x=rnd(),gres=null;for(const [k,p] of (b.r||[])){if(x<p){gres=k;break}x-=p}   // one resource only
  const eq={w:null,b:null,s:null,a:null,h:null,c:null};b.gear.forEach(gs=>{const id=pick(gs.split('|'));if(ITEMS[id])eq[ITEMS[id].k]=id});
  if(b.side){const id=pick(b.side.split('|'));if(ITEMS[id]&&ITEMS[id].k==='w')eq.b=id}
  if(eq.s&&ITEMS[eq.w]&&ITEMS[eq.w].two)eq.s=null;   // a recruit who carries a two-hander brings no shield
+ if(gres){const th=(b.wt||[]).includes('throwing')&&!(RACE[race].noWt||[]).includes('throwing')&&throwKit(eq.w,eq.b);gift=giftKey(gres,th?'throwing':b.style||'melee')}   // a thrower rolls the throwing variant (giftStyle, 61-talents.js)
  const traits=rollTraits(bg);
  const m={id:G.nid++,name:pick(NAMES),bg,race,lvl:1,xp:0,pp:1,pend:0,base,tal,trees:gift?trees.concat([gift]):trees,gift,perks:[],eq,hp:base.hp,field:false,inj:[],traits,slain:{}};
  fixHands(m);syncMast(m);m.hp=calc(m).hp;return m}

@@ -660,7 +660,13 @@ function rvGear(m,T){const up=(slot,f)=>{const cur=ITEMS[m.eq[slot]],ct=cur?cur.
  if(rnd()<.7&&up('a',(it,c)=>it.k==='a'&&(!c||(c.arm<=60?it.arm<=95:it.arm>60))&&!!(it.robe||/robe/.test(it.look||''))===!!(c&&(c.robe||/robe/.test(c.look||'')))))n++;
  if(rnd()<.6&&up('h',it=>it.k==='h'))n++;if(m.eq.s&&ITEMS[m.eq.s]&&ITEMS[m.eq.s].k==='s'&&rnd()<.5&&up('s',it=>it.k==='s'))n++;
  if(typeof fixHands==='function')fixHands(m);if(typeof syncMast==='function')syncMast(m);m.hp=calc(m).hp;return n}
-function rvNewMerc(r,day){const m=newMerc(rvPickBG()),L=clamp(rvLvl(r.renown,day)+ri(-1,1),1,12);if(L>1)makeVeteran(m,L);delete m.vet;rvGear(m,rvGearTier(r.renown,day));
+/* a rival's thrower: every third rival merc (by id, no randomness) whose background allows throwing weapons and who fights with a bow
+   takes javelins into its hand, the bow as its sidearm, and its archery gift becomes the throwing one (the perks learned move tier for tier) */
+function rvThrower(m){if(!m||m.id%3!==0||!weaponTypes(m).includes('throwing'))return false;const w=ITEMS[m.eq.w];if(!w||w.wt!=='bow'||!ITEMS.javelin)return false;
+ m.eq.b=m.eq.w;m.eq.w='javelin';const T=m.gift&&MAST[m.gift];if(T&&T.kind==='gift'&&T.res){const k=giftKey(T.res,'throwing');if(k&&k!==m.gift){const o=m.gift;
+  m.perks=(m.perks||[]).map(id=>{const P=PERKIX[id];return P&&P.key===o?k+'.'+(P.cap?'cap':P.tier):id}).filter((id,i,a)=>PERKIX[id]&&a.indexOf(id)===i);m.trees=m.trees.map(t=>t===o?k:t);m.gift=k}}
+ if(typeof fixHands==='function')fixHands(m);if(typeof syncMast==='function')syncMast(m);m.hp=calc(m).hp;return true}
+function rvNewMerc(r,day){const m=newMerc(rvPickBG()),L=clamp(rvLvl(r.renown,day)+ri(-1,1),1,12);if(L>1)makeVeteran(m,L);delete m.vet;rvGear(m,rvGearTier(r.renown,day));rvThrower(m);
  m.field=r.roster.filter(x=>x.field).length<MAXFIELD;m.slot=null;m.hp=calc(m).hp;return m}
 function rvMake(g,nm,pers,c1,c2,home,renown){const id='r'+(g.rvn=(g.rvn|0)+1,g.rvn-1),T=g.towns[home]||g.towns[0],day=Math.max(1,Math.floor(svNum(g.day,1)));
  const r={id,n:'The '+nm[0],short:nm[0],c1,c2,emblem:typeof EMBLEMS==='object'&&EMBLEMS[nm[1]]?nm[1]:'swords',pers,renown,crowns:250+renown*2,home,roster:[],stance:pers==='honour'?5:pers==='cutthroat'?-12:0,

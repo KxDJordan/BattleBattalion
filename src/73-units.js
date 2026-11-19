@@ -6,9 +6,9 @@
    Two views are drawn (front and back three-quarter, facing screen-right) and mirrored for the other two; the
    weapon stays in the right hand and the shield on the left arm, so which arm is nearer the camera changes.
    face: 0 bottom-right, 1 bottom-left, 2 top-left, 3 top-right. Nothing here touches rnd(). */
-const UNIT_FRAMES={idle:2,walk:4,attack:3,cast:3,hit:2,death:3,swap:3,reload:3};
-const UNIT_FPS={idle:2,walk:8,attack:9,cast:7,hit:8,death:5,swap:9,reload:6};
-const US_ST=['idle','walk','attack','cast','hit','death','swap','reload'],US_OFF={},US_WARM=['idle','walk','attack','cast','hit','death'];   // swap frames are built on demand
+const UNIT_FRAMES={idle:2,walk:4,attack:3,cast:3,hit:2,death:3,swap:3,reload:3,throw:4,throwK:4};
+const UNIT_FPS={idle:2,walk:8,attack:9,cast:7,hit:8,death:5,swap:9,reload:6,throw:12,throwK:12};
+const US_ST=['idle','walk','attack','cast','hit','death','swap','reload','throw','throwK'],US_OFF={},US_WARM=['idle','walk','attack','cast','hit','death'];   // swap frames are built on demand
 const US_NF=(()=>{let n=0;US_ST.forEach(s=>{US_OFF[s]=n;n+=UNIT_FRAMES[s]});return n})();
 const US_DIM=[{w:52,h:52,ax:26,ay:45},{w:88,h:80,ax:44,ay:71}];   // working canvas: standard (24x32 figure), large (40x48 figure)
 const US={looks:new Map(),byUnit:new WeakMap(),en:null,grid:[null,null],tmp:[null,null],rgb:null,builds:0,ms:0};
@@ -506,6 +506,13 @@ function usPoseOf(S0,st,fr,v,wslot){const S=S0.ow&&!S0.shield?Object.assign({},S
    else if(cls==='bow'){P.W.abs=1;P.W.y=v?0:1;P.bow=fr===0?1:2;if(fr===2){P.W.y=2;P.bow=3}else if(fr===1)P.ln=-1}
    else{if(fr===0){P.ln=-1;P.W.x=-1;P.W.y=2;P.O.x=1;P.O.y=2}else if(fr===1){P.ln=1;P.W.x=(far?4:5)*k;P.W.y=1+(v?-1:1);P.O.x=0;P.O.y=3;P.lg=[2*k,0,-1,0]}else{P.W.x=2;P.W.y=3;P.O.x=1;P.O.y=3}}
    break;
+  case'throw':case'throwK':{   // a throw (74-anim.js animThrow): 0 drawn back over the shoulder, 1 the arm over the top as it lets go, 2 followed through (the hand empty), 3 the next one drawn
+   const jav=cls==='thrust',em=st==='throw';P.W.o=0;
+   if(fr===0){P.ln=-1;P.W.x=-2;P.W.o=1;P.W.y=jav?-1:-3*k;P.W.d=jav?D.RU2:far||v?D.U:D.UL;P.lg=[-1,0,1,0];if(!S.shield){P.O.x=3;P.O.y=0}}
+   else if(fr===1){P.ln=1;P.W.x=(far?3:4)*k;P.W.y=-2*k;P.W.d=jav?D.RU2:D.UR;P.lg=[2*k,0,-1,0];if(!S.shield){P.O.x=1;P.O.y=2}}
+   else if(fr===2){P.ln=1;P.W.x=(far?3:4)*k;P.W.y=(v?1:3)*k;P.W.d=lowD;P.empty=em;P.lg=[2*k,0,-1,0];if(!S.shield){P.O.x=-1;P.O.y=3}}
+   else{P.W.x=jav?-1:0;P.W.y=jav?-2*k:al-1;P.W.o=jav?1:0;P.W.d=jav?D.U:D.D;P.lg=[1,0,0,0]}
+   break}
   case'cast':
    if(fr===0){both(1,2);P.W.d=D.U;P.spark={s:0}}
    else if(fr===1){P.W.x=0;P.W.o=1;P.W.y=-3*k;P.W.d=D.U;if(!S.shield){P.O.x=0;P.O.o=1;P.O.y=-3*k}P.ub=-1;P.spark={s:2}}
@@ -734,7 +741,7 @@ function usHuman(S,v,mir,st,fr){const b=S.b,tw=b.tw,th=b.th,ll=b.ll,aw=b.aw,A=S.
  let bowp=null,bows=1;if(W.cls==='bow'&&!P.drop){if(st==='attack')bowp={x:wh.x+aw+1,y:wh.y};else{bows=oOf(wslot);bowp={x:bows<0?wh.x-3:wh.x+aw+2,y:wh.y}}if(P.bow){oh={x:P.bow===1?x0+1:P.bow===2?x0-2:x0,y:P.bow===3?sy+3:bowp.y}}}
  const ctx={S,v,P,x0,x1,ty,hcx,hy0,fr,st,gx,gy,d,mir};
  const wFar=(wslot==='L')!==nearL,bowA=W.cls==='bow'&&st==='attack',aimF=(W.cls==='xbow'||W.cls==='gun')&&(st==='attack'||st==='reload')&&v===0&&wFar&&!P.drop;   // aiming across the chest: drawn over the body
- const drawW=()=>{if(P.drop)return;if(W.cls==='bow')usGrp=1;if(W.cls==='bow'){usGl=W.famed?1:0;usBow(W.bow,bowp.x,bowp.y,P.bow===1?1:0,oh.x+(aw>>1),oh.y,bows,W);usGl=0}
+ const drawW=()=>{if(P.drop||P.empty)return;if(W.cls==='bow')usGrp=1;if(W.cls==='bow'){usGl=W.famed?1:0;usBow(W.bow,bowp.x,bowp.y,P.bow===1?1:0,oh.x+(aw>>1),oh.y,bows,W);usGl=0}
   else if(W.c.length){let wx=gx,wy=gy;if(P.W.sh){usAx(d,-P.W.sh*sc,usT2);wx+=usT2[0];wy+=usT2[1]}usWeapon(W,wx,wy,d,sc,S.res?USR[S.res]:S.gemR,st!=='death')}
   if(rodP){usPart();for(let y=rodP.y0;y<=rodP.y1;y++)usP(rodP.x,y,USR.steel,y===rodP.y0?1:0)}
   if(P.crank){usPart();const cx=oh.x+(aw>>1),cy=oh.y+aw;usP(cx,cy,USR.brass,1);usP(cx+(P.crank===2?1:-1),cy+(P.crank===3?-1:1),USR.iron)}

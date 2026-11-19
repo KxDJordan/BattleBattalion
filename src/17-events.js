@@ -200,7 +200,7 @@ ORIGINS.deserters.setup=g=>{const H=evStartHouse(g);if(!H)return;for(const h of 
 ORIGINS.noble.setup=g=>{const L=g.roster[0];L.name='Ser '+L.name;gainXP(L,XPT[3]-L.xp);evGear(L,['mail','arming','heater','nasal']);g.evt.flags.lord=L.id;
  if(g.roster[1])evGear(g.roster[1],['brigandine','coif']);if(g.roster[2])evGear(g.roster[2],['mail','cap']);g.renown=30;g.stash.push('kite');
  const H=evStartHouse(g,true);if(H){evSetRep(H.id,20);g.evt.flags.kin=H.id}};
-ORIGINS.academy.setup=g=>{for(const m of g.roster){if(!m.gift){const r=pick(['mana','qi']);m.gift=giftKey(r,mercStyle(m));if(!m.trees.includes(m.gift))m.trees.push(m.gift);syncMast(m)}
+ORIGINS.academy.setup=g=>{for(const m of g.roster){if(!m.gift){const r=pick(['mana','qi']);m.gift=giftKey(r,typeof giftStyle==='function'?giftStyle(m):mercStyle(m));if(!m.trees.includes(m.gift))m.trees.push(m.gift);syncMast(m)}
   const P=typeof perkOptions==='function'?perkOptions(m).filter(o=>o.kind==='gift'&&o.unlocked&&!o.owned):[];if(P.length&&typeof learnPerk==='function')learnPerk(m,P[0].id);
   evTraitQuiet(m,'fragile');m.hp=evMaxHp(m)}g.stash.push('focus')};
 ORIGINS.beast.setup=g=>{if(!g.parts||typeof g.parts!=='object')g.parts={};g.parts.pelt=(g.parts.pelt||0)+3;g.parts.meat=(g.parts.meat||0)+4;g.salve=(typeof g.salve==='number'?g.salve:2)+2;

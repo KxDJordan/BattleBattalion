@@ -664,7 +664,7 @@ function fxLockScan(){if(typeof shLocked!=='function'||!B||!B.units)return;const
    future ability with the same hint animates in kind. Keys: the gift arrows (aura, elemental, mana-guided, chi), the bow
    craft (volley, double shot, headshot, through-shots, crippling shot, mark), and the melee / support arts. */
 const S_N0=40,S_AARW=40,S_SUN=41,S_CONC=42,S_SEEK=43,S_ARCV=44,S_BIND=45,S_STARP=46,S_SPIRIT=47,S_PRESS=48,S_VOLLEY=49,S_QUAKE=50,S_PALM=51,S_STORM=52,S_RUNE=53,S_DECAP=54,S_KICK=55,S_MULTI=56,S_STAR=57,S_SHATTER=58;
-const FX_ID={aarrow:'aarrow',carrow:'carrow',sunarrow:'sunarrow',pvolley:'pvolley',farrow:'farrow',iarrow:'iarrow',tarrow:'tarrow',tempest:'tempest',seeker:'seeker',avolley:'avolley',
+const FX_ID={conjure:'tgconj',swarm:'tgconj',ahurl:'tghurl',comet:'tgcomet',tstar:'tgstar',balllight:'tgball',vthrow:'tgvital',sever:'tgsever',aarrow:'aarrow',carrow:'carrow',sunarrow:'sunarrow',pvolley:'pvolley',farrow:'farrow',iarrow:'iarrow',tarrow:'tarrow',tempest:'tempest',seeker:'seeker',avolley:'avolley',
  bindshot:'bindshot',starpierce:'starpierce',spiritarrow:'spirit',pparrow:'pparrow',volley:'volley',headshot:'headshot',pshot:'pshot',mark:'mark',breath:'breath',
  flurry:'multi',hundred:'multi',earthsplit:'quake',staffquake:'quake',palm:'palm',shatter:'palm',overload:'overload',dragon:'dragon',runeedge:'runeedge',blinkstrike:'blinkstr',
  manashield:'manashield',starfall:'starfall',avatar:'avatar',rage:'rage',decap:'decap',kick:'kick',lotus:'lotus',surge:'surge',secwind:'secwind',
@@ -826,12 +826,13 @@ function fxReach(u,t,miss,sp,ss,ramp,arc){const a=fxUP(u),ax=a.x,ay=a.y-a.h*.5,b
 // the default shot / reach of the weapon in hand; -1 when it is a plain arrow (bows keep theirs)
 function fxArmsShot(u,t,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy){if(fxReachW(u)&&d<=Math.max(2,fxW(u).rng|0))return fxReach(u,t,miss,sp,ss);
  const sh=fxShotOf(u);if(sh==='bolt')return fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(sh==='ball')return fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy);if(FX_THROWN[sh])return fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh);return-1}
-/* a thrown weapon (11t-arms.js w.shot): it leaves the hand at the top of the swing and flies in an arc, spinning (axes, knives, stars, the
+/* a thrown weapon (11t-arms.js w.shot): it leaves the hand at the release of the throw (74-anim.js animThrow, anThrowLead) and flies in an arc, spinning (axes, knives, stars, the
    chakram, the hammer, bolas) or point first (javelins, pila, darts); T_PROJ kind 9 draws it (fxDrawShot) */
 const FX_THROWN={axe:{spin:1,imp:'slash'},haxe:{spin:1,big:1,imp:'slash'},knife:{spin:1,imp:'bolt'},star:{spin:1,imp:'bolt'},chakram:{spin:1,imp:'slash'},hammer:{spin:1,imp:'hammer'},bolas:{spin:1,imp:'bolt'},jav:{imp:'bolt'},dart:{imp:'bolt'}};
-function fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh){const K=FX_THROWN[sh],lead=150*sp*AN_HIT_AT,fly=Math.max(70,L/(K.spin?1.5:1.9))*ss,o=fxo(T_PROJ,ax+ux*6,ay-8,lead,fly,R_WHITE);
- o.x2=bx;o.y2=by;o.a=9;o.b=Math.min(K.spin?26:18,L*(K.spin?.16:.1));o.c=miss?1:0;o.s=sh;FXS.sty=K.imp==='hammer'?S_HAMMER:K.imp==='slash'?S_SLASH:S_BOLT;return lead+fly}
+function fxThrow(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,sh,keep){const K=FX_THROWN[sh],lead=anThrowLead(sp),fly=Math.max(70,L/(K.spin?1.5:1.9))*ss,o=fxo(T_PROJ,ax+ux*6,ay-8,lead,fly,R_WHITE);
+ o.x2=bx;o.y2=by;o.a=9;o.b=Math.min(K.spin?26:18,L*(K.spin?.16:.1));o.c=miss?1:0;o.s=sh;FXS.lastThrow=o;if(typeof animThrow==='function')animThrow(u,keep);FXS.sty=K.imp==='hammer'?S_HAMMER:K.imp==='slash'?S_SLASH:S_BOLT;return lead+fly}
 function fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const ab=FXS.cab||FXO_NIL;let o,ld;
+ if(id&&id.charCodeAt(0)===116&&id[1]==='g'){const n=fxStrikeTG(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh);if(n>=0)return n}   // the throwing gifts
  switch(id){
   case'xshot':{let pre=0;if(ab.id==='xaim'||ab.id==='xheart'){pre=150*sp;o=fxo(T_RET,bx,by,0,pre+300,0);o.a=pre+130}const r=fxBolt(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre);
    if(ab.id==='xpin'&&!miss){FXS.sty=S_PIN}else if(ab.id==='xheart')FXS.sty=S_HEART;return r}
@@ -850,6 +851,7 @@ function fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const a
   case'spikebash':FXS.sty=S_SPIKE;return 240*sp*AN_HIT_AT}
  return -1}
 function fxImpactA(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
+ if(sty>=S_TG0){fxImpactTG(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp);return}
  const sparks=n=>{cone(K_SQ,R_SPARK,x,y,dx*.6,-1,n,120,300,.35,1,520,1.4,1.3);cone(K_TRAIL,R_SPARK,x,y,dx,dy*.5-.4,n>>1,160,340,.22,1,200,3,.7)};
  switch(sty){
   case S_HAMMER:if(arm>0||dmg===-1){sparks(9);const g=glyphFx('dent',x+dx*3,y-2,0,460,0);g.d=-30;ringFx(x,y,2,11,190,R_SPARK,0,1,2)}else puff(x,fy,4);fxShake(2.6);break;
@@ -865,7 +867,7 @@ function fxImpactA(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
    if(sty===S_EXEC&&dmg>0)glyphFx('skull',x,y-h*.6,12,560,60);break}
   case S_HOOK:{const o=fxo(T_CLAW,x,y,0,240,R_STEEL);o.a=dx<0?1:-1;puff(x,fy,5);for(let i=0;i<fxN(5);i++)spawn(K_TRAIL,R_DUST,x+rr(-6,6),fy-rr(0,6),-dx*rr(120,200),-dy*rr(60,120),.25,1,0,3,.08);break}
   case S_SPIKE:fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_BASH,sp);for(let i=0;i<4;i++)glyphFx('glint',x-dx*10+rr(-6,6),y-dy*10+rr(-6,6),0,120,i*30);if(dmg>0)cone(K_SQ,fxBloodR(t),x,y,dx,dy*.5-.4,8,80,220,.45,2,520,1.2,.8);break}}
-function fxCastA(u,t,ab,id,k,x,y,h,sp){switch(id){
+function fxCastA(u,t,ab,id,k,x,y,h,sp){if(id&&id.charCodeAt(0)===116&&id[1]==='g'&&fxCastTG(u,t,ab,id,k,x,y,h,sp))return true;switch(id){
   case'reload':ringFx(x,y,3,12,240*sp,R_GOLD,0,.5);return true;
   case'xshot':case'gshot':ringFx(x,y,3,12,220*sp,id==='gshot'?R_EMBER:R_STEEL,0,.5);return true;
   case'batter':case'ringblow':case'demolish':case'hsmash':case'hook':case'polereap':case'glaivecut':case'gswing':case'mordhau':case'spikebash':return true}
@@ -876,7 +878,7 @@ function fxOnReload(u){if(!u||!u.alive)return;const p=fxUB(u),x=p.x,y=p.y,h=p.h,
  else for(let i=0;i<3;i++){glyphFx('glint:rd',x+(i-1)*5,y-h*.45,0,90,(i*130)*sp);for(let j=0;j<fxN(3);j++)spawn(K_SQ,R_GOLD,x+(i-1)*5,y-h*.45,rr(-40,40),rr(-70,-20),.25,1,300,1,i*.13*sp)}
  ringFx(x,y,3,13,280*sp,R_GOLD,300*sp,.5)}
 function fxDrawShot(o,kind,x,y,ax,ay,ux,uy,p,tick){const q=DQ;
- if(kind===9){fxDrawThrown(o,ax,ay,ux,uy,p);if(p>=1&&o.c)puff(o.x2,o.y2,3);return}
+ if(kind===9){if(o.d>0)fxThrowHalo(o,ax,ay,tick);fxDrawThrown(o,ax,ay,ux,uy,p);if(p>=1&&o.c)puff(o.x2,o.y2,3);return}
  if(kind===6){const tx=ax-ux*5,ty=ay-uy*5;q.fillStyle=PAL['0'];aLine(tx,ty+1,ax,ay+1,1);q.fillStyle=PAL.j;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.g;A(Math.round(tx),Math.round(ty),1,1);q.fillStyle=PAL.q;A(Math.round(ax-ux),Math.round(ay-uy),1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);
   if(!reduced)while(o.acc>.016){o.acc-=.016;spawn(K_STREAK,R_WHITE,x-ux*8,y-uy*8,-ux*50,-uy*50,.1,1,0,1)}}
  else{const tx=ax-ux*7,ty=ay-uy*7;q.fillStyle=PAL.E;aLine(tx,ty,ax,ay,1);q.fillStyle=PAL.y;aLine(ax-ux*3,ay-uy*3,ax,ay,1);q.fillStyle=PAL['0'];A(ax-1,ay,1,1);q.fillStyle=PAL.e;A(ax,ay-1,1,2);A(ax+1,ay,1,1);q.fillStyle=PAL.r;A(ax,ay,1,1);
@@ -895,6 +897,40 @@ function fxDrawThrown(o,ax,ay,ux,uy,p){const q=DQ,sh=o.s,K=FX_THROWN[sh]||{},px=
  const big=K.big?1:0;line(-3-big,1,'j');px('0',...at(-4-big,0));
  if(sh==='hammer'){for(const j of [-1,0,1])for(const i of [2,3])px(j?'q':'r',...at(i,j));return}
  for(const [i,j] of [[1,1],[2,1],[1,2],[2,2],[3,1],[2,3]].concat(big?[[3,2],[3,3],[1,3]]:[]))px(j>=2?'q':'r',...at(i,j));px('l',...at(2,0))}
+/* ================= the throwing gifts (mana_t aura_t qi_t chi_t: 10-data.js) =================
+   Every one is the thrown weapon of the arms update (fxThrow: the item's own shot spinning or point first; a conjured blade is always a
+   knife) with the gift riding on it: a companion T_PROJ on the same arc (kind 5, no sprite) sheds a trail of the gift's colour, and an
+   impact of its own. The leaps of Thunder star and Ball lightning are bolts from the foe struck before (like the Thunder arrow); Comet
+   hurl's splash lands as its burst. Keys tgconj tghurl tgcomet tgstar tgball tgvital tgsever (FX_ID). */
+const S_TG0=86,S_TGCONJ=86,S_TGHURL=87,S_TGCOMET=88,S_TGSTAR=89,S_TGVITAL=90,S_TGSEVER=91;
+const FX_TGNIL=[null,null];
+function fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,ramp,sh,keep){const shape=sh||(FX_THROWN[fxShotOf(u)]?fxShotOf(u):'knife'),at=fxThrow(u,null,miss,sp,ss,ax,ay,bx,by,L,ux,uy,shape,keep),th=FXS.lastThrow,K=FX_THROWN[shape],lead=anThrowLead(sp);
+ const o=fxo(T_PROJ,ax+ux*6,ay-8,lead,at-lead,ramp);o.x2=bx;o.y2=by;o.a=5;o.b=Math.min(K.spin?26:18,L*(K.spin?.16:.1));o.s=FX_TGNIL;if(th)th.d=ramp+1;glowFx(ax+ux*6,ay-8,30,ramp===R_MANA?'x':ramp===R_AURA?'y':ramp===R_QI?'z':'A',.55,140,lead);return at}
+// the gift's halo around a thrown weapon in flight (o.d = ramp + 1, set by fxGThrow only): a flickering diamond of the gift's colour
+function fxThrowHalo(o,ax,ay,tick){const R=FXR[o.d-1];if(!R)return;const q=DQ,a0=q.globalAlpha,r=4+(tick&1);q.globalAlpha=a0*.6;q.fillStyle=R[Math.min(2,R.length-1)];
+ for(let j=-r;j<=r;j++){const w=r-Math.abs(j);A(ax-w,ay+j,w*2+1,1)}q.globalAlpha=a0*.85;q.fillStyle=R[1];for(let j=-2;j<=2;j++)A(ax-(2-Math.abs(j)),ay+j,(2-Math.abs(j))*2+1,1);q.globalAlpha=a0}
+function fxStrikeTG(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){let o,r;const prev=fxPrev(t,k);
+ switch(id){
+  case'tgconj':{const sx=ax+(k?(k&1?-5:5):0),sy=ay+(k?-3:0);r=fxGThrow(u,miss,sp,ss,sx,sy,bx,by,Math.hypot(bx-sx,by-sy),ux,uy,R_MANA,'knife',1);FXS.sty=S_TGCONJ;return r}
+  case'tghurl':r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_AURA);FXS.sty=S_TGHURL;return r;
+  case'tgcomet':if(k>0){FXS.sty=S_AURA;return Math.max(30*sp,FXS.cAt-now+40*sp)}r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_AURA);FXS.cAt=now+r;FXS.sty=S_TGCOMET;return r;
+  case'tgstar':case'tgball':{if(prev){const s0=fxUP(prev),dl=Math.max(40*sp,FXS.cAt-now+30*sp);o=fxo(T_BOLT,s0.x,s0.y-s0.h*.48,dl,230*ss,R_QI);o.x2=bx;o.y2=by;o.a=8;FXS.clast=t;FXS.cAt=now+dl+50*sp;FXS.sty=S_TGSTAR;return dl+50*sp}
+   r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_QI);if(id==='tgball'){o=fxo(T_PROJ,ax+ux*6,ay-8,anThrowLead(sp),r-anThrowLead(sp),R_QI);o.x2=bx;o.y2=by;o.a=5;o.b=Math.min(26,L*.16);o.s=fxOrb(R_QI)}
+   FXS.clast=t;FXS.cAt=now+r;FXS.sty=S_TGSTAR;return r}
+  case'tgvital':r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_CHI);FXS.sty=S_TGVITAL;return r;
+  case'tgsever':r=fxGThrow(u,miss,sp,ss,ax,ay,bx,by,L,ux,uy,R_CHI);FXS.sty=S_TGSEVER;return r}
+ return -1}
+function fxImpactTG(e,t,u,x,y,fy,h,dx,dy,dmg,arm,sty,sp){
+ switch(sty){
+  case S_TGCONJ:burst(K_TRAIL,R_MANA,x,y,10,80,220,.28,1,0,4);ringFx(x,y,2,13,240,R_MANA,0,1);glyphFx('rune',x,y-h*.55,8,520,0);glowFx(x,y,40,'x',.5,160);break;
+  case S_TGHURL:fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_CONC,sp);break;
+  case S_TGCOMET:fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_SUN,sp);{const o=fxo(T_CRACK,x,fy,0,800,0);o.a=1}break;
+  case S_TGSTAR:fxImpactX(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_THUN,sp);{const o=fxo(T_BOLT,x+rr(-6,6),y-h*1.3,0,160*Math.max(.5,sp),R_QI);o.x2=x;o.y2=fy-4;o.a=0}break;
+  case S_TGVITAL:fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_PRESS,sp);if(dmg>0)cone(K_SQ,fxBloodR(t),x,y,dx,dy*.5-.3,8,80,220,.45,2,520,1.2,.6);break;
+  case S_TGSEVER:fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_PRESS,sp);fxImpactN(e,t,u,x,y,fy,h,dx,dy,dmg,arm,S_DECAP,sp);break}}
+function fxCastTG(u,t,ab,id,k,x,y,h,sp){const R=id==='tgconj'?R_MANA:id==='tghurl'||id==='tgcomet'?R_AURA:id==='tgstar'||id==='tgball'?R_QI:R_CHI;
+ ringFx(x,y,3,14,260*sp,R,0,.5);for(let i=0;i<fxN(8);i++){const a=i/8*6.283;spawn(K_SQ,R,x+Math.cos(a)*12,y-h*.5+Math.sin(a)*8,-Math.cos(a)*40,-Math.sin(a)*30-20,.3,1,0,1)}
+ if(id==='tgconj')glyphFx('rune',x,y-h-8,8,480*sp,0,null);if(id==='tgcomet')glowFx(x,y-h*.5,60,'y',.5,260);return true}
 // a smoke cloud: three overlapping, growing discs that drift and thin out in steps
 function fxDrawSmoke(o,t,p,cx,cy){const q=DQ,age=(t-o.t0)/1000,X=Math.floor((o.x+o.c*age)/2),Y=Math.floor((o.y+o.d*age-6*age*age)/2),s=o.b||1,R0=Math.max(1,Math.round((2+5*Math.sqrt(p))*s)),tick=(t/70)|0;
  const L=[[0,0,R0],[Math.round(R0*.7),Math.round(R0*.3),Math.round(R0*.75)],[-Math.round(R0*.6),Math.round(R0*.35),Math.round(R0*.7)]];

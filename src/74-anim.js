@@ -11,6 +11,10 @@
 const AN_FR={idle:4,walk:4,attack:4,cast:4,hit:2,death:4},AN_FPS={idle:3,walk:10,attack:14,cast:11,hit:10,death:8};
 const AN_WALK=0,AN_KB=1,AN_LEAP=2,AN_BLINK=3,AN_DASH=4,AN_STEP=5,AN_DIVE=6;
 const AN_HIT_AT=.38;                       // share of a melee attack spent winding up before the blow lands
+/* a throw (75-fx.js fxThrow calls animThrow): the weapon is drawn back over the shoulder, the arm whips forward and lets go at AN_THR_REL
+   of AN_THR_MS (the moment and the place fxThrow launches the projectile), follows through with the hand empty and draws a fresh one */
+const AN_THR_MS=320,AN_THR_REL=.3,AN_THR_FR=[.17,AN_THR_REL,.7];   // Detail Low frames: wind-up | release | follow-through (empty hand) | drawing the next
+function anThrowLead(sp){return AN_THR_MS*sp*AN_THR_REL}
 const ANIM=new WeakMap();
 const POSE={state:'idle',frame:0,dc:0,dr:1,ox:0,oy:0,alpha:1,flash:0,shadow:1,lift:0,tint:null,ph:0,cyc:0,anim:''};   // ph / cyc / anim: continuous time for the skeletal figures (73m-skel.js)
 const ANB={t:-1e9,rot:-9,cx:32,cy:16,rx:-32,ry:16,hy:-16};   // board-space basis of +c, +r, +h under the current view
@@ -90,6 +94,7 @@ function anSwapPoll(u,s,t,sp){if(typeof usHand!=='function'||t-s.swT<s.swD*.34)r
  if(pw!==undefined&&(AN_H.w!==pw||AN_H.a!==pa)&&u.alive&&!s.dead){if(sp){s.swT=t;s.swD=Math.max(240,460*sp);s.ow=pw;s.oa=pa}if(typeof fxSwap==='function')try{fxSwap(u,s.swD)}catch(e){}}
  s.hw=AN_H.w;s.ha=AN_H.a}
 function anHandOv(u){const s=ANIM.get(u);if(!s||!(anNow()-s.swT<s.swD*.34))return null;AN_HO.w=s.ow;AN_HO.a=s.oa;return AN_HO}
+function animThrow(u,keep){if(!u)return;const s=anOf(u),sp=anSp();if(!sp||s.act!==1)return;s.adur=AN_THR_MS*sp;s.lc=s.lr=0;s.thr=s.at0;s.thrK=keep?1:0}   // the attack just begun is a throw: no lunge, its own length
 function anLunge(a){return a<.2?-.07*(a/.2):a<AN_HIT_AT?-.07+.41*((a-.2)/(AN_HIT_AT-.2)):a<.56?.34:.34*(1-(a-.56)/.44)*(1-(a-.56)/.44)}
 function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
  if(u.c!==s.c||u.r!==s.r)anMove(u,s,-1);
@@ -112,7 +117,7 @@ function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
    else{n=anN('walk',u);state='walk';const wf=(t-s.wt0)*anFps('walk')/1000/Math.max(sp,.5);cyc=Math.max(0,wf/4);frame=(wf|0)%n;if(frame<0)frame=0}}
   else if(t-s.swT<s.swD){const a=(t-s.swT)/s.swD;state='swap';ph=a;frame=a<.34?0:a<.67?1:2;if(anN('swap',u)<3)state='idle',frame=0}
   else if(s.act&&t-s.at0<s.adur){const a=(t-s.at0)/s.adur;ph=a;
-   if(s.act===1){n=anN('attack',u);state='attack';frame=Math.min(n-1,(a*n)|0);if(s.lc||s.lr){const L=anLunge(a);gx+=s.lc*L;gy+=s.lr*L}}
+   if(s.act===1){n=anN('attack',u);state='attack';if(s.thr===s.at0){anm=s.thrK?'throwK':'throw';frame=a<AN_THR_FR[0]?0:a<AN_THR_FR[1]?1:a<AN_THR_FR[2]?2:3}else frame=Math.min(n-1,(a*n)|0);if(s.lc||s.lr){const L=anLunge(a);gx+=s.lc*L;gy+=s.lr*L}}
    else if(s.act===3){n=anN('reload',u);state=n>1?'reload':'cast';frame=Math.min(n-1,((t-s.at0)*anFps('reload')/1000/Math.max(sp,.45))|0)%n}
    else{n=anN('cast',u);state='cast';frame=Math.min(n-1,((t-s.at0)*anFps('cast')/1000/Math.max(sp,.45))|0)}}
   else if(sp&&s.gath){n=anN('cast',u);state='cast';ph=.5;frame=Math.min(n-1,1);lift+=((t/120)|0)&1?2:0}                       // gathering a telegraphed attack: arms raised, trembling
