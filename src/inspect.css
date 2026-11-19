@@ -1,6 +1,6 @@
 /* Scene agent: vignette layer over the canvas, and the long-press inspect card */
 #sceneVig{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse 78% 92% at var(--scx,50%) 52%,rgba(4,8,10,0) 44%,rgba(4,8,10,.2) 72%,rgba(4,8,10,.66) 100%)}
-#inspect{position:absolute;left:0;top:0;z-index:60;width:max-content;min-width:168px;max-width:min(250px,calc(100vw - 16px));padding:9px 11px 10px;background:linear-gradient(#1b302df7,#13231ff7);border:1px solid var(--line);border-top:2px solid var(--brass);border-radius:8px;box-shadow:0 10px 28px #000a,0 0 0 1px #0006;color:var(--vellum);font-size:.8rem;line-height:1.3;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(4px) scale(.97);transform-origin:50% 60%;transition:opacity .12s ease-out,transform .14s ease-out,visibility 0s .14s}
+#inspect{position:absolute;left:0;top:0;z-index:60;display:flex;flex-direction:column;box-sizing:border-box;max-height:calc(100vh - 12px);max-height:calc(100dvh - 12px);width:max-content;min-width:168px;max-width:min(250px,calc(100vw - 16px));padding:9px 11px 10px;background:linear-gradient(#1b302df7,#13231ff7);border:1px solid var(--line);border-top:2px solid var(--brass);border-radius:8px;box-shadow:0 10px 28px #000a,0 0 0 1px #0006;color:var(--vellum);font-size:.8rem;line-height:1.3;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(4px) scale(.97);transform-origin:50% 60%;transition:opacity .12s ease-out,transform .14s ease-out,visibility 0s .14s}
 #inspect.on{opacity:1;visibility:visible;transform:none;transition:opacity .12s ease-out,transform .14s ease-out}
 #inspect .ins-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 #inspect .ins-n{font-family:'Jersey 15','Alegreya Sans',serif;font-size:1.18rem;font-weight:700;line-height:1.05;letter-spacing:.01em}
@@ -81,3 +81,40 @@
 #inspect .ins-lgd{color:#d9a6ff}
 /* a foe's masteries (insFoeMast): the perk, its tree, its effect in two lines at most; idle ones dimmed */
 #inspect .ins-fm{margin-bottom:3px}#inspect .ins-fm span{-webkit-line-clamp:2}#inspect .ins-fm i{margin-left:1px}#inspect .ins-fm.idle{opacity:.6}#inspect .ins-fm.idle i{color:#ef8a78}
+
+/* ---- the full text: a live card (unit rows) takes touches; touching it pins it open (close button, hint); its body scrolls when
+   taller than the screen; a row cut short carries a chevron; a tapped row opens #insfull with every word of it ---- */
+#inspect .ins-body{min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none}
+#inspect.live{pointer-events:auto}
+#inspect.live .ins-body,#inspect.live .ins-r{touch-action:pan-y;-webkit-overflow-scrolling:touch}
+#inspect.pin{padding-top:28px;box-shadow:0 10px 28px #000a,0 0 0 1px #0006,0 0 0 2px #d1a94e55}
+#inspect.pin .ins-body,#inspect.pin .ins-r{scrollbar-width:thin;scrollbar-color:#d1a94e88 transparent}
+#inspect .ins-x,#inspect .ins-hint{display:none}
+#inspect.pin .ins-x{display:block;position:absolute;top:2px;right:3px;width:30px;height:24px;padding:0;margin:0;border:1px solid var(--line);border-radius:5px;background:#0e1a19;color:var(--vellum);font:700 1rem/18px 'Alegreya Sans',sans-serif;cursor:pointer;min-height:0;min-width:0;box-shadow:none}
+#inspect.pin .ins-x:hover{border-color:var(--brass);color:var(--brass)}
+#inspect.pin .ins-hint{display:block;position:absolute;top:7px;left:11px;right:34px;font-size:.66rem;letter-spacing:.03em;color:var(--brass);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#inspect.live .ins-ab,#inspect.live [data-insd]{cursor:pointer;border-radius:3px}
+#inspect.live .ins-ab:hover,#inspect.live [data-insd]:hover{background:#ffffff0d}
+#inspect .ins-ab.ins-more{position:relative;padding-right:9px}
+#inspect .ins-ab.ins-more::after{content:'';position:absolute;right:2px;bottom:5px;width:4px;height:4px;border-right:2px solid var(--brass);border-bottom:2px solid var(--brass);transform:rotate(-45deg);opacity:.85}
+#inspect .ins-pk.ins-more::after{bottom:auto;top:5px}
+#inspect .ins-trees>span[data-insd] b{border-bottom:1px dotted #d1a94e99}
+#insfull{position:absolute;left:0;top:0;z-index:62;display:none;box-sizing:border-box;max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:9px 12px 11px;background:linear-gradient(#20382f,#14241f);border:1px solid var(--brass);border-top:3px solid var(--brass);border-radius:8px;box-shadow:0 12px 32px #000c,0 0 0 1px #000a;color:var(--vellum);font-size:.84rem;line-height:1.36;scrollbar-width:thin;scrollbar-color:#d1a94e88 transparent}
+#insfull.on{display:block}
+#insfull .pxi{flex:none;display:inline-block;vertical-align:-3px;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated}
+#insfull .if-h{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+#insfull .if-ic{flex:none;line-height:0}#insfull .if-ic .pxi,#insfull .if-ic img{width:32px!important;height:32px!important}
+#insfull .if-t{flex:1;min-width:0;display:flex;flex-direction:column}
+#insfull .if-t small{font-family:'Jersey 15','Alegreya Sans',serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brass)}
+#insfull .if-t b{font-family:'Jersey 15','Alegreya Sans',serif;font-size:1.12rem;line-height:1.05;color:#fff4c8}
+#insfull.gd .if-t b{color:#9bd96f}#insfull.bd .if-t b{color:#ef8a78}#insfull.lg .if-t b{color:#ffc069}
+#insfull .if-t i{font-style:normal;font-size:.74rem;color:var(--brass)}
+#insfull .if-x{flex:none;width:26px;height:24px;padding:0;margin:0;border:1px solid var(--line);border-radius:5px;background:#0e1a19;color:var(--vellum);font:700 1.05rem/20px 'Alegreya Sans',sans-serif;cursor:pointer;min-height:0;min-width:0;box-shadow:none}
+#insfull .if-x:hover{border-color:var(--brass);color:var(--brass)}
+#insfull .if-d{color:var(--vellum)}
+#insfull .if-e{margin-top:6px;font-style:italic;color:var(--dim)}
+#insfull .if-f{margin-top:6px;font-size:.74rem;color:var(--dim)}
+#insfull .ins-bad{color:#ee7b6f;font-weight:700}#insfull .ins-good{color:var(--chi)}
+#insfull .if-li{display:flex;align-items:flex-start;gap:6px;margin:0 0 5px}#insfull .if-lic{flex:none;width:16px;line-height:0}#insfull .if-lic .pxi{width:16px;height:16px}
+@media (max-height:420px){#insfull{font-size:.8rem;line-height:1.3}}
+#inspect.pin .ins-r{max-height:calc(100vh - 53px);max-height:calc(100dvh - 53px)}

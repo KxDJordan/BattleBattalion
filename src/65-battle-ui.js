@@ -261,7 +261,7 @@ function chipArms(u){const w=shHand(u),a=shAlt(u);if(!w&&!a)return'';const lk=sh
  return'<span class="uwp'+(lk?' lk':'')+(ld===false?' unl':'')+'" title="'+esc('In hand: '+shWName(w)+(am!=null?' ('+am+(w.ammo?' throw':' barrel')+(am===1?'':'s')+' left)':'')+(ld===false?' (unloaded: reload'+(rc?' for '+rc.ap+' AP':'')+')':ld?' (loaded)':'')+(a?' · backup: '+shWName(a)+(shLoaded(u,a)===false?' (unloaded)':''):'')+(lk?' · '+SH_LOCKTXT:''))+'"><span class="uwh">'+pic(shWIcon(w),16,'sword')+(ld===false?shUnlMark():'')+(am!=null?'<b class="uam'+(am?'':' none')+'">'+am+'</b>':'')+'</span>'+(a?'<i>'+pic(shWIcon(a),16,'sword')+'</i>':'')+(lk?pic('ranged-lock',16,'a-burst'):'')+'</span>'}
 /* the "unloaded" marker: the art's icon when it has one, else a pixel badge (an empty chamber) drawn in CSS */
 function shUnlMark(){if(typeof icHas==='function'){for(const n of ['unloaded','st-unloaded'])if(icHas(n))return'<em class="unl">'+pic(n,16,'a-burst')+'</em>'}return'<em class="unl unlc" aria-hidden="true"></em>'}
-function chipInspect(){try{if(!B||!B.cur||typeof Inspect==='undefined'||typeof unitCard!=='function')return;if(Inspect.visible){Inspect.hide();return}const r=$('uinfo').getBoundingClientRect();Inspect.show(unitCard(B.cur),r.left+8,r.bottom+60,false);Inspect.release()}catch(e){}}
+function chipInspect(){try{if(!B||!B.cur||typeof Inspect==='undefined'||typeof unitCard!=='function')return;if(Inspect.visible){Inspect.hide();return}const r=$('uinfo').getBoundingClientRect();Inspect.show(unitCard(B.cur),r.left+8,r.bottom+60,false);if(typeof insUnitSrc==='function')Inspect.src=insUnitSrc(B.cur);if(Inspect.pin)Inspect.pin();else Inspect.release()}catch(e){}}
 function cmdHTML(u,mine){const act=mine&&!B.busy&&!B.over,R=shReserves(),rok=act&&shCanReserve(),canR=typeof canRetreat==='function'?canRetreat():true;
  return'<button class="tg pxb icon '+(SPEEDF<1?'on':'')+'" aria-pressed="'+(SPEEDF<1)+'" aria-label="Fast battle speed" title="Fast" onclick="toggleFast()">'+pic('fast',32,'fast')+'</button>'
  +'<button class="tg pxb icon '+(B.auto?'on':'')+'" aria-pressed="'+!!B.auto+'" aria-label="Auto-battle" title="Auto-battle" '+(B.over?'disabled':'')+' onclick="toggleAuto()">'+pic('auto',32,'auto')+'</button>'
@@ -298,7 +298,8 @@ function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side==
  const ab=$('abar');if(ab&&ab._d!==dense){ab._d=dense;ab.classList.toggle('dense',dense)}
  const bh=bossChipHTML(),be=$('bboss');if(be&&be.classList.contains('hidden')!==!bh)be.classList.toggle('hidden',!bh);
  setHTMLs([['order',oh,1,op],['uinfo',ch],['bboss',bh],['abar',h],['bcmd',cmdHTML(u,mine)],
-  ['bend',swapHTML(u,mine)+'<button class="pri end pxb" aria-label="End turn" title="End turn" '+(mine&&!B.busy&&!B.over?'':'disabled')+' onclick="endTurn()">'+pic('endturn',32,'glass')+'</button>']])}
+  ['bend',swapHTML(u,mine)+'<button class="pri end pxb" aria-label="End turn" title="End turn" '+(mine&&!B.busy&&!B.over?'':'disabled')+' onclick="endTurn()">'+pic('endturn',32,'glass')+'</button>']]);
+ if(typeof Inspect!=='undefined'&&Inspect.visible&&Inspect.src)Inspect.refresh()}   // an open unit card follows the battle (82-inspect.js)
 /* weapon swap control beside the end-turn button: the weapon in hand (big), the backup (small), the cost (AP or FREE) */
 function swapCost(u,a){a=a||abilityInfo(u,'swap');let ap=a.ap|0;try{if(typeof swapAP==='function'){const v=swapAP(u);if(typeof v==='number')ap=v}}catch(e){}return ap}
 function swapHTML(u,mine){if(!mine||!AB.swap||!u||u.side!==0)return'';const alt=shAlt(u);if(!alt&&!(u.abs||[]).includes('swap'))return'';
@@ -323,7 +324,7 @@ async function nextAuto(){const u=B.cur;if(u.side!==0||B.busy)return;B.busy=true
    a second tap on the same foe, or a tap on the window itself, strikes. */
 const FC={el:null,u:null,t:null,a:null,k:-1,id:null,armed:false,blocked:false,lock:false,unl:false,raf:0,sel:null};
 function fcEl(){if(FC.el)return FC.el;try{const app=$('app');if(!app||typeof document==='undefined')return null;const e=document.createElement('button');e.id='fcw';e.className='pxf hidden';e.type='button';
-  e.addEventListener('click',()=>{if(FC.armed)fcStrike()});app.appendChild(e);FC.el=e;return e}catch(e){return null}}
+  e.addEventListener('click',()=>{if(FC.armed)fcStrike()});if(typeof insHoldTips==='function')insHoldTips(e,()=>FC.t?'Forecast: '+FC.t.name:'Forecast');app.appendChild(e);FC.el=e;return e}catch(e){return null}}
 /* Everything forecast() reports has a place here, as icons and numbers:
      name row   the foe's hitpoints, head armor, body armor, shield
      hit row    chance to hit; cover steps (already in the chance); what morale adds on both sides; a riposte waiting on a miss
@@ -473,7 +474,7 @@ function hudModeChange(){if(mode!=='battle'){fcClear();logClose()}}
 function initBattleHud(){try{if(typeof document==='undefined')return;const app=$('app');
   if(app){let has=false,hasB=false;try{for(const s of document.styleSheets)for(const r of s.cssRules){const q=r.selectorText||'';if(/\.pxf(?![\w-])/.test(q))has=true;if(/\.pxb(?![\w-])/.test(q))hasB=true}}catch(e){}
    app.classList.toggle('nopxf',!has);app.classList.toggle('nopxb',!hasB)}
-  const u=$('uinfo'),a=$('ahdr');if(u){u.classList.add('pxf');u.addEventListener('click',chipInspect)}if(a)a.classList.add('pxf');
+  const u=$('uinfo'),a=$('ahdr');if(u){u.classList.add('pxf');u.addEventListener('click',chipInspect);if(typeof insHoldTips==='function')insHoldTips(u,()=>B&&B.cur?B.cur.name:'Unit')}if(a)a.classList.add('pxf');
   const b=$('blog');if(b){b.setAttribute('role','button');b.setAttribute('tabindex','0');b.setAttribute('aria-expanded','false');b.setAttribute('aria-label','Combat log');b.addEventListener('click',logToggle);
    b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();logToggle()}})}
   const c=typeof cv!=='undefined'?cv:$('cv');if(c&&c.addEventListener){

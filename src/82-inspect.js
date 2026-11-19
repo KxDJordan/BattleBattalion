@@ -1,10 +1,27 @@
 /* ================= INSPECT =================
    Long-press (touch) / right-click (mouse) tooltip card for units, tiles, towns, bands and rifts.
-   Public: Inspect.show(html,x,y,touch) Inspect.hide() Inspect.release() Inspect.visible  inspectAt(sx,sy,touch) */
+   Public: Inspect.show(html,x,y,touch) Inspect.hide() Inspect.release() Inspect.pin() Inspect.refresh() Inspect.visible  inspectAt(sx,sy,touch)
+   A battle unit card is live: touching it (or opening it from the HUD chip) pins it open with a close button, and its body scrolls when
+   it is taller than the screen. A tap on any row (status, buff, injury, arms, legendary power, talent, perk, mastery, trait, ability)
+   opens the full-text card (#insfull: icon, name, turns or cost, the whole rule text). Rows whose text the card cuts short carry a chevron.
+   Escape or a tap outside closes the full text first, then the pinned card. insHoldTips(el,head): a long press on a HUD window (the unit
+   chip, the forecast) lists every tooltip in it on the same full-text card, for fingers that cannot hover. */
 // show() skips the rebuild while the card's html is unchanged (a long-press scrub across one unit or tile, every pointermove).
-const Inspect={el:null,visible:false,timer:0,
- show(html,x,y,touch){let el=this.el;if(!el){el=this.el=document.createElement('div');el.id='inspect';el.setAttribute('role','tooltip');($('app')||document.body).appendChild(el)}
-  clearTimeout(this.timer);if(el._h!==html){el.innerHTML=html;el._h=html}el.classList.toggle('wide',html.indexOf('ins-c2')>=0);el.classList.add('on');this.visible=true;
+const INS_ROW='.ins-ab,[data-insd]';
+const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,src:null,
+ make(){if(this.el)return this.el;const el=this.el=document.createElement('div');el.id='inspect';el.setAttribute('role','tooltip');
+  const bd=this.body=document.createElement('div');bd.className='ins-body';el.appendChild(bd);
+  const x=document.createElement('button');x.type='button';x.className='ins-x';x.setAttribute('aria-label','Close');x.innerHTML='&times;';el.appendChild(x);const hn=document.createElement('div');hn.className='ins-hint';hn.textContent='Tap a line to read all of it';el.appendChild(hn);
+  ($('app')||document.body).appendChild(el);
+  el.addEventListener('pointerdown',e=>{if(!el.classList.contains('live'))return;e.stopPropagation();this.pin()});
+  el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')clearTimeout(this.timer)});
+  el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!this.pinned)this.release()});
+  el.addEventListener('click',e=>{const t=e.target;if(!t||!t.closest)return;if(t.closest('.ins-x')){this.hide();return}const r=t.closest(INS_ROW);if(r&&el.contains(r))insFullRow(r);else insFullClose()});
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+  return el},
+ fill(html){const el=this.el,bd=this.body;bd.innerHTML=html;bd._h=html;el.classList.toggle('wide',html.indexOf('ins-c2')>=0);el.classList.toggle('live',!!bd.querySelector(INS_ROW));insMarkClip(bd)},
+ show(html,x,y,touch){const el=this.make();
+  clearTimeout(this.timer);el.classList.add('on');this.visible=true;if(this.body._h!==html){this.unpin();insFullClose();this.fill(html)}
   const w=el.offsetWidth,h=el.offsetHeight,vw=window.innerWidth,vh=window.innerHeight,gap=touch?38:18,m=6;
   const sl=typeof SR!=='undefined'?Math.max(m,SR.x+4):m,sr=typeof SR!=='undefined'?Math.min(vw-m,SR.x+SR.w-4):vw-m;
   // beside the finger, never under the hand: inside the scene if it fits, else over a rail, else above/below
@@ -12,8 +29,58 @@ const Inspect={el:null,visible:false,timer:0,
   if(x+gap+w<=sr)left=x+gap;else if(x-gap-w>=sl)left=x-gap-w;else if(x+gap+w<=vw-m)left=x+gap;else if(x-gap-w>=m)left=x-gap-w;
   else{left=clamp(x-w/2,m,Math.max(m,vw-m-w));top=y-h-gap>=m?y-h-gap:y+gap}
   el.style.left=Math.round(left)+'px';el.style.top=Math.round(clamp(top,m,Math.max(m,vh-m-h)))+'px'},
- hide(){clearTimeout(this.timer);if(this.el)this.el.classList.remove('on');this.visible=false;insK=-1;insW=null},
- release(){clearTimeout(this.timer);if(this.visible)this.timer=setTimeout(()=>this.hide(),2400)}};
+ hide(){clearTimeout(this.timer);insFullClose();this.unpin();if(this.el)this.el.classList.remove('on');this.visible=false;this.src=null;insK=-1;insW=null},
+ // the finger lifted: the card fades after a moment unless it was touched (pinned); longer when some row is cut short
+ release(){clearTimeout(this.timer);if(this.visible&&!this.pinned)this.timer=setTimeout(()=>this.hide(),this.body&&this.body.querySelector('.ins-more')?4200:2400)},
+ pin(){if(!this.visible||!this.el||!this.el.classList.contains('live'))return;clearTimeout(this.timer);if(this.pinned)return;this.pinned=true;this.el.classList.add('pin');this.el.setAttribute('role','dialog');this.fit()},
+ fit(){const el=this.el,m=6;if(!el)return;el.style.left=Math.round(clamp(el.offsetLeft,m,Math.max(m,innerWidth-m-el.offsetWidth)))+'px';el.style.top=Math.round(clamp(el.offsetTop,m,Math.max(m,innerHeight-m-el.offsetHeight)))+'px'},
+ unpin(){this.pinned=false;if(this.el){this.el.classList.remove('pin');this.el.setAttribute('role','tooltip')}},
+ // the battle moved on under an open card: rewrite it in place (same spot, same scroll), or close it once its unit is gone
+ refresh(){if(!this.visible||!this.src||!this.body)return;let h='';try{h=this.src()}catch(e){h=''}if(!h){this.hide();return}const bd=this.body;if(bd._h===h)return;
+  const q=()=>bd.querySelector('.ins-r'),s0=bd.scrollTop,s1=q()?q().scrollTop:0;this.fill(h);bd.scrollTop=s0;if(q())q().scrollTop=s1;this.fit()}};
+/* rows whose text the card clamps (three lines, two for masteries, one for perks) get .ins-more: the chevron that says "tap for the rest";
+   ability and talent chips show names only, so they always have more to say */
+function insMarkClip(bd){for(const r of bd.querySelectorAll(INS_ROW)){if(r.dataset.insd){r.classList.add('ins-more');continue}
+  const s=r.querySelector(':scope>div>span');if(s&&(s.scrollHeight>s.clientHeight+1||s.scrollWidth>s.clientWidth+1))r.classList.add('ins-more')}}
+/* ---- the full-text card ---- */
+const INSF={el:null,open:false,eat:false};
+function insFullEl(){if(INSF.el)return INSF.el;if(typeof document==='undefined')return null;const F=INSF.el=document.createElement('div');F.id='insfull';F.setAttribute('role','dialog');
+ ($('app')||document.body).appendChild(F);F.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.closest('.if-x'))insFullClose()});F.addEventListener('contextmenu',e=>e.preventDefault());return F}
+function insFullClose(){if(!INSF.open)return;INSF.open=false;if(INSF.el){INSF.el.classList.remove('on');INSF.el._src=null}}
+// o: {ic, k (kicker), n (name), m (turns, cost), d (the rule text, html), x (more text), f (footnote), cls}; a: the rect to open over
+function insFullShow(o,a,src){const F=insFullEl();if(!F)return;
+ F.className=o.cls||'';F._src=src||null;F.setAttribute('aria-label',o.n||'Details');
+ F.innerHTML=`<div class="if-h">${o.ic?`<span class="if-ic">${o.ic}</span>`:''}<div class="if-t">${o.k?`<small>${o.k}</small>`:''}<b>${o.n||''}</b>${o.m?`<i>${o.m}</i>`:''}</div><button type="button" class="if-x" aria-label="Close">&times;</button></div>`
+  +(o.d?`<div class="if-d">${o.d}</div>`:'')+(o.x?`<div class="if-e">${o.x}</div>`:'')+(o.f?`<div class="if-f">${o.f}</div>`:'');
+ F.classList.add('on');INSF.open=true;
+ const vw=innerWidth,vh=innerHeight,m=8,w=Math.min(vw-2*m,Math.max(250,Math.min(340,(a?a.width:0)+44)));F.style.width=w+'px';
+ const h=F.offsetHeight,ax=a?a.left+a.width/2:vw/2,ay=a?a.top-8:vh/2-h/2;
+ F.style.left=Math.round(clamp(ax-w/2,m,Math.max(m,vw-m-w)))+'px';F.style.top=Math.round(clamp(ay,m,Math.max(m,vh-m-h)))+'px'}
+// a row of the inspect card, whole: its icon, name, turns or cost, every word of its rule text, and what else the row knows
+function insFullRow(r){if(INSF.open&&INSF.el&&INSF.el._src===r){insFullClose();return}
+ const c0=r.firstElementChild,ic=c0&&c0.tagName!=='DIV'&&c0.tagName!=='B'?c0.outerHTML:'',b=r.querySelector('b'),i=r.querySelector(':scope>div>i'),s=r.querySelector(':scope>div>span');
+ let k=r.dataset.insk||'';if(!k){let p=r.previousElementSibling;if(r.parentElement&&r.parentElement.classList.contains('ins-trees'))p=r.parentElement.previousElementSibling;
+  while(p&&!p.classList.contains('ins-hd'))p=p.previousElementSibling;k=p?p.textContent:r.classList.contains('ins-s')?(r.classList.contains('gd')?'Effect':'Affliction'):''}
+ const esc=typeof htmlEsc==='function'?htmlEsc:String,n=b?b.textContent:'',d=r.dataset.insd?esc(r.dataset.insd):s?s.innerHTML:'',t=r.getAttribute('title')||'';
+ insFullShow({ic,k:esc(k),n:esc(n),m:r.dataset.insm?esc(r.dataset.insm):i?i.innerHTML:'',d,x:r.dataset.insx?esc(r.dataset.insx):'',f:t&&!r.dataset.insd&&t!==n&&d.indexOf(esc(t))<0?esc(t):'',
+  cls:r.classList.contains('gd')?'gd':r.classList.contains('bd')?'bd':r.classList.contains('ins-lg')?'lg':''},r.getBoundingClientRect(),r)}
+/* every tooltip of a HUD window (title attributes), listed whole on the full-text card: a long press, for fingers that cannot hover */
+function insTipsOpen(el,head){const L=[],seen=new Set(),esc=typeof htmlEsc==='function'?htmlEsc:String;
+ for(const e of [el,...el.querySelectorAll('[title]')]){const t=(e.getAttribute('title')||'').trim();if(!t||seen.has(t))continue;seen.add(t);
+  const ic=e.querySelector('.pxi,img');L.push(`<div class="if-li">${ic?`<span class="if-lic">${ic.outerHTML}</span>`:'<span class="if-lic"></span>'}<span>${esc(t)}</span></div>`)}
+ if(!L.length)return false;Inspect.hide();insFullShow({k:'Details',n:esc(typeof head==='function'?head():head||''),d:L.join(''),cls:'tips'},el.getBoundingClientRect(),el);return true}
+function insHoldTips(el,head){if(!el||el._iht||!el.addEventListener)return;el._iht=1;let T=0,s=null;const end=()=>{s=null;clearTimeout(T)};
+ el.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;end();s={x:e.clientX,y:e.clientY};
+  T=setTimeout(()=>{if(!s)return;s=null;if(insTipsOpen(el,head)){INSF.eat=true;try{if(navigator.vibrate)navigator.vibrate(8)}catch(er){}}},typeof LONG_MS==='number'?LONG_MS:430)});
+ el.addEventListener('pointermove',e=>{if(s&&Math.hypot(e.clientX-s.x,e.clientY-s.y)>(typeof SLOP_TOUCH==='number'?SLOP_TOUCH:10))end()});
+ el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('contextmenu',e=>e.preventDefault())}
+/* outside taps and Escape: the full text closes first (that tap does nothing else), then a pinned card */
+if(typeof document!=='undefined'&&document.addEventListener){
+ document.addEventListener('pointerdown',e=>{INSF.eat=false;const t=e.target;if(!t||!t.closest)return;
+  if(INSF.open&&!t.closest('#insfull')){if(t.closest('#inspect'))return;insFullClose();INSF.eat=true;e.stopPropagation();e.preventDefault();return}
+  if(Inspect.visible&&Inspect.pinned&&!t.closest('#inspect,#insfull,#uinfo,#cv'))Inspect.hide()},true);
+ document.addEventListener('click',e=>{if(INSF.eat){INSF.eat=false;e.stopPropagation();e.preventDefault()}},true)}
+if(typeof window!=='undefined'&&window.addEventListener)window.addEventListener('keydown',e=>{if(e.key==='Escape'&&INSF.open){insFullClose();e.stopImmediatePropagation();e.preventDefault()}},true);
 const insBar=(cls,v,mx,lab)=>`<div class="ins-bar ${cls}"><i style="width:${clamp(mx?v/mx*100:0,0,100)}%"></i><span>${lab} ${v}/${mx}</span></div>`;
 const insStat=(v,l)=>`<div><b>${v}</b>${l}</div>`;
 function buffText(b){const p=[];if(b.dmg)p.push('+'+Math.round(b.dmg*100)+'% damage');if(b.dr)p.push('−'+Math.round(b.dr*100)+'% damage taken');if(b.ms)p.push('+'+b.ms+' melee');if(b.rs&&b.rs!==b.ms)p.push('+'+b.rs+' ranged');
@@ -67,14 +134,15 @@ function insArms(u){const sh=typeof shHand==='function'?shHand(u):u.wpn,al=typeo
  if(typeof shLocked==='function'&&shLocked(u))h+=`<div class="ins-ab ins-s bd">${insIc('ranged-lock')}<div><b>Ranged lock</b><span>An enemy is adjacent: no shots until it falls or ${u.side===0?'this sword steps':'it steps'} away.</span></div></div>`;
  return h}
 function insAbChips(u){const L=[];for(const id of u.abs||[]){const a=AB[id];if(!a||L.includes(id))continue;L.push(id)}if(!L.length)return'';
- return`<div class="ins-trees">${L.map(id=>`<span title="${AB[id].d||''}">${insIc('ab-'+id)}<b>${AB[id].n}</b></span>`).join('')}</div>`}
+ const D=id=>{let d='';try{d=typeof abDesc==='function'?abDesc(id,u):AB[id].d||''}catch(e){d=AB[id].d||''}return d||'No description.'},C=id=>{try{return insAbCost(abilityInfo(u,id),u)}catch(e){return insAbCost(AB[id],u)}};
+ return`<div class="ins-trees">${L.map(id=>`<span title="${htmlEsc(AB[id].d||'')}" data-insd="${htmlEsc(D(id))}" data-insm="${htmlEsc(C(id))}">${insIc('ab-'+id)}<b>${AB[id].n}</b></span>`).join('')}</div>`}
 function insPerkFx(p){if(!p)return'';if(p.d)return p.d;const L=[];if(p.st)for(const k in p.st)L.push(insSt(k,p.st[k]));if(p.res)L.push('+'+p.res+' pool');if(p.regen)L.push('+'+p.regen+' regeneration');return L.join(', ')}
 function insTalents(m){if(!m)return'';let h='';const T=typeof MAST==='object'&&MAST?MAST:{};
  let trees=[];try{if(typeof mercTrees==='function')trees=mercTrees(m)||[]}catch(e){}if(!trees.length&&Array.isArray(m.trees))trees=m.trees.map(k=>({key:k,tree:T[k]}));
  const gk=m.gift||(typeof giftVariant==='function'?(()=>{try{const g=giftVariant(m);return typeof g==='string'?g:g&&g.key}catch(e){return null}})():null);
  if(gk&&T[gk]){const G_=T[gk],res=G_.res,sty=G_.style;h+=`<div class="ins-ab">${insIc('m-'+gk)}<div><b>${G_.n}</b><i style="color:${RESC[res]||'inherit'}">${RESN[res]||''}${sty?' · '+sty:''}</i><span>${G_.d||''}</span></div></div>`}
  let off=[],acl=null;try{const c=calc(m);off=c.off||[];acl=c.acl||null}catch(e){}
- if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk&&!(((x.tree||T[x.key])||{}).kind==='armor'&&((x.tree||T[x.key])||{}).aw!==acl)).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}">${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
+ if(trees.length)h+=`<div class="ins-trees">${trees.filter(x=>x&&x.key!==gk&&!(((x.tree||T[x.key])||{}).kind==='armor'&&((x.tree||T[x.key])||{}).aw!==acl)).map(x=>`<span title="${(x.tree||T[x.key]||{}).n||x.key}"${(x.tree||T[x.key]||{}).d?` data-insd="${htmlEsc((x.tree||T[x.key]).d)}" data-insk="Talent tree"`:''}>${insIc('m-'+x.key)}<b>${((x.tree||T[x.key]||{}).n||x.key)}</b></span>`).join('')}</div>`;
  const P=Array.isArray(m.perks)?m.perks:[];
  for(const id of P){let r=null;try{r=typeof perkById==='function'?perkById(id):null}catch(e){}const p=r&&r.perk;if(!p)continue;const icn=p.ab&&AB[p.ab]?'ab-'+p.ab:'perk-'+id;
   const idle=off.includes(id),why=idle?(r.tree&&r.tree.kind==='armor'?'idle: needs '+(r.tree.aw||'other')+' armor':p&&p.wt==='shield'?'idle: no shield raised':'idle: another weapon in hand'):'';
@@ -111,7 +179,7 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  for(const x of L){const S=shStatus(x.key)||{n:x.key,d:'',good:0};const val=x.key==='tired'?'−'+x.turns+' to hit and defense':x.key==='dance'?'+'+x.turns+' defense':x.key==='fleet'?'until its next turn':null;
   r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${val!=null?val:x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
  for(const b of u.buffs||[])if(!b.key&&!b.foe&&!b.indom)r+=`<div class="ins-ab ins-s gd">${insIc('buff')}<div><b>Bolstered</b><span>${buffText(b)}</span></div></div>`;
- if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd">${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
+ if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd" data-insk="Injury"${I.d?` data-insx="${htmlEsc(I.d)}"`:''}>${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}
  if(u.elite&&typeof eliteInsHTML==='function'){const el=eliteInsHTML(u);if(el)r+=`<div class="ins-hd el">Elite</div>`+el}   // elite modifiers, exact (64e-elites.js)
  const arms=insArms(u);if(arms)r+=`<div class="ins-hd">Arms</div>`+arms;
  const lg=insLegend(u);if(lg)r+=`<div class="ins-hd lgd">Legendary</div>`+lg;
@@ -175,10 +243,12 @@ function worldCard(wx,wy){const k=worldPick(wx,wy,true);if(!k)return'';const p=G
  if(ok&&bk)L.push('Battles here are fought on '+BIO[bk].n.toLowerCase()+' ground.');else if(!ok)L.push(tt===0?'No crossing without a ship.':tt===4?'The peaks cannot be crossed.':'Cut off from the mainland.');
  if(ok)L.push(hrs(wx,wy));if(sky&&worldVisible(wx,wy))L.push(sky);
  return`<div class="ins-h"><b class="ins-n">${WNAME[tt]}${feat?' · '+feat:''}</b><span class="ins-tag">${ok?'March '+Math.round(sp*100)+'%':'Impassable'}</span></div>`+note()}
-function inspectAt(sx,sy,touch){if(sheetOpen)return false;let h='';insK=-1;insW=null;
- if(mode==='battle'&&B){const p=boardXY(sx,sy),u=battlePick(p.x,p.y);if(u){h=unitCard(u);insK=key(u.c,u.r)}else{const k=tileAtBoard(p.x,p.y);if(k>=0){h=tileCard(k);insK=k}}}
+function inspectAt(sx,sy,touch){if(sheetOpen)return false;let h='',src=null;insK=-1;insW=null;
+ if(mode==='battle'&&B){const p=boardXY(sx,sy),u=battlePick(p.x,p.y);if(u){h=unitCard(u);insK=key(u.c,u.r);src=insUnitSrc(u)}else{const k=tileAtBoard(p.x,p.y);if(k>=0){h=tileCard(k);insK=k}}}
  else if(mode==='world'&&G&&W){const w=worldXY(sx,sy);h=worldCard(w.x,w.y)}
- if(!h){Inspect.hide();return false}Inspect.show(h,sx,sy,touch);return true}
+ if(!h){Inspect.hide();return false}Inspect.show(h,sx,sy,touch);Inspect.src=src;return true}
+// what a pinned unit card re-reads as the battle goes on: the card while the unit stands on the field, nothing once it is gone
+function insUnitSrc(u){return()=>{if(!(mode==='battle'&&B&&u&&u.alive&&B.units.includes(u)))return'';insK=key(u.c,u.r);return unitCard(u)}}
 
 /* a merc's traits (icon, name, exact effect) and the retinue's battle bonuses */
 function insMercTraits(m){if(typeof trList!=='function')return'';return trList(m).map(t=>`<div class="ins-ab ins-s ${t.good?'gd':'bd'} ins-tr">${typeof trIconHTML==='function'?trIconHTML(t.key,16):''}<div><b>${t.n}</b><span>${t.d||t.fx||''}</span></div></div>`).join('')}
