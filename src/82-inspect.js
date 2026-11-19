@@ -181,7 +181,7 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  if(u.fatMax<999){const tp=typeof shTired==='function'?shTired(u):0;h+=`<div class="ins-line${tp?' tired':''}"><span>Fatigue</span><b>${u.fat}/${u.fatMax}${tp?` <em class="ins-bad">tired −${tp}</em>`:''}</b></div>`}
  // second column: statuses, injuries, abilities and traits
  let r='';const L=typeof shStatuses==='function'?shStatuses(u):[];
- for(const x of L){const S=shStatus(x.key)||{n:x.key,d:'',good:0};const val=x.key==='tired'?'−'+x.turns+' to hit and defense':x.key==='dance'?'+'+x.turns+' defense':x.key==='fleet'?'until its next turn':null;
+ for(const x of L){if(x.key==='buff')continue;const S=shStatus(x.key)||{n:x.key,d:'',good:0};const val=x.key==='tired'?'−'+x.turns+' to hit and defense':x.key==='dance'?'+'+x.turns+' defense':x.key==='fleet'?'until its next turn':null;
   r+=`<div class="ins-ab ins-s ${S.good?'gd':'bd'}">${insIc('st-'+x.key)}<div><b>${S.n}</b><i>${val!=null?val:x.turns>0?x.turns+(x.turns===1?' turn':' turns'):''}</i>${S.d?`<span>${S.d}</span>`:''}</div></div>`}
  for(const b of u.buffs||[])if(!b.key&&!b.foe&&!b.indom)r+=`<div class="ins-ab ins-s gd">${insIc('buff')}<div><b>Bolstered</b><span>${buffText(b)}</span></div></div>`;
  if(m&&Array.isArray(m.inj)&&typeof INJ==='object')for(const j of m.inj){const I=INJ[j.id];if(!I)continue;r+=`<div class="ins-ab ins-s bd" data-insk="Injury"${I.d?` data-insx="${htmlEsc(I.d)}"`:''}>${insIc('inj-'+j.id)}<div><b>${I.n}</b><i>${j.days<0?'permanent':j.days+(j.days===1?' day':' days')}</i><span>${Object.keys(I.st||{}).map(k=>insSt(k,I.st[k])).join(', ')}</span></div></div>`}

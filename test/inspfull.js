@@ -62,6 +62,7 @@ async function run(b,W,H,touch,shot){const tag=W+'x'+H+(touch?' touch':' mouse')
  const cl=await p.evaluate(()=>{const R=[...document.querySelectorAll('#inspect .ins-ab')],bad=[];let more=0,perk=0;
   for(const r of R){const s=r.querySelector(':scope>div>span');if(!s)continue;const h=s.clientHeight;let over=s.scrollWidth>s.clientWidth+1;if(!over){s.style.webkitLineClamp='none';s.style.display='block';over=s.scrollHeight>h+1;s.style.webkitLineClamp='';s.style.display=''}const m=r.classList.contains('ins-more');
    if(over!==m)bad.push((r.querySelector('b')||{}).textContent+(over?' overflows unmarked':' marked but whole'));if(m)more++;if(m&&r.classList.contains('ins-pk'))perk++}
+  const bol=[...document.querySelectorAll('#inspect .ins-s')].filter(r=>(r.querySelector('b')||{}).textContent==='Bolstered').length;if(bol!==1)bad.push('Bolstered listed '+bol+' times');
   const tired=[...document.querySelectorAll('#inspect .ins-s')].find(r=>(r.querySelector('b')||{}).textContent===STATUS.tired.n);
   return{bad,more,perk,rows:R.length,tiredClamped:!!tired&&tired.classList.contains('ins-more')}});
  ok(!cl.bad.length,tag+': chevrons wrong: '+cl.bad.join('; '));ok(cl.more>=2&&cl.perk>=1,tag+': expected clamped rows (perks among them): '+JSON.stringify(cl));
