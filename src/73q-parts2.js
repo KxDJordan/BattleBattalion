@@ -25,10 +25,13 @@ const P2_ARMOR=[
  ['red and gold jacket','rust'],['green ranger','green'],['navy officer','blue'],['fur coat','rust'],['purple mage, gem','grey'],['teal eastern robe','green'],['steel and gold','grey'],['brown leather, pouches','rust'],['white star tabard','blue'],['black, red and gold','grey'],
  ['rags','tan'],['torn leather','rust'],['quilted gambeson','tan'],['red studded','rust'],['mail','blue'],['brigandine','rust'],['scale','grey'],['lamellar','grey'],['red lamellar','rust'],['blue robe','blue'],
  ['monk robe','tan'],['purple mage robe','grey'],['blue cross tabard','blue'],['dark red cloak','rust'],['green ranger, baldric','green'],['brown jerkin','rust'],['quilted, laced','tan'],['dark leather','grey'],['blue patterned robe','blue'],['red and gold vestment','rust'],
- ['black, crescent','grey'],['white and blue wrap','blue'],['green leaf robe','green'],['dark rogue','grey']];
-/* each armour's class for recolouring (sheet order): p metal body (plate, mail, scale, lamellar: its primary follows the metal finish), l leather body,
+ ['black, crescent','grey'],['white and blue wrap','blue'],['green leaf robe','green'],['dark rogue','grey'],
+ // 51-62: the tribal armour sheet (tribal-armor.webp, assets/make-tribal-armor.py), worn by the tribal figures (P2_TRIBAL_ARMOR)
+ ['tribal fur vest','rust'],['stitched hide','tan'],['claw necklace vest','rust'],['hide wraps, red sash','tan'],['dark hide, claws','grey'],['painted spirals','rust'],
+ ['scaled hide vest','grey'],['cord and pendant tunic','tan'],['studded hide','rust'],['fur mantle','tan'],['green wrap','green'],['tooth necklace vest','rust']];
+/* each armour's class for recolouring (sheet order, then the tribal sheet's 12): p metal body (plate, mail, scale, lamellar: its primary follows the metal finish), l leather body,
    c cloth body (tunics, robes, gambesons, tabards). See p2Dress. */
-const P2_ACLASS='pppppppcpp'+'ccccclcccc'+'lccplccclc'+'lplpppcccc'+'cclclcccccc';
+const P2_ACLASS='pppppppcpp'+'ccccclcccc'+'lccplccclc'+'lplpppcccc'+'cclclcccccc'+'lllclllcllcl';   // + the tribal sheet (51-62)
 const P2A_IDX=n=>{for(let i=0;i<P2_ARMOR.length;i++)if(P2_ARMOR[i][0]===n)return i;return 0};
 // game armour (item id, its look, or the figure's armour kind) -> armour set
 const P2_ARMOR_OF={
@@ -79,6 +82,40 @@ const P2_OHAIR_OF={m:{crop:[0,1,2],short:[1,0,2],spiky:[0,1],swept:[2,1],mohawk:
 const P2_OSKIN='#968b62';   // the sheet's olive (its skin layer's light tone): hands and bare arms of the common tone match the head
 function p2OHair(S,fem){const st=S.hair;if(!st||st==='bald')return-1;const L=P2_OHAIR_OF[fem?'w':'m'][st],h=(((S.seed|0)*2654435761)>>>0)>>>7;return L?L[h%L.length]:h%P2_OHAIR.length}
 function p2Orc(hs,S){return hs.race==='halforc'&&!!P2A.p.orch0}
+/* tribal heads (Detail High): the user's sheet of 20 bald heads with tribal markings and no face (tribal-heads.webp, cut by
+   assets/make-tribal-atlas.py into trh0..19, in head0's frame with head0's anchors, so hair, beards and helmets sit as on a human head).
+   Their faces are lifted off the human heads (trf0..7 men, trff0..7 women: the same eight expressions, P2_FACE order) and drawn over the
+   marking (a band across the eyes lies under them), the head's outline ring over all. The marking (layer p, grey shade) takes a paint:
+   P2_PAINT, the sheet's dark red by default. Who: human Wildlings (the tribal background) and the barbarian crisis warriors (P2_TRIBAL_FOE);
+   the marking by the merc's id (a foe type by its key), the paint by the portrait's war-paint colour (07-portraits.js marks.paintC: red,
+   woad, white) for most, green or soot for some (the id again). Only red, blue, green, black, and white clay on dark skin
+   (P2_PAINT_DARK; on light skin the portrait's white becomes one of the four). No yellow. No rnd(). */
+const P2_PAINT={red:null,woad:'#3a5ca8',green:'#3c7a3a',soot:'#2b2624',clay:'#ece4d2'};   // the paints (the user's: red, blue, green, black; white clay on dark skin only; yellow does not read): red the sheet's own (TRA.mark)
+const P2_PAINT_OF={g:'red',f:'red',X:'woad',x:'woad',l:'clay'};   // the portrait's war-paint; white on light skin and none: one of the four by the id
+const P2_PAINT_DARK=170;   // white clay only on skin darker than this (luma of the skin tone: tan 145; fair 192, pale 218 never)
+const P2_TRIBAL_BG={wildling:1};
+const P2_TRIBAL_FOE={barbz:1,barbax:1,barbskald:1,barbhus:1};
+function p2Hash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}h^=h>>>16;h=Math.imul(h,2246822507);h^=h>>>13;h=Math.imul(h,3266489909);h^=h>>>16;return h>>>0}   // FNV-1a, then mixed (murmur3's finaliser): every bit counts
+// the tribal head of a look: {i (marking 0..19), paint (colour name)} or null
+function p2Tribal(L,hs){if(!P2A.p.trh0||!L.key)return null;const k=L.key.split(':');let id;
+ if(k[0]==='m'){if(hs.race!=='human'||hs.el||hs.orc||!P2_TRIBAL_BG[k[4]])return null;id='m'+k[1]}
+ else if(k[0]==='e'){if(!P2_TRIBAL_FOE[k[1]])return null;id='e'+k[1]}else return null;
+ const h=p2Hash(id),i=h%20,v=(h>>>8)%10,sk=p2Hex(hs.C.skin),dark=.3*sk[0]+.59*sk[1]+.11*sk[2]<P2_PAINT_DARK,four=['red','woad','green','soot'];
+ let pc=P2_PAINT_OF[L.S.paint]||(dark?four.concat('clay'):four)[(h>>>12)%(dark?5:4)];if(pc==='clay'&&!dark)pc=four[(h>>>12)%4];
+ return{i,h,paint:v===8?'green':v===9?'soot':pc}}
+function p2PaintCol(n){return P2_PAINT[n]||(typeof TRA==='object'&&TRA.mark)||'#8f3421'}
+// a layer of piece P drawn on g (canvas origin = the piece's top-left with p2Piece's 1 px margin), col multiplies it
+function p2Lay(g,P,m,col){const l=P.L[m];if(!l)return;const I=p2Img(l[0]);if(!I)return;const k=P2A.k;if(!col){g.drawImage(I,l[1],l[2],l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k);return}
+ const t=humTmp(l[3],l[4]),q=t.getContext('2d');q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);q.globalCompositeOperation='multiply';q.fillStyle=col;q.fillRect(0,0,l[3],l[4]);q.globalCompositeOperation='destination-in';q.drawImage(I,l[1],l[2],l[3],l[4],0,0,l[3],l[4]);
+ g.drawImage(t,0,0,l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k)}
+// the tribal head canvas for an expression: head (skin toned), its marking in the paint, the face (inside the head), the outline ring
+function p2TriHead(T,ex,fem,tone){const id='tri|'+T.i+'|'+ex+'|'+(fem?1:0)+'|'+(tone||'')+'|'+T.paint;let c=P2_PC.get(id);if(c)return c;
+ const hn='trh'+T.i,P=P2A.p[hn],fn=(fem?'trff':'trf')+ex,F=P2A.p[fn],base=p2Piece(hn,tone);if(!P||!base)return base;
+ c=document.createElement('canvas');c.width=base.width;c.height=base.height;c.pk=base.pk;const g=c.getContext('2d');g.drawImage(base,0,0);
+ p2Lay(g,P,'p',p2PaintCol(T.paint));
+ if(F){g.globalCompositeOperation='source-atop';p2Lay(g,F,'c');g.globalCompositeOperation='source-over'}
+ p2Lay(g,P,'o');
+ if(P2_PC.size>900)P2_PC.delete(P2_PC.keys().next().value);c.pid=id;P2_PC.set(id,c);return c}
 // expressions: the eight heads (heads.webp)
 const P2_FACE=['neutral','gritted','shouting','happy','content','surprised','nervous','knocked out'];
 // per-hair tweak after the ear-hole alignment: [dx, dy (head radii), scale]
@@ -134,7 +171,13 @@ function p2Rig(n,px,py,extra){const P=P2A.p[n];const R=Object.assign({w:P.w,h:P.
 function p2Hex(c){return(String(c).match(/[0-9a-f]{2}/gi)||['80','80','80']).map(h=>parseInt(h,16))}
 function p2Near(col,list){const a=p2Hex(col);let best=0,bd=1e9;list.forEach((q,i)=>{const b=p2Hex(q[1]);const d=(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;if(d<bd){bd=d;best=i}});return best}
 function p2AvKey(av){if(!av||typeof US_AV!=='object')return null;for(const k in US_AV)if(US_AV[k]===av)return k;return null}
+/* the tribal figures (p2Tribal: Wildlings, the barbarian crisis warriors) wear the tribal sheet's armours for the light armours a tribe would
+   make (the item, or a foe's armour kind): each item lists the fitting tribal pieces, the figure's id picks one (stable). Every other armour,
+   and everyone else, as before. Only the drawing changes, never the item. */
+const P2_TRIBAL_ARMOR={rags:[3,7,10],hide:[0,1,2,4,5,6,9,11],leather:[0,1,5,6,8,11],jack:[1,7,8],padded:[7,3,10],studded:[8],
+ k_rags:[3,10],k_bare:[2,11],k_fur:[9,0,4],k_leather:[1,8,0,5],k_padded:[7,3]};
 function p2Armor(L){const S=L.S,hs=humSpec(L);let n=null;const id=S.armId;
+ const tri=p2Tribal(L,hs),tl=tri&&(id?P2_TRIBAL_ARMOR[id]:P2_TRIBAL_ARMOR['k_'+S.armor]);if(tl&&!S.coat)return 51+tl[(tri.h>>>16)%tl.length];
  if(id){n=P2_ARMOR_OF[id]||null;if(!n&&typeof usFamedBase==='function'&&usFamedBase(id))n=P2_ARMOR_OF[usFamedBase(id)]||null;if(!n&&typeof usLookOf==='function')n=P2_ARMOR_OF[usLookOf(id)]||null}
  if(!n&&L.key[0]==='m'&&!id){const t=P2_TUNIC[p2Near(hs.C.body,P2_TUNIC)];n=t[0]}   // no armour: the plain tunic in the look's cloth colour
  if(!n){const k=p2AvKey(S.av);if(k)n=P2_ARMOR_OF[k]||null}
@@ -240,13 +283,13 @@ function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1
  const a=P2A.p[n].a;return{n,R:p2Rig(n,a.px,a.py),c:p2Piece(n,tone)}};
  const legk=hs.race==='dwarf'?.62:1,legL=(LA.R.fy-LA.R.py)*legk,legY=-24*legk,hipY0=-(legL+legY),hx=P2A.p[ln('a')].w*.36;
  const loc=(x,y)=>({x,y}),shA=loc(TP.sax-16-TP.hx,TP.sy+4-TP.hy),shB=loc(TP.sbx+16-TP.hx,TP.sy+4-TP.hy),neck=loc(TP.nx-TP.hx+4,-TP.hy+P2A.p.torso10.h*P2.neck);   // the chin sits in the collar: the head overlaps the torso's top by P2.neck of a tunic's height (same for every torso)   // the sleeves sit at the torso's upper corners, half outside it
- const hf=ho?'orch':hs.el?(fem?'elff':'elfm'):fem?'headf':'head',HP=P2A.p[hf+'0'].a,hR=p2Rig(hf+'0',HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
+ const tri=ho?null:p2Tribal(L,hs),hf=ho?'orch':tri?'trh':hs.el?(fem?'elff':'elfm'):fem?'headf':'head',h0=tri?'trh'+tri.i:hf+'0',HP=P2A.p[h0].a,hR=p2Rig(h0,HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
  return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,legk,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
   head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand(wSide==='a'?'hand_a':'hand_b'),HO:hand(oSide==='a'?'hand_a':'hand_b'),bk:new Map(),armor:ai,leg,tone,
-  hf,ho,helm:p2Helm(S),hair:ho?p2OHair(S,fem):hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el&&!ho,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25),beard:p2Beard(S,hs),beardC:p2BeardCol(S)}}
+  hf,ho,tri,fem,helm:p2Helm(S),hair:ho?p2OHair(S,fem):hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el&&!ho,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25),beard:p2Beard(S,hs),beardC:p2BeardCol(S)}}
 /* the head attachment for an expression: head piece, hair (none under a helmet), helmet, race cues */
 function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
- return hskAtt(A,'p2head:'+ex,[-480,-640,480,420],g=>{const n=(A.hf||'head')+ex,c=p2Piece(n,A.tone),R=A.hR,pk=P2A.k;
+ return hskAtt(A,'p2head:'+ex,[-480,-640,480,420],g=>{const n=A.tri?'trh'+A.tri.i:(A.hf||'head')+ex,c=A.tri?p2TriHead(A.tri,ex,A.fem,A.tone):p2Piece(n,A.tone),R=A.hR,pk=P2A.k;
   const top=sk.y-A.hR.h*.5;   // the head's top (SU, from the neck point)
   const put=(pn,canvas,s,dx,dy)=>{if(!canvas)return;g.drawImage(canvas,dx-1/pk*s,dy-1/pk*s,canvas.width/pk*s,canvas.height/pk*s)};
   // hair behind the head (long styles hang behind the neck): the whole hair piece first, the head over it, then the hair again clipped to above the eyes
@@ -256,7 +299,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   // (assets/make-parts2-atlas.py: its ear arc on the head's ear outline, fx / fy / fs)
   let hx=0,hy=0;if(Ha){if(A.ehair&&Ha.tipx!=null&&HA.tipx!=null){hx=HA.tipx-R.px-Ha.tipx*hs_+ha[0]*R0;hy=HA.tipy-R.py-Ha.tipy*hs_+ha[1]*R0}
    else if(Ha.fx!=null){hs_=Ha.fs*ha[2];hx=-R.px+Ha.fx+(HA.edx||0)+ha[0]*R0;hy=-R.py+Ha.fy+(HA.edy||0)+ha[1]*R0}else{hx=sk.x-R0*.1-Ha.bcx*hs_;hy=top-R0*.12-Ha.btop*hs_}}
-  A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};   // for the tests: no hair under a helmet
+  A.drawn={hair:hp,helm:A.helm>=0?'helm'+A.helm:null,head:n};if(A.tri){A.drawn.face=(A.fem?'trff':'trf')+ex;A.drawn.paint=A.tri.paint}   // for the tests: no hair under a helmet
   if(hs.orc&&!A.ho){g.save();g.translate(sk.x,sk.y);humSh(g,humP(p=>{p.moveTo(-R0*.8,-R0*.05);p.quadraticCurveTo(-R0*1.5,-R0*.55,-R0*1.62,-R0*.62);p.quadraticCurveTo(-R0*1.25,R0*.05,-R0*.78,R0*.32);p.closePath()}),A.tone||'#f5bb8f',{dk:.18});g.restore()}
   if(c)put(n,c,1,-R.px,-R.py);
   if(HPc)put(hp,HPc,hs_,hx,hy);   // the hair straight over the head: its art leaves the face and the ear open
@@ -268,7 +311,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   // the sheet beard: its mouth on the head's mouth (P2A anchors mx, my / bmx, bmy), over the hair, under the helmet; none under a full-face helmet
   if(A.beard>=0&&!P2_NOBEARD.has(A.helm)){const bn='beard'+A.beard,Ba=P2A.p[bn].a,bs=A.ho?P2.oBeard:1;put(bn,p2Piece(bn,null,A.beardC),bs,HA.bmx-R.px-Ba.mx*bs,HA.bmy-R.py-Ba.my*bs);A.drawn.beard=bn;
    const tn='otusk'+ex;if(A.ho&&P2A.p[tn]){put(tn,p2Piece(tn),1,-R.px,-R.py);A.drawn.tusk=tn}}   // a half-orc's tusks in front of the beard
-  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[(A.hf||'head')+ex].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
+  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[n].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation, held HEAD_HOLD ms, instant on hit and death */
 const P2_MEM=new WeakMap();

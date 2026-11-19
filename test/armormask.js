@@ -2,6 +2,8 @@
 // The colour mask of the armour sheet (assets/parts2/armor-mask.png, assets/make-armor-mask.py) and the surcoat sheet (assets/parts2/surcoats.webp
 // cut by assets/make-surcoats.py) as the Detail High figures use them (73q-parts2.js: p2Dress, p2Piece, p2CoatTorso):
 //  - the mask is the armour sheet's size, every piece's silhouette matches (IoU >= .98), only the six key colours, every armour has a primary;
+//    the same for the tribal armour sheet (assets/parts2/tribal-armor.webp / tribal-armor-mask.png, armours 51..62: 24 pieces (shoulder pairs
+//    touch), each torso with a primary region covering a tenth of it or more and at least one more key, sized like the leather armours);
 //  - a merc in plain colours wears the armour exactly as drawn (no recolour layer drawn); a cloth / accent / metal dye changes its regions' hue
 //    and leaves the others alone (per armour class); the tailor's preview at High changes with every dye and finish;
 //  - the 10 surcoat designs: cut, mask aligned, no skin left, the company's emblem drawn where the sheet's charge was, the colours follow the banner.
@@ -11,12 +13,12 @@ const ROOT=path.resolve(__dirname,'..'),u64=f=>'data:image/'+(/\.webp$/.test(f)?
 p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::/.test(m.text()))errs.push(m.text())});
 await p.goto('file://'+f);await p.waitForTimeout(300);
 await p.evaluate(()=>{newGame();closeSheet();humImg()});await p.waitForFunction(()=>typeof humReady==='function'&&humReady(),null,{timeout:30000});
-const IM={sheet:u64('assets/parts2/armor.webp'),mask:u64('assets/parts2/armor-mask.png'),sc:u64('assets/parts2/surcoats-cut.png'),scm:u64('assets/parts2/surcoats-cut-mask.png')};
+const IM={sheet:u64('assets/parts2/armor.webp'),mask:u64('assets/parts2/armor-mask.png'),tsheet:u64('assets/parts2/tribal-armor.webp'),tmask:u64('assets/parts2/tribal-armor-mask.png'),sc:u64('assets/parts2/surcoats-cut.png'),scm:u64('assets/parts2/surcoats-cut-mask.png')};
 const R=await p.evaluate(async IM=>{const bad=[],n={};const load=s=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=s});
  const px=I=>{const c=document.createElement('canvas');c.width=I.width;c.height=I.height;const g=c.getContext('2d');g.drawImage(I,0,0);return{w:I.width,h:I.height,d:g.getImageData(0,0,I.width,I.height).data}};
- const S=px(await load(IM.sheet)),M=px(await load(IM.mask));
+ const chk=(S,M,label,minp)=>{const n={};
  // ---- the mask: size, keys, silhouettes ----
- if(S.w!==M.w||S.h!==M.h)bad.push('mask size '+[M.w,M.h]+' vs sheet '+[S.w,S.h]);
+ if(S.w!==M.w||S.h!==M.h)bad.push(label+': mask size '+[M.w,M.h]+' vs sheet '+[S.w,S.h]);
  const KEYS=['0,0,0','255,0,0','0,255,0','0,0,255','255,255,0','255,0,255'];let odd=0;
  for(let i=0;i<M.d.length;i+=4){const a=M.d[i+3];if(a===0)continue;if(a!==255||KEYS.indexOf(M.d[i]+','+M.d[i+1]+','+M.d[i+2])<0)odd++}
  if(odd)bad.push(odd+' mask pixels are not a flat key colour');
@@ -25,7 +27,20 @@ const R=await p.evaluate(async IM=>{const bad=[],n={};const load=s=>new Promise(
  let np=0,low=[];for(let s0=0;s0<W*H;s0++){if(!on[s0]||lab[s0]>=0)continue;const st=[s0];lab[s0]=np;let x0=W,y0=H,x1=0,y1=0,cnt=0;
   while(st.length){const q=st.pop(),x=q%W,y=(q/W)|0;cnt++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;const j=Y*W+X;if(on[j]&&lab[j]<0){lab[j]=np;st.push(j)}}}
   if(cnt>=200){let I=0,U=0;for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const j=y*W+x,a=lab[j]===np,m=M.d[j*4+3]>0;if(a&&m)I++;if(a||m)U++}if(I/U<.98)low.push(np+': '+(I/U).toFixed(3));n.pieces=(n.pieces||0)+1}np++}
- if(low.length)bad.push('silhouette IoU under .98: '+low.join(', '));if(!(n.pieces>=120))bad.push('only '+n.pieces+' pieces found in the sheet');
+ if(low.length)bad.push(label+': silhouette IoU under .98: '+low.join(', '));if(!(n.pieces>=minp))bad.push(label+': only '+n.pieces+' pieces found in the sheet');
+  return n.pieces};
+ n.pieces=chk(px(await load(IM.sheet)),px(await load(IM.mask)),'armour sheet',120);
+ n.tribalPieces=chk(px(await load(IM.tsheet)),px(await load(IM.tmask)),'tribal sheet',24);
+ // the tribal armours: 12 more, named, each torso's mask keys (its primary the largest recoloured region; a belt and a buckle on each)
+ const covT=(pn,m)=>{const P=P2A.p[pn],l=P.L[m];const k=P2A.k,c=document.createElement('canvas');c.width=Math.ceil(P.w*k)+2;c.height=Math.ceil(P.h*k)+2;if(!l)return new Uint8ClampedArray(4);
+  c.getContext('2d').drawImage(p2Img(l[0]),l[1],l[2],l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k);return c.getContext('2d').getImageData(0,0,c.width,c.height).data};
+ if(P2_ARMOR.length!==63)bad.push('armours '+P2_ARMOR.length+' (51 + the 12 tribal)');
+ for(let i=51;i<63;i++){const T=P2A.p['torso'+i];if(!T){bad.push('tribal armour '+i+' missing');continue}if(!T.L.r||['g','b','y','m'].filter(m=>T.L[m]).length<1)bad.push('tribal armour '+i+': layers '+Object.keys(T.L).join(''));
+  if(!P2A.p['sh'+i+'_a']||!P2A.p['sh'+i+'_b'])bad.push('tribal armour '+i+': shoulders missing');
+  {const c=covT('torso'+i,'r');let n1=0,n0=0;for(let j=3;j<c.length;j+=4)if(c[j]>128)n1++;const cc=covT('torso'+i,'c');for(let j=3;j<cc.length;j+=4)if(cc[j]>128)n0++;if(!(n1>=n0*.1))bad.push('tribal armour '+i+': the primary region covers '+(n1/n0).toFixed(2))}
+  for(const a of['nx','ny','sax','sbx','sy','hx','hy'])if(!isFinite(T.a[a]))bad.push('tribal armour '+i+': anchor '+a);
+  // fits the body like the leather armours: the neck opening and the torso's size within 12% of the fur-collared leather's
+  const R=P2A.p.torso15;if(Math.abs(T.w/R.w-1)>.12||Math.abs(T.h/R.h-1)>.12)bad.push('tribal armour '+i+' size '+T.w+'x'+T.h+' vs '+R.w+'x'+R.h)}
  // every armour has a primary region (its torso's r layer), its shoulders follow it
  for(let i=0;i<P2_ARMOR.length;i++){const T=P2A.p['torso'+i];if(!T||!T.L.r)bad.push('armour '+i+' has no primary region');if(P2_ACLASS.length!==P2_ARMOR.length||!/^[plc]$/.test(P2_ACLASS[i]))bad.push('armour '+i+': no class')}
  // ---- recolouring ----

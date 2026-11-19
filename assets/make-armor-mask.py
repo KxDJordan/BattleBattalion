@@ -1,5 +1,7 @@
 # Builds the armour colour mask: assets/parts2/armor-mask.png, the same size as assets/parts2/armor.webp and pixel-aligned with it.
 # Run: python3 -I assets/make-armor-mask.py [--review DIR]   (Pillow + numpy; deterministic, no randomness beyond a fixed seed)
+# With --tribal: the tribal armour sheet (assets/parts2/tribal-armor.webp: one row of 12 torsos, their shoulder pairs below) ->
+# assets/parts2/tribal-armor-mask.png, by the same method; its armours are numbered 100..111 in the tables below (P2_ARMOR 51..62).
 # Key colours (flat, opaque where the sheet is opaque, transparent elsewhere):
 #   red     #FF0000 primary    the main body material (cloth of a tunic / robe, the steel of plate, mail, scale, the leather of a jerkin)
 #   green   #00FF00 secondary  trims, collars, cuffs, linings, sashes, second-colour panels, tabard cloth
@@ -19,7 +21,8 @@ import sys, os
 import numpy as np
 from PIL import Image, ImageDraw
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'parts2')
-SRC = os.path.join(D, 'armor.webp'); OUT = os.path.join(D, 'armor-mask.png')
+TRIBAL = '--tribal' in sys.argv
+SRC = os.path.join(D, 'tribal-armor.webp' if TRIBAL else 'armor.webp'); OUT = os.path.join(D, 'tribal-armor-mask.png' if TRIBAL else 'armor-mask.png')
 KEYS = {'k': (0, 0, 0), 'r': (255, 0, 0), 'g': (0, 255, 0), 'b': (0, 0, 255), 'y': (255, 255, 0), 'm': (255, 0, 255)}
 
 # ---- the cut (same as make-parts2-atlas.py: rows by alpha, columns per row, shoulder pairs below each torso) ----
@@ -77,6 +80,10 @@ def armour_boxes(AR):
         for b in ab[ti]:
             ca, cb = caps_under(MA, ab[ti + 1], b); out.append([b, ca, cb])
     return out
+def tribal_boxes(AR):
+    """the tribal sheet: one row of 12 torsos, the shoulder pairs below"""
+    ab = cut(AR, [12, 24], 6); MA = AR[:, :, 3] > 24
+    return [[b] + caps_under(MA, ab[1], b) for b in ab[0]]
 
 # ---- colour ----
 def rgb2lab(c):
@@ -232,6 +239,47 @@ PAINT = {   # (hex, key, tolerance, [keys painted over])
  49: [('#c8b860', 'y', 26, ['r'])],
  25: [('#e8e0d8', 'y', 24, ['g'])],                                     # the white star on the blue panel                                     # the embroidered leaves
 }
+# ---- the tribal sheet (--tribal), armours 100..111 (P2_ARMOR 51..62): fur trim secondary (as the fur-collared leather, 15), the left shoulder
+# pad (under the shoulder cap) keep, teeth and claws keep (bone, never dyed), painted spirals / zigzags and the pendant emblem, studs metal ----
+PALS.update({
+ 100: '#eaccb6:g #d3b49f:g #ddbfa9:g@ab #6e472f:r #664029:r #643f29:r #462f22:m #402a1e:m #432d21:m',   # fur-trimmed leather vest, laced
+ 101: '#8b6044:r #845a3f:r@ab #795036:r@ab #a47c60:g@t #b78d70:g@ab #af876a:g@ab #4b3123:m #3a281d:m #8a664e:r',   # stitched hide: the lighter upper panel secondary
+ 102: '#4f3323:r #7c553e:r #573a28:r #5a3b28:r #d6b8a1:g #e5c8b1:g@ab #debfa8:g@ab #472a1b:r@ab #c9ab97:g@ab #472f20:m #422e20:m',   # leather, claw necklace, fur hem
+ 103: '#e9cab4:g@t #c79f7b:r #c49d78:r #b69d89:r #8d463b:g #733d33:g #7b382c:g #e5c7a8:r@ab',   # hide wraps, fur collar, red sash
+ 104: '#8f786b:r #957d6f:r #877063:r #786155:r #857063:r #493930:m@t #443329:m@t #3c2e25:m@t #403028:g@ab #413129:g@ab',   # dark hide, claws, ragged hem
+ 105: '#9b5d45:r #a3644d:r #eacbb5:g #b28e74:g@t #b99275:g@ab #4c3124:m #3e281e:m #432e21:m',   # red-brown leather, painted spirals, ring buckle
+ 106: '#eacbb5:g #6c5547:r #816658:r #695145:r #735d4e:r #553b2b:m #3d2c21:m',   # scale vest, fur collar
+ 107: '#e8c5aa:r #eac7ab:r #c5a78e:r@ab #be6e55:y #c16f56:y #bb624a:y #6b422f:m #4e3226:m #86402f:g #6c3025:g',   # cream tunic, zigzag embroidery, cord and ring pendant
+ 108: '#ecceb8:g #d0b4a0:g #744f3a:r #885b43:r #8d6147:r #815840:r #78523c:r #593d2d:m #5f4130:r@t #523727:m',   # studded leather, fur collar and hem
+ 109: '#eccdb5:r #dfbfa8:r #d0b39e:r #cbad94:r #563a29:g #583c2c:m #a68a76:r',   # fur mantle (the fur is the body), leather under it, strap
+ 110: '#605430:r #635831:r #634e2e:r #503b24:r #a57d57:g #a78562:g #c4976b:g #c1986e:g #916f49:g #473226:m #4f3525:m',   # green wrap over tan leather
+ 111: '#4c3427:r #83624d:r #82583e:r #4a3024:r #a78975:g #a48775:g #cfaf97:g #b49680:g #b58e6f:g@ab #b8977a:g@ab #d9b99b:g@ab #3c291f:m',   # leather, tooth necklace, fur
+})
+REG.update({
+ 100: [('t', .18, .49, 'k'), ('t', .65, .76, 'b')],
+ 101: [('t', .18, .40, 'k'), ('t', .70, .81, 'b')],
+ 102: [('t', .16, .40, 'k'), ('t', .68, .79, 'b')],
+ 103: [('t', .19, .45, 'k')],
+ 104: [('t', .15, .39, 'k'), ('t', .71, .75, 'b')],
+ 105: [('t', .14, .46, 'k'), ('t', .68, .80, 'b', 'big'), ('t', .68, .80, 'm')],
+ 106: [('t', .15, .46, 'k'), ('t', .69, .79, 'b')],
+ 107: [('t', .14, .42, 'k'), ('t', .72, .71, 'b'), ('t', .59, .50, 'y')],
+ 108: [('t', .16, .46, 'k'), ('t', .69, .78, 'b')],
+ 109: [('t', .70, .81, 'b'), ('t', .63, .53, 'b', 'big'), ('t', .63, .53, 'm')],
+ 110: [('t', .14, .44, 'k'), ('t', .71, .73, 'b', 'big'), ('t', .71, .73, 'm')],
+ 111: [('t', .15, .41, 'k'), ('t', .70, .77, 'b')],
+})
+# BOX: (piece, x0, y0, x1, y1, key, min lightness): every region whose centroid lies in the box and is at least that light (teeth, claws)
+BOX = {
+ 102: [('t', .3, .36, .95, .58, 'k', 70)],
+ 104: [('t', .3, .36, .95, .56, 'k', 62)],
+ 111: [('t', .28, .34, .95, .62, 'k', 72)],
+}
+PAINT.update({
+ 105: [('#f0d4b6', 'y', 30, ['r'])],                                   # the cream spirals painted on the leather
+ 107: [('#cf715a', 'y', 26, ['r'])],                                   # the zigzag embroidery where it has no outline
+ 108: [('#cdbdae', 'b', 24, ['r'])],                                   # the studs
+})
 SPLIT = {}  # armour -> the colour distance that splits a two-colour region (default 20)
 SWAP = {4: {'m': 'r'}}   # rule keys replaced (the gold plate's dark lames are not belts)
 
@@ -305,6 +353,9 @@ def classify(i, Ps):
         if not cand: continue
         d = [np.hypot(r['x'] - fx, r['y'] - fy) for r in cand]; d0 = min(d)
         (max if big else min)([r for r, dd in zip(cand, d) if dd <= d0 + .02], key=lambda r: r['n'])['key'] = kk   # concentric regions (a gem in its frame): the smallest, or with 'big' the frame
+    for (pc, x0_, y0_, x1_, y1_, kk, ml) in BOX.get(i, []):
+        for r in R:
+            if 'tab'[r['p']] == pc and x0_ <= r['x'] <= x1_ and y0_ <= r['y'] <= y1_ and r['L'] >= ml and r['n'] < 600: r['key'] = kk
     res = []
     for pi, P in enumerate(Ps):
         lab = regs[pi]; K = np.full(P.shape[:2], '', '<U1'); K[ops[pi]] = 'k'
@@ -342,9 +393,9 @@ def keyimg(K):
 if __name__ == '__main__':
     AR = np.array(Image.open(SRC).convert('RGBA')).astype(np.int32); H, W = AR.shape[:2]
     M = np.zeros((H, W, 4), np.uint8); M[AR[:, :, 3] > 24] = (0, 0, 0, 255)   # opaque pixels outside every piece: keep
-    BX = armour_boxes(AR); REV = sys.argv[sys.argv.index('--review') + 1] if '--review' in sys.argv else None; info = []
+    BX = tribal_boxes(AR) if TRIBAL else armour_boxes(AR); OFS = 100 if TRIBAL else 0; REV = sys.argv[sys.argv.index('--review') + 1] if '--review' in sys.argv else None; info = []
     for i, bx in enumerate(BX):
-        Ps = [AR[b[1]:b[3], b[0]:b[2]] for b in bx]; Ks, R, _ = classify(i, Ps); info.append(R)
+        Ps = [AR[b[1]:b[3], b[0]:b[2]] for b in bx]; Ks, R, _ = classify(i + OFS, Ps); info.append(R)
         for b, K in zip(bx, Ks):
             sub = M[b[1]:b[3], b[0]:b[2]]; m = K != ''; sub[m] = keyimg(K)[m]
     Image.fromarray(M, 'RGBA').save(OUT, optimize=True)
