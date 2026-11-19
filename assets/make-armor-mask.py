@@ -198,19 +198,19 @@ REG = {
  9: [('t', .62, .68, 'g'), ('t', .54, .80, 'g'), ('t', .72, .80, 'g'), ('t', .17, .50, 'k')],
  15: [('t', .14, .45, 'k'), ('t', .58, .43, 'b'), ('t', .49, .65, 'm'), ('t', .79, .62, 'm')],
  16: [('t', .15, .42, 'k')], 17: [('t', .14, .43, 'k')], 18: [('t', .14, .42, 'k')], 19: [('t', .14, .42, 'k')],
- 20: [('t', .12, .47, 'k'), ('t', .57, .40, 'b'), ('t', .64, .70, 'b')],
+ 20: [('t', .12, .47, 'k'), ('t', .63, .60, 'b'), ('t', .64, .76, 'b')],
  21: [('t', .12, .47, 'k'), ('t', .66, .70, 'y')],
  22: [('t', .13, .41, 'k'), ('t', .33, .69, 'g'), ('t', .70, .67, 'g'), ('t', .63, .86, 'g'), ('t', .81, .82, 'g')],
  24: [('t', .13, .43, 'k'), ('t', .57, .70, 'm')],
  25: [('t', .14, .41, 'k'), ('t', .64, .55, 'y'), ('t', .50, .87, 'g')],
  26: [('t', .14, .41, 'k')],
  27: [('t', .15, .44, 'k'), ('t', .43, .74, 'g'), ('t', .69, .74, 'g'), ('t', .66, .86, 'g'), ('t', .77, .86, 'g')],
- 28: [('t', .15, .44, 'k'), ('t', .38, .62, 'g'), ('t', .46, .73, 'm'), ('t', .68, .70, 'b')],
+ 28: [('t', .15, .44, 'k'), ('t', .38, .62, 'g'), ('t', .46, .73, 'm'), ('t', .68, .70, 'b', 'big'), ('t', .68, .70, 'm')],
  29: [('t', .15, .41, 'k'), ('t', .55, .42, 'b'), ('t', .64, .42, 'b'), ('t', .73, .42, 'b'), ('t', .56, .59, 'b'), ('t', .65, .59, 'b'), ('t', .73, .59, 'b'), ('t', .62, .72, 'b')],
  30: [('t', .16, .42, 'k')], 31: [('t', .15, .41, 'k'), ('t', .5, .28, 'g')],
  32: [('t', .16, .41, 'k'), ('t', .34, .61, 'b')], 33: [('t', .15, .42, 'k')],
  34: [('t', .16, .41, 'k'), ('t', .47, .70, 'm'), ('t', .66, .78, 'b')],
- 35: [('t', .16, .41, 'k'), ('t', .20, .60, 'k'), ('t', .18, .80, 'k'), ('t', .62, .69, 'g'), ('t', .56, .84, 'g'), ('t', .57, .34, 'b')],
+ 35: [('t', .16, .41, 'k'), ('t', .20, .60, 'k'), ('t', .18, .80, 'k'), ('t', .62, .69, 'g', 'big'), ('t', .62, .69, 'g'), ('t', .56, .84, 'g'), ('t', .57, .34, 'b')],
  36: [('t', .15, .40, 'k'), ('t', .57, .68, 'g'), ('t', .57, .86, 'g')],
  37: [('t', .15, .43, 'k'), ('t', .30, .67, 'm'), ('t', .64, .68, 'm'), ('t', .67, .60, 'm')],
  38: [('t', .16, .39, 'k'), ('t', .58, .50, 'y')],
@@ -225,11 +225,12 @@ REG = {
  47: [('t', .15, .38, 'k'), ('t', .61, .49, 'y')],
  48: [('t', .16, .39, 'k'), ('t', .76, .68, 'g')],
  49: [('t', .16, .38, 'k'), ('t', .30, .66, 'g'), ('t', .65, .67, 'g')],
- 50: [('t', .17, .39, 'k')],
+ 50: [('t', .17, .39, 'k'), ('t', .54, .29, 'g')],
 }
 PAINT = {   # (hex, key, tolerance, [keys painted over])
  39: [('#4a5a80', 'y', 22, ['g'])],                                     # the blue cross on the cream panel
- 49: [('#c8b860', 'y', 26, ['r'])],                                     # the embroidered leaves
+ 49: [('#c8b860', 'y', 26, ['r'])],
+ 25: [('#e8e0d8', 'y', 24, ['g'])],                                     # the white star on the blue panel                                     # the embroidered leaves
 }
 SPLIT = {}  # armour -> the colour distance that splits a two-colour region (default 20)
 SWAP = {4: {'m': 'r'}}   # rule keys replaced (the gold plate's dark lames are not belts)
@@ -261,8 +262,10 @@ def classify(i, Ps):
             R.append(dict(p=pi, id=r_, cx=xs.mean(), cy=ys.mean(), n=len(ys), c=c, L=L_, C=ch_, H=hu_, x=xs.mean() / w, y=ys.mean() / h, x0=xs.min() / w, x1=(xs.max() + 1) / w,
                           y0=ys.min() / h, y1=(ys.max() + 1) / h, skin=skinlike(P[m][:, :3]).mean(), key='?'))
     T = [r for r in R if r['p'] == 0]; tot = sum(r['n'] for r in T)
+    nk = [r for r in T if r['skin'] > .6 and r['y'] < .3]
+    if nk: max(nk, key=lambda r: r['n'])['key'] = 'k'                                                # the neck: the biggest skin region at the top
     for r in T:
-        if r['skin'] > .6 and r['y'] < .3: r['key'] = 'k'                                            # the neck
+        if r['key'] == 'k': pass
         elif i >= 17 and r['C'] < 24 and 35 < r['L'] < 85 and .25 < r['y'] < .55 and r['x0'] < .06 and r['x1'] < .3 and r['n'] < tot * .08: r['key'] = 'k'   # a shoulder socket
     for r in R: r['free'] = r['key'] == '?'
     gold = lambda r: r['C'] > 18 and 60 <= r['H'] <= 100 and r['L'] > 48
@@ -275,7 +278,7 @@ def classify(i, Ps):
         band = r['p'] == 0 and r['x1'] - r['x0'] > max(.2, 2.2 * (r['y1'] - r['y0'])) and r['y1'] - r['y0'] < .24 and r['y'] > .55
         if gold(r) and not allgold: r['key'] = 'b'
         elif r['p'] == 0 and .3 < r['x'] < .78 and .6 < r['y'] < .95 and r['n'] < tot * .07 and r['x1'] - r['x0'] < .3 and r['L'] > 50 and r['C'] < 45 and any(
-                q['p'] == 0 and q is not r and q['n'] < r['n'] and r['x0'] < q['x'] < r['x1'] and r['y0'] < q['y'] < r['y1'] for q in T): r['key'] = 'b'   # the buckle: a light ring round a smaller region
+                q['p'] == 0 and q is not r and q['n'] < r['n'] and r['x0'] < q['x'] < r['x1'] and r['y0'] < q['y'] < r['y1'] for q in T): r['key'] = 'b'; r['free'] = False   # the buckle: a light ring round a smaller region
         elif ((band or r['y'] > .55 and r['p'] == 0) and brown(r) or band and r['L'] < 58 and r['C'] < 40) and not near(r, P0, 8): r['key'] = 'm'                                  # the belt
         elif near(r, P0): r['key'] = 'r'
         else: r['key'] = 'g'
@@ -297,9 +300,11 @@ def classify(i, Ps):
             opts = [(np.sum(((r['c'] - c) * np.array([.6, 1, 1])) ** 2), kk) for c, kk, pcs in ent if 'tab'[r['p']] in pcs]
             if opts: r['key'] = min(opts)[1]
     # regions named by their centroid (as the review prints it): (piece, x, y, key) -> the region of that piece whose centroid is nearest
-    for (pc, fx, fy, kk) in REG.get(i, []):
+    for (pc, fx, fy, kk, *big) in REG.get(i, []):
         cand = [r for r in R if 'tab'[r['p']] == pc and r['n'] >= 8]
-        if cand: min(cand, key=lambda r: (r['x'] - fx) ** 2 + (r['y'] - fy) ** 2)['key'] = kk
+        if not cand: continue
+        d = [np.hypot(r['x'] - fx, r['y'] - fy) for r in cand]; d0 = min(d)
+        (max if big else min)([r for r, dd in zip(cand, d) if dd <= d0 + .02], key=lambda r: r['n'])['key'] = kk   # concentric regions (a gem in its frame): the smallest, or with 'big' the frame
     res = []
     for pi, P in enumerate(Ps):
         lab = regs[pi]; K = np.full(P.shape[:2], '', '<U1'); K[ops[pi]] = 'k'
