@@ -62,9 +62,11 @@ function mkEcon(ti){const t=G.towns[ti],size=clamp(Math.round(svNum(t&&t.size,1)
  return{size,pros,stockK,bad,q:clamp(q,-1,1),tier,base,n,why}}
 function mkTier(ti){return mkEcon(ti).tier}
 // a fresh draw of item ids for town ti, market week ep, n stalls at top tier maxT (the stream r, else the town's own)
-function mkDraw(t,ti,ep,E,n,r){r=r||mkStream(ti,ep);const ids=marketPool(E.tier),out=[];for(let i=0;i<n;i++)out.push(stockPick(ids,E.tier,r,E.q));
+function mkDraw(t,ti,ep,E,n,r){r=r||mkStream(ti,ep);const ids=marketPool(E.tier),out=[];for(let i=0;i<n;i++){out.push(stockPick(ids,E.tier,r,E.q))}
  // eastern stalls (19-east.js): eastStock(t, stock, maxTier, r) -> the stock (eastern gear in eastern markets)
- if(typeof eastStock==='function'&&out.length){let X=null;try{X=eastStock(t,out,E.tier,r)}catch(e){X=null}if(Array.isArray(X))return X.filter(id=>ITEMS[id]&&!ITEMS[id].famed)}return out}
+ let st=out;if(typeof eastStock==='function'&&out.length){let X=null;try{X=eastStock(t,out,E.tier,r)}catch(e){X=null}if(Array.isArray(X))st=X.filter(id=>ITEMS[id]&&!ITEMS[id].famed)}
+ // a piece twice on the stalls (a repeat draw, or the eastern swap): another of its kind and tier band, if the stalls lack one
+ return st.map((id,j)=>{if(st.indexOf(id)===j)return id;const it=ITEMS[id],L=ids.filter(k=>ITEMS[k].k===it.k&&!!ITEMS[k].east===!!it.east&&!st.includes(k));return L.length?L[Math.floor(r()*L.length)]:id})}
 // the stalls of town ti on market week ep: keeps a share of prev (the stock of an earlier week, `weeks` ago), draws the rest. Pure: no rnd()
 function mkRoll(t,ti,ep,prev,weeks){const E=mkEcon(ti),r=mkStream(ti,ep),ids=marketPool(E.tier),keepP=Math.pow(SHOPK.keep,Math.max(1,weeks|0||1)),kept=[];
  for(const id of Array.isArray(prev)?prev:[]){const it=ITEMS[id],k=r()<keepP;if(k&&it&&!it.famed&&!it.uniq&&ids.includes(id)&&kept.length<E.n)kept.push(id)}
@@ -232,7 +234,7 @@ function mkGear(mi,k){if(typeof slotSheet==='function'&&G.roster[mi])slotSheet(m
 function mkRestockText(day){const n=mkRestockIn(day);return n===1?'Restocks tomorrow':`Restocks in ${n} days`}
 function mkDayHTML(ti){if(ti==null||ti<0||!G.towns[ti])return'';const E=mkEcon(ti),SZ=['Village','Town','City'][E.size-1];
  const why=[SZ+' market',E.n+' stalls','up to tier '+(typeof TIERN!=='undefined'&&TIERN[E.tier]?TIERN[E.tier]:E.tier)].concat(E.why);
- return`<p class="pn-hint tw-why mk-day" id="mkRestock">${twIcon('day',16)}<span><b>${mkRestockText()}</b> · ${htmlEsc(why.join(', '))}</span></p>`}
+ return`<p class="mk-day" id="mkRestock">${twIcon('day',16)}<span><b>${mkRestockText()}</b> · ${htmlEsc(why.join(', '))}</span></p>`}
 function marketView(t){let list='',detail='',foot='';const W=mkWorn();let sel=String(townSel.market||'food'),kind=sel[0],i=+sel.slice(1),wi=-1;
  if(sel==='inv')kind='n';
  else if(kind==='b'){i=Math.min(i,t.stock.length-1);if(!(i>=0))kind='f'}
@@ -243,10 +245,11 @@ function marketView(t){let list='',detail='',foot='';const W=mkWorn();let sel=St
  const tab=mkTabOf(sel);list+=mkTabs(tab,t.stock.length,G.stash.length+W.length);
  if(typeof tvTownNote!=='function'){const h=twPriceWhyHTML(tab==='buy'?'buy':'sell');if(h)list+=h}   // the town note says it when the town view is loaded
  if(tab==='buy'){const need=cpDamageAll(),needT=Math.ceil(need/cpToolPts()),tp=toolPrice();
+  list+=mkDayHTML(G.town);   // market day: when the stalls restock, what kind of market
   list+=pnSec('Provisions and tools',2);
   list+=pnRow({on:`townPick('food')`,sel:kind==='f',cls:'tw-row',lead:twIcon('food',32,'food'),title:'Provisions',sub:'10 days for one man',right:pnCoin(mkFoodPrice(),G.crowns<mkFoodPrice()?'short':'')});
   list+=pnRow({on:`townPick('tools')`,sel:kind==='t',cls:'tw-row',lead:twIcon('tools',32,'armor'),title:'Tools',sub:`Each mends ${cpToolPts()} armor`+(needT>cpTools()?` <span class="tw-t warn">need ${needT}</span>`:''),right:pnCoin(tp,G.crowns<tp?'short':'')});
-  list+=pnSec('For sale',t.stock.length);list+=mkDayHTML(G.town);if(!t.stock.length)list+=pnEmpty('The stalls are bare until market day.');
+  list+=pnSec('For sale',t.stock.length);if(!t.stock.length)list+=pnEmpty('The stalls are bare until market day.');
   t.stock.forEach((id,j)=>{const it=ITEMS[id];list+=pnRow({on:`townPick('b${j}')`,sel:kind==='b'&&j===i,cls:'tw-row',lead:twItemIcon(id,32),title:pnItemName(id),sub:`<span class="tw-line">${it.tier?`<span class="pn-tier t${it.tier}" title="Tier ${it.tier}">${TIERN[it.tier]}</span>`:''}${twItemStats(id)}</span>`,right:pnCoin(mkBuyPrice(id),G.crowns<mkBuyPrice(id)?'short':'')})});
   if(kind==='f'){const men=G.roster.length;detail=`${twHead(twIcon('food',48,'food'),'Provisions','Salt pork and hard bread')}<p class="pn-p">10 days for one man. Every sword eats one ration a day, and a starving company bleeds.</p>${pnFacts([['In the wagons',twIcon('food',16)+G.food+' rations'],['Mouths to feed',twIcon('swords',16)+men],['Lasts the company',twIcon('day',16)+Math.floor(G.food/Math.max(1,men))+' days']])}`;
    const fp=mkFoodPrice();foot=`<span class="pn-fl">${pnCoin(fp,'big'+(G.crowns<fp?' short':''))}<small>${G.crowns<fp?'<em>Not enough crowns</em>':'for 10 rations'}</small></span><button type="button" class="pn-btn pri${G.crowns<fp?' off':''}" onclick="buyFood()">Buy for ${fp}</button>`}
