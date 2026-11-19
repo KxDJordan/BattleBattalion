@@ -93,7 +93,7 @@ const P2_PAINT={red:null,woad:'#3a5ca8',soot:'#2b2624',clay:'#ece4d2',ochre:'#c9
 const P2_PAINT_OF={g:'red',f:'red',X:'woad',x:'woad',l:'clay'};
 const P2_TRIBAL_BG={wildling:1};
 const P2_TRIBAL_FOE={barbz:1,barbax:1,barbskald:1,barbhus:1};
-function p2Hash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function p2Hash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}h^=h>>>16;h=Math.imul(h,2246822507);h^=h>>>13;h=Math.imul(h,3266489909);h^=h>>>16;return h>>>0}   // FNV-1a, then mixed (murmur3's finaliser): every bit counts
 // the tribal head of a look: {i (marking 0..19), paint (colour name)} or null
 function p2Tribal(L,hs){if(!P2A.p.trh0||!L.key)return null;const k=L.key.split(':');let id;
  if(k[0]==='m'){if(hs.race!=='human'||hs.el||hs.orc||!P2_TRIBAL_BG[k[4]])return null;id='m'+k[1]}
@@ -171,7 +171,7 @@ function p2AvKey(av){if(!av||typeof US_AV!=='object')return null;for(const k in 
 /* the tribal figures (p2Tribal: Wildlings, the barbarian crisis warriors) wear the tribal sheet's armours for the light armours a tribe would
    make (the item, or a foe's armour kind): each item lists the fitting tribal pieces, the figure's id picks one (stable). Every other armour,
    and everyone else, as before. Only the drawing changes, never the item. */
-const P2_TRIBAL_ARMOR={rags:[3,7,10],hide:[0,1,2,4,5,9,11],leather:[0,1,5,8,11],jack:[1,7,8],padded:[7,3,10],studded:[8],
+const P2_TRIBAL_ARMOR={rags:[3,7,10],hide:[0,1,2,4,5,6,9,11],leather:[0,1,5,6,8,11],jack:[1,7,8],padded:[7,3,10],studded:[8],
  k_rags:[3,10],k_bare:[2,11],k_fur:[9,0,4],k_leather:[1,8,0,5],k_padded:[7,3]};
 function p2Armor(L){const S=L.S,hs=humSpec(L);let n=null;const id=S.armId;
  const tri=p2Tribal(L,hs),tl=tri&&(id?P2_TRIBAL_ARMOR[id]:P2_TRIBAL_ARMOR['k_'+S.armor]);if(tl&&!S.coat)return 51+tl[(tri.h>>>16)%tl.length];

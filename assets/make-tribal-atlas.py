@@ -223,7 +223,7 @@ def eyes_of(F):
 for n, L in LAYERS.items():
     a = dict(HEAD0A); a['edx'] = 0.0; a['edy'] = 0.0
     if n.startswith('trf'):
-        a = {}; fx, fy, ex, ey = eyes_of(L['c']); a['fcx'] = fx * sf; a['fcy'] = fy * sf; a['ewx'] = ex * sf; a['ewy'] = ey * sf
+        a = {}; fx, fy, ex, ey = eyes_of(L['c']); rg = HREG[('m' if n.startswith('trf') and not n.startswith('trff') else 'f', int(n[-1]))]; a['rdx'] = rg[0] * sf; a['rdy'] = rg[1] * sf; a['fcx'] = fx * sf; a['fcy'] = fy * sf; a['ewx'] = ex * sf; a['ewy'] = ey * sf
     meta[n] = {'w': round(FW * sf, 1), 'h': round(FH * sf, 1), 'a': {k_: round(float(v), 1) for k_, v in a.items()}, 'L': {}, 'k': 'trface' if n.startswith('trf') else 'trhead'}
     for m, arr in L.items():
         im = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA'); bb = im.getbbox()
