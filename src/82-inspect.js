@@ -8,7 +8,7 @@
    chip, the forecast) lists every tooltip in it on the same full-text card, for fingers that cannot hover. */
 // show() skips the rebuild while the card's html is unchanged (a long-press scrub across one unit or tile, every pointermove).
 const INS_ROW='.ins-ab,[data-insd]';
-const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,src:null,
+const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,fade:false,down:null,src:null,
  make(){if(this.el)return this.el;const el=this.el=document.createElement('div');el.id='inspect';el.setAttribute('role','tooltip');
   const bd=this.body=document.createElement('div');bd.className='ins-body';el.appendChild(bd);
   const x=document.createElement('button');x.type='button';x.className='ins-x';x.setAttribute('aria-label','Close');x.innerHTML='&times;';el.appendChild(x);const hn=document.createElement('div');hn.className='ins-hint';hn.textContent='Tap a line to read all of it';el.appendChild(hn);
@@ -16,14 +16,14 @@ const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,src:null,
   // the row under the finger is taken at pointerdown: pinning adds the close bar, which may shift the rows before the click lands
   el.addEventListener('pointerdown',e=>{if(!el.classList.contains('live'))return;e.stopPropagation();const t=e.target;this.down=t&&t.closest?t.closest(INS_ROW+',.ins-x'):null;this.pin()});
   el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')clearTimeout(this.timer)});
-  el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!this.pinned)this.release()});
+  el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&this.fade&&!this.pinned)this.release()});   // a fading card fades on once the mouse leaves it
   el.addEventListener('click',e=>{const t=e.target;if(!t||!t.closest)return;const d=this.down&&el.contains(this.down)?this.down:null;this.down=null;const r=d||t.closest(INS_ROW+',.ins-x');
    if(r&&r.classList.contains('ins-x')){this.hide();return}if(r&&el.contains(r))insFullRow(r);else insFullClose()});
   el.addEventListener('contextmenu',e=>e.preventDefault());
   return el},
  fill(html){const el=this.el,bd=this.body;bd.innerHTML=html;bd._h=html;el.classList.toggle('wide',html.indexOf('ins-c2')>=0);el.classList.toggle('live',!!bd.querySelector(INS_ROW));insMarkClip(bd)},
  show(html,x,y,touch){const el=this.make();
-  clearTimeout(this.timer);el.classList.add('on');this.visible=true;if(this.body._h!==html){this.unpin();insFullClose();this.fill(html)}
+  clearTimeout(this.timer);this.fade=false;el.classList.add('on');this.visible=true;if(this.body._h!==html){this.unpin();insFullClose();this.fill(html)}
   const w=el.offsetWidth,h=el.offsetHeight,vw=window.innerWidth,vh=window.innerHeight,gap=touch?38:18,m=6;
   const sl=typeof SR!=='undefined'?Math.max(m,SR.x+4):m,sr=typeof SR!=='undefined'?Math.min(vw-m,SR.x+SR.w-4):vw-m;
   // beside the finger, never under the hand: inside the scene if it fits, else over a rail, else above/below
@@ -33,13 +33,13 @@ const Inspect={el:null,body:null,visible:false,timer:0,pinned:false,src:null,
   el.style.left=Math.round(left)+'px';el.style.top=Math.round(clamp(top,m,Math.max(m,vh-m-h)))+'px'},
  hide(){clearTimeout(this.timer);insFullClose();this.unpin();if(this.el)this.el.classList.remove('on');this.visible=false;this.src=null;insK=-1;insW=null},
  // the finger lifted: the card fades after a moment unless it was touched (pinned); longer when some row is cut short
- release(){clearTimeout(this.timer);if(this.visible&&!this.pinned)this.timer=setTimeout(()=>this.hide(),this.body&&this.body.querySelector('.ins-more')?4200:2400)},
+ release(){clearTimeout(this.timer);if(this.visible&&!this.pinned){this.fade=true;this.timer=setTimeout(()=>this.hide(),this.body&&this.body.querySelector('.ins-more')?4200:2400)}},
  pin(){if(!this.visible||!this.el||!this.el.classList.contains('live'))return;clearTimeout(this.timer);if(this.pinned)return;const el=this.el,p0=el.clientTop+parseFloat(getComputedStyle(el).paddingTop)||0;this.pinned=true;el.classList.add('pin');el.setAttribute('role','dialog');
   const p1=el.clientTop+parseFloat(getComputedStyle(el).paddingTop)||0;el.style.top=Math.round(el.offsetTop-(p1-p0))+'px';this.fit()},   // the close bar grows upward: the rows stay put
  fit(){const el=this.el,m=6;if(!el)return;el.style.left=Math.round(clamp(el.offsetLeft,m,Math.max(m,innerWidth-m-el.offsetWidth)))+'px';el.style.top=Math.round(clamp(el.offsetTop,m,Math.max(m,innerHeight-m-el.offsetHeight)))+'px'},
  unpin(){this.pinned=false;if(this.el){this.el.classList.remove('pin');this.el.setAttribute('role','tooltip')}},
  // the battle moved on under an open card: rewrite it in place (same spot, same scroll), or close it once its unit is gone
- refresh(){if(!this.visible||!this.src||!this.body)return;let h='';try{h=this.src()}catch(e){h=''}if(!h){this.hide();return}const bd=this.body;if(bd._h===h)return;
+ refresh(){if(!this.visible||!this.src||!this.body)return;if(sheetOpen||(B&&B.over)){this.hide();return}let h='';try{h=this.src()}catch(e){h=''}if(!h){this.hide();return}const bd=this.body;if(bd._h===h)return;
   const q=()=>bd.querySelector('.ins-r'),s0=bd.scrollTop,s1=q()?q().scrollTop:0;this.fill(h);bd.scrollTop=s0;if(q())q().scrollTop=s1;this.fit()}};
 /* rows whose text the card clamps (three lines, two for masteries, one for perks) get .ins-more: the chevron that says "tap for the rest";
    ability and talent chips show names only, so they always have more to say */

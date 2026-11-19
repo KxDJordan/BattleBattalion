@@ -472,7 +472,7 @@ function logOpen(){try{const host=$('bLeft');if(!host||typeof document==='undefi
 function logClose(){if(!HLOG.open)return;HLOG.open=false;try{if(HLOG.el)HLOG.el.classList.add('hidden');const b=$('blog');if(b){b.classList.remove('open');b.setAttribute('aria-expanded','false')}}catch(e){}}
 function logToggle(){if(HLOG.open)logClose();else logOpen()}
 // Called by setUI(): the windows made here belong to battle mode only.
-function hudModeChange(){if(mode!=='battle'){fcClear();logClose()}}
+function hudModeChange(){if(mode!=='battle'){fcClear();logClose();if(typeof insFullClose==='function')insFullClose()}}
 function initBattleHud(){try{if(typeof document==='undefined')return;const app=$('app');
   if(app){let has=false,hasB=false;try{for(const s of document.styleSheets)for(const r of s.cssRules){const q=r.selectorText||'';if(/\.pxf(?![\w-])/.test(q))has=true;if(/\.pxb(?![\w-])/.test(q))hasB=true}}catch(e){}
    app.classList.toggle('nopxf',!has);app.classList.toggle('nopxb',!hasB)}
