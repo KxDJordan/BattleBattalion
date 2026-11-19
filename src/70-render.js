@@ -546,7 +546,8 @@ function vKey(vc,vr,k){if(vc<0||vr<0||vc>=(k&1?BH:BW)||vr>=(k&1?BW:BH))return -1
 function tpos(c,r,h){const k=VIEW.rot,vc=vcOf(c,r,k),vr=vrOf(c,r,k);return{x:(vc-vr)*HW,y:(vc+vr)*HH-h*HL}}
 // Grid direction -> screen direction: 0 bottom-right, 1 bottom-left, 2 top-left, 3 top-right.
 function screenDir(dc,dr){const k=VIEW.rot;let a=dc,b=dr;if(k===1){a=-dr;b=dc}else if(k===2){a=-dc;b=-dr}else if(k===3){a=dr;b=-dc}return a>0?0:b>0?1:a<0?2:b<0?3:1}
-function artScale(){return B&&B.cam&&B.cam.s||1}
+let ARTSC_O=0;   // set only while the title draws its figures (89-title.js)
+function artScale(){return ARTSC_O||B&&B.cam&&B.cam.s||1}
 function boardXY(sx,sy){const c=B.cam;return{x:(sx-VC.x)/c.z+c.x,y:(sy-VC.y)/c.z+c.y}}
 
 /* ---- camera ---- */

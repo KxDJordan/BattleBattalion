@@ -1,0 +1,33 @@
+/* ---- title screen (89-title.js): the painted vista at Detail High, the gilded wordmark and the rounded inked buttons ---- */
+#titleArt canvas.thd{position:absolute;left:0;top:0;display:block}
+#title.hd::before{display:none}
+#title.hd::after{display:none}
+/* the wordmark canvas replaces the h1's text once drawn; the word stays for screen readers and as the fallback */
+#titleBox h1{position:relative;margin-left:-6px}
+#titleBox h1 .tlogo{display:none}
+#titleBox h1 .tlogo.on{display:block;height:clamp(84px,30vh,200px);width:auto;max-width:calc(100% + 12px);object-fit:contain;object-position:left center}
+#titleBox h1 .tlogo.on+.tword{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#titleBox .over:has(+h1 .tlogo.on){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0}
+#titleBox h1:has(.tlogo.on)+.rule{display:none}
+#titleBox .lede{margin-top:6px;text-shadow:0 2px 0 #0b1514,0 0 8px #0b1514}
+#titleBox .gifts span::before{border-radius:50%}
+/* buttons: a rounded inked plate, a light top edge, a dark lip under it that the press closes */
+#title #titleBox button,#title .tcorner button{border:3px solid #141210;border-image:none;border-radius:12px;background:linear-gradient(#2f514b,#20383a 55%,#1a2e2f);background-clip:border-box;color:#f3ead2;
+ box-shadow:inset 0 2px 0 #ffffff2e,inset 0 -3px 0 #0000003a,0 4px 0 #141210,0 6px 10px #0000004d;text-shadow:0 2px 0 #0b1514b0;transition:transform .08s,box-shadow .08s,filter .12s}
+#title #titleBox button:hover:not(:disabled),#title .tcorner button:hover:not(:disabled){filter:brightness(1.1)}
+#title #titleBox button:active:not(:disabled),#title .tcorner button:active:not(:disabled){border-width:3px;border-image:none;transform:translateY(3px);box-shadow:inset 0 2px 0 #ffffff24,inset 0 -2px 0 #0000003a,0 1px 0 #141210,0 2px 4px #0000004d}
+#title #titleBox button.pri{background:linear-gradient(#ffe39a,#f4c252 48%,#d99a2e);color:#2a1806;text-shadow:0 1px 0 #fff1c466;box-shadow:inset 0 3px 0 #fff8dc,inset 0 -4px 0 #a8661c80,0 4px 0 #141210,0 6px 12px #0000005c}
+#title #titleBox button.pri:active:not(:disabled){box-shadow:inset 0 3px 0 #fff8dc,inset 0 -2px 0 #a8661c80,0 1px 0 #141210,0 2px 4px #0000004d}
+#title #titleBox button.warn{background:linear-gradient(#a8443a,#7a2b25);color:#ffd9cf}
+#title #titleBox .tcont b{font-family:var(--dispfont);font-weight:400;font-size:1.45rem;letter-spacing:.01em}
+#title #titleBox .tcont .tcn{color:#3a2208}
+#title #titleBox .tcont small{color:#6a3f12}
+#title #titleBox .tcont.warn small{color:#ffd9cf}
+#title #titleBox .tm{font-size:.92rem}
+#title #titleBox .tm .ic,#title .tcorner .ic{color:#f3c252}
+#title #titleBox .tgrid{gap:8px}
+#title #titleBox .tmenu{display:flex;flex-direction:column;gap:9px}
+@media (max-height:420px){#titleBox h1 .tlogo.on{height:clamp(64px,24vh,110px)}#title #titleBox .tmenu{gap:7px}#title #titleBox .tgrid{gap:6px}}
+#app.tall #titleBox h1 .tlogo.on{margin:0 auto;object-position:center}
+#app.tall #titleBox h1{margin-left:0}
+@media (prefers-reduced-motion:reduce){#title #titleBox button,#title .tcorner button{transition:none}}

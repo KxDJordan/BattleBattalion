@@ -330,6 +330,9 @@ function paintTitle(g,w,h){const th=typeof themePalKey==='function'?SET.theme:'v
  const fg=[];for(let x=0;x<w;x++){const u=x/w;fg.push(Math.round(h*.9-h*.03*Math.sin(u*4.2+1)+(thash(x>>2,11)-.5)*2))}fill(fg,'1','2');
  for(let x=-4;x<w+8;x+=8+(thash(x,13)*10|0)){const u=x/w,big=u<.12||u>.9;pine(x,Math.min(h+6,fg[clamp(x,0,w-1)]+6+(thash(x,17)*6|0)),(big?30:16)+(thash(x,19)*12|0),'0',big?'1':null)}}
 function drawTitleArt(force){try{const host=$('titleArt');if(!host||typeof document==='undefined')return;const W=window.innerWidth,H=window.innerHeight;if(!(W>0&&H>0))return;
+  $('title').classList.toggle('hd',typeof drawTitleHd==='function'&&ttHd());
+  if(typeof drawTitleHd==='function'&&ttHd()){if(host._cv){host._cv=null;host.innerHTML=''}if(drawTitleHd(force))return}   // Detail High: the painted vista (89-title.js)
+  if(typeof TT==='object'&&TT.cv){TT.cv=null;TT.k='';host.innerHTML=''}
   const s=Math.max(2,Math.ceil(H/150)),w=Math.ceil(W/s),h=Math.ceil(H/s),k=w+'x'+h+'@'+s;let c=host._cv;if(c&&c._k===k&&!force)return;
   if(!c){c=document.createElement('canvas');if(!c||!c.getContext)return;c.className='tart';host.innerHTML='';host.appendChild(c);host._cv=c}
   c._k=k;c.width=w;c.height=h;c.style.width=w*s+'px';c.style.height=h*s+'px';const g=c.getContext('2d');if(!g||!g.fillRect)return;g.imageSmoothingEnabled=false;paintTitle(g,w,h)}catch(e){}}
@@ -342,14 +345,15 @@ function renderTitle(){
  const tb=(on,ic,label,cls)=>`<button class="tm ${cls||''}" onclick="${on}">${ic}<span>${label}</span></button>`;
  const card=has?`<button class="pri big tcont" onclick="continueGame()">${typeof bannerHTML==='function'?bannerHTML(s.banner,44,'tbn'):''}<span class="tcm"><b>Continue</b><span class="tcn">${htmlEsc(s.name||BANNERDEF.name)}</span><small>Day ${s.day||1} · ${s.swords} sword${s.swords===1?'':'s'} · ${s.crowns||0} crowns · ${DIFF[s.diff]?DIFF[s.diff].n:'Normal'}${s.ironman?' · Ironman':''} · book ${SLOT+1}</small></span></button>`
   :st.state==='newer'||st.state==='corrupt'?`<button class="big tcont warn" onclick="saveNotice(saveStatus())"><span class="tcm"><b>${st.state==='newer'?'A newer save':'A damaged save'}</b><small>It cannot be opened here. Tap for more</small></span></button>`:'';
- $('titleBox').innerHTML=`<p class="over">${icon}A free company chronicle</p><h1>Wyrdmarch</h1><div class="rule" aria-hidden="true"><i></i></div>
+ $('titleBox').innerHTML=`<p class="over">${icon}A free company chronicle</p><h1><canvas class="tlogo" data-tag="A free company chronicle" aria-hidden="true"></canvas><span class="tword">Wyrdmarch</span></h1><div class="rule" aria-hidden="true"><i></i></div>
 <p class="lede">Lead a free company across a wild land. Take contracts, bury friends, and learn what the four gifts are worth.</p>
 <div class="gifts" aria-hidden="true">${RESK.map(k=>`<span style="--gc:${RESC[k]}">${RESN[k]}</span>`).join('')}</div>
 <nav class="tmenu" aria-label="Main menu">${card}${has?'':`<button class="pri big tcont" onclick="newCompanySetup()"><span class="tcm"><b>Raise a company</b><small>Name it, choose the land and the banner</small></span></button>`}
 <div class="tgrid${has||typeof achSheet==='function'?' six':''}">${has?tb('newCompanySetup()',pic('banner',16,'banner'),'New company'):''}${tb('slotsSheet()',pic('ledger',16),'Books')}${tb('hallSheet()',pic('hall',16),'The fallen')}${typeof achSheet==='function'?tb('achSheet()',pic('ach',16),'Achievements'):''}${tb('settingsSheet()',pic('settings',16,'sun'),'Settings')}${tb('howSheet()',pic('info',16,'scroll'),'How to play')}${has?'':tb('creditsSheet()',pic('star',16,'gem'),'Credits')}</div></nav>`;
  const T=$('title');let tc=T.querySelector('.tcorner');
  if(!tc){tc=document.createElement('div');tc.className='tcorner';T.appendChild(tc)}
- tc.innerHTML=fs?'<button class="ghost fsb" onclick="toggleFullscreen()">'+pic('fullscreen',16,'full')+'<span>Fullscreen</span></button>':''}
+ tc.innerHTML=fs?'<button class="ghost fsb" onclick="toggleFullscreen()">'+pic('fullscreen',16,'full')+'<span>Fullscreen</span></button>':''
+ if(typeof ttLogoWhenReady==='function')ttLogoWhenReady()}
 
 function boot(){loadSettings();slotLoad();wirePress();if(typeof initBattleHud==='function')initBattleHud();resize();mode='title';setUI();
  const lay=()=>{Layout.update();if(mode==='title')drawTitleArt()};window.addEventListener('resize',lay);window.addEventListener('orientationchange',()=>{lay();setTimeout(lay,250)});

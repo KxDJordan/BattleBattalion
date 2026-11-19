@@ -86,6 +86,20 @@ function fxFloat(u,str,sty,delay){let f=null,n=0;const t=now+(delay||0);for(let 
  if(!f){f=FLT[0];for(let i=1;i<FLT.length;i++)if(FLT[i].t0<f.t0)f=FLT[i]}
  const p=fxUP(u);f.on=true;f.str=String(str).toUpperCase();f.x=p.x;f.y=p.y-(p.h>60?96:64)-38-n*20;f.t0=t;f.sty=sty;f.u=u}
 function fxTextW(s){let w=0;for(let i=0;i<s.length;i++){const ch=s[i];w+=FXF5[ch]?6:FXF3[ch]?4:3}return w-1}
+/* at Detail High the floating numbers are set in the UI face (Fredoka) instead: the same three colours of the style as a vertical
+   ramp, a dark ink outline and a drop shadow like the painted figures'; '#' (armor) becomes a small painted shield. X is the centre,
+   Y the top of the 7-art-pixel line, as the pixel font's; words (the pixel font's small caps) are set a little smaller. */
+function fxTextHd(q,s,X,Y,sty,ap){const cols=FXSTY[sty]||FXSTY[0],cap=7*ap,fsz=Math.round(cap/.574),word=/[A-Z]/.test(s),sz=word?Math.round(fsz*.82):fsz,cp=word?cap*.82:cap;
+ q.save();q.font='600 '+sz+'px "Fredoka","Alegreya Sans",sans-serif';q.textAlign='left';q.textBaseline='alphabetic';q.lineJoin='round';q.miterLimit=2;
+ const sh=s[0]==='#',txt=sh?s.slice(1):s,shW=sh?Math.round(cp*.86):0,gap=sh?Math.round(ap*.8):0,tw=q.measureText(txt).width,x0=Math.round(X-(tw+shW+gap)/2),yb=Math.round(Y+cap),top=yb-cp;
+ const gr=q.createLinearGradient(0,top,0,yb);gr.addColorStop(0,PAL[cols[0]]);gr.addColorStop(.42,PAL[cols[1]]);gr.addColorStop(1,PAL[cols[2]]);
+ const ink=PAL['0'],lw=Math.max(2,ap*1.5),sd=Math.max(1,Math.round(ap*.7));
+ const shield=(dx,dy,fill)=>{const L=x0+dx,T=top+dy,W=shW,H=cp;q.beginPath();q.moveTo(L,T+H*.12);q.lineTo(L+W/2,T);q.lineTo(L+W,T+H*.12);q.lineTo(L+W,T+H*.5);q.quadraticCurveTo(L+W,T+H*.86,L+W/2,T+H);q.quadraticCurveTo(L,T+H*.86,L,T+H*.5);q.closePath();
+  if(fill){q.fillStyle=fill;q.fill()}else{q.lineWidth=lw;q.strokeStyle=ink;q.stroke()}};
+ // shadow, outline, fill
+ q.fillStyle=ink;q.strokeStyle=ink;q.lineWidth=lw;if(sh){shield(sd,sd,ink);shield(sd,sd);shield(0,0)}
+ const tx=x0+shW+gap;q.strokeText(txt,tx+sd,yb+sd);q.fillText(txt,tx+sd,yb+sd);q.strokeText(txt,tx,yb);
+ if(sh)shield(0,0,gr);q.fillStyle=gr;q.fillText(txt,tx,yb);q.restore()}
 function fxText(q,s,X,Y,sty,ap){const A=fxAtlas(sty);if(!A)return;for(let i=0;i<s.length;i++){const ch=s[i],big=FXF5[ch],P=A.pos[ch];if(!P){X+=3*ap;continue}
   q.drawImage(A.cv,P[0],0,P[1],P[2],X-ap,Y-ap+(big?0:2*ap),P[1]*ap,P[2]*ap);X+=(big?6:4)*ap}}
 
@@ -618,7 +632,7 @@ function fxDraw(dt,ctx){const q=ctx||g;if(!q||!B)return;if(FXS.scanT!==now)fxSca
  // floating numbers: pop, hold, drift, then a stepped fade
  const ap=DAP;for(i=0;i<FLT.length;i++){const f=FLT[i];if(!f.on)continue;const a=(t-f.t0)/(SPEEDF<1?640:950);if(a<0)continue;if(a>=1){f.on=false;f.u=null;continue}
   const pop=reduced?0:a<.09?-a/.09*7:a<.2?-7+(a-.09)/.11*3:-4,rise=a>.2?(a-.2)*14:0,w=fxTextW(f.str);
-  q.globalAlpha=a<.72?1:a<.86?.66:.33;fxText(q,f.str,Math.round(DOX+(Math.floor(f.x/2)-(w>>1))*DS2),Math.round(DOY+(Math.floor(f.y/2)+Math.round(pop-rise))*DS2),f.sty,ap)}
+  q.globalAlpha=a<.72?1:a<.86?.66:.33;if(hdArt()){fxTextHd(q,f.str,Math.round(DOX+Math.floor(f.x/2)*DS2),Math.round(DOY+(Math.floor(f.y/2)+Math.round(pop-rise))*DS2),f.sty,ap);continue}fxText(q,f.str,Math.round(DOX+(Math.floor(f.x/2)-(w>>1))*DS2),Math.round(DOY+(Math.floor(f.y/2)+Math.round(pop-rise))*DS2),f.sty,ap)}
  q.globalAlpha=1;q.setTransform(m);q.imageSmoothingEnabled=sm}
 
 /* ---- ambient motes (screen space, per biome): single art pixels, palette colours ---- */
