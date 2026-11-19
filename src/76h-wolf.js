@@ -23,13 +23,13 @@ function wfPose(st,t){if(st==='idle'){const c=t-Math.floor(t),b=.5-.5*Math.cos(c
 function wfLook(st,t,seed){if(st==='idle'){const c=((t+(seed||0))%4+4)%4;if(c>=3.2&&c<3.75)return{head:'head_snarl',torso:'torso_c',tail:'tail_1'};
   if((c>=1&&c<1.05)||(c>=2.9&&c<2.95))return{head:'head_rest',torso:'torso_c',tail:'tail_0'};return{head:'head_neutral',torso:'torso_c',tail:'tail_0'}}
  return t<.06||t>=.9?{head:'head_neutral',torso:'torso_c',tail:'tail_0'}:t<.3?{head:'head_angry',torso:'torso_a',tail:'tail_0'}:{head:'head_howl',torso:'torso_b',tail:'tail_2'}}
-const WF_HIP=[-60,-70];                   // the body's lean pivot (WU): over the hind hips
+const WF_HIP=()=>WFA.hip||[-80,-90];   // the body's lean pivot (WU): the near hind hip
 const WF_BODY={tail:1,huF:1,fuF:1,torso:1,huN:1,fuN:1,head:1};
 /* the rig's display list for the idle (t: the loop cycle) or the howl (t 0..1); dy: the feet under the tile point (WU). K: device px per
    WU (0: no images, piece names only, for the DragonBones export) */
 function wfRig(st,t,K,seed,dy){if(st!=='cast')st='idle';const A=WFA,P=wfPose(st,t),L=wfLook(st,t,seed),g=new HskRec(),bones={};const bone=n=>{bones[n]=g.m.slice()};
  g.translate(0,dy||0);bone('root');const root=g.m.slice();
- g.translate(WF_HIP[0],WF_HIP[1]+P.bob);g.rotate(P.lean*Math.PI/180);g.translate(-WF_HIP[0],-WF_HIP[1]);bone('body');const body=g.m.slice();
+ const hp=WF_HIP();g.translate(hp[0],hp[1]+P.bob);g.rotate(P.lean*Math.PI/180);g.translate(-hp[0],-hp[1]);bone('body');const body=g.m.slice();
  for(const [slot,pc0,x,y,rot0,sc0] of A.set){const pc=slot==='head'?L.head:slot==='torso'?L.torso:slot==='tail'?L.tail:pc0,alt=A.alt[pc],rot=(alt?alt[0]:rot0)+(slot==='head'?P.head:slot==='tail'?P.tail:0),sc=alt?alt[1]:sc0;
   g.m=(WF_BODY[slot]?body:root).slice();
   let yy=y;if(slot==='head')yy+=P.bob*.5+(P.br||0)*2;            // the head rides the breath a little more than the body

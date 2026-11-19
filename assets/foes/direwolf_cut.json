@@ -5,9 +5,9 @@
   303,
   198
  ],
- "origin_in_ref": [
-  168.0,
-  199.0
+ "origin_fit": [
+  137.39,
+  199.39
  ],
  "heads": {
   "head_neutral": [
@@ -51,6 +51,11 @@
   "death": 1.14
  },
  "H": 198.0,
+ "H_rig": 197.0,
+ "origin_rig": [
+  143.0,
+  201.0
+ ],
  "run_ground": 201.0,
  "cut": {
   "ref": [
