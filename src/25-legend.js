@@ -209,7 +209,7 @@ let LG_ARC=0;
 // after hurt(t, ...) with attacker u took hpd hitpoints (o.loc: a weapon or spell hit)
 function legendHit(u,t,hpd,o){if(!u||!t||!o||!o.loc||!(hpd>0)||u===t)return;const fu=u.flags||{},ft=t.flags||{};
  if(fu.leech>0&&u.alive&&u.hp<u.hpMax){const h=Math.min(u.hpMax-u.hp,Math.round(hpd*fu.leech));if(h>0){u.hp+=h;if(typeof float==='function')float(u,'+'+h,'#9bd96f');if(typeof FX==='object'&&FX.emit)FX.emit('heal',{t:u,n:h})}}
- if(ft.thorns>0&&u.alive&&u.side!==t.side&&typeof mdist==='function'&&mdist(u,t)<=1&&u.hp>1){const d=Math.min(u.hp-1,Math.round(ft.thorns));if(d>0){u.hp-=d;if(typeof float==='function')float(u,'-'+d+' thorns','#ff7a6b');if(typeof FX==='object'&&FX.emit)FX.emit('hit',{u:t,t:u,dmg:d,armor:0,head:false})}}}
+ if(ft.thorns>0&&u.alive&&u.side!==t.side&&typeof mdist==='function'&&mdist(u,t)<=1&&u.hp>1){const d=Math.min(u.hp-1,Math.round(ft.thorns));if(d>0){u.hp-=d;if(typeof aarHit==='function')aarHit(t,u,d,0);if(typeof float==='function')float(u,'-'+d+' thorns','#ff7a6b');if(typeof FX==='object'&&FX.emit)FX.emit('hit',{u:t,t:u,dmg:d,armor:0,head:false})}}}
 // after killUnit(t, u): chain lightning from the bearer's power
 function legendKill(u,t){if(!u||!t||LG_ARC||!u.alive||!(u.flags&&u.flags.chain>0)||typeof B==='undefined'||!B||u.side===t.side)return;
  const n=Math.floor(u.flags.chain),L=B.units.filter(x=>x.alive&&x!==t&&x.side!==u.side&&mdist(x,t)<=LG_CHAIN.rng).sort((a,b)=>mdist(a,t)-mdist(b,t)||a.id-b.id).slice(0,n);

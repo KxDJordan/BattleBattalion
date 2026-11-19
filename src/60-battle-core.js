@@ -554,7 +554,7 @@ const runK=k=>typeof diffK==='function'?diffK(k):1;
 const downBase=t=>Math.max(DOWNCH,(t.flags&&t.flags.downSurv)||0);   // the Survivor's Stubborn raises the chance to live when struck down
 const downCh=t=>t.side===0?clamp(1-(1-downBase(t))*runK('death'),0,1):downBase(t);
 const injK=t=>t.side===0?runK('injury'):1;
-function killUnit(t,src,head){t.hp=0;t.alive=false;if(src){countSlain(src,t);t.killer=src.name||(src.def&&src.def.n)||'';if(src.m)src.m.kills=(src.m.kills|0)+1}   // the killing blow counts toward the killer's quarry tally (m.slain)
+function killUnit(t,src,head){t.hp=0;t.alive=false;if(typeof aarKill==='function')aarKill(t,src);if(src){countSlain(src,t);t.killer=src.name||(src.def&&src.def.n)||'';if(src.m)src.m.kills=(src.m.kills|0)+1}   // the killing blow counts toward the killer's quarry tally (m.slain)
  if(t.m){t.down=B.opts.yield?true:rnd()<(t.side===0&&B.opts.arena&&B.opts.arena.death!=null?clamp(1-(1-downCh(t))*B.opts.arena.death,0,1):downCh(t));if(t.down)inflictInjury(t,head,!B.opts.yield&&rnd()<PERMCH*injK(t),true)}   // a duel to yielding (o.yield): nobody dies   // struck down and alive: always at the price of an injury (a rival's merc too)
  say(`${t.name} ${t.m&&t.down?'is struck down':'falls'}.`);FX.emit('death',{t});
  for(const x of B.units.slice()){if(!x.alive||x===t)continue;const d=mdist(x,t);if(x.side===t.side){if(d<=3)moraleCheck(x,(d<=1?25:35)-((src&&src.flags&&src.flags.killFear)||0),-1)}else if(x===src)moraleCheck(x,25+((x.flags&&x.flags.killMor)||0),1);else if(d<=3)moraleCheck(x,-10,1)}
@@ -597,7 +597,7 @@ function hurt(t,dmg,ign,src,o){o=o||{};if(o.loc&&t.ward>0&&typeof eliteWard==='f
  if(head)hpd=Math.round(hpd*HEADMULT);
  if(o.loc){if(tf.sidestep&&!t.ss&&hpd>t.hpMax*tf.sidestep){hpd=Math.round(hpd/2);t.ss=1;float(t,'Sidestep','#8fd8ff')}
   if(tf.hpSoak&&hpd>0)hpd=Math.max(1,hpd-tf.hpSoak);if(tf.brace)t.brc=1}
- t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false,ang=null;if(undy){if(tf.undying&&!t.undy)t.undy=1;else if(tf.lucky&&!t.lck){t.lck=1;lk=true}else{ang=pvAngel(t);ang.angU=1}t.hp=1}if(hpd>0||dmg>0)float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',o.roll?{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head,roll:o.roll}:{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,ang?'Guardian angel':lk?'Lucky':'Undying','#ffd27a');if(ang)say(`${ang.name} will not let ${t.name} fall.`);FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
+ const hp0=t.hp;t.hp-=hpd;const undy=t.hp<=0&&canUndy(t);let lk=false,ang=null;if(undy){if(tf.undying&&!t.undy)t.undy=1;else if(tf.lucky&&!t.lck){t.lck=1;lk=true}else{ang=pvAngel(t);ang.angU=1}t.hp=1}if(typeof aarHit==='function')aarHit(src,t,Math.max(0,hp0-Math.max(0,t.hp)),a0-(t[pool]||0));if(hpd>0||dmg>0)float(t,hpd>0?'-'+hpd:'Armor',hpd>0?'#ff7a6b':'#c8d0d8');FX.emit('hit',o.roll?{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head,roll:o.roll}:{u:src||null,t,dmg:hpd,armor:a0-(t[pool]||0),head});if(o.loc)FX.emit('loc',{t,head});if(undy){float(t,ang?'Guardian angel':lk?'Lucky':'Undying','#ffd27a');if(ang)say(`${ang.name} will not let ${t.name} fall.`);FX.emit('status',{t,key:lk?'lucky':'undying',n:0})}
  if(t.hp<=0){killUnit(t,src||null,head);return hpd}
  if(t.boss&&B.boss)bossHit(t);   // boss phases (21-fabled.js)
  if(hpd>=heavyHit(t)){if(o.loc&&t.m&&rnd()<INJCH*injK(t))inflictInjury(t,head,false);if(!tf.noStun)moraleCheck(t,30,-1)}   // (moraleCheck skips the Beast-wise against beasts)
