@@ -13,7 +13,7 @@
    (h, dy: those figures are scaled to it, and sheetTop hangs the bars by it); their painted sheets are gone, so until the new atlas has
    decoded (a frame or two) they draw as the pixel figure, as at Detail Low. */
 const SHEETS={
- bear:{h:28,dy:3},
+ bear:{h:28,dy:0},   // the owlbear's drawn frames stand side-on, all four paws on one line: that line on the tile centre (the painted owlbear's 3 was for its near paw)
  ogre:{h:36,dy:2},
  gob:{h:22,dy:1},
  gobarch:{h:22,dy:1},

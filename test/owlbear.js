@@ -7,7 +7,8 @@
 // height (SHEETS.bear); the back facings are the front frames (face 3 = face 0, face 2 = face 1), faces 1 and 2 mirrored; every frame
 // is played; the live board frame: the claw at the blow and its follow-through after the game's attack, Swipe on the cast row, Trample
 // galloping on the run row while it charges, the hit row past the game's short flinch, the corpse; the baked sprite is the figure; the
-// pixel owlbear while it is off; the painted sheet is gone; Detail Low draws the same pixels as main.
+// pixel owlbear while it is off; the painted sheet is gone; in an untouched seeded battle each owlbear's tile centre, ring centre and
+// figure (body centre over its paws) agree within 1 art px; Detail Low draws the same pixels as main.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ROOT=path.join(__dirname,'..'),F=f=>path.join(ROOT,f);
@@ -71,6 +72,21 @@ const {chromium}=require('playwright');
   SET.detail='low';artChanged();if(fsLiveFrame(u,{pS:'idle',pD:0}))bad.push('figure at Detail Low');{const o=unitSpritePx(u,0,'idle',0);if(!o||o.fs)bad.push('Detail Low drew the figure')}SET.detail='high';artChanged();
   return{bad,n}});
  for(const x of R.bad)bad.push(x);
+ // an untouched seeded battle (units placed by the game, no tile edits): each owlbear's tile centre, its ring's centre and its figure
+ // (body centre over the paws) agree within 1 art px, idle in every facing
+ await p.evaluate(()=>{SET.detail='high';artChanged();SET.deploy=false;seedRng(77);newGame(true);closeSheet();seedRng(78);startBattle({f:'beast',mult:1,foes:['bear','bear','wolf'],src:{type:'sim'}});try{if(typeof deployDone==='function')deployDone()}catch(e){}});
+ await p.waitForTimeout(1500);
+ const T=await p.evaluate(()=>{const bad=[],out=[];const c=document.createElement('canvas');c.width=600;c.height=400;const q=c.getContext('2d');
+  for(const u of B.units.filter(u=>u.alive&&u.side&&msEnKey(u.def)==='bear')){const v=VIS.get(u),t=tpos(u.c,u.r,T(u).h),tx=t.x/2,ty=t.y/2;
+   const x=Math.round((u.sx+v.pX)/2),gy=Math.round((u.sy+v.pY+v.pL)/2),y=Math.round((u.sy+v.pY)/2),E=ELL.ok?ELL:ellInit(),rg=ellRing(E,u,false,true),rx=x-(rg.width>>1)+rg.width/2,ry=gy-(rg.height>>1)+rg.height/2;
+   for(const face of[0,1,2,3]){const Fr=fsLiveFrame(u,Object.assign({},v,{pS:'idle',pD:face,pCy:0,pPh:0,pAn:''}));if(!Fr){bad.push('no live owlbear');continue}
+    q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,600,400);q.setTransform(4,0,0,4,0,0);humSkDraw(q,Fr,75+(x-tx),60+(y-ty));q.setTransform(1,0,0,1,0,0);   // the tile centre at (75, 60) art px
+    const d=q.getImageData(0,0,600,400).data,xs=[];let y1=-1;for(let j=3;j<d.length;j+=4)if(d[j]>128){const i=j>>2;xs.push(i%600);const yy=(i/600)|0;if(yy>y1)y1=yy}xs.sort((a,b)=>a-b);
+    const fx=xs[xs.length>>1]/4-75,fy=(y1+1)/4-60;out.push({c:u.c,r:u.r,face,ring:[+(rx-tx).toFixed(2),+(ry-ty).toFixed(2)],figure:[+fx.toFixed(2),+fy.toFixed(2)]});
+    if(Math.abs(rx-tx)>1||Math.abs(ry-ty)>1)bad.push('owlbear at '+u.c+','+u.r+': ring centre off its tile centre by '+(rx-tx)+','+(ry-ty));
+    if(Math.abs(fx)>1||Math.abs(fy)>1)bad.push('owlbear at '+u.c+','+u.r+' face '+face+': figure (body centre, paws) off its tile centre by '+fx.toFixed(2)+','+fy.toFixed(2))}}
+  if(!out.length)bad.push('no owlbear in the seeded battle');return{bad,out}});
+ for(const x of T.bad)bad.push(x);
  const lowSig=async pg=>pg.evaluate(()=>{SET.detail='low';artChanged();const out={};const u=mkEnemy('bear','beast');u.id=991;for(const st of['idle','walk','attack','cast','hit','death'])for(let fr=0;fr<4;fr++)for(const face of[0,1,2,3]){let o=null;try{o=unitSpritePx(u,face,st,fr)}catch(e){}
    if(!o||!o.cv){out[st+fr+face]='-';continue}const d=o.cv.getContext('2d').getImageData(0,0,o.cv.width,o.cv.height).data;let h=2166136261;for(let i=0;i<d.length;i++){h^=d[i];h=Math.imul(h,16777619)>>>0}out[st+fr+face]=o.cv.width+'x'+o.cv.height+':'+o.ax+','+o.ay+':'+h}return out});
  let lowN=0;if(main&&fs.existsSync(main)){const pm=await open(main);const X=await lowSig(p),Mm=await lowSig(pm);for(const k in Mm){lowN++;if(X[k]!==Mm[k])bad.push('Detail Low differs from main: '+k)}}else console.log('(main build not found: Detail Low comparison skipped)');
