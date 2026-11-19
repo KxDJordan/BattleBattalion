@@ -7,7 +7,6 @@
      3. colour passes in RGB: a midtone between every two tones of one ramp, a lit rim on the top-left and a shade rim on
         the bottom-right of every region, hue-shifted (warm lights, cool shadows), metal glints, gem facets, wood grain,
         cloth weave, and a selective outline (tinted by what it borders on the lit side)
-     4. the most-seen icons are drawn by hand at 32x32 instead (06i-iconshand.js: a small raster kit with lit shapes)
    The HD rules live in their own <style> after the base sheet; Detail Low disables it, so the original icons show again
    with no re-render. ICONS rows replaced later (icCss) are repainted on the spot. iconHdCanvas(name) gives canvases the HD art. */
 const ICHD={st:null,cv:null,done:new Map(),ms:0,n:0,lo:new Set(),boot:new Set(Object.keys(ICONS))};
@@ -83,15 +82,12 @@ function ihdPaint(rows){const G=ihdScale2x(rows);ihdThin(G);const{W,H,K}=G,N=W*H
   const outside=kk(x-1,y)==='.'||kk(x+1,y)==='.'||kk(x,y-1)==='.'||kk(x,y+1)==='.';
   if(f&&side&&outside)out[i]=ihdMix(IHD_INK,ihdShd(f,.5),.24);else if(f&&outside)out[i]=ihdMix(IHD_INK,f,.1)}
  return{W,H,out}}
-/* hand-drawn icons (06i-iconshand.js): ICHD_HAND[name](P) paints a 32x32 drawing; used while ICONS[name] still holds the rows it was
-   drawn for (ICHD_BASE), so an icon another file replaces falls back to the pipeline */
-const ICHD_HAND={},ICHD_BASE={};
 /* paint into a canvas; reuse: one shared scratch canvas (data URLs are taken straight off it) */
 function ihdCanvas(P,reuse){if(typeof document==='undefined')return null;let c=reuse&&ICHD.cv;if(!c||c.width!==P.W||c.height!==P.H){c=pxCanvas(P.W,P.H);if(!c)return null;if(reuse)ICHD.cv=c}
  const g=c.getContext('2d');if(!g||!g.createImageData)return null;
  const im=g.createImageData(P.W,P.H),d=im.data;for(let i=0;i<P.out.length;i++){const c2=P.out[i];if(!c2)continue;d[i*4]=c2[0]<0?0:c2[0]>255?255:c2[0];d[i*4+1]=c2[1]<0?0:c2[1]>255?255:c2[1];d[i*4+2]=c2[2]<0?0:c2[2]>255?255:c2[2];d[i*4+3]=255}
  g.putImageData(im,0,0);return c}
-function ihdArt(n,rows){const f=ICHD_HAND[n];if(f&&(ICHD_BASE[n]===undefined||ICHD_BASE[n]===rows)){try{return ihdHandPaint(f)}catch(e){}}return ihdPaint(rows)}
+function ihdArt(n,rows){return ihdPaint(rows)}
 /* the HD canvas for an icon name (null when Detail is Low or there is no DOM): for code that draws icons on canvases */
 const ICHD_CV=new Map();
 function iconHdCanvas(name){if(!hdArt())return null;let n='none';try{n=icResolve(name)}catch(e){}const rows=Object.prototype.hasOwnProperty.call(ICONS,n)?ICONS[n]:null;if(!rows)return null;
