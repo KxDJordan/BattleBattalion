@@ -42,16 +42,20 @@
 #blog::after{content:"";position:absolute;right:11px;top:11px;width:2px;height:2px;background:#d1a94e;box-shadow:-4px -4px 0 #d1a94e,-2px -2px 0 #d1a94e,2px -2px 0 #d1a94e,4px -4px 0 #d1a94e}
 #blog.open::after{top:9px;box-shadow:-4px 4px 0 #d1a94e,-2px 2px 0 #d1a94e,2px 2px 0 #d1a94e,4px 4px 0 #d1a94e}
 #blog:focus-visible{outline:2px solid #d1a94e;outline-offset:1px}
-#logw{box-sizing:border-box;width:240px;max-width:100%;margin-top:4px;padding:0}
+#logw{box-sizing:border-box;width:min(340px,50vw);min-width:240px;max-width:100%;margin-top:4px;padding:0}
 .logh{display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 0 0 9px;border-bottom:2px solid #0b1514}
 .logh b{font-family:'Jersey 15',serif;font-size:.95rem;font-weight:600;color:#d1a94e}
 #bLeft .logh button{width:40px;height:36px;margin-right:2px;display:flex;align-items:center;justify-content:center}
-.logb{max-height:min(38vh,172px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:4px 8px 7px;font-size:.78rem;line-height:1.3;scrollbar-width:thin;scrollbar-color:#35554f transparent}
+.logb{max-height:min(52vh,240px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:4px 8px 7px;font-size:.78rem;line-height:1.3;scrollbar-width:thin;scrollbar-color:#35554f transparent}
 .logb h4{margin:6px 0 3px;font-family:'Jersey 15',serif;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8a6a2a}
 .logb h4:first-child{margin-top:2px}
 .logb p{margin:0 0 2px;padding:0 0 0 6px;border-left:2px solid #35554f;color:#b9ad8f}
 .logb p.s0{border-left-color:#58b39c}.logb p.s1{border-left-color:#c4493f}
 .logb p.say{color:#e9e0c9}.logb p.miss{color:#7d8f86}.logb p.heal{color:#9bd96f}
+/* roll lines (rollHTML): names light, rolls in a fixed-width face, hit green, miss grey, a head hit gold */
+.logb p.roll{color:#b9ad8f;font-size:.72rem;line-height:1.25}.logb p.roll .ru{color:#e9e0c9}.logb p.miss.roll .ru{color:#a5b0a8}
+.logb .rn{font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:.92em;color:#f0e6c8;background:#0b151480;padding:0 2px;border-radius:2px}
+.logb .rc{color:#8f9a90}.logb .rok{color:#8fdc74;font-weight:600}.logb .rno{color:#8a948e}.logb .rhd{color:#ffcf4a;font-weight:700;text-shadow:0 0 1px #c4493f}.logb .rdm{color:#ff8f7f}
 /* ---- turn tokens + commands ---- */
 #bTop{top:calc(var(--sat) + 6px);left:calc(var(--sal) + min(52vw,272px) + 14px);right:calc(var(--sar) + 6px);display:flex;align-items:flex-start;gap:8px}
 #order{flex:1 1 0;min-width:0;display:flex;align-items:flex-start;gap:4px;height:52px;padding:2px 2px 0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;scrollbar-width:none}

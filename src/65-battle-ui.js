@@ -417,9 +417,39 @@ function fcHover(sx,sy){if(FC.armed)return;if(!B||mode!=='battle'||sheetOpen||B.
 
 /* ---- combat log: every say() line plus hits, misses and heals; the one-line log opens a drawer of the last 40 ---- */
 const HLOG={b:null,lines:[],open:false,el:null,max:40};
-function logPush(t,cls,side){if(!B||!t)return;if(HLOG.b!==B){HLOG.b=B;HLOG.lines=[]}const L=HLOG.lines;L.push({t:String(t),c:cls||'say',s:side==null?-1:side,r:B.round||1});if(L.length>HLOG.max)L.splice(0,L.length-HLOG.max);if(HLOG.open)logRender()}
+function logPush(t,cls,side,R){if(!B||!t)return;if(HLOG.b!==B){HLOG.b=B;HLOG.lines=[]}const L=HLOG.lines,l={t:String(t),c:cls||'say',s:side==null?-1:side,r:B.round||1};if(R)l.R=R;L.push(l);if(L.length>HLOG.max)L.splice(0,L.length-HLOG.max);if(HLOG.open)logRender()}
+/* ---- roll lines: an attack's line carries its roll record R (rollRec() in 60-battle-core.js): the hit roll on 0..99 against the hit
+   chance (below it hits), the head roll, then the chance rolls the hit or miss drew (stun, root, statuses, knockback, a stray, a counter).
+   R.dmg / R.arm / R.head come from the 'hit' event. Later rolls of the same strike land on R after the line is pushed: the line is
+   rendered from R, so they show up. One line per strike; a multi-hit ability writes one per blow. ---- */
+const ROLLN={hit:'',head:'head',stray:'stray',counter:'counter',knock:'knockback',stun:'stun',root:'root'};
+function rollName(k){if(k in ROLLN)return ROLLN[k];const S=shStatus(k);return S&&S.n?S.n.toLowerCase():k}
+function rollPad(n){return n<10?'0'+n:''+n}
+// the parts of a roll line: [text, cls] pairs (cls: 'u' a name, 'n' a roll, 'c' a chance, 'ok' / 'no' / 'hd' an outcome, '' plain)
+function rollParts(R){const P=[],add=(t,c)=>P.push([t,c||'']),hit=R.L.find(e=>e.k==='hit'),miss=hit&&!hit.on&&R.k==='roll';
+ add(R.u,'u');
+ if(R.k==='roll'&&hit){add(' rolled ');add(rollPad(hit.n),'n');add(' vs '+hit.c+'%','c');add(' on ');add(R.t,'u');add(': ');add(hit.on?'hit':'miss',hit.on?'ok':'no')}
+ else if(R.k==='sure'){add(' on ');add(R.t,'u');add(': ');add('sure hit','ok')}
+ else if(R.k==='stray'){add('\'s stray shot hits ');add(R.t,'u')}
+ else{add(' on ');add(R.t,'u');add(': ');add('auto hit','ok');add(' (no roll)','c')}
+ for(const e of R.L){if(e.k==='hit')continue;
+  if(e.k==='head'){if(!(e.c>0))continue;add(', head ');if(e.c>=100)add('sure','c');else{add(rollPad(e.n),'n');add(' vs '+e.c+'%','c')}add(': ');add(e.on?'HEAD':'body',e.on?'hd':'');continue}
+  add('; '+rollName(e.k)+' ');if(e.c>=100)add('sure','c');else{add(rollPad(e.n),'n');add(' vs '+e.c+'%','c')}add(': ');add(e.k==='stray'?(e.on?'into '+(e.v||'an ally'):'flies wide'):e.on?'yes':'no',e.on?'ok':'no')}
+ if(!miss&&R.dmg!=null){add(', ');add(R.dmg>0?'-'+R.dmg+' HP':'no wound',R.dmg>0?'dm':'');if(R.arm>0)add(', -'+R.arm+(R.head?' helmet':' armor'))}
+ else if(!miss&&R.noDmg)add(', no damage');
+ return P}
+// the plain line (Settings: Show rolls in log off): as the log read before the rolls
+function rollPlain(R){const h=R.L.find(e=>e.k==='hit');if(h&&!h.on&&R.k==='roll')return R.u+' misses '+R.t;
+ return R.u+' hits '+R.t+(R.head?' on the head':'')+(R.dmg!=null?': '+(R.dmg>0?'-'+R.dmg+' HP':'no wound')+(R.arm>0?', -'+R.arm+(R.head?' helmet':' armor'):''):'')}
+const rollsOn=()=>typeof SET!=='object'||!SET||SET.rolls!==false;
+function rollText(R){return rollParts(R).map(p=>p[0]).join('')}
+function rollHTML(R){return rollParts(R).map(([t,c])=>c?'<span class="r'+c+'">'+esc(t)+'</span>':esc(t)).join('')}
+// a strike's roll line when no 'hit' or 'miss' event carried it (a shove, a blow doing nothing, the FX muted)
+function rollLog(R){if(!R||R.logged)return;R.logged=1;if(R.dmg==null)R.noDmg=1;const h=R.L.find(e=>e.k==='hit');logPush(rollText(R),h&&!h.on&&R.k==='roll'?'miss roll':'hit roll',R.side,R)}
 function logEvent(type,d){if(!B||!d)return;
- if(type==='hit'){const u=d.u,t=d.t;if(!t)return;logPush((u?u.name+' hits '+t.name:t.name+' is hurt')+(d.head?' on the head':'')+': '+(d.dmg>0?'-'+d.dmg+' HP':'no wound')+(d.armor>0?', -'+d.armor+(d.head?' helmet':' armor'):''),'hit',u?u.side:-1)}
+ if(type==='hit'&&d.roll&&!d.roll.logged&&d.t){const R=d.roll;R.logged=1;R.dmg=d.dmg;R.arm=d.armor;R.head=!!d.head;logPush(rollText(R),'hit roll',R.side,R)}
+ else if(type==='miss'&&d.roll&&!d.roll.logged&&d.u&&d.t){const R=d.roll;R.logged=1;logPush(rollText(R),'miss roll',R.side,R)}
+ else if(type==='hit'){const u=d.u,t=d.t;if(!t)return;logPush((u?u.name+' hits '+t.name:t.name+' is hurt')+(d.head?' on the head':'')+': '+(d.dmg>0?'-'+d.dmg+' HP':'no wound')+(d.armor>0?', -'+d.armor+(d.head?' helmet':' armor'):''),'hit',u?u.side:-1)}
  else if(type==='miss'&&d.u&&d.t)logPush(d.u.name+' misses '+d.t.name,'miss',d.u.side);
  else if(type==='heal'&&d.t&&d.n>0)logPush(d.t.name+' recovers '+d.n+' HP','heal',d.t.side);
  else if(type==='morale'&&d.u&&d.to!==0)logPush(d.u.name+(d.to>d.from?' takes heart: ':' falters: ')+shMorN(d.to).toLowerCase(),d.to>d.from?'heal':'miss',d.u.side);
@@ -430,7 +460,7 @@ function logEvent(type,d){if(!B||!d)return;
  FX.say=function(t){say0(t);try{logPush(t,'say',B&&B.cur?B.cur.side:-1)}catch(e){}};
  FX.emit=function(type,d){try{SHV.rev++;logEvent(type,d)}catch(e){}return emit0.call(FX,type,d)}}
 function logRender(){const e=HLOG.el;if(!e)return;const L=HLOG.b===B?HLOG.lines:[];let h='',r=0;
- for(const l of L){if(l.r!==r){r=l.r;h+='<h4>Round '+r+'</h4>'}h+='<p class="'+l.c+(l.s>=0?' s'+l.s:'')+'">'+esc(l.t)+'</p>'}
+ for(const l of L){if(l.r!==r){r=l.r;h+='<h4>Round '+r+'</h4>'}h+='<p class="'+l.c+(l.s>=0?' s'+l.s:'')+'">'+(l.R?rollsOn()?rollHTML(l.R):esc(rollPlain(l.R)):esc(l.t))+'</p>'}
  const bd=e.querySelector('.logb');if(!bd)return;const stick=bd.scrollTop+bd.clientHeight>=bd.scrollHeight-8;bd.innerHTML=h||'<p class="say">Nothing has happened yet.</p>';if(stick||!bd._seen){bd.scrollTop=bd.scrollHeight;bd._seen=1}}
 function logOpen(){try{const host=$('bLeft');if(!host||typeof document==='undefined')return;let e=HLOG.el;
   if(!e){e=document.createElement('div');e.id='logw';e.className='pxf';e.setAttribute('role','log');e.setAttribute('aria-label','Combat log');
