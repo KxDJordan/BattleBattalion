@@ -7,7 +7,7 @@
 //  - human Wildlings (men and women) and the barbarian crisis warriors wear them; other backgrounds, dwarves, elves, half-orcs do not;
 //  - every expression draws its face overlay (women the lashed one), and the face sits where the human head's does: the eye whites' and the
 //    face ink's centres within 4 SU of the human head of the same expression;
-//  - the marking: all 20 and every paint turn up over many Wildlings, stable per merc, the paint changes the marking's pixels only;
+//  - the marking: all 20 and exactly the five paints (red, blue, green, black; white clay only on dark skin) turn up over many Wildlings, stable per merc, the paint changes the marking's pixels only;
 //  - hair, beards and helmets: drawn as on a human head (no hair under a helmet, the helmet over the crown, the beard on head0's mouth);
 //  - tribal armour: a Wildling in hide / leather / rags / padded / jack / studded wears one of the 12 tribal armours (stable), others keep theirs;
 //    the tailor's dyes recolour it;
@@ -76,10 +76,11 @@ const R=await p.evaluate(()=>{const bad=[],n={};const k=humK(),base=G.roster[0];
      if(d>1.6/P2A.k)bad.push(`trh${i} ${fem?'woman':'man'} ${P2_FACE[e]}: ${nm} ${d.toFixed(1)} SU off the human head's`)}}}
   n.faceOffMax=+worst.toFixed(2);n.faceChecks=cnt}
  // ---- markings and paint ----
- {const seenI={},seenP={};let unstable=0;for(let j=0;j<400;j++){const u=merc({}),A=AS(u);if(!A.tri){bad.push('a wildling without a tribal head');continue}seenI[A.tri.i]=1;seenP[A.tri.paint]=(seenP[A.tri.paint]||0)+1;
+ {const seenI={},seenP={};let unstable=0,whiteLight=0,whiteDark=0;for(const id of['barbz','barbax','barbskald','barbhus'])if(EN[id]){const L=usLook(mkEnemy(id,'barb'));if(L.S.kind==='hum'){const A=humSkAssets(L,0,k);if(A.tri)seenP[A.tri.paint]=seenP[A.tri.paint]||0}}for(let j=0;j<400;j++){const u=merc({}),A=AS(u);if(!A.tri){bad.push('a wildling without a tribal head');continue}{const sk=p2Hex(A.hs.C.skin),dk=.3*sk[0]+.59*sk[1]+.11*sk[2]<P2_PAINT_DARK;if(A.tri.paint==='clay'){if(dk)whiteDark++;else whiteLight++}}seenI[A.tri.i]=1;seenP[A.tri.paint]=(seenP[A.tri.paint]||0)+1;
    const v=mkPlayerUnit(JSON.parse(JSON.stringify(u.m))),B2=humSkAssets(usLook(v),0,k);if(!B2.tri||B2.tri.i!==A.tri.i||B2.tri.paint!==A.tri.paint)unstable++}
   n.markings=Object.keys(seenI).length;n.paints=seenP;if(n.markings!==20)bad.push('markings seen over 400 wildlings: '+n.markings);
-  for(const pn of Object.keys(P2_PAINT))if(!seenP[pn])bad.push('paint '+pn+' never chosen');if(unstable)bad.push(unstable+' wildlings change marking between looks');
+  if(Object.keys(P2_PAINT).sort().join()!=='clay,green,red,soot,woad')bad.push('paints offered: '+Object.keys(P2_PAINT));for(const pn of['red','woad','green','soot','clay'])if(!seenP[pn])bad.push('paint '+pn+' never chosen');for(const pn in seenP)if(!['red','woad','green','soot','clay'].includes(pn))bad.push('paint '+pn+' chosen');
+  n.whiteOnLight=whiteLight;n.whiteOnDark=whiteDark;if(whiteLight)bad.push(whiteLight+' light-skinned figures wear white paint');if(unstable)bad.push(unstable+' wildlings change marking between looks');
   // the paint recolours the marking only: red vs woad differ where the marking is, the rest identical
   const a=pix(p2TriHead({i:3,h:0,paint:'red'},0,0,null)),c=pix(p2TriHead({i:3,h:0,paint:'woad'},0,0,null)),Pm=P2A.p.trh3;let inM=0,out=0;
   const mc=document.createElement('canvas'),c0=p2Piece('trh3',null);mc.width=c0.width;mc.height=c0.height;p2Lay(mc.getContext('2d'),Pm,'p');const md=pix(mc);

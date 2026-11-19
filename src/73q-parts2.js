@@ -88,9 +88,11 @@ function p2Orc(hs,S){return hs.race==='halforc'&&!!P2A.p.orch0}
    marking (a band across the eyes lies under them), the head's outline ring over all. The marking (layer p, grey shade) takes a paint:
    P2_PAINT, the sheet's dark red by default. Who: human Wildlings (the tribal background) and the barbarian crisis warriors (P2_TRIBAL_FOE);
    the marking by the merc's id (a foe type by its key), the paint by the portrait's war-paint colour (07-portraits.js marks.paintC: red,
-   woad, white) for most, ochre or soot for some (the id again). No rnd(). */
-const P2_PAINT={red:null,woad:'#3a5ca8',soot:'#2b2624',clay:'#ece4d2',ochre:'#c98f32'};   // red: the sheet's own (TRA.mark)
-const P2_PAINT_OF={g:'red',f:'red',X:'woad',x:'woad',l:'clay'};
+   woad, white) for most, green or soot for some (the id again). Only red, blue, green, black, and white clay on dark skin
+   (P2_PAINT_DARK; on light skin the portrait's white becomes one of the four). No yellow. No rnd(). */
+const P2_PAINT={red:null,woad:'#3a5ca8',green:'#3c7a3a',soot:'#2b2624',clay:'#ece4d2'};   // the paints (the user's: red, blue, green, black; white clay on dark skin only; yellow does not read): red the sheet's own (TRA.mark)
+const P2_PAINT_OF={g:'red',f:'red',X:'woad',x:'woad',l:'clay'};   // the portrait's war-paint; white on light skin and none: one of the four by the id
+const P2_PAINT_DARK=170;   // white clay only on skin darker than this (luma of the skin tone: tan 145; fair 192, pale 218 never)
 const P2_TRIBAL_BG={wildling:1};
 const P2_TRIBAL_FOE={barbz:1,barbax:1,barbskald:1,barbhus:1};
 function p2Hash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}h^=h>>>16;h=Math.imul(h,2246822507);h^=h>>>13;h=Math.imul(h,3266489909);h^=h>>>16;return h>>>0}   // FNV-1a, then mixed (murmur3's finaliser): every bit counts
@@ -98,8 +100,9 @@ function p2Hash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s
 function p2Tribal(L,hs){if(!P2A.p.trh0||!L.key)return null;const k=L.key.split(':');let id;
  if(k[0]==='m'){if(hs.race!=='human'||hs.el||hs.orc||!P2_TRIBAL_BG[k[4]])return null;id='m'+k[1]}
  else if(k[0]==='e'){if(!P2_TRIBAL_FOE[k[1]])return null;id='e'+k[1]}else return null;
- const h=p2Hash(id),i=h%20,v=(h>>>8)%10,pc=P2_PAINT_OF[L.S.paint]||['red','woad','clay'][(h>>>12)%3];
- return{i,h,paint:v===8?'ochre':v===9?'soot':pc}}
+ const h=p2Hash(id),i=h%20,v=(h>>>8)%10,sk=p2Hex(hs.C.skin),dark=.3*sk[0]+.59*sk[1]+.11*sk[2]<P2_PAINT_DARK,four=['red','woad','green','soot'];
+ let pc=P2_PAINT_OF[L.S.paint]||(dark?four.concat('clay'):four)[(h>>>12)%(dark?5:4)];if(pc==='clay'&&!dark)pc=four[(h>>>12)%4];
+ return{i,h,paint:v===8?'green':v===9?'soot':pc}}
 function p2PaintCol(n){return P2_PAINT[n]||(typeof TRA==='object'&&TRA.mark)||'#8f3421'}
 // a layer of piece P drawn on g (canvas origin = the piece's top-left with p2Piece's 1 px margin), col multiplies it
 function p2Lay(g,P,m,col){const l=P.L[m];if(!l)return;const I=p2Img(l[0]);if(!I)return;const k=P2A.k;if(!col){g.drawImage(I,l[1],l[2],l[3],l[4],1+l[5]*k,1+l[6]*k,l[7]*k,l[8]*k);return}
