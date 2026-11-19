@@ -12,7 +12,7 @@ Writes
   assets/foes/direwolf_tex.png + direwolf_tex.json   the DragonBones texture atlas (1 px per WU)
   src/76e-wolfatlas.js                               WFA: the same atlas as a half-size webp data URL, the pieces' pivots, the
                                                      rig's setup layout and the frames' anchors (read by 76g-frames.js / 76h-wolf.js)
-  assets/foes/direwolf_cut.json                      where everything came from (for the review images and the test)
+  assets/foes/direwolf_cut.json                      where everything came from (a review aid; not committed: .gitignore)
 
 Units: WU, the part sheet's px (the compiled wolf is drawn at the parts' head size). The drawn frames are scaled into WU so a
 standing frame is as tall as the rig's setup pose; each frame's anchor is the body's centre (median x of its opaque pixels) over
