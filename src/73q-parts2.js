@@ -12,7 +12,7 @@
 const P2={oBeard:1.12,on:true,img:[],ok:0,sc:.88,k:0,neck:.36,skin0:'#fdb48c',earX:0,earY:0,handA:[-.08,-.05],coatDy:0};
 // a helmet's body top (fraction of the piece height) where a crest, plume, feather, wings or antlers stand above it: it is sized and placed by its body
 // per-helmet fit after that: [scale, dx, dy] (dx, dy in head radii; up is negative)
-const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.12,-.04,.04],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
+const P2_HADJ={29:[1.06,-.07,-.04],3:[1.09,0,.1],25:[1.09,0,.1],26:[1.09,0,.1],33:[1.22,-.06,.26],4:[1.08,-.02,.1],5:[1.14,-.05,.16],24:[1,0,.12],30:[1.16,-.04,.22],31:[1.08,-.06,-.04],22:[1.04,0,-.06],23:[1.04,0,-.06]};
 // crested / winged / crowned helmets are fitted by their steel bowl alone (P2A anchors mtop: the bowl's top), the crest rises above it
 const P2_BOWL={13:1,14:1,15:1,28:1,29:1};
 const P2_HTOP={4:.3,5:.16,24:.38,30:.34,32:.3};
