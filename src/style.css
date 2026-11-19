@@ -1,7 +1,7 @@
 /* ================= TOKENS ================= */
 :root{--pine:#101d1c;--panel:#182a28;--panel2:#20363330;--raise:#213a36;--line:#35554f;--vellum:#e9e0c9;--dim:#9fb0a4;--verd:#58b39c;--brass:#d1a94e;--madder:#c4493f;--mana:#62a6ee;--aura:#ecc64f;--qi:#3fd0b6;--chi:#9bd96f;
  --ink:#0b1514;--steel:#b8c2cc;--hair:#d1a94e66;--brass-d:#8a6a2a;--brass-l:#f3d98b;
- --pxfont:'Jersey 15','Alegreya Sans',system-ui,sans-serif;
+ --pxfont:'Fredoka','Alegreya Sans',system-ui,sans-serif;--dispfont:'Lilita One','Fredoka','Alegreya Sans',system-ui,sans-serif;
  /* safe-area insets: every rule uses these, Layout reads them back through #safeProbe */
  --sat:env(safe-area-inset-top,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);
  --railw:clamp(160px,23vw,236px);--wrw:80px;color-scheme:dark}
@@ -21,7 +21,7 @@ html,body{font-synthesis:none;height:100%;margin:0;background:var(--pine);color:
 .pxi{display:inline-block;flex:none;width:16px;height:16px;vertical-align:middle;background:center/100% 100% no-repeat;image-rendering:crisp-edges;image-rendering:pixelated;font-style:normal}
 
 /* ================= TYPE ================= */
-h1,h2,h3,.pxh{font-family:var(--pxfont);font-weight:700;margin:0;letter-spacing:.01em}
+h1,h2,h3,.pxh{font-family:var(--dispfont);font-weight:700;margin:0;letter-spacing:.01em}
 h1{font-size:3.4rem;line-height:1;color:var(--vellum)}
 h2{font-size:1.7rem;line-height:1.1}
 h3{font-size:1.2rem;color:var(--brass);margin-top:14px}

@@ -100,6 +100,12 @@ const js=jsFiles.map(f=>{const s=fs.readFileSync(path.join(S,f),'utf8');if(dev)r
 const body=fs.readFileSync(path.join(S,'body.html'),'utf8');
 // game icon (art): committed PNGs in assets/ (node assets/make-icons.js), inlined as data URIs; skipped when absent
 const icon=n=>{try{return'data:image/png;base64,'+fs.readFileSync(path.join(__dirname,'assets','icon-'+n+'.png')).toString('base64')}catch(e){return''}};
+/* fonts (SIL OFL 1.1, see assets/fonts/): committed woff2 files (python3 assets/fonts/make-fonts.py), inlined as base64 @font-face
+   rules so the game needs no network. Each single-weight file answers every weight (font-synthesis is off), and size-adjust
+   scales Lilita One and Fredoka to the cap height of the old pixel face so the layouts sized for it keep their measure. */
+const FONTS=[['Lilita One','lilita-one-400','100 900','80%'],['Fredoka','fredoka-600','100 900','82%'],['Alegreya Sans','alegreya-sans-400','400',''],['Alegreya Sans','alegreya-sans-500','500',''],['Alegreya Sans','alegreya-sans-700','600 900','']];
+const fontCSS=FONTS.map(([fam,file,w,adj])=>{let b;try{b=fs.readFileSync(path.join(__dirname,'assets','fonts',file+'.woff2')).toString('base64')}catch(e){return''}
+  return`@font-face{font-family:'${fam}';font-style:normal;font-weight:${w};font-display:swap;${adj?'size-adjust:'+adj+';':''}src:url(data:font/woff2;base64,${b}) format('woff2')}`}).join('\n');
 const icons=[['icon','16','16x16'],['icon','32','32x32'],['apple-touch-icon','180','180x180']].map(([r,n,s])=>{const u=icon(n);return u?`<link rel="${r}" type="image/png" sizes="${s}" href="${u}">`:''}).filter(Boolean).join('\n');
 const html=`<!DOCTYPE html>
 <html lang="en">
@@ -108,9 +114,8 @@ const html=`<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Wyrdmarch</title>
 ${icons}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
+${fontCSS}
 ${css}
 </style>
 </head>
@@ -120,7 +125,6 @@ ${body}
 'use strict';
 ${js}
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Jersey+15&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 </body>
 </html>
 `;

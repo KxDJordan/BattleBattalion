@@ -303,7 +303,7 @@ function howSheet(){const r=(ic,svg,t,d)=>`<div class="how-r">${ic==='map'?'<i c
 function creditsSheet(){sheet(`<div class="row sp seth"><h2>Credits</h2><button class="pri" onclick="closeSheet(true)">Done</button></div>
  <div class="cred">${typeof bannerHTML==='function'?bannerHTML({c1:'5',c2:'c',emblem:'tower'},64):''}<div><p><b>Wyrdmarch</b> is a free company chronicle: tactics, travel and the four gifts.</p>
  <p>Every picture in the game, from the towns to the smallest icon, is pixel art painted in code from one fixed palette. No images are fetched.</p>
- <p class="dim">Type: Jersey 15 and Alegreya Sans (SIL Open Font License). Made with care for small screens and steady hands.</p></div></div>`)}
+ <p class="dim">Type: Lilita One by Juan Montoreano, Fredoka by Milena Brandão and Hafontia, Alegreya Sans by Huerta Tipográfica (SIL Open Font License 1.1). Made with care for small screens and steady hands.</p></div></div>`)}
 /* ---- title: a pixel dusk drawn at low resolution in PAL colours and shown at an integer scale ---- */
 function thash(x,y){let h=Math.imul(x|0,374761393)+Math.imul(y|0,668265263)|0;h=Math.imul(h^h>>>13,1274126177);return((h^h>>>16)>>>0)/4294967296}   // visual only, never the game stream
 const TMAN=['....p','....j','.00.j','.00.j','0000j','0000j','.00.j','.0.0.','.0.0.'],

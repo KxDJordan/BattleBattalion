@@ -1,5 +1,5 @@
 /* ================= TOWN: illustrated town square (#tv) and town panel rows (.tw-*) ================= */
-#tv{--s:2;position:absolute;inset:0;z-index:19;display:none;overflow:hidden;background:#0b1514;color:#e9e0c9;font-family:'Jersey 15','Alegreya Sans',system-ui,sans-serif;
+#tv{--s:2;position:absolute;inset:0;z-index:19;display:none;overflow:hidden;background:#0b1514;color:#e9e0c9;font-family:'Fredoka','Alegreya Sans',system-ui,sans-serif;
  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #tv.on{display:block}
 #tv *,#tv *::before,#tv *::after{box-sizing:border-box}
@@ -74,8 +74,8 @@
 #pn .tw-em{display:inline-block;flex:none;background-size:100% 100%;background-repeat:no-repeat;image-rendering:pixelated;image-rendering:crisp-edges;image-rendering:pixelated;vertical-align:middle}
 #pn .tw-line{display:flex;align-items:center;gap:3px;overflow:hidden;white-space:nowrap;min-height:18px}
 #pn .pn-rs:has(.tw-line){overflow:visible}
-#pn .tw-s{display:inline-flex;align-items:center;gap:2px;margin-right:4px;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:13px;font-variant-numeric:tabular-nums;color:#e9e0c9}
-#pn .tw-t{display:inline-flex;align-items:center;height:16px;padding:0 4px;margin-right:4px;background:#213a36;border:1px solid #35554f;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:11px;line-height:1;color:#9fe0cd;white-space:nowrap}
+#pn .tw-s{display:inline-flex;align-items:center;gap:2px;margin-right:4px;font-family:'Fredoka','Alegreya Sans',sans-serif;font-size:13px;font-variant-numeric:tabular-nums;color:#e9e0c9}
+#pn .tw-t{display:inline-flex;align-items:center;height:16px;padding:0 4px;margin-right:4px;background:#213a36;border:1px solid #35554f;font-family:'Fredoka','Alegreya Sans',sans-serif;font-size:11px;line-height:1;color:#9fe0cd;white-space:nowrap}
 #pn .tw-t0{margin-left:4px;overflow:hidden;text-overflow:ellipsis}
 #pn .tw-skulls{display:inline-flex;gap:1px;line-height:0;vertical-align:middle}
 #pn .tw-skulls .off{opacity:.22}
@@ -99,13 +99,13 @@
 #pn .tw-bar{display:block;height:8px;margin-top:4px;background:#0b1514;border:2px solid #0b1514;box-shadow:0 0 0 1px #35554f;overflow:hidden}
 #pn .tw-bar i{display:block;height:100%;background:#58b39c;box-shadow:inset 0 2px 0 #9fe0cd,inset 0 -1px 0 #2c6a5d}
 #pn .tw-bar.hurt i{background:#c4493f;box-shadow:inset 0 2px 0 #ef8a78,inset 0 -1px 0 #5a1f1c}
-#pn .tw-hp{display:inline-flex;align-items:center;gap:3px;font-family:'Jersey 15','Alegreya Sans',sans-serif}
+#pn .tw-hp{display:inline-flex;align-items:center;gap:3px;font-family:'Fredoka','Alegreya Sans',sans-serif}
 #pn .pn-blank>.pxi{opacity:.5}
 
 /* ---- Phase 5: tools, temple, armor wear in the town panel ---- */
 #pn .tw-t.warn{background:#3a2c12;border-color:#8a6a2a;color:#f3d98b;margin-left:4px}
 #pn .tw-t.perm{background:#0b1514;border-color:#5a1f1c;color:#ef8a78;margin-right:0}
-#pn .tw-days{display:block;text-align:right;color:var(--dim);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:.74em;line-height:1.1;white-space:nowrap}
+#pn .tw-days{display:block;text-align:right;color:var(--dim);font-family:'Fredoka','Alegreya Sans',sans-serif;font-size:.74em;line-height:1.1;white-space:nowrap}
 #pn .tw-inj .pn-rr{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
 #pn .tw-inj .tw-t0{margin-left:2px;color:#ef8a78}
 #pn .tw-inj.perm .pn-rt{color:#e9c8bf}
@@ -134,10 +134,10 @@
 @media (max-width:600px){#tv .tv-track{width:28px}#tv .tv-pan{margin:0 4px 2px;gap:4px}}
 /* builds rework: recruit trees on the tavern rows and in the detail */
 #pn .tw-trees{gap:2px;height:18px;min-height:18px;margin-top:1px}
-#pn .tw-gv{color:var(--pn-gift);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-weight:600}
+#pn .tw-gv{color:var(--pn-gift);font-family:'Fredoka','Alegreya Sans',sans-serif;font-weight:600}
 #pn .tw-trees .tw-gv{margin-left:5px;font-size:12px;line-height:1;overflow:hidden;text-overflow:ellipsis}
 #pn .tw-wts{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:2px 0 6px}
-#pn .tw-wt{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px 0 3px;border:2px solid var(--pn-ink);background:#182a28;color:#9fe0cd;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:.9em}
+#pn .tw-wt{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px 0 3px;border:2px solid var(--pn-ink);background:#182a28;color:#9fe0cd;font-family:'Fredoka','Alegreya Sans',sans-serif;font-size:.9em}
 #pn .tw-wt .pxi{vertical-align:0}
 #pn .tw-wts>small{color:var(--dim)}
 
@@ -145,7 +145,7 @@
 #pn .mk-tabs{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;height:48px;padding:4px 4px 2px;background:#101d1c;border-bottom:2px solid #0b1514}
 #pn .mk-tabs~.pn-sec{top:48px}
 #pn button.mk-tab{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:40px;padding:0 6px 2px;border-style:solid;border-width:4px 4px 6px;border-color:#213a36;background-color:#213a36;background-clip:padding-box;border-image:var(--pxb) 12 12 18 12 fill/1 stretch;image-rendering:pixelated;
- color:var(--dim);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:1.02em;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+ color:var(--dim);font-family:'Fredoka','Alegreya Sans',sans-serif;font-size:1.02em;font-weight:600;letter-spacing:.02em;white-space:nowrap}
 #pn button.mk-tab>span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 #pn button.mk-tab>i:not(.pxi){flex:none;min-width:20px;height:18px;padding:0 4px;background:#0b1514;color:var(--vellum);font-style:normal;font-size:.9em;line-height:17px;text-align:center;box-shadow:inset 0 0 0 1px #35554f}
 #pn button.mk-tab .pxi{opacity:.7}
@@ -156,15 +156,15 @@
 #pn button.mk-tab:focus-visible{outline:2px solid #fff4c8;outline-offset:-2px}
 #pn .mk-sum{display:flex;flex-wrap:wrap;gap:2px 12px;padding:6px 10px;border-bottom:2px solid var(--pn-rule);color:var(--dim);font-size:.84em}
 #pn .mk-sum span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-#pn .mk-sum b{color:var(--vellum);font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:1.12em;font-weight:600}
-#pn .mk-tag{display:inline-flex;align-items:center;height:16px;padding:0 4px;margin-right:5px;border:1px solid;font-family:'Jersey 15','Alegreya Sans',sans-serif;font-size:11px;line-height:1;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;vertical-align:1px}
+#pn .mk-sum b{color:var(--vellum);font-family:'Fredoka','Alegreya Sans',sans-serif;font-size:1.12em;font-weight:600}
+#pn .mk-tag{display:inline-flex;align-items:center;height:16px;padding:0 4px;margin-right:5px;border:1px solid;font-family:'Fredoka','Alegreya Sans',sans-serif;font-size:11px;line-height:1;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;vertical-align:1px}
 #pn .mk-tag.spare{background:#1f3a33;border-color:#2c6a5d;color:#9fe0cd}
 #pn .mk-tag.eq{background:#3a2c12;border-color:#8a6a2a;color:#f3d98b}
 #pn .pn-row.mk-worn .pn-lead{color:var(--brass)}
 #pn .mk-who{display:inline-flex;line-height:0}
 #pn .mk-who .tw-por{box-shadow:0 0 0 2px #35554f}
 #pn .mk-state{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0 0 8px;padding:4px 8px;font-size:.86em;color:var(--dim);background:#101d1c;box-shadow:inset 3px 0 0 var(--verd)}
-#pn .mk-state b{font-family:'Jersey 15','Alegreya Sans',sans-serif;font-weight:600;font-size:1.08em;letter-spacing:.03em;text-transform:uppercase;color:#9fe0cd}
+#pn .mk-state b{font-family:'Fredoka','Alegreya Sans',sans-serif;font-weight:600;font-size:1.08em;letter-spacing:.03em;text-transform:uppercase;color:#9fe0cd}
 #pn .mk-state.eq{box-shadow:inset 3px 0 0 var(--brass)}#pn .mk-state.eq b{color:#f3d98b}
 @media (min-width:1100px) and (min-height:600px){#pn .mk-tabs{height:56px}#pn .mk-tabs~.pn-sec{top:56px}#pn button.mk-tab{min-height:48px;font-size:1.1em}}
 @media (max-width:900px){#pn button.mk-tab .pxi{display:none}#pn button.mk-tab{gap:4px;padding:0 3px 2px}}
@@ -180,7 +180,7 @@
 #pn .ret-row.own .pn-rt{color:#f3d98b}
 #pn .ret-eff{display:flex;gap:6px;align-items:flex-start;margin:6px 0 8px;padding:6px 8px;background:#182a28;border:2px solid #0b1514;box-shadow:inset 2px 2px 0 #213a36;line-height:1.25}
 #pn .ret-eff .pxi,#pn .ret-eff .pn-i{flex:none;margin-top:1px}
-#pn .tw-t.vet{display:inline-block;margin-left:4px;padding:0 4px;font-family:'Jersey 15',sans-serif;font-size:.95em;line-height:1.2;color:#1b1608;background:#d1a94e;vertical-align:1px}
+#pn .tw-t.vet{display:inline-block;margin-left:4px;padding:0 4px;font-family:'Fredoka',sans-serif;font-size:.95em;line-height:1.2;color:#1b1608;background:#d1a94e;vertical-align:1px}
 #pn .tw-t.warn .pxi,#pn .tw-t.warn .pn-i{width:12px!important;height:12px!important;vertical-align:-1px;margin-right:2px}
 /* ambitions panel */
 #pn .amb-tier .pn-rt small{margin-left:4px;font-family:'Alegreya Sans',sans-serif;font-size:.78em;color:var(--dim);font-weight:500}
@@ -188,13 +188,13 @@
 #pn .amb-r.done .pn-rt{color:var(--dim)}
 #pn .amb-r.done .pn-lead .pxi,#pn .amb-r.done .pn-lead .pn-i{opacity:.55}
 #pn .amb-r.cur .pn-rt{color:#f3d98b}
-#pn .amb-rw{display:inline-flex;gap:3px;align-items:center;white-space:nowrap;font-family:'Jersey 15',sans-serif}
+#pn .amb-rw{display:inline-flex;gap:3px;align-items:center;white-space:nowrap;font-family:'Fredoka',sans-serif}
 #pn .amb-rw b{font-weight:400;margin-right:2px}
-#pn .amb-prog{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:4px 0 8px;font-family:'Jersey 15',sans-serif;font-size:1.15em}
+#pn .amb-prog{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:4px 0 8px;font-family:'Fredoka',sans-serif;font-size:1.15em}
 #pn .amb-prog .pn-bar{height:12px;margin:0}
 #pn .amb-tiers{display:grid;gap:3px;margin:4px 0 8px}
 #pn .amb-ti{display:grid;grid-template-columns:auto auto 1fr;gap:2px 8px;align-items:baseline;padding:4px 6px;background:#101d1c;border-left:3px solid #213a36;font-size:.85em;line-height:1.2}
-#pn .amb-ti b{font-family:'Jersey 15',sans-serif;font-size:1.2em;font-weight:400}
+#pn .amb-ti b{font-family:'Fredoka',sans-serif;font-size:1.2em;font-weight:400}
 #pn .amb-ti small{color:var(--dim)}
 #pn .amb-ti span{color:var(--dim)}
 #pn .amb-ti.past{opacity:.7}
@@ -210,12 +210,12 @@
 .amb-cel.tier .amb-rays{background:repeating-conic-gradient(from 0deg,#9fe0cd 0 10deg,transparent 10deg 30deg)}
 .amb-ic{display:inline-block;padding:6px;background:#0b1514;box-shadow:0 0 0 2px #d1a94e,0 0 0 4px #0b1514,4px 4px 0 4px rgba(0,0,0,.35);line-height:0;margin:4px 0 10px}
 .amb-ic .pxi{display:block;width:48px;height:48px;background-size:100% 100%;image-rendering:pixelated}
-.amb-kick{font-family:'Jersey 15',sans-serif;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;color:#d1a94e}
+.amb-kick{font-family:'Fredoka',sans-serif;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;color:#d1a94e}
 .amb-cel.tier .amb-kick{color:#9fe0cd}
-.amb-h{font-family:'Jersey 15',sans-serif;font-weight:400;font-size:1.9rem;line-height:1.05;margin:2px 0 6px;color:#f3d98b;text-shadow:2px 2px 0 #0b1514}
+.amb-h{font-family:var(--dispfont);font-weight:400;font-size:1.9rem;line-height:1.05;margin:2px 0 6px;color:#f3d98b;text-shadow:2px 2px 0 #0b1514}
 .amb-p{margin:0 0 8px;color:var(--dim)}
 .amb-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:4px 0 12px}
-.amb-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 4px;background:#182a28;border:2px solid #0b1514;box-shadow:inset 2px 2px 0 #35554f;font-family:'Jersey 15',sans-serif;font-size:1.1rem;color:#f3d98b}
+.amb-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 4px;background:#182a28;border:2px solid #0b1514;box-shadow:inset 2px 2px 0 #35554f;font-family:'Fredoka',sans-serif;font-size:1.1rem;color:#f3d98b}
 .amb-chip .pxi,.amb-chip .pn-i,.amb-ul .pxi{flex:none;background-size:100% 100%;image-rendering:pixelated}
 .amb-ul{list-style:none;margin:0 auto 12px;padding:0;display:inline-grid;gap:3px;text-align:left}
 .amb-ul li{display:flex;gap:6px;align-items:center}
@@ -231,10 +231,10 @@
  #sheetBody.amb-sheet{max-width:560px}.amb-row{position:sticky;bottom:-2px;z-index:2;margin:0 -4px;padding:6px 4px 2px;background:linear-gradient(transparent,var(--panel) 10px)}.amb-ul{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}.amb-p{margin-bottom:6px}}
 /* parts and the drillmaster in the battle results */
 .br-parts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:6px 0}
-.br-ph{display:inline-flex;align-items:center;gap:4px;font-family:'Jersey 15',sans-serif;font-size:1.05em;color:#d1a94e;margin-right:2px}
+.br-ph{display:inline-flex;align-items:center;gap:4px;font-family:'Fredoka',sans-serif;font-size:1.05em;color:#d1a94e;margin-right:2px}
 .br-ph small{color:var(--dim);font-family:'Alegreya Sans',sans-serif}
 .br-pt{display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 3px;border:2px solid #0b1514;background:#182a28;box-shadow:inset 2px 2px 0 #213a36}
-.br-pt i{font-style:normal;font-family:'Jersey 15',sans-serif;color:#f3d98b}
+.br-pt i{font-style:normal;font-family:'Fredoka',sans-serif;color:#f3d98b}
 .br-parts .pxi,.br-ph .pn-i,.br-drill .pxi,.br-drill .pn-i{display:inline-block;flex:none;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated}
 .br-drill{display:flex;align-items:center;gap:5px}
 /* ---- phase 7 (look): owner, standing and situations in the town header; guild houses; building panels ---- */
@@ -285,7 +285,7 @@
 .ew-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
 #sheetBody .ew-opt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:10px;min-height:44px;background:#101d1c;color:#e9e0c9;border:2px solid #0b1514;
  box-shadow:inset 0 0 0 2px #35554f,inset 0 3px 0 2px #4d5a5c;font:inherit;cursor:pointer}
-#sheetBody .ew-opt b{font-family:'Jersey 15',system-ui,sans-serif;font-size:1.15rem;color:#fff4c8;letter-spacing:.02em}
+#sheetBody .ew-opt b{font-family:'Fredoka',system-ui,sans-serif;font-size:1.15rem;color:#fff4c8;letter-spacing:.02em}
 #sheetBody .ew-opt span{font-family:'Alegreya Sans',system-ui,sans-serif;font-size:.9rem;line-height:1.3;color:#b9ad8f;text-transform:none;letter-spacing:normal}
 #sheetBody .ew-opt:hover:not([disabled]),#sheetBody .ew-opt:focus-visible{box-shadow:inset 0 0 0 2px #c4493f,inset 0 3px 0 2px #ef8a78;outline:none}
 #sheetBody .ew-opt.on{box-shadow:inset 0 0 0 2px #d1a94e,inset 0 3px 0 2px #f3d98b;background:#213a36}

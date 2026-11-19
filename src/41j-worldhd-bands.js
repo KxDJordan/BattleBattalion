@@ -137,11 +137,11 @@ function whMark(g,x,y,kind,f,sc){whPU(g,sc,()=>{g.save();g.imageSmoothingEnabled
 function whDots(g,D,n,R,sc){g.save();g.imageSmoothingEnabled=true;g.fillStyle=WHINK;g.beginPath();for(let i=0;i<n;i+=2){g.moveTo(D[i]+1.2,D[i+1]);g.arc(D[i],D[i+1],1.2,0,Math.PI*2)}g.fill();g.fillStyle='#f4ecd8';g.beginPath();for(let i=0;i<n;i+=2){g.moveTo(D[i]+.7,D[i+1]);g.arc(D[i],D[i+1],.7,0,Math.PI*2)}g.fill();
  if(R&&R.length>1){g.fillStyle='#e8c060';g.globalAlpha=.85;g.beginPath();for(let i=1;i<R.length;i++){const ax=R[i-1].x/WVU,ay=R[i-1].y/WVU,dx=R[i].x/WVU-ax,dy=R[i].y/WVU-ay,L=Math.hypot(dx,dy);for(let d=5;d<L;d+=9){const px=ax+dx*d/L,py=ay+dy*d/L;g.moveTo(px+.55,py);g.arc(px,py,.55,0,Math.PI*2)}}g.fill()}g.restore();void sc}
 const WHPL=new Map();
-function whPlate(txt,col,bg,dpr){const fok=typeof document==='object'&&document.fonts&&document.fonts.check?document.fonts.check('13px "Jersey 15"'):true,id=txt+'|'+col+bg+dpr+(fok?1:0);let c=WHPL.get(id);if(c)return c;if(WHPL.size>80)WHPL.clear();
- const fs=Math.round(13*dpr),pad=Math.round(6*dpr),h=Math.round(17*dpr),b=Math.max(1,Math.round(1.5*dpr));const m=pxCanvas(4,4).getContext('2d');m.font=fs+'px "Jersey 15","Alegreya Sans",sans-serif';const w=Math.ceil(m.measureText(txt).width)+pad*2;
+function whPlate(txt,col,bg,dpr){const fok=typeof document==='object'&&document.fonts&&document.fonts.check?document.fonts.check('13px "Fredoka"'):true,id=txt+'|'+col+bg+dpr+(fok?1:0);let c=WHPL.get(id);if(c)return c;if(WHPL.size>80)WHPL.clear();
+ const fs=Math.round(13*dpr),pad=Math.round(6*dpr),h=Math.round(17*dpr),b=Math.max(1,Math.round(1.5*dpr));const m=pxCanvas(4,4).getContext('2d');m.font=fs+'px "Fredoka","Alegreya Sans",sans-serif';const w=Math.ceil(m.measureText(txt).width)+pad*2;
  c=pxCanvas(w,h+Math.round(2*dpr));const q=c.getContext('2d');q.fillStyle='rgba(11,21,20,.55)';rrect(q,Math.round(2*dpr),Math.round(2*dpr),w-Math.round(2*dpr),h,Math.round(3*dpr));q.fill();
  q.fillStyle=bg==='0'?'#0b1514':'#101d1c';rrect(q,0,0,w-Math.round(2*dpr),h,Math.round(3*dpr));q.fill();q.strokeStyle=bg==='0'?'#26332f':'#35554f';q.lineWidth=b;rrect(q,b/2,b/2,w-Math.round(2*dpr)-b,h-b,Math.round(3*dpr));q.stroke();
- q.font=fs+'px "Jersey 15","Alegreya Sans",sans-serif';q.textBaseline='middle';q.textAlign='center';q.fillStyle=col==='d'?'#f2d98a':col==='n'?'#8d99a6':'#e9e0c9';q.fillText(txt,(w-Math.round(2*dpr))/2,h/2+dpr*.5);WHPL.set(id,c);return c}
+ q.font=fs+'px "Fredoka","Alegreya Sans",sans-serif';q.textBaseline='middle';q.textAlign='center';q.fillStyle=col==='d'?'#f2d98a':col==='n'?'#8d99a6':'#e9e0c9';q.fillText(txt,(w-Math.round(2*dpr))/2,h/2+dpr*.5);WHPL.set(id,c);return c}
 
 /* ---- weather (Detail High): the Low art's scrolling layers, painted smooth at K device px an art px ---- */
 const WHWX=new Map();

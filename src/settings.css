@@ -8,10 +8,10 @@
 .seti{flex:none;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#d1a94e}
 .seti .pxi{image-rendering:pixelated}.seti .ic{width:24px;height:24px}
 .sett{flex:1 1 150px;min-width:0}
-.sett b{display:block;font-family:'Jersey 15',serif;font-size:1.05rem;font-weight:600;line-height:1.15;color:#e9e0c9}
+.sett b{display:block;font-family:'Fredoka',serif;font-size:1.05rem;font-weight:600;line-height:1.15;color:#e9e0c9}
 .sett small{display:block;font-size:.78rem;line-height:1.2;color:#9fb0a4}
 .seg{flex:none;display:flex;margin-left:auto}
-.seg button{min-width:84px;min-height:44px;margin:0;padding:4px 10px;font-family:'Jersey 15',serif;font-size:.95rem;font-weight:600}
+.seg button{min-width:84px;min-height:44px;margin:0;padding:4px 10px;font-family:'Fredoka',serif;font-size:.95rem;font-weight:600}
 .seg button+button{margin-left:-2px}
 #app.nopxb .seg button{border-radius:0;background:#213a36;border:2px solid #0b1514;color:#b9ad8f;text-shadow:none;box-shadow:inset 2px 2px 0 #35554f,inset -2px -2px 0 #101d1c;filter:none;transition:none}
 #app.nopxb .seg button.on{position:relative;background:#d1a94e;color:#0b1514;box-shadow:inset 2px 2px 0 #fff4c8,inset -2px -2px 0 #8a6a2a}
@@ -122,7 +122,7 @@ kbd{display:inline-block;min-width:1.4em;padding:0 4px;font:600 .85rem var(--pxf
 /* ---- sound (26-audio.js): volume sliders in the pixel style ---- */
 .setv.off{opacity:.55}
 .vol{flex:0 1 220px;display:flex;align-items:center;gap:8px;margin-left:auto;min-width:150px}
-.vol output{flex:none;width:2.4em;text-align:right;font:600 .95rem 'Jersey 15',serif;color:#e9e0c9}
+.vol output{flex:none;width:2.4em;text-align:right;font:600 .95rem 'Fredoka',serif;color:#e9e0c9}
 .vol input[type=range]{flex:1 1 auto;min-width:0;height:44px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer;touch-action:pan-y}
 .vol input[type=range]:focus-visible{outline:2px solid #d1a94e;outline-offset:2px}
 .vol input[type=range]::-webkit-slider-runnable-track{height:8px;background:#0b1514;border:2px solid #0b1514;box-shadow:inset 0 0 0 2px #35554f}

@@ -3,7 +3,7 @@
 #inspect{position:absolute;left:0;top:0;z-index:60;display:flex;flex-direction:column;box-sizing:border-box;max-height:calc(100vh - 12px);max-height:calc(100dvh - 12px);width:max-content;min-width:168px;max-width:min(250px,calc(100vw - 16px));padding:9px 11px 10px;background:linear-gradient(#1b302df7,#13231ff7);border:1px solid var(--line);border-top:2px solid var(--brass);border-radius:8px;box-shadow:0 10px 28px #000a,0 0 0 1px #0006;color:var(--vellum);font-size:.8rem;line-height:1.3;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(4px) scale(.97);transform-origin:50% 60%;transition:opacity .12s ease-out,transform .14s ease-out,visibility 0s .14s}
 #inspect.on{opacity:1;visibility:visible;transform:none;transition:opacity .12s ease-out,transform .14s ease-out}
 #inspect .ins-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-#inspect .ins-n{font-family:'Jersey 15','Alegreya Sans',serif;font-size:1.18rem;font-weight:700;line-height:1.05;letter-spacing:.01em}
+#inspect .ins-n{font-family:'Fredoka','Alegreya Sans',serif;font-size:1.18rem;font-weight:700;line-height:1.05;letter-spacing:.01em}
 #inspect .ins-tag{flex:0 0 auto;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:8px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
 #inspect .ins-tag.ally{color:var(--verd);border-color:#58b39c88}
 #inspect .ins-tag.foe{color:#ee7b6f;border-color:#c4493f99}
@@ -44,10 +44,10 @@
 #inspect .ins-bar.hd>i{background:linear-gradient(#f3d98b,#b08a3a)}
 #inspect .ins-bar.sh>i{background:linear-gradient(#a98455,#6b4a2b)}
 #inspect .ins-mor{display:flex;align-items:center;gap:5px;margin:4px 0 0;font-size:.74rem;color:var(--dim)}
-#inspect .ins-mor b{font-family:'Jersey 15','Alegreya Sans',serif;font-size:.86rem;color:#9fe0cd}
+#inspect .ins-mor b{font-family:'Fredoka','Alegreya Sans',serif;font-size:.86rem;color:#9fe0cd}
 #inspect .ins-mor.m0 b{color:#ef8a78}#inspect .ins-mor.m1 b{color:#ff8a3c}#inspect .ins-mor.m2 b{color:#ecc64f}#inspect .ins-mor.m4 b{color:#f3d98b}
 #inspect .pxi{flex:none;display:inline-block;vertical-align:-3px;background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated}
-#inspect .ins-hd{margin:6px 0 2px;font-family:'Jersey 15','Alegreya Sans',serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brass)}
+#inspect .ins-hd{margin:6px 0 2px;font-family:'Fredoka','Alegreya Sans',serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brass)}
 #inspect .ins-hd:first-child{margin-top:0}
 #inspect .ins-ab{display:flex;align-items:flex-start;gap:5px;margin:0 0 4px;font-size:.7rem;line-height:1.22;color:var(--dim)}
 #inspect .ins-ab>div{min-width:0}
@@ -105,8 +105,8 @@
 #insfull .if-h{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
 #insfull .if-ic{flex:none;line-height:0}#insfull .if-ic .pxi,#insfull .if-ic img{width:32px!important;height:32px!important}
 #insfull .if-t{flex:1;min-width:0;display:flex;flex-direction:column}
-#insfull .if-t small{font-family:'Jersey 15','Alegreya Sans',serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brass)}
-#insfull .if-t b{font-family:'Jersey 15','Alegreya Sans',serif;font-size:1.12rem;line-height:1.05;color:#fff4c8}
+#insfull .if-t small{font-family:'Fredoka','Alegreya Sans',serif;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brass)}
+#insfull .if-t b{font-family:'Fredoka','Alegreya Sans',serif;font-size:1.12rem;line-height:1.05;color:#fff4c8}
 #insfull.gd .if-t b{color:#9bd96f}#insfull.bd .if-t b{color:#ef8a78}#insfull.lg .if-t b{color:#ffc069}
 #insfull .if-t i{font-style:normal;font-size:.74rem;color:var(--brass)}
 #insfull .if-x{flex:none;width:26px;height:24px;padding:0;margin:0;border:1px solid var(--line);border-radius:5px;background:#0e1a19;color:var(--vellum);font:700 1.05rem/20px 'Alegreya Sans',sans-serif;cursor:pointer;min-height:0;min-width:0;box-shadow:none}
