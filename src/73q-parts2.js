@@ -161,7 +161,7 @@ function p2Beard(S,hs){const bd=S.beard;if(!bd||hs.fem||hs.el||hs.race==='halfor
    tailor's every swatch shows. In the flag mode leather and metal bodies keep their own primary. Nothing set: null, the armour exactly as drawn.
    Legs: their cloth (k1) <- cloth. */
 function p2LivCol(c,i){const B=typeof BANNERC==='object'&&BANNERC[c];return B?humMix(humHex(B.r[1]),humHex(B.r[2]),.35):i?'#d1a94e':'#2f7868'}
-function p2RampCol(r){if(!r||!r.t)return null;const n=r.t.length,b=r.b==null?1:r.b;return b+1<n?humMix(humRC(r),humRC(r,1),.5):humRC(r)}
+function p2RampCol(r){if(!r||!r.t)return null;const n=r.t.length,b=r.b==null?1:r.b;return b+1<n?humMix(humRC(r),humRC(r,1),.3):humRC(r)}
 function p2DyeCol(k){return k&&typeof usDye==='function'?p2RampCol(usDye(k)):null}
 function p2FinCol(k){if(!k||k==='steel'||typeof usFin!=='function')return null;const f=usFin(k);return f?p2RampCol(f.steel):null}
 function p2Dress(L,ai){const S=L.S,w=typeof G==='object'&&G&&G.wearCol||{},m=L.m,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null;
@@ -188,7 +188,9 @@ const P2_COATCUT={tabard:6,surcoat:7,quilted:8,mantle:9,jinbaori:9,herald:5};
 const P2_COATEM=[1,0,0,0,0,1,1,1,1,1];
 function p2CoatDesign(C){const d=P2_COATDIV[C.dv];if(d!=null)return d;const c=P2_COATCUT[C.cut];return c!=null?c:6}
 function p2CoatCols(C,d,rec){if(!rec)return{R:null,em:'c',fld:'g'};const sec=d>=1&&d<=4||d===5&&P2_COATDIV[C.dv]===5?C.c3||C.c2:C.c2;
- return{R:{r:p2LivCol(C.c1,0),g:d>=1&&d<=5?p2LivCol(sec,1):null},em:C.c2,fld:C.c1}}
+ return{R:{r:p2CoatCol(C.c1),g:d>=1&&d<=5?p2CoatCol(sec):null},em:C.c2,fld:C.c1}}
+// a banner colour on the coat's shade: its mid tone a little lifted (the shade's light parts reach it)
+function p2CoatCol(c){const B=typeof BANNERC==='object'&&BANNERC[c];return B?humMix(humHex(B.r[1]),humHex(B.r[2]),.12):'#808080'}
 // the torso canvas with the surcoat over it (a bigger canvas: c.ox / c.oy its origin in the torso's SU, 73m-skel.js reads them)
 function p2CoatTorso(tc,tn,C){const rec=!(typeof G==='object'&&G&&G.wearCol&&G.wearCol.coat===false),d=p2CoatDesign(C),cn='coat'+d,CP=P2A.p[cn];if(!CP||!tc)return tc;
  const id='coat|'+(tc.pid||tn)+'|'+d+'|'+(rec?C.sig:'own');let c=P2_PC.get(id);if(c)return c;
