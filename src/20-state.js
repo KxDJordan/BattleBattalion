@@ -132,7 +132,7 @@ const MIGRATE={
     older save changes: its shield slots hold shields, its swords keep the trees they carry. The version marks that an older build, which
     would throw an off-hand weapon away as an unknown shield, must not load this save. */
  17:g=>g,
- /* v19: the company's colours on its clothes (73q-parts2.js p2Recolour): G.wearCol {coat: surcoats and tabards in the flag's colours,
+ /* v19: the company's colours on its clothes (73q-parts2.js p2Dress, p2CoatTorso): G.wearCol {coat: surcoats and tabards in the flag's colours,
     cloth: every merc's fabric too}. Older companies keep the look they had: coats in their colours, everyday clothes as they were. */
  18:g=>{g.wearCol={coat:true,cloth:false};return g},
  /* v20: the masteries update. Most tree abilities became passives under the same perk ids (PERKV20: every id whose perk changed);

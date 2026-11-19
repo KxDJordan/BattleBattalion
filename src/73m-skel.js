@@ -94,7 +94,7 @@ function hskBake(K,ext,fn){const t0=performance.now(),x0=ext[0],y0=ext[1],w=ext[
  const cw=a1-a0+1,ch=b1-b0+1,cv=document.createElement('canvas');cv.width=cw;cv.height=ch;cv.getContext('2d').drawImage(c,a0,b0,cw,ch,0,0,cw,ch);
  return{cv,x:x0+a0/K,y:y0+b0/K,w:cw/K,h:ch/K}}
 // a body piece canvas (atlas resolution, humPiece) as an attachment with its pivot at the local origin
-function hskPc(c,R){if(!c)return null;const hk=c.pk||HPA.k;return{cv:c,x:-R.px-1/hk,y:-R.py-1/hk,w:c.width/hk,h:c.height/hk}}
+function hskPc(c,R){if(!c)return null;const hk=c.pk||HPA.k;return{cv:c,x:-R.px-1/hk+(c.ox||0),y:-R.py-1/hk+(c.oy||0),w:c.width/hk,h:c.height/hk}}
 
 /* ---- per look x face x device scale: the rig constants and the baked attachments (lazily) ---- */
 function humSkAssets(L,face,k){const hs=humSpec(L),c=L.skA||(L.skA={}),pp=typeof p2On==='function'&&p2On()?1:0;const key=face+':'+k+':'+pp;let A=c[key];if(A)return A;
@@ -129,7 +129,7 @@ function hskHeadAtt(A,part){if(A.p2)return null;const S=A.S,hs=A.hs,R0=A.R0,back
    if(!back&&!covers)humBeard(g,S,R0,hs.dw);
    if(S.mask&&!back){humSh(g,humP(p=>{p.moveTo(-R0*.2,R0*.42);p.lineTo(R0*1.08,R0*.28);p.quadraticCurveTo(R0*1.05,R0*.95,R0*.45,R0*1.0);p.quadraticCurveTo(-R0*.1,R0*.9,-R0*.2,R0*.42);p.closePath()}),humLit(S.hatR||usCloth('night')))}
    humHat(g,S,R0,back,'over')})})}
-function hskTorsoAtt(A){if(A.p2){const T=A.T;return hskAtt(A,'torso',[-260,-300,260,200],g=>{const pk=T.c.pk,R=T.R;g.drawImage(T.c,-R.px-1/pk,-R.py-1/pk,T.c.width/pk,T.c.height/pk)})}
+function hskTorsoAtt(A){if(A.p2){const T=A.T;return hskAtt(A,'torso',[-260,-300,260,200],g=>{const pk=T.c.pk,R=T.R;g.drawImage(T.c,-R.px-1/pk+(T.c.ox||0),-R.py-1/pk+(T.c.oy||0),T.c.width/pk,T.c.height/pk)})}
  const S=A.S,hs=A.hs,T=A.T,tR=A.tR,tw=A.tw,C=hs.C,shA=A.shA,shB=A.shB,neck=A.neck,f=A.f,back=A.back,mf=A.mf;
  return hskAtt(A,'torso',[-260,-300,260,200],g=>{const hk=HPA.k,R=T.R;if(T.c){g.save();g.scale(tw,1);g.drawImage(T.c,-R.px-1/hk,-R.py-1/hk,T.c.width/hk,T.c.height/hk);g.restore()}
   if(S.coat){const F=humLit(S.coat.F),Kc=humLit(S.coat.K),cut=S.coat.cut,long=cut==='surcoat'||cut==='herald'||cut==='jinbaori',bot=long?66:cut==='quilted'?44:28,w=(cut==='tabard'||cut==='mantle'?36:44)*tw;

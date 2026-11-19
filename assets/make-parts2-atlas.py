@@ -158,8 +158,17 @@ def layers(P, kind, nm=''):
     elif kind in ('hair', 'beard'): L['h'] = grey(hl, True)          # grey shade with the outline in it: multiplied by the hair colour, the outline stays black
     else:
         L['c'] = P.copy()                                 # the piece in its own colours
-        if kind in ('torso', 'arm', 'leg'):   # the cloth, for recolouring to a flag: k1 its main colour, k2 the rest (trim, device)
-            si = int(re.sub(r'\D', '', nm.split('_')[0]) or -1) if kind in ('torso', 'arm') else -1; k1, k2 = cloth_masks(P, si in CLOTH_SETS, kind == 'leg')
+        if kind == 'coat':   # the field (and the charge's place) r, the second colour g
+            Mk = MASKP[nm]; isk = lambda c: (Mk[:, :, 3] > 0) & (Mk[:, :, 0] == c[0]) & (Mk[:, :, 1] == c[1]) & (Mk[:, :, 2] == c[2]) & (al > 0)
+            L['r'] = grey(isk((255, 0, 0)) | isk((255, 255, 0)), False)
+            if isk((0, 255, 0)).sum() >= 4: L['g'] = grey(isk((0, 255, 0)), False)
+        elif kind in ('torso', 'arm') and nm in MASKP:   # the armour's colour mask (assets/parts2/armor-mask.png): one grey shade layer per recoloured key
+            Mk = MASKP[nm]
+            for key, rgb in AMKEYS.items():
+                m = (Mk[:, :, 3] > 0) & (Mk[:, :, 0] == rgb[0]) & (Mk[:, :, 1] == rgb[1]) & (Mk[:, :, 2] == rgb[2]) & (al > 0)
+                if m.sum() >= 4: L[key] = grey(m, False)
+        elif kind == 'leg':   # the trousers, for recolouring (cloth dye, a flag): k1 the cloth
+            k1, k2 = cloth_masks(P, False, True)
             if k1.any(): L['k1'] = grey(k1, False)
             if k2.any(): L['k2'] = grey(k2, False)
         if sk.any() and kind in ('head', 'ehead', 'hand'): L['s'] = grey(sk, False)   # the skin alone, grey: drawn over 'c' tinted for other skin tones
@@ -201,6 +210,10 @@ _, HA = load('hands.png'); nb = cut(HA, [2])[0]
 _, LG = load('legs.png'); lb = cut(LG, [10])[0]
 _, HR = load('hair.webp'); rb = cut(HR, [8, 8, 8, 6], 10)
 _, HM = load('helmets.webp'); mb = cut(HM, [10, 10, 10, 10], 20)
+# the armour colour mask (assets/make-armor-mask.py): red primary, green secondary, blue metal, yellow emblem, magenta straps (black is never
+# recoloured and stays in 'c'); each torso / shoulder piece gets grey shade layers r, g, b, y, m (luminance over the region's light tone)
+AMKEYS = {'r': (255, 0, 0), 'g': (0, 255, 0), 'b': (0, 0, 255), 'y': (255, 255, 0), 'm': (255, 0, 255)}; MASKP = {}; AMEG = {}
+AMASK = np.array(Image.open(os.path.join(D, 'armor-mask.png')).convert('RGBA'))
 _, AR = load('armor.webp'); ab = cut(AR, [10, 20, 7, 14, 10, 20, 10, 20, 10, 20, 4, 8], 6)
 def width(bx): return bx[2] - bx[0]
 med = lambda xs: float(np.median(xs))
@@ -291,15 +304,37 @@ def caps_under(row, tb):
     for a_, b_ in spans:
         sub = MA[y0:y1, a_:b_ + 1]; ys = np.where(sub.any(1))[0]; out.append([a_, y0 + ys[0], b_ + 1, y0 + ys[-1] + 1])
     return out
+def emblem_ground(Mk):
+    """the key (r or g) an armour's emblem sits on: the commoner of the two around its yellow pixels; '' without an emblem"""
+    is_ = lambda c: (Mk[:, :, 3] > 0) & (Mk[:, :, 0] == c[0]) & (Mk[:, :, 1] == c[1]) & (Mk[:, :, 2] == c[2]); y = is_((255, 255, 0))
+    if not y.any(): return ''
+    d = y.copy()
+    for _ in range(5): P_ = np.pad(d, 1); d = d | P_[:-2, 1:-1] | P_[2:, 1:-1] | P_[1:-1, :-2] | P_[1:-1, 2:]
+    return 'g' if (d & is_((0, 255, 0))).sum() > (d & is_((255, 0, 0))).sum() else 'r'
 k = 0
 for ti in range(0, 12, 2):
     for j, b in enumerate(ab[ti]):
         add('torso%d' % (k + j), 'torso', AR, b, sf_torso)
         ca, cb = caps_under(ab[ti + 1], b); add('sh%d_a' % (k + j), 'arm', AR, ca, sf_torso); add('sh%d_b' % (k + j), 'arm', AR, cb, sf_torso)
+        for nm_, bx_ in (('torso%d' % (k + j), b), ('sh%d_a' % (k + j), ca), ('sh%d_b' % (k + j), cb)): MASKP[nm_] = AMASK[bx_[1]:bx_[3], bx_[0]:bx_[2]]
+        AMEG[k + j] = emblem_ground(MASKP['torso%d' % (k + j)])
     k += len(ab[ti])
 
+# ---- surcoats (assets/make-surcoats.py: assets/parts2/surcoats-cut*.png, 5 x 2 cells): coat0..9 drawn over the torso at Detail High.
+# Layers: c the cleaned art (skin cut out, the drawn charge painted out), r the field (with the charge's place) and g the division / stripes /
+# cross / bend / border, as grey shade multiplied by the livery's colours. Anchors: nx / ny the neck opening's centre and top, bw the body's
+# width at the arm holes, and for the charged designs ex, ey, ew, eh the charge's box (where the company's emblem is drawn).
+SCA = np.array(Image.open(os.path.join(D, 'surcoats-cut.png')).convert('RGBA')); SCM = np.array(Image.open(os.path.join(D, 'surcoats-cut-mask.png')).convert('RGBA'))
+SCW, SCH = SCA.shape[1] // 5, SCA.shape[0] // 2; SCB = []
+for d_ in range(10):
+    oy_, ox_ = (d_ // 5) * SCH, (d_ % 5) * SCW; al_ = SCA[oy_:oy_ + SCH, ox_:ox_ + SCW, 3] > 24; ys_, xs_ = np.where(al_)
+    SCB.append([ox_ + xs_.min(), oy_ + ys_.min(), ox_ + xs_.max() + 1, oy_ + ys_.max() + 1])
+sf_coat = sf_torso * med([width(b) for b in ab[0] + ab[2] + ab[4] + ab[6] + ab[8]]) / med([b[2] - b[0] for b in SCB]) * 1.04
+for d_, b in enumerate(SCB):
+    add('coat%d' % d_, 'coat', SCA, b, sf_coat); MASKP['coat%d' % d_] = SCM[b[1]:b[3], b[0]:b[2]]
+
 # ---- anchors (piece-local SU) ----
-def anchors(kind, P, s):
+def anchors(kind, P, s, nm=''):
     al = P[:, :, 3] > 40; h, w = al.shape; A = {}
     def span(y):
         xs = np.where(al[min(h - 1, max(0, int(y)))])[0]; return (xs[0], xs[-1]) if len(xs) else (0, w - 1)
@@ -321,6 +356,15 @@ def anchors(kind, P, s):
         A['nx'] = float(np.mean(nxs)) * s; A['ny'] = float(ny) * s
         x0, x1 = span(h * .3); A['sax'] = (x0 + 6) * s; A['sbx'] = (x1 - 6) * s; A['sy'] = h * .26 * s
         x0, x1 = span(h - 6); A['hx'] = (x0 + x1) / 2 * s; A['hy'] = (h - 10) * s
+    elif kind == 'coat':
+        hole = (~al) & np.maximum.accumulate(al, 0) & np.maximum.accumulate(al, 1) & np.maximum.accumulate(al[:, ::-1], 1)[:, ::-1]
+        hole[int(h * .4):] = False; hole[:, :int(w * .3)] = False   # the neck opening (the arm hole is at the left)
+        ys, xs = np.where(hole); A['nx'] = (xs.min() + xs.max()) / 2 * s; A['ny'] = ys.min() * s; A['nb'] = ys.max() * s
+        x0, x1 = span(h * .45); A['bw'] = (x1 - x0) * s; A['bcx'] = (x0 + x1) / 2 * s
+        Mk = MASKP.get(nm)
+        if Mk is not None:
+            y = (Mk[:, :, 0] > 200) & (Mk[:, :, 1] > 200) & (Mk[:, :, 2] < 60) & (Mk[:, :, 3] > 0)
+            if y.any(): ys, xs = np.where(y); A['ex'] = (xs.min() + xs.max() + 1) / 2 * s; A['ey'] = (ys.min() + ys.max() + 1) / 2 * s; A['ew'] = (xs.max() - xs.min() + 1) * s; A['eh'] = (ys.max() - ys.min() + 1) * s
     elif kind == 'arm':
         x0, x1 = span(4); A['px'] = (x0 + x1) / 2 * s; A['py'] = 10 * s
         x0, x1 = span(h - 4); A['wx'] = (x0 + x1) / 2 * s; A['wy'] = (h - 12) * s
@@ -506,9 +550,10 @@ for n in [q[0] for q in PIECES if q[1] == 'head']:
 items = []; meta = {}
 for name, kind, P, sf, box in PIECES:
     h0, w0 = P.shape[:2]; s = sf   # SU per sheet px
-    meta[name] = {'w': round(w0 * s, 1), 'h': round(h0 * s, 1), 'a': anchors(kind, P, s), 'L': {}, 'k': kind}
+    meta[name] = {'w': round(w0 * s, 1), 'h': round(h0 * s, 1), 'a': anchors(kind, P, s, name), 'L': {}, 'k': kind}
     if name in HFIT: b = HFIT[name]; meta[name]['a'].update({'fx': float(b[1]), 'fy': float(b[2]), 'fs': float(b[3])})
     if name in BANC: meta[name]['a'].update({k_: round(float(v), 1) for k_, v in BANC[name].items()})
+    if kind == 'torso' and int(name[5:]) in AMEG and AMEG[int(name[5:])]: meta[name]['a']['eg'] = AMEG[int(name[5:])]   # the emblem's ground key
     if name in HJAW: meta[name]['a'].update({'bmx': round(float(HJAW[name][0]), 1), 'bmy': round(float(HJAW[name][1]), 1)})
     if name in HEAR: meta[name]['a'].update({'edx': -float(HEAR[name][1]), 'edy': -float(HEAR[name][2])})   # its ear relative to head0's
     for m, arr in layers(P, kind, name).items():
@@ -533,9 +578,10 @@ for im in ims:
     b = io.BytesIO(); im.save(b, 'WEBP', quality=82, method=6, alpha_quality=90); srcs.append('data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode())
 js = ('/* ================= CHARACTER PARTS ATLAS 2 (generated by assets/make-parts2-atlas.py from assets/parts2/*; do not edit) =================\n'
       '   P2A.p[name] = {w,h (SU), k (kind), a (anchors, SU, piece-local), L:{layer:[atlas, ax,ay,aw,ah, ox,oy,ow,oh]}}: the layer\'s rect in atlas P2A.src[atlas]\n'
-      '   and the box it covers in the piece (SU). Layers: c own colours, s skin only (grey shade, over c for other skin tones), h hair (grey shade with the outline). P2A.k atlas px per SU.\n'
+      '   and the box it covers in the piece (SU). Layers: c own colours, s skin only (grey shade, over c for other skin tones), h hair (grey shade with the outline);\n'
+      '   armour pieces r / g / b / y: the colour mask\'s primary, secondary, metal and emblem regions as grey shade (multiplied by a dye); legs k1 / k2 their cloth. P2A.k atlas px per SU.\n'
       '   Pieces: head0..7 (neutral, gritted, shouting, happy, content, surprised, nervous, knocked out), hand_a / hand_b, leg<c>_a / _b (c: tan, blue,\n'
-      '   green, rust, grey), hair0..29, beard0..23 (h layer only), helm0..39, torso0..50 with sh<i>_a / sh<i>_b (the shoulder caps below it). Names in 73q-parts2.js. */\n'
+      '   green, rust, grey), hair0..29, beard0..23 (h layer only), helm0..39, torso0..50 with sh<i>_a / sh<i>_b (the shoulder caps below it), coat0..9 (the surcoat designs). Names in 73q-parts2.js. */\n'
       'const P2A={k:%s,p:%s,\n src:%s};\n') % (K, json.dumps(meta, separators=(',', ':')), json.dumps(srcs))
 open(OUT, 'w').write(js)
 print('parts', len(meta), 'atlases', [im.size for im in ims], 'KB', [round(len(s_) * 3 / 4 / 1024) for s_ in srcs], 'scales head %.2f torso %.2f legs %.2f hand %.2f' % (sf_head, sf_torso, sf_legs, sf_hand))
