@@ -80,7 +80,8 @@ correct depth order; tapping any of its tiles picks it.
 (`early mid late end`). `spawnParty` (40-world.js) chooses factions by the company's strength
 (`companyPower()`: from fielded mercs' levels and gear) and day: early factions anywhere near towns;
 mid/late/end factions only on their own biomes and at a minimum distance from the nearest town that
-shrinks as power and day grow (e.g. end-game: 18+ tiles at first, down to 8 late). Strong bands
+shrinks as power and day grow (e.g. end-game: 18+ tiles at first, down to 8 late; on worlds less remote
+than the vast one the far reach shrinks to fit the map, never nearer than 5 tiles: `SPAWNR`). Strong bands
 are rarer and never in the start region. Existing factions get tiers too (goblins/brigands/beasts
 early, undead/orcs mid, riftspawn per crisis). Hunt contracts use the same rule via
 `factionPool(ctx)` (monsters agent provides; items agent's 50-towns.js `genContract` calls it).

@@ -4,7 +4,8 @@
 //   wolves rarely in deserts; goblins favour the hills; brigands the roads), the dead never form by day, rise at dusk and are gone after
 //   dawn (chasing or not), while bands bound to a crisis, a contract or an event stay; band strength rises with the distance from
 //   civilization (monotone on average) and stays gentle near the towns; the battle is fought on the band's own ground with the family's
-//   own warband; p.fam / p.wild survive a save and bad values are repaired; the same seed spawns the same bands.
+//   own warband; the far reach of the end tier scales with the map's remoteness (wyverns on the small world from ~power 150, never
+//   within SPAWNR.floor of a town; the mid tier never moves); p.fam / p.wild survive a save and bad values are repaired; the same seed spawns the same bands.
 // --dump writes the samples (and the world's tiles) for the pictures (tools: see the report).
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm');
@@ -141,6 +142,28 @@ section('the battle');
    const o=X.partyBattle(p);ok(o.biome===b,fam+' fights on its own ground: '+o.biome);const pv=X.battlePreview(o);ok(pv.bk===b,'the battle map is '+b+': '+pv.bk);
    if(H.units){const ids=X.previewEnemies(o);ok(ids.length&&ids.every(id=>H.units.some(u=>u[0]===id))&&ids.filter(id=>id===H.units[0][0]).length>=ids.length/2,fam+' bring their own: '+ids.join())}}
   X.companyPower=P0;console.log('the battle: ok') }
+
+section('spawn ranges scale with the map');
+{ // the small world: the end tier's far reach shrinks to fit (SPAWNR), wyverns form in its most remote mountains from about power 150
+  const G9=fresh(SEED+16),R=X.spawnRemote(),k=X.spawnFitK(18,R),FL=X.SPAWNR.floor,wy=pw=>X.factionPool({power:pw,crisis:false}).find(e=>e.f==='wyvern');
+  console.log('small world: remoteness '+R.toFixed(1)+' tiles, end tier x'+k.toFixed(2));
+  ok(R>8&&R<14&&k<1,'the small world is too tight for the old end-tier reach: R '+R);
+  for(const pw of [110,150,200,240]){const e=wy(pw);ok(e.minD<e.minD0&&e.minD>=FL&&e.dmin===Math.max(4,e.minD),'wyvern minD scaled at '+pw+': '+e.minD0+' -> '+e.minD)}
+  const S150=sample(G9,2000,13,150,SEED^5),S200=sample(G9,2000,13,200,SEED^6),F=X.worldFields(),w150=S150.filter(s=>s.f==='wyvern'),w200=S200.filter(s=>s.f==='wyvern');
+  console.log('wyverns over 2000 spawns: power 150 '+w150.length+', power 200 '+w200.length);
+  ok(w150.length>=1,'wyverns form on the small world at power 150: '+w150.length);ok(w200.length>w150.length,'and more as the company grows: '+w150.length+' -> '+w200.length);
+  for(const [L,pw] of [[w150,150],[w200,200]])for(const s of L){ok(F.td[s.i]>=FL&&F.td[s.i]>=wy(pw).minD,'a wyvern band too near a town: '+F.td[s.i].toFixed(1)+' tiles');ok(X.biomeHas(s.i,X.FACT.wyvern.biomes),'a wyvern off its ground')}
+  // minD follows the remoteness: monotone, the full reach from SPAWNR.fit x R >= d0, never under the floor
+  let last=-1;for(const rem of [4,6,8,10,12,14,15,20]){const e=X.factionPool({power:150,crisis:false,rem}).find(e=>e.f==='wyvern');ok(e.minD>=last&&e.minD>=FL,'minD rises with remoteness: '+rem+' -> '+e.minD);last=e.minD;if(rem>=15)ok(e.minD===e.minD0,'a world as remote as the vast one keeps the old reach')}
+  ok(X.factionPool({power:150,crisis:false,rem:4}).find(e=>e.f==='wyvern').minD===FL,'the floor holds on the tightest land');
+  // the mid tier never moves: on every world size and every power its minD is the old one
+  for(const pw of [30,60,120,180,240])for(const e of X.factionPool({power:pw,crisis:false}))if(e.tier==='mid'||e.tier==='early')ok(e.minD===e.minD0,e.f+' moved on the small world at '+pw);
+  for(const sz of ['medium','large','vast']){X.setWorldSize(sz);X.seedRng(SEED+17);X.newGame(true,{wsize:sz});closeAll(X);const Rz=X.spawnRemote();
+   for(const pw of [30,60,120,180,240])for(const e of X.factionPool({power:pw,crisis:false})){if(e.tier==='mid'||e.tier==='early')ok(e.minD===e.minD0,e.f+' moved on the '+sz+' world at '+pw);
+    if(e.tier==='end')ok(e.minD<=e.minD0&&e.minD>=Math.min(e.minD0,FL)&&(Rz*X.SPAWNR.fit<18||e.minD===e.minD0),'the end tier on the '+sz+' world')}
+   console.log(sz+' world: remoteness '+Rz.toFixed(1)+', end tier x'+X.spawnFitK(18,Rz).toFixed(2))}
+  X.setWorldSize('small');fresh(SEED);
+  console.log('spawn ranges scale with the map: ok') }
 
 section('saves and determinism');
 { const G8=fresh(SEED+13);G8.hour=23;G8.parties.length=0;X.companyPower=()=>120;for(let i=0;i<30;i++)X.spawnParty();X.companyPower=P0;
