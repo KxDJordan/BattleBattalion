@@ -263,7 +263,7 @@ section('saves: the PKV refit (changed perks refunded, a pistoleer\'s or sapper\
   a.lvl=8;a.trees=['gunner','survivor','scout','skirmisher'];a.perks=['gunner.1','gunner.2','gunner.3','survivor.1','weapons.flintlock'];a.pp=0;
   p.lvl=6;p.trees=['gunner','duelist','scout','rogue'];p.perks=['gunner.3','gunner.4','duelist.1'];p.pp=1;s.lvl=4;s.trees=['scout','gunner','medic','survivor'];s.perks=['gunner.1','scout.1'];s.pp=0;
   const t=G.towns.find(t=>t.recruits&&t.recruits.length),rc=t&&t.recruits[0];if(rc){rc.bg='pistoleer';rc.lvl=5;rc.trees=['gunner','duelist','scout','rogue'];rc.perks=['gunner.3'];rc.pp=0}
-  X.mode='world';ok(X.save(),'save');const g=JSON.parse(X.store.get(X.SAVEKEY));ok(g.pkv===X.PKV&&X.PKV===2,'a save carries the perk version');delete g.pkv;delete g.refund;delete g.refundWhy;g.note=null;
+  X.mode='world';ok(X.save(),'save');const g=JSON.parse(X.store.get(X.SAVEKEY));ok(g.pkv===X.PKV&&X.PKV>=2,'a save carries the perk version');delete g.pkv;delete g.refund;delete g.refundWhy;g.note=null;
   X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.g.pkv===X.PKV&&r.g.v===X.SAVEVER,'an older save loads, refit, same save version');
   const A2=r.g.roster.find(q=>q.id===a.id),P2=r.g.roster.find(q=>q.id===p.id),S2=r.g.roster.find(q=>q.id===s.id);
   ok(A2.perks.join()==='gunner.3,survivor.1'&&A2.pp===3&&A2.trees.includes('gunner'),'Musketry\'s changed tiers and Ramrod drill refunded: '+A2.perks.join()+' pp '+A2.pp);

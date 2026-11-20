@@ -259,7 +259,7 @@ function aiHit(u,a,t,S){const id=a.id+'|'+t.id+'|'+t.hp+'|'+t.arm+'|'+(t.helm||0
   for(let h=0;h<2;h++){const w=h?hc:1-hc;if(!(w>0))continue;const s0=fcSoak(t,d0,ign,!!h,a.pierce,cr),s1=fcSoak(t,d1,ign,!!h,a.pierce,cr),s2=fcSoak(t,d2,ign,!!h,a.pierce,cr);
    hp+=w*Math.min(t.hp,(s0.hp+2*s1.hp+s2.hp)/4);arm+=w*(s0.arm+2*s1.arm+s2.arm)/4;kill+=w*(s0.hp>=t.hp?1:s2.hp<t.hp?0:(s2.hp-t.hp+1)/(s2.hp-s0.hp+1));
    if(!t.fearless&&s2.hp>=heavyHit(t))sv+=w*3;if(bl&&s1.hp>0)sv+=w*aiStatusVal('bleed',bl,t);if(po&&s1.hp>0)sv+=w*aiStatusVal('poison',po,t)}}
- if(a.status)for(const k in a.status)sv+=aiStatusVal(k,a.status[k],t);
+ if(a.status)for(const k in a.status)sv+=aiStatusVal(k,a.status[k],t);if(typeof fsAiVal==='function')sv+=fsAiVal(u,a,t);   // the fist trees: breath, a Suplex's stun (64x-fists.js)
  if(!a.magic&&u.wpn.stun&&!(a.status&&a.status.stun))sv+=u.wpn.stun*aiStatusVal('stun',1,t);
  if(u.onhit)sv+=u.onhit.ch*aiStatusVal('root',u.onhit.root,t);
  const kn=a.kb||u.kbN||0;if(kn&&!buffSum(t,'indom'))sv+=1.5*(a.kb?1:u.kbCh||0);
@@ -315,7 +315,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
  if(!tiles.some(t=>t.k===cur))tiles.push({k:cur,cost:0,pos:aiPos(X,cur)});
  tiles.sort((a,b)=>b.pos-a.pos||a.k-b.k);
  const pos0=aiPos(X,cur);let aoo=0;
- if(!(u.flags&&u.flags.slip&&!u.slipT))for(const e of X.adj)if(!e.aoo&&canFree(e)){const p=hitChance(e,u,FREEAB)/100;aoo=AI_DBG.oldaoo?(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6:((e.wpn.d[0]+e.wpn.d[1])/2*.6*1.3*X.frail+6)*(.4+p);break}   // leaving a foe's reach: its free attack, and a hit halts the walk
+ if(!(u.flags&&u.flags.slip&&!u.slipT)&&!fsSlip(u))for(const e of X.adj)if(!e.aoo&&canFree(e)){const p=hitChance(e,u,FREEAB)/100;aoo=AI_DBG.oldaoo?(e.aiD||((e.wpn.d[0]+e.wpn.d[1])/2*.6))*1.3+6:((e.wpn.d[0]+e.wpn.d[1])/2*.6*1.3*X.frail+6)*(.4+p);break}   // leaving a foe's reach: its free attack, and a hit halts the walk
  let best={v:pos0,s:cur,a:null,k:cur};
  const take=(v,s,a,k)=>{if(v>best.v+1e-6){best={v,s,a,k}}};
  const canWalk=walks<3&&!u.rooted;
@@ -336,6 +336,7 @@ function aiBest(u,X,walks){const P=X.P,plan=X.plan,S=X.S,D=X.D,cur=X.at,atk=X.at
     if(a.chain){let n=0;for(const o of foes)if(o!==t&&mdist(o,t)<=3)n++;extra+=Math.min(a.chain,n)*h.v*.5}
     if((a.dwOff||a.dwSeq)&&u.dw&&typeof dwAiExtra==='function')extra+=dwAiExtra(u,a,t,S)*pr;   // Twin blades: the off-hand blows that follow (64w-dualwield.js)
     if(a.gvol&&typeof gtVolleyAi==='function')extra+=gtVolleyAi(u,a,t,S,X);   // Volley fire: the allies' guns that join (64u-guntrees.js)
+    if(typeof fsAiExtra==='function')extra+=fsAiExtra(u,a,t,S)*pr;   // Double jab (64x-fists.js)
     const bh=a===atk?h:aiHit(u,atk,t,S);
     if(dash){if(!vt.has(key(t.c,t.r)))continue;const p=aiChance(u,a,t,cur),sp=d0>1?dashSpot(u,t):null,end=sp?key(sp[0],sp[1]):cur;
      take(p*(hv(p)+extra)-AI_RISK+follow(u.ap-a.ap,bh.v*pr*(1-p*h.kill)*.6)+aiPos(X,end)-(end!==cur?aoo*.5:0)-tax,cur,a,key(t.c,t.r));continue}
