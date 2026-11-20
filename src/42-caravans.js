@@ -145,7 +145,7 @@ function cvCost(id){const e=HOUSEUNITS.find(x=>x[0]===id);return e?e[1]:25}
 function cvSetup(b,o,used){if(o.cvNames)for(const u of b.units)if(u.side===1&&CVNM[u.eid])cvNameUnit(u,o.cvNames|0);
  if(o.grNames!=null&&typeof grNameUnit==='function')for(const u of b.units)if(u.side===1){grNameUnit(u,o.grNames|0);if(o.livery)u.livery=o.livery}   // a town's garrison as the foe (43-garrisons.js)
  const C=o.cv;if(!svObj(C))return;const ids=Array.isArray(C.ids)?C.ids.slice(0,8):cvGuardIds({t:C.t,cap:C.cap,n:8},C.n|0),L=[];let cost=0;for(const id of ids)cost+=cvCost(id);
- const rk=typeof runK==='function'?runK('budget'):1,bud=battleBudget(Object.assign({},o,{mult:C.gm}))/(rk||1),x=cost>0?bud/cost:1;
+ const rk=typeof budgetK==='function'?budgetK(o):typeof runK==='function'?runK('budget'):1,bud=battleBudget(Object.assign({},o,{mult:C.gm}))/(rk||1),x=cost>0?bud/cost:1;
  for(const id of ids){if(!EN[id])continue;const u=mkEnemy(id,C.f);u.side=0;u.ros=1;u.rx=x>1?Math.min(FOE_RANK.max,Math.pow(x,1/1.15)):1;if(typeof enemyInit==='function')enemyInit(u,id);initUnit(u);
   if(x<1){const k=Math.max(.35,x);u.hp=u.hpMax=Math.max(8,Math.round(u.hpMax*Math.pow(k,.6)));const dk=Math.pow(k,.4);u.wpn.d=[Math.round(u.wpn.d[0]*dk),Math.round(u.wpn.d[1]*dk)];u.dmgK=(u.dmgK||1)*dk}
   u.side=0;u.ally=1;u.grd=1;u.f=C.f;if(C.gar&&typeof grNameUnit==='function')grNameUnit(u,C.ti|0);else cvNameUnit(u,C.t);if(C.livery)u.livery=C.livery;L.push(u)}   // a garrison's soldiers wear their house's livery (43-garrisons.js)
@@ -289,7 +289,7 @@ function escParty(c){c=c===undefined?escCtr():c;if(!c||!c.live||!G||!Array.isArr
 // the guards measured against the company the way a band is (their hire, as fielded, over the company's battle budget: a band's mult is
 // its budget over the same), at most ESC.gmax; and the escort: the company's 1 plus the guards at ESC.gk of that (AI-led guards in the line
 // prove worth about half their hire beside the company: test/escort.js "the battle's measure")
-function escGuardShare(p){const g=cvGuardOf(p);if(!(g.n>0))return 0;let cost=0;for(const id of cvGuardIds(g))cost+=cvCost(id);const rk=typeof runK==='function'?runK('budget'):1,b=typeof battleBudget==='function'?battleBudget({f:'bandit',mult:1})/(rk||1):0;
+function escGuardShare(p){const g=cvGuardOf(p);if(!(g.n>0))return 0;let cost=0;for(const id of cvGuardIds(g))cost+=cvCost(id);const rk=typeof budgetK==='function'?budgetK({f:'bandit',mult:1}):typeof runK==='function'?runK('budget'):1,b=typeof battleBudget==='function'?battleBudget({f:'bandit',mult:1})/(rk||1):0;
  return b>0?Math.round(clamp(cost/b,0,ESC.gmax)*100)/100:0}
 function escStr(p){return Math.round((ESC.co+ESC.gk*escGuardShare(p))*100)/100}
 // {c, p, s} while the company marches beside its caravan (not in a clash); null otherwise

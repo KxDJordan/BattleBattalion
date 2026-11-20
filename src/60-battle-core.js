@@ -80,11 +80,11 @@ function openBattleMap(tiles){const N=BW*BH,start=key(COLS[0],BH-1);
   const prev=new Int32Array(N).fill(-1),vis=seen.slice(),bq=q.slice();let hit=-1;
   for(let i=0;i<bq.length&&hit<0;i++){const c=bq[i]%BW,r=(bq[i]/BW)|0;for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=key(nc,nr);if(vis[nk])continue;vis[nk]=1;prev[nk]=bq[i];if(tiles[nk].t!=='block'){hit=nk;break}bq.push(nk)}}
   if(hit<0)return;for(let k=prev[hit];k>=0&&!seen[k];k=prev[k])tiles[k].t='ground'}}
-function buildEnemies(f,budget,fixed,mult,units){if(typeof FACT[f].build==='function'&&!(fixed&&fixed.length))return FACT[f].build(budget,mult==null?1:mult).slice(0,MAXFOES);const list=(fixed||[]).slice(),U=Array.isArray(units)&&units.length&&units.every(u=>Array.isArray(u)&&EN[u[0]]&&u[1]>0)?units:FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
+function buildEnemies(f,budget,fixed,mult,units,o){if(typeof FACT[f].build==='function'&&!(fixed&&fixed.length))return FACT[f].build(budget,mult==null?1:mult).slice(0,MAXFOES);const list=(fixed||[]).slice(),U=Array.isArray(units)&&units.length&&units.every(u=>Array.isArray(u)&&EN[u[0]]&&u[1]>0)?units:FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
  const solo=typeof isSolo==='function'&&isSolo()&&!(fixed&&fixed.length);
  // one sword who hunts a monster band it cannot yet afford meets the monster itself, alone (an ogre, not its goblin hangers-on)
  if(solo&&FACT[f].tier==='mid'&&!list.length&&U[0][1]>budget){list.push(U[0][0]);budget=0}
- const most=solo?Math.min(MAXFOES,SOLOMAX):MAXFOES;
+ const most=solo?Math.min(MAXFOES,soloDiff(o).max||SOLOMAX):MAXFOES;
  while(list.length<most&&budget>=minC&&g++<200){const u=pick(U.filter(u=>u[1]<=budget));list.push(u[0]);budget-=u[1]}
  // one sword: a band too poor for a second foe brings one, or a second with the chance its leftover buys (SOLOFLOOR above)
  const floor=SOLOFLOOR&&solo&&list.length===1&&budget<minC*SOLOFLOOR?(budget>0&&rnd()<budget/(minC*SOLOFLOOR)?2:1):2;
@@ -96,6 +96,8 @@ function buildEnemies(f,budget,fixed,mult,units){if(typeof FACT[f].build==='func
    band brings. SOLOFLOOR: a band that bought one foe brings a second with the chance leftover / (SOLOFLOOR x the cheapest foe's cost).
    A monster band (tier 'mid') too poor for its lead monster is that monster alone (buildEnemies). */
 let SOLOFLOOR=1,SOLOMAX=2;
+// Brutal (22-run.js DIFF.brutal.solo): {max: the most foes a solo band brings, instead of SOLOMAX}; {} on the other levels and in the arena
+function soloDiff(o){if(typeof diffX!=='function'||o&&o.arena)return{};const x=diffX('solo');return x&&typeof x==='object'?x:{}}
 const SOLOBUD={base:6,lvl:7,knee:6,late:4};   // 27 at level 3, 48 at 6, 60 at 9, 72 at 12 (a company merc, mercBud: 25 44 64 85)
 /* ---- Units ----
    A battle unit (both sides): side, name, lvl, hp/hpMax, arm/armMax (body armor), helm/helmMax (head armor), ap/apMax, fat/fatMax,
@@ -189,7 +191,12 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 const MERCBUD={base:7.5,lvl:5.6,sq:.07};   // what a company merc adds to the enemy budget: base + lvl a level + sq a level squared (13.2 at level 1, 31 at 4, 57 at 8, 85 at 12), times gearK (the company's strength: levels and gear, never the day). Level 1 is forgiving on purpose: a struck-down recruit lives only 30% of the time
 const mercBud=L=>MERCBUD.base+MERCBUD.lvl*L+MERCBUD.sq*L*L;
 const GEARK=.06;function gearK(m){const g=typeof gearPower==='function'?gearPower(m):2.3;return 1+GEARK*Math.max(0,g-2.3)}
-function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?mercBud(m.lvl):sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*runK('budget')}   // difficulty: diffK('budget')
+function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?mercBud(m.lvl):sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*budgetK(o)}   // difficulty: diffK('budget'), Brutal's veterans (budgetK)
+/* budgetK(o): the difficulty's factor on the enemy budget: diffK('budget'), and on Brutal (22-run.js DIFF.brutal.vet = {k, lvl0, span}) times
+   1 + k x clamp((the fielded swords' average level - lvl0) / span, 0, 1): the longer the march, the harder the bands it meets (veteran foes, then
+   full warbands), so a seasoned company or a geared hero does not outgrow Brutal. The other levels: diffK('budget') alone. Not in the arena. */
+function budgetK(o){let k=runK('budget');const V=typeof diffX==='function'&&!(o&&o.arena)?diffX('vet'):null;
+ if(V&&V.k>0){let F=[];try{F=battleField(o)}catch(e){F=[]}if(F.length){const L=F.reduce((s,m)=>s+(+m.lvl||1),0)/F.length;k*=1+V.k*clamp((L-(V.lvl0||0))/(V.span||1),0,1)}}return k}
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
 /* ---- Fixed rosters (Phase 8B endgame, CONTRACT.md): o.roster = [{id, n?, lvl?, elite?, at?:{c,r}, name?, hpK?}] is the enemy side exactly as
@@ -209,7 +216,7 @@ function mkRosterUnit(e,f,dk){const u=mkEnemy(e.id,e.f&&FACT[e.f]?e.f:f);u.rx=ro
  {const nm=String(EN[e.id].n).toLowerCase();u.name=e.elite?'Elite '+nm:u.rank>=1.5?'Veteran '+nm:EN[e.id].n}if(e.name)u.name=e.name;   // 'Elite' only for the elite-markedu.elite=e.elite?1:0;
  if(Array.isArray(e.el)&&e.el.length)u.elRos=e.el.slice();   // explicit elite modifiers of a fixed roster entry (64e-elites.js)
  if(e.at&&Number.isInteger(e.at.c)&&Number.isInteger(e.at.r)&&inb(e.at.c,e.at.r))u.slot={c:e.at.c,r:e.at.r};return u}
-function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o)*(typeof eliteKeep==='function'?eliteKeep(o):1),o.fixed,o.mult,o.units))
+function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o)*(typeof eliteKeep==='function'?eliteKeep(o):1),o.fixed,o.mult,o.units,o))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
 function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',rv=o.rival?battleRival(o.rival):null,budget=rv||Array.isArray(o.roster)?0:battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);

@@ -14,14 +14,16 @@
 //   2. The order holds: Story >= Normal >= Hard >= Brutal (sensible, pooled; a little slack for noise between Story and Normal).
 //   3. Solo is not a free ride on Brutal: the solo runs' sensible win rate on Brutal at least BRUTAL.soloGap points below their Normal one.
 //   4. Normal and Hard are untouched by the Brutal rules: on fixed seeds every battle's foes (ids, rank, elites, hitpoints) at Story / Normal /
-//      Hard are exactly what the base formula gives (budget x DIFF[k].budget, no Brutal extras), for a company and for both solo runs.
+//      Hard are exactly what the base formula gives (budget x DIFF[k].budget, no Brutal extras), for a company and for both solo runs, and
+//      a few whole Normal / Hard battles a stage (both pilots) end exactly as recorded in test/brutal-ref.json (written on the base, before
+//      the Brutal rules: node test/brutal.js --write-ref --srcdir <the base's src>).
 'use strict';
 const path=require('path'),cp=require('child_process'),fs=require('fs');
 const ARGV=process.argv.slice(2),has=f=>ARGV.includes(f),arg=(f,d)=>{const i=ARGV.indexOf(f);return i>=0&&i+1<ARGV.length?ARGV[i+1]:d};
 process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();
 const SEED=+arg('--seed',20261120),DIFFS=['story','normal','hard','brutal'],PILOTS=['naive','sensible'],FACS=['gob','undead','beast','orc','bandit','void'];
 const REF={};
-const BRUTAL={gap:12,soloGap:20,blood:1.1};
+const BRUTAL={gap:15,soloGap:20,blood:1.1};
 const ISEK=[{id:'I3',lvl:3,day:3},{id:'I6',lvl:6,day:16,gear:{w:'arming',s:'kite',a:'mail',h:'kettle'}},{id:'I9',lvl:9,day:32,gear:{w:'arming',s:'heater',a:'mail',h:'nasal'}}];
 const GROUPS={
  company:{profs:['L4x6','L8x9','L12x12'],facs:FACS,k:8},
@@ -44,7 +46,7 @@ function setSide(X,grp,c,P,f,diff){const G=X.G;G.roster=X.clone(c.roster);G.stas
 function battleSeed(grp,id,i){return(hash(grp+'|'+id)^Math.imul(i+1,2654435761)^SEED)>>>0}
 async function fight(X,W,job,i){const G0=GROUPS[job.grp],P=profOf(job.prof),f=G0.facs[i%G0.facs.length],cs=W[job.grp+'/'+job.prof],c=cs[i%cs.length];
  setSide(X,job.grp,c,P,f,job.diff);const G=X.G,n0=G.roster.length;X.seedRng(battleSeed(job.grp,job.prof,i));
- const res=await X.autoBattle({f,mult:1,biome:['plains','forest','hills','swamp','desert','snow'][i%6],pilot:job.pilot,src:{type:'test'},turnCap:4000});
+ const res=await X.autoBattle({f,mult:job.mult||1,biome:['plains','forest','hills','swamp','desert','snow'][i%6],pilot:job.pilot,src:{type:'test'},turnCap:4000});
  if(!res)throw new Error('battle did not start');if(X.FX.err)throw X.FX.err;
  let hp=0,hpM=0;for(const r of res.men||[]){hpM+=r.hpMax||0;hp+=r.state==='dead'?0:r.state==='down'?0:Math.min(r.hpMax||0,r.hp||0)}
  const b=X.B,elites=b?b.units.filter(u=>u.side===1&&u.elite&&u.elite.length).length:0,foes=b?b.units.filter(u=>u.side===1&&!u.spawned).length:0;X.B=null;X.mode='world';
@@ -76,13 +78,17 @@ if(has('--worker')){let S=null;const q=[];let busy=false;
     base[d]=a;n++}
    const key=grp+'/'+prof+'/'+i;
    if(has('--write-ref')){REF[key]=base}else if(ref[key]){for(const d in base)if(JSON.stringify(ref[key][d])!==JSON.stringify(base[d]))fail(`${key} ${d}: the band changed: ${JSON.stringify(base[d])} vs ${JSON.stringify(ref[key][d])}`)}else fail(`${key}: no reference band (node test/brutal.js --write-ref on the base)`)}}
+  // and whole battles: a few fights a stage at Normal and Hard, sensible and naive, end exactly as on the base (the foes' AI included)
+  let nf=0;for(const grp of grps)for(const prof of GROUPS[grp].profs)for(const diff of ['normal','hard'])for(const pilot of PILOTS)for(let i=0;i<2;i++){
+   const o=await fight(X,S.W,{grp,prof,diff,pilot},i),key='fight/'+[grp,prof,diff,pilot,i].join('/'),v=JSON.stringify(o);nf++;
+   if(has('--write-ref'))REF[key]=o;else if(!ref[key])fail(key+': no reference fight');else if(JSON.stringify(ref[key])!==v)fail(`${key}: the battle changed: ${v} vs ${JSON.stringify(ref[key])}`)}
   if(has('--write-ref')){fs.writeFileSync(path.join(__dirname,'brutal-ref.json'),JSON.stringify(REF));console.log('wrote test/brutal-ref.json: '+Object.keys(REF).length+' battles');return}
-  console.log(`gate 4: ${n} Story / Normal / Hard bands exactly as on the base (budget x DIFF[k].budget, the same foes, rank, elites and hitpoints)`)}
+  console.log(`gate 4: ${n} Story / Normal / Hard bands exactly as on the base (budget x DIFF[k].budget, the same foes, rank, elites and hitpoints), ${nf} Normal / Hard battles end exactly as on the base`)}
  const jobs=[];let id=0;const CH=Math.max(5,Math.ceil(N/4));
- for(const grp of grps)for(const prof of GROUPS[grp].profs)for(const pilot of pilots)for(const diff of diffs)for(let i0=0;i0<N;i0+=CH)jobs.push({id:id++,grp,prof,pilot,diff,i0,n:Math.min(CH,N-i0)});
+ for(const grp of grps)for(const prof of GROUPS[grp].profs)for(const pilot of pilots)for(const diff of diffs)for(let i0=0;i0<N;i0+=CH)jobs.push({id:id++,grp,prof,pilot,diff,i0,n:Math.min(CH,N-i0),mult:+arg('--mult',1)});
  const ws=[];let next=0,left=jobs.length;
  await new Promise((done,bad)=>{const feed=w=>{if(next<jobs.length){w.cur=jobs[next++];w.send(w.cur)}};
-  for(let i=0;i<J;i++){const w=cp.fork(__filename,['--worker'],{env:process.env});ws.push(w);
+  for(let i=0;i<J;i++){const w=cp.fork(__filename,['--worker'].concat(has('--srcdir')?['--srcdir',arg('--srcdir')]:[]),{env:process.env});ws.push(w);
    w.on('message',m=>{if(m.err){ws.forEach(x=>x.kill());bad(new Error(m.err));return}jobs[m.id].res=m.r;process.stderr.write('.');if(--left===0){ws.forEach(x=>x.send('quit'));done()}else feed(w)});feed(w)}}).catch(e=>fail(e.stack||e));
  process.stderr.write('\n');
  const cell={};for(const j of jobs){const k=[j.grp,j.prof,j.pilot,j.diff].join('|'),c=cell[k]||(cell[k]={win:0,stuck:0,rounds:0,lost:0,dead:0,down:0,inj:0,foes:0,elites:0,n:0});for(const x in c)c[x]+=j.res[x]}
