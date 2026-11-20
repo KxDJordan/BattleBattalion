@@ -6,7 +6,7 @@
    s.deadT; normalised by the game speed), so a drawn swing or yelp is not squeezed into the game's 240 ms attack or 230 ms flinch:
    - a blow: the frames from `from` up to the impact frame `imp` share the wind-up, `imp` shows at the impact (hit: 'melee' =
      AN_HIT_AT of the 240 ms attack, when 75-fx.js lands a melee blow; 'shot' = 40 ms, when it looses a plain or poison arrow; 'spell'
-     = 90 ms, when it launches a bolt spell such as the shaman's hex), the
+     = 90 ms, when it launches a bolt spell such as the shaman's hex; 'web' = 60 ms, when the Webspinner's spat web leaves), the
      rest share the follow-through until `ms`; the figure keeps playing them after unitPose has gone back to idle, until a newer
      event (a move, a blow taken, death) takes over.
    - hit: the hurt row over `ms` from the blow landing; death: over the collapse and its hold (420 + 150 ms at normal speed), then its
@@ -15,7 +15,8 @@
      row}, pick(u, st, s) -> a variant row (the wolf's bite, the archer's poison arrow and knife, the shaman's chant, the owlbear's
      swipe and charge), rig + rigSt: the states
      drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js), dress(Fr, id, u, K, row, frame, dy): adds the unit's
-     own gear to a frame (the skeleton soldiers' weapon and shield in their colour-keyed hands, 76m-skelsol.js)}.
+     own gear to a frame (the skeleton soldiers' weapon and shield in their colour-keyed hands, 76m-skelsol.js), vary(u) -> another
+     FS_DEF id whose sheet this unit is drawn from (the Webspinner's sand spider in a desert battle, 76o-spider.js), or ''}.
    - Frames are anchored on the body's centre over the feet (the atlas's ax / ay); a figure stands SHEETS[id].h art px tall like its
      old painted sheet, its feet SHEETS[id].dy art px under the tile point as the painted figure's were. Faces: the sheets face screen-right
      (the front three-quarter view): face 0 as drawn, face 1 mirrored, the back facings the front frames (face 3 = face 0, face 2 =
@@ -24,7 +25,7 @@
      fsBuild bakes one for sheetSpritePx (effects, tests, the first frames). null at Detail Low, before the atlas has loaded or for any
      other foe: the pixel figure is drawn then. No rnd(). */
 const FS={img:{},pc:new Map(),bk:new Map(),bkN:[],off:0,err:0,frames:0,bakes:0};
-const FS_SHOT_MS=40,FS_SPELL_MS=90;       // 75-fx.js: a plain or poison arrow leaves the bow 40 ms after the shot; a bolt spell (the hex) 90 ms after the cast
+const FS_SHOT_MS=40,FS_SPELL_MS=90,FS_WEB_MS=60;       // 75-fx.js: a plain or poison arrow leaves the bow 40 ms after the shot; a bolt spell (the hex) 90 ms after the cast; a web 60 ms
 const FS_DEF={
  gob:{atl:()=>typeof GBA==='object'?GBA:null,an:{idle:{f:'idle',loop:1,rate:2},walk:{f:'run',loop:1,rate:1},flee:{f:'run',loop:1,rate:1},
   attack:{f:'attack',imp:3,hit:'melee',ms:520},hit:{f:'hit',ms:600},death:{f:'death'},cast:{f:'idle',loop:1,rate:2},swap:{f:'idle',loop:1,rate:2},reload:{f:'idle',loop:1,rate:2}}},
@@ -47,7 +48,7 @@ const FS_DEF={
   hit:{f:'hit',ms:600},death:{f:'death'},swap:{f:'idle',loop:1,rate:2},reload:{f:'idle',loop:1,rate:2}},
   pick:(u,st,s)=>st!=='attack'||!s?'':s.mv&&s.mk===(typeof AN_DASH==='number'?AN_DASH:4)?'charge':s.vaId==='bswipe'&&fsNow()-(s.vaT||-1e9)<2500?'swipe':''}};
 function fsNow(){return typeof anNow==='function'?anNow():0}
-function fsId(u){if(!u||!u.def||u.m)return null;const id=typeof msEnKey==='function'?msEnKey(u.def):null;return id&&FS_DEF[id]?id:null}
+function fsId(u){if(!u||!u.def||u.m)return null;const id=typeof msEnKey==='function'?msEnKey(u.def):null,D=id&&FS_DEF[id];if(!D)return null;const v=D.vary?D.vary(u):'';return v&&FS_DEF[v]?v:id}   // vary: another sheet for this unit (the Webspinner in the desert)
 function fsImg(id){const D=FS_DEF[id],A=D&&D.atl();if(!A||typeof Image==='undefined'||FS.off)return null;let I=FS.img[id];if(!I){I=FS.img[id]=new Image();I.decoding='async';I.src=A.src}return I.complete&&I.naturalWidth?I:null}
 function fsOn(u){const id=fsId(u);return!!id&&(typeof hdArt!=='function'||hdArt())&&typeof document!=='undefined'&&!!fsImg(id)}
 // the figure's scale: SHEETS[id].h art px for the atlas's standing height H (WU, the atlas's units); dy: the feet under the tile point (WU)
@@ -59,7 +60,7 @@ function fsPc(id,key,R,ox,oy,K){const k=id+':'+key+':'+K;let a=FS.pc.get(k);if(a
  const W=Math.max(2,Math.ceil(R.w*K)+2),H=Math.max(2,Math.ceil(R.h*K)+2),cv=document.createElement('canvas');cv.width=W;cv.height=H;const q=cv.getContext('2d');if(!q)return null;
  q.imageSmoothingEnabled=true;try{q.imageSmoothingQuality='high'}catch(e){}q.drawImage(I,R.r[0],R.r[1],R.r[2],R.r[3],1,1,R.w*K,R.h*K);FS.bakes++;
  a={cv,x:-ox-1/K,y:-oy-1/K,w:W/K,h:H/K};FS.pc.set(k,a);return a}
-function fsHitMs(d){return d.hit==='shot'?FS_SHOT_MS:d.hit==='spell'?FS_SPELL_MS:d.hit==='melee'?240*(typeof AN_HIT_AT==='number'?AN_HIT_AT:.38):0}
+function fsHitMs(d){return d.hit==='shot'?FS_SHOT_MS:d.hit==='spell'?FS_SPELL_MS:d.hit==='web'?FS_WEB_MS:d.hit==='melee'?240*(typeof AN_HIT_AT==='number'?AN_HIT_AT:.38):0}
 /* which frame of a row (n frames): loops by the cycle c; timed rows by el (ms since the event, at normal speed); others by the phase t */
 function fsIdx(n,d,c,el,t){if(n<=1)return 0;if(d.loop){const x=c*(d.rate||1);return Math.min(n-1,Math.floor((x-Math.floor(x))*n))}
  if(d.ms){el=Math.max(0,el);const a=d.from|0;if(d.imp!=null){const H=fsHitMs(d);if(el<H)return Math.min(d.imp-1,a+Math.floor(el/H*(d.imp-a)));return Math.min(n-1,d.imp+Math.floor((el-H)/(d.ms-H)*(n-d.imp)))}

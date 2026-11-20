@@ -98,8 +98,11 @@ def build(var, C):
     for n, (of, share) in C['lower'].items():          # the same size as its piece (the same pivot), its upper part cleared
         t = P[of].copy(); t[:int(t.shape[0] * share), :, 3] = 0; t[t[..., 3] == 0, :3] = 0; P[n] = t
     y0, y1 = C['head_band']
-    hc = sorted([c for c in comps if y0 <= (c[3] + c[5]) / 2 < y1], key=lambda c: c[2]); assert len(hc) == len(heads), (var, len(hc))
+    hc = sorted([c for c in comps if y0 <= (c[3] + c[5]) / 2 < y1], key=lambda c: c[2]); assert len(hc) == len(heads), (var, len(hc), len(heads))
     H8 = [ff.trim(ff.cut(S, lab, c)[0])[0] for c in hc]
+    if C.get('neutral'):   # the part-row head is the 'neutral' head; the row's heads are brought to its size (the spiders)
+        hp = comp_cut(C['head_part']); k = hp.shape[1] / H8[0].shape[1]
+        H8 = [hp] + [ff.scale(h, k) for h in H8]; heads = ['neutral'] + list(heads)
     HOFF = [(0, 0)] + [(-a, -b) for a, b in (align(h, H8[0]) for h in H8[1:])]   # each head's top left in the neutral head's px
     for n, h in zip(heads, H8): P['head_' + n] = h
     head_k = comp_cut(C['head_part']).shape[1] / H8[0].shape[1]                   # the row-2 heads at the part-row head's size
