@@ -236,7 +236,15 @@ function setPatrol(p){p.pts=patrolPts(p.x,p.y);if(p.pts.length<2){patrolHop(p);r
      it roams only once prog >= gate; then, with t = (prog - gate) / (1 - gate), at least minD = d0 + (d1 - d0) t tiles from the nearest
      town, with weight w0 + (w1 - w0) t; mid/late/end factions only on their own biomes (FACT[f].biomes) and, before prog .6, never within
      startD = 16 (1 - prog / .6) tiles of the starting town. Early factions roam anywhere. Riftspawn keep their crisis logic.
-   When the world has no ground that far from its towns (the small world), the farthest tenth of the faction's ground is used instead. */
+   Scaled to the map (SPAWNR): R = the world's remoteness, the 95th percentile of the distance to the nearest town over its walkable
+     land (worldFields().rem: small ~11.7, medium ~12, large ~13, vast ~16; no rnd draw). A tier's curve was laid out for a world where
+     its far end d0 fits within SPAWNR.fit x R (end: 18 tiles = .95 x R0, R0 ~19: wyverns reach roughly the remotest twentieth of any world from about power 120); on a tighter world the
+     whole curve shrinks by k = min(1, SPAWNR.fit x R / d0), so minD = max(min(raw, SPAWNR.floor), round(raw x k)): never nearer than
+     5 tiles to a town (and never below the 2.5 every band keeps). Mid (d0 10) fits every world as it is (k = 1); the end tier (wyverns)
+     shrinks to ~.62 on the small world and ~.84 on a vast one. Contracts' lair distances (dmin, dmax) follow
+     the scaled minD. e.minD0 keeps the unscaled distance.
+   When the world still has no ground that far from its towns, the farthest tenth of the faction's ground is used instead (factionSpot). */
+const SPAWNR={q:.95,fit:.95,floor:5};
 const SPAWNT={early:{gate:0,d0:0,d1:0,w0:1,w1:.55},mid:{gate:.08,d0:10,d1:3,w0:.35,w1:.9},late:{gate:.2,d0:14,d1:5,w0:.2,w1:.8},end:{gate:.4,d0:18,d1:8,w0:.06,w1:.4}};
 const TERRN=['water','plains','forest','hills','mountains','swamp','desert','snow'];
 function gearPower(m){let p=0;const eq=m&&m.eq||{};for(const k of ['w','b','s','a','h']){const it=eq[k]&&ITEMS[eq[k]];if(it)p+=it.price||0}return Math.min(9,Math.log2(1+p/150)*1.1)}
@@ -245,18 +253,24 @@ function spawnProg(power,day){return clamp((power-8)/235,0,1)}   // how far dang
 /* factionPool(ctx): the factions that may appear now, [{f, w (weight), minD (tiles from the nearest town), dmin..dmax (tiles from the
    contract's town for a lair), startD, tier, biomes}].
    ctx (all optional): {power, day, crisis (include riftspawn: default G.crisis), prog}. Used by spawnParty and by genContract. */
-function factionPool(ctx){ctx=ctx||{};const power=ctx.power!=null?ctx.power:companyPower(),day=ctx.day!=null?ctx.day:(G?G.day:1),prog=ctx.prog!=null?ctx.prog:spawnProg(power,day),out=[];
+function factionPool(ctx){ctx=ctx||{};const power=ctx.power!=null?ctx.power:companyPower(),day=ctx.day!=null?ctx.day:(G?G.day:1),prog=ctx.prog!=null?ctx.prog:spawnProg(power,day),R=ctx.rem!=null?ctx.rem:spawnRemote(),out=[];
  for(const f in FACT){const F=FACT[f],tier=F.tier||'early';if(F.house)continue;if(tier==='crisis'){if((ctx.crisis!=null?ctx.crisis:G&&G.crisis)&&crFactLive(f))out.push({f,w:F.crisis==='sunder'?.5:.3,minD:0,startD:0,tier,biomes:null});continue}
   const S=Object.assign({},SPAWNT[tier]||SPAWNT.early,F.spawn||{});if(prog<S.gate)continue;const t=S.gate<1?(prog-S.gate)/(1-S.gate):1;
-  const minD=Math.round(S.d0+(S.d1-S.d0)*t);out.push({f,w:Math.round((S.w0+(S.w1-S.w0)*t)*1000)/1000,minD,dmin:Math.max(4,minD),dmax:Math.max(4,minD)+(tier==='end'?8:6),startD:tier==='early'?0:Math.max(0,Math.round(16*(1-prog/.6))),tier,biomes:tier==='early'?null:F.biomes||null})}
+  const raw=S.d0+(S.d1-S.d0)*t,minD0=Math.round(raw),k=spawnFitK(S.d0,R),minD=k<1?Math.max(Math.min(minD0,SPAWNR.floor),Math.round(raw*k)):minD0;
+  out.push({f,w:Math.round((S.w0+(S.w1-S.w0)*t)*1000)/1000,minD,minD0,dmin:Math.max(4,minD),dmax:Math.max(4,minD)+(tier==='end'?8:6),startD:tier==='early'?0:Math.max(0,Math.round(16*(1-prog/.6))),tier,biomes:tier==='early'?null:F.biomes||null})}
  if(typeof runModPool==='function')runModPool(out);   // the run's twists (27-runmods.js)
  return out}
+// the world's remoteness R (SPAWNR: worldFields().rem), or null with no world; spawnFitK(d0, R): how much a tier's curve shrinks (1 = as laid out)
+function spawnRemote(){const F=typeof W!=='undefined'&&W?worldFields():null;return F&&F.rem>0?F.rem:null}
+function spawnFitK(d0,R){return R>0&&d0>0?Math.min(1,SPAWNR.fit*R/d0):1}
 // a crisis faction roams as plain bands only while its crisis is under way (or scarred the land); riftspawn: the Sundering
 function crFactLive(f){const k=FACT[f]&&FACT[f].crisis||'sunder',c=G&&G.crisis;if(!c)return false;if((c.k||'sunder')!==k)return Array.isArray(G.crScar)&&G.crScar.some(s=>s.k===k);return !c.ended||(c.lost&&!c.won)||k==='sunder'}
-// Distance in tiles from every world tile to the nearest town, and to the nearest peak (cached per world and town list).
+// Distance in tiles from every world tile to the nearest town, and to the nearest peak (cached per world and town list);
+// rem: the world's remoteness (SPAWNR.q percentile of td over the walkable land, W.ok).
 function worldFields(){if(!W||!G)return null;const sig=W.seed+'|'+WN+'|'+G.towns.length;if(W.fld&&W.fld.sig===sig)return W.fld;const N=WN*WN,td=new Float32Array(N),T=G.towns.map(t=>[t.x/TS-.5,t.y/TS-.5]);
  for(let i=0;i<N;i++){const x=i%WN,y=(i/WN)|0;let m=1e9;for(const [a,b] of T){const d=Math.hypot(x-a,y-b);if(d<m)m=d}td[i]=m}
- const md=wgBfs(i=>W.tiles[i]===4);W.fld={sig,td,md};return W.fld}
+ const md=wgBfs(i=>W.tiles[i]===4);let n=0;const L=new Float32Array(N);for(let i=0;i<N;i++)if(W.ok[i])L[n++]=td[i];
+ const v=L.subarray(0,n).sort(),rem=n?v[Math.min(n-1,Math.floor(n*SPAWNR.q))]:0;W.fld={sig,td,md,rem};return W.fld}
 // Does world tile i belong to one of the biome names?
 function biomeHas(i,biomes){if(!biomes)return true;const t=W.tiles[i],n=TERRN[t];if(biomes.includes(n))return true;if(biomes.includes('mountains')){const F=worldFields();return !!F&&F.md[i]<=2}return false}
 /* factionSpot(e, x, y, minT, maxT): a point for pool entry e (from factionPool) between minT and maxT tiles of (x,y), on the company's
