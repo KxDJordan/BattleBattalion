@@ -495,7 +495,7 @@ function tiredPen(u){if(!u||!(u.fatMax>0)||u.fatMax>=999)return 0;const r=(u.fat
 function armorDef(u,t,a){const f=t.flags||{};let v=0;if(!(f.fleet||f.freshDef||f.dance||f.layerDef||f.flow))return 0;if(f.flow&&t.dnc>0)v+=f.flow*Math.min(3,t.dnc);   // Flow (Shadowdancer): flow a miss, at most 3 misses
  if(f.fleet&&t.mvd&&!a.magic&&shotKind(u,t,a)===2)v+=f.fleet;if(f.freshDef&&(t.fat||0)<t.fatMax*.5)v+=f.freshDef;if(f.dance&&t.dnc>0)v+=Math.min(15,f.dance*t.dnc);
  if(f.layerDef&&t.armMax>0&&t.arm>t.armMax/2)v+=f.layerDef;return v}
-// Brutal (22-run.js DIFF.brutal.foeHit): the foes' side (side 1) strikes truer, + that many points on every roll it makes (melee, shots, spells,
+// Hard and Brutal (22-run.js DIFF[k].foeHit): the foes' side (side 1) strikes truer, + that many points on every roll it makes (melee, shots, spells,
 // bombs), inside hitChance so the forecast is the strike; still capped at 95. 0 on the other levels and in the arena.
 function foeHitB(u){if(!u||u.side!==1||typeof diffX!=='function'||B&&B.opts&&B.opts.arena)return 0;const v=+diffX('foeHit');return v>0&&isFinite(v)?v:0}
 function hitChance(u,t,a){if(a.sure||pvSure(u,a))return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
