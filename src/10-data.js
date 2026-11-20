@@ -1150,4 +1150,4 @@ const RVNAMES=[['Black Hounds','wolf'],['Iron Crows','raven'],['Red Lanterns','s
  ['Crimson Hand','skull'],['Gallows Men','skull'],['Brass Lions','lion'],['Night Ravens','raven'],['Salt Dogs','anchor'],['Hollow Crowns','crown'],['Seventh Banner','tower'],
  ['Thorn Company','rose'],['Wild Boars','boar'],['Stag Riders','stag'],['Moon Wardens','moon'],['Lily Guard','fleur'],['Tower Swords','tower']];
 // backgrounds a rival company signs on (weights): fighters first, a few casters
-const RVBG={sellsword:5,militia:4,hunter:3,squire:2,wildling:3,thief:2,knight:1,hedge:1,acolyte:1,monk:1,spellblade:1};
+const RVBG={sellsword:5,militia:4,hunter:3,squire:2,wildling:3,thief:2,knight:1,hedge:1,acolyte:1,monk:1,spellblade:1,arquebusier:1.5,musketeer:.5,gunner:.5};   // the gunners: about one rival sword in ten carries a gun

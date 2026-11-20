@@ -37,7 +37,7 @@ const PARTDROP={
  skel:[['bonedust',.5],['scrap',.2]],zomb:[['bonedust',.35]],skelhal:[['bonedust',.5],['scrap',.25]],necro:[['bonedust',2],['voidshard',.1]],
  wolf:[['pelt',.55],['meat',.5]],spider:[['silk',.6],['venom',.25]],bear:[['owlhide',1.4],['meat',1.5]],
  orcy:[['tusk',.4],['scrap',.15]],orcw:[['tusk',.5],['scrap',.3]],obrute:[['tusk',.5],['scrap',.4]],orcl:[['tusk',2],['scrap',1]],
- thug:[['scrap',.3]],bmark:[['scrap',.2]],bknife:[['scrap',.2]],bxbow:[['scrap',.3]],braid:[['scrap',.35]],blead:[['scrap',1.2]],
+ thug:[['scrap',.3]],bmark:[['scrap',.2]],bknife:[['scrap',.2]],bxbow:[['scrap',.3]],bgun:[['scrap',.3]],braid:[['scrap',.35]],blead:[['scrap',1.2]],
  imp:[['voidshard',.3]],vknight:[['voidshard',.6],['scrap',.4]],vmage:[['voidshard',.8]],tyrant:[['voidshard',4]],
  adder:[['scale',.45],['venom',.3]],viper:[['scale',.35],['venom',.45]],gserp:[['scale',3],['venom',1.5],['meat',1]],
  thorn:[['sap',.4]],ent:[['heartwood',1],['sap',1.2]],elder:[['heartwood',3],['sap',2]],

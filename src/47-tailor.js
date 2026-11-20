@@ -97,7 +97,7 @@ function coatIds(){const L=[];for(const k in ITEMS)if(ITEMS[k].k==='c')L.push(k)
 function coatCut(id){const i=ITEMS[id];return i&&i.k==='c'?i.coat||'tabard':null}
 function coatOf(m){const id=m&&m.eq&&m.eq.c;return ITEMS[id]&&ITEMS[id].k==='c'?id:null}
 /* house soldiers' cut by unit type (HOUSEUNITS): the line in tabards, the raiders in surcoats, the captain in a heraldic coat */
-const COAT_EN={thug:'tabard',bmark:'tabard',bknife:'tabard',bxbow:'tabard',braid:'surcoat',blead:'heraldcoat'};
+const COAT_EN={thug:'tabard',bmark:'tabard',bknife:'tabard',bxbow:'tabard',bgun:'tabard',braid:'surcoat',blead:'heraldcoat'};
 function unitLivery(u){if(!u||u.m)return null;if(u.liv)return liveryOf(u.liv);
  const b=typeof B!=='undefined'&&B&&B.opts?B.opts:null;if(b&&b.livery&&u.side===1&&!u.ally)return liveryOf(b.livery);
  return typeof isHouse==='function'&&isHouse(u.f)?houseLivery(u.f):null}

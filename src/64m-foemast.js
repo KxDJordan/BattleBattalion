@@ -17,6 +17,7 @@ const FOEMAST={
  thug:{p:['shieldbearer.2'],v:['shieldbearer.1'],e:['shieldbearer.5']},                  // the shield brigand: covers, then steps in front of his mates
  bmark:{p:['sharpshooter.1'],v:['marksman.3']},                                    // the archer: hobbles what runs at the line
  bxbow:{p:['sharpshooter.1'],v:['weapons.crossbow']},
+ bgun:{p:['gunner.1'],v:['weapons.flintlock']},                               // the gunner: smoke to hide in, then a faster reload
  bknife:{p:['weapons.throwing'],v:['thrower.1']},
  braid:{p:['vanguard.1'],v:['vanguard.2','vanguard.3']},                           // the raider: charges in and shakes the line
  blead:{p:['tactician.1','tactician.3','shieldbearer.1'],v:['tactician.4'],e:['tactician.5']},

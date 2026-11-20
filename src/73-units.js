@@ -1027,6 +1027,7 @@ function usEnemySpec0(id,u){const R=USR,C=usCloth,SK=typeof PT_SKIN!=='undefined
   case'bmark':return set({b:B.human,skin:sk('tan'),armor:'leather',hat:'hood',hatR:C('night'),mask:1,wd:usWdef('warbow'),quiver:1});
   case'bknife':return set({b:B.slim,skin:sk('fair'),armor:'leather',hat:'bandana',hatR:C('red'),mask:1,wd:usWdef(usWpnOf('tknives'))});   // the masteries update (11t-arms.js)
   case'bxbow':return set({b:B.human,skin:sk('tan'),armor:'leather',hat:'hood',hatR:C('night'),mask:1,wd:usWdef('xbow')});
+  case'bgun':return set({b:B.human,skin:sk('fair'),armor:'leather',hair:'shaggy',hairR:hr('H'),beard:'short',hat:'bandana',hatR:C('red'),wd:usWdef(usWpnOf('handgonne'))});   // the brigand gunner (11u-guns.js)
   case'braid':return set({b:B.human,skin:sk('fair'),armor:'mail',hair:'short',hairR:hr('H'),beard:'short',hat:'kettle',wd:usWdef('arming'),shield:'heater',shR:C('night')});
   case'blead':return set({b:B.knight,skin:sk('fair'),armor:'scale',hair:'mane',hairR:hr('G'),beard:'full',hat:'feather',hatR:C('red'),patch:1,wd:usWdef('arming'),cape:C('red'),ws:1});
   case'imp':return set({b:B.imp,skin:sk('void'),ears:'gob',eye:'E',armor:'bare',hat:'horns',claw:1,nobelt:1,

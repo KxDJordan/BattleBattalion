@@ -957,7 +957,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      m.traits=['loyal'];ok(X.mercWage(m)===Math.max(1,Math.round(BGS.militia.wage*.9)),'Loyal: -10% wages');m.traits=[] }
    /* -- backgrounds -- */
    const bks=Object.keys(BGS),OLD=['farmhand','militia','hunter','thief','sellsword','squire','hedge','acolyte','monk','spellblade','wildling','knight'],LK=['hat','cloth','accent','trim'];
-   ok(bks.length>=28&&bks.length<=38,'about 30 backgrounds: '+bks.length);ok(OLD.every(k=>BGS[k]),'the twelve first backgrounds keep their keys');
+   ok(bks.length>=28&&bks.length<=46,'about 30-45 backgrounds: '+bks.length);ok(OLD.every(k=>BGS[k]),'the twelve first backgrounds keep their keys');
    for(const k of bks){const b=BGS[k];ok(b.n&&b.cost>0&&b.wage>0&&(b.noHire?b.w===0:b.w>0&&b.w<=5)&&b.st&&Array.isArray(b.r)&&b.r.every(([r,p])=>X.RESK.includes(r)&&p>0&&p<=1)&&b.r.reduce((s,x)=>s+x[1],0)<=1.0001,'background '+k+': n, cost, wage, rarity, stats, gift odds');
     ok(Array.isArray(b.gear)&&b.gear.length>=2&&b.gear.every(gs=>gs.split('|').every(id=>id==='-'||(X.ITEMS[id]&&!X.ITEMS[id].craft&&!X.ITEMS[id].uniq))),'background '+k+': gear from existing items');
     ok(b.gear.some(gs=>gs.split('|').some(id=>X.ITEMS[id]&&X.ITEMS[id].k==='a')),'background '+k+' starts with no armor');
