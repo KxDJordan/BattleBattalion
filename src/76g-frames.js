@@ -49,7 +49,7 @@ const FS_DEF={
   pick:(u,st,s)=>st!=='attack'||!s?'':s.mv&&s.mk===(typeof AN_DASH==='number'?AN_DASH:4)?'charge':s.vaId==='bswipe'&&fsNow()-(s.vaT||-1e9)<2500?'swipe':''}};
 function fsNow(){return typeof anNow==='function'?anNow():0}
 function fsId(u){if(!u||!u.def||u.m)return null;const id=typeof msEnKey==='function'?msEnKey(u.def):null,D=id&&FS_DEF[id];if(!D)return null;const v=D.vary?D.vary(u):'';return v&&FS_DEF[v]?v:id}   // vary: another sheet for this unit (the Webspinner in the desert)
-function fsImg(id){const D=FS_DEF[id],A=D&&D.atl();if(!A||typeof Image==='undefined'||FS.off)return null;let I=FS.img[id];if(!I){I=FS.img[id]=new Image();I.decoding='async';I.src=A.src}return I.complete&&I.naturalWidth?I:null}
+function fsImg(id){const D=FS_DEF[id],A=D&&D.atl();if(!A||typeof Image==='undefined'||FS.off)return null;const ik=D.img||id;let I=FS.img[ik];if(!I){I=FS.img[ik]=new Image();I.decoding='async';I.src=A.src}return I.complete&&I.naturalWidth?I:null}
 function fsOn(u){const id=fsId(u);return!!id&&(typeof hdArt!=='function'||hdArt())&&typeof document!=='undefined'&&!!fsImg(id)}
 // the figure's scale: SHEETS[id].h art px for the atlas's standing height H (WU, the atlas's units); dy: the feet under the tile point (WU)
 function fsSc(id){const A=FS_DEF[id].atl(),S=typeof SHEETS==='object'&&SHEETS[id];return(S?S.h:22)/A.H/HUM_A}
@@ -59,6 +59,7 @@ function fsK(id){return Math.round(humK()*HUM_A*fsSc(id)*400)/400}   // device p
 function fsPc(id,key,R,ox,oy,K){const k=id+':'+key+':'+K;let a=FS.pc.get(k);if(a)return a;const I=fsImg(id);if(!I||!R)return null;
  const W=Math.max(2,Math.ceil(R.w*K)+2),H=Math.max(2,Math.ceil(R.h*K)+2),cv=document.createElement('canvas');cv.width=W;cv.height=H;const q=cv.getContext('2d');if(!q)return null;
  q.imageSmoothingEnabled=true;try{q.imageSmoothingQuality='high'}catch(e){}q.drawImage(I,R.r[0],R.r[1],R.r[2],R.r[3],1,1,R.w*K,R.h*K);FS.bakes++;
+ const tn=FS_DEF[id]&&FS_DEF[id].tint;if(tn){q.globalCompositeOperation='source-atop';q.fillStyle=tn;q.fillRect(0,0,W,H);q.globalCompositeOperation='source-over'}   // a figure sharing another's atlas, darker (the Elder ent)
  a={cv,x:-ox-1/K,y:-oy-1/K,w:W/K,h:H/K};FS.pc.set(k,a);return a}
 function fsHitMs(d){return d.hit==='shot'?FS_SHOT_MS:d.hit==='spell'?FS_SPELL_MS:d.hit==='web'?FS_WEB_MS:d.hit==='melee'?240*(typeof AN_HIT_AT==='number'?AN_HIT_AT:.38):0}
 /* which frame of a row (n frames): loops by the cycle c; timed rows by el (ms since the event, at normal speed); others by the phase t */
@@ -96,7 +97,7 @@ function fsLiveFrame(u,v){if(!fsOn(u))return null;const id=fsId(u),[st,tm]=fsTim
 /* ---- the baked path (sheetSpritePx): a sampled frame in a canvas, cached per pose ---- */
 function fsBuild(u,face,state,frame){if(!fsOn(u))return null;const id=fsId(u),D=FS_DEF[id];face=((face|0)%4+4)%4;const st=state||'idle',loop=st==='idle'||st==='walk'||st==='flee',
  s=typeof ANIM==='object'?ANIM.get(u):null,row=st==='attack'&&D.pick?D.pick(u,st,s):'',tm=loop?{c:(frame|0)/4,t:0}:{t:humSkT(st,frame),row};
- const k=humK(),key=id+':'+face+':'+st+':'+(frame|0)+':'+row+':'+k+(D.dressKey?':'+D.dressKey(u):'');let o=FS.bk.get(key);if(o)return o;
+ const k=humK(),key=id+':'+face+':'+st+':'+(frame|0)+':'+row+':'+k+(D.dressKey?':'+D.dressKey(u):'')+(D.moodKey?':'+D.moodKey(u,st):'');let o=FS.bk.get(key);if(o)return o;
  let Fr;try{Fr=fsFrame(id,face,st,tm,fsK(id),0,u)}catch(e){if(!FS.err){FS.err=1;console.error('frame sheet',e)}FS.off=1;return null}
  const b=humSkBox(Fr),sc=HUM_A*Fr.sc;let X0=b[0]*sc,X1=b[2]*sc;if(Fr.mir){const q=X0;X0=-X1;X1=-q}const Y0=b[1]*sc,Y1=b[3]*sc,w=Math.max(2,Math.ceil((X1-X0)*k)+2),h=Math.max(2,Math.ceil((Y1-Y0)*k)+2);
  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const q=cv.getContext('2d');if(!q)return null;q.imageSmoothingEnabled=true;try{q.imageSmoothingQuality='high'}catch(e){}

@@ -9,8 +9,9 @@
    smoothing on (painted art); null until the atlas has loaded, for an enemy without a sheet, or when Settings > Detail is Low (hdArt()),
    so the original figure is drawn then. monsterSpritePx (76-monsters.js) asks here first. No rnd().
    The Ogre is drawn from the user's part sheet as a skeleton (76d-ogre.js), the Direwolf, the Goblin skirmisher, the Goblin archer,
-   the Goblin shaman, the Owlbear, the Orc warrior, crusher and warlord, the Skeleton legionary and halberdier and the Webspinner
-   (a forest and a sand spider) from the user's frame sheets (76g-frames.js, the wolf's idle a rig: 76h-wolf.js). Their entries here keep only the size on the board
+   the Goblin shaman, the Owlbear, the Orc warrior, crusher, warlord and brave, the Skeleton legionary and halberdier, the Ent, the Elder
+   ent, the Thornling and the Webspinner (a forest and a sand spider) from the user's
+   frame sheets (76g-frames.js, the wolf's idle a rig: 76h-wolf.js). Their entries here keep only the size on the board
    (h, dy: those figures are scaled to it, and sheetTop hangs the bars by it, or at top); their painted sheets are gone, so until the new atlas has
    decoded (a frame or two) they draw as the pixel figure, as at Detail Low. */
 const SHEETS={
@@ -23,10 +24,14 @@ const SHEETS={
  orcw:{h:27,dy:0,top:32},   // the orcs' drawn frames and rigs (76k-orc.js) at the High pixel orcs' heights; their bars where they were
  obrute:{h:27,dy:0,top:32},
  orcl:{h:38,dy:0,top:48},
+ orcy:{h:24,dy:0,top:30},   // the brave (76k-orc.js, the colour-keyed sheet): lighter and a head shorter than the warrior
  skel:{h:26,dy:0,top:32},   // the skeleton soldiers' drawn frames and rig (76m-skelsol.js), their weapon and shield added
  skelhal:{h:26,dy:0,top:32},
  spider:{h:20,dy:5},   // the Webspinner's drawn frames and rig (76o-spider.js) sit in their tile: the legs splay round it, the near tips 5 under the
- sspider:{h:22.5,dy:6}};   // tile centre (inside the ring), the body over it; its sand spider (a desert battle): the same body, longer legs (run frames 115 / 102 px)
+ sspider:{h:22.5,dy:6},   // tile centre (inside the ring), the body over it; its sand spider (a desert battle): the same body, longer legs (run frames 115 / 102 px)
+ ent:{h:42,dy:0},      // the ents' drawn frames and rigs (76o-ents.js): the Ent towers over a man like the ogre; the Elder ent (the Ent's
+ elder:{h:48,dy:0},    // atlas, darker) taller still; the Thornling a wiry treeling a little under a man's height
+ thorn:{h:24,dy:0}};
 const SHT={img:new Map(),cv:new Map(),idx:new Map()};
 function sheetImg(id){const S=SHEETS[id];if(!S||!S.src||typeof Image==='undefined')return null;let I=SHT.img.get(id);if(!I){I=new Image();I.decoding='async';I.src=S.src;SHT.img.set(id,I)}return I.complete&&I.naturalWidth?I:null}
 function sheetIdx(id){let X=SHT.idx.get(id);if(X)return X;X={};for(const f of SHEETS[id].fr){const k=f[0]+':'+f[1];(X[k]||(X[k]=[]))[f[2]]=f}SHT.idx.set(id,X);return X}
