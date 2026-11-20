@@ -5,7 +5,7 @@
    makeFamed(baseId, power) rolls one with the game RNG (it is loot): 2 to 4 improvements drawn from FAMED_ROLL[kind] (what suits the
    item), each between its bounds, larger and more numerous with power (0..1, from the fight that dropped it).
    Famed items are never stocked by markets; they sell for FAMED_SELL of their price. Drops: see famedPlan() (used by resolveBattle). */
-const FAMED_SELL=.45,SELLK=.3;   // what a market pays of the price: famed .45 (was .6), the rest .3 (was .4)
+const FAMED_SELL=.45,SELLK=.3;   // what a market pays of the price: famed .45 (was .6), the rest .3 (was .4); see also market depth (50-towns.js mkGlutK)
 /* roll tables: [stat, lo, hi, weight, when(item)?]. Amounts are added to the base (fat and ap and rld are reductions).
    dmg is a share of the base damage (min and max both rise by that share, at least +1 / +2); arm too (at least +5). */
 const FAMED_ROLL={

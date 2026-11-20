@@ -108,6 +108,19 @@ section('buying, the stalls refill');
   ok(X.buyItem(0)&&X.buyItem(0)&&t.stock.length===n0-2,'bought pieces leave the stalls');X.mkRestock(t);ok(t.stock.length===n0-2,'and stay gone until market day');
   G.day=12+X.SHOPK.period;X.openTown(1);closeAll(X);ok(t.stock.length===X.mkEcon(1).n,'market day fills the stalls again: '+t.stock.length) }
 
+section('market depth: the dealers buy so much a week');
+{ const G=fresh(SEED+8);G.day=21;const ti=1,t=shape(G,ti,{size:2,pros:50});G.town=ti;G.crowns=0;X.openTown(ti);closeAll(X);G.town=ti;
+  const big=Object.keys(I).filter(k=>I[k].k==='a'&&I[k].tier===4&&!I[k].famed&&!I[k].uniq)[0],p0=X.mkSellPrice(big,ti);ok(X.mkGlutK(ti)===1,'fresh dealers pay in full');
+  const D=X.mkDepth(ti),vil=(shape(G,2,{size:1,pros:50}),X.mkDepth(2)),city=(shape(G,3,{size:3,pros:80}),X.mkDepth(3));ok(vil<D&&D<city,'a city buys more than a village: '+[vil,D,city]);
+  const got=[];for(let k=0;k<14;k++){G.stash.push(big);const c=G.crowns;X.sellItem(G.stash.length-1);got.push(G.crowns-c)}
+  ok(got[0]===p0&&got.every((v,j)=>!j||v<=got[j-1])&&got[got.length-1]===Math.floor(X.sellPrice(big)*X.twK('sell',ti,big)*X.SHOPK.glut),'each sale lowers the next offer, to half: '+got.join(' '));
+  const v=X.marketView;X.townSel.market='s0';G.stash.push(big);const h=X.marketView(G.towns[ti]).list;ok(/id="mkGlut"/.test(h)&&/Dealers pay \d+% less/.test(h),'the inventory says the dealers pay less');
+  ok(X.mkSellPrice(big,2)===Math.floor(X.sellPrice(big)*X.twK('sell',2,big)),'another town pays in full');
+  G.day=21+X.SHOPK.period;ok(X.mkGlutK(ti)===1&&X.mkSellPrice(big,ti)>got[got.length-1],'market day: fresh buyers');
+  // saves
+  G.day=22;X.mkSoldAdd(ti,700);X.mode='world';ok(X.save(),'save');const rd=X.readSave();ok(rd.state==='ok'&&rd.g.towns[ti].mkSold&&rd.g.towns[ti].mkSold.v===G.towns[ti].mkSold.v,'what the dealers bought round-trips');
+  console.log('depth village/town/city '+[vil,D,city].join('/')+'; offers for one tier-4 armor in a row: '+got.join(' ')+': ok') }
+
 section('the market panel');
 { const G=fresh(SEED+6);G.town=0;X.openTown(0);closeAll(X);G.town=0;G.townOpen=true;X.townTab='market';const v=X.marketView(G.towns[0]),h=v.list;
   ok(/Restocks (in \d+ days|tomorrow)/.test(h)&&/id="mkRestock"/.test(h),'the market says when it restocks');ok(/(Village|Town|City) market/.test(h)&&/up to tier/.test(h),'and what kind of market it is');

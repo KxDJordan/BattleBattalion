@@ -81,7 +81,7 @@ section('markets');
   ok(roll(1,80,40).every(id=>tierOf(id)<=3)&&roll(2,80,40).every(id=>tierOf(id)<=3),'tier 4 and 5 only in cities');
   { const L=roll(3,45,40),cnt=L.filter(id=>tierOf(id)>=4).length;ok(cnt>0&&cnt<L.length*.6,'a late city stocks some tier 4-5') }
   t.size=2;X.mkRestock(t,true);ok(t.stock.length===9&&t.stock.some(id=>I[id].k==='h'),'a town: nine items, a helmet among them');
-  G.town=0;G.crowns=1e6;X.openTown(0);closeAll(X);G.town=0;const n0=G.stash.length,id=t.stock[0];X.buyItem(0);ok(G.stash.length===n0+1&&G.stash[n0]===id,'buyItem');const c0=G.crowns;X.sellItem(n0);ok(G.crowns===c0+X.mkSellPrice(id,0),'sellItem');
+  G.town=0;G.crowns=1e6;X.openTown(0);closeAll(X);G.town=0;const n0=G.stash.length,id=t.stock[0];X.buyItem(0);ok(G.stash.length===n0+1&&G.stash[n0]===id,'buyItem');const c0=G.crowns,sp=X.mkSellPrice(id,0);X.sellItem(n0);ok(G.crowns===c0+sp,'sellItem');
   // hunt contracts: a faction from the pool, a lair on its biomes, pay by tier
   let hunts=0;for(let i=0;i<200;i++){const c=X.genContract(t);if(c.type!=='hunt')continue;hunts++;ok(X.FACT[c.f]&&isFinite(c.x)&&isFinite(c.y)&&c.pay>0&&!/\{place\}/.test(c.title),'hunt contract '+JSON.stringify(c))}
   ok(hunts>=90,'hunts posted: '+hunts);console.log('market tiers by size and day, stock rules, buy / sell, '+hunts+' hunt contracts'+(typeof X.factionPool==='function'?' (from factionPool)':' (fallback list)')+': ok') }

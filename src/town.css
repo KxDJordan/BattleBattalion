@@ -298,3 +298,4 @@
 #pn .mk-day{display:flex;align-items:center;gap:8px;margin:0;padding:6px 10px 6px 12px;border-bottom:2px solid var(--pn-ink);background:rgba(255,255,255,.035);font-size:.86em;line-height:1.25;color:var(--vellum)}
 #pn .mk-day b{color:var(--brass);font-family:'Fredoka','Alegreya Sans',sans-serif;font-weight:500;white-space:nowrap}
 #pn .mk-day .pn-i,#pn .mk-day svg,#pn .mk-day img{flex:none}
+#pn .mk-day.glut b{color:#ef8a78}
