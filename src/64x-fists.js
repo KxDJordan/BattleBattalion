@@ -38,7 +38,7 @@ function fsHit(u,t,a,melee){const g=t.flags||{};let v=0;if(a.magic)return 0;if(a
  if((g.wlDef||g.wlStep)&&fsLight(t)){if(g.wlDef){v-=g.wlDef;if(g.wlBare&&(t.aw||0)<=FSK.bare)v-=g.wlBare}if(g.wlStep&&t.mvN>0)v-=Math.min(FSK.stepMax,g.wlStep*t.mvN)}
  return v}
 function fsDmg(u,t,a,melee){const f=u.flags||{};if(!melee||a.magic||!f.wrGrind||!fsFist(u))return 0;return Math.min(FSK.grindMax,f.wrGrind*Math.floor(fsBreath(t)*10+1e-9))}
-function fsDr(u,t,a){const g=t.flags||{};if(!g.wlDr||a.magic||!fsLight(t))return 0;return(!!a.melee||mdist(u,t)<=1)?g.wlDr:0}
+function fsDr(u,t,a){const g=t.flags||{};if(!g.wlDr||a.magic||a.bomb||!fsLight(t))return 0;return g.wlDr}
 function fsStCases(u,t,a,melee,L){const f=u.flags||{};if(a.magic||u.side===t.side)return;const br=fsBreath(t);
  if(a.suplex){if(br>FSK.suplexAt&&fsStunOK(t))L.push(['stun',1,1,1]);else L.push(['daze',1,1,1])}
  if(f.wrBreak&&melee&&fsFist(u)&&br>FSK.breakAt&&fsStunOK(t))L.push(['stun',1,1,f.wrBreak])}

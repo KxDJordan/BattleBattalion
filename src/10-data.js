@@ -480,7 +480,9 @@ const INJ={
      healLow | shrug | spotMark | arrowBurn | zocHit (weapon mastery: free attacks with a spear) ; aff 'heavy' = heavy armor worn
      the gun trees update (rules: 64u-guntrees.js): rollV volleyB lineMax (Musketry) | runHit runDmg paceHit paceDmg braceP pbR (Pistolier; gunPB /
      gunPBHit count only with a pistol) | blastDmg blastFear blastBurn bombN blastIgn (Grenadier) | smokeMel killLoad (the Gunsmoke Saint); aff 'longgun' /
-     'pistol' = a two-handed / one-handed firearm in hand, 'bomb' = the Grenadier's bombs (any weapon) */
+     'pistol' = a two-handed / one-handed firearm in hand, 'bomb' = the Grenadier's bombs (any weapon)
+     the fists update (rules: 64x-fists.js; with fists in hand: bare or a fist weapon): wrFat wrKb wrGrind wrSmother wrBreak (Wrestler) | pgAP pgFat pgRec
+     pgDouble pgFlurry pgKill (Pugilist) | wlDef wlBare wlStep wlSlip wlDr wlAP wlKick (Willow style: in light armor too); aff 'fist' = fists in hand */
 const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
  WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','throwing','staff','fist','shield'];   // weapon families in display order (the weapon mastery perks; 'shield': a raised shield)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
@@ -565,7 +567,7 @@ const MAST={
   [perkDef('Flying kick','Ability (fists, 4 AP): leap at a foe up to 3 tiles away, past every foe on the way, and kick: 100% damage, +10 to hit',{id:'willow.2',ab:'flykick'})],
   [perkDef('Hard to pin','Fighting with fists in light armor: +3 melee and ranged defense for every tile you moved or leapt on your last turn (at most +12)',{id:'willow.3',mod:{wlStep:3}})],
   [perkDef('Slip away','Fighting with fists in light armor: leaving a foe\'s side never draws its free attack',{id:'willow.4',flag:'wlSlip'})],
-  [perkDef('Turn the blow','Fighting with fists in light armor: melee blows on you lose 15% of their damage, bent aside',{id:'willow.5',mod:{wlDr:.15}})],
+  [perkDef('Turn the blow','Fighting with fists in light armor: weapon blows and shots on you lose 15% of their damage, bent or slipped aside',{id:'willow.5',mod:{wlDr:.15}})],
   [perkDef('Wind step','Fighting with fists in light armor: +1 AP on every turn you begin with no foe next to you',{id:'willow.6',mod:{wlAP:1}})]]},
   /* ---- the rogues' trees (rules: 60-battle-core.js rogueHit / rogueDmg, 30-mercs.js calc, abilities and statuses in 64r-rogues.js).
          A light weapon: bare fists, any dagger, or a one-handed melee weapon of at most 8 fatigue (short swords, the wakizashi): isLightW.

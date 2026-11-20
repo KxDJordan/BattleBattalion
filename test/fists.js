@@ -203,7 +203,7 @@ section('the new mechanics, one by one');
    const s0=WL.wpn;WL.wpn=X.calc(fm('monk','arming',[])).wpn;ok(X.hitChance(e1,WL,ea)===X.hitChance(e1,WL,ea)&&X.fsHit(e1,WL,ea,true)===0,'… nothing with a sword');WL.wpn=s0}
   ok(HV.acl!=='light'&&X.fsHit(e1,HV,ea,true)===0,'… nothing in mail');
   // Turn the blow: 15% off melee blows in light armor with fists
-  ok(near(X.fsDr(e1,WL,ea),.15)&&near(X.fsDr(e1,HV,ea),0),'Turn the blow: 15% in light armor, none in mail');put(e5,5,2);ok(near(X.fsDr(e5,WL,Object.assign({},ea,{melee:0})),0),'… not from a shot');
+  ok(near(X.fsDr(e1,WL,ea),.15)&&near(X.fsDr(e1,HV,ea),0),'Turn the blow: 15% in light armor, none in mail');put(e5,5,2);ok(near(X.fsDr(e5,WL,Object.assign({},ea,{melee:0})),.15)&&near(X.fsDr(e5,WL,{magic:[10,20]}),0),'… from a shot too, not from a spell');
   // Slip away: leaving a foe's side draws no free attack
   park();b.cur=WL;put(WL,5,8);put(e1,5,7);put(PL,8,8);put(e2,8,7);WL.slipT=1;PL.slipT=1;let fa=0;const fr0=X.ctx.freeAttack;X.ctx.freeAttack=async function(e,u,w){if(u===WL||u===PL)fa++;return fr0(e,u,w)};
   WL.ap=9;await X.walkPath(WL,[KU({c:4,r:8})]);ok(fa===0&&WL.c===4,'Slip away: stepped from the foe\'s side, no free attack');PL.ap=9;b.cur=PL;e2.aoo=0;await X.walkPath(PL,[KU({c:9,r:8})]);X.ctx.freeAttack=fr0;ok(fa===1,'… a monk without it draws one ('+fa+')');

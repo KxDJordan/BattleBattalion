@@ -15,7 +15,7 @@
 const FISTITEMS=['wraps','knuckles','baghnakh','shuko','gauntlet','katar'];
 Object.assign(ITEMS,{
  wraps:{k:'w',n:'Hand wraps',wt:'fist',d:[12,20],ap:3,fat:3,rng:1,ign:.15,hit:10,price:45,tier:1},
- knuckles:{k:'w',n:'Knuckle-dusters',wt:'fist',d:[20,30],ap:3,fat:4,rng:1,ign:.3,stun:.1,price:240,tier:2},
+ knuckles:{k:'w',n:'Knuckle-dusters',wt:'fist',d:[19,29],ap:3,fat:4,rng:1,ign:.3,stun:.1,price:240,tier:2},
  baghnakh:{k:'w',n:'Tiger claws',wt:'fist',d:[18,30],ap:3,fat:4,rng:1,ign:.2,hit:5,bleed:2,crush:-.2,price:300,tier:2},
  shuko:{k:'w',n:'Hand hooks',wt:'fist',d:[20,30],ap:3,fat:5,rng:1,ign:.25,hit:5,gwind:6,price:680,tier:3},
  gauntlet:{k:'w',n:'Mailed gauntlets',wt:'fist',d:[30,44],ap:4,fat:7,rng:1,ign:.35,crush:.4,stun:.1,price:760,tier:3},
