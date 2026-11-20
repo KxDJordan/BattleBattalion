@@ -259,7 +259,7 @@ section('the AI uses them: the company on auto, a rival company of gunners');
     for(const u of P){if(!u.alive)continue;b.cur=u;await X.aiTurn2(u);b.busy=true}X.ctx.nextTurn=tn0;ok(seen[id]>0,'the AI uses '+id+' where it fits: '+JSON.stringify(seen));X.B=null;X.mode='world'}
    X.ctx.nextTurn=tn0;X.ctx.useAbility=u1;console.log('the AI picks each where it fits: '+JSON.stringify(seen)) }ok((use['rv:gvolley']||0)+(use['rv:qdraw']||0)+(use['rv:grenade']||0)+(use['rv:petard']||0)+(use['rv:pwhip']||0)>0,'… rivals too') }
 section('saves: the PKV refit (changed perks refunded, a pistoleer\'s or sapper\'s Musketry traded for its own tree)');
-{ const G=fresh(SEED+70);const a=X.newMerc('musketeer'),p=X.newMerc('pistoleer'),s=X.newMerc('sapper');G.roster.push(a,p,s);
+{ const G=fresh(SEED+70);const a=X.newMerc('musketeer'),p=X.newMerc('pistoleer'),s=X.newMerc('sapper');G.roster.push(a,p,s);a.name='Musketeer Ash';p.name='Pistoleer Pell';s.name='Sapper Sorn';   // names of their own: the sheet lists refunds by name
   a.lvl=8;a.trees=['gunner','survivor','scout','skirmisher'];a.perks=['gunner.1','gunner.2','gunner.3','survivor.1','weapons.flintlock'];a.pp=0;
   p.lvl=6;p.trees=['gunner','duelist','scout','rogue'];p.perks=['gunner.3','gunner.4','duelist.1'];p.pp=1;s.lvl=4;s.trees=['scout','gunner','medic','survivor'];s.perks=['gunner.1','scout.1'];s.pp=0;
   const t=G.towns.find(t=>t.recruits&&t.recruits.length),rc=t&&t.recruits[0];if(rc){rc.bg='pistoleer';rc.lvl=5;rc.trees=['gunner','duelist','scout','rogue'];rc.perks=['gunner.3'];rc.pp=0}
