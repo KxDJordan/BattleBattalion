@@ -27,10 +27,10 @@ const SEEDS=arg('--seeds',QUICK?'11,23':'11,23,37,41').split(',').map(Number),OR
 const RUNAWAY=60000,HOARD=15000;   // runaway: no Normal or Hard run above it by day 60; hoard: the median Normal run below it on days 60-100
 /* The flows (judged, policy-free, a second): what a contract pays in days of the company's wages, for the balance profiles (test/balance.js:
    L1x4 a new company, L4x6 day 12 Known, L8x9 day 30 Renowned, L12x12 day 50 Famed and Legendary), the mean of 300 boards' notices.
-   Target band FLOWBAND: early work pays about a week of wages, late work no more than about ten days (wages grow with level, 14-company.js
-   WAGELV; pay with power, renown and danger, 16-contracts.js CTRPAY / RENOWN.pay / CTR_PAYK). Before the econ rebalance late work paid
-   26-51 days of wages, the mid and late game's runaway purse. */
-const FLOWBAND=[5,10];
+   Target band FLOWBAND: a contract pays 3-6 days of the company's wages at every stage (wages grow +10% a level, 14-company.js
+   WAGELV; pay with power, renown and danger, 16-contracts.js CTRPAY / RENOWN.pay / CTR_PAYK). Before the econ rebalance it paid 8 days for a
+   new company and 26-51 days of wages late: the mid and late game's runaway purse. */
+const FLOWBAND=[3,6];
 function flows(){process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();const X=L.makeContext(),rows=[];
  for(const [pid,ren] of [['L1x4',0],['L4x6',60],['L8x9',340],['L12x12',620],['L12x12',1000]]){const P=L.PROFILES.find(p=>p.id===pid),R=L.buildCompany(X,P,1234),G=X.G;
   G.roster=X.clone(R);G.roster.forEach(m=>m.field=true);G.day=P.day;G.renown=ren;const w=X.companyWages();let s=0,n=0;X.seedRng(77);
