@@ -194,11 +194,17 @@ MERCBUD.late=.5;
 const mercBud=L=>{const P=typeof PPLV==='number'?PPLV:99;if(L>P)L=P+MERCBUD.late*(L-P);return MERCBUD.base+MERCBUD.lvl*L+MERCBUD.sq*L*L};
 const GEARK=.06;function gearK(m){const g=typeof gearPower==='function'?gearPower(m):2.3;return 1+GEARK*Math.max(0,g-2.3)}
 function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?mercBud(m.lvl):sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*budgetK(o)}   // difficulty: diffK('budget'), Brutal's veterans (budgetK)
-/* budgetK(o): the difficulty's factor on the enemy budget: diffK('budget'), and on Brutal (22-run.js DIFF.brutal.vet = {k, lvl0, span}) times
-   1 + k x clamp((the fielded swords' average level - lvl0) / span, 0, 1): the longer the march, the harder the bands it meets (veteran foes, then
-   full warbands), so a seasoned company or a geared hero does not outgrow Brutal. The other levels: diffK('budget') alone. Not in the arena. */
-function budgetK(o){let k=runK('budget');const V=typeof diffX==='function'&&!(o&&o.arena)?diffX('vet'):null;
- if(V&&V.k>0){let F=[];try{F=battleField(o)}catch(e){F=[]}if(F.length){const L=F.reduce((s,m)=>s+(+m.lvl||1),0)/F.length;k*=1+V.k*clamp((L-(V.lvl0||0))/(V.span||1),0,1)}}return k}
+/* budgetK(o): the difficulty's factor on the enemy budget: diffK('budget'), times the level's curve over the fielded swords' average level L
+   (22-run.js DIFF[k].vet for a company, DIFF[k].solo for a solo run's one sword; absent = 1):
+     x (1 + lo + (hi - lo) x clamp((L - lvl0) / (lvl1 - lvl0), 0, 1))   (lo and hi default 0)
+   and for a solo run also x solo.k (the one sword's own factor on top of diffK('budget')). The curve evens the win rate out over the march (a
+   raw new company finds Normal harder than a seasoned one does) and, on Brutal, makes the bands grow as the company does (veteran foes, then
+   full warbands) so a seasoned company or a geared hero does not outgrow it. Not in the arena (diffK('budget') alone there). */
+function diffCurve(V,L){if(!V||typeof V!=='object')return 1;const lo=+V.lo||0,hi=+V.hi||0;if(!lo&&!hi)return 1;const a=+V.lvl0||0,b=+V.lvl1>a?+V.lvl1:a+1;return Math.max(.1,1+lo+(hi-lo)*clamp((L-a)/(b-a),0,1))}
+function budgetK(o){let k=runK('budget');if(typeof diffX!=='function'||o&&o.arena)return k;
+ const solo=typeof isSolo==='function'&&isSolo(),V=solo?soloDiff(o):diffX('vet');if(!V||typeof V!=='object')return k;
+ if(solo&&+V.k>0)k*=+V.k;
+ if(V.lo||V.hi){let F=[];try{F=battleField(o)}catch(e){F=[]}if(F.length)k*=diffCurve(V,F.reduce((s,m)=>s+(+m.lvl||1),0)/F.length)}return k}
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.
 // (An EN entry with max and sub fields is capped here: the ones beyond max take the field as EN[sub], so what is previewed is what fights.)
 /* ---- Fixed rosters (Phase 8B endgame, CONTRACT.md): o.roster = [{id, n?, lvl?, elite?, at?:{c,r}, name?, hpK?}] is the enemy side exactly as
@@ -489,6 +495,9 @@ function tiredPen(u){if(!u||!(u.fatMax>0)||u.fatMax>=999)return 0;const r=(u.fat
 function armorDef(u,t,a){const f=t.flags||{};let v=0;if(!(f.fleet||f.freshDef||f.dance||f.layerDef||f.flow))return 0;if(f.flow&&t.dnc>0)v+=f.flow*Math.min(3,t.dnc);   // Flow (Shadowdancer): flow a miss, at most 3 misses
  if(f.fleet&&t.mvd&&!a.magic&&shotKind(u,t,a)===2)v+=f.fleet;if(f.freshDef&&(t.fat||0)<t.fatMax*.5)v+=f.freshDef;if(f.dance&&t.dnc>0)v+=Math.min(15,f.dance*t.dnc);
  if(f.layerDef&&t.armMax>0&&t.arm>t.armMax/2)v+=f.layerDef;return v}
+// Brutal (22-run.js DIFF.brutal.foeHit): the foes' side (side 1) strikes truer, + that many points on every roll it makes (melee, shots, spells,
+// bombs), inside hitChance so the forecast is the strike; still capped at 95. 0 on the other levels and in the arena.
+function foeHitB(u){if(!u||u.side!==1||typeof diffX!=='function'||B&&B.opts&&B.opts.arena)return 0;const v=+diffX('foeHit');return v>0&&isFinite(v)?v:0}
 function hitChance(u,t,a){if(a.sure||pvSure(u,a))return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
  if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(isRangedAtk(u,a)||a.bomb?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd');if(a.bomb&&t.shield&&t.shb)df-=t.shb.rd||0}   // a raised shield is no cover from a bomb (Grenadier)
  let ch=sk-df+(a.hit||0);const hd=T(u).h-T(t).h;ch+=hd>0?10:hd<0?-10:0;if(d>2&&!a.melee&&!fu.longShot)ch-=(d-2)*2;if(t.st.stun)ch+=15;if(t.st.webbed)ch+=10;if(t.st.marked>0)ch+=STBONUS.marked;
@@ -496,7 +505,7 @@ function hitChance(u,t,a){if(a.sure||pvSure(u,a))return 100;const d=mdist(u,t),m
  if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
  if(B.auraOn){ch+=bestAdj(u,'cmd');if(!melee)ch-=bestAdj(t,'guard')}
  ch+=morOf(u).hit-morOf(t).def;if(u.dazed||u.st.daze)ch-=15;if(!melee)ch-=Math.max(0,losInfo(u,t,a).cover-(fu.coverIgn||0))*COVERPEN;
- ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit+rogueHit(u,t,a)+glHit(u,t,a)+pvHit(u,t,a,d,melee);return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
+ ch+=tiredPen(t)-tiredPen(u)-armorDef(u,t,a)+quarryVs(u,t).hit+rogueHit(u,t,a)+glHit(u,t,a)+pvHit(u,t,a,d,melee)+foeHitB(u);return clamp(Math.round(ch),5,95)}   // a Monster hunter's quarry (61-talents.js)
 // Chance in percent that a hit lands on the head (the helmet soaks it, and it does HEADMULT to hitpoints). headB (perks) adds to weapon attacks.
 // Traits: Hard-headed / Glass-jawed (t.flags.headDef) move it the other way; Steady-handed adds to headB.
 function headChance(u,t,a){if(a.noDmg||a.split||t.noHead)return 0;return clamp(HEADCH+(a.head||0)+(a.wpn&&u.flags&&u.flags.headB||0)+rlHead(u,t,a)-((t.flags&&t.flags.headDef)||0),0,100)}   // Deliberate aim (64v-roles.js)

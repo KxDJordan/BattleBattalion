@@ -8,6 +8,7 @@
 //   - Phase 5: brackets head and body hits separately (helmet against body armor, x1.5 on the head), prices cover into the
 //     hit chance, names every ally a missed shot can stray into, announces ripostes, heavy hits (morale check, injury),
 //     armor-piercing blows and shield damage, and carries both sides' morale.
+//   - Hard and Brutal: every foe roll is Normal's + DIFF[k].foeHit (capped at 95), the company's unchanged, and the forecast still the strike.
 //   - Elites: battles at Brutal where elite foes (64e-elites.js: ward, venom, hex, berserk, keen eye, command...) strike and are struck.
 //   - Rivals: battles against a rival mercenary company (startBattle o.rival): rival mercs strike with their own gear, talents and gift
 //     abilities and are struck in their own armor, and every one of those strikes is checked the same way.
@@ -247,11 +248,19 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
    X.ctx.strike=st;X.G.fabled={};ok(R.u>150&&R.t>80,`too few fabled strikes checked (${R.u} by fabled warriors, ${R.t} on them)`);
    console.log(`40 battles, ${S.n-n1} strikes checked: ${R.u} by fabled warriors (${[...R.ab].sort().join(' ')}), ${R.t} on them`) }
  console.log('== strikes with elite foes (64e-elites.js: Brutal, levels 10 and 14) ==');
- { const st=X.ctx.strike,R={u:0,t:0,mods:new Set()},n1=S.n,d0=X.G.diff;X.ctx.strike=async function(u,t,a,o){if(u.elite){R.u++;u.elite.forEach(k=>R.mods.add(k))}if(t.elite){R.t++;t.elite.forEach(k=>R.mods.add(k))}return st(u,t,a,o)};
+ { const st=X.ctx.strike,R={u:0,t:0,fh:0,ch:0,mods:new Set()},n1=S.n,d0=X.G.diff;X.ctx.strike=async function(u,t,a,o){if(u.elite){R.u++;u.elite.forEach(k=>R.mods.add(k))}if(t.elite){R.t++;t.elite.forEach(k=>R.mods.add(k))}
+    // Hard's and Brutal's foeHit (22-run.js DIFF[k].foeHit): a foe's chance is Normal's + foeHit (capped at 95), the company's own is untouched;
+    // the wrapped strike below then checks the forecast against the strike at Brutal as every other one
+    if(!(o&&o.auto)&&!a.sure&&!X.pvSure(u,a)){const hc={};for(const d of ['normal','hard','brutal']){X.G.diff=d;hc[d]=X.hitChance(u,t,a)}X.G.diff='brutal';const hn=hc.normal;
+     for(const d of ['hard','brutal']){const hb=hc[d],fh=X.DIFF[d].foeHit;
+      if(u.side===1){ok(hn>=95?hb===95:hn<=5?hb>=5&&hb<=Math.min(95,5+fh):hb===Math.min(95,hn+fh),`${d} foe to-hit ${hb} is not Normal ${hn} + ${fh}: ${u.name} -> ${t.name} ${a.n||a.id}`)}
+      else ok(hb===hn,`${d} changed the company's to-hit: ${hb} vs ${hn}: ${u.name} ${a.n||a.id}`)}
+     if(u.side===1)R.fh++;else R.ch++}
+    return st(u,t,a,o)};
    for(let ti=2;ti<TIERS.length;ti++){const roster=company(X,TIERS[ti],SEED+ti*17);
     for(let i=0;i<8;i++){X.G.roster=JSON.parse(JSON.stringify(roster));X.G.day=TIERS[ti].day;X.G.diff='brutal';X.seedRng(SEED+1300+10*ti+i);await scripted(X,{f:facs[(i+ti)%6],mult:1,biome:bios[(i+ti)%bios.length],src:{type:'sim'}});nb++}}
-   X.ctx.strike=st;X.G.diff=d0;ok(R.u>100&&R.t>40&&R.mods.size>=12,`too few elite strikes checked (${R.u} by elites, ${R.t} on them, modifiers ${[...R.mods].join(' ')})`);
-   console.log(`16 battles, ${S.n-n1} strikes checked: ${R.u} by elites, ${R.t} on them (${R.mods.size} modifiers: ${[...R.mods].sort().join(' ')})`) }
+   X.ctx.strike=st;X.G.diff=d0;ok(R.fh>100&&R.ch>100,`too few Brutal to-hit rolls checked (${R.fh} by foes, ${R.ch} by the company)`);ok(R.u>100&&R.t>40&&R.mods.size>=12,`too few elite strikes checked (${R.u} by elites, ${R.t} on them, modifiers ${[...R.mods].join(' ')})`);
+   console.log(`16 battles, ${S.n-n1} strikes checked (${R.fh} foe rolls at Normal + ${X.DIFF.hard.foeHit} on Hard / + ${X.DIFF.brutal.foeHit} on Brutal, ${R.ch} company rolls unchanged): ${R.u} by elites, ${R.t} on them (${R.mods.size} modifiers: ${[...R.mods].sort().join(' ')})`) }
  const nBattle=S.n;
  console.log('== directed sweep ==');
  await sweep(X,company(X,TIERS[2],SEED+5),6000);
