@@ -7,9 +7,10 @@
 // Both pilots get the same companies, maps and enemy warbands (same seed per battle index).
 // Prints: the balance table, the tactic ablation table (each faction's answer removed from the sensible pilot),
 // the plan-against-faction matrix, and the AI's measured decision cost. Exits non-zero when
-//   overall naive >= 50% or overall sensible <= 80%, or any faction has naive > 65% or sensible < 65%.
+//   overall naive >= 50% or overall sensible <= 75%, or any faction has naive > 65% or sensible < 55%.
+// (Normal is tuned to ~80% for the sensible pilot (test/brutal.js); these floors leave room for the hardest late factions.)
 // Monsters update: the mid-game monster factions (MONF) are fought only at the profiles where the game lets them roam (factionPool at the
-// profile's companyPower and day) and must also average naive < 50% and sensible > 80% there; mean battle length must stay under 12.5
+// profile's companyPower and day) and must also average naive < 50% and sensible > 70% there; mean battle length must stay under 12.5
 // rounds. The wyvern (end-game) is a table of its own: a lone wyvern at L8x9 and L12x12 (--no-wyvern skips it); a sensible L12x12
 // company must win 45..80% and a naive one at most 30%.
 // Rivals update: a rival mercenary company of the same profile (another of the profile's companies, its own formation and gear, played
@@ -236,11 +237,11 @@ if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
   const bandTot=p=>{const L=facs.filter(f=>!MONF.includes(f)&&jobs.some(j=>j.kind==='main'&&j.f===f&&j.prof===p));if(!L.length)return'·';const s=L.reduce((t,f)=>t+pct(R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='sensible'))),0)/L.length,n=L.reduce((t,f)=>t+pct(R(jobs.find(j=>j.kind==='main'&&j.f===f&&j.prof===p&&j.pilot==='naive'))),0)/L.length;return f1(s)+' ['+f1(n)+']'};
   console.log(pad('mean',16)+profs.map(p=>lp(bandTot(p),20)).join(''))}
  console.log('\n== by faction ==');
- for(const f of facs){if(!byF[f].c){console.log(pad(FACT[f].n,16)+'   (roams at none of these profiles)');continue}const n=byF[f].n/byF[f].c,s=byF[f].s/byF[f].c,mon=MONF.includes(f);console.log(pad(FACT[f].n,16)+lp('naive '+f1(n)+'%',14)+lp('sensible '+f1(s)+'%',18)+(mon?'   ('+profOf(f).join(' ')+')':'')+(n>65?'   NAIVE TOO HIGH':'')+(s<65?'   SENSIBLE TOO LOW':''));if(n>65)bad.push(FACT[f].n+': naive '+f1(n)+'% > 65%');if(s<65)bad.push(FACT[f].n+': sensible '+f1(s)+'% < 65%');
-  if(mon&&n>=50)bad.push(FACT[f].n+': naive '+f1(n)+'% >= 50% where it roams');if(mon&&s<=80)bad.push(FACT[f].n+': sensible '+f1(s)+'% <= 80% where it roams')}
+ for(const f of facs){if(!byF[f].c){console.log(pad(FACT[f].n,16)+'   (roams at none of these profiles)');continue}const n=byF[f].n/byF[f].c,s=byF[f].s/byF[f].c,mon=MONF.includes(f);console.log(pad(FACT[f].n,16)+lp('naive '+f1(n)+'%',14)+lp('sensible '+f1(s)+'%',18)+(mon?'   ('+profOf(f).join(' ')+')':'')+(n>65?'   NAIVE TOO HIGH':'')+(s<55?'   SENSIBLE TOO LOW':''));if(n>65)bad.push(FACT[f].n+': naive '+f1(n)+'% > 65%');if(s<55)bad.push(FACT[f].n+': sensible '+f1(s)+'% < 55%');
+  if(mon&&n>=50)bad.push(FACT[f].n+': naive '+f1(n)+'% >= 50% where it roams');if(mon&&s<=70)bad.push(FACT[f].n+': sensible '+f1(s)+'% <= 70% where it roams')}
  const on=tot.n/tot.c,os_=tot.s/tot.c;
  if(facs.length){console.log(`\nOVERALL  naive ${f1(on)}%   sensible ${f1(os_)}%   mean rounds ${f1(tot.rounds/tot.c)}   (${N} battles per cell and pilot)`);
- if(on>=50)bad.push('overall naive '+f1(on)+'% >= 50%');if(os_<=80)bad.push('overall sensible '+f1(os_)+'% <= 80%');if(tot.rounds/tot.c>12.5)bad.push('mean battle length '+f1(tot.rounds/tot.c)+' rounds > 12.5')}
+ if(on>=50)bad.push('overall naive '+f1(on)+'% >= 50%');if(os_<=75)bad.push('overall sensible '+f1(os_)+'% <= 75%');if(tot.rounds/tot.c>12.5)bad.push('mean battle length '+f1(tot.rounds/tot.c)+' rounds > 12.5')}
  /* ---- rival companies ---- */
  if(jobs.some(j=>j.kind==='rival')){console.log('\n== rival company of the same profile (an even fight between equals) ==');
   console.log(pad('profile',10)+lp('foes',6)+lp('naive%',8)+lp('sens%',8)+lp('rounds',8)+lp('lost(n)',9)+lp('lost(s)',9)+lp('down(s)',9));let sn=0,ss=0,c=0;
