@@ -63,7 +63,7 @@ section('the gun backgrounds');
    ok([1,2,3].includes(b.town||1)&&b.look&&['hat','cloth','accent','trim'].every(q=>typeof b.look[q]==='string')&&X.PT_HATOK.test(b.look.hat)&&b.tr,k+': town, looks (a hat the portraits draw), traits');
    const gw=b.gear[0].split('|');ok(gw.every(isGun),k+': its main weapon is always a gun: '+b.gear[0]);
    ok(b.gear.concat(b.side||[]).every(gs=>gs.split('|').every(id=>id==='-'||(X.ITEMS[id]&&!X.ITEMS[id].uniq&&(X.ITEMS[id].k!=='w'||b.wt.includes(X.ITEMS[id].wt))))),k+': kit from existing items, inside its weapon trees');
-   for(const id of gw)ok((X.ITEMS[id].tier||1)<=({1:2,2:4,3:4}[b.town||1]),k+': '+id+' is tier '+X.ITEMS[id].tier+', too good for a town '+(b.town||1)+' recruit');
+   for(const id of gw)ok((X.ITEMS[id].tier||1)<=({1:2,2:3,3:3}[b.town||1]),k+': '+id+' is tier '+X.ITEMS[id].tier+', too good for a town '+(b.town||1)+' recruit');
    for(let i=0;i<40;i++){const m=X.newMerc(k);ok(isGun(m.eq.w)&&m.trees.includes('gunner')&&m.trees.filter(t=>M[t]&&(M[t].kind==='style'||t==='hunter')).length===4&&X.calc(m).hp>=5,k+': a recruit with a gun and Gunnery: '+m.eq.w+' '+m.trees);
     ok(X.wageOf(m)>0&&X.recruitCost(m)>0,k+': wage and price')}}
   // wages and prices sit with their peers

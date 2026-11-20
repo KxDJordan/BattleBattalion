@@ -856,7 +856,7 @@ Object.assign(BG,{
   style:'ranged',core:'gunner',pool:['gunner','marksman','sharpshooter','scout','survivor','skirmisher','medic'],wt:['flintlock','bow','dagger','axe','spear'],at:['lightarmor'],
   d:'A market hunter of the marshes: a long fowling piece, a punt, and a hundred ducks a morning for the town stalls. Patient, and a fine shot.',
   tr:{eagle:2.5,beastwise:2,nightowl:1.5,steady:1.5,loyal:1.3,nearsight:.2,sluggish:.6},look:{hat:'wide',cloth:'verd',accent:'brown',trim:'',garb:'fleece',prop:'net'}},
- musketeer:{n:'Musketeer',cost:600,wage:28,w:1,st:{rs:12,ms:4,md:3,brv:8,fat:4,init:-6},r:[['aura',.25],['qi',.05]],gear:['caliver|arquebus|musket','leather|padded|brigandine|mail','kettle|cap|nasal'],side:'arming|shortsword|falchion|oldsword',town:2,
+ musketeer:{n:'Musketeer',cost:600,wage:28,w:1,st:{rs:12,ms:4,md:3,brv:8,fat:4,init:-6},r:[['aura',.25],['qi',.05]],gear:['caliver|caliver|arquebus|carbine','leather|padded|brigandine|mail','kettle|cap|nasal'],side:'arming|shortsword|falchion|oldsword',town:2,
   style:'ranged',core:'gunner',pool:['gunner','sharpshooter','marksman','tactician','vanguard','bulwark','survivor','shieldbearer'],wt:['flintlock','sword','polearm','spear','mace'],at:['lightarmor','medarmor'],
   d:'Twenty years in a lord’s gunline: fires by the drum, reloads by feel, and has stood still in front of a cavalry charge more often than anyone sane.',
   tr:{steady:3,brave:2,loyal:1.5,drunkard:1.5,eagle:1.3,craven:.3,quick:.6},look:{hat:'capotain',cloth:'blue',accent:'royal',trim:'white',garb:'tabard',beard:['goatee','stache','full']}}

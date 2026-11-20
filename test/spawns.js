@@ -103,7 +103,7 @@ section('the night');
   const before=G2.parties.length;let msg=null;const T0=X.toast;X.toast=m=>{msg=m};
   for(let h=0;h<11;h++)X.advanceTime(1);X.toast=T0;
   ok(!X.isNight()&&G2.hour>=5&&G2.hour<8,'morning: '+G2.hour);ok(!G2.parties.some(p=>X.nightBound(p)),'every free band of the dead is gone after dawn: '+JSON.stringify(G2.parties.filter(p=>X.nightBound(p))));
-  ok(!G2.parties.includes(chase)&&!G2.parties.includes(free),'the chasing band and the nest band sank too');
+  ok([chase,free].every(p=>!G2.parties.includes(p)||p.clash!=null),'the chasing band and the nest band sank too (unless caught in a clash with another band: a fight is not a sinking)');
   ok(G2.parties.includes(host)&&G2.parties.includes(quest)&&G2.parties.includes(ev),'crisis hosts, quest and event bands persist');
   ok(msg==='The dead return to their graves at dawn','the dawn toast when the company sees them go: '+msg);
   ok(X.SINKS.length>=1,'the sinking bands are drawn going down');
