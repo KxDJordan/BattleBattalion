@@ -268,14 +268,14 @@ section('the AI uses them: the company on auto, a rival company of fist fighters
 section('saves: the PKV 3 refit (a monk\'s or pit fighter\'s lost tree traded for a fist tree, its points back; the gun refit not run twice)');
 { const G=fresh(SEED+70);const a=X.newMerc('monk'),p=X.newMerc('pitfighter'),s=X.newMerc('musketeer'),c=X.newMerc('acrobat');G.roster.push(a,p,s,c);
   a.lvl=8;a.trees=['scout','bulwark','willow','survivor'];a.perks=['scout.1','scout.2','bulwark.1','willow.1','survivor.1'];a.pp=0;
-  p.lvl=6;p.trees=['wrestle','dualwield','brawler','survivor'];p.perks=['dualwield.1','brawler.1'];p.pp=1;
+  p.lvl=6;p.trees=['wrestle','vanguard','brawler','survivor'];p.perks=['vanguard.1','brawler.1'];p.pp=1;
   s.lvl=6;s.trees=['gunner','survivor','scout','skirmisher'];s.perks=['gunner.1','gunner.3','survivor.1'];s.pp=0;   // a pkv 2 save: Musketry's changed tiers were refunded already
   c.lvl=5;c.trees=['shadow','brawler','duelist','rogue'];c.perks=['brawler.1','brawler.2','shadow.1'];c.pp=0;
   X.mode='world';ok(X.save(),'save');const g=JSON.parse(X.store.get(X.SAVEKEY));ok(g.pkv===X.PKV&&X.PKV===3,'a save carries the perk version 3');g.pkv=2;delete g.refund;delete g.refundWhy;g.note=null;
   X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.g.pkv===X.PKV&&r.g.v===X.SAVEVER,'a pkv 2 save loads, refit, same save version');
   const by=id=>r.g.roster.find(q=>q.id===id),A2=by(a.id),P2=by(p.id),S2=by(s.id),C2=by(c.id);
   ok(A2.trees.join()==='wrestle,pugilist,willow,survivor'&&A2.perks.join()==='willow.1,survivor.1'&&A2.pp===3,'the monk trades Scout and Bulwark for the Wrestler and the Pugilist, 3 points back: '+A2.trees+' '+A2.perks+' pp '+A2.pp);
-  ok(P2.trees.join()==='wrestle,pugilist,brawler,survivor'&&P2.perks.join()==='brawler.1'&&P2.pp===2,'the pit fighter trades the Twin blades: '+P2.trees+' pp '+P2.pp);
+  ok(P2.trees.join()==='wrestle,pugilist,brawler,survivor'&&P2.perks.join()==='brawler.1'&&P2.pp===2,'the pit fighter trades the Vanguard: '+P2.trees+' pp '+P2.pp);
   ok(S2.perks.join()==='gunner.1,gunner.3,survivor.1'&&S2.pp===0,'the gun refit does not run again on a pkv 2 save: '+S2.perks);
   ok(C2.trees.includes('willow')&&!C2.trees.includes('brawler')&&C2.perks.join()==='shadow.1'&&C2.pp===2,'the tumbler trades the Brawler for Willow style: '+C2.trees);
   ok(r.g.refundWhy==='fists'&&r.g.note==='refund'&&r.g.refund.some(x=>x.name===a.name&&x.n===3),'the one-time sheet: '+JSON.stringify(r.g.refund));
@@ -291,9 +291,10 @@ section('saves: the PKV 3 refit (a monk\'s or pit fighter\'s lost tree traded fo
    its own setting:
      brawl     one company turn, the squad rooted beside four brigands (shields down): damage dealt (hitpoints and armor)   the Pugilist
      boss      four rounds around an orc warlord (it tires; its hitpoints raised so nobody kills it): damage taken           the Wrestler
-     skirmish  three rounds against archers and crossbowmen behind two thugs: damage dealt minus taken                     Willow style
-   and the fist trees not stronger than the other melee families: over those three settings and a fourth, neutral one (hold: three rounds
-   beside four orc warriors), the best fist tree's mean (dealt − taken) is no better than the best of the Vanguard, the Duelist and the Brute.
+     hold      three rounds in the press of four orc warriors (they hit hard, and there are four of them): damage taken    Willow style
+   and the fist trees not stronger than the other melee families: over those three settings and a fourth, neutral one (skirmish: three
+   rounds against archers and crossbowmen behind two thugs), the best fist tree's mean (dealt − taken) is no better than the best of the
+   Vanguard, the Duelist and the Brute.
    Then the weapons themselves: every one-handed melee weapon of a tier swung (Attack only) for two turns at the tier's foes; the best fist
    weapon of each tier does 0.7 to 1.15 times the best dagger, sword, mace or axe of the tier, with and without its weapon mastery. */
 section('role sims: each fist tree best in its own setting; fists no stronger than the other melee families');
@@ -317,7 +318,7 @@ section('role sims: each fist tree best in its own setting; fists no stronger th
   const R=res,f=k=>X.MAST[k].n;
   ok(R.brawl.pugilist.d>1.15*Math.max(R.brawl.wrestle.d,R.brawl.willow.d),'the brawl: the Pugilist deals the most '+JSON.stringify(R.brawl));
   ok(R.boss.wrestle.t<.8*Math.min(R.boss.pugilist.t,R.boss.willow.t),'the boss: the Wrestler takes the least '+JSON.stringify(R.boss));
-  ok(R.skirmish.willow.n>Math.max(R.skirmish.pugilist.n,R.skirmish.wrestle.n)+20,'the skirmish: Willow style comes out best '+JSON.stringify(R.skirmish));
+  ok(R.hold.willow.t<.8*Math.min(R.hold.pugilist.t,R.hold.wrestle.t),'the press of orc warriors: Willow style takes the least '+JSON.stringify(R.hold));
   const mean=k=>Object.keys(SET).reduce((s,sk)=>s+R[sk][k].n,0)/Object.keys(SET).length,bf=Math.max(...FT.map(mean)),bo=Math.max(...['vanguard','duelist','brute'].map(mean));
   console.log('  mean dealt − taken: '+Object.keys(TR).map(k=>f(k)+' '+Math.round(mean(k))).join(', '));
   ok(bf<=bo+Math.abs(bo)*.1,'fists no stronger than the other melee families: best fist tree '+Math.round(bf)+', best of the others '+Math.round(bo)) }

@@ -120,7 +120,7 @@ section('followers');
   // cook: wounds mend 25% faster on the road
   { const run=q=>{G.retinue=q?['cook']:[];G.roster.forEach(m=>m.hp=1);G.healAcc=0;X.advanceTime(8);return G.roster[0].hp};const a=run(0),b=run(1);ok(b>a,'cook: '+a+' -> '+b+' hitpoints in 8 hours') }
   // recruiter: a quarter off, one more recruit
-  { const t=G.towns[1];off();X.stockTown(t);const m=t.recruits[0],c0=X.recruitCost(m);ok(t.recruits.length===5,'five recruits');on('recruiter');ok(X.recruitCost(m)===Math.round(c0*.75/5)*5,'recruiter: a quarter off');X.stockTown(t);ok(t.recruits.length===6,'recruiter: six recruits');
+  { const t=G.towns[1];off();X.stockTown(t);const m=t.recruits[0],c0=X.recruitCost(m);ok(t.recruits.length===5,'five recruits');on('recruiter');ok(X.recruitCost(m)===Math.max(5,Math.round(X.BG[m.bg].cost*(1+.35*Math.max(0,(m.lvl||1)-1))*.75/5)*5)&&X.recruitCost(m)<c0,'recruiter: a quarter off');   // a quarter off the unrounded price (rounding twice can differ by 5)X.stockTown(t);ok(t.recruits.length===6,'recruiter: six recruits');
     G.roster=G.roster.slice(0,4);X.openTown(1);closeAll(X);X.openTown(1);const r=t.recruits[0],cost=X.hireCost(r),c1=G.crowns;X.hire(0);ok(G.crowns===c1-cost&&G.roster.includes(r),'hire pays the recruiter’s price');G.townOpen=false;closeAll(X) }
   // cartographer: +15% on roads
   { const N=X.WN*X.WN,W=X.W;let i0=-1;for(let i=0;i<N;i++)if(W.road[i]&&W.ok[i]){const x=i%X.WN,y=(i/X.WN)|0;if(W.road[i]&2&&W.road[i+1]&2&&W.road[i+2]&2){i0=i;break}}

@@ -21,7 +21,8 @@ Object.assign(ITEMS,{
  gauntlet:{k:'w',n:'Mailed gauntlets',wt:'fist',d:[30,44],ap:4,fat:7,rng:1,ign:.35,crush:.4,stun:.1,price:760,tier:3},
  katar:{k:'w',n:'Katar',wt:'fist',d:[30,44],ap:3,fat:5,rng:1,ign:.55,hit:5,crush:-.2,price:1350,tier:4}
 });
-for(const id of FISTITEMS){const i=ITEMS[id];i.look=i.look||id;i.sk=['shove']}
+if(!WSK.fist)WSK.fist=['shove'];   // a fist weapon's skill: Shove (the cestus' too)
+for(const id of FISTITEMS){const i=ITEMS[id];i.look=i.look||id;WSKID[id]=WSK.fist.slice();i.sk=WSKID[id].slice()}
 /* ---- abilities ---- */
 Object.assign(AB,{
  hipthrow:{n:'Hip throw',ap:4,fat:14,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,mult:.6,hit:5,kb:2,gwind:12,fx:'shove',
@@ -35,20 +36,20 @@ Object.assign(AB,{
  flykick:{n:'Flying kick',ap:4,fat:14,rng:3,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,dash:1,mult:1,hit:10,fx:'bonk',ai:(u,X)=>fsKickAi(u,X,'flykick'),
   d:'Leap at a foe up to 3 tiles away, past every foe on the way (no free attacks), and kick: 100% damage, +10 to hit. Fists only.'}});
 /* ---- who carries them (BG[bg].pool at most 9 trees; core: the tree every recruit of it carries, rollTrees) ----
-   monk       Willow style (core), the Pugilist, the Wrestler          pit fighter  the Wrestler (core), the Pugilist
+   monk       Willow style (core), the Pugilist, the Wrestler          pit fighter  the Wrestler (core), the Pugilist (for the Skirmisher, the Vanguard)
    tumbler    Willow style (for the Brawler)                           cutthroat    the Pugilist (for the Scout)
    cutpurse   Willow style (for the Scout)                             beggar       the Pugilist
    gladiator  the Wrestler, the Pugilist (for the Berserker and the Shieldbearer)
-   flagellant, acolyte  the Wrestler          hedge mage, apothecary  Willow style
+   flagellant  the Wrestler, Willow style     temple acolyte  the Wrestler     apothecary  Willow style
    The trees a background gave up: FIST_OUT (the PKV 3 refit trades them for its fist tree, 20-state.js). Gear: hand wraps, knuckle-dusters
    and the cestus now and then in the hands of the boxers and wrestlers; fist weapons in the brigands' loot. */
-const FIST_OUT={monk:['scout','bulwark'],pitfighter:['skirmisher','dualwield'],acrobat:['brawler'],cutthroat:['scout'],thief:['scout'],gladiator:['berserker','shieldbearer']};
+const FIST_OUT={monk:['scout','bulwark'],pitfighter:['skirmisher','vanguard'],acrobat:['brawler'],cutthroat:['scout'],thief:['scout'],gladiator:['berserker','shieldbearer']};
 {const pool=(bg,L,core)=>{const b=BG[bg];if(!b)return;b.pool=L;if(core)b.core=core};
  pool('monk',['willow','pugilist','wrestle','skirmisher','brawler','survivor','medic','duelist'],'willow');
- pool('pitfighter',['wrestle','pugilist','brawler','berserker','duelist','survivor','brute','vanguard','gladiator'],'wrestle');
+ pool('pitfighter',['wrestle','pugilist','brawler','berserker','duelist','survivor','brute','gladiator','dualwield'],'wrestle');
  const tree=(bg,k,out)=>{const b=BG[bg];if(!b||b.pool.includes(k))return;const i=out?b.pool.indexOf(out):-1;if(i>=0)b.pool[i]=k;else b.pool.push(k)};
  tree('acrobat','willow','brawler');tree('cutthroat','pugilist','scout');tree('thief','willow','scout');tree('beggar','pugilist');
- tree('gladiator','wrestle','shieldbearer');tree('gladiator','pugilist','berserker');tree('flagellant','wrestle');tree('acolyte','wrestle');tree('hedge','willow');tree('apothecary','willow');
+ tree('gladiator','wrestle','shieldbearer');tree('gladiator','pugilist','berserker');tree('flagellant','wrestle');tree('acolyte','wrestle');tree('flagellant','willow');tree('apothecary','willow');
  const gear=(bg,i,extra)=>{const b=BG[bg];if(b&&b.gear&&b.gear[i])b.gear[i]+='|'+extra};
  gear('monk',0,'wraps|wraps|-');gear('pitfighter',0,'wraps|knuckles');gear('beggar',0,'wraps');gear('flagellant',0,'wraps');gear('acrobat',0,'wraps');
  for(const f of ['bandit'])if(FACT[f])for(const id of ['wraps','knuckles'])if(!FACT[f].loot.includes(id))FACT[f].loot.push(id)}
