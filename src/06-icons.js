@@ -6481,12 +6481,65 @@ function icResolveRaw(name){let rows=null;if(name.slice(0,3)==='it-'){let r=null
 const IC_MADE={};
 
 /* ================= game icon =================
-   GAME_ICON[16|32]: the source rows (PAL keys). gameIconCanvas(size) -> a canvas at any size: 16 draws the 16px rows, every other size the 32px
+   GAME_ICON[16|32]: the old pixel rows (kept for reference). gameIconCanvas(size) -> a canvas at any size, painted by gameIconPaint (vector art, 100 units square); was: 16 drew the 16px rows, every other size the 32px
    rows at the largest integer scale that fits, centred on the field colour (180 = 5x with a 10px margin). assets/make-icons.js writes the PNGs. */
 const GAME_ICON={16:[".00000000000000.", "0dddddd0ddddddc0", "0d11110r061111b0", "0d11160r065111b0", "0d11610r011511b0", "0d15510r011551b0", "0d15110q011151b0", "0d17110q011151b0", "0d17000xY00071b0", "0d10cccZBbbb01b0", "0d11000j000011b0", "0d11110j071111b0", "0d11110d011111b0", "0d111110111111b0", "0cbbbbbbbbbbbbb0", ".00000000000000."],
  32:["..0000000000000000000000000000..", ".0dddddddddddddddddddddddddddd0.", "0dccccccccccccc0cccccccccccccbb0", "0dcaaaaaaaaaaa0r0aaaaaaaaaaaabb0", "0dca11111111110rp01111111111abb0", "0dca11111111660rq06611111111abb0", "0dca11111166660rp0666511F111abb0", "0dca111e1666120rq02155511111abb0", "0dca11116612220rp02221551111abb0", "0dca11116622220rq02222551111abb0", "0dca11155122230rp03222155r11abb0", "0dca11155222330rq03322255111abb0", "0dca11151223330qo03332215111abb0", "0dca11651223330qp03332215111abb0", "0dca11151223330qo03332215111abb0", "0dca11151223330qp03332215111abb0", "0dca11170222330xY03322205111abb0", "0dca1110c00000xFeY00000b0111abb0", "0dca1110dddddxFreeYccccc0111abb0", "0dca1110cccccZ66AABbbbbb0111abb0", "0dca1110c00000Z6AB00000b0111abb0", "0dca11110177550ZB0557710d111abb0", "0dca11111111770ji07711111111abb0", "0dca11111111110kj01111111111abb0", "0dca11111111110ji01111111111abb0", "0dca11111111110kj01111111111abb0", "0dca1111111110ddbb0111111111abb0", "0dca11111111110ca01111111111abb0", "0dcaaaaaaaaaaaa00aaaaaaaaaaaabb0", "0dbbbbbbbbbbbbbbbbbbbbbbbbbbbbb0", ".0bbbbbbbbbbbbbbbbbbbbbbbbbbbb0.", "..0000000000000000000000000000.."]};
-function gameIconCanvas(size){size=Math.max(16,size|0||32);if(typeof document==='undefined')return null;const rows=size<32?GAME_ICON[16]:GAME_ICON[32],n=rows.length,k=Math.max(1,Math.floor(size/n)),c=pxCanvas(size,size);if(!c)return null;
- const g=c.getContext('2d'),src=px(rows);if(!src)return c;const o=Math.floor((size-n*k)/2);if(o>0){g.fillStyle=PAL['0'];g.fillRect(0,0,size,size)}g.imageSmoothingEnabled=false;g.drawImage(src,o,o,n*k,n*k);return c}
+/* the game icon, painted: a longsword before a verdigris ward-ring in a gilt frame. 100x100 units at any size. */
+function gameIconPaint(g,size){const s=size/100;g.save();g.scale(s,s);const INK='#0c0d12';
+ const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()};
+ const lin=(x0,y0,x1,y1,st)=>{const L=g.createLinearGradient(x0,y0,x1,y1);st.forEach(([o,c])=>L.addColorStop(o,c));return L};
+ // frame: ink, gilt bevel, inner ink
+ rr(0,0,100,100,12);g.fillStyle=INK;g.fill();
+ rr(2.5,2.5,95,95,10);g.fillStyle=lin(0,0,100,100,[[0,'#fff1b0'],[.18,'#f2c94c'],[.5,'#c08a22'],[.82,'#8a5a12'],[1,'#5a3608']]);g.fill();
+ rr(5.5,5.5,89,89,8);g.fillStyle=lin(0,0,100,100,[[0,'#6a4410'],[1,'#ffe08a']]);g.fill();
+ rr(7.5,7.5,85,85,7);g.fillStyle=INK;g.fill();
+ // field: deep verdigris, lit from the upper left
+ rr(9,9,82,82,6);g.save();g.clip();
+ let R=g.createRadialGradient(40,36,4,50,50,62);R.addColorStop(0,'#2f5f57');R.addColorStop(.55,'#173430');R.addColorStop(1,'#08110f');g.fillStyle=R;g.fillRect(0,0,100,100);
+ // soft glow behind the ring
+ R=g.createRadialGradient(50,44,8,50,44,40);R.addColorStop(0,'rgba(126,232,204,.32)');R.addColorStop(1,'rgba(126,232,204,0)');g.fillStyle=R;g.fillRect(0,0,100,100);
+ // the ward-ring: a broad verdigris band with ink edges and rune ticks
+ const cx=50,cy=46,r=27;g.lineCap='butt';
+ g.beginPath();g.arc(cx,cy,r,0,Math.PI*2);g.strokeStyle=INK;g.lineWidth=9.5;g.stroke();
+ g.beginPath();g.arc(cx,cy,r,0,Math.PI*2);g.strokeStyle=lin(cx-r,cy-r,cx+r,cy+r,[[0,'#d8fff2'],[.3,'#7edcc4'],[.65,'#2fa58e'],[1,'#0f4a40']]);g.lineWidth=6.5;g.stroke();
+ g.beginPath();g.arc(cx,cy,r+1.6,Math.PI*1.05,Math.PI*1.55);g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=1.1;g.stroke();
+ g.strokeStyle='rgba(12,13,18,.55)';g.lineWidth=1.2;for(let i=0;i<16;i++){const a=i/16*Math.PI*2+.1;g.beginPath();g.moveTo(cx+Math.cos(a)*(r-2.2),cy+Math.sin(a)*(r-2.2));g.lineTo(cx+Math.cos(a)*(r+2.2),cy+Math.sin(a)*(r+2.2));g.stroke()}
+ // sparkles
+ const spark=(x,y,k,a)=>{g.save();g.translate(x,y);g.globalAlpha=a;g.fillStyle='#e9fff8';g.beginPath();g.moveTo(0,-k);g.quadraticCurveTo(k*.18,-k*.18,k,0);g.quadraticCurveTo(k*.18,k*.18,0,k);g.quadraticCurveTo(-k*.18,k*.18,-k,0);g.quadraticCurveTo(-k*.18,-k*.18,0,-k);g.fill();g.restore()};
+ spark(22,24,4.2,.95);spark(79,30,3.2,.85);spark(76,66,2.4,.7);spark(25,62,2,.6);
+ g.restore();
+ // sword (point up); shadow first
+ g.save();g.translate(1.6,1.8);g.globalAlpha=.45;g.fillStyle='#000';
+ g.beginPath();g.moveTo(50,12);g.lineTo(55,22);g.lineTo(55,66);g.lineTo(45,66);g.lineTo(45,22);g.closePath();g.fill();g.restore();
+ // blade
+ g.beginPath();g.moveTo(50,11);g.lineTo(55.6,21.5);g.lineTo(55.6,67);g.lineTo(44.4,67);g.lineTo(44.4,21.5);g.closePath();g.fillStyle=INK;g.fill();
+ g.beginPath();g.moveTo(50,13.6);g.lineTo(54.2,22);g.lineTo(54.2,66);g.lineTo(45.8,66);g.lineTo(45.8,22);g.closePath();
+ g.fillStyle=lin(45.8,0,54.2,0,[[0,'#ffffff'],[.22,'#dbe4ec'],[.5,'#a9b7c4'],[.52,'#6f8192'],[.8,'#51637a'],[1,'#2a3644']]);g.fill();
+ // fuller and edge glint
+ g.beginPath();g.moveTo(50,24);g.lineTo(50,63);g.strokeStyle='rgba(20,30,44,.55)';g.lineWidth=1.3;g.stroke();
+ g.beginPath();g.moveTo(46.6,24);g.lineTo(46.6,62);g.strokeStyle='rgba(255,255,255,.8)';g.lineWidth=.8;g.stroke();
+ spark(47.5,30,3.2,.95);
+ // crossguard: gilt bar with curled quillons
+ const gold=lin(0,63,0,73,[[0,'#fff6c8'],[.3,'#f2c94c'],[.7,'#b07a18'],[1,'#5a3608']]);
+ g.beginPath();g.moveTo(28,66);g.quadraticCurveTo(26,61.5,30.5,61.8);g.lineTo(69.5,61.8);g.quadraticCurveTo(74,61.5,72,66);g.quadraticCurveTo(70.5,71.5,66,70.6);g.lineTo(34,70.6);g.quadraticCurveTo(29.5,71.5,28,66);g.closePath();
+ g.lineWidth=2.4;g.strokeStyle=INK;g.stroke();g.fillStyle=gold;g.fill();
+ g.beginPath();g.moveTo(31,63.4);g.lineTo(69,63.4);g.strokeStyle='rgba(255,255,240,.85)';g.lineWidth=.9;g.stroke();
+ // the gem
+ g.beginPath();g.arc(50,66.2,5.4,0,Math.PI*2);g.fillStyle=INK;g.fill();
+ R=g.createRadialGradient(48.4,64.4,.5,50,66.2,4.4);R.addColorStop(0,'#ffffff');R.addColorStop(.25,'#9ff7e2');R.addColorStop(.7,'#22a88e');R.addColorStop(1,'#0a4a40');
+ g.beginPath();g.arc(50,66.2,4.1,0,Math.PI*2);g.fillStyle=R;g.fill();
+ R=g.createRadialGradient(50,66,0,50,66,12);R.addColorStop(0,'rgba(160,255,230,.35)');R.addColorStop(1,'rgba(160,255,230,0)');g.fillStyle=R;g.fillRect(36,54,28,24);
+ // grip: leather wrap
+ g.beginPath();rr(45.4,70.4,9.2,15.4,1.8);g.fillStyle=INK;g.fill();
+ rr(46.8,71,6.4,14.2,1.2);g.fillStyle=lin(46.8,0,53.2,0,[[0,'#d29a66'],[.4,'#8c5530'],[1,'#3a1e0e']]);g.fill();
+ g.strokeStyle='rgba(20,8,2,.7)';g.lineWidth=.9;for(let y=73;y<85;y+=2.6){g.beginPath();g.moveTo(46.8,y+1.4);g.lineTo(53.2,y);g.stroke()}
+ // pommel
+ g.beginPath();g.arc(50,89,6,0,Math.PI*2);g.fillStyle=INK;g.fill();
+ R=g.createRadialGradient(48,87,.6,50,89,5);R.addColorStop(0,'#fffbe0');R.addColorStop(.35,'#f2c94c');R.addColorStop(1,'#6a4210');g.beginPath();g.arc(50,89,4.4,0,Math.PI*2);g.fillStyle=R;g.fill();
+ g.restore()}
+function gameIconCanvas(size){size=Math.max(16,size|0||32);if(typeof document==='undefined')return null;const c=pxCanvas(size,size);if(!c)return null;
+ const g=c.getContext('2d');g.imageSmoothingEnabled=true;gameIconPaint(g,size);return c}
 
 /* ================= TRAIT ICONS: trait-<key> =================
    A 10x10 hand-drawn glyph in a 16x16 frame: good traits in a verdigris frame with brass studs on a pine field, bad ones
