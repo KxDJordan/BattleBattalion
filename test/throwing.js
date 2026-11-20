@@ -87,17 +87,17 @@ X.ctx.strike=async function(u,t,a,o){if(!FCHECK||!t.alive||!u.alive)return strik
 section('catalog');
 { fresh(SEED);const M=X.MAST,AB=X.AB,I=X.ITEMS;let actives=0;
   for(const k in M){const T=M[k],n=T.p.filter(p=>p.ab).length;actives+=n;
-   if(T.kind==='style')ok(n<=1,k+': at most one ability in a style tree ('+n+')');if(T.kind==='gift')ok(n===2,k+': two abilities in a gift tree ('+n+')');if(T.kind==='fabled')ok(n<=1,k+': at most one ability');
+   if(T.kind==='style')ok(n<=(['gunner','pistol','powder'].includes(k)?2:1),k+': at most one ability in a style tree, two in a firearm tree ('+n+')');if(T.kind==='gift')ok(n===2,k+': two abilities in a gift tree ('+n+')');if(T.kind==='fabled')ok(n<=1,k+': at most one ability');
    for(const p of T.p){ok(typeof p.d==='string'&&p.d.length>=8,p.id+': a text');if(p.ab)ok(AB[p.ab]&&AB[p.ab].n&&AB[p.ab].d,p.id+': ability '+p.ab)}}
-  ok(actives<=64,'tree abilities in all: '+actives);   // 56, and the 8 of the four throwing gift trees (test/throwgifts.js)
+  ok(actives<=69,'tree abilities in all: '+actives);   // 56, the 8 of the four throwing gift trees (test/throwgifts.js) and 5 of the firearm trees (test/guntrees.js)
   for(const id of X.PERKV20){const P=X.perkById(id);ok(P&&!P.perk.ab&&(P.perk.mod||P.perk.flag)&&P.perk.d.length>20,'a changed perk is a passive with a text: '+id)}
   ok(X.PERKV20.length===54&&new Set(X.PERKV20).size===54,'54 perks changed: '+X.PERKV20.length);
   // the abilities that left the trees are still abilities (foes, fabled trees, elites use some)
   for(const a of ['shove','indom','pin','volley','footwork','adren','lunge','flurry','cleave','slam','rally','command','triage','surge','vanish','whirl','pshot','headbutt','grapple','haymaker',
    'shadowstrike','deathmark','pocketsand','slipaway','untouchable','taunt','showstop','crowdroar','feint','dwfeint','bladeflurry','fireball','blink','chain','manashield','blinkstrike','avolley',
    'bindshot','awave','crush','adash','pvolley','carrow','frost','gale','thunder','iarrow','tarrow','reinforce','empower','swift','hundred','pparrow'])ok(AB[a]&&AB[a].n&&AB[a].d,'ability '+a+' kept');
-  for(const [k,ab] of [['gunner','dcharge'],['thrower','dthrow']]){const T=M[k];ok(T&&T.kind==='style'&&T.tiers.length===6&&T.tiers.every((t,i)=>t.length===1&&t[0].id===k+'.'+(i+1)),k+': six tiers, ids pinned');
-   ok(T.p.filter(p=>p.ab).map(p=>p.ab).join()===ab,k+': one ability, '+ab);ok(T.cap&&T.cap.tiers[0][0].id===k+'.cap'&&X.MUNDANE.includes(k),k+': a capstone, a style tree');
+  for(const [k,ab] of [['gunner','gvolley,dcharge'],['thrower','dthrow']]){const T=M[k];ok(T&&T.kind==='style'&&T.tiers.length===6&&T.tiers.every((t,i)=>t.length===1&&t[0].id===k+'.'+(i+1)),k+': six tiers, ids pinned');
+   ok(T.p.filter(p=>p.ab).map(p=>p.ab).join()===ab,k+': its abilities, '+ab);ok(T.cap&&T.cap.tiers[0][0].id===k+'.cap'&&X.MUNDANE.includes(k),k+': a capstone, a style tree');
    ok(Object.keys(X.BG).filter(bg=>X.BG[bg].pool.includes(k)).length>=5,k+': in five pools or more')}
   ok(X.WTS.includes('throwing')&&X.RANGEDWT.includes('throwing')&&X.perkById('weapons.throwing')&&X.perkById('throwing.cap'),'the throwing family: WTS, RANGEDWT, its mastery and capstone');
   const thrBG=Object.keys(X.BG).filter(bg=>X.BG[bg].wt.includes('throwing'));ok(thrBG.length>=6,'backgrounds that can learn throwing weapons: '+thrBG.join());
@@ -155,9 +155,9 @@ section('throws');
   console.log('Double throw, shuriken bleed, bolas root, fresh stacks, foes that throw: ok') }
 
 section('firearms');
-{ fresh(SEED+5);const g=merc('noble','twinpistol',['gunner.1','gunner.2','gunner.3','gunner.4','gunner.5','gunner.6'],['gunner','duelist','tactician','vanguard']);
+{ fresh(SEED+5);const g=merc('noble','twinpistol',['powder.1','pistol.1','gunner.3','gunner.4','gunner.5','gunner.6'],['gunner','pistol','powder','vanguard']);   // Powder smoke (Grenadier), Arm's length (Pistolier), the rest Musketry (the gun trees update)
   const A=await arena(SEED+5,[g,merc('witchhunter','wallgun',[],['gunner','marksman','scout','survivor']),merc('noble','pistol',[]),merc('sailor','caliver',[])]),b=A.b,[u,wg,m3,m4]=A.P,[e,e2]=A.E;
-  ok(X.ammoLeft(u)===2&&u.loaded,'two barrels, loaded');ok(u.abs.includes('dcharge'),'Double charge comes with Gunnery');put(u,3,8);put(e,3,4);e.hp=e.hpMax=9999;put(m3,15,11);put(m4,14,11);
+  ok(X.ammoLeft(u)===2&&u.loaded,'two barrels, loaded');ok(u.abs.includes('dcharge'),'Double charge comes with Musketry');put(u,3,8);put(e,3,4);e.hp=e.hpMax=9999;put(m3,15,11);put(m4,14,11);
   const at=X.abilityInfo(u,'attack');u.ap=12;await X.useAbility(u,at,KU(e));await rest(b);b.busy=true;ok(u.loaded&&X.ammoLeft(u)===1,'the first shot: one barrel left, still loaded');
   u.ap=12;await X.useAbility(u,X.abilityInfo(u,'attack'),KU(e));await rest(b);b.busy=true;ok(!u.loaded&&X.ammoLeft(u)===0,'the second: spent');
   u.ap=12;await X.useAbility(u,X.abilityInfo(u,'reload'),KU(u));await rest(b);b.busy=true;ok(u.loaded&&X.ammoLeft(u)===2,'a reload loads both barrels');

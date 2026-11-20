@@ -177,15 +177,16 @@ const PERKV20=['vanguard.2','bulwark.4','marksman.3','marksman.5','skirmisher.2'
    A save written before it (no g.pkv, or a lower one) is refit once, right after repairSave (pkRefit), and saved with PKV from then on:
      every perk in PERKV2 (the ids whose effect changed: Musketry's first two tiers and capstone, Ramrod drill, the Gunsmoke Saint's tree, the
      three fabled abilities that echoed a style tree's) is taken back from the company's swords with its point returned;
-     a sword who carries Musketry ('gunner') though its background's pool no longer holds it (the pistoleer, the sapper, the siege gunner, the
-     duellists and boarders) trades it for its background's firearm tree (BG.core, else the Pistolier or the Grenadier in its pool), every
+     a sword who carries Musketry ('gunner') though its background's core is now another firearm tree (the pistoleer, the sapper, the siege
+     gunner) or its pool no longer holds it (the duellists and boarders) trades it for that tree (BG.core, else the Pistolier or the Grenadier in its pool), every
      Musketry perk refunded with it (the Isekai's chosen trees and fabled warriors keep theirs).
    The company's swords are listed in G.refund (the sheet says why: refundWhy 'guns'); recruits waiting in towns and rival swords keep the
    changed perks (no points move) but trade a lost tree the same way, its points spent again by autoLearn. Draws no randomness. */
 const PKV=2;
 const PERKV2=['gunner.1','gunner.2','gunner.cap','weapons.flintlock','fab.mattias.1','fab.mattias.2','fab.mattias.cap','fab.hakon.4','fab.mirela.4','fab.brannoc.4'];
-function pkTreeSwap(m){const b=BG[m.bg];if(!b||!Array.isArray(b.pool)||!Array.isArray(m.trees)||m.fabled||m.cc||b.pool.includes('gunner'))return 0;const i=m.trees.indexOf('gunner');if(i<0)return 0;
- const to=[b.core,'pistol','powder'].find(k=>k&&MAST[k]&&MAST[k].kind==='style'&&b.pool.includes(k)&&!m.trees.includes(k));if(!to)return 0;
+function pkTreeSwap(m){const b=BG[m.bg];if(!b||!Array.isArray(b.pool)||!Array.isArray(m.trees)||m.fabled||m.cc)return 0;const i=m.trees.indexOf('gunner');if(i<0)return 0;
+ const core=b.core&&b.core!=='gunner'&&MAST[b.core]&&!m.trees.includes(b.core)?b.core:null;if(!core&&b.pool.includes('gunner'))return 0;   // a gun background whose core is no longer Musketry, or a pool without it
+ const to=core||['pistol','powder'].find(k=>MAST[k]&&b.pool.includes(k)&&!m.trees.includes(k));if(!to)return 0;
  m.trees=m.trees.slice();m.trees[i]=to;const keep=m.perks.filter(id=>id.split('.')[0]!=='gunner'),n=m.perks.length-keep.length;m.perks=keep;return n}
 function pkRefit(g){if(!svObj(g))return;if(svFin(g.pkv)&&g.pkv>=PKV)return;const out=[];
  const fix=(m,own)=>{if(!svObj(m)||!Array.isArray(m.perks))return;let n=0;

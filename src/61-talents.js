@@ -139,7 +139,7 @@ function perkFit(m,o,tags){const T=o.tree,p=o.perk,w=ITEMS[m.eq&&m.eq.w],sw=ITEM
  if((md.dmgRanged||md.coverIgn||md.longShot||p.flag==='noLock')&&!rngd)s-=30;
  {const gun=wt==='flintlock'||swt==='flintlock',thr=wt==='throwing'||swt==='throwing',fist=wt==='fist',lw=tags.has('lightw'),duel=!(sh||ow||two||rngd);   // the masteries update's passives: only with their weapon (60p-passives.js)
   if((md.smokeDef||md.gunPB||md.gunSteady||md.gunIgn||md.gunLine||md.rollV||md.volleyB||md.lineMax||md.smokeMel||md.killLoad)&&!gun)s-=30;
-  {const pis=wt==='flintlock'&&!two||swt==='flintlock'&&!(sw&&sw.two);if((md.gunPB||md.runHit||md.paceHit||md.braceP||md.pbR)&&!pis)s-=30;if(a&&a.oneH&&!pis)s-=45}   // the Pistolier: only with a pistol (64u-guntrees.js)if((md.ammoB||md.recover||md.ricochet||md.throwRng||p.flag==='deadArc')&&!thr)s-=30;
+  {const pis=wt==='flintlock'&&!two||swt==='flintlock'&&!(sw&&sw.two);if((md.gunPB||md.runHit||md.paceHit||md.braceP||md.pbR)&&!pis)s-=30;if(a&&a.oneH&&!pis)s-=45;if(a&&(a.gvol||a.oneH||a.bomb)&&s>0)s+=8}   // the firearm trees' abilities are their trade: learned when they open   // the Pistolier: only with a pistol (64u-guntrees.js)if((md.ammoB||md.recover||md.ricochet||md.throwRng||p.flag==='deadArc')&&!thr)s-=30;
   if((md.hobbleShot||md.bindRoot||md.staticChg||p.flag==='drawLoose')&&!(rngd&&(bow||wt==='crossbow')))s-=30;if((md.koDmg||md.fistDaze)&&!fist)s-=25;if(md.follow&&!(two&&!rngd))s-=30;
   if(md.counter&&!duel)s-=30;if((md.sfHit||md.doomHurt||md.cheapBlind)&&!lw)s-=25;if((md.dwBleed||md.dwFlow)&&!dw)s-=swDw?10:30;if(md.bindOff&&!sh)s-=35;
   if((md.pressHit||md.chainHit||md.flowDmg||md.clinch||md.crowdDef||md.chargeHit||md.shock||md.shakenHit||md.armDmg)&&rngd)s-=15;

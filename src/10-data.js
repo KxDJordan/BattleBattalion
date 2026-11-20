@@ -592,7 +592,7 @@ const MAST={
     No perk of one repeats another tree's (test/guntrees.js). */
  gunner:{n:'Musketry',kind:'style',aff:['ranged','gun','longgun'],d:'Powder, ball and the drum',role:'The line gunner: fires by volley beside the other guns, slow and deliberate, and punches through plate at long range',tiers:[
   [perkDef('Rolling volley','With a firearm: +8% damage against a foe already hit by a firearm shot this round, for every such hit (at most +24%)',{id:'gunner.1',mod:{rollV:.08}})],
-  [perkDef('Volley fire','Ability (a loaded firearm, 5 AP): fire, and every ally within 2 tiles whose firearm is loaded, with the foe in range and in sight, fires at it too for 60% damage (their loads are spent, not their AP)',{id:'gunner.2',ab:'gvolley'})],
+  [perkDef('Volley fire','Ability (a loaded firearm, 5 AP): fire, and every ally within 2 tiles whose firearm is loaded, with the foe in range and in sight, fires at it too for 60% damage (their loads are spent, and each starts its next turn 2 AP short)',{id:'gunner.2',ab:'gvolley'})],
   [perkDef('Primed','After you reload a firearm, its next shot gets +10 to hit and +15% damage',{id:'gunner.3',mod:{primeHit:10,primeDmg:.15}})],
   [perkDef('Double charge','Ability: a double load of powder (6 AP, a loaded firearm): 140% damage, +20% armor piercing, −5 to hit',{id:'gunner.4',ab:'dcharge'})],
   [perkDef('Armor-piercing ball','Firearm shots pierce 10% more armor and crush 25% more of it',{id:'gunner.5',mod:{gunIgn:.1,gunCrush:.25}})],
@@ -606,7 +606,7 @@ const MAST={
   [perkDef('Brace of pistols','Every second pistol shot leaves your pistol loaded: a second one comes out of the sash',{mod:{braceP:1}})]]},
  powder:{n:'Grenadier',kind:'style',aff:['ranged','gun','bomb'],d:'Kegs, fuses and scattershot',role:'The grenadier: bombs, shot and smoke that break shields, scatter close formations and send the crowd running',tiers:[
   [perkDef('Powder smoke','After you fire a firearm, shots and spells at you get −10 to hit until your next turn',{mod:{smokeDef:10}})],
-  [perkDef('Grenade','Ability (twice a battle, 4 AP, up to 4 tiles, any weapon in hand): a lit bomb: 24–36 damage, 30% armor piercing, to a foe and 70% of it to every foe beside it, aimed with ranged skill',{ab:'grenade'})],
+  [perkDef('Grenade','Ability (twice a battle, 4 AP, up to 4 tiles, any weapon in hand): a lit bomb: 24–36 damage, 30% armor piercing, to a foe and 70% of it to every foe beside it, aimed with ranged skill at +10; a raised shield is no cover from it',{ab:'grenade'})],
   [perkDef('Blasting powder','+20% damage with Scattershot, Grenade and Petard',{mod:{blastDmg:.2}})],
   [perkDef('Petard','Ability (once a battle, 5 AP): a charge set against the foe next to you: 30–46 damage that cannot miss, 100% more armor crushed, knocked back 1 tile, and a raised shield takes 60 damage',{ab:'petard'})],
   [perkDef('Shellshock','A foe hit by your Scattershot, Grenade or Petard tests its morale',{mod:{blastFear:1}})],

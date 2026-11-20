@@ -177,6 +177,7 @@ function pvFreeAb(e,why){const f=e&&e.flags;if(!f||!(f.clinch||f.galeKb||f.zocHi
 function pvTurn(u){const b=B,f=u.flags||{};
  if(u.shotT)u.shotT=0;if(u.atkT)u.atkT=0;if(u.mixK)u.mixK=0;if(u.icpT)u.icpT=0;if(u.mvN)u.mvN=0;if(u.chainN)u.chainN=0;if(u.aimg)u.aimg=0;if(u.wsN)u.wsN=0;if(u.smoke)u.smoke=0;if(u.umvN)u.umvN=0;if(u.hitBy)u.hitBy=null;if(u.echoT)u.echoT=0;if(u.hrun)u.hrun=0;
  if(u.st.hobbled>0){u.ap=Math.max(0,u.ap-PV.hobble);u.st.hobbled--;float(u,'Hobbled','#ffd27a')}
+ if(u.vfAP){u.ap=Math.max(0,u.ap-u.vfAP);u.vfAP=0;float(u,'Volley: −2 AP','#ffd27a')}   // fired in a Volley fire since its last turn (64u-guntrees.js)
  if(b&&b.pvBreath){const v=bestAdj(u,'breathFat');if(v>0)u.fat=Math.max(0,u.fat-v)}
  if(f.breathAm&&isThrowW(u.wpn)&&u.res.chi&&u.res.chi.cur>=f.breathAm&&ammoLeft(u)<ammoMax(u,u.wpn)){u.res.chi.cur-=f.breathAm;setAmmo(u,ammoLeft(u)+1);float(u,'Throw gathered','#9bd96f')}   // Gathered breath (Still hand)
  if(f.auraAdj&&u.res.aura){const n=adjFoes(u).length,R=u.res.aura;if(n&&R.cur<R.max){const g=Math.min(R.max-R.cur,f.auraAdj*n);R.cur+=g;float(u,'+'+g+' '+(RESN.aura||'Aura'),RESC.aura||'#ffd27a')}}

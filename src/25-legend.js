@@ -61,7 +61,7 @@ const CAPS={
  gladiator:[['Darling of the crowd','+10 resolve; Crowd-pleaser heals 5 more on a kill; allies within 3 tiles get +10 resolve on morale checks',{st:{brv:10},mod:{crowdKill:5,brvAura:10}}]],
  champion:[['Champion of the sands','+10 hitpoints, +5 melee defense; Single combat gives a further +5 to hit and +10% damage',{st:{hp:10,md:5},mod:{soloHit:5,soloDmg:.1}}]],
  dualwield:[['Storm of steel','+8 initiative; with a weapon in each hand: +6 melee defense, and every off-hand blow deals 15% more damage and gets +5 to hit',{st:{init:8},mod:{dwDef:6,dwOffDmg:.15,dwOffHit:5}}]],
- gunner:[['Fire by ranks','+6 ranged skill; Volley fire: your allies fire at 85% damage instead of 60%; Gunline counts up to 4 allies (at most +20 to hit and +20% damage)',{st:{rs:6},mod:{volleyB:.25,lineMax:1}}]],
+ gunner:[['Fire by ranks','+6 ranged skill; Volley fire: your allies fire at 85% damage instead of 60% (+25%); Gunline counts up to 4 allies (at most +20 to hit and +20% damage)',{st:{rs:6},mod:{volleyB:.25,lineMax:1}}]],
  pistol:[['Gunslinger','+8 initiative, +5 ranged skill; Arm\'s length reaches a foe 3 tiles away',{st:{init:8,rs:5},mod:{pbR:1}}]],
  powder:[['Master sapper','+10 hitpoints; one more Grenade a battle; Scattershot, Grenade and Petard pierce 15% more armor',{st:{hp:10},mod:{bombN:1,blastIgn:.15}}]],
  thrower:[['Storm of blades','+6 ranged skill; +2 more throws with every throwing weapon; +10% damage with ranged weapons',{st:{rs:6},mod:{ammoB:2,dmgRanged:.1}}]],
