@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cut the user's orc sheets into the rig's pieces and the drawn frames, and pack them.
 
-  python3 -I assets/make-orc-atlas.py
+  python3 -I assets/make-orc-atlas.py [--show DIR]
 
 Reads (all facing right, the front three-quarter view; row 1 the compiled orc (the reference) and the parts, row 2 eight heads:
 neutral, grit, roar, angry, shout (squint), hurt (eyes closed), dead (X eyes, tongue), stern; then the frame rows: run, attack, cast,
@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 from PIL import Image, ImageDraw
 import foeframes as ff
+import orcweapons as ow
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HEADS = ['neutral', 'grit', 'roar', 'angry', 'shout', 'hurt', 'dead', 'stern']
@@ -41,7 +42,8 @@ ORCS = {
   setup=[('axe', 'axe', (224, 167), 0, 1.0), ('arm_r', 'arm_r', (187, 143), 0, .75), ('leg_l', 'leg_l', (85, 205), 0, .8),
          ('leg_r', 'leg_r', (160, 205), 0, .8), ('torso', 'torso', (115, 160), 0, .85), ('head', 'head_neutral', (115, 71), 0, .85),
          ('arm_l', 'arm_l', (40, 153), 0, .8), ('pauldron', 'pauldron', (52, 93), 0, 1.0)],
-  rows=[('run', 415, 590), ('attack', 585, 785), ('cast', 785, 960), ('hurt', 960, 1140), ('death', 1140, 1312)], a0=(96, 700)),
+  rows=[('run', 415, 590), ('attack', 585, 785), ('cast', 785, 960), ('hurt', 960, 1140), ('death', 1140, 1312)], a0=(96, 700),
+  weapon=dict(slot='axe', two=False, head=(36, 26), butt=(-30, 26))),
  'OCA': dict(title='ORC CRUSHER', src='orc-crusher.webp', ref=(15, 7), n=8, head_band=(245, 365), head_part=(690, 130),
   parts={'arm_l': (325, 130), 'torso': (456, 140), 'arm_r': (582, 130), 'leg_l': (795, 145), 'leg_r': (888, 145), 'hammer': (1000, 133)},
   poly={}, lower={'fist_r': ('arm_r', .62)},
@@ -49,7 +51,8 @@ ORCS = {
   setup=[('arm_r', 'arm_r', (143, 87), 0, 1.0), ('leg_l', 'leg_l', (47, 172), 0, 1.05), ('leg_r', 'leg_r', (119, 172), 0, 1.05),
          ('torso', 'torso', (95, 120), 0, 1.0), ('head', 'head_neutral', (97, 42), 0, 1.0), ('hammer', 'hammer', (142, 128), 2, 1.08),
          ('fist_r', 'fist_r', (143, 87), 0, 1.0), ('arm_l', 'arm_l', (47, 93), 0, 1.05)],
-  rows=[('run', 375, 560), ('attack', 555, 765), ('cast', 765, 965), ('hurt', 965, 1150), ('death', 1150, 1340, 7)], a0=(70, 690))}
+  rows=[('run', 375, 560), ('attack', 555, 765), ('cast', 765, 965), ('hurt', 965, 1150), ('death', 1150, 1340, 7)], a0=(70, 690),
+  weapon=dict(slot='hammer', two=True, head=(.3, 0), butt=(-.55, 0)))}
 
 def align(src, ref, d=12):
     A = src[..., :3]; Ma = src[..., 3] > 250; R = ref[..., :3]; Mr = ref[..., 3] > 250; best = (1e18, 0, 0)
@@ -96,8 +99,9 @@ def build(var, C):
     HOFF = [(0, 0)] + [(-a, -b) for a, b in (align(h, H8[0]) for h in H8[1:])]   # each head's top left in the neutral head's px
     for n, h in zip(heads, H8): P['head_' + n] = h
     head_k = comp_cut(C['head_part']).shape[1] / H8[0].shape[1]                   # the row-2 heads at the part-row head's size
-    PIV = C['piv']
+    PIV = C['piv']; PPV = {}
     def pivot(n):
+        if n in PPV: return PPV[n]
         if n.startswith('head_'):
             i = heads.index(n[5:]); h0 = H8[0]
             return [PIV['head'][0] * h0.shape[1] - HOFF[i][0], PIV['head'][1] * h0.shape[0] - HOFF[i][1]]
@@ -115,7 +119,29 @@ def build(var, C):
     comp = np.array(CV).astype(np.float64)
     cax, cay = ff.anchor(comp); ys = np.nonzero(comp[..., 3] > 128)[0]
     ORG = (cax - OFF[0], cay - OFF[1]); H_SET = float(cay - ys.min())
-    A, b64, nbytes = ff.frame_sheet(S if 'img' in C else src, C['rows'], C['n'], 0.5, H_row=C.get('H_row', 'attack'), extra=P, xmin=C.get('xmin', 0), keep_o='post' in C)
+    WP = C.get('weapon'); GRIP = {}; ERASED = []
+    def edit(name, i, t, ax, ay, o):
+        # the painted weapon out of the frame and its hands found (assets/orcweapons.py); each grip's fist as its own piece
+        if not WP: return t
+        key = (name, i); an = ow.WEAPONS[var].get(key); two = WP['two']
+        if an:
+            poly, Hd, Bt = an; t0 = t
+            t = ow.erase(t, o, poly, 9 if two else 5, axis=(Hd[0] - o[0], Hd[1] - o[1], Bt[0] - o[0], Bt[1] - o[1]))[0]
+            g = ow.grips(t, Hd, Bt, o, two); ERASED.append((name, i, t0, t))
+            assert g, (var, key, 'no hand on the haft')
+        elif key in ow.MANUAL[var]: g = list(ow.MANUAL[var][key])
+        else:
+            f = ow.fist(t, 0 if name == 'death' else .4); assert f, (var, key, 'no fist'); g = [(f[0] + o[0], f[1] + o[1])]
+        R2_ = lambda v: round(float(v), 2)
+        rec = {'w': [R2_(g[0][0] - o[0] - ax), R2_(g[0][1] - o[1] - ay)], 's': [R2_(g[1][0] - o[0] - ax), R2_(g[1][1] - o[1] - ay)] if len(g) > 1 else None,
+               'by': 'haft' if an else 'eye' if key in ow.MANUAL[var] else 'fist'}
+        for k, q in zip('ws', g):
+            fp = ow.fist_patch(t, (q[0] - o[0], q[1] - o[1]))
+            if fp: n = 'f%s_%s%d' % (k, name, i); P[n] = fp[0]; PPV[n] = [R2_(fp[1][0]), R2_(fp[1][1])]; rec['f' + k] = n
+        GRIP.setdefault(name, {})[i] = rec
+        return t
+    A, b64, nbytes = ff.frame_sheet(S if 'img' in C else src, C['rows'], C['n'], 0.5, H_row=C.get('H_row', 'attack'), extra=P, xmin=C.get('xmin', 0), keep_o='post' in C, edit=edit)
+    C['_erased'] = ERASED
     F = A['H'] / H_SET          # ref px -> WU: the setup pose as tall as the attack row's first frame
     if C.get('h_opaque'):       # (make-keyed-atlas.py) as tall as that frame's opaque rows, as H_SET is measured, not its soft-edged box
         ys0 = np.nonzero(comp_cut(C['a0'])[..., 3] > 128)[0]; F = (ys0.max() + 1 - ys0.min()) / H_SET
@@ -140,6 +166,17 @@ def build(var, C):
     for n in A['p']: A['p'][n]['pv'] = [R2(v) for v in pivot(n)]
     A['set'] = [[slot, n, R2((at[0] - ORG[0]) * F), R2((at[1] - ORG[1]) * F), rot, R2(sc * F)] for slot, n, at, rot, sc in SETUP]
     A['heads'] = ['head_' + h for h in heads]
+    if WP:      # the hands per frame (WU from the anchor); the rig's: the haft walked on the composed setup pose
+        A['grip'] = {k: [v[i] for i in range(len(v))] for k, v in GRIP.items()}
+        for slot, n, at, rot, sc in SETUP:
+            if slot != WP['slot']: continue
+            t = P[n]; hx, hy = WP['head']; bx, by = WP['butt']
+            if abs(hx) < 1: hx, bx = hx * t.shape[1], bx * t.shape[1]
+            r = math.radians(rot); rp = lambda v: (at[0] + OFF[0] + (v[0] * math.cos(r) - v[1] * math.sin(r)) * sc, at[1] + OFF[1] + (v[0] * math.sin(r) + v[1] * math.cos(r)) * sc)
+            g = ow.grips(comp, rp((hx, hy)), rp((bx, by)), (0, 0), WP['two'])
+            assert g, (var, 'rig: no hand on the haft')
+            wu = lambda q: [R2((q[0] - OFF[0] - ORG[0]) * F), R2((q[1] - OFF[1] - ORG[1]) * F)]
+            A['rg'] = {'slot': slot, 'w': wu(g[0]), 's': wu(g[1]) if len(g) > 1 else None}
     if 'post' in C:     # extra data by the caller: setup(n, (x, y) piece px) -> WU in the setup pose
         def setup_pt(n, q):
             for slot, pn, at, rot, sc in SETUP:
@@ -162,3 +199,22 @@ if __name__ == '__main__':      # (imported by make-skel-atlas.py and make-keyed
           '   pose [slot, piece, x, y (WU from the feet), turn deg, scale] in draw order. Read by 76k-orc.js. */\n']
     for var, C in ORCS.items(): js.append(build(var, C))
     with open(os.path.join(ROOT, 'src', '76j-orcatlas.js'), 'w') as f: f.write(''.join(js))
+    if '--show' in sys.argv:    # DIR/erased-<var>.png: each frame whose weapon was erased, before (top) and after (bottom)
+        show = sys.argv[sys.argv.index('--show') + 1]
+        for var, C in ORCS.items():
+            L = C['_erased']; sc = 2; tiles = []
+            for name, i, a, b in L:
+                ims = []
+                for X in (a, b):
+                    im = Image.new('RGBA', (X.shape[1], X.shape[0]), (226, 220, 204, 255)); im.alpha_composite(Image.fromarray(np.clip(X, 0, 255).astype(np.uint8)))
+                    ims.append(im.resize((im.width * sc, im.height * sc), Image.LANCZOS))
+                col = Image.new('RGBA', (ims[0].width, ims[0].height * 2 + 18), (40, 36, 34, 255)); col.paste(ims[0], (0, 14)); col.paste(ims[1], (0, ims[0].height + 18))
+                ImageDraw.Draw(col).text((3, 1), '%s %d' % (name, i + 1), fill=(240, 230, 200)); tiles.append(col)
+            per = 10; rows_ = [tiles[k:k + per] for k in range(0, len(tiles), per)]
+            Wd = max(sum(t.width + 4 for t in r) for r in rows_); Hd = sum(max(t.height for t in r) + 4 for r in rows_)
+            out = Image.new('RGBA', (Wd, Hd), (40, 36, 34, 255)); y = 0
+            for r in rows_:
+                x = 0
+                for t in r: out.paste(t, (x, y)); x += t.width + 4
+                y += max(t.height for t in r) + 4
+            out.convert('RGB').save(os.path.join(show, 'erased-%s.png' % var))

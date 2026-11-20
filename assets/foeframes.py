@@ -179,10 +179,11 @@ def split_comp(im, lab, c, gx, new_id, win=45):
     return out
 
 
-def frame_sheet(path, ROWS, N_all, k, loose=None, H_row='idle', extra=None, xmin=0, keep_o=False):
+def frame_sheet(path, ROWS, N_all, k, loose=None, H_row='idle', extra=None, xmin=0, keep_o=False, edit=None):
     """A sheet of drawn frames: ROWS [(anim, y0, y1[, frames[, scale]])] bands of N frames each (a row drawn at another size is scaled), facing right. Each frame is its figure plus the loose bits
     (a glow, a swoosh) whose centre is in its cell; figures that touch are split along least-alpha seams at the cell grid (the sheet's
-    width / N). Anchor: the body's centre (median x of the figure's opaque pixels) over its feet (its lowest row; a frame with both feet
+    width / N). edit(anim, i, img, ax, ay, (ox, oy)) -> img: the caller's change to each cut frame before it is packed (the orcs' painted
+    weapons erased; the frame keeps its size and anchor). Anchor: the body's centre (median x of the figure's opaque pixels) over its feet (its lowest row; a frame with both feet
     off the ground uses the row's ground line). path may be a loaded sheet (an array); xmin: figures left of it are ignored (row
     labels); keep_o: each frame also gets o, its top left on the sheet (sheet px). loose: {anim: [(x, win)]}: a swoosh drawn touching the next figure is cut off it
     along the seam near x (within win px) and goes, as a loose bit, to the cell its centre is in. Returns (atlas record {k, w, h, H: the first idle frame's height, f}, webp base64, bytes)."""
@@ -228,6 +229,8 @@ def frame_sheet(path, ROWS, N_all, k, loose=None, H_row='idle', extra=None, xmin
             ax += max(0, c[2] - 2) + fx - ox; ay += max(0, c[3] - 2) + fy - oy
             if bots[i] < ground - 8:
                 ay += ground - bots[i]
+            if edit:                                 # the caller's change to the cut frame (its size, anchor and place kept)
+                t = edit(name, i, t, ax, ay, (ox, oy))
             if rs != 1:
                 t = scale(t, rs); ax *= rs; ay *= rs
             out.append((t, ax, ay, (ox, oy)))
