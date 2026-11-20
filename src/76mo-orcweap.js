@@ -23,10 +23,10 @@
 const OR_WPN={orcw:'waraxe',obrute:'maul',orcl:'lordaxe',orcy:'handaxe'},OR_GS={orcl:1.15};
 // per frame angles (deg); a number: every frame of the row
 const OR_ANG={
- orcw:{idle:-52,run:[-48,-52,-56,-52,-48,-45,-46],attack:[-55,-80,-108,-150,-72,14,-38],hurt:[-50,-56,-64,-58,-52,-50,-50],death:[-50,-36,-20,-4,6,8,8]},
- obrute:{idle:-48,run:[-48,-51,-54,-51,-48,-45,-44,-46],attack:[-50,-74,-112,-152,-62,24,-32,-44],hurt:[-48,-54,-62,-58,-52,-50,-50,-48],death:[-48,-34,-18,0,2,2,2]},
+ orcw:{idle:-52,run:[-48,-52,-56,-52,-48,-45,-46],attack:[-55,-80,-108,-150,-72,14,-38],hurt:[-50,-56,-60,-58,-52,-50,-50],death:[-50,-36,-20,-4,6,8,8]},
+ obrute:{idle:-48,run:[-48,-51,-54,-51,-48,-45,-44,-46],attack:[-50,-74,-112,-152,-62,24,-32,-44],hurt:[-48,-54,-60,-58,-52,-50,-50,-48],death:[-48,-34,-18,0,2,2,2]},
  orcl:{idle:-50,run:[-48,-51,-54,-51,-48,-45,-46],attack:[-50,-86,-140,-14,34,-30,-44],hurt:[-50,-55,-60,-56,-52,-50,-50],death:[-50,-38,-14,0,2,2]},
- orcy:{idle:-55,run:[-52,-56,-60,-56,-52,-48,-46,-49],attack:[-55,-95,-135,-20,30,-36,-50],hurt:[-52,-58,-64,-58,-52,-50,-52],death:[-52,-40,-16,-2,4,6]}};
+ orcy:{idle:-55,run:[-52,-56,-60,-56,-52,-48,-46,-49],attack:[-55,-95,-135,-20,30,-36,-50],hurt:[-52,-58,-60,-58,-52,-50,-52],death:[-52,-40,-16,-2,4,6]}};
 // frames where the weapon is held in front of the body (over the frame, its fists over the haft)
 const OR_OVER={obrute:{run:1,attack:[0,1,4,5,6,7],hurt:1,death:1}};
 // the belt on the near hip (share of the atlas's H from the anchor)

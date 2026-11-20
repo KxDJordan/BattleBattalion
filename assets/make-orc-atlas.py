@@ -118,6 +118,11 @@ def build(var, C):
     for slot, n, at, rot, sc in SETUP: place(CV, P[n], pivot(n), (at[0] + OFF[0], at[1] + OFF[1]), rot, sc)
     comp = np.array(CV).astype(np.float64)
     cax, cay = ff.anchor(comp); ys = np.nonzero(comp[..., 3] > 128)[0]
+    if C.get('weapon'):     # the body's centre without the weapon (the game draws it live), as the erased frames' anchors are
+        CV2 = Image.new('RGBA', CV.size)
+        for slot, n, at, rot, sc in SETUP:
+            if slot != C['weapon']['slot']: place(CV2, P[n], pivot(n), (at[0] + OFF[0], at[1] + OFF[1]), rot, sc)
+        cax = ff.anchor(np.array(CV2).astype(np.float64))[0]
     ORG = (cax - OFF[0], cay - OFF[1]); H_SET = float(cay - ys.min())
     WP = C.get('weapon'); GRIP = {}; ERASED = []
     def edit(name, i, t, ax, ay, o):
@@ -139,6 +144,19 @@ def build(var, C):
             fp = ow.fist_patch(t, (q[0] - o[0], q[1] - o[1]))
             if fp: n = 'f%s_%s%d' % (k, name, i); P[n] = fp[0]; PPV[n] = [R2_(fp[1][0]), R2_(fp[1][1])]; rec['f' + k] = n
         GRIP.setdefault(name, {})[i] = rec
+        if an:      # the anchor moves with the body's centre once the weapon is gone (the hands are measured from the old one: moved too)
+            mx = lambda X: float(np.median(np.nonzero(X[..., 3] > 128)[1]))
+            d = mx(t) - mx(t0)
+            for k in ('w', 's'):
+                if rec[k]: rec[k][0] = R2_(rec[k][0] - d)
+            bot = lambda X: int(np.nonzero(X[..., 3] > 128)[0].max()) + 1
+            e = bot(t0) - bot(t)        # the weapon hung lower than the feet (the warrior's blow): the feet are the ground again
+            if e > 0:
+                for k in ('w', 's'):
+                    if rec[k]: rec[k][1] = R2_(rec[k][1] + e)
+            rec['hd'] = [R2_(an[1][0] - o[0] - ax - d), R2_(an[1][1] - o[1] - ay + max(0, e))]     # a point on the painted head that was there (the tests look for steel)
+            t, (x0, y0) = ff.trim(t)        # the frame trimmed to what is left
+            return t, ax + d - x0, ay - max(0, e) - y0
         return t
     A, b64, nbytes = ff.frame_sheet(S if 'img' in C else src, C['rows'], C['n'], 0.5, H_row=C.get('H_row', 'attack'), extra=P, xmin=C.get('xmin', 0), keep_o='post' in C, edit=edit)
     C['_erased'] = ERASED

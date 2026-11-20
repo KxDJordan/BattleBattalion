@@ -23,8 +23,8 @@ const bad=[];const ok=(c,m)=>{if(!c)bad.push(m)};
 const ctx={console,Math,JSON,performance:{now:()=>0},Map,WeakMap,Set,Array,Object,Number,String};vm.createContext(ctx);
 const src=f=>fs.readFileSync(F('src/'+f),'utf8');
 vm.runInContext(src('73k-humans.js').match(/const HUM_A=[^;]+;/)[0]+'\nconst AN_HIT_AT=.38;',ctx);
-vm.runInContext(src('73m-skel.js')+'\n'+src('76g-frames.js')+'\n'+src('76j-orcatlas.js')+'\n'+src('76k-orc.js')+'\n'+src('76n-keyatlas.js')+'\nconst usWdef=()=>({}),usCloth=()=>null;\n'+src('76m-skelsol.js')+'\n;this.__g={fsIdx,fsHitMs,FS_DEF,ORA,OCA,OLA,OYA,OR_HEADS,OR_FACES,orMood};',ctx);
-const {fsIdx,fsHitMs,FS_DEF,ORA,OCA,OLA,OYA,OR_HEADS,OR_FACES,orMood}=ctx.__g,M=240*.38;
+vm.runInContext(src('73m-skel.js')+'\n'+src('76g-frames.js')+'\n'+src('76j-orcatlas.js')+'\n'+src('76k-orc.js')+'\n'+src('76n-keyatlas.js')+'\nconst usWdef=()=>({}),usCloth=()=>null;\n'+src('76m-skelsol.js')+'\n'+src('76mo-orcweap.js')+'\n;this.__g={fsIdx,fsHitMs,FS_DEF,ORA,OCA,OLA,OYA,OR_HEADS,OR_FACES,orMood,OR_ANG,OR_HIP,orAng};',ctx);
+const {fsIdx,fsHitMs,FS_DEF,ORA,OCA,OLA,OYA,OR_HEADS,OR_FACES,orMood,OR_ANG,OR_HIP,orAng}=ctx.__g,M=240*.38;
 const ID4=['orcw','obrute','orcl','orcy'];
 // per orc: the atlas, frames a row (run, attack, cast, hurt, death), the blow's frame, and for the colour-keyed sheets the repaired frames and the placed hands
 const ORCS={orcw:[ORA,[7,7,7,7,7],5],obrute:[OCA,[8,8,8,8,7],5],orcl:[OLA,[7,7,7,7,6],3,'attack3,attack4','death6:s'],
@@ -39,6 +39,26 @@ for(const id in ORCS){const [A,NS,imp,fixed,hid]=ORCS[id],an=FS_DEF[id].an,n=NS[
  ok(an.charge.f==='run'&&an.cast.f==='cast',id+': charge on the run row, cast on the cast row');
  for(const k in A.f)A.f[k].forEach((R,i)=>{ok(R.ax>R.w*.15&&R.ax<R.w*.85,id+' '+k+i+': anchor x '+R.ax+' of '+R.w);ok(R.ay>=R.h-3&&R.ay<R.h+60,id+' '+k+i+': anchor y '+R.ay+' vs '+R.h)});
  for(const s of A.set){ok(!!A.p[s[1]]&&A.p[s[1]].pv.length===2,id+': setup piece '+s[1]+' not in the atlas')}
+ // the weapon's swing (76mo-orcweap.js OR_ANG): every drawn frame has an angle; the attack raises the weapon back (the angle falling) to its
+ // wind-up's peak, then sweeps it forward (rising) to the blow; never within 15 deg of the horizontal but on the blow; run, hurt and the
+ // idle carry it head up, 30 to 60 deg off the vertical
+ {const T=OR_ANG[id],L=T.attack,horiz=a=>{const x=((a%180)+180)%180;return Math.min(x,180-x)<15};
+  for(const k of['run','attack','hurt','death'])ok(Array.isArray(T[k])&&T[k].length===A.f[k].length,id+': '+k+' angles for every frame');
+  let pk=0;for(let i=1;i<imp;i++)if(L[i]<L[pk])pk=i;
+  for(let i=1;i<=pk;i++)ok(L[i]<L[i-1],id+': the wind-up does not raise the weapon back at attack'+(i+1)+': '+L);
+  for(let i=pk+1;i<=imp;i++)ok(L[i]>L[i-1],id+': the swing does not sweep forward at attack'+(i+1)+': '+L);
+  ok(pk>0&&pk<imp&&L[pk]<=-100,id+': no drawn-back wind-up before the blow: '+L);
+  L.forEach((a,i)=>{if(i!==imp)ok(!horiz(a),id+' attack'+(i+1)+': the weapon lies flat ('+a+' deg)')});
+  for(const k of['run','hurt'])T[k].forEach((a,i)=>ok(a>=-60.5&&a<=-29.5,id+' '+k+(i+1)+': carried at '+a+' deg (head up, 30-60 off the vertical)'));
+  ok(T.idle>=-60.5&&T.idle<=-29.5,id+': the idle carries it at '+T.idle);ok(OR_HIP[id]&&OR_HIP[id][1]<-.3&&OR_HIP[id][1]>-.5,id+': no belt')}
+ if(A.grip){// the warrior's and crusher's hands, found on the erased haft (or the far fist where none was painted), every frame, with their fists as pieces
+  const two=id==='obrute';let nh=0;
+  for(const k of ROWS)A.f[k].forEach((R,i)=>{const h=A.grip[k]&&A.grip[k][i],tg=id+' '+k+(i+1);if(!h||!h.w){bad.push(tg+': no weapon hand');return}
+   for(const q of[h.w,h.s])if(q)ok(Math.abs(q[0])<A.H&&q[1]<10&&q[1]>-A.H*1.2,tg+': a hand far off the figure '+q);
+   if(h.by==='haft')nh++;ok(!!(h.fw&&A.p[h.fw]&&A.p[h.fw].pv),tg+': the weapon fist is not a piece');if(h.s)ok(!!(h.fs&&A.p[h.fs]),tg+': the off fist is not a piece');
+   if(h.by==='haft')ok(!!h.hd&&Math.hypot(h.hd[0]-h.w[0],h.hd[1]-h.w[1])>8,tg+': the painted head not recorded')});
+  ok(nh===(two?34:14),id+': hands found on the haft in '+nh+' frames');ok(!!(A.rg&&A.rg.w&&(A.rg.s||!two)&&A.set.some(s=>s[0]===A.rg.slot)),id+': the rig\'s hands');
+  {const h=A.grip.attack[imp];ok(h.w[0]>0,id+': the weapon hand is not forward at the blow')}}
  if(!fixed){ok(OR_HEADS.every(h=>!!A.p[h]),id+': the eight heads');continue}
  // the colour-keyed hands
  const fx=[],hd=[];for(const k in A.hands)A.hands[k].forEach((h,i)=>{if(!h.w||!h.s)bad.push(id+' '+k+(i+1)+': a hand missing');if(h.fix)fx.push(k+(i+1));if(h.hid)for(const c of h.hid)hd.push(k+(i+1)+':'+c);
@@ -89,20 +109,47 @@ const {chromium}=require('playwright');
     u.mor=3;u.hp=u.hpMax*.5;if(face()!==F.wounded)bad.push(id+': wounded face '+face());u.hp=u.hpMax*.2;if(face()!==F.dying)bad.push(id+': dying face '+face());
     u.hp=u.hpMax;u.mor=4;if(face()!==F.confident)bad.push(id+': confident face '+face());u.mor=3;if(fsFrame(id,0,'swap',{c:0},K,3,u).face!==F.busy)bad.push(id+': busy face');
     s0.vaId='owarcry';s0.vaT=fsNow();if(face()!==F.cry)bad.push(id+': face after an ability '+face());s0.vaId=va0[0];s0.vaT=va0[1];u.hp=hp0;u.mor=mor0;
-    // the weapon in the keyed hands, every drawn frame and the rig: the warlord's lordaxe two-handed through both fists, the brave's hand axe on its weapon fist
-    const two=id==='orcl';for(const [row,anim,NN] of[['run','walk',NR],['attack','attack',N],['cast','cast',N],['hurt','hit',N],['death','death',nd],['','idle',1]])for(let i=0;i<NN;i++){
-     const tm=anim==='walk'||anim==='idle'?{c:(i+.5)/NN}:anim==='death'?{t:(i+.5)/NN}:{el:(i+.5)/NN*(anim==='attack'?FS_DEF[id].an.attack.ms:anim==='cast'?760:600)};const Fr=fsFrame(id,0,anim,tm,K,0,u);
-     const H=row?A.hands[row][Fr.fi]:A.rh,W=Fr.list.find(x=>x.tag==='weapon'),tg=id+' '+(row||'rig')+(row?Fr.fi:'');if(row&&Fr.anim!==row)continue;
-     if(!W){bad.push(tg+': no weapon');continue}const fi=Fr.list.findIndex(x=>x.tag!=='weapon');if(Fr.list.indexOf(W)>fi)bad.push(tg+': the weapon over the figure');if(Fr.list.some(x=>x.tag==='shield'))bad.push(tg+': a shield');
-     if(Fr.gear.two!==two)bad.push(tg+': two-handed '+Fr.gear.two);const bob=row?0:(Fr.pose&&Fr.pose.bob||0),hw=[H.w[0],H.w[1]+bob],hs=[H.s[0],H.s[1]+bob];
-     if(two){const a=Math.atan2(W.m[1],W.m[0]);if(H.wa2!=null){for(const q of[hw,hs]){const dx=q[0]-W.m[4],dy=q[1]-W.m[5],perp=Math.abs(-Math.sin(a)*dx+Math.cos(a)*dy);if(perp>1)bad.push(tg+': a fist '+perp.toFixed(1)+' WU off the haft')}}}
-     else if(Math.hypot(W.m[4]-hw[0],W.m[5]-hw[1])>.01)bad.push(tg+': the axe grip off the weapon fist')}
     // no key colour left on the hands: blue nowhere in the atlas, no red key round a hand
     const I=fsImg(id),c2=document.createElement('canvas');c2.width=I.naturalWidth;c2.height=I.naturalHeight;const q2=c2.getContext('2d');q2.drawImage(I,0,0);const d=q2.getImageData(0,0,c2.width,c2.height).data;let nb=0,nr=0;
     for(let j=0;j<d.length;j+=4)if(d[j+3]>128&&d[j+2]>90&&d[j+2]-d[j]>45&&d[j+2]-d[j+1]>25)nb++;
     for(const k in A.hands)A.hands[k].forEach((h,i)=>{const R=A.f[k][i];if(h.s&&!(h.hid||'').includes('s')){const cx=(R.ax+h.s[0])*A.k+R.r[0],cy=(R.ay+h.s[1])*A.k+R.r[1];
      for(let y=Math.floor(cy-4);y<=cy+4;y++)for(let x=Math.floor(cx-4);x<=cx+4;x++){const j=(y*c2.width+x)*4;if(d[j+3]>128&&d[j]>120&&d[j]-d[j+1]>85&&d[j]-d[j+2]>85)nr++}}});
     if(nb>4)bad.push(id+': '+nb+' blue key pixels left');if(nr)bad.push(id+': '+nr+' red key pixels left on the hands')}
+   // no painted weapon left in the warrior's and crusher's frames: round each frame's old weapon head (5 frame px) no steel (bright, grey) and
+   // nearly nothing opaque (the head was held out beside the body)
+   if(A.grip){const I=fsImg(id),c2=document.createElement('canvas');c2.width=I.naturalWidth;c2.height=I.naturalHeight;const q2=c2.getContext('2d');q2.drawImage(I,0,0);const d=q2.getImageData(0,0,c2.width,c2.height).data;let nf=0;
+    for(const k in A.grip)A.grip[k].forEach((h,i)=>{if(!h.hd)return;nf++;const R=A.f[k][i],cx=(R.ax+h.hd[0])*A.k+R.r[0],cy=(R.ay+h.hd[1])*A.k+R.r[1],r=5*A.k;let st=0,op=0,n=0;
+     for(let y=Math.floor(cy-r);y<=cy+r;y++)for(let x=Math.floor(cx-r);x<=cx+r;x++){if((x-cx)**2+(y-cy)**2>r*r||x<R.r[0]||y<R.r[1]||x>=R.r[0]+R.r[2]||y>=R.r[1]+R.r[3])continue;n++;const j=(y*c2.width+x)*4;
+      if(d[j+3]>128){op++;const mx=Math.max(d[j],d[j+1],d[j+2]),mn=Math.min(d[j],d[j+1],d[j+2]);if(mx-mn<24&&mx>125)st++}}
+     if(st>1||op>n*.25)bad.push(id+' '+k+(i+1)+': the painted weapon is still there ('+st+' steel, '+op+'/'+n+' opaque px round its head)')});
+    if(nf!==(id==='obrute'?34:14))bad.push(id+': '+nf+' frames with an erased weapon')}
+   // the unit's weapon, drawn live (76mo-orcweap.js): in the weapon hand in every drawn frame but the cast's and in the rig, at the frame's
+   // swing angle; at the belt on the near hip, head down, in every cast frame; the crusher's across his body (over the frame, his fists over
+   // the haft), the rest under the figure; a two-hander's haft through the weapon fist
+   {const two=id==='orcl'||id==='obrute',WD={orcw:'waraxe',obrute:'maul',orcl:'lordaxe',orcy:'handaxe'}[id];
+    for(const [row,anim,NN] of[['run','walk',NR],['attack','attack',N],['cast','cast',N],['hurt','hit',N],['death','death',nd],['','idle',1]])for(let i=0;i<NN;i++){
+     const tm=anim==='walk'||anim==='idle'?{c:(i+.5)/NN}:anim==='death'?{t:(i+.5)/NN}:{el:anim==='attack'?(()=>{const H=240*AN_HIT_AT,d=FS_DEF[id].an.attack;return i<d.imp?(i+.5)/d.imp*H:H+(i-d.imp+.5)/(N-d.imp)*(d.ms-H)})():(i+.5)/NN*(anim==='cast'?760:600)};
+     const Fr=fsFrame(id,0,anim,tm,K,0,u),tg=id+' '+(row||'rig')+(row?Fr.fi+1:'');if(row&&Fr.anim!==row)continue;
+     const H=row?(A.grip||A.hands)[row][Fr.fi]:(A.rg||A.rh),Ws=Fr.list.filter(x=>x.tag==='weapon'),W=Ws[0];
+     if(Ws.length!==1){bad.push(tg+': '+Ws.length+' weapons');continue}if(Fr.list.some(x=>x.tag==='shield'))bad.push(tg+': a shield');
+     if(!Fr.gear||Fr.gear.two!==two||!Fr.gear.w.startsWith(WD))bad.push(tg+': not its own weapon '+JSON.stringify(Fr.gear));
+     const deg=Math.atan2(W.m[1],W.m[0])*180/Math.PI,dy=fsDy(id),bob=row?0:(Fr.pose&&Fr.pose.bob||0),fr=Fr.list.findIndex(x=>x.tag!=='weapon'&&x.tag!=='fist'),wi=Fr.list.indexOf(W);
+     if(row==='cast'){// none in hand: at the belt on the near hip, head down and back
+      const hp=OR_HIP[id];if(Fr.gear.at!=='belt')bad.push(tg+': the weapon not at the belt');if(!(deg>95&&deg<175))bad.push(tg+': hung at '+deg.toFixed(0)+' deg');
+      if(wi>fr)bad.push(tg+': the hung weapon over the figure');if(Fr.list.some(x=>x.tag==='fist'))bad.push(tg+': fists over a weapon at the belt');
+      const L=Fr.gear&&1,ax=W.m[4],ay=W.m[5]-dy;if(Math.hypot(ax-hp[0]*A.H,ay-hp[1]*A.H)>.25*A.H)bad.push(tg+': the weapon is not at the hip ('+ax.toFixed(1)+','+ay.toFixed(1)+')');
+      for(const q of[H.w,H.s])if(q&&Math.abs(-Math.sin(deg*Math.PI/180)*(q[0]-ax)+Math.cos(deg*Math.PI/180)*(q[1]-ay))<3&&Math.hypot(q[0]-ax,q[1]-ay)<.5*A.H)bad.push(tg+': a hand on the hung weapon');
+      continue}
+     if(Fr.gear.at!=='hand')bad.push(tg+': the weapon not in hand');
+     const want=orAng(id,row,Fr.fi);if(row&&Math.abs(deg-want)>.5)bad.push(tg+': the weapon at '+deg.toFixed(1)+' deg, not the frame\'s '+want);
+     if(!row&&Math.abs(deg-want)>3)bad.push(tg+': the rig holds it at '+deg.toFixed(1));
+     let hw=[H.w[0],H.w[1]+dy+bob];if(!row&&A.rg){const B=Fr.bones[A.rg.slot],sl=A.set.find(s=>s[0]===A.rg.slot);if(Math.hypot(B[4]-sl[2],B[5]-dy-sl[3])>3)bad.push(tg+': the rig\'s weapon slot has moved')}
+     const a=deg*Math.PI/180,dx=hw[0]-W.m[4],dd=hw[1]-W.m[5],perp=Math.abs(-Math.sin(a)*dx+Math.cos(a)*dd),along=Math.cos(a)*dx+Math.sin(a)*dd;
+     if(!two&&Math.hypot(dx,dd)>(row?.01:3))bad.push(tg+': the grip '+Math.hypot(dx,dd).toFixed(2)+' WU off the weapon fist');
+     if(two&&(perp>(row?.01:3)||along<0))bad.push(tg+': the weapon fist '+perp.toFixed(2)+' WU off the haft');
+     const over=Fr.gear.layer==='over';if(over!==(id==='obrute'&&row!==''&&!(row==='attack'&&(Fr.fi===2||Fr.fi===3))))bad.push(tg+': layer '+Fr.gear.layer);
+     if(over){if(wi<fr)bad.push(tg+': under the figure');const F=Fr.list.filter(x=>x.tag==='fist');if(!F.length||F.some(x=>Fr.list.indexOf(x)<wi))bad.push(tg+': no fists over the haft')}
+     else if(Fr.gear.layer==='under'&&wi>fr)bad.push(tg+': over the figure')}}
    // the live board frame on the game's clock
    const s=anOf(u),SP=SPEEDF,N0=now;SPEEDF=1;const v={pS:'attack',pF:1,pPh:.5,pCy:0,pD:0,pAn:''},row=()=>{const Fr=fsLiveFrame(u,v);return Fr?Fr.rig?'rig':Fr.anim+Fr.fi:'none'};const T0=60000,tt=el=>{now=T0+el};
    const imp=FS_DEF[id].an.attack.imp;s.act=1;s.adur=240;s.at0=T0;s.hitT=-1e9;s.dead=false;s.vaId='';s.mv=false;
@@ -119,6 +166,14 @@ const {chromium}=require('playwright');
   {const K=id=>4*HUM_A*fsSc(id),hgt=id=>{const Fr=fsFrame(id,0,'attack',{el:0},K(id),0);let y0=1e9,y1=-1;q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);q.setTransform(4,0,0,4,0,0);humSkDraw(q,Object.assign({},Fr,{list:Fr.list.filter(x=>x.tag==='frame')}),62.5,70);q.setTransform(1,0,0,1,0,0);
     const d=q.getImageData(0,0,c.width,c.height).data;for(let j=3;j<d.length;j+=4)if(d[j]>128){const y=((j>>2)/c.width)|0;if(y<y0)y0=y;if(y>y1)y1=y}return(y1-y0)/4};
    const b=hgt('orcy'),w=hgt('orcw');if(!(b<w-1.5))bad.push('the brave ('+b.toFixed(1)+') does not read smaller than the warrior ('+w.toFixed(1)+')')}
+  // the sizes on the board (the user's): the brave a little larger than a man, the warrior and the crusher larger again (~1.2x), the warlord a little
+  // larger than them (~1.3x): the idle sprites' opaque heights without the weapon, against the company's men
+  {const ht=o=>{const q=o.cv.getContext('2d'),d=q.getImageData(0,0,o.cv.width,o.cv.height).data;let y0=1e9,y1=-1;for(let j=3;j<d.length;j+=4)if(d[j]>128){const y=((j>>2)/o.cv.width)|0;if(y<y0)y0=y;if(y>y1)y1=y}return(y1-y0+1)/o.k};
+   const men=G.roster.slice(0,4).map(u=>ht(unitSpritePx(u,0,'idle',0))),man=Math.max(...men),H={};let k=980;
+   for(const id of['orcy','orcw','obrute','orcl']){const u=mkEnemy(id,'orc');u.id=++k;const D=FS_DEF[id].dress;FS_DEF[id].dress=null;FS.bk.clear();H[id]=ht(unitSpritePx(u,0,'idle',0));FS_DEF[id].dress=D;FS.bk.clear()}
+   const r=id=>H[id]/man,want={orcy:[1.03,1.14],orcw:[1.14,1.27],obrute:[1.14,1.27],orcl:[1.25,1.38]};
+   for(const id in want)if(!(r(id)>=want[id][0]&&r(id)<=want[id][1]))bad.push(id+' stands '+r(id).toFixed(2)+'x a man ('+H[id].toFixed(1)+' vs '+man.toFixed(1)+' art px)');
+   if(!(H.orcy>man+.5&&H.orcw>H.orcy+1.5&&H.orcl>H.orcw+1&&H.orcl<H.orcw*1.2&&Math.abs(H.obrute-H.orcw)<1.5))bad.push('the orcs\' sizes out of order: '+JSON.stringify(H)+' man '+man)}
   return{bad,n}});
  for(const x of R.bad)bad.push(x);
  // an untouched seeded battle: each orc's tile centre, its ring's centre and its figure (body centre over the feet) agree within 1 art px
