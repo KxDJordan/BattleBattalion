@@ -148,7 +148,7 @@ async function battle(X,W,job,i){const P=PROFILES.concat(SOLO,RPROF).find(p=>p.i
 async function runJob(X,W,job){const r={wins:0,stuck:0,rounds:0,dead:0,down:0,foes:0,n:job.n};
  for(let i=0;i<job.n;i++){const o=await battle(X,W,job,i);r.wins+=o.win;r.stuck+=o.stuck;r.rounds+=o.rounds;r.dead+=o.dead;r.down+=o.down;r.foes+=o.foes}
  const st=X.AI_STAT;r.ai={n:st.n,ms:st.ms,max:st.max};st.n=0;st.ms=0;st.max=0;return r}
-if(has('--lib')){module.exports={makeContext,buildCompany,battle,PROFILES,SEED,hash};return}
+if(has('--lib')){module.exports={makeContext,buildCompany,battle,PROFILES,SEED,hash,SOLO,soloPrep,learnAll,closeAll};return}
 /* ---------- worker ---------- */
 if(has('--worker')){let X=null,W=null;const q=[];let busy=false;
  const pump=async()=>{if(busy)return;busy=true;while(q.length){const job=q.shift();

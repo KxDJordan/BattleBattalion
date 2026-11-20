@@ -2,7 +2,8 @@
    the hall of the fallen =================
    Rules first (no DOM), then the sheets. Nothing here draws on the game stream (rnd): ids and hashes come from the seed.
    Shared API (CONTRACT.md):
-     DIFF[k] = {n, d, budget, pay, injury, death, crisisDay, ...}   k in DIFFK (story normal hard brutal)
+     DIFF[k] = {n, d, budget, pay, injury, death, crisisDay, ...}   k in DIFFK (story normal hard brutal); Brutal alone also foePlan, vet, solo
+     diffX(key)            -> the running level's own field (an object: DIFF.brutal.foePlan / vet / solo) or null
      diffK(key)            -> the running company's factor for key (1 when there is no company or no such key)
                               budget: enemy strength (battle budget) · pay: contract pay · injury: odds of an injury when struck down ·
                               death: odds that a struck-down sword dies · crisisDay: the day the crisis starts (G.crisisDay is already
@@ -24,8 +25,16 @@ const DIFF={
   budget:1,pay:1,injury:1,death:1,crisisDay:1,line:['Fair odds','The usual pay','Steel kills','The crisis on time']},
  hard:{n:'Hard',icon:'skull',d:'Bands are larger and employers tighter. A struck-down sword is more likely to stay down.',
   budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,line:['Enemies 15% stronger','Pay -10%','More deaths','The crisis comes early']},
- brutal:{n:'Brutal',icon:'flame',d:'For veterans of the march. Every fight is a gamble with the company\'s life, and the world turns against you fast.',
-  budget:1.32,pay:.8,injury:1.4,death:1.65,crisisDay:.72,line:['Enemies 32% stronger','Pay -20%','Death is common','The crisis comes very early']}};
+ brutal:{n:'Brutal',icon:'flame',d:'For veterans of the march. Every fight is a gamble with the company\'s life: foes go for the wounded, grow as you do, and hunt a lone sword in packs.',
+  budget:1.32,pay:.8,injury:1.4,death:1.65,crisisDay:.72,line:['Enemies 32% stronger, and more as you rise','Foes fight without mercy','Lone swords face bigger bands','Pay -20%','Death is common','The crisis comes very early'],
+  foePlan:{cut:1,volley:1,lock:.6},solo:{max:3},vet:{k:.08,lvl0:3,span:7}}};
+/* Brutal only (absent on the other levels, so they fight exactly as before):
+     foePlan   the plan the foes' AI plays by (63-ai.js aiFoePlan; arena bouts excepted): cut, the wounded first; volley, their shooters go for
+               the company's; lock, their fighters go out of their way to stand beside the company's archers
+     vet       veterans: the enemy budget grows with the company's level (60-battle-core.js budgetK): x (1 + k x clamp((level - lvl0) / span, 0, 1))
+     solo      a solo run's bands (60-battle-core.js buildEnemies): max, the most foes such a band brings (SOLOMAX, 2, elsewhere): the budget that
+               would only have ranked two foes up buys a third, so a geared hero is flanked instead of outclassing a pair */
+function diffX(key){const D=DIFF[diffOf()];return D&&D[key]!=null?D[key]:null}
 function diffOf(g){g=g||G;return g&&DIFF[g.diff]?g.diff:'normal'}
 function diffK(key){const D=DIFF[diffOf()];const v=D&&D[key];return typeof v==='number'&&isFinite(v)?v:1}
 // the run's crisis kind for an old save or a fresh world: the crises agent's own pick when present, else a hash of the seed

@@ -133,7 +133,9 @@ async function aiTurn2(u){const b=B;if(!b||!u||!u.alive)return;
  if(u.side===0&&b.opts.pilot==='naive')return AI_NAIVE(u);
  if(u.side===0)return AI_SENSIBLE(u);
  if(u.m)return aiRun(u,aiProfile(u),aiRivalPlan(u));   // a rival company's merc: the engine with its own gear's role and the rival's plan
- return aiRun(u,aiProfile(u),null)}
+ return aiRun(u,aiProfile(u),aiFoePlan())}
+// Brutal (22-run.js DIFF.brutal.foePlan): the foes play by a plan of their own; null on every other level and in the arena
+function aiFoePlan(){if(typeof diffX!=='function'||B&&B.opts&&B.opts.arena)return null;const p=diffX('foePlan');return p&&typeof p==='object'?p:null}
 // The scripted competent player: the engine with the company's roles and the plan against this faction.
 async function AI_SENSIBLE(u){return aiRun(u,aiProfile(u),aiPlan(u)||{})}
 // The careless player: walk at the nearest foe and hit it with the basic attack. An archer with a foe in its face draws its sidearm
