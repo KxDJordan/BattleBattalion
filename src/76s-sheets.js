@@ -9,8 +9,8 @@
    smoothing on (painted art); null until the atlas has loaded, for an enemy without a sheet, or when Settings > Detail is Low (hdArt()),
    so the original figure is drawn then. monsterSpritePx (76-monsters.js) asks here first. No rnd().
    The Ogre is drawn from the user's part sheet as a skeleton (76d-ogre.js), the Direwolf, the Goblin skirmisher, the Goblin archer,
-   the Goblin shaman and the Owlbear from the user's frame sheets (76g-frames.js, the wolf's idle a rig: 76h-wolf.js). Their entries here keep only the size on the board
-   (h, dy: those figures are scaled to it, and sheetTop hangs the bars by it); their painted sheets are gone, so until the new atlas has
+   the Goblin shaman, the Owlbear and the Orc warrior, crusher and warlord from the user's frame sheets (76g-frames.js, the wolf's idle a rig: 76h-wolf.js). Their entries here keep only the size on the board
+   (h, dy: those figures are scaled to it, and sheetTop hangs the bars by it, or at top); their painted sheets are gone, so until the new atlas has
    decoded (a frame or two) they draw as the pixel figure, as at Detail Low. */
 const SHEETS={
  bear:{h:28,dy:0},   // the owlbear's drawn frames stand side-on, all four paws on one line: that line on the tile centre (the painted owlbear's 3 was for its near paw)
@@ -18,7 +18,10 @@ const SHEETS={
  gob:{h:22,dy:1},
  gobarch:{h:22,dy:1},
  gobsham:{h:25,dy:1},
- wolf:{h:22,dy:0}};   // the wolf's drawn frames and rig stand side-on: the paw line on the tile centre
+ wolf:{h:22,dy:0},   // the wolf's drawn frames and rig stand side-on: the paw line on the tile centre
+ orcw:{h:27,dy:0,top:32},   // the orcs' drawn frames and rigs (76k-orc.js) at the High pixel orcs' heights; their bars where they were
+ obrute:{h:27,dy:0,top:32},
+ orcl:{h:38,dy:0,top:48}};
 const SHT={img:new Map(),cv:new Map(),idx:new Map()};
 function sheetImg(id){const S=SHEETS[id];if(!S||!S.src||typeof Image==='undefined')return null;let I=SHT.img.get(id);if(!I){I=new Image();I.decoding='async';I.src=S.src;SHT.img.set(id,I)}return I.complete&&I.naturalWidth?I:null}
 function sheetIdx(id){let X=SHT.idx.get(id);if(X)return X;X={};for(const f of SHEETS[id].fr){const k=f[0]+':'+f[1];(X[k]||(X[k]=[]))[f[2]]=f}SHT.idx.set(id,X);return X}
@@ -34,4 +37,4 @@ const id=typeof msEnKey==='function'?msEnKey(u.def):typeof enKey==='function'?en
  return c}
 if(typeof onArtChange==='function')onArtChange(()=>{});   // nothing cached depends on the setting: sheetSpritePx reads hdArt() every call
 // the height the board hangs the bars and statuses at for a sheet figure (art px above the feet), or 0 (use the figure's own)
-function sheetTop(u){if(!u||!u.def||u.m||(typeof hdArt==='function'&&!hdArt()))return 0;const id=typeof msEnKey==='function'?msEnKey(u.def):null;const S=id&&SHEETS[id];return S?S.h-(S.dy||0)+6:0}
+function sheetTop(u){if(!u||!u.def||u.m||(typeof hdArt==='function'&&!hdArt()))return 0;const id=typeof msEnKey==='function'?msEnKey(u.def):null;const S=id&&SHEETS[id];return S?S.top||S.h-(S.dy||0)+6:0}

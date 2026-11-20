@@ -179,8 +179,8 @@ def split_comp(im, lab, c, gx, new_id, win=45):
     return out
 
 
-def frame_sheet(path, ROWS, N, k, loose=None):
-    """A sheet of drawn frames: ROWS [(anim, y0, y1)] bands of N frames each, facing right. Each frame is its figure plus the loose bits
+def frame_sheet(path, ROWS, N_all, k, loose=None, H_row='idle', extra=None):
+    """A sheet of drawn frames: ROWS [(anim, y0, y1[, frames[, scale]])] bands of N frames each (a row drawn at another size is scaled), facing right. Each frame is its figure plus the loose bits
     (a glow, a swoosh) whose centre is in its cell; figures that touch are split along least-alpha seams at the cell grid (the sheet's
     width / N). Anchor: the body's centre (median x of the figure's opaque pixels) over its feet (its lowest row; a frame with both feet
     off the ground uses the row's ground line). loose: {anim: [(x, win)]}: a swoosh drawn touching the next figure is cut off it
@@ -188,15 +188,16 @@ def frame_sheet(path, ROWS, N, k, loose=None):
     S = load(path)
     lab, allc = components(S, keep=12)
     big = [c for c in allc if c[1] > 2000]
-    cell = S.shape[1] / N
     FR = {}
-    for name, y0, y1 in ROWS:
+    for row in ROWS:
+        name, y0, y1 = row[:3]; N = row[3] if len(row) > 3 and row[3] else N_all; rs = row[4] if len(row) > 4 else 1   # rs: a row drawn at another size
         for gx, win in (loose or {}).get(name, []):
             c = next(c for c in allc if y0 <= (c[3] + c[5]) / 2 < y1 and c[2] < gx < c[4])
             a, b2 = split_comp(S, lab, c, gx, int(lab.max()) + 1, win)
             allc = [d for d in allc if d[0] != c[0]] + [(a[0], 0) + a[2:], b2]     # the left part (the swoosh) is a loose bit
             big = [d for d in allc if d[1] > 2000]
         cs = sorted([c for c in big if y0 <= (c[3] + c[5]) / 2 < y1], key=lambda c: c[2])
+        cell = S.shape[1] / N
         while len(cs) < N:
             w = max(cs, key=lambda c: c[4] - c[2]); nid = int(lab.max()) + 1
             mid = (w[2] + w[4]) / 2
@@ -225,13 +226,18 @@ def frame_sheet(path, ROWS, N, k, loose=None):
             ax += max(0, c[2] - 2) + fx - ox; ay += max(0, c[3] - 2) + fy - oy
             if bots[i] < ground - 8:
                 ay += ground - bots[i]
+            if rs != 1:
+                t = scale(t, rs); ax *= rs; ay *= rs
             out.append((t, ax, ay))
         FR[name] = out
-    H = float(FR['idle'][0][0].shape[0])
-    items = [('%s_%d' % (kk, i), t) for kk, L in FR.items() for i, (t, _, _) in enumerate(L)]
+    H = float(FR[H_row][0][0].shape[0])
+    items = [('%s_%d' % (kk, i), t) for kk, L in FR.items() for i, (t, _, _) in enumerate(L)] + [('pc:' + n, t) for n, t in (extra or {}).items()]
     atlas, rects = pack(items, 2048)
     b64, nbytes = webp_b64(atlas, k)
     R2 = lambda v: round(float(v), 2)
     frames = {kk: [{'r': [v * k for v in rects['%s_%d' % (kk, i)]], 'w': t.shape[1], 'h': t.shape[0], 'ax': R2(ax), 'ay': R2(ay)}
                    for i, (t, ax, ay) in enumerate(L)] for kk, L in FR.items()}
-    return {'k': k, 'w': atlas.shape[1] // 2, 'h': atlas.shape[0] // 2, 'H': H, 'f': frames}, b64, nbytes
+    A = {'k': k, 'w': atlas.shape[1] // 2, 'h': atlas.shape[0] // 2, 'H': H, 'f': frames}
+    if extra:      # pieces packed in the same atlas: {r, w, h}
+        A['p'] = {n: {'r': [v * k for v in rects['pc:' + n]], 'w': t.shape[1], 'h': t.shape[0]} for n, t in extra.items()}
+    return A, b64, nbytes
