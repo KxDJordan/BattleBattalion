@@ -164,10 +164,10 @@ async function scripted(X,opts){let done=null;const b=X.startBattle(Object.assig
 
 /* ---------- directed sweep: every weapon x ability x armor and helmet state x height x buff x morale x cover, struck for real ---------- */
 // talent flags and mods the sweep puts on attackers (TALU) and targets (TALT); every one changes a number the forecast must match
-const TALU=[['vsHurt',.15],['vsFull',.2],['dmgMelee',.1],['dmgRanged',.15],['twoDmg',.1],['lowHpDmg',.2],['duelHit',6],['duelDmg',.15],['flankDmg',.15],['flank',10],['spellB',.1],['ignB',.15],['headB',10],['bleedOn',2],['splitB',.5],['coverIgn',1],['longShot',1],
+const TALU=[['wrFat',8],['wrGrind',.04],['wrBreak',.35],['pgDouble',.3],['vsHurt',.15],['vsFull',.2],['dmgMelee',.1],['dmgRanged',.15],['twoDmg',.1],['lowHpDmg',.2],['duelHit',6],['duelDmg',.15],['flankDmg',.15],['flank',10],['spellB',.1],['ignB',.15],['headB',10],['bleedOn',2],['splitB',.5],['coverIgn',1],['longShot',1],
   // the rogues' trees (64r-rogues.js): light-weapon, unacted-foe and impaired-foe terms, bleed and poison riding on light blows
   ['stabDmg',.15],['stabHit',5],['wakeDmg',.2],['lightBleed',2],['lightPoison',2],['dirtyDmg',.2],['dirtyHit',10],['firstHit',10],['firstDmg',.1]],
- TALT=[['adjDef',6],['loneDef',10],['drB',.1],['drRanged',.15],['drMelee',.1],['lastStand',.15],['undying',1],
+ TALT=[['wlDef',8],['wlBare',4],['wlStep',3],['wlDr',.15],['adjDef',6],['loneDef',10],['drB',.1],['drRanged',.15],['drMelee',.1],['lastStand',.15],['undying',1],
   // armor trees (light, medium, heavy)
   ['nimble',1],['fleet',10],['sidestep',.25],['freshDef',8],['dance',5],['brace',.2],['roll',.5],['layerDef',6],['padIgn',1/3],['kbImm',1],['unbowed',.3],['hpSoak',5],['noStun',1],['flow',4]],mates0=new Set();
 async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X.seedRng(SEED+900);
@@ -195,7 +195,8 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
    if(i%60===1){u.wpn=X.ITEMS[P(['handaxe','waraxe','greataxe'])];a=X.abilityInfo(u,'split')}                    // directed: shield splits are covered whatever the random stream does
    else if(i%60===5){u.wpn=X.ITEMS[P(['mallet','warhammer','maul','warmaul'])];a=X.abilityInfo(u,P(['attack','batter','attack']))}   // armor crushing
    else if(i%60===9){u.wpn=X.ITEMS[P(['bill','halberd','glaive','greatsword','zweihander','runegreat','pike'])];a=X.abilityInfo(u,'attack')}   // reach 2
-   else if(i%60===13){u.wpn=X.ITEMS[P(['lightxbow','crossbow','arbalest','pistol','duelpistol','musket'])];a=X.abilityInfo(u,'attack')}}       // crossbows and firearms
+   else if(i%60===13){u.wpn=X.ITEMS[P(['lightxbow','crossbow','arbalest','pistol','duelpistol','musket'])];a=X.abilityInfo(u,'attack')}
+   else if(i%60===17||i%60===41){u.wpn=P([X.FIST].concat(['wraps','knuckles','baghnakh','shuko','gauntlet','katar','cestus'].map(id=>X.ITEMS[id])));a=X.abilityInfo(u,P(['attack','hipthrow','suplex','onetwo','pflurry','flykick']));if(a.ramp)u.flI=R(0,3);S.fist=(S.fist||0)+1}}   // the fist trees (64x-fists.js): their abilities with fists in hand       // crossbows and firearms
   if(a.aoe&&R(0,2)===0)o={splash:.7};else if(a.chain&&R(0,1)===0)o={splash:.6,auto:1};else if(a===X.FREEAB)o={free:'zoc'};
   t.flags=t.side===0?Object.assign({},t.flags):{};if(R(0,2)===0)t.flags.forged=1;else delete t.flags.forged;
   if(R(0,1)===0)for(const [k,v] of TALT)if(R(0,3)===0)t.flags[k]=v;
@@ -208,6 +209,7 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
   if(!fromFoe&&R(0,2)===0){S.trU++;const k=P(['steady','blood','hulk']);if(k==='steady')u.flags.headB=(u.flags.headB||0)+5;else if(k==='blood')u.flags.vsHurt=(u.flags.vsHurt||0)+.1;else u.flags.dmgMelee=(u.flags.dmgMelee||0)+.05}
   // fatigue on both sides (units that tire), and the turn state the armor perks read
   for(const x of [u,t]){x.fat=x.fatMax<999&&R(0,1)===0?R(0,x.fatMax):0}if(R(0,5)===0){u.fatMax=R(40,110);u.fat=R(0,u.fatMax)}
+  t.gwind=R(0,2)===0?R(0,100):0;t.wrStR=R(0,3)===0?b.round:null;t.mvN=R(0,5);t.acl=P(['light','light','medium']);   // the fist trees: breath lost, a stun just taken, tiles moved, Willow style's armor
   t.aw=R(0,40);t.mvd=R(0,1);t.dnc=R(0,4);t.ss=R(0,2)===0?1:0;t.brc=R(0,2)===0?1:0;t.undy=R(0,1);if(t.flags.undying&&!t.undy)S.undy++;if(R(0,5)===0){t.st.marked=1;S.marked++}
   for(const x of b.units)if(x!==u&&x!==t){x.flags=R(0,3)===0?{cmd:5}:R(0,3)===0?{guard:8}:R(0,2)===0?{steelWall:.1}:{}}
   // the rogues: the target still waiting for its turn (Before they wake, Quicker than thought), blinded or marked for death (their numbers through foeAuras)

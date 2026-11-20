@@ -177,7 +177,8 @@ function humSkFrame(L,face,state,t,k,va,ex){const t0=performance.now(),A=humSkAs
   armO.gx=pO.x;armO.gy=pO.y}
  // slots
  const pcImg=(p,tag)=>g.img(hskPc(p.c,p.R),tag);
- const drawArm=(p,a)=>{{const h=p===AW?HW:HO,o=h.n==='hand_a'?P2.handA:null;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);if(o)g.translate(o[0]*h.R.w,o[1]*h.R.h);pcImg(h,'hand');g.restore()}   // the right hand (near arm) sits a little outward and up, under its sleeve's curve   // the part sheets: the hand under its own sleeve cap
+ const fwId=wi.fam==='fist'&&W&&typeof FS_HANDW==='object'?FS_HANDW[String(W.id).replace(/\*$/,'')]||null:null,fwBoth=!!fwId&&fsBoth(fwId)&&!S.shield&&!S.ow;
+ const drawArm=(p,a)=>{{const h=p===AW?HW:HO,o=h.n==='hand_a'?P2.handA:null;g.save();g.translate(a.wx,a.wy);g.rotate(a.th-Math.PI/2);if(o)g.translate(o[0]*h.R.w,o[1]*h.R.h);pcImg(h,'hand');if(fwId&&(p===AW||fwBoth))g.fn(q=>fsHandWear(q,fwId,h.R,p!==AW),'fistw');g.restore()}   // a fist weapon over the hand (73x-fists.js)   // the right hand (near arm) sits a little outward and up, under its sleeve's curve   // the part sheets: the hand under its own sleeve cap
   g.save();g.translate(a.sh.x,a.sh.y);g.rotate(a.th);g.scale(a.s,1);g.rotate(-p.R.ang);pcImg(p,'arm');g.restore()};
  const drawHand=()=>{};   // the part sheets: each hand is drawn with its arm (drawArm)
  const fire=cls==='gun'&&att&&P.fire,loaded=S.ld!==0&&!(att&&t>=.38);

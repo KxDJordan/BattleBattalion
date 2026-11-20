@@ -480,7 +480,9 @@ const INJ={
      healLow | shrug | spotMark | arrowBurn | zocHit (weapon mastery: free attacks with a spear) ; aff 'heavy' = heavy armor worn
      the gun trees update (rules: 64u-guntrees.js): rollV volleyB lineMax (Musketry) | runHit runDmg paceHit paceDmg braceP pbR (Pistolier; gunPB /
      gunPBHit count only with a pistol) | blastDmg blastFear blastBurn bombN blastIgn (Grenadier) | smokeMel killLoad (the Gunsmoke Saint); aff 'longgun' /
-     'pistol' = a two-handed / one-handed firearm in hand, 'bomb' = the Grenadier's bombs (any weapon) */
+     'pistol' = a two-handed / one-handed firearm in hand, 'bomb' = the Grenadier's bombs (any weapon)
+     the fists update (rules: 64x-fists.js; with fists in hand: bare or a fist weapon): wrFat wrKb wrGrind wrSmother wrBreak (Wrestler) | pgAP pgFat pgRec
+     pgDouble pgFlurry pgKill (Pugilist) | wlDef wlBare wlStep wlSlip wlDr wlAP wlKick (Willow style: in light armor too); aff 'fist' = fists in hand */
 const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
  WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','throwing','staff','fist','shield'];   // weapon families in display order (the weapon mastery perks; 'shield': a raised shield)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
@@ -543,6 +545,30 @@ const MAST={
   [perkDef('Scrapper','+4 melee skill, +4 hitpoints',{st:{ms:4,hp:4}})],[perkDef('Kick','Ability: boot a foe back 1 tile and daze it, +10 to hit (3 AP)',{ab:'kick'})],
   [perkDef('Iron jaw','+8 resolve; take 10% less damage from melee blows',{st:{brv:8},mod:{drMelee:.1}})],[perkDef('Dirty boxing','Fighting unarmed or with a fist weapon, a melee hit dazes the foe 30% of the time',{mod:{fistDaze:.3}})],
   [perkDef('Clinch','+15 to hit with your free attack on a foe that steps away from you',{mod:{clinch:15}})],[perkDef('Knockout','Fighting unarmed or with a fist weapon: +20% melee damage, and a melee hit that lands on the head stuns',{mod:{koDmg:.2}})]]},
+  /* ---- the fist trees (rules: 64x-fists.js; abilities and the fist weapons: 11x-fists.js; capstones: 25-legend.js): three martial arts with
+         bare hands or a fist weapon in hand (isFistW), each its own role, none repeating another tree (test/fists.js). The Brawler above stays
+         the street fighter any brawny background may draw. Ids pinned: wrestle.1-6, pugilist.1-6, willow.1-6. ---- */
+ wrestle:{n:'Wrestler',kind:'style',aff:['melee','fist'],d:'Holds, throws and the long squeeze',role:'The grappler: wrings the breath out of the foe it holds, then throws it down stunned or hurls it across the field',tiers:[
+  [perkDef('Bear hug','Fighting with fists: every melee hit squeezes 8 breath out of the foe (fatigue; a foe that never tires loses breath of its own, which recovers 15 a turn): past half, it is tired (−1 to hit and −1 defense for every 5% more)',{id:'wrestle.1',mod:{wrFat:8}})],
+  [perkDef('Hip throw','Ability (fists, 4 AP): over the hip and down: 60% damage, +5 to hit, the foe is thrown back 2 tiles and loses 12 breath',{id:'wrestle.2',ab:'hipthrow'})],
+  [perkDef('Grind','Fighting with fists: +4% melee damage for every tenth of its breath the foe has lost (at most +20%)',{id:'wrestle.3',mod:{wrGrind:.04}})],
+  [perkDef('Suplex','Ability (fists, 5 AP): lift the foe and drive it into the ground: 120% damage and 10 breath; a foe already past half its breath is stunned, any other dazed',{id:'wrestle.4',ab:'suplex'})],
+  [perkDef('Smother','Fighting with fists: at the start of each of your turns, every foe next to you loses 8 breath',{id:'wrestle.5',mod:{wrSmother:8}})],
+  [perkDef('Breaking hold','Fighting with fists: a melee hit on a foe past three quarters of its breath stuns it 35% of the time (never a foe stunned this round or the last)',{id:'wrestle.6',mod:{wrBreak:.35}})]]},
+ pugilist:{n:'Pugilist',kind:'style',aff:['melee','fist'],d:'Fast hands and quick feet in the ring',role:'The striker: a storm of quick, cheap punches, two for every attack, that never tires the arms',tiers:[
+  [perkDef('Snap jab','Fighting with fists: your Attack, One-two and Flurry of blows cost 1 AP less (at least 3)',{id:'pugilist.1',mod:{pgAP:1}})],
+  [perkDef('One-two','Ability (fists, 4 AP): the jab finds the range, the cross lands: two punches at 70% damage, +15 to hit each; the second only while the foe stands',{id:'pugilist.2',ab:'onetwo'})],
+  [perkDef('Loose shoulders','Fighting with fists: your punches cost half (50%) of their fatigue (rounded down), and you recover 5 more fatigue at the start of each of your turns',{id:'pugilist.3',mod:{pgFat:.5,pgRec:5}})],
+  [perkDef('Double jab','Fighting with fists: every Attack is followed by a second punch at the same foe, at 30% damage, while it stands',{id:'pugilist.4',mod:{pgDouble:.3}})],
+  [perkDef('Flurry of blows','Ability (fists, 5 AP): four punches at one foe, 50% damage each, every one 5 more to hit than the one before (+0, +5, +10, +15), while it stands',{id:'pugilist.5',ab:'pflurry'})],
+  [perkDef('Rapid hands','+6 initiative. Fighting with fists: an Attack that kills gives its AP back, once a turn',{id:'pugilist.6',st:{init:6},mod:{pgKill:1}})]]},
+ willow:{n:'Willow style',kind:'style',aff:['melee','fist','light'],d:'Bend, slip and never stand still',role:'The evader: bare-handed in light armor or none, it leaps in, slips out of every hold and bends around the blows aimed at it',tiers:[
+  [perkDef('Empty hands','Fighting with fists in light armor or none: +8 melee and ranged defense, and 4 more while your armor and helmet together weigh 2 or less',{id:'willow.1',mod:{wlDef:8,wlBare:4}})],
+  [perkDef('Flying kick','Ability (fists, 4 AP): leap at a foe up to 3 tiles away, past every foe on the way, and kick: 100% damage, +10 to hit',{id:'willow.2',ab:'flykick'})],
+  [perkDef('Hard to pin','Fighting with fists in light armor: +3 melee and ranged defense for every tile you moved or leapt on your last turn (at most +12)',{id:'willow.3',mod:{wlStep:3}})],
+  [perkDef('Slip away','Fighting with fists in light armor: leaving a foe\'s side never draws its free attack',{id:'willow.4',flag:'wlSlip'})],
+  [perkDef('Turn the blow','Fighting with fists in light armor: weapon blows and shots on you lose 15% of their damage, bent or slipped aside',{id:'willow.5',mod:{wlDr:.15}})],
+  [perkDef('Wind step','Fighting with fists in light armor: +1 AP on every turn you begin with no foe next to you',{id:'willow.6',mod:{wlAP:1}})]]},
   /* ---- the rogues' trees (rules: 60-battle-core.js rogueHit / rogueDmg, 30-mercs.js calc, abilities and statuses in 64r-rogues.js).
          A light weapon: bare fists, any dagger, or a one-handed melee weapon of at most 8 fatigue (short swords, the wakizashi): isLightW.
          Ids pinned: assassin.1-6, rogue.1-6, shadow.1-6. ---- */
@@ -699,7 +725,7 @@ const MAST={
   perkDef('Ramrod drill','Reloading a firearm costs 2 less AP (at least 2) and 6 less fatigue',{id:'weapons.flintlock',wt:'flintlock',wmod:{rld:-2,rfat:-6}}),
   perkDef('Practised arm','+10 to hit with a throwing weapon in hand',{id:'weapons.throwing',wt:'throwing',wmod:{hit:10}}),
   perkDef('Channeling','+15% spell damage with a staff in hand',{id:'weapons.staff',wt:'staff',wmod:{spell:.15}}),
-  perkDef('Iron knuckles','Fighting unarmed: fists deal +8 minimum and +10 maximum damage',{id:'weapons.fist',wt:'fist',wmod:{d:[8,10]}}),
+  perkDef('Iron knuckles','Bare fists or any fist weapon: +8 minimum and +10 maximum damage',{id:'weapons.fist',wt:'fist',wmod:{d:[8,10]}}),
   perkDef('Shield discipline','A raised shield has 30% more hitpoints, and while it is raised shots and spells on you lose 10% of their damage',{id:'weapons.shield',wt:'shield',mod:{shieldHp:.3,deflect:.1}})]]},
  /* ---- armor trees: a merc has its background's (BG[bg].at); each works only while the body armor worn is of its weight class (armorClass(m):
          light = up to 60 armor or any robe, also no armor; medium = 61 to 150; heavy = over 150). One perk a tier; tiers open at levels 2, 5, 8

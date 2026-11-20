@@ -487,8 +487,8 @@ function rogueDmg(u,t,a){const f=u.flags;if(a.magic||!f||!(f.stabDmg||f.wakeDmg|
    exhaustion (rounded): 50% 0, 60% 2, 75% 5, 90% 8, 100% 10. A tired attacker loses that much to hit (melee, shots and spells alike)
    and a tired target that much defense (it is that much easier to hit). Units that do not tire (fatMax 999 and up: most foes) never
    pay it; foes with real fatigue (orcs, ogres...) do. */
-const TIRED={from:.5,max:10};
-function tiredPen(u){if(!u||!(u.fatMax>0)||u.fatMax>=999)return 0;const r=(u.fat||0)/u.fatMax;if(r<=TIRED.from)return 0;return Math.round(TIRED.max*Math.min(1,(r-TIRED.from)/(1-TIRED.from)))}
+const TIRED={from:.5,max:10},WINDMAX=100;   // WINDMAX: the breath of a unit that never tires, squeezed out by the fist trees (u.gwind, 64x-fists.js)
+function tiredPen(u){if(!u)return 0;const tire=u.fatMax>0&&u.fatMax<999;if(!tire&&!(u.gwind>0))return 0;const r=tire?(u.fat||0)/u.fatMax:u.gwind/WINDMAX;if(r<=TIRED.from)return 0;return Math.round(TIRED.max*Math.min(1,(r-TIRED.from)/(1-TIRED.from)))}
 /* Defense t gets from its armor-tree perks against u's ability a (already inside hitChance; forecast().armDef shows it):
    Fleet (moved on its turn, against shots), Fresh legs (fatigue below half), Dancer (misses since its last turn), Layered defense
    (body armor above half). */
@@ -724,7 +724,7 @@ function pathTo(D,k){const p=[];for(let x=k;D.get(x)&&D.get(x).prev>=0;x=D.get(x
 async function walkPath(u,path){const b=B;if(!u.fly)return walkPath0(u,path);const land=[u.c,u.r];await walkPath0(u,path,land);
  if(B===b&&u.alive&&airAt(u)){u.c=land[0];u.r=land[1];FX.emit('move',{u});await sleep(105)}}            // a flier never ends over a prop or a unit
 async function walkPath0(u,path,land){const b=B,sz=u.sz||1,mf=moveFat(u);for(const k of path){if(B!==b||!u.alive)return;const fk=key(u.c,u.r),qs=quickStep(u),c=qs?Math.max(0,stepCost(u,fk,k)-QSTEP):stepCost(u,fk,k);if(u.ap<c||u.fat+mf>u.fatMax)break;   // Light step (Shadowdancer): the first tile of the turn costs QSTEP lessif(!canFly(u)&&(sz>1?footUnit(k%BW,(k/BW)|0,sz,u):unitAt(k%BW,(k/BW)|0)))break;
-  const slip=!!(u.flags&&u.flags.slip)&&!u.slipT||!!u.hrun;u.slipT=1;if(u.hrun)u.hrun=0;   // Hit and run (Skirmisher): the first tile after an attack too
+  const slip=!!(u.flags&&u.flags.slip)&&!u.slipT||!!u.hrun||fsSlip(u);u.slipT=1;if(u.hrun)u.hrun=0;   // Hit and run (Skirmisher): the first tile after an attack too
  const foe=slip?null:zocFoe(u);   // Slippery: the first tile left each turn draws no free attack
   if(foe){foe.aoo=1;const hit=await freeAttack(foe,u,'zoc');if(B!==b||!u.alive)return;if(hit&&!airAt(u)){float(u,'Halted','#ffd27a');break}}
   let stop=false;const nc=k%BW,nr=(k/BW)|0;
@@ -764,6 +764,7 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
     if(losInfo(u,t,a).blocked){float(u,'No line of fire','#c8d0d8');FX.emit('blocked',{u,t});await sleep(200)}
     else{const beyond=a.through?lineBeyond(u,t,a.through):[];await strike(u,t,a);for(let i=1;i<(a.hits||1)&&B===b&&t.alive&&u.alive;i++)await strike(u,t,a);
     if((a.dwOff||a.dwSeq)&&u.dw&&B===b&&typeof dwFollow==='function')await dwFollow(u,t,a);
+    if(a.id==='attack'&&B===b&&typeof fsFollow==='function')await fsFollow(u,t,a);   // Double jab (Pugilist, 64x-fists.js)
     if(a.gvol&&B===b&&typeof gtVolley==='function')await gtVolley(u,t,a);   // Volley fire (Musketry, 64u-guntrees.js): the allies' guns join   // Twin blades: the off-hand blows (64w-dualwield.js)
     for(const o of beyond){if(B!==b||!u.alive)break;if(o.alive){FX.shot(t,o,'#e9e0c9',22,22);await strike(u,o,a,{splash:THROUGH,noShot:1})}}
     if(a.aoe)for(const o of b.units.filter(o=>o.alive&&o.side!==u.side&&o!==t&&mdist(o,t)===1)){if(B!==b)break;await strike(u,o,a,{splash:.7})}

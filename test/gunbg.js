@@ -71,7 +71,7 @@ section('the gun backgrounds');
   ok(new Set(Object.keys(BG).map(k=>BG[k].pool.slice().sort().join())).size===Object.keys(BG).length,'pools stay unique');
   // the old ones: firearms as an option, a gun now and then; Gunnery never forced on anyone else
   for(const k of ['hunter','sailor','noble','thief','witchhunter','spellblade'])ok(BG[k].wt.includes('flintlock'),k+' may learn firearms');
-  for(const k in BG)if(!GUNBG.includes(k))ok(!BG[k].core,k+': no core tree');
+  for(const k in BG)if(!GUNBG.includes(k))ok(!BG[k].core||(['monk','pitfighter'].includes(k)&&['willow','wrestle'].includes(BG[k].core)),k+': no core tree');   // but the monk's and the pit fighter's fist trees (test/fists.js)
   const n={hunter:0,sailor:0};for(let i=0;i<400;i++)for(const k in n){const m=X.newMerc(k);if(isGun(m.eq.w)||isGun(m.eq.b))n[k]++}
   ok(n.hunter>15&&n.hunter<90&&n.sailor>15&&n.sailor<90,'hunters and sailors carry a gun now and then (of 400): '+JSON.stringify(n));
   const t0={hunter:0};for(let i=0;i<200;i++){const m=X.newMerc('hunter');if(!isGun(m.eq.w))t0.hunter+=X.ITEMS[m.eq.w].wt==='bow'||X.ITEMS[m.eq.w].wt==='crossbow'?1:0}ok(t0.hunter>140,'a hunter is still mostly an archer');

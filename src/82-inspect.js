@@ -179,6 +179,7 @@ function unitCard(u){const pl=u.side===0,m=u.m,d=u.def||{},cur=B.cur,tl=T(u),mor
  h+='<div class="ins-grid">'+insStat(eff(u,'ms'),'Melee')+insStat(eff(u,'rs'),'Ranged')+insStat(u.init,'Initiative')+insStat(eff(u,'md'),'Melee def')+insStat(eff(u,'rd'),'Ranged def')+insStat(u===cur?u.ap+'/'+u.apMax:u.apMax,'AP')+'</div>';
  const w=u.wpn;h+=`<div class="ins-line"><span>${pl||m?w.n:u.spell?u.spell.n:'Attack'}</span><b>${u.spell?u.spell.d[0]+'–'+u.spell.d[1]:w.d[0]+'–'+w.d[1]} dmg${(u.spell?u.spell.rng:w.rng)>1?' · range '+(u.spell?u.spell.rng:w.rng):''}</b></div>`;
  if(u.fatMax<999){const tp=typeof shTired==='function'?shTired(u):0;h+=`<div class="ins-line${tp?' tired':''}"><span>Fatigue</span><b>${u.fat}/${u.fatMax}${tp?` <em class="ins-bad">tired −${tp}</em>`:''}</b></div>`}
+ else if(u.gwind>0){const tp=typeof shTired==='function'?shTired(u):0;h+=`<div class="ins-line${tp?' tired':''}"><span>Breath lost</span><b>${u.gwind}/${typeof WINDMAX==='number'?WINDMAX:100}${tp?` <em class="ins-bad">tired −${tp}</em>`:''}</b></div>`}   // squeezed out by the fist trees (64x-fists.js); recovers 15 a turn
  // second column: statuses, injuries, abilities and traits
  let r='';const L=typeof shStatuses==='function'?shStatuses(u):[];
  for(const x of L){if(x.key==='buff')continue;const S=shStatus(x.key)||{n:x.key,d:'',good:0};const val=x.key==='tired'?'−'+x.turns+' to hit and defense':x.key==='dance'?'+'+x.turns+' defense':x.key==='fleet'?'until its next turn':null;

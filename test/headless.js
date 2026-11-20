@@ -168,7 +168,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
   if(G.crisis&&!vet){vet=true;while(G.roster.length<12){const m=X.newMerc(BGS[G.roster.length]);m.field=true;G.roster.push(m)}G.roster.forEach(m=>{m.field=true});G.roster.forEach(m=>X.gainXP(m,Math.max(0,X.XPT[X.MAXLV]-m.xp)));for(let n=0;n<12;n++)TIERS[3].gear.forEach(id=>G.stash.push(id));levelUps(X,flags);gearUp(X,flags);
    G.roster.forEach(m=>{if(!m.hero){m.hero=1;m.base.hp+=120;m.base.ms+=35;m.base.rs+=35;m.base.md+=25;m.base.rd+=25;m.base.brv+=80}});closeAll(X)}   // fixture: heroes for the rift, so that this walk through the campaign does not hang on the balance of the day
   if(G.crisis&&!flags.dungeon&&G.portals.length&&rifts<8){rifts++;G.roster.forEach(m=>{m.hp=X.calc(m).hp});const p=G.portals[0];
-   let r;do{r=await march(X,p.x,p.y,{type:'portal',id:p.id},log);closeAll(X)}while(r==='lair');if(r==='wiped')return r;ok(dist(G.p,p)<8,'march did not reach the rift');closeAll(X);   // (a contract lair on the way is cleared in passing)
+   let r,g=0;do{r=await march(X,p.x,p.y,{type:'portal',id:p.id},log);closeAll(X)}while(r==='lair'||(r==='arrived'&&dist(G.p,p)>=8&&g++<3));if(r==='wiped')return r;ok(dist(G.p,p)<8,'march did not reach the rift');   // (an event sheet on the road stops a march short, as on the way to a town: march on)closeAll(X);   // (a contract lair on the way is cleared in passing)
    X.enterRift(p.id);const run=G.portalRun;ok(X.mode==='world'&&run&&run.id===p.id&&run.nodes.length>=5&&run.nodes.length<=7,'the rift did not open its portal world');   // the node map (24-endgame.js)
    for(let step=0;step<8&&G.portalRun;step++){const nx=X.portalNext();ok(nx.length>0,'a portal node map with no way on');const pick=nx.find(i=>G.portalRun.nodes[i].k==='rest')??nx[0],k=G.portalRun.nodes[pick].k,r=X.portalGo(pick);ok(r,'could not step onto a portal node');
     if(k==='event'){X.portalEvent(false);continue}if(r.kind!=='fight')continue;ok(X.mode==='battle'&&X.B&&Array.isArray(X.B.opts.roster)&&X.B.realm,'a portal fight did not start with its fixed roster and realm');
@@ -1139,7 +1139,7 @@ async function campaign(X,seed,flags,log,minDays){X.seedRng(seed);X.sheets.lengt
      X.B=null;X.mode='world'}
    // full battles: deterministic replay, the dead leave the roster, survivors keep their wounds, loot, purse, renown, joiners, no stuck turns
    let wins=0,joins=0,lootN=0,routs=0,deadN=0,downN=0,battles=0,inj=0;const P=['honour','cutthroat','greedy','glory'];
-   for(let i=0;i<(QUICK?8:16);i++){const pers=P[i%4],seed=SEED+3400+i;
+   for(let i=0;i<(QUICK?8:16)||(!QUICK&&i<32&&!(joins>0&&lootN>0));i++){const pers=P[i%4],seed=SEED+3400+i;   // (a joiner needs a win and its own roll: up to 16 more battles until one is seen)
     const run=async()=>{const r=setup(pers,seed);const res=await X.autoBattle({f:'rH',rival:'rH',mult:1,biome:['plains','forest','hills','snow'][i%4],src:{type:'test'},turnCap:TURNCAP,pilot:i%3?'sensible':'naive'});return{r,res,b:X.B}};
     const A=await run(),dA=dig(A.b)+X.rngState(),rosA=A.r.roster.map(m=>m.id+':'+m.hp+':'+(m.inj||[]).length).join();X.B=null;
     const Bq=await run(),dB=dig(Bq.b)+X.rngState(),rosB=Bq.r.roster.map(m=>m.id+':'+m.hp+':'+(m.inj||[]).length).join();
