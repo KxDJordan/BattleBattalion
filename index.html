@@ -7524,7 +7524,7 @@ function ctrHouse(f){return G&&Array.isArray(G.houses)?G.houses.find(h=>h&&h.id=
 function ctrEmpName(c){const h=ctrHouse(c.emp);if(h)return h.short||h.n;const t=ctrTown(c.town);return t?'the council of '+t.name:'the town council'}
 function ctrRenownT(){return typeof renownTier==='function'?renownTier():1}
 function ctrPayRep(){return typeof renownDef==='function'?renownDef().pay:1+G.renown/300}
-const CTRPAY={base:132,k:16.5,e:.75,knee:30,e2:.45};function ctrPower(){let P=typeof companyPower==='function'&&G?companyPower():fielded().length*3;if(typeof isSolo==='function'&&isSolo())P=Math.max(P*2,8);return Math.max(0,P||0)}
+const CTRPAY={base:175,k:14,e:.75,knee:30,e2:.45};function ctrPower(){let P=typeof companyPower==='function'&&G?companyPower():fielded().length*3;if(typeof isSolo==='function'&&isSolo())P=Math.max(P*2,8);return Math.max(0,P||0)}
 function ctrStrPay(){const P=ctrPower(),K=CTRPAY.knee;return CTRPAY.base+CTRPAY.k*(P<=K?Math.pow(P,CTRPAY.e):Math.pow(K,CTRPAY.e)*Math.pow(P/K,CTRPAY.e2))}
 function ctrPayBase(diff,k){return Math.max(30,Math.round(ctrStrPay()*CTR_PAYK[clamp(diff,1,5)-1]*(k||1)*ctrPayRep()/10)*10)}
 function ctrMult(diff,k){return CTR_DIFFK[clamp(diff,1,CTR_DIFFK.length)-1]*(k||1)}

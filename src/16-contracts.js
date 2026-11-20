@@ -39,7 +39,7 @@ function ctrPayRep(){return typeof renownDef==='function'?renownDef().pay:1+G.re
 // renown (ctrPayRep) and the job's danger (CTR_PAYK by difficulty): never the day. CTRPAY = {base, k, e}: base + k x power^e crowns.
 // CTRPAY.knee / .e2: past power knee (a seasoned company) the pay grows by (power/knee)^e2 instead (was: power^e all the way): a new
 // company is paid as before, a strong one far less (the mid and late game's runaway purse)
-const CTRPAY={base:132,k:16.5,e:.75,knee:30,e2:.45};   // was {240,30,.75}: a contract pays 3-6 days of the company's wages
+const CTRPAY={base:175,k:14,e:.75,knee:30,e2:.45};   // was {240,30,.75}: a contract pays 3-6 days of the company's wages
 function ctrPower(){let P=typeof companyPower==='function'&&G?companyPower():fielded().length*3;if(typeof isSolo==='function'&&isSolo())P=Math.max(P*2,8);return Math.max(0,P||0)}
 function ctrStrPay(){const P=ctrPower(),K=CTRPAY.knee;return CTRPAY.base+CTRPAY.k*(P<=K?Math.pow(P,CTRPAY.e):Math.pow(K,CTRPAY.e)*Math.pow(P/K,CTRPAY.e2))}
 function ctrPayBase(diff,k){return Math.max(30,Math.round(ctrStrPay()*CTR_PAYK[clamp(diff,1,5)-1]*(k||1)*ctrPayRep()/10)*10)}
