@@ -1124,7 +1124,13 @@ const US_BEAR={x0:-17,ll:7,big:1,flat:10,lieH:8,hup:-4,fur:usRamp('aijk',2),ur:u
   else{usRect(0,-33,12,-23,f,tx);[[0,-33],[1,-33],[0,-32],[12,-33],[11,-33],[12,-32]].forEach(([x,y])=>usE(x,y));
    usPart();usP(1,-34,f);usP(2,-34,f);usP(1,-35,f);usP(1,-36,f,1);usP(10,-34,f);usP(11,-34,f);usP(11,-35,f);usP(11,-36,f,1);
    usPart();usP(13,-28,B);usP(13,-27,B,-1);usP(14,-27,B,-1)}}};
-function usSpider(v,mir,st,fr){const p=usBeastPose(st,fr),b=usRamp('0Gop',1),lgR=usRamp('0Gop',2),dead=p.lie,bx=p.bx,by=dead?0:p.by+(p.low?1:0),up=st==='attack'&&fr===1;
+const US_SSP={b:usRamp('0aij',1),l:usRamp('0aij',2),mk:['k','m','l']};
+function usSand(u){return!!(u&&u.def&&typeof spVary==='function'&&usEnKey(u.def)==='spider'&&spVary(u))}
+// the spider sits down in its tile: its legs splay around the tile centre, the near ones reaching past it, its body over it (as the
+// Detail High frames, SHEETS.spider dy): everything US_SPDY px lower than a figure standing on the tile point
+const US_SPDY=3;function usSpider(v,mir,st,fr,sand){usOY+=US_SPDY;try{usSpider0(v,mir,st,fr,sand)}finally{usOY-=US_SPDY}}
+// sand: the Webspinner's sand spider (a desert battle, 76o-spider.js): brown, a tan-striped abdomen, as its Detail High sheet
+function usSpider0(v,mir,st,fr,sand){const p=usBeastPose(st,fr),b=sand?US_SSP.b:usRamp('0Gop',1),lgR=sand?US_SSP.l:usRamp('0Gop',2),mk=sand?US_SSP.mk:['f','g','h'],dead=p.lie,bx=p.bx,by=dead?0:p.by+(p.low?1:0),up=st==='attack'&&fr===1;
  const ax=-4+bx,ay=(dead?-6:-9)+by,cxh=4+bx+p.hx,cyh=(dead?-4:(v?-10:-6))+by+(up?-1:0);
  // legs: 4 per side, knee above the body, foot on the ground
  const leg=(sx,sy,kx,ky,fx,fy,far)=>{usPart();const seg=(x0,y0,x1,y1)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0),1);for(let i=0;i<=n;i++)usP(x0+Math.round((x1-x0)*i/n),y0+Math.round((y1-y0)*i/n),lgR,far?-1:0)};seg(sx,sy,kx,ky);seg(kx,ky,fx,fy);usB(kx,ky,1)};
@@ -1137,7 +1143,7 @@ function usSpider(v,mir,st,fr){const p=usBeastPose(st,fr),b=usRamp('0Gop',1),lgR
    leg(cx0-2+i+(i>1?1:0),cy0+(far?-1:0),kx,ky,fx,Math.min(-1,fy),far)}
   if(pass===0){// abdomen + head between far and near legs
    usPart();const R0=[[1,5],[0,6],[-1,7],[-1,7],[-1,7],[0,7],[1,6],[2,4]];R0.forEach((r,j)=>{for(let x=r[0];x<=r[1];x++)usP(ax-3+x,ay-3+j+(v?2:0),b,((x+j)%5===0)?1:0)});
-   if(!dead){const mx=ax,my=ay-1+(v?2:0);if(v){usF(mx,my,'g');usF(mx+1,my+1,'g');usF(mx-1,my+1,'f');usF(mx,my+2,'g');usF(mx,my+1,'h')}else{usF(mx-1,my,'f');usF(mx,my,'g');usF(mx-1,my+1,'g')}}
+   if(!dead){const mx=ax,my=ay-1+(v?2:0);if(v){usF(mx,my,mk[1]);usF(mx+1,my+1,mk[1]);usF(mx-1,my+1,mk[0]);usF(mx,my+2,mk[1]);usF(mx,my+1,mk[2])}else{usF(mx-1,my,mk[0]);usF(mx,my,mk[1]);usF(mx-1,my+1,mk[1])}}
    usPart();usRect(cxh-2,cyh-2,cxh+2,cyh+2,b);usE(cxh-2,cyh-2);usE(cxh+2,cyh-2);usE(cxh-2,cyh+2);usE(cxh+2,cyh+2);
    if(v===0&&!dead){usF(cxh,cyh-1,'g');usF(cxh+2,cyh-1,'g');usF(cxh+1,cyh,'h');usF(cxh-1,cyh,'f');usPart();usP(cxh+1,cyh+3,'l');usP(cxh+3,cyh+2,'l');if(p.jaw||up){usP(cxh+1,cyh+4,'l');usP(cxh+4,cyh+3,'l')}}
    else if(!dead){usPart();usP(cxh+3,cyh-1,'l');usP(cxh+2,cyh-3,'l')}}}
@@ -1156,7 +1162,7 @@ function usHand(u,o){o=o||US_H;let ov=null;try{if(typeof anHandOv==='function')o
 const usHK=x=>x==null?'-':typeof x==='object'?(x.wt||'?')+(x.two?'2':''):String(x);
 function usLd(u){return u&&u.loaded===false?0:1}
 function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;return'm:'+m.id+':'+m.name+':'+m.race+':'+m.bg+':'+usHK(H.w)+':'+usHK(H.a)+':'+(e.s||'')+':'+(e.a||'')+':'+(e.h||'')+':'+usShs(u)+':'+(typeof mercRes==='function'?mercRes(m)||'':'')+':'+usColSig(m)+':'+usLd(u)+':'+usCoatSig(u)+':w'+usWall(u)+usSpearW(u)+':'+usWearSig()}
- if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a)+':'+usLd(u)+':'+usCoatSig(u)+':w'+usWall(u)+usSpearW(u)+':'+usWearSig();return'x:?'}
+ if(u&&u.def)return'e:'+(usEnKey(u.def)||u.eid||'?')+(usSand(u)?'~sand':'')+':'+usShs(u)+':'+usHK(H.w)+':'+usHK(H.a)+':'+usLd(u)+':'+usCoatSig(u)+':w'+usWall(u)+usSpearW(u)+':'+usWearSig();return'x:?'}
 // a unit braced behind its raised shield (Shield wall: the 'shieldwall' buff): its figure holds the shield up high (73k-humans.js humBuild)
 // braced behind a spear (the 'spearwall' buff): the figure holds its spear levelled forward (73m-skel.js)
 function usSpearW(u){return u&&Array.isArray(u.buffs)&&u.buffs.some(b=>b&&b.key==='spearwall')?1:0}
@@ -1174,7 +1180,7 @@ function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=u
   if(u.def&&S.kind==='hum'&&u.shpMax>0&&!S.shield&&!(S.wd&&S.wd.two)){S.shield=u.shpMax>=60?'heater':'buckler';if(!S.shR)S.shR=usCloth(u.f==='bandit'?'night':'red')}   // an enemy type that carries a shield in the rules shows one
   if(u.def&&S.kind==='hum'&&cv&&typeof usHouseDress==='function'){try{S=usHouseDress(S,u,unitCoat(u))}catch(er){}}   // house soldiers in their house's coat and colours (73c-coats.js)
   if(shs===2){S.shield=null;S.slung=null}else if(shs===1&&S.shield)S.shCrack=1;
-  const id=u.def?usEnKey(u.def)||u.eid:null;if(id==='wolf')S={kind:'quad',Q:US_WOLF};else if(id==='bear')S={kind:'quad',Q:US_BEAR,b:{big:1}};else if(id==='spider')S={kind:'spider'};
+  const id=u.def?usEnKey(u.def)||u.eid:null;if(id==='wolf')S={kind:'quad',Q:US_WOLF};else if(id==='bear')S={kind:'quad',Q:US_BEAR,b:{big:1}};else if(id==='spider')S={kind:'spider',sand:usSand(u)};
   const big=S.kind==='quad'?(S.Q.big?1:0):S.kind==='spider'?0:(S.b.big?1:0);
   L={key,S,big,fr:new Array(4*US_NF).fill(null)};US.looks.set(key,L);
   if(US.looks.size>160){const k0=US.looks.keys().next().value;US.looks.delete(k0)}}
@@ -1182,7 +1188,7 @@ function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=u
 function usBuild(L,face,st,fr){const t0=typeof performance!=='undefined'?performance.now():0,S=L.S,v=face>=2?1:0,mir=face===1||face===2,d=US_DIM[L.big];
  let hw=0;if(typeof humWant==='function'&&humWant(L)){hw=1;let o=null;try{o=humBuild(L,face,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.herr){US.herr=1;console.error('human figure',L.key,st,fr,e)}}if(o)return o}   // Detail High people: the parts-sheet figure (73k-humans.js)
  usBegin(L.big);usCrk=S.shCrack?1:0;if(S.coat)usCoatHDBegin();else US_EM.on=false;
- try{if(S.kind==='quad')usQuad(S.Q,v,mir,st,fr);else if(S.kind==='spider')usSpider(v,mir,st,fr);else usHuman(S,v,mir,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.err){US.err=1;console.error('unit sprite',L.key,st,fr,e)}}
+ try{if(S.kind==='quad')usQuad(S.Q,v,mir,st,fr);else if(S.kind==='spider')usSpider(v,mir,st,fr,S.sand);else usHuman(S,v,mir,st,fr)}catch(e){if(typeof console!=='undefined'&&!US.err){US.err=1;console.error('unit sprite',L.key,st,fr,e)}}
  if(typeof uhOut==='function'&&uhOn()){const o=uhOut(usG,L.big||S.armor==='plate',d.ax,d.ay,S.famed&&st!=='death',S.lgd);if(o){if(US_EM.L.length)usCoatHD(o,d,mir);o.r=ARTHD.rev;o.hpw=hw;US.builds++;if(t0)US.ms+=performance.now()-t0;return o}}   // Detail High: the HD figure (73h-unitshd.js)
  if(US_EM.L.length)usCoatLo(mir);const cv=usResolve(usG,L.big||S.armor==='plate');let gl=null;if(S.famed&&st!=='death'){const Z=usG.Z,w=usG.w,a=[],on=i=>i>=0&&i<Z.length&&Z[i]&&usGL[Z[i]];for(let i=0;i<Z.length;i++)if(on(i)&&(!on(i-1)||!on(i+1)||!on(i-w)||!on(i+w)))a.push(i);if(a.length){a.sort((p,q)=>(p%w-((p/w)|0))-(q%w-((q/w)|0)));gl={a,w,lg:!!S.lgd}}}
  US.builds++;if(t0)US.ms+=performance.now()-t0;return{cv,ax:d.ax,ay:d.ay,gl,r:ARTHD.rev,hpw:hw}}

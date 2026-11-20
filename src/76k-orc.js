@@ -23,13 +23,13 @@ const OR_FIG={orcw:{atl:()=>typeof ORA==='object'?ORA:null,sway:{arm_l:['arm_l',
  obrute:{atl:()=>typeof OCA==='object'?OCA:null,sway:{}},
  orcl:{atl:()=>typeof OLA==='object'?OLA:null,sway:{}}};
 /* a rig's display list (t: the idle's loop cycle); dy: the feet under the tile point (WU). K: device px per WU (0: piece names only) */
-function orRig(id,st,t,K,seed,dy){const Fg=OR_FIG[id],A=Fg.atl(),P=orPose(t||0),head=(Fg.look||orLook)(t||0,seed),g=new HskRec(),bones={};const bone=n=>{bones[n]=g.m.slice()};
+function orRig(id,st,t,K,seed,dy,u){const Fg=OR_FIG[id],A=Fg.atl(),P=orPose(t||0),head=(Fg.look||orLook)(t||0,seed,u),g=new HskRec(),bones={};const bone=n=>{bones[n]=g.m.slice()};
  g.translate(0,dy||0);bone('root');const root=g.m.slice();g.translate(0,P.bob);bone('body');const body=g.m.slice();
  const S={};for(const s of A.set)S[s[0]]=s;
- for(const [slot,pc0,x,y,rot0,sc] of A.set){const pc=slot==='head'?head:pc0;g.m=(OR_LEGS[slot]?root:body).slice();
+ for(const [slot,pc0,x,y,rot0,sc] of A.set){const pc=slot==='head'?head:pc0;g.m=((Fg.legs||OR_LEGS)[slot]?root:body).slice();
   const sw=Fg.sway[slot];if(sw){const a=S[sw[0]],r=sw[2]*sw[1]*P.arm*Math.PI/180;g.translate(a[2],a[3]);g.rotate(r);g.translate(-a[2],-a[3])}   // turns about its arm's shoulder
   let yy=y,rot=rot0;if(slot==='head'){yy+=P.br*.8;rot+=P.head}
-  g.translate(x,yy);g.rotate(rot*Math.PI/180);if(slot==='torso')g.scale(1,1+.018*P.br);bone(slot);g.scale(sc,sc);
+  g.translate(x,yy);g.rotate(rot*Math.PI/180);if(slot===(Fg.breathe||'torso'))g.scale(1,1+.018*P.br);bone(slot);g.scale(sc,sc);
   const R=A.p[pc];if(K){const a=fsPc(id,pc,R,R.pv[0],R.pv[1],K);if(a)g.img(a,slot)}else g.list.push({n:pc,m:g.m.slice(),tag:slot})}
  return{list:g.list,tags:A.set.map(s=>s[0]),bones,pose:P,anim:'idle',face:head.slice(5),look:{head},rig:1}}
 const OR_DASH=(u,st,s)=>st==='attack'&&s&&s.mv&&s.mk===(typeof AN_DASH==='number'?AN_DASH:4)?'charge':'';   // a charge's run-up runs

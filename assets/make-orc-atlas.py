@@ -98,8 +98,11 @@ def build(var, C):
     for n, (of, share) in C['lower'].items():          # the same size as its piece (the same pivot), its upper part cleared
         t = P[of].copy(); t[:int(t.shape[0] * share), :, 3] = 0; t[t[..., 3] == 0, :3] = 0; P[n] = t
     y0, y1 = C['head_band']
-    hc = sorted([c for c in comps if y0 <= (c[3] + c[5]) / 2 < y1], key=lambda c: c[2]); assert len(hc) == len(heads), (var, len(hc))
+    hc = sorted([c for c in comps if y0 <= (c[3] + c[5]) / 2 < y1], key=lambda c: c[2]); assert len(hc) == len(heads), (var, len(hc), len(heads))
     H8 = [ff.trim(ff.cut(S, lab, c)[0])[0] for c in hc]
+    if C.get('neutral'):   # the part-row head is the 'neutral' head; the row's heads are brought to its size (the spiders)
+        hp = comp_cut(C['head_part']); k = hp.shape[1] / H8[0].shape[1]
+        H8 = [hp] + [ff.scale(h, k) for h in H8]; heads = ['neutral'] + list(heads)
     HOFF = [(0, 0)] + [(-a, -b) for a, b in (align(h, H8[0]) for h in H8[1:])]   # each head's top left in the neutral head's px
     for n, h in zip(heads, H8): P['head_' + n] = h
     head_k = comp_cut(C['head_part']).shape[1] / H8[0].shape[1]                   # the row-2 heads at the part-row head's size
@@ -130,11 +133,12 @@ def build(var, C):
     cs = ff.scale(comp, F); M1 = cs[..., 3] > 128; M0 = a0[..., 3] > 128
     ox0, oy0 = (ORG[0] + OFF[0]) * F, (ORG[1] + OFF[1]) * F
     best = (-1, 0, 0)
-    for dy in range(-12, 13):
-        for dx in range(-12, 13):
+    R = 20 if C.get('whole') else 12
+    for dy in range(-R, R + 1):
+        for dx in range(-R, R + 1):
             x0 = int(round(ox0 + dx - a0x)); y0_ = int(round(oy0 + dy - a0y))
             if x0 < 0 or y0_ < 0 or x0 + M0.shape[1] > M1.shape[1] or y0_ + M0.shape[0] > M1.shape[0]: continue
-            top = int(M0.shape[0] * .42)        # the head and shoulders only: the weapons are held differently in the frames
+            top = M0.shape[0] if C.get('whole') else int(M0.shape[0] * .42)   # the head and shoulders only (the spiders: the whole figure): the weapons are held differently in the frames
             sub = M1[y0_:y0_ + top, x0:x0 + M0.shape[1]]; m0 = M0[:top]
             iou = (sub & m0).sum() / max(1, (sub | m0).sum())
             if iou > best[0]: best = (iou, dx, dy)
