@@ -19,7 +19,7 @@ if(typeof IC_PKID==='object')Object.assign(IC_PKID,{
  'pugilist.1':['fist',null,'dn','br'],'pugilist.3':['fatigue',null,'dn','br'],'pugilist.4':['fist',null,'x2','br'],'pugilist.6':['ap',null,'up','tr'],'pugilist.cap':['fist',{k:'d',j:'c',i:'b'},'star','tr'],
  'willow.1':['mdef',null,'plus','br'],'willow.3':['mdef',null,'motion','bl'],'willow.4':['ab-footwork',null,'shield','br'],'willow.5':['ab-parry',null,'motion','bl'],'willow.6':['ap',null,'motion','bl'],
  'willow.cap':['ab-footwork',{k:'6',j:'5',i:'7'},'star','tr']});
-/* the fist weapons' 16 px icons: the fist icon dressed in each one (IC_HANDW: an item's icon drawn by hand, recoloured), not the few cells
+/* the fist weapons' 16 px icons (and the gladiators' cestus and spiked cestus): the fist icon dressed in each one (IC_HANDW: an item's icon drawn by hand, recoloured), not the few cells
    the figures hold (those read as a sliver at 16 px) */
 if(typeof ICONS==='object'&&ICONS.fist&&typeof IC_HANDW==='object'){const F=ICONS.fist.map(r=>r.replace(/0/g,'.').split('')),K=()=>F.map(r=>r.slice()),O=g=>g.map(r=>r.join(''));
  const skin={s:1,t:1,u:1},paint=(g,y,f)=>{for(let x=0;x<16;x++)if(skin[g[y][x]])g[y][x]=f(x,g[y][x])},set=(g,L)=>{for(const [x,y,k] of L)if(g[y])g[y][x]=k};
@@ -30,6 +30,7 @@ if(typeof ICONS==='object'&&ICONS.fist&&typeof IC_HANDW==='object'){const F=ICON
  {const g=K();paint(g,7,()=>'p');paint(g,8,()=>'o');for(const x of [4,8,12])set(g,[[x,1,'q'],[x,2,'p']]);W.shuko=g}
  {const g=K(),M={s:'q',t:'p',u:'o',k:'q',j:'p',i:'o'};for(const r of g)for(let x=0;x<16;x++)if(M[r[x]])r[x]=M[r[x]];set(g,[[4,4,'r'],[5,3,'r']]);W.gauntlet=g}
  W.katar=['.......r........','.......q........','......rqp.......','......qqp.......','......qqp.......','......qqp.......','......qqp.......','......qpo.......','....ccccccc.....','....p.....p.....','....p.kkk.p.....','....pcccccp.....','....p.jjj.p.....','....pcccccp.....','....o.....o.....','................'].map(r=>r.split(''));
+ for(const k of ['cestus','cestus2']){const g=K();for(const y of [7,8,9])paint(g,y,(x,c)=>c==='s'?'k':c==='t'?'j':'i');for(const y of [3,4])paint(g,y,(x,c)=>k==='cestus2'?(c==='s'?'q':'p'):(c==='s'?'p':'o'));if(k==='cestus2')for(const x of [4,7,10])set(g,[[x,1,'q'],[x,2,'q']]);W[k]=g}   // the gladiators' cestus, drawn the same way
  for(const id in W){ICONS['w-'+id]=O(W[id]);IC_HANDW[id]=['w-'+id]}}
 /* ---- painted ---- */
 (function(){if(typeof PAINT!=='object'||!PAINT)return;const P=PAINT;
