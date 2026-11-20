@@ -238,13 +238,13 @@ function setPatrol(p){p.pts=patrolPts(p.x,p.y);if(p.pts.length<2){patrolHop(p);r
      startD = 16 (1 - prog / .6) tiles of the starting town. Early factions roam anywhere. Riftspawn keep their crisis logic.
    Scaled to the map (SPAWNR): R = the world's remoteness, the 95th percentile of the distance to the nearest town over its walkable
      land (worldFields().rem: small ~11.7, medium ~12, large ~13, vast ~16; no rnd draw). A tier's curve was laid out for a world where
-     its far end d0 fits within SPAWNR.fit x R (end: 18 tiles = 1.2 x R0, R0 = 15, the vast world's remoteness); on a tighter world the
+     its far end d0 fits within SPAWNR.fit x R (end: 18 tiles = .95 x R0, R0 ~19: wyverns reach roughly the remotest twentieth of any world from about power 120); on a tighter world the
      whole curve shrinks by k = min(1, SPAWNR.fit x R / d0), so minD = max(min(raw, SPAWNR.floor), round(raw x k)): never nearer than
      5 tiles to a town (and never below the 2.5 every band keeps). Mid (d0 10) fits every world as it is (k = 1); the end tier (wyverns)
-     shrinks to ~.78 on the small world and only on vast worlds keeps its old reach. Contracts' lair distances (dmin, dmax) follow
+     shrinks to ~.62 on the small world and ~.84 on a vast one. Contracts' lair distances (dmin, dmax) follow
      the scaled minD. e.minD0 keeps the unscaled distance.
    When the world still has no ground that far from its towns, the farthest tenth of the faction's ground is used instead (factionSpot). */
-const SPAWNR={q:.95,fit:1.2,floor:5};
+const SPAWNR={q:.95,fit:.95,floor:5};
 const SPAWNT={early:{gate:0,d0:0,d1:0,w0:1,w1:.55},mid:{gate:.08,d0:10,d1:3,w0:.35,w1:.9},late:{gate:.2,d0:14,d1:5,w0:.2,w1:.8},end:{gate:.4,d0:18,d1:8,w0:.06,w1:.4}};
 const TERRN=['water','plains','forest','hills','mountains','swamp','desert','snow'];
 function gearPower(m){let p=0;const eq=m&&m.eq||{};for(const k of ['w','b','s','a','h']){const it=eq[k]&&ITEMS[eq[k]];if(it)p+=it.price||0}return Math.min(9,Math.log2(1+p/150)*1.1)}

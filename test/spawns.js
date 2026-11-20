@@ -4,7 +4,7 @@
 //   wolves rarely in deserts; goblins favour the hills; brigands the roads), the dead never form by day, rise at dusk and are gone after
 //   dawn (chasing or not), while bands bound to a crisis, a contract or an event stay; band strength rises with the distance from
 //   civilization (monotone on average) and stays gentle near the towns; the battle is fought on the band's own ground with the family's
-//   own warband; the far reach of the end tier scales with the map's remoteness (wyverns on the small world from ~power 150, never
+//   own warband; the far reach of the end tier scales with the map's remoteness (wyverns on the small world from ~power 120, never
 //   within SPAWNR.floor of a town; the mid tier never moves); p.fam / p.wild survive a save and bad values are repaired; the same seed spawns the same bands.
 // --dump writes the samples (and the world's tiles) for the pictures (tools: see the report).
 'use strict';
@@ -144,17 +144,17 @@ section('the battle');
   X.companyPower=P0;console.log('the battle: ok') }
 
 section('spawn ranges scale with the map');
-{ // the small world: the end tier's far reach shrinks to fit (SPAWNR), wyverns form in its most remote mountains from about power 150
+{ // the small world: the end tier's far reach shrinks to fit (SPAWNR), wyverns form in its most remote mountains from about power 120
   const G9=fresh(SEED+16),R=X.spawnRemote(),k=X.spawnFitK(18,R),FL=X.SPAWNR.floor,wy=pw=>X.factionPool({power:pw,crisis:false}).find(e=>e.f==='wyvern');
   console.log('small world: remoteness '+R.toFixed(1)+' tiles, end tier x'+k.toFixed(2));
   ok(R>8&&R<14&&k<1,'the small world is too tight for the old end-tier reach: R '+R);
   for(const pw of [110,150,200,240]){const e=wy(pw);ok(e.minD<e.minD0&&e.minD>=FL&&e.dmin===Math.max(4,e.minD),'wyvern minD scaled at '+pw+': '+e.minD0+' -> '+e.minD)}
-  const S150=sample(G9,2000,13,150,SEED^5),S200=sample(G9,2000,13,200,SEED^6),F=X.worldFields(),w150=S150.filter(s=>s.f==='wyvern'),w200=S200.filter(s=>s.f==='wyvern');
-  console.log('wyverns over 2000 spawns: power 150 '+w150.length+', power 200 '+w200.length);
+  const S120=sample(G9,2000,13,120,SEED^4),w120=S120.filter(s=>s.f==='wyvern'),S150=sample(G9,2000,13,150,SEED^5),S200=sample(G9,2000,13,200,SEED^6),F=X.worldFields(),w150=S150.filter(s=>s.f==='wyvern'),w200=S200.filter(s=>s.f==='wyvern');
+  ok(w120.length>=1,'wyverns form on the small world at power 120: '+w120.length);console.log('wyverns over 2000 spawns: power 120 '+w120.length+', power 150 '+w150.length+', power 200 '+w200.length);
   ok(w150.length>=1,'wyverns form on the small world at power 150: '+w150.length);ok(w200.length>w150.length,'and more as the company grows: '+w150.length+' -> '+w200.length);
   for(const [L,pw] of [[w150,150],[w200,200]])for(const s of L){ok(F.td[s.i]>=FL&&F.td[s.i]>=wy(pw).minD,'a wyvern band too near a town: '+F.td[s.i].toFixed(1)+' tiles');ok(X.biomeHas(s.i,X.FACT.wyvern.biomes),'a wyvern off its ground')}
   // minD follows the remoteness: monotone, the full reach from SPAWNR.fit x R >= d0, never under the floor
-  let last=-1;for(const rem of [4,6,8,10,12,14,15,20]){const e=X.factionPool({power:150,crisis:false,rem}).find(e=>e.f==='wyvern');ok(e.minD>=last&&e.minD>=FL,'minD rises with remoteness: '+rem+' -> '+e.minD);last=e.minD;if(rem>=15)ok(e.minD===e.minD0,'a world as remote as the vast one keeps the old reach')}
+  let last=-1;for(const rem of [4,6,8,10,12,14,15,19,24]){const e=X.factionPool({power:150,crisis:false,rem}).find(e=>e.f==='wyvern');ok(e.minD>=last&&e.minD>=FL,'minD rises with remoteness: '+rem+' -> '+e.minD);last=e.minD;if(rem*X.SPAWNR.fit>=18)ok(e.minD===e.minD0,'a world as remote as the vast one keeps the old reach')}
   ok(X.factionPool({power:150,crisis:false,rem:4}).find(e=>e.f==='wyvern').minD===FL,'the floor holds on the tightest land');
   // the mid tier never moves: on every world size and every power its minD is the old one
   for(const pw of [30,60,120,180,240])for(const e of X.factionPool({power:pw,crisis:false}))if(e.tier==='mid'||e.tier==='early')ok(e.minD===e.minD0,e.f+' moved on the small world at '+pw);
