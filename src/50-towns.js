@@ -77,8 +77,16 @@ function mkRoll(t,ti,ep,prev,weeks){const E=mkEcon(ti),r=mkStream(ti,ep),ids=mar
 function mkRestock(t,fresh){const ti=G.towns.indexOf(t);if(ti<0)return false;const ep=mkEpoch(G.day);if(!fresh&&t.mkEp===ep&&Array.isArray(t.stock))return false;
  const weeks=svFin(t.mkEp)?ep-t.mkEp:1;t.stock=mkRoll(t,ti,ep,fresh?[]:t.stock,weeks);t.mkEp=ep;return true}
 // recruits: 4 (5 with the recruiter); backgrounds by recruitBG (renown makes rare ones likelier); some veterans at higher renown tiers
+/* The stalls used to be drawn here from the game stream (rnd); they come from the town's own stream now (mkRestock). So that a world
+   plays out as before (the same recruits, notices, bands and battles from the same seed), stockTown still makes the draws the old
+   stalls made, and throws them away. */
+function mkLegacyDraws(t){const maxT=marketTier(t.size,G.day),ids=marketPool(maxT),L=[];const nS=Math.max(3,9+twCountStep(typeof townStockK==='function'?townStockK(G.towns.indexOf(t)):1,2)+(typeof runModK==='function'?runModK('stock',0):0));
+ for(let i=0;i<nS;i++)L.push(stockPick(ids,maxT));
+ {const hs=ids.filter(k=>ITEMS[k].k==='h');if(hs.length&&L.length&&!L.some(id=>ITEMS[id].k==='h')){const lo=hs.filter(k=>(ITEMS[k].tier||1)<=Math.min(maxT,3));L[L.length-1]=pick(lo.length?lo:hs)}}
+ if(typeof eastStock==='function'){try{eastStock(t,L,maxT)}catch(e){}}}
 function stockTown(t){const fresh=!svFin(t.ref)||t.ref<0||!Array.isArray(t.stock)||!svFin(t.mkEp);t.ref=G.day;t.recruits=[];const D=typeof renownDef==='function'?renownDef():null,nR=Math.max(2,5+(typeof followerHas==='function'&&followerHas('recruiter')?1:0)+(typeof runModK==='function'?runModK('recruits',0):0));
  for(let i=0;i<nR;i++){const m=newMerc(typeof recruitBG==='function'?recruitBG(t):wpickBG());if(D&&D.vet>0&&rnd()<D.vet)makeVeteran(m,ri(D.lv[0],D.lv[1]));t.recruits.push(m)}
+ mkLegacyDraws(t);   // the game stream as it always ran (below)
  mkRestock(t,fresh);   // the stalls: market days, the town's own stream (above)
  const keep=typeof rvKeepTaken==='function'?rvKeepTaken(t):[];   // notices a rival company holds stay up, marked as taken
  t.contracts=[];const nC=Math.max(0,townBoardN(t)-keep.length);if(typeof ctrBoard==='function')t.contracts=ctrBoard(t,nC);else for(let i=0;i<nC;i++){const c=genContract(t);if(c)t.contracts.push(c)}t.contracts=keep.concat(t.contracts);
