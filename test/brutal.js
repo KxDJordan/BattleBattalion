@@ -11,8 +11,12 @@
 // Gates (not with --measure), the sensible pilot (TARGET):
 //   1. Each level hits its mark: Normal 80 / Hard 60 / Brutal 30 % won, pooled over the three stages, within TARGET.tol (7) points, for the
 //      company and for each solo run; and every stage within TARGET.stage (15) points of it.
-//      (Measured at --n 100, sensible, pooled over the stages: company 80 / 62 / 32, slayer 82 / 58 / 29, isekai 81 / 59 / 32 for Normal / Hard /
-//      Brutal; before this retune 88 / 66 / 25, 86 / 73 / 48, 90 / 86 / 68. Per stage see TABLE below.)
+//      (Measured at --n 100, sensible, Story / Normal / Hard / Brutal % won (early, mid, late stage; pooled):
+//        company  L4x6 92 85 67 37   L8x9 100 78 63 30   L12x12 100 76 62 33   pooled 97 80 64 33
+//        slayer   S3   90 78 62 33   S6    93 82 56 29   S9      96 85 59 25   pooled 93 82 59 29
+//        isekai   I3   89 78 58 30   I6    98 79 54 30   I9     100 85 55 32   pooled 96 81 56 31
+//      naive pooled: company 82 27 15 5, slayer 85 70 55 19, isekai 92 74 50 23. Before this retune (sensible pooled): company 98 / 88 / 66 / 25,
+//      slayer 92 / 86 / 73 / 48, isekai 94 / 90 / 86 / 68.)
 //   2. The order holds: Story at least TARGET.story (8) points above Normal, Normal > Hard > Brutal; and Brutal costs more blood (deaths +
 //      struck down a fight) than Hard (TARGET.blood x).
 //   3. (folded into 1: solo runs are judged by the same marks as the company.)
