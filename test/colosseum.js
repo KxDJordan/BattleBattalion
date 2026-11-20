@@ -103,7 +103,7 @@ if(!RO){X.seedRng(SEED+41);X.newGame(true);closeAll(X);const G=X.G;const b0={rul
 if(!RO)section('pay');
 if(!RO){X.seedRng(SEED+42);X.newGame(true);closeAll(X);const G=X.G;setComp(X,C8[1]);G.crowns=5000;G.renown=0;const c=G.colos[0],C=X.colCard(c);
  const i=C.bouts.findIndex(b=>!X.COLRULE[b.rule].swords),b=C.bouts[i];b.prize=1;const o=X.colOpts(c,i);ok(o&&o.src.purse>0&&o.src.fee>0&&o.src.fee<o.src.purse,'no purse or fee');
- const P=X.companyPower(),want=Math.max(50,Math.round(X.colPurseBase(P)*X.COLRULE[b.rule].pay*X.diffK('pay')/10)*10);ok(o.src.purse===want,'the purse is not the formula: '+o.src.purse+' vs '+want);
+ const P=X.companyPower(),want=Math.max(50,Math.round(X.colPurseBase(P)*X.ctrVetK()*X.COLRULE[b.rule].pay*X.diffK('pay')/10)*10);ok(o.src.purse===want,'the purse is not the formula: '+o.src.purse+' vs '+want);
  const c0=G.crowns,r0=G.renown,s0=G.stash.length;const out=X.colSettle(o.src,true,{fled:false,arenaKills:{}});ok(out.win&&G.crowns===c0+out.purse-out.fee&&G.renown===r0+out.renown&&out.renown===o.src.ren,'a win did not pay what it says');
  ok(o.src.prize&&G.stash.length===s0+1&&G.stash.includes(o.src.prize)&&X.ITEMS[o.src.prize].glad,'the prize did not reach the stash');ok(b.done==='won'&&X.colWhy(c,i),'a won bout can be fought again');
  ok(c.rec.w===1&&c.rec.streak===1,'the record did not count the win');const p1=X.colOpts(c,(i+1)%C.bouts.length);ok(!p1||X.colStreakK(c)>1,'no streak bonus');
