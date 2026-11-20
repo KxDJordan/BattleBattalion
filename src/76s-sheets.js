@@ -25,8 +25,8 @@ const SHEETS={
  orcl:{h:38,dy:0,top:48},
  skel:{h:26,dy:0,top:32},   // the skeleton soldiers' drawn frames and rig (76m-skelsol.js), their weapon and shield added
  skelhal:{h:26,dy:0,top:32},
- spider:{h:20,dy:0},   // the Webspinner's drawn frames and rig (76o-spider.js) stand on their near legs' tips: that line on the tile centre
- sspider:{h:22.5,dy:0}};   // its sand spider (a desert battle): the same body, longer legs (the sheets' run frames 115 / 102 px tall)
+ spider:{h:20,dy:5},   // the Webspinner's drawn frames and rig (76o-spider.js) sit in their tile: the legs splay round it, the near tips 5 under the
+ sspider:{h:22.5,dy:6}};   // tile centre (inside the ring), the body over it; its sand spider (a desert battle): the same body, longer legs (run frames 115 / 102 px)
 const SHT={img:new Map(),cv:new Map(),idx:new Map()};
 function sheetImg(id){const S=SHEETS[id];if(!S||!S.src||typeof Image==='undefined')return null;let I=SHT.img.get(id);if(!I){I=new Image();I.decoding='async';I.src=S.src;SHT.img.set(id,I)}return I.complete&&I.naturalWidth?I:null}
 function sheetIdx(id){let X=SHT.idx.get(id);if(X)return X;X={};for(const f of SHEETS[id].fr){const k=f[0]+':'+f[1];(X[k]||(X[k]=[]))[f[2]]=f}SHT.idx.set(id,X);return X}

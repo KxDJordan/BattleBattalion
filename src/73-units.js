@@ -1126,8 +1126,11 @@ const US_BEAR={x0:-17,ll:7,big:1,flat:10,lieH:8,hup:-4,fur:usRamp('aijk',2),ur:u
    usPart();usP(13,-28,B);usP(13,-27,B,-1);usP(14,-27,B,-1)}}};
 const US_SSP={b:usRamp('0aij',1),l:usRamp('0aij',2),mk:['k','m','l']};
 function usSand(u){return!!(u&&u.def&&typeof spVary==='function'&&usEnKey(u.def)==='spider'&&spVary(u))}
+// the spider sits down in its tile: its legs splay around the tile centre, the near ones reaching past it, its body over it (as the
+// Detail High frames, SHEETS.spider dy): everything US_SPDY px lower than a figure standing on the tile point
+const US_SPDY=3;function usSpider(v,mir,st,fr,sand){usOY+=US_SPDY;try{usSpider0(v,mir,st,fr,sand)}finally{usOY-=US_SPDY}}
 // sand: the Webspinner's sand spider (a desert battle, 76o-spider.js): brown, a tan-striped abdomen, as its Detail High sheet
-function usSpider(v,mir,st,fr,sand){const p=usBeastPose(st,fr),b=sand?US_SSP.b:usRamp('0Gop',1),lgR=sand?US_SSP.l:usRamp('0Gop',2),mk=sand?US_SSP.mk:['f','g','h'],dead=p.lie,bx=p.bx,by=dead?0:p.by+(p.low?1:0),up=st==='attack'&&fr===1;
+function usSpider0(v,mir,st,fr,sand){const p=usBeastPose(st,fr),b=sand?US_SSP.b:usRamp('0Gop',1),lgR=sand?US_SSP.l:usRamp('0Gop',2),mk=sand?US_SSP.mk:['f','g','h'],dead=p.lie,bx=p.bx,by=dead?0:p.by+(p.low?1:0),up=st==='attack'&&fr===1;
  const ax=-4+bx,ay=(dead?-6:-9)+by,cxh=4+bx+p.hx,cyh=(dead?-4:(v?-10:-6))+by+(up?-1:0);
  // legs: 4 per side, knee above the body, foot on the ground
  const leg=(sx,sy,kx,ky,fx,fy,far)=>{usPart();const seg=(x0,y0,x1,y1)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0),1);for(let i=0;i<=n;i++)usP(x0+Math.round((x1-x0)*i/n),y0+Math.round((y1-y0)*i/n),lgR,far?-1:0)};seg(sx,sy,kx,ky);seg(kx,ky,fx,fy);usB(kx,ky,1)};
