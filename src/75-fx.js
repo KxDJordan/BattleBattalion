@@ -827,7 +827,9 @@ function fxMuzzle(mx,my,ux,uy,delay,big){const dl=delay/1000;glyphFx(big?'flash'
  for(let i=0;i<fxN(8);i++){const a=Math.atan2(uy,ux)+rr(-.5,.5),v=rr(90,220);spawn(K_SQ,R_FIRE,mx,my,Math.cos(a)*v,Math.sin(a)*v*.7,rr(.08,.18),1,0,6,dl)}
  if(!reduced)for(let i=0;i<(big?3:2);i++){const o=fxo(T_SMOKE,mx+ux*(8+i*10),my+uy*(4+i*5)-i*3,delay+i*40,1500+i*300,0);o.c=ux*rr(10,22)+rr(-8,8);o.d=-rr(7,14);o.b=big?1.2-i*.15:.9-i*.15}
  for(let i=0;i<fxN(7);i++)spawn(K_SQ,R_SMOKE,mx+ux*8+rr(-4,4),my+rr(-4,4),ux*rr(20,60)+rr(-10,10),-rr(10,40),rr(.9,1.6),2,-10,1.4,dl+rr(0,.08));fxShake(big?2:1.4)}
-function fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre){const lead=(pre||0)+80*sp,fly=Math.max(28,L/3.4)*ss,two=!!fxW(u).two,mx=ax+ux*(two?24:18),my=ay-2+uy*(two?10:7),o=fxo(T_PROJ,mx,my,lead,fly,R_FIRE);
+// the muzzle: at Detail High the figure's drawn barrel tip at the shot (73m-skel.js humGunMuzzle: art px from the feet, x2 to board px), else in front of the body
+function fxMuzzleAt(u,t){if(typeof humGunMuzzle!=='function'||!u||!t)return null;const p=fxFoot(u),m=humGunMuzzle(u,fxSDir(t.c-u.c,t.r-u.r));return m?{x:p.x+m.x*2,y:p.y+m.y*2}:null}
+function fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre){const lead=(pre||0)+80*sp,fly=Math.max(28,L/3.4)*ss,two=!!fxW(u).two,M=fxMuzzleAt(u,t),mx=M?M.x:ax+ux*(two?24:18),my=M?M.y:ay-2+uy*(two?10:7),o=fxo(T_PROJ,mx,my,lead,fly,R_FIRE);
  o.x2=bx;o.y2=by;o.a=7;o.b=0;o.c=miss?1:0;fxMuzzle(mx,my,ux,uy,lead,two);FXS.sty=S_BALL;return lead+fly}
 // a blow two tiles away with a long weapon
 function fxReach(u,t,miss,sp,ss,ramp,arc){const a=fxUP(u),ax=a.x,ay=a.y-a.h*.5,b=fxUP(t),bx=b.x,by=b.y-b.h*.48,dx=bx-ax,dy=by-ay,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,lead=240*sp*AN_HIT_AT,dur=Math.max(130,250*Math.max(.6,sp)),w=fxW(u);
@@ -852,7 +854,7 @@ function fxStrikeA(u,t,id,k,miss,sp,ss,ax,ay,bx,by,L,d,ux,uy,fx1,fy1,bh){const a
    if(ab.id==='xpin'&&!miss){FXS.sty=S_PIN}else if(ab.id==='xheart')FXS.sty=S_HEART;return r}
   case'gshot':{if(ab.id==='blast'&&k>0){FXS.sty=S_SCATTER;return Math.max(30*sp,FXS.cAt-now)}let pre=0;if(ab.id==='fexecute'){pre=160*sp;o=fxo(T_RET,bx,by,0,pre+300,0);o.a=pre+140}
    const r=fxBall(u,t,miss,sp,ss,ax,ay,bx,by,L,ux,uy,pre);
-   if(ab.id==='blast'){for(let i=0;i<4;i++){const q=fxo(T_PROJ,ax+ux*20,ay-2+uy*8,80*sp,Math.max(28,L/3.2)*ss*rr(.9,1.15),R_FIRE);q.x2=bx+rr(-26,26);q.y2=by+rr(-12,12);q.a=7;q.b=0;q.c=1}FXS.sty=S_SCATTER;FXS.cAt=now+r}
+   if(ab.id==='blast'){const M=fxMuzzleAt(u,t);for(let i=0;i<4;i++){const q=fxo(T_PROJ,M?M.x:ax+ux*20,M?M.y:ay-2+uy*8,80*sp,Math.max(28,L/3.2)*ss*rr(.9,1.15),R_FIRE);q.x2=bx+rr(-26,26);q.y2=by+rr(-12,12);q.a=7;q.b=0;q.c=1}FXS.sty=S_SCATTER;FXS.cAt=now+r}
    else FXS.sty=ab.id==='fdeafen'?S_DEAF:ab.id==='fexecute'?S_EXEC:S_BALL;return r}
   case'batter':case'ringblow':case'demolish':case'hsmash':{ld=fxMelee(u,t,id==='batter'?R_SPARK:id==='ringblow'?R_GOLD:R_DUST,S_BLUNT,sp*(id==='batter'||id==='ringblow'?1:1.15));
    if(id==='hsmash'||id==='demolish'){const a=fxUP(u);o=fxo(T_SPIN,a.x,a.y-a.h*.5,ld*.25,ld*.9,R_STEEL);o.a=14;o.b=2.2;o.c=-2.6}

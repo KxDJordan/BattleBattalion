@@ -99,7 +99,7 @@ section('saves');
   const old=X.clone(G);old.roster=old.roster.filter(m=>!GUNBG.includes(m.bg));const r2=X.readSaveRaw(JSON.stringify(old));ok(r2.state==='ok','a save without them loads') }
 if(ARGV.includes('--no-browser')){console.log('\nOK (no browser)');return}
 section('art (browser)');
-{ const {chromium}=require('playwright'),f=path.resolve(ARGV.filter(a=>!a.startsWith('--')&&!/^\d+$/.test(a))[0]||'dist/index.html');ok(fs.existsSync(f),'no built html at '+f+' (node build.js dist/index.html)');
+{ const {chromium}=require('playwright'),f=path.resolve(ARGV.filter((a,i)=>!a.startsWith('--')&&!/^\d+$/.test(a)&&!['--ref','--seed'].includes(ARGV[i-1]))[0]||'dist/index.html'),REF=ARGV.includes('--ref')?path.resolve(ARGV[ARGV.indexOf('--ref')+1]):null;ok(fs.existsSync(f),'no built html at '+f+' (node build.js dist/index.html)');
   const br=await chromium.launch(),p=await br.newPage({viewport:{width:667,height:375}}),errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::/.test(m.text()))errs.push(m.text())});
   await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();humImg()});await p.waitForFunction(()=>typeof humReady==='function'&&humReady()&&typeof p2On==='function'&&p2On(),null,{timeout:30000});
   const R=await p.evaluate(GB=>{const bad=[],ink=c=>{const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>0)n++;return n};seedRng(77);let n=0;
@@ -110,5 +110,46 @@ section('art (browser)');
    // the brigand gunner
    for(const det of['high','low']){SET.detail=det;artChanged();const u=mkEnemy('bgun','bandit');for(const st of['idle','attack']){const o=unitSpritePx(u,0,st,st==='attack'?1:0);n++;if(!o||!o.cv||ink(o.cv)<60)bad.push('bgun '+det+' '+st+': blank')}}
    SET.detail='high';artChanged();const pe=portraitCanvas({eid:'bgun',def:EN.bgun,side:1,f:'bandit'});if(!pe||ink(pe)<200)bad.push('bgun: no portrait');return{bad,n}},GUNBG);
+  // ---- how guns are held at Detail High (73m-skel.js: lgun / pgun poses, hskMuzzleL, humGunMuzzle; 75-fx.js fxMuzzleAt) ----
+  const H=await p.evaluate(()=>{const bad=[],k=humK(),base=G.roster[0];let n=0,id=0;const LONG=['handgonne','arquebus','caliver','musket','carbine','blunder','jezail','longrifle','wallgun'],PIST=['pistol','duelpistol','dragon','twinpistol'];
+   const mk=(w,b,s,race)=>{const m=JSON.parse(JSON.stringify(base));m.id=86000+(++id);m.name='Gn'+id;m.race=race||'human';m.bg='arquebusier';m.colors=null;m.eq={w,b:b||null,s:s||null,a:'padded',h:'cap',c:null};return mkPlayerUnit(m)};
+   const T=[['idle',0],['attack',.3],['attack',.38],['reload',.2],['reload',.6],['walk',.25],['hit',.22]];
+   for(const w of LONG.concat(PIST))for(const race of['human','dwarf']){const u=mk(w,'shortsword',null,race),L=usLook(u),long=LONG.includes(w);
+    for(let fc=0;fc<4;fc++)for(const [st,t] of T){const Fr=humSkFrame(L,fc,st,t,k,'');n++;const W=Fr.wpn,tag=w+' '+race+' face '+fc+' '+st+' '+t;
+     if(!W||W.fam!==(long?'musket':'pistol')){bad.push(tag+': the hand weapon is a '+(W&&W.fam)+', not the gun');continue}
+     const sl=Fr.list.filter(x=>x.tag==='weapon');if(sl.length!==1){bad.push(tag+': '+sl.length+' weapons in the hand');continue}
+     // the muzzle: the drawn weapon's matrix at the muzzle point of its own frame lands on Fr.wpn.mz (the point the shot starts from)
+     const wi=humWIc(L.S.wd,L.S.wdI),mzL=hskMuzzleL(wi),ps=long?1:HSK_PSC,m=sl[0].m,X=mzL.x*ps,Y=mzL.y*ps,mx=m[0]*X+m[2]*Y+m[4],my=m[1]*X+m[3]*Y+m[5];
+     if(!W.mz||Math.hypot(mx-W.mz[0],my-W.mz[1])>3)bad.push(tag+': muzzle '+[mx,my].map(Math.round)+' vs '+(W.mz||[]).map(Math.round));
+     const dx=W.mz[0]-W.hw[0],dy=W.mz[1]-W.hw[1],len=Math.hypot(dx,dy),ox=W.ho[0]-W.hw[0],oy=W.ho[1]-W.hw[1],along=(ox*dx+oy*dy)/len,off=Math.abs(ox*dy-oy*dx)/len;
+     if(long&&(st==='idle'||st==='attack'||st==='walk'||st==='hit')&&!(W.grip&&off<=14&&along>=30&&along<=len+10))bad.push(tag+': the off hand is not on the gun (along '+Math.round(along)+' of '+Math.round(len)+', off '+Math.round(off)+')');
+     const wa=Math.atan2(dy,Math.abs(dx))*180/Math.PI;
+     if(st==='attack'&&t===.3&&Math.abs(wa)>12)bad.push(tag+': aimed '+Math.round(wa)+' deg off level');
+     if(long&&st==='idle'&&!(wa<-15&&wa>-60))bad.push(tag+': port arms at '+Math.round(wa)+' deg');
+     if(st==='reload'&&!(wa<-15))bad.push(tag+': reloading with the muzzle '+Math.round(wa)+' deg');
+     if(st==='reload'&&!Fr.list.some(x=>x.tag==='rod'))bad.push(tag+': no ramrod');
+     if(!long&&st==='attack'&&t===.3){const sh=Math.hypot(W.hw[0]-W.mz[0],W.hw[1]-W.mz[1]);const a=sl[0].a;if(!(a.w>=110))bad.push(tag+': the pistol is drawn '+Math.round(a.w)+' SU long')}}
+    // the muzzle the effects use: humGunMuzzle (art px from the feet) is Fr.wpn.mz scaled, mirrored on faces 1 and 3
+    for(let fc=0;fc<4;fc++){const M=humGunMuzzle(u,fc),Fr=humSkFrame(L,fc,'attack',.38,k,''),s=HUM_A*Fr.sc;if(!M||Math.abs(M.x-(Fr.mir?-1:1)*Fr.wpn.mz[0]*s)>.01||Math.abs(M.y-Fr.wpn.mz[1]*s)>.01)bad.push(w+' face '+fc+': humGunMuzzle')}}
+   // twin pistols, one in each hand (dual wield): the second drawn in the off hand, as big
+   {const u=mk('pistol',null,'pistol'),L=usLook(u);if(L.S.ow){const Fr=humSkFrame(L,0,'attack',.3,k,''),o=Fr.list.find(x=>x.tag==='offweapon');if(!o||!(o.a.w>=110))bad.push('a pistol in the off hand: '+(o?Math.round(o.a.w):'missing'))}}
+   // crossbows keep their own pose (the off hand on the stock, the reload crank)
+   {const u=mk('crossbow'),L=usLook(u),Fr=humSkFrame(L,0,'reload',.2,k,'');if(Fr.anim!=='reloadX'||Fr.wpn.fam!=='xbow')bad.push('crossbow reload: '+Fr.anim);if(humSkFrame(L,0,'attack',.3,k,'').anim!=='gun')bad.push('crossbow attack pose changed')}
+   // the effects: a gunner's shot starts at the drawn muzzle (board px = feet + 2 x art px)
+   {SET.detail='high';artChanged();const m=JSON.parse(JSON.stringify(base));m.id=86900;m.eq={w:'musket',b:null,s:null,a:'padded',h:null,c:null};const u=mkPlayerUnit(m);u.c=3;u.r=3;const t={c:3,r:0};const M=fxMuzzleAt(u,t),p0=fxFoot(u),hm=humGunMuzzle(u,fxSDir(0,-3));
+    if(!M||!hm||Math.abs(M.x-(p0.x+2*hm.x))>.01||Math.abs(M.y-(p0.y+2*hm.y))>.01)bad.push('fxMuzzleAt '+JSON.stringify(M));if(M&&(M.y>p0.y-12||M.y<p0.y-60))bad.push('the shot starts '+Math.round(p0.y-M.y)+' px above the feet')}
+   return{bad,n}});
+  ok(!H.bad.length,'guns in hand: '+H.bad.slice(0,8).join('; ')+(H.bad.length>8?' ... '+H.bad.length:''));console.log(H.n+' gun frames (13 guns, 2 races, 4 facings, idle / aim / shot / reload / walk / hit): the gun in hand, both hands on long guns, levelled aim, ramrod, muzzle = the shot\'s start, pistols '+Math.round(1.3*100)+'%: ok');
+  // ---- with --ref (a build of main): non-gun figures at High and every figure at Low unchanged ----
+  if(REF){const DG=()=>{const base=G.roster[0],out={},k=humK();let id=0;const dg=o=>{if(!o||!o.cv)return'none';const d=o.cv.getContext('2d').getImageData(0,0,o.cv.width,o.cv.height).data;let h=2166136261;for(let i=0;i<d.length;i++){h^=d[i];h=Math.imul(h,16777619)}return o.cv.width+'x'+o.cv.height+':'+(h>>>0)};
+     const mk=(w,s,race)=>{const m=JSON.parse(JSON.stringify(base));m.id=87000+(++id);m.name='Rf'+id;m.race=race;m.bg='sellsword';m.colors=null;m.gift=null;m.mast={};m.perks=[];m.traits=[];m.lvl=1;m.kills=0;delete m.pseed;delete m.fabled;m.eq={w,b:null,s:s||null,a:'leather',h:null,c:null};return mkPlayerUnit(m)};
+     const NG=[['arming','heater2'],['greataxe'],['spear'],['shortbow'],['crossbow'],['knife'],['staff'],['warhammer'],['halberd']],GN=['musket','arquebus','pistol','handgonne'],U=[],UG=[];
+     for(const race of['human','elf','dwarf','halforc']){for(const [w,s] of NG)U.push(mk(w,s,race));for(const w of GN)UG.push(mk(w,null,race))}
+     SET.detail='high';artChanged();for(const u of U)for(let fc=0;fc<4;fc++)for(const [st,fr] of[['idle',0],['attack',1],['reload',1],['walk',1]])out['hi '+u.m.id+' '+fc+' '+st]=dg(unitSpritePx(u,fc,st,fr));
+     SET.detail='low';artChanged();for(const u of U.concat(UG))for(let fc=0;fc<4;fc++)for(const [st,fr] of[['idle',0],['attack',1],['reload',1]])out['lo '+u.m.id+' '+fc+' '+st]=dg(unitSpritePx(u,fc,st,fr));SET.detail='high';artChanged();return out};
+   const p2=await br.newPage({viewport:{width:667,height:375}});await p2.goto('file://'+REF);await p2.waitForTimeout(300);await p2.evaluate(()=>{newGame();closeSheet();humImg()});await p2.waitForFunction(()=>typeof humReady==='function'&&humReady()&&typeof p2On==='function'&&p2On(),null,{timeout:30000});
+   const fix=async q=>q.evaluate(()=>{seedRng(12345);newGame();closeSheet()});await fix(p);await fix(p2);
+   const a=await p.evaluate(DG),b=await p2.evaluate(DG),diff=Object.keys(b).filter(x=>a[x]!==b[x]);
+   ok(!diff.length,'changed against the ref build: '+diff.slice(0,6).join(', '));console.log(Object.keys(b).length+' sprites (other weapons at High in 4 races, every figure at Low incl. guns) identical to '+path.basename(REF)+': ok')}
   await br.close();ok(!R.bad.length,'art: '+R.bad.slice(0,6).join('; '));ok(!errs.length,'page errors: '+errs.slice(0,3).join(' | '));console.log(R.n+' sprites at High and Low, portraits: ok') }
 console.log('\nOK');process.exit(0)})().catch(e=>fail(e&&e.stack||e));
