@@ -13,8 +13,8 @@
 //   the camp assaults.
 // Reports per run and day (1, 5, 10, ... N): crowns, food, roster size / mean level, gear tier (worn armor+weapon), renown tier, deaths,
 // contracts done, battles; the day the crisis starts and how it ends, the day the Eastern War fires and its outcome; an estimate of
-// the play time (battles x minutes a battle by its length + days x minutes of map play). Judged (exit 1) on: no wipe-outs before day 40
-// on Normal, crowns never above RUNAWAY on Normal by day 60, food never at 0 for 3 days running, mean level rising, the crisis
+// the play time (battles x minutes a battle by its length + days x minutes of map play). Judged (exit 1) on: no bankrupt wipe-outs before day 40
+// on Normal (by bankruptcy: broke the week before), crowns never above RUNAWAY on Normal by day 60, food never at 0 for 3 days running, mean level rising, the crisis
 // arriving after day 20 and the Eastern War after day 25 (mean level flat is noted, not judged); the flows (contract pay in days of wages for
 // model companies, FLOWBAND; --flows runs only these) and the hoard (the median Normal purse on days 60-100 under HOARD).
 // The ledger (per run and ten-day window, --json): crowns in and out by source: contracts, strip (crowns off the field), sales, trade, cargo,
@@ -87,6 +87,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   if(g.crisis&&g.crisis.ended&&st.crisisEnd==null){st.crisisEnd=g.day;st.crisisHow=g.crisis.won?(g.crisis.late?'won late':'won'):'lost'}
   else if(g.crisis&&g.crisis.lost&&st.crisisHow==null){st.crisisHow='lost (scar) day '+g.day}
   const ew=g.east&&g.east.war;if(ew&&st.eastDay==null)st.eastDay=ew.day0||g.day;if(ew&&ew.stage==='over'&&st.eastEnd==null){st.eastEnd=g.day;st.eastHow=ew.outcome||'?'}
+  (st.last7||(st.last7=[])).push(g.crowns);if(st.last7.length>7)st.last7.shift();   // the purse of the last week: was a wipe-out a bankruptcy?
   st.peakCrowns=Math.max(st.peakCrowns,g.crowns);if(g.day>3)st.minCrowns=Math.min(st.minCrowns,g.crowns);
   while(lastDay<g.day){lastDay++;if(lastDay===1||lastDay%5===0||lastDay===days){const r=g.run||{};
    st.rows.push({day:lastDay,crowns:g.crowns,food:g.food,n:g.roster.length,lvl:+meanLvl().toFixed(1),gear:+gearTier().toFixed(2),renown:g.renown|0,rt:X.renownTier(),deaths:st.deaths,ctr:st.ctr,battles:st.battles,won:st.won,
@@ -161,7 +162,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
  const wearStash=()=>{const g=G();for(let mi=0;mi<g.roster.length;mi++){const m=g.roster[mi];for(const k of ['w','a','h','s']){let b=-1,bs=score(m.eq[k],k);
     g.stash.forEach((id,j)=>{if(!canWear(m,id,k))return;const s=score(id,k);if(s>bs){bs=s;b=j}});if(b>=0)X.equip(mi,k,b)}}closeAll()};
  const hireUp=(t)=>{const g=G();if(typeof X.canRecruit==='function'&&!X.canRecruit())return;
-  for(let n=0;n<4&&g.roster.length<12&&t.recruits&&t.recruits.length;n++){let bj=-1,bv=-1;const need=g.roster.length<8?.4:1;t.recruits.forEach((m,j)=>{const c=X.hireCost(m);if(g.crowns-c<(reserve()+X.wageOf(m)*7)*need)return;const v=(m.lvl||1)*10/Math.sqrt(c);if(v>bv){bv=v;bj=j}});
+  for(let n=0;n<4&&g.roster.length<12&&t.recruits&&t.recruits.length;n++){let bj=-1,bv=-1;const need=g.roster.length<4?.1:g.roster.length<8?.4:1;/* a company of three hires with its last crowns */t.recruits.forEach((m,j)=>{const c=X.hireCost(m);if(g.crowns-c<(reserve()+X.wageOf(m)*7)*need)return;const v=(m.lvl||1)*10/Math.sqrt(c);if(v>bv){bv=v;bj=j}});
    if(bj<0)break;const c=X.hireCost(t.recruits[bj]),n0=g.roster.length;X.hire(bj);if(g.roster.length>n0){st.hired++;st.spentHire+=c;const m=g.roster[g.roster.length-1];m.field=g.roster.filter(x=>x.field).length<=X.MAXFIELD}else break}
   closeAll()};
  const inTown=(i)=>{const g=G(),t=g.towns[i];closeAll();if(!g.townOpen||g.town!==i)X.openTown(i);closeAll();if(X.twHostile(i))return;
@@ -281,7 +282,9 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   console.log(`  knocked out ${r.ko|0}, of them killed ${r.kod|0}`);console.log('  ledger: '+Object.keys(r.led).sort((a,b)=>r.led[b]-r.led[a]).map(k=>k+' '+r.led[k]).join(', '));
   if(has('--verbose'))console.log('  '+r.log.join('\n  '));
   const tag=`${R.origin}/${R.diff}/${R.seed}`;
-  if(R.diff==='normal'&&r.wiped&&r.wiped<40)bad.push(tag+': wiped out on day '+r.wiped);
+  // a wipe-out before day 40 on Normal fails the economy when the company was broke the week before (never 250 crowns: it could not
+  // replace the fallen); one with crowns in the chest was lost in battle (reported, the battle tests judge those)
+  if(R.diff==='normal'&&r.wiped&&r.wiped<40){const broke=Math.max(0,...(r.last7||[0]))<250;if(broke)bad.push(tag+': wiped out broke on day '+r.wiped);else console.log('  (note: wiped out on day '+r.wiped+' with '+Math.max(...(r.last7||[0]))+' crowns in the last week: lost in battle, not to the purse)')}
   if(R.diff!=='story'&&r.rows.some(w=>w.day<=60&&w.crowns>RUNAWAY))bad.push(tag+': runaway gold ('+Math.max(...r.rows.map(w=>w.crowns))+')');
   if(r.maxStarve>=3)bad.push(tag+': starved '+r.maxStarve+' days running');
   const L=r.rows.filter(w=>w.n>0);if(!r.wiped&&L.length>4&&L[L.length-1].lvl<=L[1].lvl+1)console.log('  (note: mean level flat: '+L[1].lvl+' -> '+L[L.length-1].lvl+', the dead are replaced by green recruits)');
