@@ -22,7 +22,7 @@
    Unit state: gwind (breath debt of a foe that never tires), wrStR (the round t was last stunned), pgKT (Rapid hands spent this turn), flI (the punches of a Flurry of blows thrown so far).
    Randomness: only Breaking hold's chance, drawn in pvStatus's fixed order (after every older case). */
 const FSTREES=['wrestle','pugilist','willow'];
-const FSK={apMin:3,windRec:15,grindMax:.2,stepMax:12,bare:2,breakAt:.75,suplexAt:.5,smother:1};
+const FSK={apMin:3,windRec:15,grindMax:.2,stepMax:12,bare:2,breakAt:.75,suplexAt:.5};   // Snap jab's floor, breath recovered a turn, Grind's cap, Hard to pin's cap, Empty hands' bare weight, Breaking hold, Suplex
 const fsFist=u=>!!u&&isFistW(u.wpn);
 const fsLight=u=>!!u&&fsFist(u)&&(u.acl||armorClass(u))==='light';
 function fsBreath(t){if(!t)return 0;if(t.fatMax>0&&t.fatMax<999)return clamp((t.fat||0)/t.fatMax,0,1);return clamp((t.gwind||0)/WINDMAX,0,1)}
