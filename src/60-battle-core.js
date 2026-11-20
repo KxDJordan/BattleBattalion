@@ -195,14 +195,14 @@ const mercBud=L=>{const P=typeof PPLV==='number'?PPLV:99;if(L>P)L=P+MERCBUD.late
 const GEARK=.06;function gearK(m){const g=typeof gearPower==='function'?gearPower(m):2.3;return 1+GEARK*Math.max(0,g-2.3)}
 function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?mercBud(m.lvl):sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*budgetK(o)}   // difficulty: diffK('budget'), Brutal's veterans (budgetK)
 /* budgetK(o): the difficulty's factor on the enemy budget: diffK('budget'), times the level's curve over the fielded swords' average level L
-   (22-run.js DIFF[k].vet for a company, DIFF[k].solo for a solo run's one sword; absent = 1):
+   (22-run.js DIFF[k].vet for a company, DIFF[k].solo for a solo run's one sword, or DIFF[k].solo[origin] where an origin has its own: absent = 1):
      x (1 + lo + (hi - lo) x clamp((L - lvl0) / (lvl1 - lvl0), 0, 1))   (lo and hi default 0)
    and for a solo run also x solo.k (the one sword's own factor on top of diffK('budget')). The curve evens the win rate out over the march (a
    raw new company finds Normal harder than a seasoned one does) and, on Brutal, makes the bands grow as the company does (veteran foes, then
    full warbands) so a seasoned company or a geared hero does not outgrow it. Not in the arena (diffK('budget') alone there). */
 function diffCurve(V,L){if(!V||typeof V!=='object')return 1;const lo=+V.lo||0,hi=+V.hi||0;if(!lo&&!hi)return 1;const a=+V.lvl0||0,b=+V.lvl1>a?+V.lvl1:a+1;return Math.max(.1,1+lo+(hi-lo)*clamp((L-a)/(b-a),0,1))}
 function budgetK(o){let k=runK('budget');if(typeof diffX!=='function'||o&&o.arena)return k;
- const solo=typeof isSolo==='function'&&isSolo(),V=solo?soloDiff(o):diffX('vet');if(!V||typeof V!=='object')return k;
+ const solo=typeof isSolo==='function'&&isSolo(),S=solo?soloDiff(o):null,V=solo?(S[G&&G.origin]&&typeof S[G.origin]==='object'?S[G.origin]:S):diffX('vet');if(!V||typeof V!=='object')return k;
  if(solo&&+V.k>0)k*=+V.k;
  if(V.lo||V.hi){let F=[];try{F=battleField(o)}catch(e){F=[]}if(F.length)k*=diffCurve(V,F.reduce((s,m)=>s+(+m.lvl||1),0)/F.length)}return k}
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.

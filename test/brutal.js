@@ -25,7 +25,7 @@ const ARGV=process.argv.slice(2),has=f=>ARGV.includes(f),arg=(f,d)=>{const i=ARG
 process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();
 const SEED=+arg('--seed',20261120),DIFFS=['story','normal','hard','brutal'],PILOTS=['naive','sensible'],FACS=['gob','undead','beast','orc','bandit','void'];
 const REF={};
-const BRUTAL={gap:15,soloGap:20,blood:1.1};
+const TARGET={normal:80,hard:60,brutal:30,tol:7,stage:15,story:8,blood:1.1};
 const ISEK=[{id:'I3',lvl:3,day:3},{id:'I6',lvl:6,day:16,gear:{w:'arming',s:'kite',a:'mail',h:'kettle'}},{id:'I9',lvl:9,day:32,gear:{w:'arming',s:'heater',a:'mail',h:'nasal'}}];
 const GROUPS={
  company:{profs:['L4x6','L8x9','L12x12'],facs:FACS,k:8},
@@ -71,21 +71,24 @@ if(has('--worker')){let S=null;const q=[];let busy=false;
 /* ---------- main ---------- */
 (async()=>{const QUICK=has('--quick'),N=+arg('--n',QUICK?30:60),J=Math.max(1,+arg('--jobs',2)),T0=Date.now(),MEAS=has('--measure');
  const only=arg('--only',null),grps=Object.keys(GROUPS).filter(g=>!only||only.split(',').includes(g)),diffs=arg('--diffs',DIFFS.join(',')).split(','),pilots=arg('--pilots',PILOTS.join(',')).split(',');
- // gate 4 first (cheap, deterministic): Story / Normal / Hard bands as the base formula makes them
- if(!MEAS&&!has('--no-same')||has('--write-ref')){const RF=path.join(__dirname,'brutal-ref.json'),ref=has('--write-ref')?{}:fs.existsSync(RF)?JSON.parse(fs.readFileSync(RF,'utf8')):{};const S=mkWorld();applySets(S.X);const X=S.X;let n=0;
+ // gate 4 first (cheap, deterministic): every level's budget is the formula; Story fights exactly as recorded (this retune left it alone)
+ if(!MEAS&&!has('--no-same')||has('--write-ref')){const RF=path.join(__dirname,'brutal-ref.json'),ref=has('--write-ref')?{}:fs.existsSync(RF)?JSON.parse(fs.readFileSync(RF,'utf8')):{};const S=mkWorld();applySets(S.X);const X=S.X;let n=0,nr=0;
+  const D=X.DIFF;if(['vet','solo','foeHit','foePlan'].some(k=>D.story[k]!=null))fail('Story has a level rule beyond its factors: '+JSON.stringify(D.story));
+  if(['foeHit','foePlan'].some(k=>D.normal[k]!=null)||D.normal.solo&&D.normal.solo.max||D.hard.foePlan||D.hard.solo&&D.hard.solo.max)fail('Normal / Hard carry a Brutal rule (foePlan, solo.max) or Normal a foeHit');
+  // the curve, written out again here: 1 + lo + (hi - lo) x clamp((L - lvl0) / (lvl1 - lvl0), 0, 1) over the fielded swords' average level
+  const curve=(V,L)=>{if(!V||!(V.lo||V.hi))return 1;const a=V.lvl0||0,b=V.lvl1>a?V.lvl1:a+1,t=Math.min(1,Math.max(0,(L-a)/(b-a)));return 1+(V.lo||0)+((V.hi||0)-(V.lo||0))*t};
   for(const grp of grps)for(const prof of GROUPS[grp].profs){ensure(S,grp,prof);for(let i=0;i<12;i++){
-   const base={};for(const d of ['story','normal','hard']){const a=bandOf(X,S.W,grp,prof,i,d);
-    // the base formula: the Normal budget times DIFF[d].budget, nothing else
-    const nb=bandOf(X,S.W,grp,prof,i,'normal').budget;if(Math.abs(a.budget-Math.round(nb*X.DIFF[d].budget*1000)/1000)>.002)fail(`${grp} ${prof} #${i} ${d}: budget ${a.budget} is not ${nb} x ${X.DIFF[d].budget}`);
-    base[d]=a;n++}
+   const st=bandOf(X,S.W,grp,prof,i,'story'),b0=st.budget/D.story.budget,F=X.battleField({}),L=F.reduce((s,m)=>s+m.lvl,0)/F.length,band={story:st};
+   for(const d of DIFFS){const a=d==='story'?st:bandOf(X,S.W,grp,prof,i,d),V=grp==='company'?D[d].vet:D[d].solo,want=b0*D[d].budget*(grp!=='company'&&V&&V.k>0?V.k:1)*curve(V,L);
+    if(Math.abs(a.budget-want)>.004*Math.max(1,want))fail(`${grp} ${prof} #${i} ${d}: budget ${a.budget} is not ${want.toFixed(3)} (the base ${b0.toFixed(3)} x DIFF.${d}.budget x the curve at level ${L.toFixed(1)})`);n++}
    const key=grp+'/'+prof+'/'+i;
-   if(has('--write-ref')){REF[key]=base}else if(ref[key]){for(const d in base)if(JSON.stringify(ref[key][d])!==JSON.stringify(base[d]))fail(`${key} ${d}: the band changed: ${JSON.stringify(base[d])} vs ${JSON.stringify(ref[key][d])}`)}else fail(`${key}: no reference band (node test/brutal.js --write-ref on the base)`)}}
-  // and whole battles: a few fights a stage at Normal and Hard, sensible and naive, end exactly as on the base (the foes' AI included)
-  let nf=0;for(const grp of grps)for(const prof of GROUPS[grp].profs)for(const diff of ['normal','hard'])for(const pilot of PILOTS)for(let i=0;i<2;i++){
+   if(has('--write-ref')){REF[key]=band}else if(ref[key]){nr++;if(JSON.stringify(ref[key].story)!==JSON.stringify(st))fail(`${key} story: the band changed: ${JSON.stringify(st)} vs ${JSON.stringify(ref[key].story)}`)}else fail(`${key}: no reference band (node test/brutal.js --write-ref)`)}}
+  // and whole Story battles: a few fights a stage, sensible and naive, end exactly as recorded (the foes' AI included)
+  let nf=0;for(const grp of grps)for(const prof of GROUPS[grp].profs)for(const diff of ['story'])for(const pilot of PILOTS)for(let i=0;i<2;i++){
    const o=await fight(X,S.W,{grp,prof,diff,pilot},i),key='fight/'+[grp,prof,diff,pilot,i].join('/'),v=JSON.stringify(o);nf++;
    if(has('--write-ref'))REF[key]=o;else if(!ref[key])fail(key+': no reference fight');else if(JSON.stringify(ref[key])!==v)fail(`${key}: the battle changed: ${v} vs ${JSON.stringify(ref[key])}`)}
-  if(has('--write-ref')){fs.writeFileSync(path.join(__dirname,'brutal-ref.json'),JSON.stringify(REF));console.log('wrote test/brutal-ref.json: '+Object.keys(REF).length+' battles');return}
-  console.log(`gate 4: ${n} Story / Normal / Hard bands exactly as on the base (budget x DIFF[k].budget, the same foes, rank, elites and hitpoints), ${nf} Normal / Hard battles end exactly as on the base`)}
+  if(has('--write-ref')){fs.writeFileSync(path.join(__dirname,'brutal-ref.json'),JSON.stringify(REF));console.log('wrote test/brutal-ref.json: '+Object.keys(REF).length+' entries');return}
+  console.log(`gate 4: ${n} bands at the four levels on the budget formula (base x DIFF[k].budget x the level's curve), ${nr} Story bands and ${nf} Story battles exactly as recorded`)}
  const jobs=[];let id=0;const CH=Math.max(5,Math.ceil(N/4));
  for(const grp of grps)for(const prof of GROUPS[grp].profs)for(const pilot of pilots)for(const diff of diffs)for(let i0=0;i0<N;i0+=CH)jobs.push({id:id++,grp,prof,pilot,diff,i0,n:Math.min(CH,N-i0),mult:+arg('--mult',1)});
  const ws=[];let next=0,left=jobs.length;
@@ -104,11 +107,12 @@ if(has('--worker')){let S=null;const q=[];let busy=false;
  console.log('\npooled (sensible): '+grps.map(g=>g+' '+diffs.map(d=>d+' '+pool(g,'sensible',d).w.toFixed(0)+'%').join(' ')).join(' | '));
  console.log('pooled (naive):    '+grps.map(g=>g+' '+diffs.map(d=>d+' '+pool(g,'naive',d).w.toFixed(0)+'%').join(' ')).join(' | '));
  if(MEAS||!diffs.includes('brutal')||!pilots.includes('sensible')){console.log(`\n(${((Date.now()-T0)/1000).toFixed(0)} s)`);return}
- let bad=[];
- for(const grp of grps){const h=pool(grp,'sensible','hard'),br=pool(grp,'sensible','brutal'),no=pool(grp,'sensible','normal'),st=pool(grp,'sensible','story');
-  if(!(br.w<=h.w-BRUTAL.gap))bad.push(`${grp}: Brutal ${br.w.toFixed(0)}% is not ${BRUTAL.gap} points below Hard ${h.w.toFixed(0)}%`);
-  if(!(br.b>=h.b*BRUTAL.blood))bad.push(`${grp}: Brutal costs ${br.b.toFixed(2)} dead + down a fight, not ${BRUTAL.blood}x Hard's ${h.b.toFixed(2)}`);
-  if(!(st.w>=no.w-5&&no.w>=h.w-3&&h.w>=br.w))bad.push(`${grp}: the order Story ${st.w.toFixed(0)} >= Normal ${no.w.toFixed(0)} >= Hard ${h.w.toFixed(0)} >= Brutal ${br.w.toFixed(0)} does not hold`);
-  if(grp!=='company'&&!(br.w<=no.w-BRUTAL.soloGap))bad.push(`${grp}: solo Brutal ${br.w.toFixed(0)}% is not ${BRUTAL.soloGap} points below Normal ${no.w.toFixed(0)}%`)}
+ let bad=[];const T=TARGET;
+ for(const grp of grps){const P={};for(const d of DIFFS)P[d]=pool(grp,'sensible',d);
+  for(const d of ['normal','hard','brutal']){if(Math.abs(P[d].w-T[d])>T.tol)bad.push(`${grp}: ${d} ${P[d].w.toFixed(0)}% is not ${T[d]} ± ${T.tol}`);
+   for(const prof of GROUPS[grp].profs){const c=cell[[grp,prof,'sensible',d].join('|')],w=100*c.win/c.n;if(Math.abs(w-T[d])>T.stage)bad.push(`${grp} ${prof}: ${d} ${w.toFixed(0)}% is not ${T[d]} ± ${T.stage}`)}}
+  if(!(P.story.w>=P.normal.w+T.story))bad.push(`${grp}: Story ${P.story.w.toFixed(0)}% is not ${T.story} points above Normal ${P.normal.w.toFixed(0)}%`);
+  if(!(P.normal.w>P.hard.w&&P.hard.w>P.brutal.w))bad.push(`${grp}: the order Normal ${P.normal.w.toFixed(0)} > Hard ${P.hard.w.toFixed(0)} > Brutal ${P.brutal.w.toFixed(0)} does not hold`);
+  if(!(P.brutal.b>=P.hard.b*T.blood))bad.push(`${grp}: Brutal costs ${P.brutal.b.toFixed(2)} dead + down a fight, not ${T.blood}x Hard's ${P.hard.b.toFixed(2)}`)}
  if(bad.length)fail(bad.join('\n      '));
- console.log(`\nPASS: Brutal at least ${BRUTAL.gap} points below Hard and bloodier, for the company and both solo runs; solo Brutal ${BRUTAL.soloGap}+ below Normal; Story >= Normal >= Hard >= Brutal (${((Date.now()-T0)/1000).toFixed(0)} s)`)})();
+ console.log(`\nPASS: Normal ${T.normal} / Hard ${T.hard} / Brutal ${T.brutal} ± ${T.tol} pooled (± ${T.stage} a stage) for the company and both solo runs; Story ${T.story}+ above Normal; Brutal bloodier than Hard (${((Date.now()-T0)/1000).toFixed(0)} s)`)})();

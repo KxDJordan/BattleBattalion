@@ -22,12 +22,12 @@ const DIFF={
  story:{n:'Story',icon:'heart',d:'For the tale more than the struggle. Smaller warbands, better pay, and the fallen usually get back up.',
   budget:.78,pay:1.25,injury:.6,death:.45,crisisDay:1.35,line:['Enemies 22% weaker','Pay +25%','Deaths far rarer','The crisis comes late']},
  normal:{n:'Normal',icon:'swords',d:'The march as it was meant to be: hard choices, fair odds and a crisis that will not wait for you.',
-  budget:1,pay:1,injury:1,death:1,crisisDay:1,line:['Fair odds','The usual pay','Steel kills','The crisis on time']},
+  budget:1,pay:1,injury:1,death:1,crisisDay:1,vet:{lo:-.06,hi:.13,lvl0:4,lvl1:8},solo:{hi:.1,lvl0:3,lvl1:9,isekai:{hi:.5,lvl0:3,lvl1:9}},line:['Fair odds','The usual pay','Steel kills','The crisis on time']},
  hard:{n:'Hard',icon:'skull',d:'Bands are larger and employers tighter. A struck-down sword is more likely to stay down.',
-  budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,foeHit:5,line:['Enemies 15% stronger','Foes strike truer: +5 to hit','Pay -10%','More deaths','The crisis comes early']},
+  budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,foeHit:5,vet:{lo:-.1,hi:.03,lvl0:4,lvl1:8},solo:{lo:.04,hi:.26,lvl0:3,lvl1:9,isekai:{lo:.35,hi:.83,lvl0:3,lvl1:9}},line:['Enemies 15% stronger (6% while the company is green)','Foes strike truer: +5 to hit','Pay -10%','More deaths','The crisis comes early']},
  brutal:{n:'Brutal',icon:'flame',d:'For veterans of the march. Every fight is a gamble with the company\'s life: foes go for the wounded, grow as you do, and hunt a lone sword in packs.',
-  budget:1.32,pay:.8,injury:1.4,death:1.65,crisisDay:.72,line:['Enemies 32% stronger, and more as you rise','Foes fight without mercy','Foes strike truer: +15 to hit','Lone swords face bigger bands','Pay -20%','Death is common','The crisis comes very early'],
-  foePlan:{cut:1,volley:1,lock:.6},foeHit:15,solo:{max:3,hi:.08,lvl0:3,lvl1:10},vet:{hi:.08,lvl0:3,lvl1:10}}};
+  budget:1.3,pay:.8,injury:1.4,death:1.65,crisisDay:.72,line:['Enemies 30% stronger (10% while the company is green)','Foes fight without mercy','Foes strike truer: +15 to hit','Lone swords face bigger bands','Pay -20%','Death is common','The crisis comes very early'],
+  foePlan:{cut:1,volley:1,lock:.6},foeHit:15,solo:{max:3,lo:.15,hi:.27,lvl0:3,lvl1:9,isekai:{lo:.27,hi:.77,lvl0:3,lvl1:9}},vet:{lo:-.15,hi:0,lvl0:4,lvl1:8}}};
 /* Beyond the factors (absent where a level has none):
      foePlan   the plan the foes' AI plays by (63-ai.js aiFoePlan; arena bouts excepted): cut, the wounded first; volley, their shooters go for
                the company's; lock, their fighters go out of their way to stand beside the company's archers
