@@ -21,10 +21,10 @@ const SHEETS={
  gobarch:{h:22,dy:1},
  gobsham:{h:25,dy:1},
  wolf:{h:22,dy:0},   // the wolf's drawn frames and rig stand side-on: the paw line on the tile centre
- orcw:{h:32,dy:0,top:38},   // the orcs' drawn frames and rigs (76k-orc.js), by the user's sizes: the warrior and the crusher well over a man (about 1.2x),
- obrute:{h:32,dy:0,top:38},
- orcl:{h:35,dy:0,top:44},   // the warlord a little larger than the warriors (about 1.3x a man; his horned helm adds to the frame)
- orcy:{h:29,dy:0,top:35},   // the brave (76k-orc.js, the colour-keyed sheet) a little larger than a man (about 1.08x); bars just over each head
+ orcw:{h:29,dy:0,top:35},   // the orcs' drawn frames and rigs (76k-orc.js), by the user's sizes against a man's idle figure (24 art px as drawn at
+ obrute:{h:29,dy:0,top:35},  // Detail High): the warrior and the crusher well over a man (about 1.2x), the warlord a little larger than them
+ orcl:{h:32,dy:0,top:39},   // (about 1.3x; his horned helm), the brave a little larger than a man (about 1.08x); the bars just over each head
+ orcy:{h:26.5,dy:0,top:32},
  skel:{h:26,dy:0,top:32},   // the skeleton soldiers' drawn frames and rig (76m-skelsol.js), their weapon and shield added
  skelhal:{h:26,dy:0,top:32},
  spider:{h:20,dy:5},   // the Webspinner's drawn frames and rig (76o-spider.js) sit in their tile: the legs splay round it, the near tips 5 under the
