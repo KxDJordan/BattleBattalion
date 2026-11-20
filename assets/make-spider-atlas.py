@@ -16,8 +16,8 @@ eyes, as the reference and the frames draw it) is the 'neutral' head. Each rig i
 setup pose places the pieces on the reference [slot, piece, box centre (ref px), turn deg, scale] in draw order (the abdomen, the far
 legs, the plate, the near legs, the head); it was fitted with --fit (a coordinate search for each piece's place, turn and scale that
 least differs from the reference, from a hand-placed start) and one leg set by hand where the search pulled it behind the head.
-The pose is brought to the frames' scale by the run row's first frame (the same height) and its origin set where that frame's anchor
-sits when the pose covers the whole frame best (build's seat), so the idle does not jump when the spider starts to walk.
+The pose is brought to the frames' scale by the run row's first frame (the same height), its origin its own body centre over its feet
+as the frames' are (centred on the tile); the script reports how far it sits from that frame where it covers the whole figure best.
 Writes src/76n-spideratlas.js: SPA (forest) and SSA (sand), each the frames and pieces in one half-size webp atlas (76k-orc.js's layout).
 Units (WU): the frames' px. No randomness: the output is the same every run.
 """
@@ -102,7 +102,7 @@ if __name__ == '__main__':
           '   rig\'s eight legs, plate, abdomen and eight heads (neutral: the part row\'s; angry, fury, glow, glare, squint, hurt, dead). .set: the\n'
           '   rig\'s setup pose [slot, piece, x, y (WU from the feet), turn deg, scale] in draw order. Read by 76o-spider.js. */\n']
     for var, C in SPIDERS.items():
-        C = dict(C, n=7, xmin=XMIN, H_row='run', heads=HEADS, neutral=True, seat=True, poly={}, lower={}, piv=PIV,
+        C = dict(C, n=7, xmin=XMIN, H_row='run', heads=HEADS, neutral=True, whole=True, poly={}, lower={}, piv=PIV,
                  setup=[(n, 'head_neutral' if n == 'head' else n, c, r, sc) for n, c, r, sc in C['setup']])
         js.append(orc.build(var, C))
     with open(os.path.join(ROOT, 'src', '76n-spideratlas.js'), 'w') as f: f.write(''.join(js))
