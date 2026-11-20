@@ -2,8 +2,8 @@
    the hall of the fallen =================
    Rules first (no DOM), then the sheets. Nothing here draws on the game stream (rnd): ids and hashes come from the seed.
    Shared API (CONTRACT.md):
-     DIFF[k] = {n, d, budget, pay, injury, death, crisisDay, ...}   k in DIFFK (story normal hard brutal); Brutal alone also foePlan, vet, solo
-     diffX(key)            -> the running level's own field (an object: DIFF.brutal.foePlan / vet / solo) or null
+     DIFF[k] = {n, d, budget, pay, injury, death, crisisDay, ...}   k in DIFFK (story normal hard brutal); Normal / Hard / Brutal also vet, solo; Hard / Brutal foeHit; Brutal foePlan
+     diffX(key)            -> the running level's own field (DIFF[k].foePlan / foeHit / vet / solo) or null
      diffK(key)            -> the running company's factor for key (1 when there is no company or no such key)
                               budget: enemy strength (battle budget) · pay: contract pay · injury: odds of an injury when struck down ·
                               death: odds that a struck-down sword dies · crisisDay: the day the crisis starts (G.crisisDay is already
@@ -23,9 +23,9 @@ const DIFF={
   budget:.78,pay:1.25,injury:.6,death:.45,crisisDay:1.35,line:['Enemies 22% weaker','Pay +25%','Deaths far rarer','The crisis comes late']},
  normal:{n:'Normal',icon:'swords',d:'The march as it was meant to be: hard choices, fair odds and a crisis that will not wait for you.',
   budget:1,pay:1,injury:1,death:1,crisisDay:1,vet:{lo:-.06,hi:.13,lvl0:4,lvl1:8},solo:{hi:.1,lvl0:3,lvl1:9,isekai:{hi:.5,lvl0:3,lvl1:9}},line:['Fair odds','The usual pay','Steel kills','The crisis on time']},
- hard:{n:'Hard',icon:'skull',d:'Bands are larger and employers tighter. A struck-down sword is more likely to stay down.',
+ hard:{n:'Hard',icon:'skull',d:'Bands are larger, foes strike truer and employers are tighter. A struck-down sword is more likely to stay down.',
   budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,foeHit:5,vet:{lo:-.1,hi:.03,lvl0:4,lvl1:8},solo:{lo:.04,hi:.26,lvl0:3,lvl1:9,isekai:{lo:.35,hi:.83,lvl0:3,lvl1:9}},line:['Enemies 15% stronger (6% while the company is green)','Foes strike truer: +5 to hit','Pay -10%','More deaths','The crisis comes early']},
- brutal:{n:'Brutal',icon:'flame',d:'For veterans of the march. Every fight is a gamble with the company\'s life: foes go for the wounded, grow as you do, and hunt a lone sword in packs.',
+ brutal:{n:'Brutal',icon:'flame',d:'For veterans of the march. Every fight is a gamble with the company\'s life: foes go for the wounded, strike true, grow as you do, and hunt a lone sword in packs.',
   budget:1.3,pay:.8,injury:1.4,death:1.65,crisisDay:.72,line:['Enemies 30% stronger (10% while the company is green)','Foes fight without mercy','Foes strike truer: +15 to hit','Lone swords face bigger bands','Pay -20%','Death is common','The crisis comes very early'],
   foePlan:{cut:1,volley:1,lock:.6},foeHit:15,solo:{max:3,lo:.15,hi:.27,lvl0:3,lvl1:9,isekai:{lo:.27,hi:.77,lvl0:3,lvl1:9}},vet:{lo:-.15,hi:0,lvl0:4,lvl1:8}}};
 /* Beyond the factors (absent where a level has none):
@@ -33,9 +33,13 @@ const DIFF={
                the company's; lock, their fighters go out of their way to stand beside the company's archers
      foeHit    (Hard and Brutal) the foes strike truer: + that many points to hit on every roll they make (60-battle-core.js foeHitB, inside hitChance, so
                the forecast is the strike; capped at 95 as ever; arena bouts excepted)
-     vet       veterans: the enemy budget grows with the company's level (60-battle-core.js budgetK): x (1 + k x clamp((level - lvl0) / span, 0, 1))
-     solo      a solo run's bands (60-battle-core.js buildEnemies): max, the most foes such a band brings (SOLOMAX, 2, elsewhere): the budget that
-               would only have ranked two foes up buys a third, so a geared hero is flanked instead of outclassing a pair */
+     vet       the company's curve: the enemy budget x (1 + lo + (hi - lo) x clamp((L - lvl0) / (lvl1 - lvl0), 0, 1)), L the fielded swords'
+               average level (60-battle-core.js budgetK): it evens the win rate out over the march (a green company finds the same budget
+               harder than a seasoned one does). Tuned with test/brutal.js to the sensible pilot's ~80 / 60 / 30 % on Normal / Hard / Brutal
+     solo      a solo run's bands: the same curve for the one sword's level (instead of vet), solo[origin] where an origin needs its own (the
+               Isekai's hero outclasses the Beast Slayer at the same level), k a flat factor on top (none used); and on Brutal max, the most
+               foes such a band brings (60-battle-core.js buildEnemies; SOLOMAX, 2, elsewhere): the budget that would only have ranked two
+               foes up buys a third, so a geared hero is flanked instead of outclassing a pair */
 function diffX(key){const D=DIFF[diffOf()];return D&&D[key]!=null?D[key]:null}
 function diffOf(g){g=g||G;return g&&DIFF[g.diff]?g.diff:'normal'}
 function diffK(key){const D=DIFF[diffOf()];const v=D&&D[key];return typeof v==='number'&&isFinite(v)?v:1}

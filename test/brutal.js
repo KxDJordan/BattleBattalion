@@ -8,17 +8,19 @@
 //   isekai    the Isekai's solo hero (sword and buckler, medium armor, hp/ms/md talents at three stars; the slayer's level-6 / 9 armor later)
 //             at level 3, 6, 9 against goblins, bandits, beasts, the dead and orcs in turn
 // Reported per cell: win %, rounds, the hitpoints the side lost (share of its maximum), deaths, swords struck down and injuries a fight.
-// Gates (not with --measure):
-//   1. Brutal is clearly harder than Hard: the sensible pilot's win rate pooled over the three stages at least BRUTAL.gap points below
-//      Hard, for the company and for each solo run; and Brutal costs more blood (deaths + struck down a fight) than Hard.
-//      (Measured at --n 40, sensible, pooled over the stages: Hard 63 / 73 / 88 for company / slayer / isekai; Brutal before the Brutal rules
-//      40 / 63 / 78, after them 30 / 48 / 68. --mult .8, a typical band you choose to fight: Hard 94 / 87 / 94, Brutal 80 / 81 / 90 -> 76 / 73 / 84.)
-//   2. The order holds: Story >= Normal >= Hard >= Brutal (sensible, pooled; a little slack for noise between Story and Normal).
-//   3. Solo is not a free ride on Brutal: the solo runs' sensible win rate on Brutal at least BRUTAL.soloGap points below their Normal one.
-//   4. Normal and Hard are untouched by the Brutal rules: on fixed seeds every battle's foes (ids, rank, elites, hitpoints) at Story / Normal /
-//      Hard are exactly what the base formula gives (budget x DIFF[k].budget, no Brutal extras), for a company and for both solo runs, and
-//      a few whole Normal / Hard battles a stage (both pilots) end exactly as recorded in test/brutal-ref.json (written on the base, before
-//      the Brutal rules: node test/brutal.js --write-ref --srcdir <the base's src>).
+// Gates (not with --measure), the sensible pilot (TARGET):
+//   1. Each level hits its mark: Normal 80 / Hard 60 / Brutal 30 % won, pooled over the three stages, within TARGET.tol (7) points, for the
+//      company and for each solo run; and every stage within TARGET.stage (15) points of it.
+//      (Measured at --n 100, sensible, pooled over the stages: company 80 / 62 / 32, slayer 82 / 58 / 29, isekai 81 / 59 / 32 for Normal / Hard /
+//      Brutal; before this retune 88 / 66 / 25, 86 / 73 / 48, 90 / 86 / 68. Per stage see TABLE below.)
+//   2. The order holds: Story at least TARGET.story (8) points above Normal, Normal > Hard > Brutal; and Brutal costs more blood (deaths +
+//      struck down a fight) than Hard (TARGET.blood x).
+//   3. (folded into 1: solo runs are judged by the same marks as the company.)
+//   4. Every level's budget is the formula: the base (Story's budget / DIFF.story.budget) x DIFF[k].budget x the level's curve over the
+//      fielded swords' average level (DIFF[k].vet for a company, DIFF[k].solo or DIFF[k].solo[origin] for a solo run), written out again
+//      here; Story carries no rule beyond its factors and Normal / Hard no Brutal one (foePlan, solo.max); and on fixed seeds every Story
+//      battle's foes (ids, rank, elites, hitpoints) and a few whole Story battles a stage (both pilots) end exactly as recorded in
+//      test/brutal-ref.json (node test/brutal.js --write-ref; the Story bands there are byte-identical to the ones recorded before the retune).
 'use strict';
 const path=require('path'),cp=require('child_process'),fs=require('fs');
 const ARGV=process.argv.slice(2),has=f=>ARGV.includes(f),arg=(f,d)=>{const i=ARGV.indexOf(f);return i>=0&&i+1<ARGV.length?ARGV[i+1]:d};
@@ -79,7 +81,7 @@ if(has('--worker')){let S=null;const q=[];let busy=false;
   const curve=(V,L)=>{if(!V||!(V.lo||V.hi))return 1;const a=V.lvl0||0,b=V.lvl1>a?V.lvl1:a+1,t=Math.min(1,Math.max(0,(L-a)/(b-a)));return 1+(V.lo||0)+((V.hi||0)-(V.lo||0))*t};
   for(const grp of grps)for(const prof of GROUPS[grp].profs){ensure(S,grp,prof);for(let i=0;i<12;i++){
    const st=bandOf(X,S.W,grp,prof,i,'story'),b0=st.budget/D.story.budget,F=X.battleField({}),L=F.reduce((s,m)=>s+m.lvl,0)/F.length,band={story:st};
-   for(const d of DIFFS){const a=d==='story'?st:bandOf(X,S.W,grp,prof,i,d),V=grp==='company'?D[d].vet:D[d].solo,want=b0*D[d].budget*(grp!=='company'&&V&&V.k>0?V.k:1)*curve(V,L);
+   for(const d of DIFFS){const a=d==='story'?st:bandOf(X,S.W,grp,prof,i,d),S0=D[d].solo,V=grp==='company'?D[d].vet:S0&&(S0[grp]||S0),want=b0*D[d].budget*(grp!=='company'&&V&&V.k>0?V.k:1)*curve(V,L);
     if(Math.abs(a.budget-want)>.004*Math.max(1,want))fail(`${grp} ${prof} #${i} ${d}: budget ${a.budget} is not ${want.toFixed(3)} (the base ${b0.toFixed(3)} x DIFF.${d}.budget x the curve at level ${L.toFixed(1)})`);n++}
    const key=grp+'/'+prof+'/'+i;
    if(has('--write-ref')){REF[key]=band}else if(ref[key]){nr++;if(JSON.stringify(ref[key].story)!==JSON.stringify(st))fail(`${key} story: the band changed: ${JSON.stringify(st)} vs ${JSON.stringify(ref[key].story)}`)}else fail(`${key}: no reference band (node test/brutal.js --write-ref)`)}}
