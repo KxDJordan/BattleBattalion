@@ -112,7 +112,9 @@ function syncMast(m){if(!m)return;const o={};for(const k of (Array.isArray(m.tre
    the seeded game stream). */
 function rollTrees(bg,r){const b=BG[bg],pool=(b&&b.pool||MUNDANE).filter(k=>MAST[k]&&MAST[k].kind==='style').slice(),R=r||rnd;
  if(r){for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1)),t=pool[i];pool[i]=pool[j];pool[j]=t}}else shuffle(pool);
- const hw=b&&b.hw>0&&MAST.hunter&&b.pool.includes('hunter')?b.hw:0;return hw&&(hw>=1||R()<hw)?pool.slice(0,3).concat(['hunter']):pool.slice(0,4)}
+ const hw=b&&b.hw>0&&MAST.hunter&&b.pool.includes('hunter')?b.hw:0,L=hw&&(hw>=1||R()<hw)?pool.slice(0,3).concat(['hunter']):pool.slice(0,4);
+ if(b&&b.core&&pool.includes(b.core)&&!L.includes(b.core))L[L[L.length-1]==='hunter'?L.length-2:L.length-1]=b.core;   // BG.core: the tree every recruit of it carries (the gun backgrounds' Gunnery); no draw of its own
+ return L}
 /* autoLearn(m): spends every point on a sensible build for the merc's role: the gift first (awakened at once), then the
    highest open tier that suits its style, gear and weapons; abilities it could not use with its gear are passed over.
    Deterministic (no randomness). Returns the ids learned. */
