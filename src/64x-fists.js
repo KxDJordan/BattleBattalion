@@ -19,10 +19,10 @@
    Rapid hands), fsTurn (from pvTurn: Smother, Wind step, Loose shoulders' recovery, breath recovers), fsSlip (walkPath0 and the AI's free
    attack estimate: Slip away), fsFollow (useAbility, after the Attack: Double jab), fsAiExtra / fsAiVal (63-ai.js: what Double jab, the
    breath and the conditional stuns are worth). perkFit / mercTags are wrapped (autoLearn builds into the tree of the fists in hand).
-   Unit state: gwind (breath debt of a foe that never tires), wrStR (the round t was last stunned), pgKT (Rapid hands spent this turn).
+   Unit state: gwind (breath debt of a foe that never tires), wrStR (the round t was last stunned), pgKT (Rapid hands spent this turn), flI (the punches of a Flurry of blows thrown so far).
    Randomness: only Breaking hold's chance, drawn in pvStatus's fixed order (after every older case). */
 const FSTREES=['wrestle','pugilist','willow'];
-const FSK={windRec:15,grindMax:.2,stepMax:10,bare:2,breakAt:.75,suplexAt:.5,smother:1};
+const FSK={apMin:3,windRec:15,grindMax:.2,stepMax:10,bare:2,breakAt:.75,suplexAt:.5,smother:1};
 const fsFist=u=>!!u&&isFistW(u.wpn);
 const fsLight=u=>!!u&&fsFist(u)&&(u.acl||armorClass(u))==='light';
 function fsBreath(t){if(!t)return 0;if(t.fatMax>0&&t.fatMax<999)return clamp((t.fat||0)/t.fatMax,0,1);return clamp((t.gwind||0)/WINDMAX,0,1)}
@@ -34,7 +34,7 @@ function fsWindOf(u,t,a,o){if(!u||!t||u.side===t.side||a.magic||a.noDmg)return 0
  if(melee&&fsFist(u)){n+=(u.wpn.gwind||0)+(f.wrFat||0)}if(o&&o.splash)n=Math.round(n*o.splash);return n}
 const fsStunOK=t=>!(B&&t.wrStR!=null&&t.wrStR>=B.round-1);
 /* ---- the numbers of one blow ---- */
-function fsHit(u,t,a,melee){const g=t.flags||{};let v=0;if(a.magic)return 0;
+function fsHit(u,t,a,melee){const g=t.flags||{};let v=0;if(a.magic)return 0;if(a.ramp&&u.flI>0)v+=a.ramp*u.flI;   // Flurry of blows: each punch 5 more than the one before
  if((g.wlDef||g.wlStep)&&fsLight(t)){if(g.wlDef){v-=g.wlDef;if(g.wlBare&&(t.aw||0)<=FSK.bare)v-=g.wlBare}if(g.wlStep&&t.mvN>0)v-=Math.min(FSK.stepMax,g.wlStep*t.mvN)}
  return v}
 function fsDmg(u,t,a,melee){const f=u.flags||{};if(!melee||a.magic||!f.wrGrind||!fsFist(u))return 0;return Math.min(FSK.grindMax,f.wrGrind*Math.floor(fsBreath(t)*10+1e-9))}
@@ -44,10 +44,13 @@ function fsStCases(u,t,a,melee,L){const f=u.flags||{};if(a.magic||u.side===t.sid
  if(f.wrBreak&&melee&&fsFist(u)&&br>FSK.breakAt&&fsStunOK(t))L.push(['stun',1,1,f.wrBreak])}
 /* ---- hooks ---- */
 function fsAbInfo(u,a){const f=u.flags||{};if(!a||!fsFist(u))return a;const punch=a.id==='attack'||a.punch;
- if(punch){if(f.pgAP)a.ap=Math.max(2,(a.ap||0)-f.pgAP);if(f.pgFat&&a.fat)a.fat=Math.floor(a.fat*(1-f.pgFat))}
+ if(punch){if(f.pgAP&&a.ap>FSK.apMin)a.ap=Math.max(FSK.apMin,a.ap-f.pgAP);if(f.pgFat&&a.fat)a.fat=Math.floor(a.fat*(1-f.pgFat))}
  if(a.id==='hipthrow'&&f.wrKb)a.kb=(a.kb||0)+f.wrKb;if(a.id==='flykick'&&f.wlKick)a.rng=(a.rng||0)+f.wlKick;if(a.id==='pflurry'&&f.pgFlurry)a.hits=(a.hits||1)+f.pgFlurry;
  return a}
 function fsHitDone(u,t,a,o,hpd){if(!B||!t)return;if(t.st&&t.st.stun>0)t.wrStR=B.round;if(u.side===t.side||!t.alive)return;const n=fsWindOf(u,t,a,o);if(n>0)fsWind(t,n,u)}
+// Flurry of blows: the punch count, set back when it is paid for (fsPay, from pvPay) and counted after every strike (fsStruck, from pvStruck)
+function fsPay(u,a){if(a.ramp)u.flI=0}
+function fsStruck(u,t,a,o){if(a.ramp&&!o.free)u.flI=(u.flI||0)+1}
 function fsKill(u,t,a,o){const f=u.flags||{};if(f.pgKill&&a.id==='attack'&&!o.free&&!o.splash&&fsFist(u)&&B&&B.cur===u&&!u.pgKT&&u.alive){u.pgKT=1;u.ap+=a.ap;float(u,'+'+a.ap+' AP','#ffd27a');FX.emit('buff',{t:u})}}
 function fsTurn(u){const b=B,f=u.flags||{};if(u.pgKT)u.pgKT=0;if(u.gwind>0)u.gwind=Math.max(0,u.gwind-FSK.windRec);if(!b)return;
  if(f.pgRec&&fsFist(u)&&u.fat>0)u.fat=Math.max(0,u.fat-f.pgRec);
@@ -66,4 +69,4 @@ function fsAiVal(u,a,t){if(!u||a.magic||a.noDmg)return 0;const n=fsWindOf(u,t,a)
 /* ---- autoLearn: the fist trees' perks with fists in hand (mercTags 'fist'), Willow style's in light armor; their abilities when they open ---- */
 {const mt0=mercTags;mercTags=function(m){const t=mt0(m),w=ITEMS[m.eq&&m.eq.w];if(!w||w.wt==='fist')t.add('fist');return t}
  const pf0=perkFit;perkFit=function(m,o,tags){let s=pf0(m,o,tags);const T=o.tree,p=o.perk;if(!T||!FSTREES.includes(o.key))return s;
-  const fist=tags.has('fist'),a=p.ab&&AB[p.ab];if(!fist)s-=a?45:30;else if(a&&s>0)s+=8;if(T===MAST.willow&&armorClass(m)!=='light')s-=30;return s}}
+  const fist=tags.has('fist'),a=p.ab&&AB[p.ab];if(!fist)s-=a?45:30;else{s+=6;if(a&&s>0)s+=8}if(T===MAST.willow&&armorClass(m)!=='light')s-=30;return s}}

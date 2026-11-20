@@ -26,12 +26,12 @@ for(const id of FISTITEMS){const i=ITEMS[id];i.look=i.look||id;i.sk=id==='shuko'
 Object.assign(AB,{
  hipthrow:{n:'Hip throw',ap:4,fat:14,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,mult:.6,hit:5,kb:2,gwind:12,fx:'shove',
   d:'Over the hip and down: 60% damage, +5 to hit, and the foe is thrown back 2 tiles and loses 12 breath. Fists only.'},
- suplex:{n:'Suplex',ap:6,fat:20,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,mult:1,gwind:10,suplex:1,fx:'bonk',
-  d:'Lift the foe and drive it into the ground: 100% damage and 10 breath. A foe already past half its breath is stunned (not one stunned this round or the last); any other is dazed. Fists only.'},
- onetwo:{n:'One-two',ap:4,fat:10,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,punch:1,melee:1,mult:.7,hits:2,hit:5,fx:'multi',
-  d:'A jab and a cross: two punches at 70% damage, +5 to hit each; the second only while the foe stands. Fists only.'},
- pflurry:{n:'Flurry of blows',ap:6,fat:16,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,punch:1,melee:1,mult:.45,hits:4,hit:-5,fx:'multi',
-  d:'Four punches at one foe, 45% damage and −5 to hit each, while it stands. Fists only.'},
+ suplex:{n:'Suplex',ap:5,fat:18,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,mult:1.2,gwind:10,suplex:1,fx:'bonk',
+  d:'Lift the foe and drive it into the ground: 120% damage and 10 breath. A foe already past half its breath is stunned (not one stunned this round or the last); any other is dazed. Fists only.'},
+ onetwo:{n:'One-two',ap:4,fat:10,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,punch:1,melee:1,mult:.7,hits:2,hit:15,fx:'multi',
+  d:'The jab finds the range, the cross lands: two punches at 70% damage, +15 to hit each; the second only while the foe stands. Fists only.'},
+ pflurry:{n:'Flurry of blows',ap:5,fat:14,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,punch:1,melee:1,mult:.5,hits:4,hit:0,ramp:5,fx:'multi',
+  d:'Four punches at one foe, 50% damage each, every one 5 more to hit than the one before (+0, +5, +10, +15), while it stands. Fists only.'},
  flykick:{n:'Flying kick',ap:4,fat:14,rng:3,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,dash:1,mult:1,hit:10,fx:'bonk',
   d:'Leap at a foe up to 3 tiles away, past every foe on the way (no free attacks), and kick: 100% damage, +10 to hit. Fists only.'}});
 /* ---- who carries them (BG[bg].pool at most 9 trees; core: the tree every recruit of it carries, rollTrees) ----

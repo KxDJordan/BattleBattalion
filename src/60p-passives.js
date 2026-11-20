@@ -133,7 +133,7 @@ function pvStruck(u,t,a,o){if(!u||!t||o.stray)return;const f=u.flags||{};
  if(f.readOpp&&!a.magic){u.atkN=Object.assign({},u.atkN);u.atkN[t.id]=(u.atkN[t.id]||0)+1}
  if(f.sfHit||f.sfDmg)u.sfDone=1;
  if(f.deadArc&&isThrowW(u.wpn)&&pvRng(u,a))u.dArc=1;
- rlStruck(u,t,a,o)}
+ rlStruck(u,t,a,o);fsStruck(u,t,a,o)}
 function pvHitDone(u,t,a,o,hpd){const f=u.flags||{},melee=!!a.melee||mdist(u,t)<=1;if(o.stray)return;gtHitDone(u,t,a,o,hpd);fsHitDone(u,t,a,o,hpd);   // the gun trees: Rolling volley's count, a Petard on a shield (64u-guntrees.js)
  if(!a.magic){
   if(melee&&f.pressHit)u.lastHit=t.id;
@@ -188,7 +188,7 @@ function pvTurn(u){const b=B,f=u.flags||{};
   const n=b.units.filter(x=>x.alive&&x.side===u.side&&mdist(x,u)<=1&&cnt(x)>0).sort((x,y)=>cnt(y)-cnt(x)||x.hp/x.hpMax-y.hp/y.hpMax||x.id-y.id)[0];
   if(n){for(const k of K)if(n.st[k]>0)n.st[k]=0;float(n,'Tended','#9bd96f');FX.emit('heal',{t:n,n:0})}}
  rlTurn(u);fsTurn(u)}   // the fist trees (64x-fists.js): Smother, Wind step, breath recovers
-function pvPay(u,a){const w=u.wpn,f=u.flags||{};if(!w||!isRangedAtk(u,a))return;
+function pvPay(u,a){const w=u.wpn,f=u.flags||{};fsPay(u,a);if(!w||!isRangedAtk(u,a))return;
  if(w.ammo&&!a.conj){const n=ammoLeft(u)-((a.ammoN)||1);setAmmo(u,n);if(n<=0&&!u.m){u.back=false;if(u.role==='sniper')u.role='flanker'}}   // a foe with no throws left closes in
  if(f.drawLoose&&w.wt==='bow')u.shotT=1;
  if((f.smokeDef||f.smokeMel)&&isGunW(w))u.smoke=1}

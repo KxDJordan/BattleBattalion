@@ -86,6 +86,7 @@ function mk(bg,w,perks,o){o=o||{};const m=X.newMerc(bg||'sellsword');m.trees=o.t
  m.eq.w=w;m.eq.s=o.s||null;m.eq.b=o.b||null;m.eq.a=o.a||'padded';m.eq.h=o.h||null;m.inj=[];m.traits=[];m.hp=X.calc(m).hp;m.field=true;return m}
 const F=(u,fl)=>{u.flags=Object.assign({},u.flags,fl);X.auraScan()};
 let LC=987654321;const R=()=>{LC=(Math.imul(LC,1103515245)+12345)>>>0;return LC/4294967296},pick=L=>L[Math.floor(R()*L.length)];
+const hitsOn=(t,fn)=>{let n=0;const on0=X.FX.on;X.FX.on=(ty,d)=>{if(ty==='hit'&&d.t===t)n++;if(on0)on0(ty,d)};return Promise.resolve(fn()).then(()=>{X.FX.on=on0;return n},e=>{X.FX.on=on0;throw e})};
 const FT=['wrestle','pugilist','willow'],FW=['wraps','knuckles','baghnakh','shuko','gauntlet','katar'];
 // a fighter of background bg with weapon w (null: bare fists), the perks given and the trees (default: the three fist trees and Survivor)
 function fm(bg,w,perks,o){o=o||{};const m=X.newMerc(bg||'monk');m.trees=o.trees||['wrestle','pugilist','willow','survivor'];m.gift=null;m.lvl=11;m.perks=(perks||[]).slice();m.pp=0;
@@ -143,10 +144,10 @@ section('who carries them: backgrounds, pools, cores, recruits, rivals, the Isek
   for(const k of FT)ok(X.iskStyles().includes(k),'the Isekai creator lists '+k);
   let rv=0;for(const r of G.rivals||[])for(const m of r.roster)if(CORE[m.bg]){rv++;ok(m.trees.includes(CORE[m.bg]),'rival '+m.bg+' carries '+CORE[m.bg])}
   // autoLearn builds into the fist tree with fists in hand, and passes over it with a sword
-  for(const [k,w] of [['wrestle','shuko'],['pugilist','wraps'],['willow',null]]){const m=fm('monk',w,[],{trees:[k,'survivor','scout','skirmisher'],a:'robe'});m.lvl=6;m.pp=6;X.autoLearn(m);
+  for(const [k,w] of [['wrestle','shuko'],['pugilist','wraps'],['willow',null]]){const m=fm('monk',w,[],{trees:[k,'survivor','scout','skirmisher'],a:'robe'});for(let lv=1;lv<=10;lv++){m.lvl=lv;m.pp=1;X.autoLearn(m)}
    ok(m.perks.filter(id=>id.startsWith(k+'.')).length>=3,k+': autoLearn builds into it with fists: '+m.perks.join())}
-  const p2=fm('monk','arming',[],{trees:['pugilist','vanguard','survivor','scout']});p2.pp=6;X.autoLearn(p2);ok(p2.perks.filter(id=>id.startsWith('pugilist.')).length===0,'… and passes over it with a sword in hand: '+p2.perks.join());
-  const p3=fm('monk',null,[],{trees:['willow','vanguard','survivor','scout'],a:'mail'});p3.pp=4;X.autoLearn(p3);ok(!p3.perks.includes('willow.1'),'… Willow style\'s perks not in mail: '+p3.perks.join());
+  const p2=fm('monk','arming',[],{trees:['pugilist','vanguard','survivor','scout']});for(let lv=1;lv<=10;lv++){p2.lvl=lv;p2.pp=1;X.autoLearn(p2)}ok(p2.perks.filter(id=>id.startsWith('pugilist.')).length===0,'… and passes over it with a sword in hand: '+p2.perks.join());
+  const p3=fm('monk',null,[],{trees:['willow','vanguard','survivor','scout'],a:'mail'});for(let lv=1;lv<=6;lv++){p3.lvl=lv;p3.pp=1;X.autoLearn(p3)}ok(!p3.perks.includes('willow.1'),'… Willow style\'s perks not in mail: '+p3.perks.join());
   console.log('2 cores, pools, '+rv+' rival monks and pit fighters, the Isekai, autoLearn: ok') }
 section('the new mechanics, one by one');
 { fresh(SEED+2);const W1=['wrestle.1','wrestle.2','wrestle.3','wrestle.4','wrestle.5','wrestle.6'],P1=['pugilist.1','pugilist.2','pugilist.3','pugilist.4','pugilist.5','pugilist.6'],L1=['willow.1','willow.2','willow.3','willow.4','willow.5','willow.6'];
@@ -182,18 +183,18 @@ section('the new mechanics, one by one');
   park();b.round=7;put(WR,5,8);put(e1,5,7);e1.gwind=80;fc=X.forecast(WR,e1,at(WR));ok(fc.statuses.some(s=>s.k==='stun'&&near(s.ch,.35)),'Breaking hold: 35% stun past three quarters '+JSON.stringify(fc.statuses));
   e1.gwind=70;ok(!X.forecast(WR,e1,at(WR)).statuses.some(s=>s.k==='stun'),'… not below');e1.gwind=0;
   // Snap jab, Loose shoulders: a punch costs 1 AP less (at least 2) and half its fatigue; recovery 5 more a turn
-  park();b.cur=PG;put(PG,5,8);put(e1,5,7);hp9(e1);const pa=at(PG);ok(pa.ap===2&&pa.fat===Math.floor(X.ITEMS.wraps.fat*.5),'Snap jab and Loose shoulders: wraps punch for 2 AP, '+pa.fat+' fatigue');
-  ok(A(PG,'onetwo').ap===3&&A(PG,'pflurry').ap===5&&A(PG,'onetwo').fat===5&&A(PG,'pflurry').fat===8,'… One-two 3 AP, Flurry of blows 5');ok(at(PL).ap===4&&at(SW).ap===X.ITEMS.arming.ap,'… bare fists without it: 4, a sword untouched');
+  park();b.cur=PG;put(PG,5,8);put(e1,5,7);hp9(e1);const pa=at(PG);ok(pa.ap===3&&pa.fat===Math.floor(X.ITEMS.wraps.fat*.5),'Snap jab and Loose shoulders: wraps punch for 3 AP (no less), '+pa.fat+' fatigue');{const w0=PG.wpn;PG.wpn=X.calc(fm('monk',null,[])).wpn;ok(at(PG).ap===3,'… bare fists: 4 AP -> 3');PG.wpn=w0}
+  ok(A(PG,'onetwo').ap===3&&A(PG,'pflurry').ap===4&&A(PG,'onetwo').fat===5&&A(PG,'pflurry').fat===7,'… One-two 3 AP, Flurry of blows 4');ok(at(PL).ap===4&&at(SW).ap===X.ITEMS.arming.ap,'… bare fists without it: 4, a sword untouched');
   PG.fat=30;PG.ap=PG.apMax;X.pvTurn(PG);ok(PG.fat===25,'… 5 more fatigue recovered at the turn\'s start');PG.fat=0;
   // One-two: two punches; Flurry of blows: four (five with Thousand fists); Double jab: an Attack is followed by a 35% punch
   park();b.cur=PG;put(PG,5,8);put(e1,5,7);hp9(e1);PG.ap=12;let hits=await hitsOn(e1,async()=>{PG.ms+=80;await X.useAbility(PG,A(PG,'onetwo'),KU(e1));await rest(b);b.busy=true;PG.ms-=80});ok(hits===2,'One-two: two punches ('+hits+')');
   PG.ap=12;hits=await hitsOn(e1,async()=>{PG.ms+=80;await X.useAbility(PG,A(PG,'pflurry'),KU(e1));await rest(b);b.busy=true;PG.ms-=80});ok(hits===4,'Flurry of blows: four ('+hits+')');
   F(PG,{pgFlurry:1});ok(A(PG,'pflurry').hits===5,'Thousand fists: a fifth');F(PG,{pgFlurry:0});
   let atk=0;const on0=X.FX.on;X.FX.on=(ty,d)=>{if((ty==='hit'||ty==='miss')&&d.t===e1&&d.u===PG)atk++;if(on0)on0(ty,d)};PG.ap=12;await X.useAbility(PG,at(PG),KU(e1));await rest(b);b.busy=true;X.FX.on=on0;ok(atk===2,'Double jab: the Attack and its second punch ('+atk+')');
-  const fd=X.forecast(PG,e1,at(PG),{splash:.35,free:'double'}),fp=X.forecast(PG,e1,at(PG));ok(fd.dmgMax<fp.dmgMax&&fd.dmgMax>=Math.floor(fp.dmgMax*.35)-1,'… forecast at 35% ('+fd.dmgMax+' of '+fp.dmgMax+')');
+  const fd=X.forecast(PG,e1,at(PG),{splash:.3,free:'double'}),fp=X.forecast(PG,e1,at(PG));ok(fd.dmgMax<fp.dmgMax&&fd.dmgMax>=Math.floor(fp.dmgMax*.3)-1,'… forecast at 30% ('+fd.dmgMax+' of '+fp.dmgMax+')');
   // Rapid hands: an Attack that kills gives its AP back, once a turn
   park();b.cur=PG;put(PG,5,8);put(e1,5,7);put(e2,6,8);for(const x of [e1,e2]){x.hp=1;x.arm=0;x.helm=0}PG.ms+=90;PG.ap=6;PG.pgKT=0;await X.useAbility(PG,at(PG),KU(e1));await rest(b);b.busy=true;
-  ok(!e1.alive&&PG.ap===6,'Rapid hands: the kill gives the 2 AP back ('+PG.ap+')');await X.useAbility(PG,at(PG),KU(e2));await rest(b);b.busy=true;PG.ms-=90;ok(!e2.alive&&PG.ap===4,'… once a turn ('+PG.ap+')');
+  ok(!e1.alive&&PG.ap===6,'Rapid hands: the kill gives the 3 AP back ('+PG.ap+')');await X.useAbility(PG,at(PG),KU(e2));await rest(b);b.busy=true;PG.ms-=90;ok(!e2.alive&&PG.ap===3,'… once a turn ('+PG.ap+')');
   // Empty hands (+6, +4 more bare), Hard to pin (+2 a tile moved, at most +10): defense in light armor with fists only
   park();b.cur=e1;put(WL,5,8);put(PL,7,8);put(HV,9,8);put(e1,5,7);put(e2,7,7);put(e4,9,7);const ea=at(e1);
   const h0=X.hitChance(e1,PL,at(e1)),hw=X.hitChance(e1,WL,ea);ok(WL.aw<=2&&PL.aw===WL.aw,'a robe weighs nothing');
@@ -259,7 +260,7 @@ section('the AI uses them: the company on auto, a rival company of fist fighters
     ['suplex',['pitfighter','wraps',['wrestle.1','wrestle.2','wrestle.3','wrestle.4']],(P,E)=>{P.forEach((u,i)=>put(u,1+i*4,10));E.forEach((e,i)=>{put(e,1+i*4,9);e.gwind=70})}],
     ['onetwo',['monk','wraps',['pugilist.2']],(P,E)=>{P.forEach((u,i)=>put(u,1+i*4,10));E.forEach((e,i)=>put(e,1+i*4,9))}],
     ['pflurry',['monk','wraps',['pugilist.1','pugilist.3','pugilist.5']],(P,E)=>{P.forEach((u,i)=>{put(u,1+i*4,10);u.ap=5});E.forEach((e,i)=>{put(e,1+i*4,9);e.arm=0;e.helm=0})}],
-    ['flykick',['monk',null,['willow.1','willow.2']],(P,E)=>{P.forEach((u,i)=>{put(u,1+i*4,11);u.ap=4});E.forEach((e,i)=>put(e,1+i*4,8))}]];
+    ['flykick',['monk','katar',['willow.1','willow.2']],(P,E)=>{P.forEach((u,i)=>{put(u,1+i*4,11);u.ap=4});E.forEach((e,i)=>put(e,1+i*4,8))}]];
    for(const [id,[bg,w,perks],place] of cases){const ros=[0,1,2,3].map(()=>fm(bg,w,perks,{a:'robe'}));const {b,P,E,park}=await arena(SEED+81,ros,['thug','thug','thug','thug']);park();
     for(const u of P){u.used={};u.ap=u.apMax}for(const e of E){e.hp=e.hpMax=Math.max(e.hpMax,150);e.shield=false}place(P,E);X.foeAuras();X.auraScan();X.ctx.nextTurn=async function(){};
     for(const u of P){if(!u.alive)continue;b.cur=u;await X.aiTurn2(u);b.busy=true}X.ctx.nextTurn=tn0;ok(seen[id]>0,'the AI uses '+id+' where it fits: '+JSON.stringify(seen));X.B=null;X.mode='world'}
