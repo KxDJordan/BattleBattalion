@@ -5,7 +5,7 @@
 const CTR_TIERK={early:1,mid:1.2,late:1.4,end:1.8,crisis:1.3};   // was 1/1.35/1.7/2.6/1.5
 /* contract danger 1..5 (skulls): the lair band's strength and the pay. Which dangers a board posts follows the company's renown tier
    (RENOWN[t].dw weights, 14-company.js); factions of a tier above RENOWN[t].ft are posted rarely (x0.15 a tier step, never removed). */
-const CTR_DIFFK=[.8,1,1.3,1.6,2],CTR_PAYK=[1,1.45,1.9,2.35,2.85];   // pay was 1/1.5/2.2/3/4
+const CTR_DIFFK=[.8,1,1.3,1.6,2],CTR_PAYK=[1,1.5,2,2.5,3.1];   // pay was 1/1.5/2.2/3/4
 function ctrPool(t,ti){let L=null;
  if(typeof factionPool==='function'){try{L=factionPool({x:t.x,y:t.y,town:t,ti,day:G.day,purpose:'contract',contract:true})}catch(e){L=null}}
  if(L&&!Array.isArray(L)&&typeof L==='object')L=Array.isArray(L.list)?L.list:Array.isArray(L.pool)?L.pool:Object.keys(L).map(f=>Object.assign({f},typeof L[f]==='object'?L[f]:{w:+L[f]||1}));
