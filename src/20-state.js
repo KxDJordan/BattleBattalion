@@ -337,6 +337,7 @@ function worldRepair(g){const nT=g.towns.length,okF=f=>f==='free'||(f==='east'&&
  if(typeof factionsInit==='function')factionsInit(g,{nests:false})}   // fills whatever was missing from the seed and registers the houses in FACT
 // one band: goal fields that point nowhere are dropped (the band falls back to roaming)
 function partyRepair(p,nT,nests,g){const ti=x=>Number.isInteger(x)&&x>=0&&x<nT;if(!['roam','nest','caravan','patrol','raid','merc'].includes(p.goal))p.goal='roam';
+ if(p.fam!=null&&!(typeof HABF==='object'&&HABF[p.fam]&&HABF[p.fam].f===p.f))delete p.fam;if(p.wild!=null){if(svFin(p.wild)&&p.wild>0)p.wild=clamp(p.wild,0,1);else delete p.wild}   // habitats (40s-spawns.js): a beast family, the wilds' strength
  if(p.goal==='merc'){const r=g&&Array.isArray(g.rivals)?g.rivals.find(x=>x.id===p.f):null;if(!r||!r.alive){p.gone=1;return}p.idle=p.idle?1:0;if(p.hunt)p.hunt=1;else delete p.hunt;if(typeof p.tgt!=='string')delete p.tgt}
  else if(isRivalId(p.f)){p.gone=1;return}
  for(const k of ['from','to','siege'])if(p[k]!=null&&!ti(p[k]))delete p[k];if(p.home!=null&&!(Array.isArray(nests)&&nests.some(n=>n.id===p.home)))p.home=null;

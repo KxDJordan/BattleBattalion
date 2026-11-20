@@ -65,7 +65,7 @@ function digest(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(
 const BGS=['sellsword','squire','hunter','acolyte','hedge','knight','militia','monk','wildling','spellblade','thief','farmhand'];
 const TIERS=[{lvl:3,size:6,day:6,w:[],a:[]},{lvl:8,size:8,day:24,w:['arming','waraxe','warspear','mace','pike','handaxe'],a:['leather','padded','mail']},
  {lvl:14,size:12,day:50,w:['riftedge','waraxe','pike','mace','greataxe','rondel'],a:['plate','scale','mail']}];
-function company(X,tier,seed){X.seedRng(seed);X.newGame(true);X.closeSheet(true);const G=X.G;G.roster.length=0;
+function company(X,tier,seed){X.seedRng(seed);X.newGame(true);X.closeSheet(true);const G=X.G;G.roster.length=0;X.seedRng(seed^0x51a7);   // reseeded after newGame: the roster does not hang on how many draws the new world's spawns took (a branch that changes spawning stays comparable)
  for(let i=0;i<tier.size;i++){const m=X.newMerc(BGS[(i+seed)%BGS.length]);m.field=true;X.gainXP(m,X.XPT[tier.lvl]);m.pend=0;m.pp=tier.lvl;X.autoLearn(m);
   const wt=m.eq.w?X.ITEMS[m.eq.w].wt:'fist';
   if(wt==='bow'){if(tier.lvl>4)m.eq.w='warbow'}else if(wt==='staff'){if(tier.lvl>4)m.eq.w='focus'}else if(tier.w.length){m.eq.w=tier.w[(i+seed)%tier.w.length];if(X.ITEMS[m.eq.w].two)m.eq.s=null}

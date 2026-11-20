@@ -369,7 +369,10 @@ function wvColoSpr(night){const hd=typeof hdArt==='function'&&hdArt()&&typeof gl
  if(hd){const K=4,c=glColoSite(D.w,D.h+2,K,night);if(c){e={c,w:D.w,h:D.h+2,ax:D.w>>1,ay:D.h,x0:-(D.w>>1),y0:-D.h,x1:D.w>>1,y1:2,tc:null,tq:null,tk:'',lit:null,raw:false,k:K};WCOLO.set(key,e);return e}}
  return wvSprite('Rcolo'+(night?'n':'d'),'Rcolo'+(night?'n':'d'),'site',{kind:'colo',size:1,frame:0,night:!!night,n:0})}
 if(typeof onArtChange==='function')onArtChange(()=>WCOLO.clear());
-function wvPush(y,e,x,snap){const s=WSL[WSN]||(WSL[WSN]={y:0,e:null,x:0,snap:false,i:0});s.y=y;s.e=e;s.x=x;s.snap=snap;s.i=WSN++;}
+function wvPush(y,e,x,snap){const s=WSL[WSN]||(WSL[WSN]={y:0,e:null,x:0,snap:false,i:0,sink:0});s.y=y;s.e=e;s.x=x;s.snap=snap;s.sink=0;s.i=WSN++;}
+// a band of the dead sinking into the ground at dawn (40s-spawns.js SINKS): its sprite slides down under its own feet and fades, k 0..1
+const WVSINK=1400;
+function wvDrawSink(s){const e=s.e,k=s.sink,x=s.x,y=s.y;g.save();g.beginPath();g.rect(x-e.w-4,y-e.h-8,2*e.w+8,e.h+9);g.clip();g.globalAlpha=Math.max(0,1-k*k);wvDrawSprite(e,x,y+k*(e.h+2),s.snap);g.restore()}
 function wvPathDots(vx0,vy0,vx1,vy1){const p=G.p,P=G.path,ph=reduced?0:(now/70)%7;let lx=p.x/WVU,ly=p.y/WVU,acc=7-ph,n=0;const c0=PAL['0'],c1=PAL.l,D=WV.dots||(WV.dots=new Int16Array(800));
  for(let i=0;i<P.length;i++){const nx=P[i].x/WVU,ny=P[i].y/WVU,dx=nx-lx,dy=ny-ly,L=Math.hypot(dx,dy);if(L<.01)continue;
   if(Math.max(lx,nx)<vx0||Math.min(lx,nx)>vx1||Math.max(ly,ny)<vy0||Math.min(ly,ny)>vy1){acc=(acc-L)%7;if(acc<0)acc+=7;lx=nx;ly=ny;continue}
@@ -427,6 +430,8 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
   const hf=o.f==='free'||!!lkHouse(o.f),gl=o.goal==='caravan'||o.goal==='patrol'||o.goal==='raid'?o.goal:hf?'patrol':'',hs=gl==='patrol'||gl==='caravan'?lkHouse(o.f):null;
   const gk=gl==='caravan'&&typeof cvFigKey==='function'?cvFigKey(o):'';   // the guards beside the wagon (42-caravans.js)
   wvPush(y,wvSprite('B'+gl+o.f+str+gk+b.dir+(mv?'m':'s')+f,'B'+gl+o.f+str+gk+b.dir,'band',{f:o.f,str,frame:f,dir:b.dir,moving:mv,goal:gl,house:hs,guard:gk}),x,true)}
+ if(typeof SINKS!=='undefined'&&SINKS.length)for(let i=SINKS.length-1;i>=0;i--){const o=SINKS[i],k=(now-o.t)/WVSINK;if(reduced||!(k>=0&&k<1)){SINKS.splice(i,1);continue}const x=o.x/WVU,y=o.y/WVU;if(!inV(x,y))continue;   // the dead going back to their graves at dawn
+  wvPush(y,wvSprite('B'+o.f+o.str+o.dir+'s0','B'+o.f+o.str+o.dir,'band',{f:o.f,str:o.str,frame:0,dir:o.dir,moving:false,goal:'',house:null,guard:''}),x,true);WSL[WSN-1].sink=Math.max(.001,k)}
  {if(Math.abs(p.x-WV.lx)>.02){WV.dir=p.x<WV.lx?-1:1}WV.lx=p.x;const mv=!!G.moving&&!sheetOpen,f=fs%12,n=G.roster.length;wvPush(p.y/WVU+.01,wvSprite('C'+n+WV.dir+(mv?'m':'s')+f,'C'+n+WV.dir,'co',{n,frame:f,dir:WV.dir,moving:mv}),p.x/WVU,true)}
  for(let i=1;i<WSN;i++){const s=WSL[i];let j=i-1;while(j>=0&&(WSL[j].y>s.y||(WSL[j].y===s.y&&WSL[j].i>s.i))){WSL[j+1]=WSL[j];j--}WSL[j+1]=s}
  // the edge of sight: the radius eases every frame; the rim canvas is made here so that it follows the radius on skipped frames too
@@ -440,7 +445,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  // the draw list (see WSG)
  const cvOn=typeof cvDrawMap==='function'&&Array.isArray(G.clashes)&&G.clashes.some(c=>inV(c.x/WVU,c.y/WVU)&&vis(c.x,c.y));
  const escM=typeof escDrawMap==='function'&&typeof escCtr==='function'&&!!escCtr();   // a live escort: its road and the caravan's ring (42-caravans.js)
- let live=dots||(wx&&!reduced)||(pglow&&!reduced)||(cvOn&&!reduced)||escM;WSG.n=0;
+ let live=dots||(wx&&!reduced)||(pglow&&!reduced)||(cvOn&&!reduced)||escM||(typeof SINKS!=='undefined'&&SINKS.length>0);WSG.n=0;
  wsg(W_);wsg(H_);wsg(sc);wsg(bx);wsg(by);wsg(dpr);wsg(night);wsg(WCH.tk);wsg(WCH.frev);wsg(reduced);wsg(wk);wsg(wind);
  for(let cy=cy0-1;cy<=cy1+1;cy++)for(let cx=cx0-1;cx<=cx1+1;cx++){const ch=wchAt(cx,cy);wsg(ch);if(ch){wsg(ch.ver);wsg(WVHD?ch.fog:ch.comp)}}if(WVHD)wqSig(vx0,vy0,vx1,vy1);
  for(let i=0;i<WSN;i++){const s=WSL[i],e=s.e;wsg(e);wsg(s.x);wsg(s.y);wsg(s.snap);if(WCH.ton&&!e.raw&&e.tk!==WCH.tk)live=true}
@@ -461,7 +466,7 @@ function drawWorld(dt){if(!WVA.init)wvArtInit();{const hd=typeof whOn==='functio
  g.setTransform(sc,0,0,sc,bx,by);
  if(dots)wvPathDots(vx0,vy0,vx1,vy1);
  if(escM){try{escDrawMap(g,now,reduced)}catch(e){wvFail('escort',e)}}
- for(let i=0;i<WSN;i++){const s=WSL[i];wvDrawSprite(s.e,s.x,s.y,s.snap)}
+ for(let i=0;i<WSN;i++){const s=WSL[i];if(s.sink>0)wvDrawSink(s);else wvDrawSprite(s.e,s.x,s.y,s.snap)}
  if(rc){const D=rD,x=rX,y=rY;g.imageSmoothingEnabled=WVHD;g.drawImage(rc,x,y,D,D);g.imageSmoothingEnabled=false;g.fillStyle='rgba(16,29,28,'+(WVDIM/255).toFixed(3)+')';
   if(y>vy0)g.fillRect(vx0,vy0,vx1-vx0,y-vy0);if(y+D<vy1)g.fillRect(vx0,y+D,vx1-vx0,vy1-y-D);if(x>vx0)g.fillRect(vx0,y,x-vx0,D);if(x+D<vx1)g.fillRect(x+D,y,vx1-x-D,D)}
  // markers: route waypoints, the tap destination, the contract

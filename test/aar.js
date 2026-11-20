@@ -68,7 +68,7 @@ const BGS=['sellsword','squire','hunter','acolyte','hedge','knight','militia','m
 const TIERS=[{lvl:3,size:6,day:6,w:[],a:[]},{lvl:8,size:8,day:24,w:['arming','waraxe','warspear','mace','pike','handaxe'],a:['leather','padded','mail']},
  {lvl:14,size:12,day:50,w:['riftedge','waraxe','pike','mace','greataxe','rondel'],a:['plate','scale','mail']}];
 function company(X,tier,seed){X.seedRng(seed);X.newGame(true);X.closeSheet(true);const G=X.G;G.roster.length=0;
- for(let i=0;i<tier.size;i++){const m=X.newMerc(BGS[(i+seed)%BGS.length]);m.field=true;X.gainXP(m,X.XPT[tier.lvl]);m.pend=0;m.pp=tier.lvl;X.autoLearn(m);
+ for(let i=0;i<tier.size;i++){const m=X.newMerc(BGS[(i+seed)%BGS.length]);m.field=true;X.gainXP(m,X.XPT[tier.lvl]);if(i===0&&tier.lvl<10&&X.XPT[tier.lvl+1])m.xp=X.XPT[tier.lvl+1]-5;/* the first sword stands at the edge of its next level: a won battle shows a level-up whatever the seed */m.pend=0;m.pp=tier.lvl;X.autoLearn(m);
   const wt=m.eq.w?X.ITEMS[m.eq.w].wt:'fist';
   if(wt==='bow'){if(tier.lvl>4)m.eq.w='warbow'}else if(wt==='staff'){if(tier.lvl>4)m.eq.w='focus'}else if(tier.w.length){m.eq.w=tier.w[(i+seed)%tier.w.length];if(X.ITEMS[m.eq.w].two)m.eq.s=null}
   if(tier.a.length)m.eq.a=tier.a[(i+seed)%tier.a.length];m.hp=X.calc(m).hp;G.roster.push(m)}
@@ -149,7 +149,8 @@ function install(X){const ctx=X.ctx,R={tal:new Map(),kills:[],inj:[],calls:[]};
   `top bonus / base: median ${(med*100).toFixed(0)}%, range ${(tk[0]*100).toFixed(0)}..${(tk[tk.length-1]*100).toFixed(0)}%, ${S.capped} capped; ${S.zero} idle swords at base`);
 
  console.log('== deterministic, and no draws ==');
- { const run=async(pool)=>{X.G.roster=JSON.parse(JSON.stringify(ROS[2]));X.G.day=50;X.G.diff='normal';const p0=X.AAR.pool;X.AAR.pool=pool;X.seedRng(SEED+777);
+ { const G0=JSON.stringify(X.G);   // each run from the same world (the loot a won battle rolls depends on what the company already holds: famed finds, the stash)
+   const run=async(pool)=>{X.G=JSON.parse(G0);X.G.roster=JSON.parse(JSON.stringify(ROS[2]));X.G.day=50;X.G.diff='normal';const p0=X.AAR.pool;X.AAR.pool=pool;X.seedRng(SEED+777);
     const r=await X.autoBattle({src:{type:'sim'},turnCap:4000,f:'gob',mult:.5,biome:'plains'});X.AAR.pool=p0;const st=X.rngState(),xp=r.men.map(x=>x.xp?x.xp.base+'+'+x.xp.bonus:'-').join();X.settleBattle(r.win);return{st,xp,win:r.win,bonus:r.bonus}};
    const a=await run(X.AAR.pool),b=await run(X.AAR.pool),c=await run(0);ok(a.win&&a.bonus>0,'the check battle should be won with a bonus');
    ok(a.xp===b.xp&&a.st===b.st,'the same battle twice: different xp');ok(c.bonus===0&&c.st===a.st,'the bonus draws from the seeded stream');

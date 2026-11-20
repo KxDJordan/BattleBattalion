@@ -80,7 +80,7 @@ function openBattleMap(tiles){const N=BW*BH,start=key(COLS[0],BH-1);
   const prev=new Int32Array(N).fill(-1),vis=seen.slice(),bq=q.slice();let hit=-1;
   for(let i=0;i<bq.length&&hit<0;i++){const c=bq[i]%BW,r=(bq[i]/BW)|0;for(const [a,b] of DIRS){const nc=c+a,nr=r+b;if(!inb(nc,nr))continue;const nk=key(nc,nr);if(vis[nk])continue;vis[nk]=1;prev[nk]=bq[i];if(tiles[nk].t!=='block'){hit=nk;break}bq.push(nk)}}
   if(hit<0)return;for(let k=prev[hit];k>=0&&!seen[k];k=prev[k])tiles[k].t='ground'}}
-function buildEnemies(f,budget,fixed,mult){if(typeof FACT[f].build==='function'&&!(fixed&&fixed.length))return FACT[f].build(budget,mult==null?1:mult).slice(0,MAXFOES);const list=(fixed||[]).slice(),U=FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
+function buildEnemies(f,budget,fixed,mult,units){if(typeof FACT[f].build==='function'&&!(fixed&&fixed.length))return FACT[f].build(budget,mult==null?1:mult).slice(0,MAXFOES);const list=(fixed||[]).slice(),U=Array.isArray(units)&&units.length&&units.every(u=>Array.isArray(u)&&EN[u[0]]&&u[1]>0)?units:FACT[f].units,minC=Math.min(...U.map(u=>u[1]));let g=0;
  const solo=typeof isSolo==='function'&&isSolo()&&!(fixed&&fixed.length);
  // one sword who hunts a monster band it cannot yet afford meets the monster itself, alone (an ogre, not its goblin hangers-on)
  if(solo&&FACT[f].tier==='mid'&&!list.length&&U[0][1]>budget){list.push(U[0][0]);budget=0}
@@ -209,7 +209,7 @@ function mkRosterUnit(e,f,dk){const u=mkEnemy(e.id,e.f&&FACT[e.f]?e.f:f);u.rx=ro
  {const nm=String(EN[e.id].n).toLowerCase();u.name=e.elite?'Elite '+nm:u.rank>=1.5?'Veteran '+nm:EN[e.id].n}if(e.name)u.name=e.name;   // 'Elite' only for the elite-markedu.elite=e.elite?1:0;
  if(Array.isArray(e.el)&&e.el.length)u.elRos=e.el.slice();   // explicit elite modifiers of a fixed roster entry (64e-elites.js)
  if(e.at&&Number.isInteger(e.at.c)&&Number.isInteger(e.at.r)&&inb(e.at.c,e.at.r))u.slot={c:e.at.c,r:e.at.r};return u}
-function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o)*(typeof eliteKeep==='function'?eliteKeep(o):1),o.fixed,o.mult))
+function previewEnemies(o){if(o&&o.rival&&battleRival(o.rival))return[];if(o&&o.fabledOnly)return[];if(o&&Array.isArray(o.roster))return rosterList(o).map(e=>e.id);if(o&&o.fabledOnly)return[];const L=o.foes||o.fixedAll,n={};return(Array.isArray(L)&&L.length&&L.every(id=>EN[id])?L.slice(0,MAXFOES):buildEnemies(o.f,battleBudget(o)*(typeof eliteKeep==='function'?eliteKeep(o):1),o.fixed,o.mult,o.units))
  .map(id=>{const d=EN[id];n[id]=(n[id]||0)+1;return d.max&&d.sub&&EN[d.sub]&&n[id]>d.max?d.sub:id})}
 function battlePreview(o){const bk=BIO[o.biome]?o.biome:BIOKEY[tileAt(G.p.x,G.p.y)]||'plains',rv=o.rival?battleRival(o.rival):null,budget=rv||Array.isArray(o.roster)?0:battleBudget(o);
  const tiles=Array.isArray(o.tiles)&&o.tiles.length===BW*BH?o.tiles:genBattleMap(bk);

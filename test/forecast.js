@@ -107,7 +107,7 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
     if(!t.shield){S.splitBroke++;ok(f.shield.brk&&t.shp===0,'the shield broke but the forecast said it could not: '+tag)}else ok(!f.shield.sure,'the forecast promised a broken shield: '+tag)}
    else ok(f.shield===null,'forecast shows shield damage on a unit without a shield: '+tag);return hit}
   ok(f.shield===null&&t.shp===shp0,'a blow that does not split shields damaged one: '+tag);
-  if(!hit){const strays=kids.filter(x=>x.u===u&&x.o.stray),rips=kids.filter(x=>x.u===t&&x.t===u&&x.o.free==='riposte'),thorn=rips.length&&u.elite&&u.elite.includes('thorns');   // a riposte into a Thorned elite costs the riposter
+  if(!hit){const strays=kids.filter(x=>x.u===u&&x.o.stray),rips=kids.filter(x=>x.u===t&&x.t===u&&x.o.free==='riposte'),thorn=rips.length&&u.elite&&(u.elite.includes('thorns')||(u.elite.includes('volatile')&&!u.alive));   // a riposte into a Thorned elite costs the riposter; one that kills a Volatile elite takes its blast
    ok(!ev&&(thorn||t.hp===hp0&&t.arm===arm0&&t.helm===helm0),'a miss did damage: '+tag);ok(!sure,'a strike that cannot miss missed: '+tag);
    for(const x of strays)ok(f.ff.some(y=>y.t===x.t),'a shot strayed into an ally the forecast did not name: '+tag);ok(strays.length<=1,'one miss strayed twice: '+tag);
    if(rips.length){S.riposte++;ok(f.riposte,'a riposte the forecast did not announce: '+tag)}else ok(!f.riposte,'the forecast announced a riposte that did not come: '+tag);
