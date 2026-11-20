@@ -150,7 +150,7 @@ section('throws');
   // a fresh stack every battle
   const A2=await arena(SEED+3,X.G.roster);ok(A2.P.every(x=>X.ammoLeft(x)===X.ammoMax(x,x.wpn)),'every battle starts with full stacks');X.B=null;X.mode='world';
   // a foe that throws: its stack, then it closes in
-  const A3=await arena(SEED+4,[merc('woodcutter','taxe',[])],['bknife','bknife']);const k=A3.E[0];ok(X.ammoLeft(k)===6&&k.back&&k.abs.includes('tstrike'),'a brigand knife-thrower has his knives');
+  const A3=await arena(SEED+4,[merc('woodcutter','taxe',[])],['bknife','bknife']);const k=A3.E[0];ok(X.ammoLeft(k)>=6&&X.ammoLeft(k)===X.ammoMax(k,k.wpn)&&k.back&&k.abs.includes('tstrike'),'a brigand knife-thrower has his knives (a full stack: 6, more with an ammo perk)');
   X.setAmmo(k,1);X.payFor(k,X.abilityInfo(k,'attack'));ok(X.ammoLeft(k)===0&&!k.back&&k.role!=='sniper','an empty-handed thrower stops hanging back');X.B=null;X.mode='world';
   console.log('Double throw, shuriken bleed, bolas root, fresh stacks, foes that throw: ok') }
 
