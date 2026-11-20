@@ -202,6 +202,9 @@ section('levels');
    X.gainXP(m,1e6);ok(m.lvl===20,'level 20 is the top');ok(X.campXpPct(m)===100&&X.campTrainInfo(m).why==='At the highest level','camp: nothing to drill at 20');
    const v=X.clone(m);v.pp=0;v.pend=0;ok(X.coTalents(v,0).detail.includes('Every point is spent'),'talents at 20: every point spent');
    const w=X.newMerc('militia');X.gainXP(w,T[16]);w.pp=0;w.pend=0;ok(/No new mastery points after level 15/.test(X.coTalents(w,0).detail),'talents at 16: no new mastery points after 15');
+   { const d=X.newMerc('militia');G.roster.push(d);G.crowns=1e6;const per=L=>{X.gainXP(d,X.XPT[L]-d.xp);d.hp=X.calc(d).hp;const T=X.campTrainInfo(d);return{xp:T.xp,n:(X.XPT[L+1]-X.XPT[L])/T.xp}},a=per(5),b=per(10),c=per(14),e=per(16);
+     ok(a.xp===Math.round(X.CAMP.trainXP0+900*X.CAMP.trainXP)&&c.xp===Math.round(X.CAMP.trainXP0+3000*X.CAMP.trainXP),'drills pay as before ('+a.xp+' at 5, '+c.xp+' at 14)');
+     ok(a.n<b.n&&b.n<c.n&&c.n<e.n,'drills a level grow with the level: '+[a,b,c,e].map(x=>x.n.toFixed(1)).join(' '));G.roster.pop() }
    ok(X.brOpens(15,16).some(t=>/no new mastery point/.test(t))&&!X.brOpens(14,15).some(t=>/mastery point/.test(t)),'the after-battle report: attributes only past 15');
    const vet=X.makeVeteran(X.newMerc('knight'),20);ok(vet.lvl===20&&vet.pend===0&&vet.pp+vet.perks.length<=15,'a level-20 veteran: 20 levels, at most 15 points ('+vet.perks.length+' perks, '+vet.pp+' left)');
    ok(X.mercBud(20)>X.mercBud(15)&&X.mercBud(20)-X.mercBud(15)<X.mercBud(15)-X.mercBud(10),'enemy budget: a level past 15 counts less ('+X.mercBud(10).toFixed(0)+' '+X.mercBud(15).toFixed(0)+' '+X.mercBud(20).toFixed(0)+')')}

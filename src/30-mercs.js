@@ -119,6 +119,9 @@ function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||
  if(s.flags.initDef){s.initDef=Math.floor(s.flags.initDef*Math.max(0,s.init));s.md+=s.initDef;s.rd+=s.initDef}else s.initDef=0;   // Quicksilver (light armor): a share of the initiative as defense
  s.readDef=0;if(s.flags.readInit){s.readDef=Math.max(0,Math.min(READINIT.max,Math.floor((s.init-READINIT.from)/READINIT.per),READINIT.cap-s.initDef));s.md+=s.readDef;s.rd+=s.readDef;s.initDef+=s.readDef}   // Read the blade (Shadowdancer): 1 a READINIT.per initiative above READINIT.from, at most READINIT.max, Quicksilver and it at most READINIT.cap
  if(s.hp<5)s.hp=5;if(s.fat<20)s.fat=20;s.ap=clamp(Math.round(s.ap),4,12);return s}
+// drillGap(lv): the xp a drill (camp, a town's hall) counts its share of: the level's step on the old table (XPT1, ~4 fights' xp at every
+// level), +5% a level past it, not today's steeper step: drills, like fights, take more sessions a level the higher the sword stands
+function drillGap(lv){const O=XPT1.length-1;lv=Math.max(1,lv|0);return lv<O?XPT1[lv+1]-XPT1[lv]:(XPT1[O]-XPT1[O-1])*Math.pow(1.05,lv-O+1)}
 // a level brings three attribute rolls (pend) and, up to PPLV (15), a mastery point (pp); levels past PPLV bring the rolls only
 function gainXP(m,x){m.xp+=x;while(m.lvl<MAXLV&&m.xp>=XPT[m.lvl+1]){m.lvl++;if(m.lvl<=PPLV)m.pp++;m.pend++}}
 function fielded(){let f=G.roster.filter(m=>m.field);if(!f.length){G.roster.slice(0,MAXFIELD).forEach(m=>m.field=true);f=G.roster.filter(m=>m.field)}return f.slice(0,MAXFIELD)}

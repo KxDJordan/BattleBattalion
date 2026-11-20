@@ -34,13 +34,14 @@ const RUNAWAY=60000,HOARD=15000;   // runaway: no Normal or Hard run above it by
 const FLOWBAND=[3,6];
 // The roster variants (reported, judged against FLOWBAND_X): the same swords (levels, gear, power) under the commonest (BGC: tavern weight 4-5)
 // or the rarest backgrounds (BGR: weight 1 or less): their wages differ ~3x by level 12, the pay does not (it follows power, not the roster).
-// L15x12: the L12x12 company at level 15 (day 80, Legendary).
+// L15x12: the L12x12 company at level 15 (day 80, Legendary); L20x12: at level 20, the top (day 160, Legendary: levels 16-20 bring no
+// mastery point, wages +5% a level past 15).
 const BGC=['farmhand','militia','hunter','butcher','miner','woodcutter','poacher','deserter','brigand'],BGR=['knight','noble','hedgeknight','witchhunter','cultist','gladiator'];
 const FLOWBAND_X=[2,9];
 function flows(){process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();const X=L.makeContext(),rows=[];
- const P15=Object.assign({},L.PROFILES.find(p=>p.id==='L12x12'),{id:'L15x12',lvl:15,day:80});
+ const P15=Object.assign({},L.PROFILES.find(p=>p.id==='L12x12'),{id:'L15x12',lvl:15,day:80}),P20=Object.assign({},P15,{id:'L20x12',lvl:20,day:160});
  for(const [pid,ren,mix] of [['L1x4',0],['L4x6',60],['L8x9',340],['L8x9',340,'common'],['L8x9',340,'rare'],['L12x12',620],['L12x12',1000],['L12x12',620,'common'],['L12x12',620,'rare'],
-   ['L15x12',1000],['L15x12',1000,'common'],['L15x12',1000,'rare']]){const P=pid==='L15x12'?P15:L.PROFILES.find(p=>p.id===pid),R=L.buildCompany(X,P,1234),G=X.G;
+   ['L15x12',1000],['L15x12',1000,'common'],['L15x12',1000,'rare'],['L20x12',1000],['L20x12',1000,'common'],['L20x12',1000,'rare']]){const P=pid==='L15x12'?P15:pid==='L20x12'?P20:L.PROFILES.find(p=>p.id===pid),R=L.buildCompany(X,P,1234),G=X.G;
   G.roster=X.clone(R);G.roster.forEach((m,i)=>{m.field=true;if(mix)m.bg=(mix==='rare'?BGR:BGC)[i%(mix==='rare'?BGR:BGC).length]});G.day=P.day;G.renown=ren;const w=X.companyWages();let s=0,n=0;X.seedRng(77);
   for(let k=0;k<300;k++){const ti=k%G.towns.length,c=X.genContract2(G.towns[ti],ti);if(c){s+=c.pay;n++}}
   rows.push({pid,ren,mix:mix||'',wages:w,power:X.companyPower(),pay:Math.round(s/n),days:s/n/w,purse:typeof X.colPurseBase==='function'?Math.round(X.colPurseBase(X.companyPower())*(typeof X.ctrVetK==='function'?X.ctrVetK():1)):0})}

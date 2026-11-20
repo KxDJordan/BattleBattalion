@@ -3,7 +3,7 @@
      m.trees  [tree keys] fixed at creation: 4 trees from BG[bg].pool (style trees, and for a background with BG[bg].hw maybe the
               Monster hunter tree in place of the 4th: rollTrees), plus its gift tree when it has one
      m.gift   the gift tree key (a MAST entry of kind 'gift') or null; chosen from the gift and BG[bg].style (giftKey)
-     m.perks  [perk ids] learned, in order;  m.pp unspent perk points (one a level, level 1 included)
+     m.perks  [perk ids] learned, in order;  m.pp unspent perk points (one a level, level 1 included, to PPLV 15: levels 16-20 bring none)
    The Weapon mastery tree is not stored: every merc whose background allows a weapon family has it (weaponTrees(m) -> ['weapons']),
    and of its perks (one per family, perk.wt) only those of weaponTypes(m) = BG[bg].wt minus RACE[race].noWt are listed or learnable.
    Armor trees are not stored either: armorTrees(m) = BG[bg].at (1 or 2 of lightarmor medarmor heavyarmor); their tier t opens at level 3t-1.
