@@ -11,9 +11,7 @@ hurt, dead):
                                 pauldron over the near shoulder, the axe right of the hand that holds it).
   assets/foes/orc-crusher.webp  the Orc crusher (EN 'obrute'): the same parts in mail and a helmet, then the war hammer; eight frames a
                                 row (seven dead). The far fist is cut from the right arm as its own piece so it can close over the haft.
-  assets/foes/orc-warlord.webp  the Orc warlord (EN 'orcl'): horned great helm, black plate and a red cape, a double-headed battle axe;
-                                eight frames a row (seven dead); its cast is red fire, not purple.
-Writes src/76j-orcatlas.js: ORA (warrior), OCA (crusher) and OLA (warlord), each the frames and the pieces packed in one half-size webp atlas, the
+Writes src/76j-orcatlas.js: ORA (warrior) and OCA (crusher), each the frames and the pieces packed in one half-size webp atlas, the
 frames' anchors (the body's centre over the feet), each piece's pivot and the rig's setup pose. The setup pose is placed on the
 reference (ref px) and brought to the frames' scale by the attack row's first frame (the same standing pose as the reference): the same
 height, and the origin at the composed pose's own body centre over its feet (as the frames' anchors are), so the idle stands centred on its
@@ -51,15 +49,7 @@ ORCS = {
   setup=[('arm_r', 'arm_r', (143, 87), 0, 1.0), ('leg_l', 'leg_l', (47, 172), 0, 1.05), ('leg_r', 'leg_r', (119, 172), 0, 1.05),
          ('torso', 'torso', (95, 120), 0, 1.0), ('head', 'head_neutral', (97, 42), 0, 1.0), ('hammer', 'hammer', (142, 128), 2, 1.08),
          ('fist_r', 'fist_r', (143, 87), 0, 1.0), ('arm_l', 'arm_l', (47, 93), 0, 1.05)],
-  rows=[('run', 375, 560), ('attack', 555, 765), ('cast', 765, 965), ('hurt', 965, 1150), ('death', 1150, 1340, 7)], a0=(70, 690)),
- 'OLA': dict(title='ORC WARLORD', src='orc-warlord.webp', ref=(5, 6), n=8, head_band=(200, 320), head_part=(560, 115),
-  parts={'arm_l': (276, 112), 'torso': (366, 120), 'arm_r': (470, 112), 'leg_l': (638, 137), 'leg_r': (705, 137), 'axe': (820, 111)},
-  poly={}, lower={'fist_r': ('arm_r', .6)},
-  piv={'arm_l': (.55, .12), 'arm_r': (.45, .12), 'fist_r': (.45, .12), 'leg_l': (.5, .1), 'leg_r': (.5, .1), 'torso': (.5, .5), 'axe': (.5, .5), 'head': (.5, .86)},
-  setup=[('arm_r', 'arm_r', (120, 63), 0, .85), ('leg_l', 'leg_l', (56, 158), 0, .85), ('leg_r', 'leg_r', (114, 158), 0, .85),
-         ('torso', 'torso', (95, 112), 0, .92), ('head', 'head_neutral', (97, 42), 0, .92), ('axe', 'axe', (128, 112), 0, 1.0),
-         ('fist_r', 'fist_r', (120, 63), 0, .85), ('arm_l', 'arm_l', (70, 79), 0, .9)],
-  rows=[('run', 330, 458), ('attack', 458, 640), ('cast', 640, 800), ('hurt', 800, 945), ('death', 945, 1112, 7, 111 / 138)], a0=(60, 560))}   # its dead row is drawn larger: brought to the others' size by the first frames
+  rows=[('run', 375, 560), ('attack', 555, 765), ('cast', 765, 965), ('hurt', 965, 1150), ('death', 1150, 1340, 7)], a0=(70, 690))}
 
 def align(src, ref, d=12):
     A = src[..., :3]; Ma = src[..., 3] > 250; R = ref[..., :3]; Mr = ref[..., 3] > 250; best = (1e18, 0, 0)
@@ -117,13 +107,15 @@ def build(var, C):
     for slot, n, c, rot, sc in C['setup']:
         if n.startswith('head_'): sc *= head_k
         SETUP.append((slot, n, centre_to_pivot(n, c, rot, sc), rot, sc))
-    CV = Image.new('RGBA', (420, 340)); OFF = (60, 40)
+    CV = Image.new('RGBA', C.get('canvas', (420, 340))); OFF = (60, 40)
     for slot, n, at, rot, sc in SETUP: place(CV, P[n], pivot(n), (at[0] + OFF[0], at[1] + OFF[1]), rot, sc)
     comp = np.array(CV).astype(np.float64)
     cax, cay = ff.anchor(comp); ys = np.nonzero(comp[..., 3] > 128)[0]
     ORG = (cax - OFF[0], cay - OFF[1]); H_SET = float(cay - ys.min())
     A, b64, nbytes = ff.frame_sheet(S if 'img' in C else src, C['rows'], C['n'], 0.5, H_row=C.get('H_row', 'attack'), extra=P, xmin=C.get('xmin', 0), keep_o='post' in C)
     F = A['H'] / H_SET          # ref px -> WU: the setup pose as tall as the attack row's first frame
+    if C.get('h_opaque'):       # (make-keyed-atlas.py) as tall as that frame's opaque rows, as H_SET is measured, not its soft-edged box
+        ys0 = np.nonzero(comp_cut(C['a0'])[..., 3] > 128)[0]; F = (ys0.max() + 1 - ys0.min()) / H_SET
     # the origin: where the composed pose (at F) best covers the attack row's first frame (alpha overlap of the head and shoulders,
     # +-12 px), that frame's anchor on the origin
     a0 = comp_cut(C['a0']); a0x, a0y = ff.anchor(a0)   # the first frame of the row the setup is sized by
@@ -157,10 +149,10 @@ def build(var, C):
           (C['title'], A['w'] * 2, A['h'] * 2, nbytes // 1024, A['H'], H_SET, F, best[0], best[1], best[2]))
     return 'const %s=%s;\n%s.src=\'data:image/webp;base64,%s\';\n' % (var, json.dumps(A, separators=(',', ':')), var, b64)
 
-if __name__ == '__main__':      # (imported by make-skel-atlas.py for build())
+if __name__ == '__main__':      # (imported by make-skel-atlas.py and make-keyed-atlas.py for build())
 
-    js = ['/* ================= ORC ATLASES (generated by assets/make-orc-atlas.py from assets/foes/orc-warrior.webp, orc-crusher.webp and orc-warlord.webp; do not edit) =================\n'
-          '   ORA (the warrior) / OCA (the crusher) / OLA (the warlord): .f[anim] = the drawn frames, each {r: [x,y,w,h] in the atlas (px of this half-size webp), w h: the\n'
+    js = ['/* ================= ORC ATLASES (generated by assets/make-orc-atlas.py from assets/foes/orc-warrior.webp and orc-crusher.webp; do not edit) =================\n'
+          '   ORA (the warrior) / OCA (the crusher): .f[anim] = the drawn frames, each {r: [x,y,w,h] in the atlas (px of this half-size webp), w h: the\n'
           '   frame in sheet px, ax ay: the body\'s centre over the feet, frame px}, facing right: run, attack, cast, hurt, death; .H: the attack\n'
           '   row\'s first frame\'s height (WU). .p[piece] = {r, w, h, pv: the pivot, piece px}: the rig\'s parts and eight heads. .set: the rig\'s setup\n'
           '   pose [slot, piece, x, y (WU from the feet), turn deg, scale] in draw order. Read by 76k-orc.js. */\n']
