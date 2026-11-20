@@ -273,8 +273,8 @@ function eastWarSheet(){const v=eastWar();if(!v||typeof sheet!=='function')retur
 function eastNoteSheet(n){if(n==='east'||n==='eastend')return eastWarSheet();return false}
 
 /* ---- markets: eastern stalls carry eastern gear (about two thirds of the stock), western stalls almost none ----
-   eastStock(t, stock, maxT) -> the stock list (draws rnd: call it where stockTown rolls the stalls). */
-function eastStock(t,stock,maxT){if(!t||!Array.isArray(stock)||typeof marketPool!=='function'||typeof stockPick!=='function')return stock;const pool=marketPool(maxT),E=pool.filter(id=>ITEMS[id].east),Wp=pool.filter(id=>!ITEMS[id].east);
+   eastStock(t, stock, maxT, r?) -> the stock list (draws from r, the market's own stream (50-towns.js mkDraw); rnd without it). */
+function eastStock(t,stock,maxT,r){r=typeof r==='function'?r:rnd;if(!t||!Array.isArray(stock)||typeof marketPool!=='function'||typeof stockPick!=='function')return stock;const pool=marketPool(maxT),E=pool.filter(id=>ITEMS[id].east),Wp=pool.filter(id=>!ITEMS[id].east);
  const eastern=!!t.east||t.own==='east';return stock.map((id,k)=>{const it=ITEMS[id];if(!it||it.k==='t')return id;
-  if(eastern)return!it.east&&E.length&&(k%3!==2)?stockPick(E.filter(e=>ITEMS[e].k===it.k).length?E.filter(e=>ITEMS[e].k===it.k):E,maxT):id;
-  return it.east&&Wp.length&&rnd()<.9?stockPick(Wp.filter(e=>ITEMS[e].k===it.k).length?Wp.filter(e=>ITEMS[e].k===it.k):Wp,maxT):id})}
+  if(eastern)return!it.east&&E.length&&(k%3!==2)?stockPick(E.filter(e=>ITEMS[e].k===it.k).length?E.filter(e=>ITEMS[e].k===it.k):E,maxT,r):id;
+  return it.east&&Wp.length&&r()<.9?stockPick(Wp.filter(e=>ITEMS[e].k===it.k).length?Wp.filter(e=>ITEMS[e].k===it.k):Wp,maxT,r):id})}

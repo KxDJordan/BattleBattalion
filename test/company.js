@@ -72,7 +72,7 @@ section('contracts by tier');
   const end=L=>L.filter(c=>X.FACT[c.f].tier==='end').length/L.length,mid=L=>L.filter(c=>X.FACT[c.f].tier==='mid').length/L.length;
   ok(end(hi)>end(lo)*3&&mid(hi)>mid(lo),'renown opens the stronger factions: end '+end(lo).toFixed(3)+' -> '+end(hi).toFixed(3)+', mid '+mid(lo).toFixed(3)+' -> '+mid(hi).toFixed(3));
   const avg=(L,d)=>{const x=L.filter(c=>c.diff===d&&X.FACT[c.f].tier==='early');return x.reduce((a,c)=>a+c.pay,0)/Math.max(1,x.length)};
-  ok(avg(hi,2)>avg(lo,2)*1.6,'pay multiplier: '+avg(lo,2).toFixed(0)+' -> '+avg(hi,2).toFixed(0));
+  {const k=X.RENOWN[X.RENOWN.length-1].pay/X.RENOWN[0].pay;ok(k>1.2&&Math.abs(avg(hi,2)/avg(lo,2)-k)<.08*k,'pay multiplier (x'+k+'): '+avg(lo,2).toFixed(0)+' -> '+avg(hi,2).toFixed(0))}
   X.companyPower=P0;
   // a five-skull lair fields a stronger band
   ok(X.CTR_DIFFK.length===5&&X.CTR_DIFFK.every((k,i)=>!i||k>X.CTR_DIFFK[i-1]),'lair strength rises with every skull');

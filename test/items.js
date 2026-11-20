@@ -72,15 +72,16 @@ section('catalog');
 
 section('markets');
 { X.seedRng(SEED);X.newGame(true);closeAll(X);const G=X.G,t=G.towns[0],tierOf=id=>I[id].tier;
-  const roll=(size,day,n)=>{const s0=t.size,d0=G.day;t.size=size;G.day=day;const L=[];for(let i=0;i<n;i++){X.stockTown(t);L.push(...t.stock)}t.size=s0;G.day=d0;return L};
+  t.pros=50;t.sit=[];   // an ordinary market (prosperity and troubles move the tier: test/shops.js)
+  const roll=(size,day,n)=>{const s0=t.size,d0=G.day;t.size=size;G.day=day;const L=[];for(let i=0;i<n;i++){L.push(...X.mkRoll(t,0,i,[],1))}t.size=s0;G.day=d0;return L};
   ok(X.marketTier(1,1)===2&&X.marketTier(3,1)===2&&X.marketTier(2,40)===3&&X.marketTier(3,40)===5&&X.marketTier(3,16)===4,'marketTier by size and day');
   for(const [size,day,maxT] of [[1,1,2],[1,60,3],[2,3,2],[2,60,3],[3,2,2],[3,10,3],[3,20,4],[3,45,5]]){const L=roll(size,day,30);
    ok(L.every(id=>I[id]&&!I[id].famed&&!I[id].uniq),'markets never stock famed or unique items');ok(Math.max(...L.map(tierOf))===maxT,`size ${size} day ${day}: top tier ${Math.max(...L.map(tierOf))}, want ${maxT}`);
    ok(L.filter(id=>tierOf(id)<=2).length>=L.length*.2,'low tiers stay on the stalls')}
   ok(roll(1,80,40).every(id=>tierOf(id)<=3)&&roll(2,80,40).every(id=>tierOf(id)<=3),'tier 4 and 5 only in cities');
   { const L=roll(3,45,40),cnt=L.filter(id=>tierOf(id)>=4).length;ok(cnt>0&&cnt<L.length*.6,'a late city stocks some tier 4-5') }
-  X.stockTown(t);ok(t.stock.length===9&&t.stock.some(id=>I[id].k==='h'),'nine items, a helmet among them');
-  G.town=0;G.crowns=1e6;X.openTown(0);closeAll(X);G.town=0;const n0=G.stash.length,id=t.stock[0];X.buyItem(0);ok(G.stash.length===n0+1&&G.stash[n0]===id,'buyItem');const c0=G.crowns;X.sellItem(n0);ok(G.crowns===c0+X.mkSellPrice(id,0),'sellItem');
+  t.size=2;X.mkRestock(t,true);ok(t.stock.length===9&&t.stock.some(id=>I[id].k==='h'),'a town: nine items, a helmet among them');
+  G.town=0;G.crowns=1e6;X.openTown(0);closeAll(X);G.town=0;const n0=G.stash.length,id=t.stock[0];X.buyItem(0);ok(G.stash.length===n0+1&&G.stash[n0]===id,'buyItem');const c0=G.crowns,sp=X.mkSellPrice(id,0);X.sellItem(n0);ok(G.crowns===c0+sp,'sellItem');
   // hunt contracts: a faction from the pool, a lair on its biomes, pay by tier
   let hunts=0;for(let i=0;i<200;i++){const c=X.genContract(t);if(c.type!=='hunt')continue;hunts++;ok(X.FACT[c.f]&&isFinite(c.x)&&isFinite(c.y)&&c.pay>0&&!/\{place\}/.test(c.title),'hunt contract '+JSON.stringify(c))}
   ok(hunts>=90,'hunts posted: '+hunts);console.log('market tiers by size and day, stock rules, buy / sell, '+hunts+' hunt contracts'+(typeof X.factionPool==='function'?' (from factionPool)':' (fallback list)')+': ok') }

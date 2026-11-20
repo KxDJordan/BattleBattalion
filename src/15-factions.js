@@ -112,6 +112,7 @@ function townPriceWhy(i,kind,id){const t=G&&G.towns&&G.towns[i],out=[];if(!t)ret
  const h=houseById(t.own),P=h&&HPERS[h.pers];if(P&&P.greed!==1&&!sell)out.push({k:P.greed,why:`${h.n} is ${P.n.toLowerCase()}`});
  for(const s of t.sit){const S=SITS[s.k];if(!S)continue;let k=1;if(kind==='hire')k=S.recruits>1?.95:S.recruits<.6?1.1:1;else k=S.price[kind==='food'?'food':sell?'sell':'buy']||1;if(kind==='tools'&&s.k==='famine')k=1;if(k!==1)out.push({k,why:S.n})}
  const p=svNum(t.pros,50),pk=sell?.94+p*.0012:kind==='hire'?1:1.08-p*.0016;if(Math.abs(pk-1)>.015)out.push({k:Math.round(pk*100)/100,why:p>=60?'A prosperous town':p<40?'A poor town':'Prosperity'});
+ if(kind==='buy'){const sk=townStockK(i);if(sk>0&&sk<.95)out.push({k:Math.round((1+Math.min(.15,(1-sk)*.3))*100)/100,why:'Scarce goods'})}   // thin stalls (50-towns.js mkEcon): dearer gear
  for(const g of t.spec||[]){const S=GOODS[g];if(!S)continue;if(S.kind===kind||(kind==='buy'&&id&&goodMatch(g,id)))out.push({k:S.k,why:`Specialty: ${S.n.toLowerCase()}`})}
  if(typeof runModPriceWhy==='function')runModPriceWhy(out,kind,id);   // the run's twists (27-runmods.js)
  return out}
@@ -151,7 +152,7 @@ function houseRelation(a,b){if(a===b)return 'self';if(!humanFact(a)||!humanFact(
    time it passes (advanceTime). */
 const BLDK={repairPt:.35,respec0:150,respecPer:60,hallK:1.25,sailBase:40,sailPer:6,sailTiles:22};
 function bldMerc(id){return G&&G.roster&&id!=null?G.roster.find(m=>String(m.id)===String(id))||null:null}   // the UI passes ids as text (onclick strings), the roster keeps numbers
-function bldTop(i,f,n){const t=G.towns[i],cap=Math.min(5,(typeof marketTier==='function'?marketTier(t.size,G.day):2)+1);
+function bldTop(i,f,n){const t=G.towns[i],cap=Math.min(5,(typeof mkTier==='function'?mkTier(i):typeof marketTier==='function'?marketTier(t.size,G.day):2)+1);   // one tier above the market (its economy included)
  return Object.keys(ITEMS).filter(k=>{const it=ITEMS[k];return!it.uniq&&!it.famed&&(it.tier||1)<=cap&&f(it)}).sort((a,b)=>(ITEMS[b].tier||1)-(ITEMS[a].tier||1)||ITEMS[b].price-ITEMS[a].price||(a<b?-1:1)).slice(0,n||6)}
 function bldPrice(i,base,kind){return Math.max(1,Math.round(base*townPriceK(i,kind||'buy')/5)*5)}
 function harbourList(i){const t=G.towns[i],out=[];if(!t||!townHas(i,'harbour'))return out;G.towns.forEach((o,j)=>{if(j===i||!Array.isArray(o.bld)||!o.bld.includes('harbour'))return;const d=Math.hypot(o.x-t.x,o.y-t.y)/TS;

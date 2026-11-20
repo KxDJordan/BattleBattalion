@@ -263,7 +263,7 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  g.renown=Math.max(0,svNum(g.renown,0));g.crisisDay=svNum(g.crisisDay,18);g.grace=svNum(g.grace,0);g.healAcc=clamp(svNum(g.healAcc,0),0,48);g.zoom=svFin(g.zoom)&&g.zoom>0?clamp(g.zoom,.05,20):1;
  g.stash=Array.isArray(g.stash)?g.stash.filter(id=>!!ITEMS[id]):[];
  g.towns.forEach((t,i)=>{if(typeof t.name!=='string'||!t.name)t.name=TOWNN[i%TOWNN.length];t.ref=svNum(t.ref,-99);t.size=clamp(Math.round(svNum(t.size,1)),1,3);
-  t.recruits=Array.isArray(t.recruits)?t.recruits.filter(repairMerc):[];t.stock=Array.isArray(t.stock)?t.stock.filter(id=>!!ITEMS[id]&&!ITEMS[id].famed):[];
+  t.recruits=Array.isArray(t.recruits)?t.recruits.filter(repairMerc):[];t.stock=Array.isArray(t.stock)?t.stock.filter(id=>!!ITEMS[id]&&!ITEMS[id].famed):[];if(svFin(t.mkEp))t.mkEp=Math.max(0,Math.floor(t.mkEp));else delete t.mkEp;if(!(svObj(t.mkSold)&&svFin(t.mkSold.ep)&&svFin(t.mkSold.v)))delete t.mkSold;else t.mkSold={ep:Math.max(0,Math.floor(t.mkSold.ep)),v:Math.max(0,Math.round(t.mkSold.v))};   // the stock's market week; what the dealers bought this week (50-towns.js mkRestock); an old save restocks at the next visit
   t.contracts=Array.isArray(t.contracts)?t.contracts.filter(c=>repairContract(c,g.towns.length,g.towns)):[]});
  rivalRepair(g);   // the rival companies (registered in FACT by factionsInit below, before the bands are checked)
  worldRepair(g);   // phase 7: houses (registered in FACT before the bands are checked), rep, town state, nests, wars (below)

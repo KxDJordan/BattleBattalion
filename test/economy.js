@@ -13,15 +13,30 @@
 //   the camp assaults.
 // Reports per run and day (1, 5, 10, ... N): crowns, food, roster size / mean level, gear tier (worn armor+weapon), renown tier, deaths,
 // contracts done, battles; the day the crisis starts and how it ends, the day the Eastern War fires and its outcome; an estimate of
-// the play time (battles x minutes a battle by its length + days x minutes of map play). Judged (exit 1) on: no wipe-outs before day 40
-// on Normal, crowns never above RUNAWAY on Normal by day 60, food never at 0 for 3 days running, mean level rising, the crisis
-// arriving after day 20 and the Eastern War after day 25 (mean level flat is noted, not judged).
+// the play time (battles x minutes a battle by its length + days x minutes of map play). Judged (exit 1) on: no bankrupt wipe-outs before day 40
+// on Normal (by bankruptcy: broke the week before), crowns never above RUNAWAY on Normal by day 60, food never at 0 for 3 days running, mean level rising, the crisis
+// arriving after day 20 and the Eastern War after day 25 (mean level flat is noted, not judged); the flows (contract pay in days of wages for
+// model companies, FLOWBAND; --flows runs only these) and the hoard (the median Normal purse on days 60-100 under HOARD).
+// The ledger (per run and ten-day window, --json): crowns in and out by source: contracts, strip (crowns off the field), sales, trade, cargo,
+// rival, caravan, escort, garrison, crisis, east, endgame, dungeon, colosseum, events; wages, hire, gear, temple, food, inn, tools, drill, withdraw.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');
 const ARGV=process.argv.slice(2),arg=(k,d)=>ARGV.includes(k)?ARGV[ARGV.indexOf(k)+1]:d,has=k=>ARGV.includes(k);
 const SRC=path.join(__dirname,'..','src'),QUICK=has('--quick'),DAYS=+arg('--days',QUICK?60:100),TURNCAP=4000;
 const SEEDS=arg('--seeds',QUICK?'11,23':'11,23,37,41').split(',').map(Number),ORIG=arg('--origins',QUICK?'free':'free,noble,deserters').split(','),DIFFS=arg('--diffs',QUICK?'normal':'normal,hard,story').split(',');
-const RUNAWAY=60000;
+const RUNAWAY=60000,HOARD=15000;   // runaway: no Normal or Hard run above it by day 60; hoard: the median Normal run below it on days 60-100
+/* The flows (judged, policy-free, a second): what a contract pays in days of the company's wages, for the balance profiles (test/balance.js:
+   L1x4 a new company, L4x6 day 12 Known, L8x9 day 30 Renowned, L12x12 day 50 Famed and Legendary), the mean of 300 boards' notices.
+   Target band FLOWBAND: a contract pays 3-6 days of the company's wages at every stage (wages grow +10% a level, 14-company.js
+   WAGELV; pay with power, renown and danger, 16-contracts.js CTRPAY / RENOWN.pay / CTR_PAYK). Before the econ rebalance it paid 8 days for a
+   new company and 26-51 days of wages late: the mid and late game's runaway purse. */
+const FLOWBAND=[3,6];
+function flows(){process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();const X=L.makeContext(),rows=[];
+ for(const [pid,ren] of [['L1x4',0],['L4x6',60],['L8x9',340],['L12x12',620],['L12x12',1000]]){const P=L.PROFILES.find(p=>p.id===pid),R=L.buildCompany(X,P,1234),G=X.G;
+  G.roster=X.clone(R);G.roster.forEach(m=>m.field=true);G.day=P.day;G.renown=ren;const w=X.companyWages();let s=0,n=0;X.seedRng(77);
+  for(let k=0;k<300;k++){const ti=k%G.towns.length,c=X.genContract2(G.towns[ti],ti);if(c){s+=c.pay;n++}}
+  rows.push({pid,ren,wages:w,power:X.companyPower(),pay:Math.round(s/n),days:s/n/w,purse:typeof X.colPurseBase==='function'?Math.round(X.colPurseBase(X.companyPower())):0})}
+ return rows}
 /* ---------- DOM stubs (as in test/balance.js) ---------- */
 function hole(props){const store=Object.assign(Object.create(null),props||{});
  return new Proxy(function(){},{get(t,k){if(k in store)return store[k];if(k==='then'||k==='toJSON')return undefined;if(k===Symbol.toPrimitive)return h=>h==='number'?0:'';
@@ -72,6 +87,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   if(g.crisis&&g.crisis.ended&&st.crisisEnd==null){st.crisisEnd=g.day;st.crisisHow=g.crisis.won?(g.crisis.late?'won late':'won'):'lost'}
   else if(g.crisis&&g.crisis.lost&&st.crisisHow==null){st.crisisHow='lost (scar) day '+g.day}
   const ew=g.east&&g.east.war;if(ew&&st.eastDay==null)st.eastDay=ew.day0||g.day;if(ew&&ew.stage==='over'&&st.eastEnd==null){st.eastEnd=g.day;st.eastHow=ew.outcome||'?'}
+  (st.last7||(st.last7=[])).push(g.crowns);if(st.last7.length>7)st.last7.shift();   // the purse of the last week: was a wipe-out a bankruptcy?
   st.peakCrowns=Math.max(st.peakCrowns,g.crowns);if(g.day>3)st.minCrowns=Math.min(st.minCrowns,g.crowns);
   while(lastDay<g.day){lastDay++;if(lastDay===1||lastDay%5===0||lastDay===days){const r=g.run||{};
    st.rows.push({day:lastDay,crowns:g.crowns,food:g.food,n:g.roster.length,lvl:+meanLvl().toFixed(1),gear:+gearTier().toFixed(2),renown:g.renown|0,rt:X.renownTier(),deaths:st.deaths,ctr:st.ctr,battles:st.battles,won:st.won,
@@ -146,7 +162,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
  const wearStash=()=>{const g=G();for(let mi=0;mi<g.roster.length;mi++){const m=g.roster[mi];for(const k of ['w','a','h','s']){let b=-1,bs=score(m.eq[k],k);
     g.stash.forEach((id,j)=>{if(!canWear(m,id,k))return;const s=score(id,k);if(s>bs){bs=s;b=j}});if(b>=0)X.equip(mi,k,b)}}closeAll()};
  const hireUp=(t)=>{const g=G();if(typeof X.canRecruit==='function'&&!X.canRecruit())return;
-  for(let n=0;n<4&&g.roster.length<12&&t.recruits&&t.recruits.length;n++){let bj=-1,bv=-1;const need=g.roster.length<8?.4:1;t.recruits.forEach((m,j)=>{const c=X.hireCost(m);if(g.crowns-c<(reserve()+X.wageOf(m)*7)*need)return;const v=(m.lvl||1)*10/Math.sqrt(c);if(v>bv){bv=v;bj=j}});
+  for(let n=0;n<4&&g.roster.length<12&&t.recruits&&t.recruits.length;n++){let bj=-1,bv=-1;const need=g.roster.length<4?.1:g.roster.length<8?.4:1;/* a company of three hires with its last crowns */t.recruits.forEach((m,j)=>{const c=X.hireCost(m);if(g.crowns-c<(reserve()+X.wageOf(m)*7)*need)return;const v=(m.lvl||1)*10/Math.sqrt(c);if(v>bv){bv=v;bj=j}});
    if(bj<0)break;const c=X.hireCost(t.recruits[bj]),n0=g.roster.length;X.hire(bj);if(g.roster.length>n0){st.hired++;st.spentHire+=c;const m=g.roster[g.roster.length-1];m.field=g.roster.filter(x=>x.field).length<=X.MAXFIELD}else break}
   closeAll()};
  const inTown=(i)=>{const g=G(),t=g.towns[i];closeAll();if(!g.townOpen||g.town!==i)X.openTown(i);closeAll();if(X.twHostile(i))return;
@@ -164,7 +180,7 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
  // the company's appetite: the strongest contract fight (mult of an even fight) it will take
  const top8=()=>{const L=G().roster.map(m=>m.lvl).sort((a,b)=>b-a).slice(0,8);return L.length?L.reduce((s,v)=>s+v,0)/L.length:0};
  // a struck-down sword lives only 30% of the time (DOWNCH): a green company takes the light jobs, a seasoned core the even ones
- const appetite=()=>{const g=G(),f=field().length,hp=hpFrac();let a=top8()<3?.85:top8()>=6&&f>=9?1.05:.95;if(f<4)a=.5;else if(f<6)a=Math.min(a,.85);if(hp<.75)a-=.2;if(g.diff==='hard'||g.diff==='brutal')a-=.05;return a};
+ const appetite=()=>{const g=G(),f=field().length,hp=hpFrac();let a=top8()<3?.85:top8()>=6&&f>=9?1.05:.95;if(f<4)a=.5;else if(f<6)a=Math.min(a,.85);if(hp<.75)a-=.2;if(g.crowns<reserve()+300&&f>=4)a=Math.max(a-.1,Math.min(a,.8));if(g.diff==='hard'||g.diff==='brutal')a-=.05;return a};   // a purse that cannot replace the fallen takes lighter work (but still the light jobs, its only income)
  const ctrMult=c=>{let mx=0;for(const s of c.stages||[]){if(s.k==='go'&&s.fight)mx=Math.max(mx,X.ctrMult(c.diff,s.fight.k||1)*(s.fight.boss?1.2:1));if(s.k==='go'&&s.kind==='escort')mx=Math.max(mx,.95)}return mx};   // a live escort: a band at least a match for the guards and the company together will come (an even fight beside the guards)
  const ctrLen=(c,t)=>{let d=0,p=t;for(const s of c.stages||[]){const q=s.k==='town'?g2().towns[s.ti]:s;if(q){d+=dist(p,q);p=q}}return d};
  const g2=()=>G();
@@ -203,9 +219,15 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
   return false};
  // the deploy screen's withdraw: a band the company did not choose to fight, met hurt, thin or outmatched, is declined (10% of the purse)
  {const eng=X.ctx.engage;X.ctx.engage=function(o){const s=o&&o.src||{};if(s.type==='party'&&(hpFrac()<.6||field().length<3||(o.mult||1)>appetite()+.05)){st.fled=(st.fled||0)+1;X.fleeEncounter(o);return null}return eng.apply(this,arguments)}}
- // the ledger: crowns in and out by kind (the game's own functions, wrapped)
- st.led={};for(const [fn,k] of [['newDay','wages'],['afterBattle','battle'],['ctrTurnIn','contracts'],['ctrAccept','contracts'],['buyItem','gear'],['hire','hire'],['buyFood','food'],['innRest','inn'],['sellItem','sales'],['sellTrade','sales'],['templeTreat','temple'],['buyTools','tools'],['campTrain','drill'],['fleeEncounter','withdraw'],['eventTick','events'],['evtPick','events']]){const f=X.ctx[fn];if(typeof f!=='function')continue;
-  X.ctx[fn]=function(){const c0=G()?G().crowns:0;const r=f.apply(this,arguments);const g=G();if(g){const d=g.crowns-c0;if(d)st.led[k]=(st.led[k]||0)+d}return r}}
+ // the ledger: crowns in and out by source (the game's own functions, wrapped; a nested call's crowns go to the inner one), in total
+ // (st.led) and by ten-day window (st.ledT[window][source]: the income and the spending of days 1-10, 11-20, ...)
+ st.led={};st.ledT=[];const LSTK=[];
+ const ledAdd=(k,d)=>{if(!d)return;st.led[k]=(st.led[k]||0)+d;const w=Math.floor(Math.max(0,(G().day||1)-1)/10),T=st.ledT[w]||(st.ledT[w]={});T[k]=(T[k]||0)+d};
+ for(const [fn,k] of [['newDay','wages'],['worldTick','world'],['afterBattle','battle'],['resolveBattle','strip'],['cargoTake','cargo'],['nestClear','nest'],['rvBattleEnd','rival'],['portalGo','endgame'],['portalSettle','endgame'],
+   ['dungeonSettle','dungeon'],['colSettle','colosseum'],['crisisEnd','crisis'],['eastEnd','east'],['cvBattleEnd','caravan'],['grBattleEnd','garrison'],['cvEscArrive','escort'],
+   ['ctrTurnIn','contracts'],['ctrAccept','contracts'],['openTown','town'],['buyItem','gear'],['hire','hire'],['buyFood','food'],['innRest','inn'],['sellItem','sales'],['sellTrade','trade'],['templeTreat','temple'],
+   ['buyTools','tools'],['repairAll','repairs'],['campTrain','drill'],['fleeEncounter','withdraw'],['eventTick','events'],['evtPick','events'],['orDay','events']]){const f=X.ctx[fn];if(typeof f!=='function')continue;
+  X.ctx[fn]=function(){const c0=G()?G().crowns:0;LSTK.push(0);let r;try{r=f.apply(this,arguments)}finally{const inner=LSTK.pop();const g=G();if(g){const d=g.crowns-c0;ledAdd(k,d-inner);if(LSTK.length)LSTK[LSTK.length-1]+=d}}return r}}
  // the line-up: the hurt and the injured sit out while at least five whole swords can take the field
  const setField=()=>{const R=G().roster,bad=m=>(m.inj||[]).some(j=>j.days>0)||m.hp<X.calc(m).hp*.5;const ok=R.filter(m=>!bad(m));const n=ok.length>=5?ok.length:R.length;
   R.forEach(m=>m.field=false);(ok.length>=5?ok:R).slice(0,X.MAXFIELD).forEach(m=>m.field=true);if(ok.length>=5&&ok.length<X.MAXFIELD)R.filter(bad).slice(0,Math.max(0,Math.min(X.MAXFIELD,7)-ok.length)).forEach(m=>m.field=true)};
@@ -239,6 +261,10 @@ async function campaign(X,run){const {seed,origin,diff}=run,days=run.days||DAYS;
 if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')process.exit(0);try{X=makeContext();const T=Date.now();const r=await campaign(X,m);r.ms=Date.now()-T;process.send({id:m.id,r})}catch(e){process.send({id:m.id,err:String(e&&e.stack||e)})}});return}
 /* ---------- main ---------- */
 (async()=>{const J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length))),T0=Date.now();const runs=[];let id=0;
+ const FL=flows(),fbad=[];console.log('flows: contract pay in days of wages (target '+FLOWBAND.join('-')+')');
+ for(const r of FL){console.log(`  ${r.pid.padEnd(7)} renown ${String(r.ren).padStart(4)}: wages ${String(r.wages).padStart(4)}/day, power ${String(r.power).padStart(5)}, contract ${String(r.pay).padStart(5)} = ${r.days.toFixed(1)} days, arena purse ${r.purse}`);
+  if(r.days<FLOWBAND[0]||r.days>FLOWBAND[1])fbad.push(`flows: ${r.pid} at renown ${r.ren}: a contract pays ${r.days.toFixed(1)} days of wages (band ${FLOWBAND.join('-')})`)}
+ if(has('--flows')){if(fbad.length){console.log('\nFAIL:\n  '+fbad.join('\n  '));process.exit(1)}console.log('\nPASS');process.exit(0)}
  for(const diff of DIFFS)for(const origin of ORIG)for(const seed of SEEDS)runs.push({id:id++,seed,origin,diff,days:DAYS,crisis:['sunder','deadmarch','horde','barbarian'][id%4]});
  console.log(`economy: ${runs.length} campaigns of ${DAYS} days, ${J} workers`);
  const res=new Array(runs.length);
@@ -246,7 +272,7 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   for(let w=0;w<Math.min(J,runs.length);w++){const ch=cp.fork(__filename,['--worker'].concat(sets));const feed=()=>{if(next<runs.length)ch.send(runs[next++]);else ch.send('quit')};
    ch.on('message',m=>{if(m.err){ch.kill();fail(new Error(`run ${JSON.stringify(runs[m.id])}: ${m.err}`));return}res[m.id]=m.r;process.stderr.write('.');if(--left===0)done();else feed()});
    ch.on('exit',c=>{if(c&&left)fail(new Error('worker died '+c))});feed()}});
- process.stderr.write('\n');const pad=(s,n)=>String(s).padEnd(n),lp=(s,n)=>String(s).padStart(n),bad=[];
+ process.stderr.write('\n');const pad=(s,n)=>String(s).padEnd(n),lp=(s,n)=>String(s).padStart(n),bad=fbad.slice();
  const est=r=>{const mins=r.battles*(3+.45*(r.rounds/Math.max(1,r.battles)))+r.end.day*2.2;return mins/60};
  for(const k in runs){const R=runs[k],r=res[k];
   console.log(`\n== ${R.origin} / ${R.diff} / seed ${R.seed}: crisis ${r.crisisKind} (due day ${r.crisisStart}) started ${r.crisisDay??'-'}, ${r.crisisHow||'-'}${r.crisisEnd?' day '+r.crisisEnd:''}; Eastern War ${r.eastDay??'-'}${r.eastHow?' -> '+r.eastHow+' day '+r.eastEnd:''}${r.wiped?'; WIPED day '+r.wiped:''} ==`);
@@ -256,7 +282,9 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   console.log(`  knocked out ${r.ko|0}, of them killed ${r.kod|0}`);console.log('  ledger: '+Object.keys(r.led).sort((a,b)=>r.led[b]-r.led[a]).map(k=>k+' '+r.led[k]).join(', '));
   if(has('--verbose'))console.log('  '+r.log.join('\n  '));
   const tag=`${R.origin}/${R.diff}/${R.seed}`;
-  if(R.diff==='normal'&&r.wiped&&r.wiped<40)bad.push(tag+': wiped out on day '+r.wiped);
+  // a wipe-out before day 40 on Normal fails the economy when the company was broke the week before (never 250 crowns: it could not
+  // replace the fallen); one with crowns in the chest was lost in battle (reported, the battle tests judge those)
+  if(R.diff==='normal'&&r.wiped&&r.wiped<40){const broke=Math.max(0,...(r.last7||[0]))<250;if(broke)bad.push(tag+': wiped out broke on day '+r.wiped);else console.log('  (note: wiped out on day '+r.wiped+' with '+Math.max(...(r.last7||[0]))+' crowns in the last week: lost in battle, not to the purse)')}
   if(R.diff!=='story'&&r.rows.some(w=>w.day<=60&&w.crowns>RUNAWAY))bad.push(tag+': runaway gold ('+Math.max(...r.rows.map(w=>w.crowns))+')');
   if(r.maxStarve>=3)bad.push(tag+': starved '+r.maxStarve+' days running');
   const L=r.rows.filter(w=>w.n>0);if(!r.wiped&&L.length>4&&L[L.length-1].lvl<=L[1].lvl+1)console.log('  (note: mean level flat: '+L[1].lvl+' -> '+L[L.length-1].lvl+', the dead are replaced by green recruits)');
@@ -269,6 +297,7 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
   for(const d of days){const W=L.map(r=>r.rows.find(w=>w.day===d)).filter(Boolean);if(!W.length)continue;const m=k=>W.reduce((s,w)=>s+w[k],0)/W.length;
    console.log(pad(d,5)+lp(Math.round(m('crowns')),8)+lp(Math.round(m('food')),6)+lp(m('n').toFixed(1),6)+lp(m('lvl').toFixed(1),6)+lp(m('gear').toFixed(2),6)+lp(Math.round(m('renown')),8)+lp(m('deaths').toFixed(1),6)+lp(m('ctr').toFixed(1),6)+lp(m('battles').toFixed(0),8)+lp(W.length+'/'+L.length,7))}
   const cs=L.filter(r=>r.crisisDay!=null),es=L.filter(r=>r.eastDay!=null),won=L.filter(r=>/^won/.test(r.crisisHow||''));
+  if(diff==='normal')for(const d of days.filter(d=>d>=60&&d<=100)){const C=L.map(r=>{const w=r.rows.find(w=>w.day===d);return w?w.crowns:null}).filter(v=>v!=null).sort((a,b)=>a-b);if(C.length<3)continue;const med=C[C.length>>1];if(med>HOARD)bad.push(`hoard: the median Normal purse on day ${d} is ${med} (> ${HOARD})`)}
   console.log(`crisis: started in ${cs.length}/${L.length} (mean day ${cs.length?(cs.reduce((s,r)=>s+r.crisisDay,0)/cs.length).toFixed(0):'-'}), won in ${won.length} (mean day ${won.length?(won.reduce((s,r)=>s+r.crisisEnd,0)/won.length).toFixed(0):'-'}); Eastern War: in ${es.length}/${L.length} (mean day ${es.length?(es.reduce((s,r)=>s+r.eastDay,0)/es.length).toFixed(0):'-'}); wiped ${L.filter(r=>r.wiped).length}; play time ~${(L.reduce((s,r)=>s+est(r),0)/L.length).toFixed(1)} h for ${DAYS} days`)}
  console.log(`\nplay-time estimate: battles x (3 + 0.45 x rounds) minutes + days x 2.2 minutes of map, town and camp.   Wall time ${((Date.now()-T0)/1000).toFixed(0)} s.`);
  if(arg('--json',null))fs.writeFileSync(arg('--json'),JSON.stringify({runs,res},null,1));
