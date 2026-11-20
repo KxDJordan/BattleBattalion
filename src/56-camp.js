@@ -22,7 +22,7 @@ function campMaxHp(m){try{return calc(m).hp}catch(e){return m.hp||1}}
 // a trait that changes how fast a merc learns: TRAITS mod.trainXP or mod.xp (shares, .1 = +10%)
 function campTraitXP(m){if(typeof traitsOf!=='function')return 0;let v=0;try{for(const t of traitsOf(m)||[]){const M=t&&t.mod||{};v+=(+M.trainXP||0)+(+M.xp||0)}}catch(e){}return isFinite(v)?v:0}
 /* campTrainInfo(m): {xp, cost, hours, cap, used, why ('' = can train), bonus:[lines]} */
-function campTrainInfo(m){const c=campSync()||{tr:{}},lv=m.lvl||1,max=lv>=MAXLV||!XPT[lv+1],gap=max?0:XPT[lv+1]-XPT[lv],drill=campDrill(),tac=campBest('tactician'),tr=campTraitXP(m);
+function campTrainInfo(m){const c=campSync()||{tr:{}},lv=m.lvl||1,max=lv>=MAXLV||!XPT[lv+1],gap=max?0:drillGap(lv),drill=campDrill(),tac=campBest('tactician'),tr=campTraitXP(m);
  const mult=Math.max(.1,1+(drill?.2:0)+.05*tac+tr),xp=max?0:Math.round((CAMP.trainXP0+gap*CAMP.trainXP)*mult),cost=Math.round((25+12*lv)*(drill?.75:1)/5)*5;
  const cap=CAMP.trainCap+(drill?1:0),used=c.tr[m.id]||0,bonus=[];
  if(drill)bonus.push('Drillmaster: +20% XP, a quarter off, one more session a day');if(tac)bonus.push(`Tactician perks in the company (${tac}): +${tac*5}% XP`);if(tr)bonus.push(`${tr>0?'Quick':'Slow'} learner: ${tr>0?'+':'−'}${Math.round(Math.abs(tr)*100)}% XP`);
@@ -31,7 +31,7 @@ function campTrainInfo(m){const c=campSync()||{tr:{}},lv=m.lvl||1,max=lv>=MAXLV|
 // one training session for merc id; returns the XP gained or false
 function campTrain(id){const m=campMercById(id);if(!m)return false;const T=campTrainInfo(m);if(T.why){campToast(T.why);return false}
  G.crowns-=T.cost;const l0=m.lvl;gainXP(m,T.xp);if(typeof advanceTime==='function')advanceTime(T.hours);const c=campSync();c.tr[m.id]=(c.tr[m.id]||0)+1;
- const up=m.lvl>l0;campNote(`<p class="good">${htmlEsc(m.name)} drills for ${T.hours} hours: +${T.xp} XP${up?`. <b>Level ${m.lvl}!</b> A perk point to spend in the Company screen`:''}.</p>`);
+ const up=m.lvl>l0;campNote(`<p class="good">${htmlEsc(m.name)} drills for ${T.hours} hours: +${T.xp} XP${up?`. <b>Level ${m.lvl}!</b> ${m.lvl>PPLV?'Attributes to raise in the Company screen (no new mastery point past level '+PPLV+')':'A perk point to spend in the Company screen'}`:''}.</p>`);
  if(typeof save==='function')save();campRender();return T.xp}
 /* campSurgInfo(m, injId): {days (taken off), hours, why ('' = can operate), heals (the wound closes), bonus:[lines], j} */
 function campSurgInfo(m,injId){const c=campSync()||{sg:{}},j=Array.isArray(m.inj)?m.inj.find(x=>x&&x.id===injId):null,I=typeof INJ==='object'&&INJ[injId]||{};

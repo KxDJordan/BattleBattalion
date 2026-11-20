@@ -112,8 +112,9 @@ section('followers');
     ok(Math.abs(ratio('farmhand',15)-5)<1e-9&&Math.abs(ratio('militia',15)-5)<1e-9,'level 15: the commonest ask x5 ('+ratio('farmhand',15).toFixed(2)+')');
     ok(Math.abs(ratio('gladiator',15)-7)<1e-9,'level 15: the rarest ask x7 ('+ratio('gladiator',15).toFixed(2)+')');
     const mid=['hunter','sellsword','squire','knight'].map(b=>ratio(b,15));ok(mid.every((r,i)=>r>5&&r<7&&(i===0||r>mid[i-1])),'level 15: rarer asks more, between x5 and x7 ('+mid.map(r=>r.toFixed(2)).join(' ')+')');
-    for(const b of ['farmhand','knight']){let p=1,okk=true;for(let L=2;L<=15;L++){const r=ratio(b,L);if(!(r>p))okk=false;p=r}ok(okk&&ratio(b,1)===1,b+': wage rises every level from x1');
-      ok(Math.abs(ratio(b,20)-ratio(b,15))<1e-9,b+': capped at level 15')}
+    for(const b of ['farmhand','knight']){let p=1,okk=true;for(let L=2;L<=X.MAXLV;L++){const r=ratio(b,L);if(!(r>p))okk=false;p=r}ok(okk&&ratio(b,1)===1,b+': wage rises every level from x1 to '+X.MAXLV);
+      ok(Math.abs(ratio(b,20)/ratio(b,15)-Math.pow(1.05,5))<1e-9&&Math.abs(ratio(b,16)/ratio(b,15)-1.05)<1e-9,b+': past 15 +5% a level (x'+(ratio(b,20)/ratio(b,15)).toFixed(3)+' at 20)');
+      ok(Math.abs(ratio(b,25)-ratio(b,X.MAXLV))<1e-9,b+': capped at level '+X.MAXLV)}
     ok(Math.abs(ratio('farmhand',8)-Math.sqrt(5))<1e-9,'level 8: half way on the exponential (x'+ratio('farmhand',8).toFixed(2)+')');
     ok(X.bgRarity('farmhand')===0&&X.bgRarity('gladiator')===1&&X.bgRarity('slayer')===1,'rarity: tavern weight 5 is 0, 0.5 or less is 1') }
   // cook: wounds mend 25% faster on the road
@@ -188,6 +189,33 @@ section('saves');
   ok(X.companyRepair(bad)===''&&bad.retinue.join()==='scout'&&bad.amb.cur===null&&bad.amb.done.join()==='muster'&&bad.amb.offered.length===3&&bad.amb.st.wins===0&&bad.amb.st.kills===0&&Object.keys(bad.amb.st.lairs).join()==='ogre'&&bad.amb.cel.length===1&&bad.amb.rt>=1&&bad.amb.rt<=6&&bad.foodAcc===0,'companyRepair cleans junk');
   const old=X.clone(g);delete old.retinue;delete old.amb;X.companyRepair(old);ok(Array.isArray(old.retinue)&&!old.retinue.length&&old.amb.cur===null&&old.amb.offered.length===3,'an older company gets the defaults');
   console.log('save round trip, repair of junk, defaults for older saves'+(typeof X.repairSave==='function'&&/companyRepair/.test(String(X.repairSave))?' (repairSave calls companyRepair)':' (repairSave does not call companyRepair yet: continueGame does)')+': ok') }
+
+section('levels');
+// max level 20 (MAXLV), mastery points only to 15 (PPLV); the XP table: monotone, early levels as before, each later level a bigger step
+{ const T=X.XPT,O=X.XPT1;ok(X.MAXLV===20&&X.PPLV===15&&T.length===X.MAXLV+1&&O.length===16,'MAXLV 20, PPLV 15, XPT to 20 (XPT1: the old table to 15)');
+  let mono=true,steep=true;for(let L=2;L<=X.MAXLV;L++){if(!(T[L]>T[L-1]))mono=false;if(L>=3&&!(T[L]-T[L-1]>=T[L-1]-T[L-2]))steep=false}ok(mono&&T[1]===0&&T[2]>0,'XPT rises every level');ok(steep,'each level asks at least the step before it');
+  ok([2,3,4,5,6].every(L=>T[L]===O[L]),'levels 1-6: the same xp as before');ok([10,12,15].every(L=>T[L]>O[L]*1.2),'levels 10, 12, 15: clearly slower ('+[10,12,15].map(L=>(T[L]/O[L]).toFixed(2)).join(' ')+'x the old xp)');
+  ok(T[20]-T[15]>T[15]-T[10],'levels 16-20 ask more than 11-15: a long late-game goal');
+  ok((T[16]-T[15])/(O[15]-O[14])>2,'the step past 15 is more than twice the old last step');
+  G0:{const G=fresh(SEED+11),m=X.newMerc('sellsword');G.roster.push(m);const pp0=m.pp;X.gainXP(m,T[15]);ok(m.lvl===15&&m.pp===pp0+14&&m.pend===14,'to 15 in one go: 14 points, 14 level-ups ('+m.pp+'/'+m.pend+')');
+   X.gainXP(m,T[20]-m.xp);ok(m.lvl===20&&m.pp===pp0+14&&m.pend===19,'15 -> 20: five level-ups (attribute rolls), no mastery point ('+m.pp+'/'+m.pend+')');
+   X.gainXP(m,1e6);ok(m.lvl===20,'level 20 is the top');ok(X.campXpPct(m)===100&&X.campTrainInfo(m).why==='At the highest level','camp: nothing to drill at 20');
+   const v=X.clone(m);v.pp=0;v.pend=0;ok(X.coTalents(v,0).detail.includes('Every point is spent'),'talents at 20: every point spent');
+   const w=X.newMerc('militia');X.gainXP(w,T[16]);w.pp=0;w.pend=0;ok(/No new mastery points after level 15/.test(X.coTalents(w,0).detail),'talents at 16: no new mastery points after 15');
+   { const d=X.newMerc('militia');G.roster.push(d);G.crowns=1e6;const per=L=>{X.gainXP(d,X.XPT[L]-d.xp);d.hp=X.calc(d).hp;const T=X.campTrainInfo(d);return{xp:T.xp,n:(X.XPT[L+1]-X.XPT[L])/T.xp}},a=per(5),b=per(10),c=per(14),e=per(16);
+     ok(a.xp===Math.round(X.CAMP.trainXP0+900*X.CAMP.trainXP)&&c.xp===Math.round(X.CAMP.trainXP0+3000*X.CAMP.trainXP),'drills pay as before ('+a.xp+' at 5, '+c.xp+' at 14)');
+     ok(a.n<b.n&&b.n<c.n&&c.n<e.n,'drills a level grow with the level: '+[a,b,c,e].map(x=>x.n.toFixed(1)).join(' '));G.roster.pop() }
+   ok(X.brOpens(15,16).some(t=>/no new mastery point/.test(t))&&!X.brOpens(14,15).some(t=>/mastery point/.test(t)),'the after-battle report: attributes only past 15');
+   const vet=X.makeVeteran(X.newMerc('knight'),20);ok(vet.lvl===20&&vet.pend===0&&vet.pp+vet.perks.length<=15,'a level-20 veteran: 20 levels, at most 15 points ('+vet.perks.length+' perks, '+vet.pp+' left)');
+   ok(X.mercBud(20)>X.mercBud(15)&&X.mercBud(20)-X.mercBud(15)<X.mercBud(15)-X.mercBud(10),'enemy budget: a level past 15 counts less ('+X.mercBud(10).toFixed(0)+' '+X.mercBud(15).toFixed(0)+' '+X.mercBud(20).toFixed(0)+')')}
+  // an older save (no xpv): each sword keeps its level and its share of the way to the next on the new table; nothing levels on load
+  { const G=fresh(SEED+12);G.roster.length=0;const mk=(L,xp)=>{const m=X.newMerc('militia');X.gainXP(m,T[L]);m.xp=xp;m.field=true;G.roster.push(m);return m};
+    mk(3,600);mk(9,7350);mk(12,12200);mk(15,20000);mk(15,95000);G.roster.forEach(m=>{m.pend=0});const pps=G.roster.map(m=>m.pp);
+    ok(X.save(),'save');const raw=JSON.parse(X.store.get(X.SAVEKEY));ok(raw.xpv===X.XPV,'a save carries the XP table version');delete raw.xpv;const r=X.readSaveRaw(JSON.stringify(raw));ok(r.state==='ok','an old save loads');
+    const R=r.g.roster;ok(R.map(m=>m.lvl).join()==='3,9,12,15,15'&&R.every((m,i)=>m.pp===pps[i]),'levels and points kept: '+R.map(m=>m.lvl).join());
+    ok(R[0].xp===600&&R[1].xp===Math.round(T[9]+.5*(T[10]-T[9]))&&R[2].xp===T[12]&&R[3].xp===T[15]&&R[4].xp===T[16]-1,'xp refit: '+R.map(m=>m.xp).join(' '));
+    ok(r.g.xpv===X.XPV,'stamped');const again=X.readSaveRaw(JSON.stringify(r.g));ok(again.g.roster.map(m=>m.xp).join()===R.map(m=>m.xp).join(),'a new save is not refit again') }
+  console.log('levels to '+X.MAXLV+', points to '+X.PPLV+'; XPT '+T.slice(1).join(' ')+': ok') }
 
 section('camp');
 { const G=fresh(SEED+9);const h=G.hour,d=G.day;X.camp();ok(G.hour!==h||G.day!==d,'camp() rests headless (no real page)');const h2=G.hour;X.campRest(6);ok((G.hour-h2+24)%24===6,'campRest: six hours');

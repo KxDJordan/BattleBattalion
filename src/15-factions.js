@@ -157,7 +157,7 @@ function bldTop(i,f,n){const t=G.towns[i],cap=Math.min(5,(typeof mkTier==='funct
 function bldPrice(i,base,kind){return Math.max(1,Math.round(base*townPriceK(i,kind||'buy')/5)*5)}
 function harbourList(i){const t=G.towns[i],out=[];if(!t||!townHas(i,'harbour'))return out;G.towns.forEach((o,j)=>{if(j===i||!Array.isArray(o.bld)||!o.bld.includes('harbour'))return;const d=Math.hypot(o.x-t.x,o.y-t.y)/TS;
   out.push({to:j,n:o.name,days:Math.max(1,Math.ceil(d/BLDK.sailTiles)),cost:bldPrice(i,BLDK.sailBase+G.roster.length*8+d*BLDK.sailPer),closed:townHostile(j)})});return out}
-function bldTrainInfo(i,m){const lv=m.lvl||1,max=lv>=MAXLV||!XPT[lv+1],gap=max?0:XPT[lv+1]-XPT[lv];return{xp:max?0:Math.round(40+gap*.12),cost:bldPrice(i,(25+12*lv)*BLDK.hallK,'hire'),hours:3,why:max?'At the highest level':''}}
+function bldTrainInfo(i,m){const lv=m.lvl||1,max=lv>=MAXLV||!XPT[lv+1],gap=max?0:drillGap(lv);return{xp:max?0:Math.round(40+gap*.12),cost:bldPrice(i,(25+12*lv)*BLDK.hallK,'hire'),hours:3,why:max?'At the highest level':''}}
 function bldRespecInfo(i,m,tree){const P=Array.isArray(m.perks)?m.perks.filter(id=>{const p=typeof perkById==='function'?perkById(id):null;return p&&p.key===tree}):[];return{n:P.length,perks:P,cost:bldPrice(i,(BLDK.respec0+BLDK.respecPer*P.length)*(typeof originK==='function'?originK('college'):1))}}
 function bldList(i){const t=G&&G.towns&&G.towns[i];return t&&Array.isArray(t.bld)?t.bld.slice():[]}
 function bldServe(i,key,arg){const t=G&&G.towns&&G.towns[i],B0=BLD[key];if(!t||!B0)return{ok:false,msg:'No such place'};worldEnsure();arg=arg||{};const op=arg.op||'info';
