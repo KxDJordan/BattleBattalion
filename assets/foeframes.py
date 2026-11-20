@@ -179,14 +179,16 @@ def split_comp(im, lab, c, gx, new_id, win=45):
     return out
 
 
-def frame_sheet(path, ROWS, N_all, k, loose=None, H_row='idle', extra=None):
+def frame_sheet(path, ROWS, N_all, k, loose=None, H_row='idle', extra=None, xmin=0, keep_o=False):
     """A sheet of drawn frames: ROWS [(anim, y0, y1[, frames[, scale]])] bands of N frames each (a row drawn at another size is scaled), facing right. Each frame is its figure plus the loose bits
     (a glow, a swoosh) whose centre is in its cell; figures that touch are split along least-alpha seams at the cell grid (the sheet's
     width / N). Anchor: the body's centre (median x of the figure's opaque pixels) over its feet (its lowest row; a frame with both feet
-    off the ground uses the row's ground line). loose: {anim: [(x, win)]}: a swoosh drawn touching the next figure is cut off it
+    off the ground uses the row's ground line). path may be a loaded sheet (an array); xmin: figures left of it are ignored (row
+    labels); keep_o: each frame also gets o, its top left on the sheet (sheet px). loose: {anim: [(x, win)]}: a swoosh drawn touching the next figure is cut off it
     along the seam near x (within win px) and goes, as a loose bit, to the cell its centre is in. Returns (atlas record {k, w, h, H: the first idle frame's height, f}, webp base64, bytes)."""
-    S = load(path)
+    S = load(path) if isinstance(path, str) else path
     lab, allc = components(S, keep=12)
+    allc = [c for c in allc if c[2] >= xmin]
     big = [c for c in allc if c[1] > 2000]
     FR = {}
     for row in ROWS:
@@ -228,15 +230,15 @@ def frame_sheet(path, ROWS, N_all, k, loose=None, H_row='idle', extra=None):
                 ay += ground - bots[i]
             if rs != 1:
                 t = scale(t, rs); ax *= rs; ay *= rs
-            out.append((t, ax, ay))
+            out.append((t, ax, ay, (ox, oy)))
         FR[name] = out
     H = float(FR[H_row][0][0].shape[0])
-    items = [('%s_%d' % (kk, i), t) for kk, L in FR.items() for i, (t, _, _) in enumerate(L)] + [('pc:' + n, t) for n, t in (extra or {}).items()]
+    items = [('%s_%d' % (kk, i), t) for kk, L in FR.items() for i, (t, _, _, _) in enumerate(L)] + [('pc:' + n, t) for n, t in (extra or {}).items()]
     atlas, rects = pack(items, 2048)
     b64, nbytes = webp_b64(atlas, k)
     R2 = lambda v: round(float(v), 2)
-    frames = {kk: [{'r': [v * k for v in rects['%s_%d' % (kk, i)]], 'w': t.shape[1], 'h': t.shape[0], 'ax': R2(ax), 'ay': R2(ay)}
-                   for i, (t, ax, ay) in enumerate(L)] for kk, L in FR.items()}
+    frames = {kk: [dict({'r': [v * k for v in rects['%s_%d' % (kk, i)]], 'w': t.shape[1], 'h': t.shape[0], 'ax': R2(ax), 'ay': R2(ay)}, **({'o': [int(o[0]), int(o[1])]} if keep_o else {}))
+                   for i, (t, ax, ay, o) in enumerate(L)] for kk, L in FR.items()}
     A = {'k': k, 'w': atlas.shape[1] // 2, 'h': atlas.shape[0] // 2, 'H': H, 'f': frames}
     if extra:      # pieces packed in the same atlas: {r, w, h}
         A['p'] = {n: {'r': [v * k for v in rects['pc:' + n]], 'w': t.shape[1], 'h': t.shape[0]} for n, t in extra.items()}

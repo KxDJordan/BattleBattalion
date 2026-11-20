@@ -14,7 +14,8 @@
    - Registry FS_DEF[enemy id] = {atl() -> the generated atlas (76e-wolfatlas.js WFA, 76f-gobatlas.js GBA / GAA / GSA, 76i-owlatlas.js OBA), an: {state or variant:
      row}, pick(u, st, s) -> a variant row (the wolf's bite, the archer's poison arrow and knife, the shaman's chant, the owlbear's
      swipe and charge), rig + rigSt: the states
-     drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js)}.
+     drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js), dress(Fr, id, u, K, row, frame, dy): adds the unit's
+     own gear to a frame (the skeleton soldiers' weapon and shield in their colour-keyed hands, 76m-skelsol.js)}.
    - Frames are anchored on the body's centre over the feet (the atlas's ax / ay); a figure stands SHEETS[id].h art px tall like its
      old painted sheet, its feet SHEETS[id].dy art px under the tile point as the painted figure's were. Faces: the sheets face screen-right
      (the front three-quarter view): face 0 as drawn, face 1 mirrored, the back facings the front frames (face 3 = face 0, face 2 =
@@ -66,13 +67,13 @@ function fsIdx(n,d,c,el,t){if(n<=1)return 0;if(d.loop){const x=c*(d.rate||1);ret
  t=t<0?0:t>1?1:t;return Math.min(n-1,Math.floor(t*n))}
 /* ---- one frame. st: the state; tm: {c: the loop cycle, el: ms since the event, t: the phase 0..1, row: a variant row}.
    Returns {list, tags, bones, sc, mir, anim, fi, face, fs} ---- */
-function fsFrame(id,face,st,tm,K,seed){const D=FS_DEF[id],A=D.atl();face=((face|0)%4+4)%4;face=face===3?0:face===2?1:face;const mir=face===1;
+function fsFrame(id,face,st,tm,K,seed,u){const D=FS_DEF[id],A=D.atl();face=((face|0)%4+4)%4;face=face===3?0:face===2?1:face;const mir=face===1;
  if(!st||!D.an[st]&&!(D.rigSt&&D.rigSt[st]))st='idle';
  const dy=fsDy(id);
- if(D.rigSt&&D.rigSt[st]){const Fr=D.rig(st,st==='idle'?tm.c||0:tm.t||0,K,seed||0,dy);Fr.mir=mir;Fr.sc=fsSc(id);Fr.fs=id;FS.frames++;return Fr}
+ if(D.rigSt&&D.rigSt[st]){const Fr=D.rig(st,st==='idle'?tm.c||0:tm.t||0,K,seed||0,dy);Fr.mir=mir;Fr.sc=fsSc(id);Fr.fs=id;FS.frames++;if(D.dress)D.dress(Fr,id,u,K,'',0,dy);return Fr}
  const d=tm.row&&D.an[tm.row]||D.an[st],L=A.f[d.f],i=fsIdx(L.length,d,tm.c||0,tm.el!=null?tm.el:(tm.t||0)*(d.imp!=null?240:d.ms||1),tm.t||0),R=L[i],g=new HskRec();g.translate(0,dy);
  if(K){const a=fsPc(id,d.f+i,R,R.ax,R.ay,K);if(a)g.img(a,'frame')}else g.list.push({n:d.f+'_'+i,m:g.m.slice(),tag:'frame'});
- FS.frames++;return{list:g.list,tags:['frame'],bones:{frame:g.m.slice()},anim:d.f,fi:i,face:d.f+i,mir,sc:fsSc(id),fs:id,row:tm.row||st}}
+ FS.frames++;const Fr={list:g.list,tags:['frame'],bones:{frame:g.m.slice()},anim:d.f,fi:i,face:d.f+i,mir,sc:fsSc(id),fs:id,row:tm.row||st};if(D.dress)D.dress(Fr,id,u,K,d.f,i,dy);return Fr}
 function fsSeed(u){return(((u&&u.id|0)*2654435761)>>>0)%997/997*4}
 /* the state and its timing for a unit on the board (see the header): unitPose's state, unless a drawn attack, cast or hurt row started
    later is still playing */
@@ -90,12 +91,12 @@ function fsTime(u,v,D){let st=v.pS||'idle';const an=v.pAn||'';if(st==='walk'&&an
  return[st,tm]}
 /* ---- the live figure on the board (70-render.js drawUnitPx): null when not a frame-sheet foe or not drawable now ---- */
 function fsLiveFrame(u,v){if(!fsOn(u))return null;const id=fsId(u),[st,tm]=fsTime(u,v,FS_DEF[id]);
- try{return fsFrame(id,v.pD,st,tm,fsK(id),fsSeed(u))}catch(e){if(!FS.err){FS.err=1;console.error('frame sheet',e)}FS.off=1;return null}}
+ try{return fsFrame(id,v.pD,st,tm,fsK(id),fsSeed(u),u)}catch(e){if(!FS.err){FS.err=1;console.error('frame sheet',e)}FS.off=1;return null}}
 /* ---- the baked path (sheetSpritePx): a sampled frame in a canvas, cached per pose ---- */
 function fsBuild(u,face,state,frame){if(!fsOn(u))return null;const id=fsId(u),D=FS_DEF[id];face=((face|0)%4+4)%4;const st=state||'idle',loop=st==='idle'||st==='walk'||st==='flee',
  s=typeof ANIM==='object'?ANIM.get(u):null,row=st==='attack'&&D.pick?D.pick(u,st,s):'',tm=loop?{c:(frame|0)/4,t:0}:{t:humSkT(st,frame),row};
- const k=humK(),key=id+':'+face+':'+st+':'+(frame|0)+':'+row+':'+k;let o=FS.bk.get(key);if(o)return o;
- let Fr;try{Fr=fsFrame(id,face,st,tm,fsK(id),0)}catch(e){if(!FS.err){FS.err=1;console.error('frame sheet',e)}FS.off=1;return null}
+ const k=humK(),key=id+':'+face+':'+st+':'+(frame|0)+':'+row+':'+k+(D.dressKey?':'+D.dressKey(u):'');let o=FS.bk.get(key);if(o)return o;
+ let Fr;try{Fr=fsFrame(id,face,st,tm,fsK(id),0,u)}catch(e){if(!FS.err){FS.err=1;console.error('frame sheet',e)}FS.off=1;return null}
  const b=humSkBox(Fr),sc=HUM_A*Fr.sc;let X0=b[0]*sc,X1=b[2]*sc;if(Fr.mir){const q=X0;X0=-X1;X1=-q}const Y0=b[1]*sc,Y1=b[3]*sc,w=Math.max(2,Math.ceil((X1-X0)*k)+2),h=Math.max(2,Math.ceil((Y1-Y0)*k)+2);
  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const q=cv.getContext('2d');if(!q)return null;q.imageSmoothingEnabled=true;try{q.imageSmoothingQuality='high'}catch(e){}
  const ax=-X0+1/k,ay=-Y0+1/k;q.setTransform(k,0,0,k,0,0);humSkDraw(q,Fr,ax,ay);o={cv,ax,ay,k,smooth:true,fs:id,anim:Fr.anim,face:Fr.face};
