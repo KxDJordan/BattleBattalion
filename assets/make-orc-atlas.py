@@ -133,16 +133,19 @@ def build(var, C):
     cs = ff.scale(comp, F); M1 = cs[..., 3] > 128; M0 = a0[..., 3] > 128
     ox0, oy0 = (ORG[0] + OFF[0]) * F, (ORG[1] + OFF[1]) * F
     best = (-1, 0, 0)
-    for dy in range(-12, 13):
-        for dx in range(-12, 13):
+    R = 20 if C.get('seat') else 12
+    for dy in range(-R, R + 1):
+        for dx in range(-R, R + 1):
             x0 = int(round(ox0 + dx - a0x)); y0_ = int(round(oy0 + dy - a0y))
             if x0 < 0 or y0_ < 0 or x0 + M0.shape[1] > M1.shape[1] or y0_ + M0.shape[0] > M1.shape[0]: continue
-            top = int(M0.shape[0] * .42)        # the head and shoulders only: the weapons are held differently in the frames
+            top = M0.shape[0] if C.get('seat') else int(M0.shape[0] * .42)   # the head and shoulders only (the spiders: the whole figure): the weapons are held differently in the frames
             sub = M1[y0_:y0_ + top, x0:x0 + M0.shape[1]]; m0 = M0[:top]
             iou = (sub & m0).sum() / max(1, (sub | m0).sum())
             if iou > best[0]: best = (iou, dx, dy)
     # the origin stays the composed pose's own anchor (its body centre over its feet, as the frames' are), so the idle stands centred on
     # its tile like every frame; the search above only reports how far its head and shoulders sit from the frame's (the seam)
+    if C.get('seat'):   # (the spiders) the origin moved to where the frame's anchor sits when the pose covers it best: no jump from the rig to the frame
+        ORG = (ORG[0] + best[1] / F, ORG[1] + best[2] / F)
     R2 = lambda v: round(float(v), 3)
     for n in A['p']: A['p'][n]['pv'] = [R2(v) for v in pivot(n)]
     A['set'] = [[slot, n, R2((at[0] - ORG[0]) * F), R2((at[1] - ORG[1]) * F), rot, R2(sc * F)] for slot, n, at, rot, sc in SETUP]
