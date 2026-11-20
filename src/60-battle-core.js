@@ -187,7 +187,9 @@ const deployRow=r=>r>BH-1-SPAWN_P&&r<BH;                                 // the 
 // Foes scale with the company's strength, not the calendar: each sword adds by level, times gearK for its kit (gearPower 2.3 = starting
 // kit: x1; tier 3 ~x1.19, tier 4 ~x1.31, tier 5 ~x1.40). A company that does not improve its gear does not face harder bands.
 const MERCBUD={base:7.5,lvl:5.6,sq:.07};   // what a company merc adds to the enemy budget: base + lvl a level + sq a level squared (13.2 at level 1, 31 at 4, 57 at 8, 85 at 12), times gearK (the company's strength: levels and gear, never the day). Level 1 is forgiving on purpose: a struck-down recruit lives only 30% of the time
-const mercBud=L=>MERCBUD.base+MERCBUD.lvl*L+MERCBUD.sq*L*L;
+// Past PPLV (15) a level brings attribute rolls but no mastery point: it counts MERCBUD.late of a level (a level-20 sword as a 17.5)
+MERCBUD.late=.5;
+const mercBud=L=>{const P=typeof PPLV==='number'?PPLV:99;if(L>P)L=P+MERCBUD.late*(L-P);return MERCBUD.base+MERCBUD.lvl*L+MERCBUD.sq*L*L};
 const GEARK=.06;function gearK(m){const g=typeof gearPower==='function'?gearPower(m):2.3;return 1+GEARK*Math.max(0,g-2.3)}
 function battleBudget(o){let budget=0;const S=typeof isSolo==='function'&&isSolo()?SOLOBUD:null;const sm=S&&o&&FACT[o.f]&&Array.isArray(FACT[o.f].solo)?FACT[o.f].solo:null;battleField(o).forEach(m=>budget+=(!S?mercBud(m.lvl):sm?sm[0]+sm[1]*m.lvl:S.base+S.lvl*Math.min(m.lvl,S.knee)+S.late*Math.max(0,m.lvl-S.knee))*gearK(m));return budget*(o&&o.mult||1)*(typeof BUDGETK==='number'?BUDGETK:1)*runK('budget')}   // difficulty: diffK('budget')
 // The enemy ids startBattle(o) would field, rolled now (seeded). Hand them back as o.foes (or o.fixedAll) to fight exactly these.

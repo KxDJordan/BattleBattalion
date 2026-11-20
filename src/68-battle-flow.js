@@ -122,6 +122,7 @@ function brTierLv(kind,t){if(typeof tlTierLv==='function')return tlTierLv(kind,t
 function brOpens(a,b){const out=[],R=['I','II','III','IV','V','VI','VII','VIII','IX'];if(!(b>a))return out;
  for(let t=1;t<=9;t++){const L=brTierLv('style',t);if(L>a&&L<=b&&t<=6)out.push('New tier unlocked: tier '+R[t-1])}
  {const L=brTierLv('weapon',1);if(L>a&&L<=b)out.push('Weapon masteries open')}   // the Weapon mastery tree has one tier
+ if(typeof PPLV==='number'&&b>PPLV)out.push('Attributes only: no new mastery point past level '+PPLV);
  return out}
 /* the battle objective's outcome, one line (escort / hold / siege, and a named foe) */
 function brObjLine(res){let t='';if(res.objK==='escort')t=res.vip&&res.vip.alive?`<p class="good">${res.vip.name} came through (${res.vip.hp}/${res.vip.hpMax}).</p>`:`<p class="bad">The ${(res.vip?res.vip.name:'wagon').toLowerCase()} is lost.</p>`;

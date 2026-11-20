@@ -2,8 +2,15 @@
 const RESC={mana:'#62a6ee',aura:'#ecc64f',qi:'#3fd0b6',chi:'#9bd96f'},RESN={mana:'Mana',aura:'Aura',qi:'Qi',chi:'Chi'},RESK=['mana','aura','qi','chi'];
 const STATN={hp:'Hitpoints',fat:'Fatigue',init:'Initiative',ms:'Melee skill',rs:'Ranged skill',md:'Melee defense',rd:'Ranged defense',brv:'Resolve'};
 const ROLL={hp:[2,4],fat:[2,4],init:[3,5],ms:[1,3],rs:[2,4],md:[1,3],rd:[2,4],brv:[2,4]};
-const XPT=[0,0,200,500,1000,1700,2600,3700,5000,6500,8200,10100,12200,14500,17000,20000];
-const MAXLV=15,MAXROSTER=20,MAXFIELD=12;   // the roster holds 20 swords, 12 take the field
+/* XPT[L]: the xp a sword needs to stand at level L (levels 1..MAXLV). Levels 1-6 come as fast as ever (2-4 even fights a level);
+   from level 6 each level asks ~14% more fights than the one before (the xp a fight pays grows with the company too), so 10 takes
+   ~39 even fights (was 32), 15 ~91 (was 55) and 20 ~190: the last five levels are a long late-game goal. XPV: this table's version,
+   stamped on a save (G.xpv) so an older save's xp is set on it again (repairSave, 20-state.js: each sword keeps its level and its
+   share of the way to the next). Was [0,0,200,500,1000,1700,2600,3700,5000,6500,8200,10100,12200,14500,17000,20000] to level 15. */
+const XPT=[0,0,200,500,1000,1700,2600,3800,5400,7500,10250,13750,18000,23250,29500,36750,45250,55250,67000,80500,96500],XPV=2;
+const XPT1=[0,0,200,500,1000,1700,2600,3700,5000,6500,8200,10100,12200,14500,17000,20000];   // the table before XPV 2 (old saves)
+// MAXLV: the highest level. PPLV: the last level that brings a mastery (perk) point; levels PPLV+1..MAXLV bring the attribute rolls only.
+const MAXLV=20,PPLV=15,MAXROSTER=20,MAXFIELD=12;   // the roster holds 20 swords, 12 take the field
 const FIST={n:'Fists',wt:'fist',d:[6,12],ap:4,fat:6,rng:1,ign:.1};
 const ITEMS={
  knife:{k:'w',n:'Knife',wt:'dagger',d:[15,25],ap:3,fat:5,rng:1,ign:.2,crush:-.2,price:40},

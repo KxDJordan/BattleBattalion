@@ -45,10 +45,11 @@ function ctrPower(){let P=typeof companyPower==='function'&&G?companyPower():fie
 // exponentially to x5-x7 by level 15 (14-company.js wageLvK), and pay grows with them: the mean over the fielded swords of
 // wageLvK(m) / (1 + CTRPAY.lv x (level-1)) (1 for a new company; ~1.1 at level 4, 1.4 at 8, 1.9 at 12, 2.4 at 15), so a contract still
 // pays 3-6 days of the company's wages at every stage. With the swords' own backgrounds: a company of rare swords is paid a little more
-// (their wages climb to x7, a common company's to x5), never as much more as their wages.
+// (their wages climb to x7, a common company's to x5), never as much more as their wages. Past level 15 (PPLV) the divisor stops, so the
+// premium follows the wages' gentle +5% a level (WAGELV.late) and pay stays 3-6 days of wages to level 20 (test/economy.js flows, L20x12).
 CTRPAY.lv=.1;
 function ctrVetK(){if(typeof wageLvK!=='function'||!G||!Array.isArray(G.roster))return 1;const F=typeof fielded==='function'?fielded():G.roster;if(!F||!F.length)return 1;
- let s=0;for(const m of F){const L=Math.max(1,(m&&m.lvl)|0||1);s+=wageLvK(m)/(1+CTRPAY.lv*(Math.min(typeof MAXLV==='number'?MAXLV:15,L)-1))}return Math.max(1,s/F.length)}
+ let s=0;for(const m of F){const L=Math.max(1,(m&&m.lvl)|0||1);s+=wageLvK(m)/(1+CTRPAY.lv*(Math.min(typeof PPLV==='number'?PPLV:15,L)-1))}return Math.max(1,s/F.length)}
 function ctrStrPay(){const P=ctrPower(),K=CTRPAY.knee;return(CTRPAY.base+CTRPAY.k*(P<=K?Math.pow(P,CTRPAY.e):Math.pow(K,CTRPAY.e)*Math.pow(P/K,CTRPAY.e2)))*ctrVetK()}
 function ctrPayBase(diff,k){return Math.max(30,Math.round(ctrStrPay()*CTR_PAYK[clamp(diff,1,5)-1]*(k||1)*ctrPayRep()/10)*10)}
 function ctrMult(diff,k){return CTR_DIFFK[clamp(diff,1,CTR_DIFFK.length)-1]*(k||1)}

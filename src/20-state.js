@@ -295,7 +295,15 @@ function repairSave(g){if(!svFin(g.seed))return 'no world seed';
  if(typeof egRepair==='function')egRepair(g);else{g.portalRun=null;g.dungeons=Array.isArray(g.dungeons)?g.dungeons:[]}   // phase 8B: portal run, dungeons, deeds (24-endgame.js; it calls legendRepair)
  if(typeof runModsRepair==='function')runModsRepair(g);else g.mods=Array.isArray(g.mods)?g.mods:[];   // the run's twists (27-runmods.js)
  if(typeof runRepair==='function')runRepair(g);else{g.diff=['story','normal','hard','brutal'].includes(g.diff)?g.diff:'normal';g.ironman=!!g.ironman}
- if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;return ''}
+ if(!svFin(g.rng))g.rng=(g.seed^0x9e3779b9)>>>0;g.rng=g.rng>>>0;
+ if(!(svFin(g.xpv)&&g.xpv>=XPV)){const all=g.roster.concat(...g.towns.map(t=>t.recruits),...(Array.isArray(g.rivals)?g.rivals.map(r=>svObj(r)&&Array.isArray(r.roster)?r.roster:[]):[]));all.forEach(xpRefit)}g.xpv=XPV;
+ return ''}
+/* xpRefit(m): a sword of a save written before the XP table XPV 2 (XPT1, to level 15) set on today's XPT (to MAXLV 20). It keeps its level,
+   perk points and pending level-ups, and the same share of the way to its next level; a level-15 sword (the old top) keeps the xp it
+   banked past 15, short of level 16 (it never levels on load: levels come in battle, from the next fight's xp). Draws no randomness. */
+function xpRefit(m){if(!svObj(m))return;const L=clamp(Math.floor(svNum(m.lvl,1)),1,MAXLV),x=Math.max(0,svNum(m.xp,0)),O=XPT1.length-1;
+ if(L>=O){m.xp=Math.round(XPT[L]+Math.min(Math.max(0,x-XPT1[O]),(XPT[L+1]||XPT[L]+1)-XPT[L]-1));return}
+ const f=clamp((x-XPT1[L])/(XPT1[L+1]-XPT1[L]),0,.999);m.xp=Math.round(XPT[L]+f*(XPT[L+1]-XPT[L]))}
 // {state:'none'} | {state:'ok',g,v} | {state:'newer',v} | {state:'corrupt',why}. Never throws.
 function cleanName(s){s=typeof s==='string'?s.replace(/[<>&"`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,NAMEMAX):'';return s||BANNERDEF.name}
 const NAMEMAX=24;
@@ -309,7 +317,7 @@ function loadSave(){const r=readSave();return r.state==='ok'?r.g:null}          
 function saveStatus(slot){const r=readSave(slot),s={state:r.state,v:r.v,why:r.why};if(r.g){s.day=r.g.day;s.swords=r.g.roster.length;s.crowns=r.g.crowns;s.name=r.g.name;s.banner=r.g.banner;s.wsize=r.g.wsize;s.renown=r.g.renown;s.diff=r.g.diff;s.ironman=!!r.g.ironman;s.origin=r.g.origin;s.crisisKind=r.g.crisisKind}return s}
 // save(): the running company's famed items are registered again first, whatever readSave() put into ITEMS meanwhile. An Isekai run
 // whose hero fell (G.isekai.lost) is over and is never written again.
-function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length||(G.isekai&&G.isekai.lost))return false;G.v=SAVEVER;if(svObj(G.famed)&&typeof registerFamed==='function')registerFamed(G.famed);G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(slotKey(SLOT),s)}
+function save(){if(!G||mode!=='world'||!Array.isArray(G.roster)||!G.roster.length||(G.isekai&&G.isekai.lost))return false;G.v=SAVEVER;G.xpv=XPV;if(svObj(G.famed)&&typeof registerFamed==='function')registerFamed(G.famed);G.rng=rngState();if(typeof fogPack==='function')G.fog=fogPack();let s;try{s=JSON.stringify(G)}catch(e){return false}return storeSet(slotKey(SLOT),s)}
 function clearSave(slot){return storeDel(slotKey(slot))}
 // Keeps a copy of a save this version cannot read before a new company replaces it.
 function backupUnreadableSave(){const st=readSave().state;if(st!=='newer'&&st!=='corrupt')return false;const raw=storeGet(slotKey(SLOT));return raw!=null&&storeSet(slotKey(SLOT)+'_bak',raw)}

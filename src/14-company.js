@@ -69,15 +69,17 @@ function dismissFollower(id){if(!followerHas(id))return false;G.retinue=G.retinu
 /* ---- economy helpers read by 40-world.js and 50-towns.js ---- */
 // a merc's daily wage: the rules' mercWage(m) when they provide one, else the background's wage plus trait wages
 // (TRAITS[k].wage: a fraction below 1 is a share of the base wage, else crowns), then the sword's level (wageLvK), then the paymaster.
-// Level: a veteran asks more, growing exponentially from x1 at level 1 to x(WAGELV.lo..hi) at MAXLV (15) by the background's rarity
-// (bgRarity): K(L) = top^((L-1)/(MAXLV-1)), top = lo + (hi-lo) x rarity; levels past MAXLV do not exist (capped there).
+// Level: a veteran asks more, growing exponentially from x1 at level 1 to x(WAGELV.lo..hi) at PPLV (15) by the background's rarity
+// (bgRarity): K(L) = top^((L-1)/(PPLV-1)), top = lo + (hi-lo) x rarity; past 15 (the levels without a mastery point, to MAXLV 20)
+// gently: x(1 + WAGELV.late) a level, so level 20 asks x1.28 what 15 does (farmhand x6.4, gladiator x8.9).
 // Rarity is the tavern weight BG[k].w (wpickBG / recruitBG draw with it): 0 for w >= WAGELV.wc (the commonest: farmhand, militia),
 // 1 for w <= WAGELV.wr (gladiator, and the origin-only slayer and isekai at w 0), log-linear between: w 4 .10, w 3 .22, w 2 .40, w 1 .70.
 // So at level 15: farmhand x5, hunter x5.2, sellsword x5.4, squire x5.8, knight x6.4, gladiator x7 (was: +10% a level, x2.4 at 15).
-const WAGELV={lo:5,hi:7,wc:5,wr:.5};
+const WAGELV={lo:5,hi:7,wc:5,wr:.5,late:.05};
 function bgRarity(k){const b=BG[k];if(!b)return 0;const w=+b.w||0;if(w<=WAGELV.wr)return 1;if(w>=WAGELV.wc)return 0;return Math.log(WAGELV.wc/w)/Math.log(WAGELV.wc/WAGELV.wr)}
 function wageTopK(k){return WAGELV.lo+(WAGELV.hi-WAGELV.lo)*bgRarity(k)}
-function wageLvK(m){const M=typeof MAXLV==='number'?MAXLV:15,L=Math.max(1,Math.min(M,(m&&m.lvl)|0||1));return Math.pow(wageTopK(m&&m.bg),(L-1)/(M-1))}
+function wageLvK(m){const P=typeof PPLV==='number'?PPLV:15,M=typeof MAXLV==='number'?MAXLV:P,L=Math.max(1,Math.min(M,(m&&m.lvl)|0||1));
+ return Math.pow(wageTopK(m&&m.bg),(Math.min(L,P)-1)/(P-1))*Math.pow(1+WAGELV.late,Math.max(0,L-P))}
 function wageOf(m){if(!m||!BG[m.bg])return 0;let w;
  if(typeof mercWage==='function'){try{w=mercWage(m)}catch(e){w=null}}
  if(typeof w!=='number'||!isFinite(w)){const b=BG[m.bg].wage||0;w=b;if(Array.isArray(m.traits)&&typeof TRAITS==='object'&&TRAITS)for(const k of m.traits){const T=TRAITS[k];if(T&&typeof T.wage==='number'&&isFinite(T.wage))w+=Math.abs(T.wage)<1?b*T.wage:T.wage}}
