@@ -6,7 +6,7 @@
      wraps     Hand wraps          tier 1  light and quick: the most accurate, little bite
      knuckles  Knuckle-dusters     tier 2  iron over the knuckles: a stunning punch
      baghnakh  Tiger claws         tier 2  the bagh nakh's curved blades: a punch that bleeds
-     shuko     Hand hooks          tier 3  the shuko's iron claws catch hold: every hit squeezes breath (gwind), and they Grapple
+     shuko     Hand hooks          tier 3  the shuko's iron claws catch hold: every hit squeezes 6 breath out of the foe (gwind)
      gauntlet  Mailed gauntlets    tier 3  plate over the fist: heavy, slow, crushes armor
      katar     Katar               tier 4  the punch-dagger: straight through mail
    Item fields beyond a weapon's own: gwind (breath a melee hit squeezes out of the foe, 64x-fists.js fsWind), bleed, stun, crush (the core's).
@@ -15,13 +15,13 @@
 const FISTITEMS=['wraps','knuckles','baghnakh','shuko','gauntlet','katar'];
 Object.assign(ITEMS,{
  wraps:{k:'w',n:'Hand wraps',wt:'fist',d:[12,20],ap:3,fat:3,rng:1,ign:.15,hit:10,price:45,tier:1},
- knuckles:{k:'w',n:'Knuckle-dusters',wt:'fist',d:[22,32],ap:3,fat:4,rng:1,ign:.3,stun:.1,price:240,tier:2},
+ knuckles:{k:'w',n:'Knuckle-dusters',wt:'fist',d:[20,30],ap:3,fat:4,rng:1,ign:.3,stun:.1,price:240,tier:2},
  baghnakh:{k:'w',n:'Tiger claws',wt:'fist',d:[18,30],ap:3,fat:4,rng:1,ign:.2,hit:5,bleed:2,crush:-.2,price:300,tier:2},
- shuko:{k:'w',n:'Hand hooks',wt:'fist',d:[24,34],ap:3,fat:5,rng:1,ign:.25,hit:5,gwind:6,price:680,tier:3},
+ shuko:{k:'w',n:'Hand hooks',wt:'fist',d:[20,30],ap:3,fat:5,rng:1,ign:.25,hit:5,gwind:6,price:680,tier:3},
  gauntlet:{k:'w',n:'Mailed gauntlets',wt:'fist',d:[30,44],ap:4,fat:7,rng:1,ign:.35,crush:.4,stun:.1,price:760,tier:3},
  katar:{k:'w',n:'Katar',wt:'fist',d:[30,44],ap:3,fat:5,rng:1,ign:.55,hit:5,crush:-.2,price:1350,tier:4}
 });
-for(const id of FISTITEMS){const i=ITEMS[id];i.look=i.look||id;i.sk=id==='shuko'?['shove','grapple']:['shove']}
+for(const id of FISTITEMS){const i=ITEMS[id];i.look=i.look||id;i.sk=['shove']}
 /* ---- abilities ---- */
 Object.assign(AB,{
  hipthrow:{n:'Hip throw',ap:4,fat:14,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,mult:.6,hit:5,kb:2,gwind:12,fx:'shove',
@@ -32,7 +32,7 @@ Object.assign(AB,{
   d:'The jab finds the range, the cross lands: two punches at 70% damage, +15 to hit each; the second only while the foe stands. Fists only.'},
  pflurry:{n:'Flurry of blows',ap:5,fat:14,rng:1,tgt:'enemy',wpn:1,needs:'fist',fist:1,punch:1,melee:1,mult:.5,hits:4,hit:0,ramp:5,fx:'multi',
   d:'Four punches at one foe, 50% damage each, every one 5 more to hit than the one before (+0, +5, +10, +15), while it stands. Fists only.'},
- flykick:{n:'Flying kick',ap:4,fat:14,rng:3,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,dash:1,mult:1,hit:10,fx:'bonk',
+ flykick:{n:'Flying kick',ap:4,fat:14,rng:3,tgt:'enemy',wpn:1,needs:'fist',fist:1,melee:1,dash:1,mult:1,hit:10,fx:'bonk',ai:(u,X)=>fsKickAi(u,X,'flykick'),
   d:'Leap at a foe up to 3 tiles away, past every foe on the way (no free attacks), and kick: 100% damage, +10 to hit. Fists only.'}});
 /* ---- who carries them (BG[bg].pool at most 9 trees; core: the tree every recruit of it carries, rollTrees) ----
    monk       Willow style (core), the Pugilist, the Wrestler          pit fighter  the Wrestler (core), the Pugilist

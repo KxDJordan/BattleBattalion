@@ -22,7 +22,7 @@
    Unit state: gwind (breath debt of a foe that never tires), wrStR (the round t was last stunned), pgKT (Rapid hands spent this turn), flI (the punches of a Flurry of blows thrown so far).
    Randomness: only Breaking hold's chance, drawn in pvStatus's fixed order (after every older case). */
 const FSTREES=['wrestle','pugilist','willow'];
-const FSK={apMin:3,windRec:15,grindMax:.2,stepMax:10,bare:2,breakAt:.75,suplexAt:.5,smother:1};
+const FSK={apMin:3,windRec:15,grindMax:.2,stepMax:12,bare:2,breakAt:.75,suplexAt:.5,smother:1};
 const fsFist=u=>!!u&&isFistW(u.wpn);
 const fsLight=u=>!!u&&fsFist(u)&&(u.acl||armorClass(u))==='light';
 function fsBreath(t){if(!t)return 0;if(t.fatMax>0&&t.fatMax<999)return clamp((t.fat||0)/t.fatMax,0,1);return clamp((t.gwind||0)/WINDMAX,0,1)}
@@ -49,8 +49,9 @@ function fsAbInfo(u,a){const f=u.flags||{};if(!a||!fsFist(u))return a;const punc
  return a}
 function fsHitDone(u,t,a,o,hpd){if(!B||!t)return;if(t.st&&t.st.stun>0)t.wrStR=B.round;if(u.side===t.side||!t.alive)return;const n=fsWindOf(u,t,a,o);if(n>0)fsWind(t,n,u)}
 // Flurry of blows: the punch count, set back when it is paid for (fsPay, from pvPay) and counted after every strike (fsStruck, from pvStruck)
-function fsPay(u,a){if(a.ramp)u.flI=0}
-function fsStruck(u,t,a,o){if(a.ramp&&!o.free)u.flI=(u.flI||0)+1}
+function fsPay(u,a){if(a.ramp)u.flI=0;if(a.dash&&a.fist){u.fkC=u.c;u.fkR=u.r}}
+// a Flying kick's leap counts as tiles moved (Hard to pin), once, on its strike
+function fsStruck(u,t,a,o){if(a.ramp&&!o.free)u.flI=(u.flI||0)+1;if(a.dash&&a.fist&&u.fkC!=null){const d=Math.abs(u.c-u.fkC)+Math.abs(u.r-u.fkR);if(d>0){u.mvN=(u.mvN||0)+d;u.mvd=1}u.fkC=null}}
 function fsKill(u,t,a,o){const f=u.flags||{};if(f.pgKill&&a.id==='attack'&&!o.free&&!o.splash&&fsFist(u)&&B&&B.cur===u&&!u.pgKT&&u.alive){u.pgKT=1;u.ap+=a.ap;float(u,'+'+a.ap+' AP','#ffd27a');FX.emit('buff',{t:u})}}
 function fsTurn(u){const b=B,f=u.flags||{};if(u.pgKT)u.pgKT=0;if(u.gwind>0)u.gwind=Math.max(0,u.gwind-FSK.windRec);if(!b)return;
  if(f.pgRec&&fsFist(u)&&u.fat>0)u.fat=Math.max(0,u.fat-f.pgRec);
@@ -59,6 +60,16 @@ function fsTurn(u){const b=B,f=u.flags||{};if(u.pgKT)u.pgKT=0;if(u.gwind>0)u.gwi
 const fsSlip=u=>!!(u&&u.flags&&u.flags.wlSlip&&fsLight(u));
 // Double jab: after an Attack with fists, a second punch at the same foe (while it stands)
 async function fsFollow(u,t,a){const f=u.flags||{};if(!f.pgDouble||a.id!=='attack'||!fsFist(u)||!t.alive||!u.alive)return;await strike(u,t,a,{splash:f.pgDouble,free:'double'})}
+/* Flying kick for the AI (AB.flykick.ai, aiBest's custom path): from the tile it stands on or any tile it can walk to with the kick's AP left
+   over, every foe the leap reaches (a free tile beside it); worth the kick's hit at its chance and the foe's priority, and the tile it lands on in place of the one it leaps from;
+   Candidates {s: where to kick from, k: the foe's tile, v}. */
+function fsKickAi(u,X,id){const a=abilityInfo(u,id);if(!canUse(u,a))return[];const out=[],S=X.S,c0=u.c,r0=u.r,cur=X.at,tiles=[cur];
+ if(!u.rooted)X.D.forEach((v,k)=>{if(!v.air&&k!==cur&&v.cost+a.ap<=u.ap&&!unitAt(k%BW,(k/BW)|0))tiles.push(k)});
+ try{for(const t of X.foes){let bs=null,bv=0;const h=aiHit(u,a,t,S),pr=aiPrio(X,t);
+   for(const s of tiles){const sc=s%BW,sr=(s/BW)|0,d=Math.abs(sc-t.c)+Math.abs(sr-t.r);if(d>a.rng||d<2&&s!==cur)continue;u.c=sc;u.r=sr;const sp=d>1?dashSpot(u,t):[sc,sr];if(!sp)continue;
+    const p=hitChance(u,t,a)/100,v=p*(h.v+h.kill*h.kv)*pr-(s===cur?0:(X.D.get(s)||{cost:0}).cost*.05)+aiPos(X,key(sp[0],sp[1]))-aiPos(X,s);if(v>bv){bv=v;bs=s}}
+   u.c=c0;u.r=r0;if(bs!=null)out.push({s:bs,k:key(t.c,t.r),v:bv})}}finally{u.c=c0;u.r=r0}
+ return out}
 // the AI: what Double jab adds to an Attack, and what a blow's breath and conditional stun are worth
 function fsAiExtra(u,a,t,S){const f=u.flags||{};if(!f.pgDouble||a.id!=='attack'||!fsFist(u))return 0;return aiHit(u,a,t,S).v*f.pgDouble}
 function fsAiVal(u,a,t){if(!u||a.magic||a.noDmg)return 0;const n=fsWindOf(u,t,a),br=fsBreath(t),f=u.flags||{};let v=0;

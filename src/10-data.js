@@ -561,9 +561,9 @@ const MAST={
   [perkDef('Flurry of blows','Ability (fists, 5 AP): four punches at one foe, 50% damage each, every one 5 more to hit than the one before (+0, +5, +10, +15), while it stands',{id:'pugilist.5',ab:'pflurry'})],
   [perkDef('Rapid hands','+6 initiative. Fighting with fists: an Attack that kills gives its AP back, once a turn',{id:'pugilist.6',st:{init:6},mod:{pgKill:1}})]]},
  willow:{n:'Willow style',kind:'style',aff:['melee','fist','light'],d:'Bend, slip and never stand still',role:'The evader: bare-handed in light armor or none, it leaps in, slips out of every hold and bends around the blows aimed at it',tiers:[
-  [perkDef('Empty hands','Fighting with fists in light armor or none: +6 melee and ranged defense, and 4 more while your armor and helmet together weigh 2 or less',{id:'willow.1',mod:{wlDef:6,wlBare:4}})],
+  [perkDef('Empty hands','Fighting with fists in light armor or none: +8 melee and ranged defense, and 4 more while your armor and helmet together weigh 2 or less',{id:'willow.1',mod:{wlDef:8,wlBare:4}})],
   [perkDef('Flying kick','Ability (fists, 4 AP): leap at a foe up to 3 tiles away, past every foe on the way, and kick: 100% damage, +10 to hit',{id:'willow.2',ab:'flykick'})],
-  [perkDef('Hard to pin','Fighting with fists in light armor: +2 melee and ranged defense for every tile you moved on your last turn (at most +10)',{id:'willow.3',mod:{wlStep:2}})],
+  [perkDef('Hard to pin','Fighting with fists in light armor: +3 melee and ranged defense for every tile you moved or leapt on your last turn (at most +12)',{id:'willow.3',mod:{wlStep:3}})],
   [perkDef('Slip away','Fighting with fists in light armor: leaving a foe\'s side never draws its free attack',{id:'willow.4',flag:'wlSlip'})],
   [perkDef('Turn the blow','Fighting with fists in light armor: melee blows on you lose 15% of their damage, bent aside',{id:'willow.5',mod:{wlDr:.15}})],
   [perkDef('Wind step','Fighting with fists in light armor: +1 AP on every turn you begin with no foe next to you',{id:'willow.6',mod:{wlAP:1}})]]},

@@ -198,8 +198,8 @@ section('the new mechanics, one by one');
   // Empty hands (+6, +4 more bare), Hard to pin (+2 a tile moved, at most +10): defense in light armor with fists only
   park();b.cur=e1;put(WL,5,8);put(PL,7,8);put(HV,9,8);put(e1,5,7);put(e2,7,7);put(e4,9,7);const ea=at(e1);
   const h0=X.hitChance(e1,PL,at(e1)),hw=X.hitChance(e1,WL,ea);ok(WL.aw<=2&&PL.aw===WL.aw,'a robe weighs nothing');
-  {const f0=WL.flags;WL.flags=Object.assign({},f0,{wlDef:0,wlBare:0,wlStep:0});const hb=X.hitChance(e1,WL,ea);WL.flags=f0;ok(hw===Math.max(5,hb-10),'Empty hands: −10 to hit you, bare-chested ('+hb+' -> '+hw+')');
-   WL.mvN=3;ok(X.hitChance(e1,WL,ea)===Math.max(5,hb-16),'Hard to pin: −6 after 3 tiles');WL.mvN=9;ok(X.hitChance(e1,WL,ea)===Math.max(5,hb-20),'… at most −10');WL.mvN=0;
+  {const f0=WL.flags;WL.flags=Object.assign({},f0,{wlDef:0,wlBare:0,wlStep:0});const hb=X.hitChance(e1,WL,ea);WL.flags=f0;ok(hw===Math.max(5,hb-12),'Empty hands: −12 to hit you, bare-chested ('+hb+' -> '+hw+')');
+   WL.mvN=3;ok(X.hitChance(e1,WL,ea)===Math.max(5,hb-21),'Hard to pin: −9 after 3 tiles');WL.mvN=9;ok(X.hitChance(e1,WL,ea)===Math.max(5,hb-24),'… at most −12');WL.mvN=0;
    const s0=WL.wpn;WL.wpn=X.calc(fm('monk','arming',[])).wpn;ok(X.hitChance(e1,WL,ea)===X.hitChance(e1,WL,ea)&&X.fsHit(e1,WL,ea,true)===0,'… nothing with a sword');WL.wpn=s0}
   ok(HV.acl!=='light'&&X.fsHit(e1,HV,ea,true)===0,'… nothing in mail');
   // Turn the blow: 15% off melee blows in light armor with fists
@@ -212,11 +212,11 @@ section('the new mechanics, one by one');
   // Flying kick: a dash of 3 tiles, +10, no free attacks on the way; Willow in the storm: 4
   park();b.cur=WL;put(WL,5,10);put(e1,5,7);put(e2,6,10);const fk=A(WL,'flykick');ok(fk.rng===3&&fk.dash&&fk.hit===10&&X.validTargets(WL,fk).has(KU(e1)),'Flying kick: reaches a foe 3 tiles away');
   F(WL,{wlKick:1});ok(A(WL,'flykick').rng===4,'Willow in the storm: 4 tiles');F(WL,{wlKick:0});
-  fa=0;X.ctx.freeAttack=async function(e,u,w){if(u===WL)fa++;return fr0(e,u,w)};WL.ap=9;await X.useAbility(WL,fk,KU(e1));await rest(b);b.busy=true;X.ctx.freeAttack=fr0;ok(X.mdist(WL,e1)===1&&fa===0,'… lands beside the foe, no free attack from the one it left');
+  fa=0;X.ctx.freeAttack=async function(e,u,w){if(u===WL)fa++;return fr0(e,u,w)};WL.ap=9;await X.useAbility(WL,fk,KU(e1));await rest(b);b.busy=true;X.ctx.freeAttack=fr0;ok(X.mdist(WL,e1)===1&&fa===0,'… lands beside the foe, no free attack from the one it left');ok(WL.mvN===2,'… and the 2 tiles leapt count for Hard to pin ('+WL.mvN+')');
   // the fist weapons: hand hooks squeeze breath; tiger claws bleed; knuckle-dusters and gauntlets stun; every one counts as fists
   for(const id of FW){const it=X.ITEMS[id];ok(it&&it.k==='w'&&it.wt==='fist'&&!it.two&&!it.glad&&X.isFistW(it)&&X.isLightW(it),id+': a fist weapon')}
   {const hk=fm('monk','shuko',[]),cl=fm('monk','baghnakh',[]),kn=fm('monk','knuckles',[]);const {b:b2,P:Q,E:E2,park:pk2}=await arena(SEED+4,[hk,cl,kn],['thug','thug','thug']);pk2();const [HK,CL,KN]=Q;
-   b2.cur=HK;put(HK,5,8);put(E2[0],5,7);ok(X.fsWindOf(HK,E2[0],at(HK))===6&&HK.abs.includes('grapple'),'Hand hooks: 6 breath a hit, and Grapple');
+   b2.cur=HK;put(HK,5,8);put(E2[0],5,7);ok(X.fsWindOf(HK,E2[0],at(HK))===6,'Hand hooks: 6 breath a hit');
    put(CL,8,8);put(E2[1],8,7);E2[1].arm=0;E2[1].helm=0;ok(X.forecast(CL,E2[1],at(CL)).statuses.some(s=>s.k==='bleed'),'Tiger claws: bleeding');
    put(KN,11,8);put(E2[2],11,7);ok(X.forecast(KN,E2[2],at(KN)).statuses.some(s=>s.k==='stun'&&near(s.ch,.1)),'Knuckle-dusters: a 10% stun');X.B=null;X.mode='world'}
   X.B=null;X.mode='world';console.log('breath (gwind and fatigue), Bear hug, Hip throw, Grip of iron, Grind, Suplex, Smother, Breaking hold, Snap jab, Loose shoulders, One-two, Flurry of blows, Thousand fists, Double jab, Rapid hands, Empty hands, Hard to pin, Turn the blow, Slip away, Wind step, Flying kick, Willow in the storm, the fist weapons: ok') }
@@ -228,7 +228,7 @@ section('forecast == strike: forced strikes with the fist trees (double jabs, th
   const {b,P,E,park}=await arena(SEED+6,ros,['thug','braid','orcw','bgun','samurai','ashi']);
   // the foes carry the defender's side of the trees too (Empty hands, Hard to pin, Turn the blow) and Breaking hold / Grind on their blows
   for(const u of E){u.flags=Object.assign({},u.flags);for(const id of ['willow.1','willow.3','willow.5','wrestle.1','wrestle.3','wrestle.6'])for(const k in X.perkById(id).perk.mod)u.flags[k]=(u.flags[k]||0)+X.perkById(id).perk.mod[k];u.acl='light'}X.auraScan();
-  const ABS=['attack','attack','attack','hipthrow','suplex','onetwo','pflurry','flykick','grapple','shove'];FCHECK=true;FS.n=0;FS.byAb={};let tries=0;const U=b.units;
+  const ABS=['attack','attack','attack','hipthrow','suplex','onetwo','pflurry','flykick','shove'];FCHECK=true;FS.n=0;FS.byAb={};let tries=0;const U=b.units;
   while(FS.n<(QUICK?1500:3200)&&tries++<40000){park();for(const u of U){u.fearless=false;u.used={}}const u=pick(U.filter(x=>x.alive&&x.side===0)),t=pick(U.filter(x=>x.alive&&x.side!==u.side));
    const id=pick(ABS);if(id!=='attack'&&!u.abs.includes(id))continue;const a=X.abilityInfo(u,id);if(!a)continue;
    put(u,6,6);put(t,6,a.dash&&R()<.5?3:5);
@@ -286,4 +286,53 @@ section('saves: the PKV 3 refit (a monk\'s or pit fighter\'s lost tree traded fo
   const g1=JSON.parse(X.store.get(X.SAVEKEY));delete g1.pkv;const m1=g1.roster.find(q=>q.id===s.id);m1.perks=['gunner.1','survivor.1'];m1.pp=0;X.store.set(X.SAVEKEY,JSON.stringify(g1));const r3=X.readSave();
   ok(r3.g.roster.find(q=>q.id===s.id).perks.join()==='survivor.1'&&r3.g.refundWhy==='guns','… a save older than both: the gun refit too');
   console.log('PKV '+X.PKV+': trees traded, points back, the sheet, once only, the gun refit kept to older saves: ok') }
+/* ---- role sims: one background (the pit fighter's) for every squad of four, all six tiers of its tree and its weapon (the fist trees: hand hooks;
+   the others: theirs), light hide armor; the squads played by the company's AI, the foes by theirs, repeated over seeds. Each fist tree best in
+   its own setting:
+     brawl     one company turn, the squad rooted beside four brigands (shields down): damage dealt (hitpoints and armor)   the Pugilist
+     boss      four rounds around an orc warlord (it tires; its hitpoints raised so nobody kills it): damage taken           the Wrestler
+     skirmish  three rounds against archers and crossbowmen behind two thugs: damage dealt minus taken                     Willow style
+   and the fist trees not stronger than the other melee families: over those three settings and a fourth, neutral one (hold: three rounds
+   beside four orc warriors), the best fist tree's mean (dealt − taken) is no better than the best of the Vanguard, the Duelist and the Brute.
+   Then the weapons themselves: every one-handed melee weapon of a tier swung (Attack only) for two turns at the tier's foes; the best fist
+   weapon of each tier does 0.7 to 1.15 times the best dagger, sword, mace or axe of the tier, with and without its weapon mastery. */
+section('role sims: each fist tree best in its own setting; fists no stronger than the other melee families');
+{ const NS=QUICK?5:10,TR={wrestle:'shuko',pugilist:'shuko',willow:'shuko',vanguard:'arming',duelist:'arming',brute:'greatsword'},res={};
+  const squad=k=>[0,1,2,3].map(()=>{const m=fm('pitfighter',TR[k],X.MAST[k].p.map(p=>p.id),{trees:[k,'survivor','scout','skirmisher'],a:'hide'});m.traits=[];m.hp=X.calc(m).hp;return m});
+  const sum=L=>L.reduce((s,e)=>s+(e.alive?e.hp+e.arm+(e.helm||0):0),0);
+  const SET={brawl:{foes:['thug','thug','thug','thug'],rounds:0,place:(P,E)=>{P.forEach((u,i)=>put(u,3+i*3,9));E.forEach((e,i)=>{put(e,3+i*3,8);e.shield=false})}},
+   boss:{foes:['orcl'],rounds:4,place:(P,E)=>{P.forEach((u,i)=>put(u,[6,8,7,7][i],[9,9,8,10][i]));put(E[0],7,9);E[0].hp=E[0].hpMax=1500}},
+   skirmish:{foes:['bmark','bxbow','bmark','bxbow','thug','thug'],rounds:3,place:(P,E)=>{P.forEach((u,i)=>put(u,3+i*3,10));E.forEach((e,i)=>put(e,1+i*2+(i>3?1:0),i<4?5:6))}},
+   hold:{foes:['orcw','orcw','orcw','orcw'],rounds:3,place:(P,E)=>{P.forEach((u,i)=>put(u,3+i*3,9));E.forEach((e,i)=>put(e,3+i*3,8))}}};
+  const tn0=X.ctx.nextTurn;
+  for(const sk in SET){res[sk]={};const S=SET[sk];
+   for(const k in TR){fresh(SEED+90);let D=0,Tk=0;
+    for(let n=0;n<NS;n++){const {b,P,E,park}=await arena(SEED+100+n,squad(k),S.foes);park();for(const e of E){e.hp=e.hpMax=Math.max(e.hpMax,120);e.fearless=true;e.mvd=0}S.place(P,E);
+     for(const u of P){u.used={};u.fearless=true}X.foeAuras();X.auraScan();const e0=sum(E),p0=sum(P);
+     if(!S.rounds){X.ctx.nextTurn=async function(){};for(const u of P){if(!u.alive||b.over)continue;b.cur=u;u.ap=u.apMax;u.mvd=0;X.pvTurn(u);u.rooted=true;await X.aiTurn2(u);b.busy=true}X.ctx.nextTurn=tn0}
+     else{b.order=[];b.cur=null;b.opts.turnCap=b.turns+S.rounds*(P.length+E.length);b.auto=true;b.busy=false;X.nextTurn();let g=0;while(!b.over){await null;if(++g>5e6)fail('a sim never ended')}}
+     D+=e0-sum(E);Tk+=p0-sum(P);X.B=null;X.mode='world'}
+    res[sk][k]={d:Math.round(D/NS),t:Math.round(Tk/NS),n:Math.round((D-Tk)/NS)}}
+   console.log('  '+sk.padEnd(9)+Object.entries(res[sk]).map(([k,v])=>(X.MAST[k].n+' '+v.d+'/'+v.t).padEnd(22)).join('')+'  (dealt/taken)')}
+  const R=res,f=k=>X.MAST[k].n;
+  ok(R.brawl.pugilist.d>1.15*Math.max(R.brawl.wrestle.d,R.brawl.willow.d),'the brawl: the Pugilist deals the most '+JSON.stringify(R.brawl));
+  ok(R.boss.wrestle.t<.8*Math.min(R.boss.pugilist.t,R.boss.willow.t),'the boss: the Wrestler takes the least '+JSON.stringify(R.boss));
+  ok(R.skirmish.willow.n>Math.max(R.skirmish.pugilist.n,R.skirmish.wrestle.n)+20,'the skirmish: Willow style comes out best '+JSON.stringify(R.skirmish));
+  const mean=k=>Object.keys(SET).reduce((s,sk)=>s+R[sk][k].n,0)/Object.keys(SET).length,bf=Math.max(...FT.map(mean)),bo=Math.max(...['vanguard','duelist','brute'].map(mean));
+  console.log('  mean dealt − taken: '+Object.keys(TR).map(k=>f(k)+' '+Math.round(mean(k))).join(', '));
+  ok(bf<=bo+Math.abs(bo)*.1,'fists no stronger than the other melee families: best fist tree '+Math.round(bf)+', best of the others '+Math.round(bo)) }
+{ const NT=QUICK?8:20,FAM=['fist','dagger','sword','mace','axe'],MS={1:50,2:55,3:62,4:68,5:75},TGT={1:['thug','gob'],2:['skel','bxbow'],3:['orcw','braid'],4:['samurai','barbhus'],5:['vknight','orcl']};
+  const MP={fist:'weapons.fist',dagger:'weapons.dagger',sword:'weapons.sword',mace:'weapons.mace',axe:'weapons.axe'};
+  fresh(SEED);const on0=X.FX.on;X.FX.on=null;const W=Object.keys(X.ITEMS).filter(id=>{const i=X.ITEMS[id];return i.k==='w'&&FAM.includes(i.wt)&&!i.two&&!i.uniq&&!i.famed&&!i.legend&&!i.glad&&!i.east&&i.price>0}),R={};
+  for(const id of W){const it=X.ITEMS[id],T=it.tier||1;for(const mast of [0,1]){let dmg=0;
+    for(const tid of TGT[T]){const m=fm('pitfighter',id,mast?[MP[it.wt]]:[],{a:'padded'});const {b,P,E,park}=await arena(SEED+7,[m],[tid]);park();const u=P[0],t=E[0];u.ms=MS[T];
+     for(const x of E)if(x!==t){x.alive=false;x.gone='fled';x.c=-9;x.r=-9}put(u,7,8);put(t,7,7);X.seedRng(SEED+T*13+tid.length);
+     for(let n=0;n<NT;n++){t.alive=true;t.hpMax=t.hp=5000;t.arm=t.armMax;t.helm=t.helmMax;t.st={};t.mor=3;t.fearless=true;t.gwind=0;u.st={};u.used={};let D=0;
+      for(let k=0;k<2;k++){u.ap=u.apMax;u.fat=0;u.mvd=0;X.pvTurn(u);for(let g=0;g<12;g++){const a=X.abilityInfo(u,'attack');if(!X.canUse(u,a))break;const v0=t.hp+t.arm+(t.helm||0);b.busy=false;await X.useAbility(u,a,KU(t));b.busy=true;D+=v0-t.hp-t.arm-(t.helm||0)}}
+      dmg+=D/NT/TGT[T].length}X.B=null;X.mode='world'}
+    (R[T+'|'+mast]=R[T+'|'+mast]||[]).push({id,wt:it.wt,dmg})}}
+  X.FX.on=on0;let nt=0;
+  for(let T=1;T<=5;T++)for(const mast of [0,1]){const L=R[T+'|'+mast]||[],bf=L.filter(r=>r.wt==='fist').sort((a,b)=>b.dmg-a.dmg)[0],bo=L.filter(r=>r.wt!=='fist').sort((a,b)=>b.dmg-a.dmg)[0];if(!bf||!bo)continue;nt++;const k=bf.dmg/bo.dmg;
+   console.log(`  tier ${T}${mast?' (mastery)':''}: best fist ${bf.id} ${bf.dmg.toFixed(1)}, best other ${bo.id} ${bo.dmg.toFixed(1)} (x${k.toFixed(2)})`);ok(k>=.7&&k<=1.15,`tier ${T}${mast?' with the mastery':''}: the best fist weapon x${k.toFixed(2)} of the best other one-handed melee weapon, outside 0.7..1.15`)}
+  ok(nt>=8,'fist weapons in tiers 1 to 4');console.log('fist weapons within 0.7..1.15 of their tier: ok') }
 console.log('\nOK fists');process.exit(0)})();
