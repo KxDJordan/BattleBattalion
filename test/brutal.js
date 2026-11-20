@@ -1,0 +1,106 @@
+// Difficulty in battle: Story / Normal / Hard / Brutal for a company and for the solo runs.   node test/brutal.js [--n N] [--quick] [--jobs J] [--measure]
+//                                                                                              [--set "JS statement"] [--json file]
+// Loads src/*.js through test/balance.js's loader (its --lib exports) and fights the same seeded battles (the seed never depends on the
+// difficulty: every row is a paired comparison) at each difficulty, the player's side flown by the naive and the sensible pilot:
+//   company   the balance profiles L4x6 (early), L8x9 (mid), L12x12 (late) against the six common factions in turn
+//   slayer    the Solo: Beast Slayer at level 3, 6, 9 (balance.js SOLO: its kit, the quarry perks it would keep) against beasts, serpents,
+//             ogres, bandits and goblins in turn
+//   isekai    the Isekai's solo hero (sword and buckler, medium armor, hp/ms/md talents at three stars; the slayer's level-6 / 9 armor later)
+//             at level 3, 6, 9 against goblins, bandits, beasts, the dead and orcs in turn
+// Reported per cell: win %, rounds, the hitpoints the side lost (share of its maximum), deaths, swords struck down and injuries a fight.
+// Gates (not with --measure):
+//   1. Brutal is clearly harder than Hard: the sensible pilot's win rate pooled over the three stages at least BRUTAL.gap points below
+//      Hard, for the company and for each solo run; and Brutal costs more blood (deaths + struck down a fight) than Hard.
+//   2. The order holds: Story >= Normal >= Hard >= Brutal (sensible, pooled; a little slack for noise between Story and Normal).
+//   3. Solo is not a free ride on Brutal: the solo runs' sensible win rate on Brutal at least BRUTAL.soloGap points below their Normal one.
+//   4. Normal and Hard are untouched by the Brutal rules: on fixed seeds every battle's foes (ids, rank, elites, hitpoints) at Story / Normal /
+//      Hard are exactly what the base formula gives (budget x DIFF[k].budget, no Brutal extras), for a company and for both solo runs.
+'use strict';
+const path=require('path'),cp=require('child_process'),fs=require('fs');
+const ARGV=process.argv.slice(2),has=f=>ARGV.includes(f),arg=(f,d)=>{const i=ARGV.indexOf(f);return i>=0&&i+1<ARGV.length?ARGV[i+1]:d};
+process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();
+const SEED=+arg('--seed',20261120),DIFFS=['story','normal','hard','brutal'],PILOTS=['naive','sensible'],FACS=['gob','undead','beast','orc','bandit','void'];
+const REF={};
+const BRUTAL={gap:12,soloGap:20,blood:1.1};
+const ISEK=[{id:'I3',lvl:3,day:3},{id:'I6',lvl:6,day:16,gear:{w:'arming',s:'kite',a:'mail',h:'kettle'}},{id:'I9',lvl:9,day:32,gear:{w:'arming',s:'heater',a:'mail',h:'nasal'}}];
+const GROUPS={
+ company:{profs:['L4x6','L8x9','L12x12'],facs:FACS,k:8},
+ slayer:{profs:['S3','S6','S9'],facs:['beast','serpent','ogre','bandit','gob'],k:16},
+ isekai:{profs:['I3','I6','I9'],facs:['gob','bandit','beast','undead','orc'],k:16}};
+const hash=L.hash;
+function fail(msg){console.error('\nFAIL: '+msg);process.exit(1)}
+/* ---------- building the sides ---------- */
+function buildIsekai(X,P,seed){X.seedRng(seed);X.newGame(true,{origin:'isekai',isekai:{mode:'solo',name:'Hero',tal:['hp','ms','md'],trees:['vanguard','duelist','survivor','tactician'],wt:'sword',at:'medarmor'}});
+ L.closeAll(X);const G=X.G,m=G.roster[0];m.field=true;if(P.gear)Object.assign(m.eq,P.gear);if(typeof X.fixHands==='function')X.fixHands(m);delete m.cond;
+ if(P.lvl>m.lvl)X.gainXP(m,X.XPT[P.lvl]-m.xp);let g=0;
+ while(m.pend>0&&g++<40){for(const k of ['hp','ms','md']){const t=m.tal[k]||0;m.base[k]+=X.ri(X.ROLL[k][0]+Math.floor(t/2),X.ROLL[k][1]+Math.ceil(t/2))}m.pend--}
+ L.learnAll(X,m);m.hp=X.calc(m).hp;G.stash.length=0;return{roster:X.clone(G.roster),isekai:X.clone(G.isekai)}}
+function profOf(id){return L.PROFILES.find(p=>p.id===id)||L.SOLO.find(p=>p.id===id)||ISEK.find(p=>p.id===id)}
+function build(X,grp,id,k){const P=profOf(id),seed=SEED+hash(grp+'/'+id)%9973+k*101;
+ if(grp==='isekai')return buildIsekai(X,P,seed);return{roster:L.buildCompany(X,P,seed)}}
+// put side c on the field as group grp at difficulty diff (G.diff: the only thing that differs between the rows of a battle)
+function setSide(X,grp,c,P,f,diff){const G=X.G;G.roster=X.clone(c.roster);G.stash=[];G.day=P.day;X.B=null;X.mode='world';G.diff=diff;G.fabled={};
+ delete G.isekai;if(grp==='slayer'){G.origin='slayer';L.soloPrep(X,G.roster[0],f,P)}else if(grp==='isekai'){G.origin='isekai';G.isekai=X.clone(c.isekai);G.isekai.hero=G.roster[0].id}else G.origin='free'}
+function battleSeed(grp,id,i){return(hash(grp+'|'+id)^Math.imul(i+1,2654435761)^SEED)>>>0}
+async function fight(X,W,job,i){const G0=GROUPS[job.grp],P=profOf(job.prof),f=G0.facs[i%G0.facs.length],cs=W[job.grp+'/'+job.prof],c=cs[i%cs.length];
+ setSide(X,job.grp,c,P,f,job.diff);const G=X.G,n0=G.roster.length;X.seedRng(battleSeed(job.grp,job.prof,i));
+ const res=await X.autoBattle({f,mult:1,biome:['plains','forest','hills','swamp','desert','snow'][i%6],pilot:job.pilot,src:{type:'test'},turnCap:4000});
+ if(!res)throw new Error('battle did not start');if(X.FX.err)throw X.FX.err;
+ let hp=0,hpM=0;for(const r of res.men||[]){hpM+=r.hpMax||0;hp+=r.state==='dead'?0:r.state==='down'?0:Math.min(r.hpMax||0,r.hp||0)}
+ const b=X.B,elites=b?b.units.filter(u=>u.side===1&&u.elite&&u.elite.length).length:0,foes=b?b.units.filter(u=>u.side===1&&!u.spawned).length:0;X.B=null;X.mode='world';
+ return{win:res.win&&!res.stuck?1:0,stuck:res.stuck?1:0,rounds:res.rounds||0,lost:hpM?1-hp/hpM:0,dead:(res.dead||[]).length,down:(res.down||[]).length,inj:(res.injuries||[]).length,foes,elites,n0}}
+// what the band would be at each difficulty, without fighting: the foe ids, rank and hitpoints of the battle startBattle rolls (gate 4)
+function bandOf(X,W,grp,prof,i,diff){const G0=GROUPS[grp],P=profOf(prof),f=G0.facs[i%G0.facs.length],cs=W[grp+'/'+prof],c=cs[i%cs.length];setSide(X,grp,c,P,f,diff);X.seedRng(battleSeed(grp,prof,i));
+ const o={f,mult:1,biome:'plains',pilot:'sensible',src:{type:'test'},auto:true,quiet:true,onEnd(){}};if(!X.startBattle(o))throw new Error('no battle');const b=X.B;
+ const out={budget:Math.round(X.battleBudget(o)*1000)/1000,foes:b.units.filter(u=>u.side===1).map(u=>[u.eid,u.hpMax,u.armMax,u.wpn&&u.wpn.d&&u.wpn.d.join('-'),(u.elite||[]).join('+'),u.ms,u.md].join(':'))};X.B=null;X.mode='world';return out}
+/* ---------- worker ---------- */
+function mkWorld(){const X=L.makeContext();X.AI_CLOCK=null;return{X,W:{}}}
+function ensure(S,grp,prof){const k=grp+'/'+prof;if(!S.W[k]){S.W[k]=[];for(let j=0;j<GROUPS[grp].k;j++)S.W[k].push(build(S.X,grp,prof,j))}}
+for(let i=0;i<ARGV.length;i++)if(ARGV[i]==='--set')process.env.BRUTAL_SET=(process.env.BRUTAL_SET||'')+ARGV[i+1]+';\n';
+function applySets(X){if(process.env.BRUTAL_SET)require('vm').runInContext(process.env.BRUTAL_SET,X.ctx)}
+if(has('--worker')){let S=null;const q=[];let busy=false;
+ const pump=async()=>{if(busy)return;busy=true;while(q.length){const job=q.shift();
+   try{if(!S){S=mkWorld();applySets(S.X)}ensure(S,job.grp,job.prof);const r={win:0,stuck:0,rounds:0,lost:0,dead:0,down:0,inj:0,foes:0,elites:0,n:0};
+    for(let i=job.i0;i<job.i0+job.n;i++){const o=await fight(S.X,S.W,job,i);for(const k in o)if(k in r)r[k]+=o[k];r.n++}
+    process.send({id:job.id,r})}catch(e){process.send({id:job.id,err:String(e&&e.stack||e)})}}busy=false};
+ process.on('message',m=>{if(m==='quit')process.exit(0);q.push(m);pump()});return}
+/* ---------- main ---------- */
+(async()=>{const QUICK=has('--quick'),N=+arg('--n',QUICK?30:60),J=Math.max(1,+arg('--jobs',2)),T0=Date.now(),MEAS=has('--measure');
+ const only=arg('--only',null),grps=Object.keys(GROUPS).filter(g=>!only||only.split(',').includes(g)),diffs=arg('--diffs',DIFFS.join(',')).split(','),pilots=arg('--pilots',PILOTS.join(',')).split(',');
+ // gate 4 first (cheap, deterministic): Story / Normal / Hard bands as the base formula makes them
+ if(!MEAS&&!has('--no-same')||has('--write-ref')){const RF=path.join(__dirname,'brutal-ref.json'),ref=has('--write-ref')?{}:fs.existsSync(RF)?JSON.parse(fs.readFileSync(RF,'utf8')):{};const S=mkWorld();applySets(S.X);const X=S.X;let n=0;
+  for(const grp of grps)for(const prof of GROUPS[grp].profs){ensure(S,grp,prof);for(let i=0;i<12;i++){
+   const base={};for(const d of ['story','normal','hard']){const a=bandOf(X,S.W,grp,prof,i,d);
+    // the base formula: the Normal budget times DIFF[d].budget, nothing else
+    const nb=bandOf(X,S.W,grp,prof,i,'normal').budget;if(Math.abs(a.budget-Math.round(nb*X.DIFF[d].budget*1000)/1000)>.002)fail(`${grp} ${prof} #${i} ${d}: budget ${a.budget} is not ${nb} x ${X.DIFF[d].budget}`);
+    base[d]=a;n++}
+   const key=grp+'/'+prof+'/'+i;
+   if(has('--write-ref')){REF[key]=base}else if(ref[key]){for(const d in base)if(JSON.stringify(ref[key][d])!==JSON.stringify(base[d]))fail(`${key} ${d}: the band changed: ${JSON.stringify(base[d])} vs ${JSON.stringify(ref[key][d])}`)}else fail(`${key}: no reference band (node test/brutal.js --write-ref on the base)`)}}
+  if(has('--write-ref')){fs.writeFileSync(path.join(__dirname,'brutal-ref.json'),JSON.stringify(REF));console.log('wrote test/brutal-ref.json: '+Object.keys(REF).length+' battles');return}
+  console.log(`gate 4: ${n} Story / Normal / Hard bands exactly as on the base (budget x DIFF[k].budget, the same foes, rank, elites and hitpoints)`)}
+ const jobs=[];let id=0;const CH=Math.max(5,Math.ceil(N/4));
+ for(const grp of grps)for(const prof of GROUPS[grp].profs)for(const pilot of pilots)for(const diff of diffs)for(let i0=0;i0<N;i0+=CH)jobs.push({id:id++,grp,prof,pilot,diff,i0,n:Math.min(CH,N-i0)});
+ const ws=[];let next=0,left=jobs.length;
+ await new Promise((done,bad)=>{const feed=w=>{if(next<jobs.length){w.cur=jobs[next++];w.send(w.cur)}};
+  for(let i=0;i<J;i++){const w=cp.fork(__filename,['--worker'],{env:process.env});ws.push(w);
+   w.on('message',m=>{if(m.err){ws.forEach(x=>x.kill());bad(new Error(m.err));return}jobs[m.id].res=m.r;process.stderr.write('.');if(--left===0){ws.forEach(x=>x.send('quit'));done()}else feed(w)});feed(w)}}).catch(e=>fail(e.stack||e));
+ process.stderr.write('\n');
+ const cell={};for(const j of jobs){const k=[j.grp,j.prof,j.pilot,j.diff].join('|'),c=cell[k]||(cell[k]={win:0,stuck:0,rounds:0,lost:0,dead:0,down:0,inj:0,foes:0,elites:0,n:0});for(const x in c)c[x]+=j.res[x]}
+ const pct=(a,n)=>(100*a/Math.max(1,n)).toFixed(0).padStart(3)+'%',f2=(a,n)=>(a/Math.max(1,n)).toFixed(2);
+ for(const grp of grps){console.log(`\n== ${grp} (${N} battles a cell; win% · rounds · hp lost · dead / down / injuries a fight · foes (elites) a fight) ==`);
+  console.log('prof  pilot     '+diffs.map(d=>d.padEnd(38)).join(''));
+  for(const prof of GROUPS[grp].profs)for(const pilot of pilots){let s=prof.padEnd(6)+pilot.padEnd(10);
+   for(const d of diffs){const c=cell[[grp,prof,pilot,d].join('|')];s+=(`${pct(c.win,c.n)} ${(c.rounds/c.n).toFixed(1).padStart(4)}r ${pct(c.lost,c.n)} ${f2(c.dead,c.n)}/${f2(c.down,c.n)}/${f2(c.inj,c.n)} ${f2(c.foes,c.n)}(${f2(c.elites,c.n)})`).padEnd(38)}console.log(s)}}
+ if(arg('--json',null))fs.writeFileSync(arg('--json'),JSON.stringify(cell,null,1));
+ const pool=(grp,pilot,d)=>{let w=0,n=0,b=0;for(const prof of GROUPS[grp].profs){const c=cell[[grp,prof,pilot,d].join('|')];if(!c)continue;w+=c.win;n+=c.n;b+=c.dead+c.down}return{w:100*w/Math.max(1,n),b:b/Math.max(1,n)}};
+ console.log('\npooled (sensible): '+grps.map(g=>g+' '+diffs.map(d=>d+' '+pool(g,'sensible',d).w.toFixed(0)+'%').join(' ')).join(' | '));
+ console.log('pooled (naive):    '+grps.map(g=>g+' '+diffs.map(d=>d+' '+pool(g,'naive',d).w.toFixed(0)+'%').join(' ')).join(' | '));
+ if(MEAS||!diffs.includes('brutal')||!pilots.includes('sensible')){console.log(`\n(${((Date.now()-T0)/1000).toFixed(0)} s)`);return}
+ let bad=[];
+ for(const grp of grps){const h=pool(grp,'sensible','hard'),br=pool(grp,'sensible','brutal'),no=pool(grp,'sensible','normal'),st=pool(grp,'sensible','story');
+  if(!(br.w<=h.w-BRUTAL.gap))bad.push(`${grp}: Brutal ${br.w.toFixed(0)}% is not ${BRUTAL.gap} points below Hard ${h.w.toFixed(0)}%`);
+  if(!(br.b>=h.b*BRUTAL.blood))bad.push(`${grp}: Brutal costs ${br.b.toFixed(2)} dead + down a fight, not ${BRUTAL.blood}x Hard's ${h.b.toFixed(2)}`);
+  if(!(st.w>=no.w-5&&no.w>=h.w-3&&h.w>=br.w))bad.push(`${grp}: the order Story ${st.w.toFixed(0)} >= Normal ${no.w.toFixed(0)} >= Hard ${h.w.toFixed(0)} >= Brutal ${br.w.toFixed(0)} does not hold`);
+  if(grp!=='company'&&!(br.w<=no.w-BRUTAL.soloGap))bad.push(`${grp}: solo Brutal ${br.w.toFixed(0)}% is not ${BRUTAL.soloGap} points below Normal ${no.w.toFixed(0)}%`)}
+ if(bad.length)fail(bad.join('\n      '));
+ console.log(`\nPASS: Brutal at least ${BRUTAL.gap} points below Hard and bloodier, for the company and both solo runs; solo Brutal ${BRUTAL.soloGap}+ below Normal; Story >= Normal >= Hard >= Brutal (${((Date.now()-T0)/1000).toFixed(0)} s)`)})();
