@@ -77,7 +77,7 @@ X.ctx.strike=async function(u,t,a,o){if(!FCHECK||!t.alive||!u.alive)return strik
  if(hit&&!a.split){FS.hits++;const hp=ev?ev.dmg:0,arm=ev?ev.armor:0;
   ok(hp>=f.hpMin&&hp<=f.hpMax,`hitpoint damage ${hp} outside the forecast ${f.hpMin}-${f.hpMax}: `+tag);ok(arm>=f.armMin&&arm<=f.armMax,`armor damage ${arm} outside ${f.armMin}-${f.armMax}: `+tag);
   if(ev){const L=ev.head?f.head:f.body;ok(L&&hp>=L.hpMin&&hp<=L.hpMax,'the location forecast misses the blow: '+tag)}
-  if(!t.alive&&hp0>0&&t.hp<=0)ok(f.kill,'a kill the forecast did not allow: '+tag);else if(t.alive)ok(!f.sure,'a sure kill that did not happen: '+tag);
+  if(!t.alive&&hp0>0&&t.hp<=0)ok(f.kill||(f.kb&&ev&&(ev.dmg<hp0||f.undying)),'a kill the forecast did not allow: '+tag+' '+JSON.stringify({hp0,ev,hpMax:f.hpMax,kb:f.kb,und:f.undying}));   // (a knockback's slam may finish what the blow, or Undying, left)else if(t.alive)ok(!f.sure,'a sure kill that did not happen: '+tag);
   if(t.alive)for(const k in t.st)if((t.st[k]||0)>(st0[k]||0)&&!['harried','pack','bonewall','banner','winded','fury','spent','enrage'].includes(k)){FS.st[k]=(FS.st[k]||0)+1;ok(f.statuses.some(s=>s.k===k&&s.n>=t.st[k]&&s.ch>0),`status ${k} was applied but not forecast: `+tag+' '+JSON.stringify(f.statuses))}}
  return hit};
 // a sword of background bg with weapon w (and o.s shield, o.a body armor, o.h helmet, o.b sidearm) and the perks given
