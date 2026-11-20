@@ -87,14 +87,14 @@ let LC=987654321;const R=()=>{LC=(Math.imul(LC,1103515245)+12345)>>>0;return LC/
 section('catalog: a role for every tree, perks that build on it');
 { fresh(SEED);const M=X.MAST,AB=X.AB;
   for(const k in M){const T=M[k];ok(typeof T.role==='string'&&T.role.length>=20&&T.role!==T.d,k+': a role line of its own');
-   const n=T.p.filter(p=>p.ab).length;if(T.kind==='style')ok(n<=1,k+': at most one ability ('+n+')');if(T.kind==='gift')ok(n===2,k+': two abilities ('+n+')');
+   const n=T.p.filter(p=>p.ab).length;if(T.kind==='style')ok(n<=(['gunner','pistol','powder'].includes(k)?2:1),k+': at most one ability ('+n+'; the firearm trees two, test/guntrees.js)');if(T.kind==='gift')ok(n===2,k+': two abilities ('+n+')');
    for(const p of T.p)ok(typeof p.d==='string'&&p.d.length>=8&&!/undefined|NaN/.test(p.d),p.id+': a text')}
   // the mechanic keys of each tree (stats, flags, mods, weapon mods, abilities, the gift pool): no two trees the same
   const keys=T=>{const s=new Set();for(const p of T.p.concat(T.cap?T.cap.tiers.flat():[])){for(const q in p.st||{})s.add('st:'+q);if(p.flag)s.add('f:'+p.flag);for(const q in p.mod||{})s.add('m:'+q);for(const q in p.wmod||{})s.add('w:'+q+(p.wt?'/'+p.wt:''));if(p.ab)s.add('ab:'+p.ab);if(p.res||p.regen)s.add('res');if(p.quarry)s.add('q:'+p.quarry)}return[...s].sort().join(' ')};
   const seen={};for(const k in M){if(M[k].kind==='fabled')continue;const s=keys(M[k]);ok(!seen[s],k+' and '+seen[s]+' carry the same mechanic keys: '+s);seen[s]=k}
   // and the siblings differ in what they reward: their mod keys overlap in at most one key
   const mods=k=>new Set(M[k].p.flatMap(p=>Object.keys(p.mod||{}).concat(p.flag?[p.flag]:[])));
-  for(const G of [['vanguard','bulwark','shieldbearer'],['duelist','skirmisher','berserker','brute'],['marksman','sharpshooter','gunner','thrower'],['tactician','medic'],['assassin','rogue','shadow'],['gladiator','champion','duelist']])
+  for(const G of [['vanguard','bulwark','shieldbearer'],['duelist','skirmisher','berserker','brute'],['marksman','sharpshooter','gunner','pistol','powder','thrower'],['tactician','medic'],['assassin','rogue','shadow'],['gladiator','champion','duelist']])
    for(let i=0;i<G.length;i++)for(let j=i+1;j<G.length;j++){const A=mods(G[i]),B2=mods(G[j]),sh=[...A].filter(x=>B2.has(x));ok(sh.length<=1,G[i]+' / '+G[j]+' share '+sh.join())}
   // no dead perk: every flag and mod a perk carries is read somewhere in the rules
   const SRC=fs.readdirSync(path.join(__dirname,'..','src')).filter(f=>f.endsWith('.js')).map(f=>fs.readFileSync(path.join(__dirname,'..','src',f),'utf8')).join('\n');

@@ -460,7 +460,7 @@ const INJ={
    aff: what the tree suits (melee ranged caster support one two shield bow light), read by autoLearn.
    Perk: {id, n, d, st?:{stat deltas, dmg as a fraction, ap = action points}, ab?:AB id, flag?:string, mod?:{flag:number},
           res?:number, regen?:number, wt?:weapon family (weapon mastery perks),
-          wmod?:{d:[+min,+max], ap, fat (attack and weapon-skill fatigue), rng, ign, hit, stun, spell, crush, rld (reload AP)} (changes the weapon in hand)}
+          wmod?:{d:[+min,+max], ap, fat (attack and weapon-skill fatigue), rng, ign, hit, stun, spell, crush, rld (reload AP), rfat (reload fatigue)} (changes the weapon in hand)}
    Ids are '<tree>.<tier>' (one perk in the tier) or '<tree>.<tier>a' / 'b'. d states the exact effect.
    The flags and mods the rules read (u.flags / calc(m).flags; mods add up):
      exec berserk forged path eagle (as before)   vsHurt vsFull dmgMelee dmgRanged twoDmg lowHpDmg duelHit duelDmg flankDmg spellB splitB
@@ -477,7 +477,10 @@ const INJ={
      the roles update (rules: 64v-roles.js, 60p-passives.js; every tree has role: one line, its battlefield role, shown on the talent screen):
      chargeHit chargeDmg shock shakenHit shakenDmg killFear | holdDef holdMit armDmg | shelter intercept | isoHit isoDmg duelDef | mvDef |
      twoIgn twoCrush sweep twoDaze | hurtDmg | mvShot suppress bowDmg | holdHit holdHead | primeHit primeDmg | mixHit mixDmg | ordersAP |
-     healLow | shrug | spotMark | arrowBurn | zocHit (weapon mastery: free attacks with a spear) ; aff 'heavy' = heavy armor worn */
+     healLow | shrug | spotMark | arrowBurn | zocHit (weapon mastery: free attacks with a spear) ; aff 'heavy' = heavy armor worn
+     the gun trees update (rules: 64u-guntrees.js): rollV volleyB lineMax (Musketry) | runHit runDmg paceHit paceDmg braceP pbR (Pistolier; gunPB /
+     gunPBHit count only with a pistol) | blastDmg blastFear blastBurn bombN blastIgn (Grenadier) | smokeMel killLoad (the Gunsmoke Saint); aff 'longgun' /
+     'pistol' = a two-handed / one-handed firearm in hand, 'bomb' = the Grenadier's bombs (any weapon) */
 const GIFTBASE=30,GIFTREGEN=4,TALSTYLE=['melee','ranged','caster','support'],
  WTS=['sword','axe','mace','hammer','dagger','spear','polearm','greatsword','bow','crossbow','flintlock','throwing','staff','fist','shield'];   // weapon families in display order (the weapon mastery perks; 'shield': a raised shield)
 const perkDef=(n,d,o)=>Object.assign({n,d},o||{});
@@ -589,15 +592,32 @@ const MAST={
   [perkDef('Opening cut','With a weapon in each hand, an off-hand blow that reaches hitpoints makes the foe bleed for 2 turns',{id:'dualwield.4',mod:{dwBleed:2}})],
   [perkDef('Whirling steel','With a weapon in each hand, every off-hand blow that hits gives +5 melee defense until your next turn (at most +15)',{id:'dualwield.5',mod:{dwFlow:5}})],
   [perkDef('Ambidextrous','+5 melee skill. With a weapon in each hand, the off-hand blow that follows every Attack strikes at the off-hand weapon\u2019s full damage, with no penalty to hit',{id:'dualwield.6',st:{ms:5},flag:'dwAmbi'})]]},
- /* ---- the masteries update: Gunnery and Throwing arms (rules: 60p-passives.js; the throwing family and the new arms: 11t-arms.js).
-        Each works only with its weapon in hand where its text says so. Ids pinned: gunner.1-6, thrower.1-6. ---- */
- gunner:{n:'Gunnery',kind:'style',aff:['ranged','gun'],d:'Powder, ball and patience',role:'The gunner: slow, deliberate volleys that punch through plate, deadliest close in and fresh from the reload',tiers:[
-  [perkDef('Powder smoke','After you fire a firearm, shots and spells at you get −10 to hit until your next turn',{id:'gunner.1',mod:{smokeDef:10}})],
-  [perkDef('Point-blank','With a firearm: +10 to hit and +15% damage against a foe 2 tiles away or closer',{id:'gunner.2',mod:{gunPBHit:10,gunPB:.15}})],
+ /* ---- the masteries update: the firearm trees and Throwing arms (rules: 60p-passives.js; the throwing family and the new arms: 11t-arms.js).
+        Each works only with its weapon in hand where its text says so. Ids pinned: gunner.1-6, pistol.1-6, powder.1-6, thrower.1-6. ---- */
+ /* the firearm trees (the gun trees update, rules: 64u-guntrees.js): three ways to fight with powder. Musketry ('gunner': the line gunner, long guns
+    by volley), Pistolier ('pistol': the gun duellist, pistols close in) and Grenadier ('powder': bombs, scattershot, smoke, against crowds and shields).
+    No perk of one repeats another tree's (test/guntrees.js). */
+ gunner:{n:'Musketry',kind:'style',aff:['ranged','gun','longgun'],d:'Powder, ball and the drum',role:'The line gunner: fires by volley beside the other guns, slow and deliberate, and punches through plate at long range',tiers:[
+  [perkDef('Rolling volley','With a firearm: +8% damage against a foe already hit by a firearm shot this round, for every such hit (at most +24%)',{id:'gunner.1',mod:{rollV:.08}})],
+  [perkDef('Volley fire','Ability (a loaded firearm, 5 AP): fire, and every ally within 2 tiles whose firearm is loaded, with the foe in range and in sight, fires at it too for 60% damage (their loads are spent, and each starts its next turn 2 AP short)',{id:'gunner.2',ab:'gvolley'})],
   [perkDef('Primed','After you reload a firearm, its next shot gets +10 to hit and +15% damage',{id:'gunner.3',mod:{primeHit:10,primeDmg:.15}})],
   [perkDef('Double charge','Ability: a double load of powder (6 AP, a loaded firearm): 140% damage, +20% armor piercing, −5 to hit',{id:'gunner.4',ab:'dcharge'})],
   [perkDef('Armor-piercing ball','Firearm shots pierce 10% more armor and crush 25% more of it',{id:'gunner.5',mod:{gunIgn:.1,gunCrush:.25}})],
   [perkDef('Gunline','With a firearm: +5 to hit and +5% damage for every ally within 2 tiles who also holds one (at most +15 and +15%)',{id:'gunner.6',mod:{gunLine:5,gunLineD:.05}})]]},
+ pistol:{n:'Pistolier',kind:'style',aff:['ranged','pistol'],d:'A wheellock in the sash, a blade on the hip',role:'The gun duellist: a pistol at arm\'s length, quick shots at whoever comes close, and the butt or a blade to finish',tiers:[
+  [perkDef('Arm\'s length','With a pistol (a one-handed firearm): +10 to hit and +15% damage against a foe 2 tiles away or closer',{mod:{gunPBHit:10,gunPB:.15}})],
+  [perkDef('Quick draw','Ability (a loaded pistol, 2 AP): a shot from the hip before the foe is set: 70% damage, −5 to hit',{ab:'qdraw'})],
+  [perkDef('Wing the runner','With a pistol: +10 to hit and +10% damage against a foe that moved on its last turn',{mod:{runHit:10,runDmg:.1}})],
+  [perkDef('Pistol-whip','Ability (a pistol in hand, 3 AP): club the foe next to you with the butt: 60% damage with melee skill and it is dazed; the load stays in the pan',{ab:'pwhip'})],
+  [perkDef('Ten paces','With a pistol: +10 to hit and +15% damage while no foe but your target stands within 3 tiles of you',{mod:{paceHit:10,paceDmg:.15}})],
+  [perkDef('Brace of pistols','Every second pistol shot leaves your pistol loaded: a second one comes out of the sash',{mod:{braceP:1}})]]},
+ powder:{n:'Grenadier',kind:'style',aff:['ranged','gun','bomb'],d:'Kegs, fuses and scattershot',role:'The grenadier: bombs, shot and smoke that break shields, scatter close formations and send the crowd running',tiers:[
+  [perkDef('Powder smoke','After you fire a firearm, shots and spells at you get −10 to hit until your next turn',{mod:{smokeDef:10}})],
+  [perkDef('Grenade','Ability (twice a battle, 4 AP, up to 4 tiles, any weapon in hand): a lit bomb: 24–36 damage, 30% armor piercing, to a foe and 70% of it to every foe beside it, aimed with ranged skill at +10; a raised shield is no cover from it',{ab:'grenade'})],
+  [perkDef('Blasting powder','+20% damage with Scattershot, Grenade and Petard',{mod:{blastDmg:.2}})],
+  [perkDef('Petard','Ability (once a battle, 5 AP): a charge set against the foe next to you: 30–46 damage that cannot miss, 100% more armor crushed, knocked back 1 tile, and a raised shield takes 60 damage',{ab:'petard'})],
+  [perkDef('Shellshock','A foe hit by your Scattershot, Grenade or Petard tests its morale',{mod:{blastFear:1}})],
+  [perkDef('Wildfire','Your Scattershot, Grenade and Petard set what they hit burning for 2 turns',{mod:{blastBurn:2}})]]},
  thrower:{n:'Throwing arms',kind:'style',aff:['ranged','throw'],d:'Axes, knives and stars, by hand',role:'The skirmish thrower: throws at close range, then closes in, mixing throws and blows and never running dry',tiers:[
   [perkDef('Bandolier','+2 throws with every throwing weapon you carry',{id:'thrower.1',mod:{ammoB:2}})],
   [perkDef('Recover','A throw that kills its target comes back to you: one throw regained',{id:'thrower.2',mod:{recover:1}})],
@@ -641,7 +661,7 @@ const MAST={
  qi_r:{n:'Elemental arrows',kind:'gift',role:'The storm archer: fire, frost and lightning on the string, charge by charge',res:'qi',style:'ranged',aff:['ranged','bow'],d:'Fire, frost and thunder on the string',tiers:[
   [perkDef('Fire arrow','Awakens Qi (30). Ability: full damage and the target burns for 3 turns',{ab:'farrow'})],[perkDef('Kindled arrows','A bow hit that reaches hitpoints sets the foe burning for 2 turns 25% of the time',{mod:{arrowBurn:.25}})],
   [perkDef('Wind-read','Your missed shots never stray into allies, and your shots ignore 1 step of cover',{flag:'noStray',mod:{coverIgn:1}})],[perkDef('Static charge','Each bow hit builds a charge; the bow hit after two charges deals +40% damage, dazes, and spends them',{mod:{staticChg:.4}})],
-  [perkDef('Harmony','+15 Qi, +2 Qi a turn',{res:15,regen:2})],[perkDef('Tempest volley','Ability: 120% damage, 84% to every foe beside the target, all burn and are chilled',{ab:'tempest'})]]},
+  [perkDef('Gathering storm','+15 Qi, +2 Qi a turn',{res:15,regen:2})],[perkDef('Tempest volley','Ability: 120% damage, 84% to every foe beside the target, all burn and are chilled',{ab:'tempest'})]]},
  qi_t:{n:'Storm throws',kind:'gift',role:'The storm thrower: thunder that leaps from foe to foe, frost that slows, fire that bursts on the frozen',res:'qi',style:'ranged',aff:['ranged','throwing'],d:'Fire, frost and thunder in the throwing hand',tiers:[
   [perkDef('Thunder star','Awakens Qi (30). Ability: a throw crackling with thunder: full damage, then the lightning leaps to 1 more foe within 3 tiles for 60% (the leap cannot miss)',{ab:'tstar'})],[perkDef('Rime-edged','A throw that reaches hitpoints chills the foe (−3 AP on its next turn) 30% of the time',{mod:{frostThrow:.3}})],
   [perkDef('Thawing fire','A throw that hits a chilled foe sets it burning for 2 turns',{mod:{thawBurn:2}})],[perkDef('Conductive','Your throws deal +15% damage to a foe that is burning, chilled or dazed',{mod:{stormDmg:.15}})],
@@ -649,7 +669,7 @@ const MAST={
  chi:{n:'Inner flow',kind:'gift',role:'The life-giver: heals that also quicken and strengthen whoever they touch',res:'chi',style:'support',aff:['support'],d:'Awakens Chi for reinforcement and support',tiers:[
   [perkDef('Shared breath','Awakens Chi (30). Allies next to you recover 5 more fatigue at the start of their turns',{mod:{breathFat:5}})],[perkDef('Mend','Ability: heal yourself or an adjacent ally 18–28',{ab:'mend'})],
   [perkDef('Empowering touch','Whoever you heal also gets +10 melee and ranged skill for 2 turns',{mod:{healBuff:10}})],[perkDef('Quickening','Whoever you heal also gets +2 AP on their next turn',{mod:{healAP:2}})],
-  [perkDef('Iron body','+15 Chi, +12 hitpoints',{res:15,st:{hp:12}})],[perkDef('Lotus circle','Ability: you and every ally within 2 tiles heal 12–20',{ab:'lotus'})]]},
+  [perkDef('Deep wellspring','+15 Chi, +12 hitpoints',{res:15,st:{hp:12}})],[perkDef('Lotus circle','Ability: you and every ally within 2 tiles heal 12–20',{ab:'lotus'})]]},
  chi_m:{n:'Iron fist',kind:'gift',role:'The iron monk: unarmored body hardened by chi, strikes that build on each other',res:'chi',style:'melee',aff:['melee'],d:'Chi through hands and blade',tiers:[
   [perkDef('Chi palm','Awakens Chi (30). Ability: 120% damage and knockback 1',{ab:'palm'})],[perkDef('Iron skin','Take 10% less damage from everything',{mod:{drB:.1}})],
   [perkDef('Flowing strikes','Every melee hit you land on your turn gives +10% damage for the rest of that turn (at most +30%)',{mod:{flowDmg:.1}})],[perkDef('Inner calm','+6 melee and ranged defense, +10 resolve',{st:{md:6,rd:6,brv:10}})],
@@ -676,7 +696,7 @@ const MAST={
   perkDef('Measured swings','With a greatsword in hand, attacks and weapon skills cost 6 less fatigue',{id:'weapons.greatsword',wt:'greatsword',wmod:{fat:-6}}),
   perkDef('Nimble fingers','Bow shots cost 1 less AP (at least 2), and so do weapon skills that cost the weapon’s AP',{id:'weapons.bow',wt:'bow',wmod:{ap:-1}}),
   perkDef('Crank drill','Reloading a crossbow costs 2 less AP (at least 2)',{id:'weapons.crossbow',wt:'crossbow',wmod:{rld:-2}}),
-  perkDef('Ramrod drill','Reloading a firearm costs 2 less AP (at least 2)',{id:'weapons.flintlock',wt:'flintlock',wmod:{rld:-2}}),
+  perkDef('Ramrod drill','Reloading a firearm costs 2 less AP (at least 2) and 6 less fatigue',{id:'weapons.flintlock',wt:'flintlock',wmod:{rld:-2,rfat:-6}}),
   perkDef('Practised arm','+10 to hit with a throwing weapon in hand',{id:'weapons.throwing',wt:'throwing',wmod:{hit:10}}),
   perkDef('Channeling','+15% spell damage with a staff in hand',{id:'weapons.staff',wt:'staff',wmod:{spell:.15}}),
   perkDef('Iron knuckles','Fighting unarmed: fists deal +8 minimum and +10 maximum damage',{id:'weapons.fist',wt:'fist',wmod:{d:[8,10]}}),
@@ -841,30 +861,31 @@ Object.assign(BG,{
   style:'caster',pool:['survivor','medic','tactician','skirmisher','scout','berserker','brawler'],wt:['staff','dagger','mace'],at:['lightarmor'],
   tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}},
  /* the gunners (the gun backgrounds): six who come to the company with a firearm in hand. core: the style tree every recruit of the
-    background carries (rollTrees, 61-talents.js), here Gunnery. d: a line about them. Towns and cities hire most of them; a village sees
+    background carries (rollTrees, 61-talents.js): Musketry (gunner) for the long guns of the line, Pistolier (pistol) for the
+    pistoleer, Grenadier (powder) for the sapper and the siege gunner. d: a line about them. Towns and cities hire most of them; a village sees
     the sapper and the fowler. */
  arquebusier:{n:'Arquebusier',cost:240,wage:14,w:3.5,st:{rs:8,md:2,brv:4,init:-4},r:[['aura',.12],['chi',.05]],gear:['arquebus|arquebus|handgonne|caliver','padded|jack|leather','kettle|cap|-'],side:'shortsword|oldsword|knife|-',town:2,
-  style:'ranged',core:'gunner',pool:['gunner','marksman','bulwark','tactician','survivor','shieldbearer','vanguard'],wt:['flintlock','sword','dagger','spear','polearm'],at:['lightarmor','medarmor'],
+  style:'ranged',core:'gunner',pool:['gunner','powder','marksman','bulwark','tactician','survivor','shieldbearer','vanguard'],wt:['flintlock','sword','dagger','spear','polearm'],at:['lightarmor','medarmor'],
   d:'Drilled on the town green with match and powder horn: the militia’s gun, paid by the watch and now by whoever pays better.',
   tr:{steady:2.5,loyal:1.5,brave:1.3,eagle:1.5,nearsight:.5,craven:.7},look:{hat:'feather',cloth:'red',accent:'ochre',trim:'',garb:'bandolier',beard:['stache','short','']}},
  gunner:{n:'Siege gunner',cost:360,wage:20,w:1.5,st:{hp:8,fat:8,rs:6,brv:6,init:-10,md:-3},r:[['aura',.1],['qi',.08]],gear:['arquebus|caliver|handgonne|blunder','leather|padded|jack|hide','armcap|cap|kettle|-'],side:'mallet|hatchet|-',town:2,
-  style:'ranged',core:'gunner',pool:['gunner','brute','bulwark','survivor','tactician','vanguard','brawler'],wt:['flintlock','hammer','axe','mace','polearm'],at:['lightarmor','medarmor'],
+  style:'ranged',core:'powder',pool:['powder','gunner','brute','bulwark','survivor','tactician','vanguard','brawler'],wt:['flintlock','hammer','axe','mace','polearm'],at:['lightarmor','medarmor'],
   d:'A cannoneer’s mate from the siege trains, half deaf and wholly unafraid of noise: slow on their feet, hard to knock down, and very good at making holes.',
   tr:{tough:2,hulking:2,steady:1.5,asthmatic:1.5,sluggish:1.5,drunkard:1.5,quick:.5,craven:.4,tiny:.4},look:{hat:'bandana',cloth:'brown',accent:'charcoal',trim:'',garb:'apron',beard:['full','short','chops'],marks:{soot:1}}},
  pistoleer:{n:'Pistoleer',cost:560,wage:28,w:1,st:{rs:7,init:10,md:4,ms:3,hp:-3,brv:3},r:[['qi',.2],['aura',.12]],gear:['pistol','leather|padded|brigandine','-|-|cap'],side:'arming|falchion|shortsword|pistol',town:3,
-  style:'ranged',core:'gunner',pool:['gunner','duelist','skirmisher','scout','dualwield','rogue','tactician','sharpshooter'],wt:['flintlock','sword','dagger'],at:['lightarmor','medarmor'],
+  style:'ranged',core:'pistol',pool:['pistol','duelist','skirmisher','scout','dualwield','rogue','tactician','sharpshooter'],wt:['flintlock','sword','dagger'],at:['lightarmor','medarmor'],
   d:'A city duellist with a wheellock in the sash and a blade on the hip: rides in close, fires, and is gone before the smoke clears.',
   tr:{quick:2.5,cocky:3,dexterous:2,greedy:2,showman:1.5,sluggish:.3,loyal:.5},look:{hat:'feathercap',cloth:'black',accent:'crimson',trim:'gold',garb:'sash',hair:['swept','long','short'],beard:['goatee','stache','']}},
  sapper:{n:'Sapper',cost:130,wage:10,w:1.5,st:{rs:4,init:4,fat:6,hp:-2,brv:-4,ms:-2},r:[['chi',.08],['mana',.05]],gear:['handgonne','rags|jack|padded','armcap|cap|-'],side:'hatchet|knife|mallet|-',bio:['hills'],
-  style:'ranged',core:'gunner',pool:['gunner','survivor','scout','brawler','skirmisher','medic','thrower'],wt:['flintlock','axe','dagger','hammer','throwing'],at:['lightarmor'],
+  style:'ranged',core:'powder',pool:['powder','gunner','survivor','scout','brawler','skirmisher','medic','thrower'],wt:['flintlock','axe','dagger','hammer','throwing'],at:['lightarmor'],
   d:'A powder monkey grown up: dug mines under walls, carried the kegs, lit the fuses, and kept most of their fingers. Comes with an old hand cannon and a cough.',
   tr:{lucky:2,asthmatic:2,tiny:1.5,fragile:1.5,craven:1.5,steady:1.5,nightowl:1.5,hulking:.4},look:{hat:'bandana',cloth:'tan',accent:'rust',trim:'',garb:'patches',prop:'shovel',marks:{soot:1}}},
  fowler:{n:'Fowler',cost:180,wage:12,w:1.5,st:{rs:10,init:4,fat:4,ms:-4,brv:-2},r:[['qi',.15],['chi',.05]],gear:['handgonne|handgonne|arquebus','rags|jack|padded','hood|-'],side:'knife|huntknife',bio:['swamp'],
-  style:'ranged',core:'gunner',pool:['gunner','marksman','sharpshooter','scout','survivor','skirmisher','medic'],wt:['flintlock','bow','dagger','axe','spear'],at:['lightarmor'],
+  style:'ranged',core:'gunner',pool:['gunner','powder','marksman','sharpshooter','scout','survivor','skirmisher','medic'],wt:['flintlock','bow','dagger','axe','spear'],at:['lightarmor'],
   d:'A market hunter of the marshes: a long fowling piece, a punt, and a hundred ducks a morning for the town stalls. Patient, and a fine shot.',
   tr:{eagle:2.5,beastwise:2,nightowl:1.5,steady:1.5,loyal:1.3,nearsight:.2,sluggish:.6},look:{hat:'wide',cloth:'verd',accent:'brown',trim:'',garb:'fleece',prop:'net'}},
  musketeer:{n:'Musketeer',cost:600,wage:28,w:1,st:{rs:12,ms:4,md:3,brv:8,fat:4,init:-6},r:[['aura',.25],['qi',.05]],gear:['caliver|caliver|arquebus|carbine','leather|padded|brigandine|mail','kettle|cap|nasal'],side:'arming|shortsword|falchion|oldsword',town:2,
-  style:'ranged',core:'gunner',pool:['gunner','sharpshooter','marksman','tactician','vanguard','bulwark','survivor','shieldbearer'],wt:['flintlock','sword','polearm','spear','mace'],at:['lightarmor','medarmor'],
+  style:'ranged',core:'gunner',pool:['gunner','powder','sharpshooter','marksman','tactician','vanguard','bulwark','survivor','shieldbearer'],wt:['flintlock','sword','polearm','spear','mace'],at:['lightarmor','medarmor'],
   d:'Twenty years in a lord’s gunline: fires by the drum, reloads by feel, and has stood still in front of a cavalry charge more often than anyone sane.',
   tr:{steady:3,brave:2,loyal:1.5,drunkard:1.5,eagle:1.3,craven:.3,quick:.6},look:{hat:'capotain',cloth:'blue',accent:'royal',trim:'white',garb:'tabard',beard:['goatee','stache','full']}}
 });

@@ -100,7 +100,7 @@ section('catalog: every human foe has masteries, and they fit');
     if(T.kind==='weapon'){fams.add(p.wt);ok(w&&w.wt===p.wt,id+': '+pid+' does not fit its weapon ('+(w?w.wt:'no item')+')')}
     const k=P.key;
     if(k==='thrower')ok(wpn.wt==='throwing',id+': Throwing arms without a throwing weapon');
-    if(k==='gunner')ok(wpn.wt==='flintlock',id+': Gunnery without a firearm');
+    if(k==='gunner'||k==='powder')ok(wpn.wt==='flintlock',id+': '+T.n+' without a firearm');if(k==='pistol')ok(wpn.wt==='flintlock'&&!wpn.two,id+': the Pistolier without a pistol');
     if(k==='marksman'||k==='sharpshooter')ok(ranged&&(wpn.wt==='bow'||wpn.wt==='crossbow'),id+': '+T.n+' without a bow or crossbow');
     if(k==='duelist')ok(!wpn.two&&!d.shield&&!ranged,id+': Duelist without a one-handed blade and a free hand');
     if(k==='brute'&&(md.twoDmg||md.follow))ok(wpn.two&&!ranged,id+': '+p.n+' without a two-handed weapon');

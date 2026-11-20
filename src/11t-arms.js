@@ -10,7 +10,7 @@
      ret    the throw comes back when it misses (the chakram)
    Firearms: six more guns across the tiers. barrels 2: two shots before it must be reloaded (the twin-barrel pistol, u.am counts them);
    brace n: −n to hit when fired after moving this turn (the wall gun). Abilities: tstrike (a weapon skill of every throwing weapon),
-   dthrow (Double throw, Throwing arms), dcharge (Double charge, Gunnery). Statuses: hobbled (−2 AP at the start of its next turn:
+   dthrow (Double throw, Throwing arms), dcharge (Double charge, Musketry). Statuses: hobbled (−2 AP at the start of its next turn:
    Hamstring shot), offbal (Off balance, −10 melee defense until its next turn: Shield bind; ticks with the foes' statuses, 64t-arms.js). */
 const THROWITEMS=['tknives','darts','taxe','bolas','javelin','shuriken','throwhammer','francisca','pilum','chakram','hurlbat','stormaxes'];
 const GUNITEMS=['caliver','dragon','carbine','twinpistol','jezail','wallgun'];
@@ -55,7 +55,7 @@ Object.assign(STATUS,{
  swap('hunter','spear','throwing');swap('nomad','spear','throwing');
  const tree=(bg,k,out)=>{const b=BG[bg];if(!b||b.pool.includes(k))return;const i=out?b.pool.indexOf(out):-1;if(i>=0)b.pool[i]=k;else b.pool.push(k)};   // a full pool (9) gives up a tree
  for(const bg of ['woodcutter','poacher','hunter','acrobat','butcher','beggar'])tree(bg,'thrower');tree('nomad','thrower','berserker');tree('cutthroat','thrower','berserker');
- for(const bg of ['spellblade','noble','witchhunter'])tree(bg,'gunner');tree('thief','gunner','brawler');tree('sailor','gunner','berserker');
+ tree('witchhunter','gunner');for(const bg of ['spellblade','noble'])tree(bg,'pistol');tree('thief','pistol','brawler');tree('sailor','pistol','berserker');   // the gun trees update: the duellists and boarders take the Pistolier, the witch hunter's caliver Musketry
  const gear=(bg,i,extra)=>{const b=BG[bg];if(b&&b.gear&&b.gear[i])b.gear[i]+='|'+extra};
  gear('woodcutter',0,'taxe');gear('nomad',0,'javelin');gear('cutthroat',0,'tknives');gear('witchhunter',0,'caliver');
  if(BG.cutthroat)BG.cutthroat.side='knife|-|darts';if(BG.woodcutter&&!BG.woodcutter.side)BG.woodcutter.side='-|-|hatchet';if(BG.acrobat)BG.acrobat.side=(BG.acrobat.side?BG.acrobat.side+'|':'')+'tknives|-';

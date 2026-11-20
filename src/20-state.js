@@ -173,6 +173,33 @@ const PERKV20=['vanguard.2','bulwark.4','marksman.3','marksman.5','skirmisher.2'
  'medic.3','medic.6','scout.6','berserker.6','sharpshooter.6','brawler.4','brawler.5','brawler.6','assassin.2','assassin.4','rogue.4','rogue.6','shadow.6','gladiator.2','gladiator.5',
  'gladiator.6','champion.2','dualwield.4','dualwield.5','mana.2','mana.3','mana.4','mana_m.2','mana_m.3','mana_r.3','mana_r.4','aura.2','aura.3','aura.4','aura_r.2','aura_r.4',
  'qi.2','qi.3','qi.4','qi_r.2','qi_r.3','qi_r.4','chi.1','chi.3','chi.4','chi_m.3','chi_r.3'];
+/* ---- the gun trees update (64u-guntrees.js): a perk version of its own, G.pkv (PKV), so the save format (SAVEVER) stays as it was ----
+   A save written before it (no g.pkv, or a lower one) is refit once, right after repairSave (pkRefit), and saved with PKV from then on:
+     every perk in PERKV2 (the ids whose effect changed: Musketry's first two tiers and capstone, Ramrod drill, the Gunsmoke Saint's tree, the
+     three fabled abilities that echoed a style tree's) is taken back from the company's swords with its point returned;
+     a sword who carries Musketry ('gunner') though its background's core is now another firearm tree (the pistoleer, the sapper, the siege
+     gunner) or its pool no longer holds it (the duellists and boarders) trades it for that tree (BG.core, else the Pistolier or the Grenadier in its pool), every
+     Musketry perk refunded with it (the Isekai's chosen trees and fabled warriors keep theirs).
+   The company's swords are listed in G.refund (the sheet says why: refundWhy 'guns'); recruits waiting in towns and rival swords keep the
+   changed perks (no points move) but trade a lost tree the same way, its points spent again by autoLearn. Draws no randomness. */
+const PKV=2;
+const PERKV2=['gunner.1','gunner.2','gunner.cap','weapons.flintlock','fab.mattias.1','fab.mattias.2','fab.mattias.cap','fab.hakon.4','fab.mirela.4','fab.brannoc.4'];
+function pkTreeSwap(m){const b=BG[m.bg];if(!b||!Array.isArray(b.pool)||!Array.isArray(m.trees)||m.fabled||m.cc)return 0;const i=m.trees.indexOf('gunner');if(i<0)return 0;
+ const core=b.core&&b.core!=='gunner'&&MAST[b.core]&&!m.trees.includes(b.core)?b.core:null;if(!core&&b.pool.includes('gunner'))return 0;   // a gun background whose core is no longer Musketry, or a pool without it
+ const to=core||['pistol','powder'].find(k=>MAST[k]&&b.pool.includes(k)&&!m.trees.includes(k));if(!to)return 0;
+ m.trees=m.trees.slice();m.trees[i]=to;const keep=m.perks.filter(id=>id.split('.')[0]!=='gunner'),n=m.perks.length-keep.length;m.perks=keep;return n}
+function pkRefit(g){if(!svObj(g))return;if(svFin(g.pkv)&&g.pkv>=PKV)return;const out=[];
+ const fix=(m,own)=>{if(!svObj(m)||!Array.isArray(m.perks))return;let n=0;
+  if(own){const keep=m.perks.filter(id=>!PERKV2.includes(id));n=m.perks.length-keep.length;m.perks=keep}
+  const sw=pkTreeSwap(m);n+=sw;if(n)m.pp=Math.max(0,Math.floor(svNum(m.pp,0)))+n;if(sw&&!own&&typeof autoLearn==='function')try{autoLearn(m)}catch(e){}
+  if(typeof syncMast==='function')syncMast(m);if(n&&own)out.push({name:typeof m.name==='string'&&m.name?m.name:'Nameless',n})};
+ if(Array.isArray(g.roster))g.roster.forEach(m=>fix(m,true));if(Array.isArray(g.towns))g.towns.forEach(t=>{if(svObj(t)&&Array.isArray(t.recruits))t.recruits.forEach(m=>fix(m,false))});
+ if(Array.isArray(g.rivals))g.rivals.forEach(r=>{if(svObj(r)&&Array.isArray(r.roster))r.roster.forEach(m=>fix(m,false))});
+ if(out.length){const L=Array.isArray(g.refund)?g.refund:[];for(const x of out){const o=L.find(y=>svObj(y)&&y.name===x.name);if(o)o.n=Math.max(0,Math.floor(svNum(o.n,0)))+x.n;else L.push(x)}
+  g.refund=L;if(!g.refundWhy)g.refundWhy='guns';if(typeof g.note!=='string'||!g.note)g.note='refund'}
+ g.pkv=PKV}
+// (wrapped, not edited: the loader refits after its repair; every save carries the perk version)
+{const rs0=repairSave;repairSave=function(g){const why=rs0(g);if(!why)pkRefit(g);return why};const sv0=save;save=function(){if(G&&typeof G==='object')G.pkv=PKV;return sv0()}}
 /* rerollRogueTrees(m, seed): a merc whose background may draw a light-blade tree but who has none: keeps the trees it has perks in (and the
    Monster hunter tree), fills the other slots from a fresh roll of its background's pool. Deterministic (its own stream from the world seed
    and the merc's id; the game stream is untouched). Fabled warriors keep their trees. Returns true when the trees changed. */

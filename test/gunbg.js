@@ -54,17 +54,17 @@ function makeContext(){const els=new Map(),store=new Map();
 function closeAll(X){for(let i=0;i<6&&X.sheetOpen;i++)X.closeSheet(true);if(X.sheetOpen)X.sheetOpen=false;if(X.G)X.G.townOpen=false}
 const X=makeContext();
 const fresh=s=>{X.seedRng(s);X.newGame(true);closeAll(X);return X.G};
-const GUNBG=['arquebusier','gunner','pistoleer','sapper','fowler','musketeer'],isGun=id=>!!(X.ITEMS[id]&&X.ITEMS[id].wt==='flintlock');
+const GUNBG=['arquebusier','gunner','pistoleer','sapper','fowler','musketeer'],CORE={arquebusier:'gunner',gunner:'powder',pistoleer:'pistol',sapper:'powder',fowler:'gunner',musketeer:'gunner'},isGun=id=>!!(X.ITEMS[id]&&X.ITEMS[id].wt==='flintlock');
 (async()=>{
 section('the gun backgrounds');
 { fresh(SEED);const BG=X.BG,M=X.MAST;
   for(const k of GUNBG){const b=BG[k];ok(b&&b.n&&b.d&&b.cost>0&&b.wage>0&&b.w>0&&b.w<=5&&!b.noHire,k+': n d cost wage rarity');
-   ok(b.core==='gunner'&&b.pool.includes('gunner')&&b.style==='ranged'&&b.wt.includes('flintlock')&&b.wt.length>=3&&b.wt.length<=5&&b.at.length>=1&&b.at.length<=2,k+': Gunnery core, ranged, flintlock family');
+   ok(b.core===CORE[k]&&b.pool.includes(b.core)&&b.style==='ranged'&&b.wt.includes('flintlock')&&b.wt.length>=3&&b.wt.length<=5&&b.at.length>=1&&b.at.length<=2,k+': its firearm tree as the core (the gun trees update: Musketry, Pistolier or Grenadier), ranged, flintlock family');
    ok([1,2,3].includes(b.town||1)&&b.look&&['hat','cloth','accent','trim'].every(q=>typeof b.look[q]==='string')&&X.PT_HATOK.test(b.look.hat)&&b.tr,k+': town, looks (a hat the portraits draw), traits');
    const gw=b.gear[0].split('|');ok(gw.every(isGun),k+': its main weapon is always a gun: '+b.gear[0]);
    ok(b.gear.concat(b.side||[]).every(gs=>gs.split('|').every(id=>id==='-'||(X.ITEMS[id]&&!X.ITEMS[id].uniq&&(X.ITEMS[id].k!=='w'||b.wt.includes(X.ITEMS[id].wt))))),k+': kit from existing items, inside its weapon trees');
    for(const id of gw)ok((X.ITEMS[id].tier||1)<=({1:2,2:3,3:3}[b.town||1]),k+': '+id+' is tier '+X.ITEMS[id].tier+', too good for a town '+(b.town||1)+' recruit');
-   for(let i=0;i<40;i++){const m=X.newMerc(k);ok(isGun(m.eq.w)&&m.trees.includes('gunner')&&m.trees.filter(t=>M[t]&&(M[t].kind==='style'||t==='hunter')).length===4&&X.calc(m).hp>=5,k+': a recruit with a gun and Gunnery: '+m.eq.w+' '+m.trees);
+   for(let i=0;i<40;i++){const m=X.newMerc(k);ok(isGun(m.eq.w)&&m.trees.includes(b.core)&&m.trees.filter(t=>M[t]&&(M[t].kind==='style'||t==='hunter')).length===4&&X.calc(m).hp>=5,k+': a recruit with a gun and its firearm tree: '+m.eq.w+' '+m.trees);
     ok(X.wageOf(m)>0&&X.recruitCost(m)>0,k+': wage and price')}}
   // wages and prices sit with their peers
   const W=k=>BG[k].wage;ok(W('sapper')<=W('miner')&&W('fowler')===W('poacher')&&W('arquebusier')>=W('watchman')&&W('arquebusier')<=W('caravan')&&W('musketeer')>=W('veteran')&&W('pistoleer')<W('noble'),'wages in line with similar backgrounds');
@@ -95,7 +95,7 @@ section('rivals and brigands');
   console.log(`rivals: ${g}/${n} swords with a gun, ${cg}/${co} companies; brigand gunner in ${seen}/200 bands: ok`) }
 section('saves');
 { const G=fresh(SEED+4);G.roster=G.roster.slice(0,2);for(const k of GUNBG){const m=X.newMerc(k);m.field=true;G.roster.push(m)}X.mode='world';ok(X.save(),'save a company of gunners');
-  const r=X.readSave();ok(r.state==='ok'&&GUNBG.every(k=>r.g.roster.some(m=>m.bg===k&&isGun(m.eq.w)&&m.trees.includes('gunner'))),'gunners come back with their guns and trees: '+r.state);
+  const r=X.readSave();ok(r.state==='ok'&&GUNBG.every(k=>r.g.roster.some(m=>m.bg===k&&isGun(m.eq.w)&&m.trees.includes(CORE[k]))),'gunners come back with their guns and trees: '+r.state);
   const old=X.clone(G);old.roster=old.roster.filter(m=>!GUNBG.includes(m.bg));const r2=X.readSaveRaw(JSON.stringify(old));ok(r2.state==='ok','a save without them loads') }
 if(ARGV.includes('--no-browser')){console.log('\nOK (no browser)');return}
 section('art (browser)');
