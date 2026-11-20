@@ -18,9 +18,9 @@ function unitNewInj(u,snap){const m=u.m,all=typeof cpInj==='function'?cpInj(m):[
 // Rules: casualties, xp, crowns and loot; armor wear and injuries carried home. Returns the result record (also kept as B.result).
 // res.men lists every sword that was fielded: {id,name,state:'ok'|'down'|'dead'|'withdrew'|'fled',hp,hpMax,arm,helm,inj:[{id,n,d,days,perm}],lvl}
 // (arm / helm = armor points lost in this battle; shield = its shield was destroyed; lvl = the new level when one was gained, else 0).
-// the crowns stripped from the field of a won battle: 12-24% of its xp (was 15-30%), and a big battle's purse grows slower than its xp
+// the crowns stripped from the field of a won battle: 14-28% of its xp (was 15-30%), and a big battle's purse grows slower than its xp
 // (past STRIPK.xp xp, by (xp/STRIPK.xp)^STRIPK.e). r: one draw of the stream, in [0,1)
-const STRIPK={lo:.12,hi:.12,xp:1500,e:.75};
+const STRIPK={lo:.14,hi:.14,xp:1000,e:.7};
 function stripCrowns(xp,r){xp=Math.max(0,+xp||0);const big=xp>STRIPK.xp?STRIPK.xp*Math.pow(xp/STRIPK.xp,STRIPK.e):xp;return Math.round(big*(STRIPK.lo+r*STRIPK.hi))}
 function resolveBattle(win){const b=B;if(typeof battleSync==='function')battleSync();const pu=b.units.filter(u=>u.side===0&&u.m),dead=[],snap=b.opts&&b.opts.inj0||null,
   res={win:!!win,fled:!!b.fled,stuck:false,famed:[],f:b.opts.f,rounds:b.round,turns:b.turns,foes:b.units.filter(u=>u.side===1).length,down:[],dead:[],levels:[],xp:0,share:0,crowns:0,loot:[],
