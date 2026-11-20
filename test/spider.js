@@ -40,7 +40,7 @@ ok(!/Math\.random|\brnd\(/.test(src('76o-spider.js').replace(/\/\*[\s\S]*?\*\//g
 /* ---------- browser ---------- */
 const {chromium}=require('playwright');
 (async()=>{const html=path.resolve(process.argv[2]||'dist/index.html');let main=process.argv[3];
- if(!main){main=path.join(os.tmpdir(),'spider-main.html');try{fs.writeFileSync(main,cp.execSync('git show main:index.html',{cwd:ROOT,maxBuffer:1<<30}))}catch(e){main=''}}
+ if(!main){main=path.join(os.tmpdir(),'spider-main.html');try{fs.writeFileSync(main,cp.execSync('git show 34b165a:index.html',{cwd:ROOT,maxBuffer:1<<30}))}catch(e){main=''}}
  const b=await chromium.launch(),errs=[];
  const open=async f=>{const p=await b.newPage({viewport:{width:667,height:375}});p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::/.test(m.text()))errs.push(m.text())});
   await p.goto('file://'+f);await p.waitForTimeout(300);await p.evaluate(()=>{newGame();closeSheet();if(typeof fsImg==='function')for(const id of['spider','sspider','wolf'])if(FS_DEF[id])fsImg(id)});
