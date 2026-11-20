@@ -1,8 +1,9 @@
 /* ================= THE WEBSPINNER (Detail High; the user's forest and sand spider sheets, assets/foes/forest-spider.webp, sand-spider.webp) =================
    The Webspinner (EN 'spider') plays the user's drawn frames (76g-frames.js; atlases 76n-spideratlas.js: SPA the forest spider, SSA the
    sand spider): walk and flee = the run (8 frames); attack = the bite (Venom bite the same), its low forward strike (frame 5) at AN_HIT_AT;
-   a charge's dash runs; cast = rear up and spit (Spit web and any other cast), the spitting frame (4) when the web leaves (60 ms, 75-fx.js
-   'web'); hit = the hurt row; death held on its last frame (the legs curled). The idle (and swap, reload, the still sprite) is the orcs'
+   a charge's dash runs; cast = rear up and spit (Spit web and any other cast): the crouch and rear-up in the 60 ms before the web
+   leaves (75-fx.js 'web'), the spitting frame (4) as it does, then the settle; hit = the hurt row; death held on its last frame (the
+   legs curled). The idle (and swap, reload, the still sprite) is the orcs'
    parts rig (76k-orc.js orRig) from the sheet's parts: eight legs planted on the ground, the plate, the head and the abdomen riding the
    breath (the abdomen swelling with it), sized and centred on the run row's first frame. Faces: the part row's head (round red eyes, as
    the frames draw it) at rest, now and then a glow of the eyes or a squint (from the unit's id); the angry, fury, glare, hurt and dead
@@ -18,4 +19,4 @@ OR_FIG.sspider={atl:()=>typeof SSA==='object'?SSA:null,sway:{},legs:SP_LEGS,brea
 function spVary(u){const v=u&&u.spv;if(v)return v==='sand'?'sspider':'';return typeof B==='object'&&B&&B.bk==='desert'?'sspider':''}
 for(const id of['spider','sspider'])FS_DEF[id]={atl:OR_FIG[id].atl,rig:(st,t,K,seed,dy)=>orRig(id,st,t,K,seed,dy),rigSt:{idle:1,swap:1,reload:1},pick:OR_DASH,vary:spVary,
  an:{walk:{f:'run',loop:1,rate:1},flee:{f:'run',loop:1,rate:1},attack:{f:'attack',imp:4,hit:'melee',ms:620},charge:{f:'run',loop:1,cyc:300},
-  cast:{f:'cast',from:2,imp:3,hit:'web',ms:760},hit:{f:'hurt',ms:600},death:{f:'death'}}};
+  cast:{f:'cast',imp:3,hit:'web',ms:760},hit:{f:'hurt',ms:600},death:{f:'death'}}};
