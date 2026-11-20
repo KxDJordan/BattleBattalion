@@ -392,13 +392,13 @@ function useBlock(u,a){if(!u||!a)return'Unavailable';if(u.mor===0)return'Fleeing
  if(a.noBow&&isRangedW(u.wpn))return'Not with a ranged weapon in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
  if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(outOfThrows(u,a))return'Out of throws: swap weapons or strike with it in hand';if(!canFire(u,a))return'Not loaded: reload first';
  if(a.reloadW&&!u.wpn.reload)return'Nothing to reload';if(a.reloadW&&u.loaded!==false)return'Already loaded';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
- if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
+ if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.uses&&gtUsesLeft(u,a)<=0)return'None left this battle';if(a.oneH&&u.wpn.two)return'Needs a pistol: a one-handed firearm';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
  if(u.ap<a.ap)return'Not enough AP';if(u.fat+a.fat>u.fatMax)return'Too tired';return''}
 function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;if(a.light&&!isLightW(u.wpn))return false;if(a.offhand&&(u.shield||u.wpn.two||u.dw))return false;if(a.dual&&!u.dw)return false;
- if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;
+ if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;if(a.uses&&gtUsesLeft(u,a)<=0)return false;if(a.oneH&&u.wpn.two)return false;
  if(a.noBow&&isRangedW(u.wpn))return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;if(!canFire(u,a))return false;
  if(a.reloadW&&(!u.wpn.reload||u.loaded!==false))return false;return true}
-function payFor(u,a){u.ap-=a.ap;u.fat+=a.fat;if(a.cost)u.res[a.cost[0]].cur-=a.cost[1];if(a.once)(u.used||(u.used={}))[a.id]=1;if(a.swapW)u.swapFree=false;
+function payFor(u,a){u.ap-=a.ap;u.fat+=a.fat;if(a.cost)u.res[a.cost[0]].cur-=a.cost[1];if(a.once)(u.used||(u.used={}))[a.id]=1;if(a.uses){u.used=Object.assign({},u.used);u.used[a.id]=(u.used[a.id]||0)+1}if(a.swapW)u.swapFree=false;
  pvPay(u,a);if(u.wpn&&u.wpn.reload&&isRangedAtk(u,a)&&!pvBarrel(u))setLoaded(u,false)}      // firing a reload weapon spends its load (a twin barrel: the second one)
 // Loads or unloads the weapon in hand (u.loaded, and its entry in u.ld).
 function setLoaded(u,v){u.loaded=!!v;u.ld=Object.assign({},u.ld);u.ld[wkey(u.wpn)]=!!v;if(v&&u.wpn&&u.wpn.barrels>1)setAmmo(u,u.wpn.barrels);if(v)rlPrime(u)}   // Primed (Gunnery, 64v-roles.js)
@@ -481,7 +481,7 @@ function armorDef(u,t,a){const f=t.flags||{};let v=0;if(!(f.fleet||f.freshDef||f
  if(f.fleet&&t.mvd&&!a.magic&&shotKind(u,t,a)===2)v+=f.fleet;if(f.freshDef&&(t.fat||0)<t.fatMax*.5)v+=f.freshDef;if(f.dance&&t.dnc>0)v+=Math.min(15,f.dance*t.dnc);
  if(f.layerDef&&t.armMax>0&&t.arm>t.armMax/2)v+=f.layerDef;return v}
 function hitChance(u,t,a){if(a.sure||pvSure(u,a))return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
- if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(isRangedAtk(u,a)?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd')}
+ if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(isRangedAtk(u,a)||a.bomb?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd')}
  let ch=sk-df+(a.hit||0);const hd=T(u).h-T(t).h;ch+=hd>0?10:hd<0?-10:0;if(d>2&&!a.melee&&!fu.longShot)ch-=(d-2)*2;if(t.st.stun)ch+=15;if(t.st.webbed)ch+=10;if(t.st.marked>0)ch+=STBONUS.marked;
  if(ft.adjDef||ft.loneDef){if(hasAdj(t,t.side))ch-=ft.adjDef||0;else ch-=ft.loneDef||0}
  if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
@@ -497,7 +497,8 @@ function auraScan(){if(B){B.auraOn=B.units.some(x=>x.alive&&x.flags&&(x.flags.cm
    dmgAfter(u,t,a,dmg,o): the rolled damage (weapon roll x mult, or the spell roll with its bonuses) after every multiplier:
    x(1 + damage buffs + dmgB + the talent bonuses that apply) -> x(1 + executioner/vsHurt) below half health -> x splash -> x1.1 from
    higher ground -> round(x max(.2, 1 - damage reduction)). */
-function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
+function dmgBonus(u,t,a){const f=u.flags||{};let x=0;if(a.magic)return(u.weakened||u.st.weak>0)?-WEAKDMG:0;if(a.bomb)return gtBombDmg(u,t,a);   // a bomb: only the Grenadier's bonuses (64u-guntrees.js)
+const bow=isRangedW(u.wpn),melee=mdist(u,t)<=1;if(f.vsArm&&t.arm>0)x+=f.vsArm;
  if(bow)x+=f.dmgRanged||0;else x+=f.dmgMelee||0;if(u.wpn.two&&!bow)x+=f.twoDmg||0;if(f.lowHpDmg&&u.hp<u.hpMax/2)x+=f.lowHpDmg;if(f.hurtDmg&&u.hpMax>0)x+=f.hurtDmg*Math.floor(10*Math.max(0,1-u.hp/u.hpMax))/10;if(f.vsFull&&t.hp>=t.hpMax)x+=f.vsFull;
  if(f.duelDmg&&isDuel(u,a))x+=f.duelDmg;if(f.vsBoss&&isBigFoe(t))x+=f.vsBoss;if(f.flankDmg&&melee&&hasAdj(t,u.side,u))x+=f.flankDmg;x+=rogueDmg(u,t,a)+glDmg(u,t,a)+pvDmg(u,t,a,melee);if(u.weakened||u.st.weak>0)x-=WEAKDMG;return x}
 // vsBoss (fabled trees): against a boss, a fabled warrior, a huge (size 2) foe or an EN boss
@@ -521,7 +522,7 @@ const kbImmune=t=>(t.sz||1)>1||!!(t.def&&t.def.kbImm)||buffSum(t,'indom')>0||!!(
 // Steady footing (medium armor) halves what a step costs in fatigue.
 const moveFat=u=>u&&u.flags&&u.flags.footing?1:2;
 const spellMult=u=>(1+(u.wpn.spell||0)+(u.flags&&u.flags.spellB||0))*(1+(u.side===0||u.m?u.lvl*.03:0))*(B&&B.realm&&B.realm.spellK||1);   // the Glass Wastes: mana storms (24-endgame.js)   // a merc's level (either side)
-const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)+(u.flags&&u.flags.ignB||0)+pvIgn(u,a);
+const ignOf=(u,a)=>a.magic?a.ign||.5:(a.ignW!=null?a.ignW:u.wpn.ign||.2)+(a.ignB||0)+(!a.bomb&&u.flags&&u.flags.ignB||0)+pvIgn(u,a);
 // The damage roll of a weapon ability (a Spiked bash rolls the shield's spike), and the armor crushing of the blow (hammers).
 const rollOf=(u,a)=>a.dmgD||u.wpn.d;
 const crushOf=(u,a)=>a.magic||a.noDmg?0:(a.dmgD?0:u.wpn.crush||0)+(a.crushB||0)+pvCrush(u,a);
@@ -744,7 +745,8 @@ async function useAbility(u,a,k){const b=B;b.busy=true;b.sel=null;b.targets=null
    if(B===b&&u.alive&&(!a.dash||mdist(u,t)===1||u.wpn.rng>=mdist(u,t))){
     if(losInfo(u,t,a).blocked){float(u,'No line of fire','#c8d0d8');FX.emit('blocked',{u,t});await sleep(200)}
     else{const beyond=a.through?lineBeyond(u,t,a.through):[];await strike(u,t,a);for(let i=1;i<(a.hits||1)&&B===b&&t.alive&&u.alive;i++)await strike(u,t,a);
-    if((a.dwOff||a.dwSeq)&&u.dw&&B===b&&typeof dwFollow==='function')await dwFollow(u,t,a);   // Twin blades: the off-hand blows (64w-dualwield.js)
+    if((a.dwOff||a.dwSeq)&&u.dw&&B===b&&typeof dwFollow==='function')await dwFollow(u,t,a);
+    if(a.gvol&&B===b&&typeof gtVolley==='function')await gtVolley(u,t,a);   // Volley fire (Musketry, 64u-guntrees.js): the allies' guns join   // Twin blades: the off-hand blows (64w-dualwield.js)
     for(const o of beyond){if(B!==b||!u.alive)break;if(o.alive){FX.shot(t,o,'#e9e0c9',22,22);await strike(u,o,a,{splash:THROUGH,noShot:1})}}
     if(a.aoe)for(const o of b.units.filter(o=>o.alive&&o.side!==u.side&&o!==t&&mdist(o,t)===1)){if(B!==b)break;await strike(u,o,a,{splash:.7})}
     if(a.chain){let last=t;const hit=[t];for(let i=0;i<a.chain&&B===b;i++){const n=b.units.filter(o=>o.alive&&o.side!==u.side&&!hit.includes(o)&&mdist(o,last)<=3).sort((x,y)=>mdist(x,last)-mdist(y,last))[0];if(!n)break;FX.shot(last,n,'#c9a8ff',22,22);await strike(u,n,a,{splash:.6,auto:1,noShot:1});hit.push(n);last=n}}}}}}

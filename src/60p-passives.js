@@ -44,7 +44,7 @@ const pvRng=(u,a)=>isRangedAtk(u,a)&&!a.magic;                                  
 const pvAura=(a,k)=>!!(a&&a.cost&&a.cost[0]===k);
 const pvOff=(u,a)=>!!(a&&a.dwHand==='o'&&u.dw&&u.wpn===u.dw);                    // an off-hand blow (64w-dualwield.js)
 // allies of u within PV.gunR tiles with a firearm in hand (Gunline), at most PV.gunMax
-function gunMates(u){let n=0;if(!B)return 0;for(const o of B.units)if(o.alive&&o!==u&&o.side===u.side&&isGunW(o.wpn)&&mdist(o,u)<=PV.gunR&&++n>=PV.gunMax)break;return n}
+function gunMates(u){let n=0;if(!B)return 0;const mx=PV.gunMax+((u.flags&&u.flags.lineMax)||0);for(const o of B.units)if(o.alive&&o!==u&&o.side===u.side&&isGunW(o.wpn)&&mdist(o,u)<=PV.gunR&&++n>=mx)break;return n}   // Fire by ranks (Musketry's capstone): one more
 // foes next to x beyond the first (Surrounded by glory), at most PV.crowdMax
 function crowdN(x){let n=0;if(!B)return 0;for(const o of B.units)if(o.alive&&o.side!==x.side&&mdist(o,x)===1)n++;return Math.min(PV.crowdMax,Math.max(0,n-1))}
 /* ---- throws and barrels: u.am[wkey(w)] ---- */
@@ -64,12 +64,13 @@ function pvHit(u,t,a,d,melee){const f=u.flags||{},g=t.flags||{};let v=0;
   if(f.readOpp&&u.atkN&&u.atkN[t.id])v+=f.readOpp*Math.min(PV.readMax,u.atkN[t.id]);
   if(f.oppHit&&t.aoo)v+=f.oppHit;
   if(pvAura(a,'aura')&&f.auraHit)v+=f.auraHit;
-  if(isGunW(u.wpn)&&pvRng(u,a)){if(f.gunPBHit&&d<=PV.pbR)v+=f.gunPBHit;if(f.gunSteady&&!u.mvd)v+=f.gunSteady;if(f.gunLine)v+=f.gunLine*gunMates(u)}
+  if(isGunW(u.wpn)&&pvRng(u,a)){const pis=!u.wpn.two;if(f.gunPBHit&&pis&&d<=gtPbR(u))v+=f.gunPBHit;if(f.gunSteady&&!u.mvd)v+=f.gunSteady;if(f.gunLine)v+=f.gunLine*gunMates(u);
+   if(pis){if(f.runHit&&t.mvd)v+=f.runHit;if(f.paceHit&&gtPace(u,t))v+=f.paceHit}}   // the Pistolier (64u-guntrees.js): Arm's length, Wing the runner, Ten paces
   if(u.wpn&&u.wpn.brace&&u.mvd&&pvRng(u,a))v-=u.wpn.brace}                             // the wall gun: fired after moving
  if(g.afterImg&&!t.aimg)v-=g.afterImg;
  if(!a.magic){if(g.holdDef&&!t.mvd)v-=g.holdDef;if(g.mvDef&&t.mvd)v-=g.mvDef;if(g.duelDef&&melee&&isDuel(t,FREEAB))v-=g.duelDef}
  if(!melee){if(g.smokeDef&&t.smoke&&!a.magic)v-=g.smokeDef;if(g.farDef&&d>=PV.farD)v-=g.farDef}
- else if(!a.magic){if(g.dwFlow&&t.wsN>0)v-=g.dwFlow*Math.min(PV.wsMax,t.wsN);if(g.crowdDef)v-=g.crowdDef*crowdN(t)}
+ else if(!a.magic){if(g.dwFlow&&t.wsN>0)v-=g.dwFlow*Math.min(PV.wsMax,t.wsN);if(g.crowdDef)v-=g.crowdDef*crowdN(t);if(g.smokeMel&&t.smoke)v-=g.smokeMel}   // Veil of smoke (the Gunsmoke Saint)
  return v}
 function pvDmg(u,t,a,melee){const f=u.flags||{};let x=0;
  if(melee){if(f.pressDmg&&u.lastHit===t.id)x+=f.pressDmg;if(f.flowDmg&&u.chainN>0)x+=f.flowDmg*Math.min(PV.chainMax,u.chainN);if(f.sfDmg&&!u.sfDone&&isLightW(u.wpn))x+=f.sfDmg;
@@ -83,14 +84,15 @@ function pvDmg(u,t,a,melee){const f=u.flags||{};let x=0;
  if(f.oppDmg&&t.aoo)x+=f.oppDmg;
  if(f.manaDmg&&u.res&&u.res.mana)x+=f.manaDmg*Math.min(PV.resMax,Math.floor(u.res.mana.cur/PV.resPer));
  if(pvRng(u,a)){if(f.staticChg&&u.chg>=PV.chgMax&&u.wpn.wt==='bow')x+=f.staticChg;
-  if(isGunW(u.wpn)){if(f.gunPB&&mdist(u,t)<=PV.pbR)x+=f.gunPB;if(f.gunLineD)x+=f.gunLineD*gunMates(u)}
+  if(isGunW(u.wpn)){const pis=!u.wpn.two;if(f.gunPB&&pis&&mdist(u,t)<=gtPbR(u))x+=f.gunPB;if(f.gunLineD)x+=f.gunLineD*gunMates(u);if(f.rollV)x+=f.rollV*gtRolled(t);
+   if(pis){if(f.runDmg&&t.mvd)x+=f.runDmg;if(f.paceDmg&&gtPace(u,t))x+=f.paceDmg}if(f.blastDmg&&a.id==='blast')x+=f.blastDmg}   // the gun trees (64u-guntrees.js)
   if(f.deadArc&&!u.dArc&&isThrowW(u.wpn))x+=PV.arcDmg;
   if(f.bowDmg&&isBowW(u.wpn))x+=f.bowDmg;if(f.holdDmg&&!u.mvd)x+=f.holdDmg;if(f.primeDmg&&u.primed&&isGunW(u.wpn))x+=f.primeDmg;if(f.mixDmg&&isThrowW(u.wpn)&&rlMix(u,'m'))x+=f.mixDmg;
   if(isThrowW(u.wpn)){const s=t.st||{};if(f.hexDmg&&s.marked>0)x+=f.hexDmg;if(f.hurlAdj)x+=f.hurlAdj*Math.min(PV.crowdMax,adjFoes(u).length);if(f.stormDmg&&(s.burn>0||s.chill>0||s.daze>0))x+=f.stormDmg}}   // the throwing gifts
  if(f.bleedDmg&&!a.magic&&t.st&&t.st.bleed>0&&(melee||(isThrowW(u.wpn)&&pvRng(u,a))))x+=f.bleedDmg;   // Open the wound (Still hand)
  return x}
 function pvDr(u,t,a){const g=t.flags||{};let dr=0;if(g.manaWard&&t.res&&t.res.mana&&t.res.mana.cur>=t.res.mana.max/2)dr+=g.manaWard;if(B&&B.shelOn)dr+=shelterOf(t);return dr}
-function pvIgn(u,a){const f=u.flags||{};let x=0;if(f.gunIgn&&isGunW(u.wpn)&&pvRng(u,a))x+=f.gunIgn;if(f.auraIgn&&pvAura(a,'aura'))x+=f.auraIgn;if(f.twoIgn&&rlTwo(u,a))x+=f.twoIgn;return x}
+function pvIgn(u,a){const f=u.flags||{};let x=0;if(f.gunIgn&&isGunW(u.wpn)&&pvRng(u,a))x+=f.gunIgn;if(f.blastIgn&&gtBlast(u,a))x+=f.blastIgn;if(f.auraIgn&&pvAura(a,'aura'))x+=f.auraIgn;if(f.twoIgn&&rlTwo(u,a))x+=f.twoIgn;return x}
 function pvCrush(u,a){const f=u.flags||{};let x=0;if(f.gunCrush&&isGunW(u.wpn)&&pvRng(u,a))x+=f.gunCrush;if(f.auraCrush&&pvAura(a,'aura'))x+=f.auraCrush;if(f.twoCrush&&rlTwo(u,a))x+=f.twoCrush;return x}
 function pvBleed(u,a){const f=u.flags||{};let n=0;if(a.wpn&&!a.magic&&u.wpn&&u.wpn.bleed)n=u.wpn.bleed;if(f.dwBleed&&pvOff(u,a))n=Math.max(n,f.dwBleed);return n}
 /* the statuses a hit adds. Certain ones first, then the chances, each one rnd() drawn only when its bearer qualifies (strike order) */
@@ -112,6 +114,7 @@ function pvStCases(u,t,a,melee,shot,hp){const f=u.flags||{},w=u.wpn||{},L=[];   
  if(f.spotMark&&pvRng(u,a))L.push(['marked',1,'hp',1]);
  if(f.twoDaze&&melee&&w.two&&!isRangedW(w))L.push(['daze',1,'hp',f.twoDaze]);
  if(f.arrowBurn&&w.wt==='bow'&&pvRng(u,a))L.push(['burn',2,'hp',f.arrowBurn]);
+ if(f.blastBurn&&gtBlast(u,a))L.push(['burn',f.blastBurn,1,1]);   // Wildfire (Grenadier, 64u-guntrees.js)
  if(isThrowW(w)&&pvRng(u,a)){   // the throwing gifts (after every older case, so their rnd() order is unchanged)
   if(f.thawBurn&&t.st&&t.st.chill>0)L.push(['burn',f.thawBurn,1,1]);if(f.hurlOff&&pvAura(a,'aura'))L.push(['offbal',1,1,1]);
   if(f.frostThrow)L.push(['chill',1,'hp',f.frostThrow]);if(f.hamThrow)L.push(['hobbled',1,'hp',f.hamThrow])}
@@ -130,7 +133,7 @@ function pvStruck(u,t,a,o){if(!u||!t||o.stray)return;const f=u.flags||{};
  if(f.sfHit||f.sfDmg)u.sfDone=1;
  if(f.deadArc&&isThrowW(u.wpn)&&pvRng(u,a))u.dArc=1;
  rlStruck(u,t,a,o)}
-function pvHitDone(u,t,a,o,hpd){const f=u.flags||{},melee=!!a.melee||mdist(u,t)<=1;if(o.stray)return;
+function pvHitDone(u,t,a,o,hpd){const f=u.flags||{},melee=!!a.melee||mdist(u,t)<=1;if(o.stray)return;gtHitDone(u,t,a,o,hpd);   // the gun trees: Rolling volley's count, a Petard on a shield (64u-guntrees.js)
  if(!a.magic){
   if(melee&&f.pressHit)u.lastHit=t.id;
   if(melee&&(f.chainHit||f.flowDmg)&&B&&B.cur===u)u.chainN=(u.chainN||0)+1;
@@ -151,7 +154,7 @@ async function pvMiss(u,t,a,o,v,R){if(!u||!t||o.stray)return;const b=B,g=t.flags
   if((u.wpn.ret||f.retRune)&&u.alive&&!a.conj){setAmmo(u,ammoLeft(u)+(a.ammoN||1));float(u,'Returns','#e9e0c9')}      // the chakram flies back; Homing runes (Hexed blades)
   if(f.ricochet&&!o.ric&&!o.free&&u.alive){const n=b.units.filter(x=>x.alive&&x!==t&&x.side!==u.side&&mdist(x,t)===1).sort((x,y)=>mdist(x,u)-mdist(y,u)||x.id-y.id)[0];
    if(n){FX.shot(t,n,'#e9e0c9',22,22);say(`${u.name}'s throw glances off into ${n.name}.`);await strike(u,n,a,{splash:f.ricochet,auto:1,noShot:1,ric:1})}}}}
-async function pvKill(u,t,a,o){if(!u||!u.alive||o.stray)return;const b=B,f=u.flags||{},melee=!!a.melee||mdist(u,t)<=1;
+async function pvKill(u,t,a,o){if(!u||!u.alive||o.stray)return;const b=B,f=u.flags||{},melee=!!a.melee||mdist(u,t)<=1;gtKill(u,t,a,o);   // Saint of gunsmoke: a kill reloads (64u-guntrees.js)
  if(f.seizeAP){const n=b.units.filter(x=>x.alive&&x!==u&&x.side===u.side&&!x.gone&&mdist(x,u)<=PV.seizeR).sort((x,y)=>mdist(x,u)-mdist(y,u)||x.id-y.id)[0];
   if(n){n.bonusAP=(n.bonusAP||0)+f.seizeAP;float(n,'+'+f.seizeAP+' AP','#ffd27a');FX.emit('buff',{t:n})}}
  if(f.pinKillAP&&b.cur===u&&(t.st.netted>0||t.rooted||t.st.root>0||t.st.webbed>0)){u.ap+=f.pinKillAP;float(u,'+'+f.pinKillAP+' AP','#ffd27a');FX.emit('buff',{t:u})}
@@ -186,12 +189,12 @@ function pvTurn(u){const b=B,f=u.flags||{};
 function pvPay(u,a){const w=u.wpn,f=u.flags||{};if(!w||!isRangedAtk(u,a))return;
  if(w.ammo&&!a.conj){const n=ammoLeft(u)-((a.ammoN)||1);setAmmo(u,n);if(n<=0&&!u.m){u.back=false;if(u.role==='sniper')u.role='flanker'}}   // a foe with no throws left closes in
  if(f.drawLoose&&w.wt==='bow')u.shotT=1;
- if(f.smokeDef&&isGunW(w))u.smoke=1}
+ if((f.smokeDef||f.smokeMel)&&isGunW(w))u.smoke=1}
 // a reload weapon with more than one barrel: a shot spends one, the weapon is spent with the last (returns true while one is left)
-function pvBarrel(u){const w=u.wpn;if(!w||!(w.barrels>1))return false;const n=ammoLeft(u)-1;setAmmo(u,n);return n>0}
+function pvBarrel(u){const w=u.wpn;if(!w||!(w.barrels>1))return gtBrace(u);const n=ammoLeft(u)-1;setAmmo(u,n);return n>0}   // Brace of pistols (Pistolier, 64u-guntrees.js)
 function pvAbInfo(u,a){const f=u.flags||{},w=u.wpn;if(!w)return a;
  if(f.drawLoose&&!u.shotT&&w.wt==='bow'&&a.tgt==='enemy'&&(a.id==='attack'||a.wpn)&&!a.magic)a.ap=Math.max(2,(a.ap||0)-1);
- return a}
+ return gtAbInfo(u,a)}   // the Grenadier's bombs and blasts (64u-guntrees.js)
 // a Guardian angel of t's side within PV.angelR tiles, not yet spent (the nearest; ties: the lower id), or null
 function pvAngel(t){if(!B||!t||!B.pvAngel)return null;let best=null;for(const o of B.units)if(o.alive&&o!==t&&o.side===t.side&&o.flags&&o.flags.angel&&!o.angU&&mdist(o,t)<=PV.angelR&&(!best||mdist(o,t)<mdist(best,t)||(mdist(o,t)===mdist(best,t)&&o.id<best.id)))best=o;return best}
 // what the battle's units carry (kept on B at the start and on every spawn: cheap scans skip what nobody has)

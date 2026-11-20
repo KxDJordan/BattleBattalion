@@ -93,7 +93,7 @@ function perkSum(ids,wpn,raised,acl,sh){const o={perks:[],off:[],st:{},abs:[],fl
   if(p.flag)o.flags[p.flag]=1;if(p.mod)for(const q in p.mod)o.flags[q]=(o.flags[q]||0)+p.mod[q];
   if(p.wmod){const x=p.wmod;if(x.d)wpn.d=[wpn.d[0]+x.d[0],wpn.d[1]+x.d[1]];if(x.ap)wpn.ap=Math.max(2,wpn.ap+x.ap);if(x.fat){wpn.fat=Math.max(0,(wpn.fat||0)+x.fat);wpn.fatCut=(wpn.fatCut||0)-x.fat}if(x.rng)wpn.rng+=x.rng;if(x.ign)wpn.ign=(wpn.ign||.2)+x.ign;
    if(x.hit)wpn.hit=(wpn.hit||0)+x.hit;if(x.stun)wpn.stun=(wpn.stun||0)+x.stun;if(x.spell)wpn.spell=(wpn.spell||0)+x.spell;if(x.crush)wpn.crush=(wpn.crush||0)+x.crush;
-   if(x.rld&&wpn.reload)wpn.reload.ap=Math.max(2,wpn.reload.ap+x.rld)}
+   if(x.rld&&wpn.reload)wpn.reload.ap=Math.max(2,wpn.reload.ap+x.rld);if(x.rfat&&wpn.reload)wpn.reload.fat=Math.max(0,(wpn.reload.fat||0)+x.rfat)}   // rfat: Ramrod drill's lighter reload
   if(T.kind==='gift'&&T.res){const R=o.res[T.res]||(o.res[T.res]={max:GIFTBASE,regen:GIFTREGEN});if(p.res)R.max+=p.res;if(p.regen)R.regen+=p.regen}}
  return o}
 function calc(m,o){const hand=o&&o.hand==='b'?'b':'w',eq=m.eq||{},wid=eq[hand]||null,wi=ITEMS[wid]&&ITEMS[wid].k==='w'?ITEMS[wid]:null,acl=armorClassOf(eq.a,eq.h);
