@@ -725,7 +725,7 @@ const MAST={
   perkDef('Ramrod drill','Reloading a firearm costs 2 less AP (at least 2) and 6 less fatigue',{id:'weapons.flintlock',wt:'flintlock',wmod:{rld:-2,rfat:-6}}),
   perkDef('Practised arm','+10 to hit with a throwing weapon in hand',{id:'weapons.throwing',wt:'throwing',wmod:{hit:10}}),
   perkDef('Channeling','+15% spell damage with a staff in hand',{id:'weapons.staff',wt:'staff',wmod:{spell:.15}}),
-  perkDef('Iron knuckles','Fighting unarmed: fists deal +8 minimum and +10 maximum damage',{id:'weapons.fist',wt:'fist',wmod:{d:[8,10]}}),
+  perkDef('Iron knuckles','Bare fists or any fist weapon: +8 minimum and +10 maximum damage',{id:'weapons.fist',wt:'fist',wmod:{d:[8,10]}}),
   perkDef('Shield discipline','A raised shield has 30% more hitpoints, and while it is raised shots and spells on you lose 10% of their damage',{id:'weapons.shield',wt:'shield',mod:{shieldHp:.3,deflect:.1}})]]},
  /* ---- armor trees: a merc has its background's (BG[bg].at); each works only while the body armor worn is of its weight class (armorClass(m):
          light = up to 60 armor or any robe, also no armor; medium = 61 to 150; heavy = over 150). One perk a tier; tiers open at levels 2, 5, 8
