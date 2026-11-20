@@ -11,6 +11,8 @@
 // Gates (not with --measure):
 //   1. Brutal is clearly harder than Hard: the sensible pilot's win rate pooled over the three stages at least BRUTAL.gap points below
 //      Hard, for the company and for each solo run; and Brutal costs more blood (deaths + struck down a fight) than Hard.
+//      (Measured at --n 40, sensible, pooled over the stages: Hard 63 / 73 / 88 for company / slayer / isekai; Brutal before the Brutal rules
+//      40 / 63 / 78, after them 30 / 48 / 68. --mult .8, a typical band you choose to fight: Hard 94 / 87 / 94, Brutal 80 / 81 / 90 -> 76 / 73 / 84.)
 //   2. The order holds: Story >= Normal >= Hard >= Brutal (sensible, pooled; a little slack for noise between Story and Normal).
 //   3. Solo is not a free ride on Brutal: the solo runs' sensible win rate on Brutal at least BRUTAL.soloGap points below their Normal one.
 //   4. Normal and Hard are untouched by the Brutal rules: on fixed seeds every battle's foes (ids, rank, elites, hitpoints) at Story / Normal /
