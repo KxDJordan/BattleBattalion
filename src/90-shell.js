@@ -155,13 +155,13 @@ function worldChrome(){if(mode!=='world'||!G)return;const cb=$('wbContract');
   x.fillStyle='#101d1c';for(const t of G.towns||[])x.fillRect(t.x*k-4,t.y*k-4,8,8);x.fillStyle='#e9e0c9';for(const t of G.towns||[])x.fillRect(t.x*k-2.5,t.y*k-2.5,5,5);
   x.fillStyle='#d1a94e';x.strokeStyle='#101d1c';x.lineWidth=2;x.beginPath();x.arc(G.p.x*k,G.p.y*k,6,0,7);x.fill();x.stroke()}}
 /* ---- daily upkeep: tapping the crowns or the food on the world HUD opens a small breakdown (costPop).
-   It follows newDay() in 40-world.js exactly: at midnight every sword on the roster (reserves too) draws BG[bg].wage crowns,
+   It follows newDay() in 40-world.js exactly: at midnight every sword on the roster (reserves too) draws wageOf(m) crowns (background, traits, level),
    then eats one ration. Unpaid (crowns would go below 0): the purse is emptied and, with more than one sword, there is a 35%
    chance one random sword deserts. Out of food: rations go to 0 and every sword loses 10 hitpoints (never below 1).
    Nothing else is charged by the day. Reads state only; no randomness. ---- */
 const CP={el:null,kind:null,key:'',from:null,swallow:0};
 function upkeep(){const R=G&&G.roster||[],qm=typeof followerHas==='function'&&followerHas('quarter'),fr=qm?.8:1,   // the same wage and ration rules newDay() pays
- men=R.map(m=>({m,bg:BG[m.bg]||{},wage:typeof wageOf==='function'?wageOf(m):((BG[m.bg]&&BG[m.bg].wage)|0),food:fr})),wage=men.reduce((s,x)=>s+x.wage,0),food=Math.round(men.length*fr*10)/10;
+ men=R.map(m=>({m,bg:BG[m.bg]||{},wage:typeof wageOf==='function'?Math.round(wageOf(m)):((BG[m.bg]&&BG[m.bg].wage)|0),food:fr})),wage=typeof companyWages==='function'?companyWages():men.reduce((s,x)=>s+x.wage,0),food=Math.round(men.length*fr*10)/10;
  const hrs=Math.max(0,Math.ceil(24-(G?G.hour:0)));
  return{men,wage,food,hrs,payDays:wage>0?Math.floor(G.crowns/wage):Infinity,foodDays:food>0?Math.floor(G.food/food):Infinity}}
 function cpDays(n){return n===Infinity?'no end':n+' day'+(n===1?'':'s')}

@@ -27,15 +27,23 @@ const SEEDS=arg('--seeds',QUICK?'11,23':'11,23,37,41').split(',').map(Number),OR
 const RUNAWAY=60000,HOARD=15000;   // runaway: no Normal or Hard run above it by day 60; hoard: the median Normal run below it on days 60-100
 /* The flows (judged, policy-free, a second): what a contract pays in days of the company's wages, for the balance profiles (test/balance.js:
    L1x4 a new company, L4x6 day 12 Known, L8x9 day 30 Renowned, L12x12 day 50 Famed and Legendary), the mean of 300 boards' notices.
-   Target band FLOWBAND: a contract pays 3-6 days of the company's wages at every stage (wages grow +10% a level, 14-company.js
-   WAGELV; pay with power, renown and danger, 16-contracts.js CTRPAY / RENOWN.pay / CTR_PAYK). Before the econ rebalance it paid 8 days for a
+   Target band FLOWBAND: a contract pays 3-6 days of the company's wages at every stage (wages grow exponentially with level to x5-x7 at 15
+   by the background's rarity, 14-company.js WAGELV / wageLvK; pay with power, renown, danger and the swords' levels, 16-contracts.js
+   CTRPAY / ctrVetK / RENOWN.pay / CTR_PAYK). Before the econ rebalance it paid 8 days for a
    new company and 26-51 days of wages late: the mid and late game's runaway purse. */
 const FLOWBAND=[3,6];
+// The roster variants (reported, judged against FLOWBAND_X): the same swords (levels, gear, power) under the commonest (BGC: tavern weight 4-5)
+// or the rarest backgrounds (BGR: weight 1 or less): their wages differ ~3x by level 12, the pay does not (it follows power, not the roster).
+// L15x12: the L12x12 company at level 15 (day 80, Legendary).
+const BGC=['farmhand','militia','hunter','butcher','miner','woodcutter','poacher','deserter','brigand'],BGR=['knight','noble','hedgeknight','witchhunter','cultist','gladiator'];
+const FLOWBAND_X=[2,9];
 function flows(){process.argv.push('--lib');const L=require(path.join(__dirname,'balance.js'));process.argv.pop();const X=L.makeContext(),rows=[];
- for(const [pid,ren] of [['L1x4',0],['L4x6',60],['L8x9',340],['L12x12',620],['L12x12',1000]]){const P=L.PROFILES.find(p=>p.id===pid),R=L.buildCompany(X,P,1234),G=X.G;
-  G.roster=X.clone(R);G.roster.forEach(m=>m.field=true);G.day=P.day;G.renown=ren;const w=X.companyWages();let s=0,n=0;X.seedRng(77);
+ const P15=Object.assign({},L.PROFILES.find(p=>p.id==='L12x12'),{id:'L15x12',lvl:15,day:80});
+ for(const [pid,ren,mix] of [['L1x4',0],['L4x6',60],['L8x9',340],['L8x9',340,'common'],['L8x9',340,'rare'],['L12x12',620],['L12x12',1000],['L12x12',620,'common'],['L12x12',620,'rare'],
+   ['L15x12',1000],['L15x12',1000,'common'],['L15x12',1000,'rare']]){const P=pid==='L15x12'?P15:L.PROFILES.find(p=>p.id===pid),R=L.buildCompany(X,P,1234),G=X.G;
+  G.roster=X.clone(R);G.roster.forEach((m,i)=>{m.field=true;if(mix)m.bg=(mix==='rare'?BGR:BGC)[i%(mix==='rare'?BGR:BGC).length]});G.day=P.day;G.renown=ren;const w=X.companyWages();let s=0,n=0;X.seedRng(77);
   for(let k=0;k<300;k++){const ti=k%G.towns.length,c=X.genContract2(G.towns[ti],ti);if(c){s+=c.pay;n++}}
-  rows.push({pid,ren,wages:w,power:X.companyPower(),pay:Math.round(s/n),days:s/n/w,purse:typeof X.colPurseBase==='function'?Math.round(X.colPurseBase(X.companyPower())):0})}
+  rows.push({pid,ren,mix:mix||'',wages:w,power:X.companyPower(),pay:Math.round(s/n),days:s/n/w,purse:typeof X.colPurseBase==='function'?Math.round(X.colPurseBase(X.companyPower())*(typeof X.ctrVetK==='function'?X.ctrVetK():1)):0})}
  return rows}
 /* ---------- DOM stubs (as in test/balance.js) ---------- */
 function hole(props){const store=Object.assign(Object.create(null),props||{});
@@ -262,8 +270,8 @@ if(has('--worker')){let X=null;process.on('message',async m=>{if(m==='quit')proc
 /* ---------- main ---------- */
 (async()=>{const J=+arg('--jobs',Math.max(1,Math.min(4,os.cpus().length))),T0=Date.now();const runs=[];let id=0;
  const FL=flows(),fbad=[];console.log('flows: contract pay in days of wages (target '+FLOWBAND.join('-')+')');
- for(const r of FL){console.log(`  ${r.pid.padEnd(7)} renown ${String(r.ren).padStart(4)}: wages ${String(r.wages).padStart(4)}/day, power ${String(r.power).padStart(5)}, contract ${String(r.pay).padStart(5)} = ${r.days.toFixed(1)} days, arena purse ${r.purse}`);
-  if(r.days<FLOWBAND[0]||r.days>FLOWBAND[1])fbad.push(`flows: ${r.pid} at renown ${r.ren}: a contract pays ${r.days.toFixed(1)} days of wages (band ${FLOWBAND.join('-')})`)}
+ for(const r of FL){console.log(`  ${r.pid.padEnd(7)} ${r.mix.padEnd(6)} renown ${String(r.ren).padStart(4)}: wages ${String(r.wages).padStart(4)}/day, power ${String(r.power).padStart(5)}, contract ${String(r.pay).padStart(5)} = ${r.days.toFixed(1)} days, arena purse ${r.purse}`);
+  const B=r.mix?FLOWBAND_X:FLOWBAND;if(r.days<B[0]||r.days>B[1])fbad.push(`flows: ${r.pid}${r.mix?' '+r.mix:''} at renown ${r.ren}: a contract pays ${r.days.toFixed(1)} days of wages (band ${B.join('-')})`)}
  if(has('--flows')){if(fbad.length){console.log('\nFAIL:\n  '+fbad.join('\n  '));process.exit(1)}console.log('\nPASS');process.exit(0)}
  for(const diff of DIFFS)for(const origin of ORIG)for(const seed of SEEDS)runs.push({id:id++,seed,origin,diff,days:DAYS,crisis:['sunder','deadmarch','horde','barbarian'][id%4]});
  console.log(`economy: ${runs.length} campaigns of ${DAYS} days, ${J} workers`);

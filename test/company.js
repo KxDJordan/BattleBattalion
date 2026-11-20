@@ -107,6 +107,15 @@ section('followers');
   // paymaster: wages -15%
   { off();const w0=X.companyWages(),raw=G.roster.reduce((a,m)=>a+X.wageOf(m),0);on('paymaster');const w1=X.companyWages();ok(w1===Math.round(raw*.85)&&w1<w0,'paymaster: '+w0+' -> '+w1);
     const c=G.crowns=5000;X.newDay();ok(G.crowns===c-w1,'newDay pays the paymaster’s wages') }
+  // wages by level: x1 at level 1, growing exponentially to x5 (the commonest backgrounds, tavern weight 5) .. x7 (the rarest, weight 0.5 or less) at 15
+  { off();const ratio=(bg,L)=>{const m=X.clone(G.roster[0]);m.bg=bg;m.traits=[];m.lvl=1;const w1=X.wageOf(m);m.lvl=L;return X.wageOf(m)/w1};
+    ok(Math.abs(ratio('farmhand',15)-5)<1e-9&&Math.abs(ratio('militia',15)-5)<1e-9,'level 15: the commonest ask x5 ('+ratio('farmhand',15).toFixed(2)+')');
+    ok(Math.abs(ratio('gladiator',15)-7)<1e-9,'level 15: the rarest ask x7 ('+ratio('gladiator',15).toFixed(2)+')');
+    const mid=['hunter','sellsword','squire','knight'].map(b=>ratio(b,15));ok(mid.every((r,i)=>r>5&&r<7&&(i===0||r>mid[i-1])),'level 15: rarer asks more, between x5 and x7 ('+mid.map(r=>r.toFixed(2)).join(' ')+')');
+    for(const b of ['farmhand','knight']){let p=1,okk=true;for(let L=2;L<=15;L++){const r=ratio(b,L);if(!(r>p))okk=false;p=r}ok(okk&&ratio(b,1)===1,b+': wage rises every level from x1');
+      ok(Math.abs(ratio(b,20)-ratio(b,15))<1e-9,b+': capped at level 15')}
+    ok(Math.abs(ratio('farmhand',8)-Math.sqrt(5))<1e-9,'level 8: half way on the exponential (x'+ratio('farmhand',8).toFixed(2)+')');
+    ok(X.bgRarity('farmhand')===0&&X.bgRarity('gladiator')===1&&X.bgRarity('slayer')===1,'rarity: tavern weight 5 is 0, 0.5 or less is 1') }
   // cook: wounds mend 25% faster on the road
   { const run=q=>{G.retinue=q?['cook']:[];G.roster.forEach(m=>m.hp=1);G.healAcc=0;X.advanceTime(8);return G.roster[0].hp};const a=run(0),b=run(1);ok(b>a,'cook: '+a+' -> '+b+' hitpoints in 8 hours') }
   // recruiter: a quarter off, one more recruit

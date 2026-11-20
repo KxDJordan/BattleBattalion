@@ -19,7 +19,7 @@
    is a yield (the bout is lost, the purse with it; no crowns are dropped on the run), never in a bout sine missione (canRetreat).
    The crowd spares most of the fallen: a struck-down sword dies with COL.death of its usual chance (killUnit); sine missione: the usual odds.
    Pay: the entry fee (COL.fee of the purse) is paid when the bout is settled, won or lost; a win pays the purse:
-     purse = round((COL.purse.base + COL.purse.k x P^COL.purse.e) x rule.pay x diffK('pay') x (1 + streak bonus) x (1 + Showman) / 10) x 10
+     purse = round((COL.purse.base + COL.purse.k x P^COL.purse.e) x ctrVetK() (the veterans' premium, as contracts) x rule.pay x diffK('pay') x (1 + streak bonus) x (1 + Showman) / 10) x 10
      (P: the company's power, companyPower of the fielded swords; streak bonus COL.streak.per a win in a row, at most COL.streak.max;
      Showman (trait): +5% a kill it made in the bout, at most +25%), renown round(COL.renown.base + COL.renown.k x sqrt(P)) x rule.ren,
      and some bouts a prize (a piece of gladiator gear). The field's own crowns, loot and xp come on top, as in any won battle.
@@ -154,7 +154,7 @@ function colArenaTiles(b){const R=COLRULE[b.rule],r=mulberry((b.seed|0)^0x51a7),
 /* ---- pay ---- */
 function colPurseBase(P){return COL.purse.base+COL.purse.k*Math.pow(Math.max(0,P),COL.purse.e)}
 function colStreakK(c){return 1+Math.min(COL.streak.max,COL.streak.per*((c&&c.rec&&c.rec.streak)|0))}
-function colPurse(c,b){const R=COLRULE[b.rule],P=colPower();return Math.max(50,Math.round(colPurseBase(P)*R.pay*(typeof diffK==='function'?diffK('pay'):1)*colStreakK(c)/10)*10)}
+function colPurse(c,b){const R=COLRULE[b.rule],P=colPower();return Math.max(50,Math.round(colPurseBase(P)*(typeof ctrVetK==='function'?ctrVetK():1)*R.pay*(typeof diffK==='function'?diffK('pay'):1)*colStreakK(c)/10)*10)}
 function colFee(c,b){return Math.max(10,Math.round(colPurse(c,b)*COL.fee/10)*10)}
 function colRenown(b){const R=COLRULE[b.rule];return Math.max(1,Math.round((COL.renown.base+COL.renown.k*Math.sqrt(Math.max(0,colPower())))*R.ren))}
 function colPrize(c,b){if(!b.prize)return null;const r=mulberry((b.seed|0)^0x9e11),T=typeof marketTier==='function'?marketTier(3,G.day|0):3,L=GLADITEMS.filter(id=>ITEMS[id]&&(ITEMS[id].tier||1)<=Math.max(2,T));return L.length?colPick(r,L):null}

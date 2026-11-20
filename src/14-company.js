@@ -5,7 +5,7 @@
      FOLLOWERS[id]   {n, d, cost, renown (tier needed), effect, icon:'fol-<id>', wired}
    Company state:    G.retinue [ids]   G.amb {cur, done:[ids], offered:[ids], st:{counters}, base:{counters when cur was taken},
                                               days:{id: day fulfilled}, cel:[{k:'amb',id}|{k:'tier',t}] notes still to show, rt: tier last told}
-   Public: renownTier renownDef renownInfo followerHas followerSlots followerCan hireFollower dismissFollower wageOf companyWages
+   Public: renownTier renownDef renownInfo followerHas followerSlots followerCan hireFollower dismissFollower wageOf wageLvK bgRarity wageTopK companyWages
            recruitCost recruitBG makeVeteran bandIntel ambProgress ambOffer ambPick ambDrop ambEvent ambTick ambNotify openAmbitions
            companyRepair companyNew
    No UI path ever draws game randomness: offers come from a hash of the seed; only rewards (an item) and recruits use rnd(). */
@@ -68,10 +68,16 @@ function dismissFollower(id){if(!followerHas(id))return false;G.retinue=G.retinu
 
 /* ---- economy helpers read by 40-world.js and 50-towns.js ---- */
 // a merc's daily wage: the rules' mercWage(m) when they provide one, else the background's wage plus trait wages
-// (TRAITS[k].wage: a fraction below 1 is a share of the base wage, else crowns), then the sword's level (WAGELV: a veteran asks more, +10% a level
-// past the first), then the paymaster.
-const WAGELV=.1;
-function wageLvK(m){return 1+WAGELV*Math.max(0,Math.min(typeof MAXLV==='number'?MAXLV:15,(m&&m.lvl)|0||1)-1)}
+// (TRAITS[k].wage: a fraction below 1 is a share of the base wage, else crowns), then the sword's level (wageLvK), then the paymaster.
+// Level: a veteran asks more, growing exponentially from x1 at level 1 to x(WAGELV.lo..hi) at MAXLV (15) by the background's rarity
+// (bgRarity): K(L) = top^((L-1)/(MAXLV-1)), top = lo + (hi-lo) x rarity; levels past MAXLV do not exist (capped there).
+// Rarity is the tavern weight BG[k].w (wpickBG / recruitBG draw with it): 0 for w >= WAGELV.wc (the commonest: farmhand, militia),
+// 1 for w <= WAGELV.wr (gladiator, and the origin-only slayer and isekai at w 0), log-linear between: w 4 .10, w 3 .22, w 2 .40, w 1 .70.
+// So at level 15: farmhand x5, hunter x5.2, sellsword x5.4, squire x5.8, knight x6.4, gladiator x7 (was: +10% a level, x2.4 at 15).
+const WAGELV={lo:5,hi:7,wc:5,wr:.5};
+function bgRarity(k){const b=BG[k];if(!b)return 0;const w=+b.w||0;if(w<=WAGELV.wr)return 1;if(w>=WAGELV.wc)return 0;return Math.log(WAGELV.wc/w)/Math.log(WAGELV.wc/WAGELV.wr)}
+function wageTopK(k){return WAGELV.lo+(WAGELV.hi-WAGELV.lo)*bgRarity(k)}
+function wageLvK(m){const M=typeof MAXLV==='number'?MAXLV:15,L=Math.max(1,Math.min(M,(m&&m.lvl)|0||1));return Math.pow(wageTopK(m&&m.bg),(L-1)/(M-1))}
 function wageOf(m){if(!m||!BG[m.bg])return 0;let w;
  if(typeof mercWage==='function'){try{w=mercWage(m)}catch(e){w=null}}
  if(typeof w!=='number'||!isFinite(w)){const b=BG[m.bg].wage||0;w=b;if(Array.isArray(m.traits)&&typeof TRAITS==='object'&&TRAITS)for(const k of m.traits){const T=TRAITS[k];if(T&&typeof T.wage==='number'&&isFinite(T.wage))w+=Math.abs(T.wage)<1?b*T.wage:T.wage}}
