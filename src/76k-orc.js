@@ -23,7 +23,7 @@ const OR_FIG={orcw:{atl:()=>typeof ORA==='object'?ORA:null,sway:{arm_l:['arm_l',
  obrute:{atl:()=>typeof OCA==='object'?OCA:null,sway:{}},
  orcl:{atl:()=>typeof OLA==='object'?OLA:null,sway:{}}};
 /* a rig's display list (t: the idle's loop cycle); dy: the feet under the tile point (WU). K: device px per WU (0: piece names only) */
-function orRig(id,st,t,K,seed,dy){const Fg=OR_FIG[id],A=Fg.atl(),P=orPose(t||0),head=(Fg.look||orLook)(t||0,seed),g=new HskRec(),bones={};const bone=n=>{bones[n]=g.m.slice()};
+function orRig(id,st,t,K,seed,dy,u){const Fg=OR_FIG[id],A=Fg.atl(),P=orPose(t||0),head=(Fg.look||orLook)(t||0,seed,u),g=new HskRec(),bones={};const bone=n=>{bones[n]=g.m.slice()};
  g.translate(0,dy||0);bone('root');const root=g.m.slice();g.translate(0,P.bob);bone('body');const body=g.m.slice();
  const S={};for(const s of A.set)S[s[0]]=s;
  for(const [slot,pc0,x,y,rot0,sc] of A.set){const pc=slot==='head'?head:pc0;g.m=((Fg.legs||OR_LEGS)[slot]?root:body).slice();

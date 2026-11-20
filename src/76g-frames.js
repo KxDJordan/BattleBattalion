@@ -13,8 +13,8 @@
      last frame stays while the corpse fades.
    - Registry FS_DEF[enemy id] = {atl() -> the generated atlas (76e-wolfatlas.js WFA, 76f-gobatlas.js GBA / GAA / GSA, 76i-owlatlas.js OBA), an: {state or variant:
      row}, pick(u, st, s) -> a variant row (the wolf's bite, the archer's poison arrow and knife, the shaman's chant, the owlbear's
-     swipe and charge), rig + rigSt: the states
-     drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js), dress(Fr, id, u, K, row, frame, dy): adds the unit's
+     swipe and charge), rig(st, t, K, seed, dy, u) + rigSt: the states
+     drawn as a cut-out skeleton instead (the wolf's idle and howl, 76h-wolf.js), dressKey(u): what else a baked frame depends on, dress(Fr, id, u, K, row, frame, dy): adds the unit's
      own gear to a frame (the skeleton soldiers' weapon and shield in their colour-keyed hands, 76m-skelsol.js), vary(u) -> another
      FS_DEF id whose sheet this unit is drawn from (the Webspinner's sand spider in a desert battle, 76o-spider.js), or ''}.
    - Frames are anchored on the body's centre over the feet (the atlas's ax / ay); a figure stands SHEETS[id].h art px tall like its
@@ -71,7 +71,7 @@ function fsIdx(n,d,c,el,t){if(n<=1)return 0;if(d.loop){const x=c*(d.rate||1);ret
 function fsFrame(id,face,st,tm,K,seed,u){const D=FS_DEF[id],A=D.atl();face=((face|0)%4+4)%4;face=face===3?0:face===2?1:face;const mir=face===1;
  if(!st||!D.an[st]&&!(D.rigSt&&D.rigSt[st]))st='idle';
  const dy=fsDy(id);
- if(D.rigSt&&D.rigSt[st]){const Fr=D.rig(st,st==='idle'?tm.c||0:tm.t||0,K,seed||0,dy);Fr.mir=mir;Fr.sc=fsSc(id);Fr.fs=id;FS.frames++;if(D.dress)D.dress(Fr,id,u,K,'',0,dy);return Fr}
+ if(D.rigSt&&D.rigSt[st]){const Fr=D.rig(st,st==='idle'?tm.c||0:tm.t||0,K,seed||0,dy,u);Fr.mir=mir;Fr.sc=fsSc(id);Fr.fs=id;FS.frames++;if(D.dress)D.dress(Fr,id,u,K,'',0,dy);return Fr}
  const d=tm.row&&D.an[tm.row]||D.an[st],L=A.f[d.f],i=fsIdx(L.length,d,tm.c||0,tm.el!=null?tm.el:(tm.t||0)*(d.imp!=null?240:d.ms||1),tm.t||0),R=L[i],g=new HskRec();g.translate(0,dy);
  if(K){const a=fsPc(id,d.f+i,R,R.ax,R.ay,K);if(a)g.img(a,'frame')}else g.list.push({n:d.f+'_'+i,m:g.m.slice(),tag:'frame'});
  FS.frames++;const Fr={list:g.list,tags:['frame'],bones:{frame:g.m.slice()},anim:d.f,fi:i,face:d.f+i,mir,sc:fsSc(id),fs:id,row:tm.row||st};if(D.dress)D.dress(Fr,id,u,K,d.f,i,dy);return Fr}

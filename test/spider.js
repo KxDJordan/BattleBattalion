@@ -6,7 +6,7 @@
 // player's timing (the bite's low strike at AN_HIT_AT, the spitting frame when the web leaves (75-fx.js: 60 ms), loops, death held);
 // anchors; no randomness. Browser part: which sheet (desert / forest / spv); every state x facing x sampled frame draws a non-empty figure
 // centred on the tile point with its feet on it; back facings are the front frames; every frame is played; the idle rig against the run
-// row's first frame; the idle's faces; the live clock (the bite at the blow, Spit web at the web's launch, the charge runs, hurt, corpse);
+// row's first frame; the rig's face by state and mood (neutral, squint, angry, fury, glow, glare, hurt, dead), the baked sprite with it; the live clock (the bite at the blow, Spit web at the web's launch, the charge runs, hurt, corpse);
 // about a wolf's size on the board; the pixel fallback while off and at Detail Low; in untouched seeded forest and desert battles each
 // spider's tile, ring and figure agree within 1 art px; Detail Low: the forest spider draws the same pixels as main, the sand spider
 // is a brown recolour of it.
@@ -71,7 +71,18 @@ const {chromium}=require('playwright');
    {const a=measure(fsFrame(id,0,'idle',{c:0},K,0,u)),f=measure(fsFrame(id,0,'walk',{c:.01},K,0,u));if(Math.abs(a.h-f.h)>1.5||Math.abs(a.lo-f.lo)>1||Math.abs(a.mx-f.mx)>1.5)bad.push(id+': the idle rig and the run row\'s first frame differ: '+JSON.stringify([a,f]))}
    for(const [st,NN,tf] of rows)for(let i=0;i<NN;i++)for(const [b2,f2] of[[3,0],[2,1]]){const X=fsFrame(id,b2,st,tf(i),K,0,u),Y=fsFrame(id,f2,st,tf(i),K,0,u);
     if(X.mir!==Y.mir||X.list.length!==Y.list.length||X.list.some((x,j)=>x.a!==Y.list[j].a||x.m.some((v,k)=>Math.abs(v-Y.list[j].m[k])>1e-9)))bad.push(id+': face '+b2+' is not face '+f2+' '+st)}
-   {const seenH={};for(let t=0;t<4;t+=.01)seenH[fsFrame(id,0,'idle',{c:t},K,3,u).face]=1;if(!(seenH.neutral&&seenH.glow&&seenH.squint)||Object.keys(seenH).length!==3)bad.push(id+': idle faces '+Object.keys(seenH))}
+   // the faces are expressions for the state and mood, not an idle cycle: neutral at rest through the whole loop
+   {const seenH={};for(let t=0;t<4;t+=.01)seenH[fsFrame(id,0,'idle',{c:t},K,3,u).face]=1;if(Object.keys(seenH).join()!=='neutral')bad.push(id+': idle faces at rest '+Object.keys(seenH))}
+   {const s=anOf(u),SP=SPEEDF,N0=now,B0=B,hp=u.hp,T0=90000;SPEEDF=1;now=T0;const face=()=>fsFrame(id,0,'idle',{c:.3},K,0,u).face,want=(w,m)=>{const f=face();if(f!==w)bad.push(id+' '+m+': face '+f+' (want '+w+')')};
+    s.hitT=-1e9;s.at0=-1e9;s.act=0;s.dead=false;want('neutral','at rest');
+    s.hitT=T0-1200;want('squint','after a blow');s.hitT=T0-2600;want('neutral','long after a blow');
+    s.act=1;s.at0=T0-1500;want('angry','after its bite');u.hp=Math.floor(u.hpMax*.3);want('fury','after its bite, wounded');u.hp=hp;
+    s.act=2;want('glow','after Spit web');s.at0=T0-3000;want('neutral','long after a cast');
+    B={cur:u,bk:'forest'};want('glare','on its turn');B=B0;u.hp=Math.floor(u.hpMax*.3);want('hurt','wounded at rest');u.hp=hp;
+    s.dead=true;want('dead','dead');s.dead=false;
+    // the baked sprite follows the face
+    s.act=1;s.at0=T0-1500;const o1=fsBuild(u,0,'idle',0);s.at0=-1e9;const o2=fsBuild(u,0,'idle',0);if(!o1||!o2||o1===o2)bad.push(id+': the baked idle does not follow the face');
+    s.act=0;SPEEDF=SP;now=N0}
    {const Fr=fsFrame(id,0,'idle',{c:0},K,0,u),legs=Fr.list.filter(x=>/^leg_/.test(x.tag)).length;if(legs!==8)bad.push(id+': the rig has '+legs+' legs');
     // legs planted: the legs keep their place through the breath while the head rides it
     const at=t=>{const F2=fsFrame(id,0,'idle',{c:t},0,0,u);return k=>F2.list.find(x=>x.tag===k).m};const a0=at(0),a1=at(.125);
