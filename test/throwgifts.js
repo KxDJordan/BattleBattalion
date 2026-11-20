@@ -204,8 +204,10 @@ section('AI battles: autoLearn builds the throwing gifts and the pilot uses thei
     G.roster=[mk('sellsword','arming',[],{s:'kite',a:'mail'}),mk('squire','arming',[],{s:'kite',a:'mail'}),mk('knight','warhammer',[],{s:'kite',a:'plate'}),mk('hunter','longbow',[],{a:'leather'})];
     for(const m of G.roster){m.lvl=10;m.pp=10;X.autoLearn(m)}
     const rv={id:'rT',n:'The Test',short:'Test',c1:'g',c2:'x',emblem:'swords',pers:'cutthroat',renown:200,roster:R0,alive:true,home:0,stance:-12};R0.forEach(m=>m.field=true);
-    G.rivals=(G.rivals||[]).concat([rv]);X.seedRng(SEED+71);const b=X.startBattle({f:'bandit',mult:1,biome:'plains',src:{type:'sim'},quiet:true,turnCap:3000,rival:rv.id});ok(b&&b.rival==='rT'&&b.units.some(u=>u.side===1&&u.m&&TG.includes(u.m.gift)),'a rival company of throwers takes the field');
-    if(b){b.auto=true;b.opts.pilot='sensible';let k=0;while(!b.over){await null;if(++k>2e7)fail('battle never ended')}n++;X.B=null;X.mode='world'} }
+    G.rivals=(G.rivals||[]).concat([rv]);
+    for(let j=0;j<6&&(j<1||NEWAB.some(id=>!used[id]));j++){G.roster.concat(R0).forEach(m=>m.hp=X.calc(m).hp);X.seedRng(SEED+71+j*17);   // one fight, and a few more while an ability has not turned up (Blade swarm is a rare pick: it rides on the stream)
+    const b=X.startBattle({f:'bandit',mult:1,biome:'plains',src:{type:'sim'},quiet:true,turnCap:3000,rival:rv.id});ok(b&&b.rival==='rT'&&b.units.some(u=>u.side===1&&u.m&&TG.includes(u.m.gift)),'a rival company of throwers takes the field');
+    if(b){b.auto=true;b.opts.pilot='sensible';let k=0;while(!b.over){await null;if(++k>2e7)fail('battle never ended')}n++;X.B=null;X.mode='world'}} }
   X.ctx.useAbility=ua0;
   for(const id of NEWAB)ok(used[id]>0,id+': used by the AI ('+(used[id]||0)+')');
   console.log(n+' battles, '+turns+' rounds; the new abilities used '+JSON.stringify(used)+' (by side '+JSON.stringify(by)+'): ok');ok(by.foe>0,'the rival throwers use them too') }

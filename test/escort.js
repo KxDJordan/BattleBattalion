@@ -183,7 +183,7 @@ section('the battle\'s measure');
   console.log(`  escort raids won ${ew}/${N} (wagon kept ${wag}), plain even fights ${pw}/${N}: ${L.join(', ')}`);ok(ew>=N/2-1,'an escort raid is winnable: '+ew+'/'+N) }
 section('arrival, abandon');
 { const G=fresh(SEED+7);keepAlive(G);const c=escortAt(G,1),C=X.escParty(c),T=G.towns[c.to],ti=c.to;quiet(G,c);const cr=G.crowns,rn=G.renown,pay=c.pay-(c.adv||0);const d0=G.day+G.hour/24,wg=typeof X.companyWages==='function'?X.companyWages():G.roster.reduce((t,m)=>t+X.BG[m.bg].wage,0);
-  run(()=>G.contract!==c,40000);closeAll(X);
+  const ET=X.eventTick;X.eventTick=()=>false;run(()=>G.contract!==c,40000);X.eventTick=ET;closeAll(X);   // no event card at the gate: closing one would swallow the arrival (which card turns up depends on the stream)
   ok(G.ctrLast&&G.ctrLast.ok&&G.ctrLast.id===c.id,'arrived and paid: '+JSON.stringify(G.ctrLast));ok(near(G.p,T)<.1&&G.town===ti,'the company walked into '+T.name+' beside the wagons');
   const spent=Math.round(wg*Math.ceil(X.G.day+X.G.hour/24-d0+.01))+60;ok(G.crowns>=cr+pay-spent&&G.renown>=rn+8*c.diff,'the pay: '+(G.crowns-cr)+' of '+pay+' (the march\'s wages '+spent+')');   // the walk's wages come off the payok(!G.parties.some(p=>p.id===C.id),'the caravan is in');
   ok(G.news.some(n=>new RegExp('safe to '+T.name).test(n.t)),'the news') }

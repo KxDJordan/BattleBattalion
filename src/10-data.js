@@ -721,7 +721,7 @@ const GIFTV={mana:{caster:'mana',melee:'mana_m',ranged:'mana_r',throwing:'mana_t
 const BG={
  farmhand:{n:'Farmhand',cost:90,wage:8,w:5,st:{hp:8,fat:10,ms:-3},m:['vanguard','bulwark'],r:[['chi',.15]],gear:['club|knife|mallet|pitchfork|hatchet','rags|rags|jack','hood|-|armcap']},
  militia:{n:'Militiaman',cost:160,wage:11,w:5,st:{ms:4,md:2,brv:3},m:['vanguard','bulwark'],r:[['aura',.15]],gear:['spear|spear|bill|pitchfork','padded|jack','buckler|targe','cap|hood|armcap']},
- hunter:{n:'Hunter',cost:220,wage:13,w:4,st:{rs:12,ms:-4,init:8},m:['marksman','skirmisher'],r:[['qi',.3]],gear:['shortbow|huntbow|huntbow|lightxbow|huntxbow','rags|padded|jack','hood']},
+ hunter:{n:'Hunter',cost:220,wage:13,w:4,st:{rs:12,ms:-4,init:8},m:['marksman','skirmisher'],r:[['qi',.3]],gear:['shortbow|huntbow|huntbow|lightxbow|huntxbow|shortbow|huntbow|handgonne','rags|padded|jack','hood']},
  thief:{n:'Cutpurse',cost:170,wage:11,w:3,st:{init:14,md:4,hp:-5,brv:-5},m:['skirmisher','vanguard'],r:[['aura',.2]],gear:['knife|dirk','rags|jack','hood']},
  sellsword:{n:'Sellsword',cost:420,wage:24,w:3,st:{ms:10,md:4,hp:5,fat:5,brv:5},m:['vanguard','bulwark','skirmisher'],r:[['aura',.5]],gear:['shortsword|handaxe|mallet|falchion|boarspear','leather|hide','buckler|roundshield|targe','cap|coif']},
  squire:{n:'Squire',cost:380,wage:20,w:2,st:{ms:7,md:5,fat:5,brv:6},m:['bulwark','vanguard'],r:[['aura',1]],gear:['shortsword|shortsword|greatsword','padded','kite','coif|cap']},
@@ -739,7 +739,7 @@ const RACE={human:{n:'Human',st:{}},elf:{n:'Elf',st:{rs:5,init:8,hp:-5}},dwarf:{
    side (a sidearm pick for m.eq.b, '-' = none). */
 Object.assign(BG.farmhand,{style:'melee',pool:['vanguard','bulwark','brute','survivor','brawler','shieldbearer','medic'],wt:['mace','axe','hammer','polearm','dagger'],at:['lightarmor','medarmor']});
 Object.assign(BG.militia,{style:'melee',pool:['vanguard','bulwark','shieldbearer','tactician','survivor','skirmisher','marksman'],wt:['spear','polearm','crossbow','dagger','shield'],at:['lightarmor','medarmor'],side:'knife|-'});
-Object.assign(BG.hunter,{style:'ranged',pool:['marksman','sharpshooter','scout','skirmisher','survivor','medic','brawler'],wt:['bow','crossbow','dagger','spear','axe'],at:['lightarmor'],side:'knife|huntknife'});
+Object.assign(BG.hunter,{style:'ranged',pool:['marksman','sharpshooter','scout','skirmisher','survivor','medic','brawler'],wt:['bow','crossbow','dagger','spear','flintlock'],at:['lightarmor'],side:'knife|huntknife'});   // flintlock (the gun backgrounds): a fowling piece now and then, in place of the axe
 Object.assign(BG.thief,{style:'melee',pool:['rogue','assassin','shadow','skirmisher','duelist','scout','survivor','brawler','dualwield'],wt:['dagger','sword','fist','crossbow','flintlock'],at:['lightarmor']});
 Object.assign(BG.sellsword,{style:'melee',pool:['vanguard','duelist','brute','dualwield','skirmisher','tactician','berserker','survivor','shieldbearer'],wt:['sword','axe','hammer','spear','shield'],at:['medarmor','heavyarmor'],side:'knife|-|-'});
 Object.assign(BG.squire,{style:'melee',pool:['vanguard','bulwark','shieldbearer','duelist','tactician','brute'],wt:['sword','greatsword','spear','polearm','shield'],at:['medarmor','heavyarmor']});
@@ -795,7 +795,7 @@ Object.assign(BG,{
  watchman:{n:'Watchman',cost:170,wage:12,w:4,st:{md:4,rd:3,brv:4,init:2},r:[['aura',.12],['chi',.05]],gear:['club|spear|bill|ironmace','padded|jack','buckler|-','cap|kettle|hood'],town:2,
   style:'melee',pool:['bulwark','shieldbearer','tactician','vanguard','marksman','survivor'],wt:['mace','spear','polearm','crossbow','shield'],at:['lightarmor','medarmor'],
   tr:{nightowl:4,eagle:1.5,loyal:1.5,drunkard:1.5},look:{hat:'kettle',cloth:'blue',accent:'ochre',trim:'',garb:'tabard'}},
- noble:{n:'Noble scion',cost:600,wage:34,w:1,st:{ms:6,md:4,brv:8,fat:-6,hp:-3},r:[['aura',.35],['mana',.1]],gear:['arming|falchion|shortsword','brigandine|leather|padded','heater|kite|buckler','coif|cap'],side:'pistol|-|-|rondel',town:3,
+ noble:{n:'Noble scion',cost:600,wage:34,w:1,st:{ms:6,md:4,brv:8,fat:-6,hp:-3},r:[['aura',.35],['mana',.1]],gear:['arming|falchion|shortsword','brigandine|leather|padded','heater|kite|buckler','coif|cap'],side:'pistol|-|rondel',town:3,
   style:'melee',pool:['duelist','tactician','vanguard','bulwark','shieldbearer','skirmisher','sharpshooter'],wt:['sword','greatsword','flintlock','dagger','shield'],at:['medarmor','heavyarmor'],
   tr:{cocky:4,greedy:3,fragile:1.5,dexterous:2,loyal:.5,drunkard:1.5,hulking:.5},look:{hat:'feathercap',cloth:'purple',accent:'royal',trim:'gold',garb:'fine',hair:'swept'}},
  hedgeknight:{n:'Hedge knight',cost:700,wage:32,w:1,st:{ms:12,md:6,hp:8,fat:4,brv:8,init:-8},r:[['aura',.6],['qi',.1]],gear:['bastard|greatsword|warhammer|beardaxe','mail|brigandine','kite|roundshield|-','nasal|kettle|spangen'],town:2,
@@ -810,7 +810,7 @@ Object.assign(BG,{
  flagellant:{n:'Flagellant',cost:160,wage:9,w:2,st:{hp:10,brv:14,md:-6,init:-2},r:[['chi',.25],['aura',.15]],gear:['club|spikedclub|knife','rags','-'],
   style:'melee',pool:['berserker','survivor','brawler','medic','vanguard','bulwark'],wt:['mace','fist','dagger','staff'],at:['lightarmor'],
   tr:{superstitious:3,brave:3,craven:0,tough:2,fragile:0,cocky:0,greedy:0,loyal:2},look:{hat:'cowl',cloth:'bone',accent:'crimson',trim:'',garb:'welts',prop:'scourge',hair:'bald'}},
- sailor:{n:'Sailor',cost:170,wage:12,w:3,st:{fat:8,init:6,md:2,rd:2,hp:2},r:[['qi',.12],['aura',.08]],gear:['seax|hatchet|falchion|boarspear','jack|rags|padded','hood|-|-'],bio:['swamp','plains'],
+ sailor:{n:'Sailor',cost:170,wage:12,w:3,st:{fat:8,init:6,md:2,rd:2,hp:2},r:[['qi',.12],['aura',.08]],gear:['seax|hatchet|falchion|boarspear','jack|rags|padded','hood|-|-'],side:'-|-|-|-|-|knife|knife|pistol',bio:['swamp','plains'],
   style:'melee',pool:['skirmisher','brawler','duelist','survivor','scout','marksman','berserker','rogue','gladiator'],wt:['dagger','axe','sword','spear','flintlock'],at:['lightarmor'],
   tr:{drunkard:3,superstitious:3,athletic:2,dexterous:1.5,asthmatic:.4},look:{hat:'bandana',cloth:'blue',accent:'white',trim:'',garb:'stripes',beard:'chops'}},
  nomad:{n:'Nomad rider',cost:280,wage:15,w:2,st:{rs:8,init:10,md:2,hp:-2},r:[['qi',.2],['aura',.1]],gear:['shortbow|huntbow|recurve','hide|leather|jack','cap|hood'],side:'falchion|seax|knife',bio:['desert','plains','snow'],
@@ -832,7 +832,34 @@ Object.assign(BG,{
   tr:{showman:4,cocky:2.5,brave:2,athletic:2,bloodthirsty:1.5,hardhead:1.5,craven:.2,loyal:.6,greedy:1.5,asthmatic:.3},look:{hat:'',cloth:'red',accent:'gold',trim:'gold',garb:'manica',hair:'short'}},
  cultist:{n:'Ex-cultist',cost:380,wage:20,w:1,st:{brv:4,hp:-4,ms:-4},r:[['mana',.7],['chi',.15]],gear:['staff|knife|pilgrim','robe|rags','hood'],town:2,
   style:'caster',pool:['survivor','medic','tactician','skirmisher','scout','berserker','brawler'],wt:['staff','dagger','mace'],at:['lightarmor'],
-  tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}}
+  tr:{superstitious:0,nightowl:3,craven:1.5,bloodthirsty:2,lucky:1.5,loyal:.5},look:{hat:'hood',cloth:'purple',accent:'violet',trim:'',garb:'eye',prop:'censer'}},
+ /* the gunners (the gun backgrounds): six who come to the company with a firearm in hand. core: the style tree every recruit of the
+    background carries (rollTrees, 61-talents.js), here Gunnery. d: a line about them. Towns and cities hire most of them; a village sees
+    the sapper and the fowler. */
+ arquebusier:{n:'Arquebusier',cost:240,wage:14,w:3.5,st:{rs:8,md:2,brv:4,init:-4},r:[['aura',.12],['chi',.05]],gear:['arquebus|arquebus|handgonne|caliver','padded|jack|leather','kettle|cap|-'],side:'shortsword|oldsword|knife|-',town:2,
+  style:'ranged',core:'gunner',pool:['gunner','marksman','bulwark','tactician','survivor','shieldbearer','vanguard'],wt:['flintlock','sword','dagger','spear','polearm'],at:['lightarmor','medarmor'],
+  d:'Drilled on the town green with match and powder horn: the militia’s gun, paid by the watch and now by whoever pays better.',
+  tr:{steady:2.5,loyal:1.5,brave:1.3,eagle:1.5,nearsight:.5,craven:.7},look:{hat:'feather',cloth:'red',accent:'ochre',trim:'',garb:'bandolier',beard:['stache','short','']}},
+ gunner:{n:'Siege gunner',cost:360,wage:20,w:1.5,st:{hp:8,fat:8,rs:6,brv:6,init:-10,md:-3},r:[['aura',.1],['qi',.08]],gear:['arquebus|caliver|handgonne|blunder','leather|padded|jack|hide','armcap|cap|kettle|-'],side:'mallet|hatchet|-',town:2,
+  style:'ranged',core:'gunner',pool:['gunner','brute','bulwark','survivor','tactician','vanguard','brawler'],wt:['flintlock','hammer','axe','mace','polearm'],at:['lightarmor','medarmor'],
+  d:'A cannoneer’s mate from the siege trains, half deaf and wholly unafraid of noise: slow on their feet, hard to knock down, and very good at making holes.',
+  tr:{tough:2,hulking:2,steady:1.5,asthmatic:1.5,sluggish:1.5,drunkard:1.5,quick:.5,craven:.4,tiny:.4},look:{hat:'bandana',cloth:'brown',accent:'charcoal',trim:'',garb:'apron',beard:['full','short','chops'],marks:{soot:1}}},
+ pistoleer:{n:'Pistoleer',cost:560,wage:28,w:1,st:{rs:7,init:10,md:4,ms:3,hp:-3,brv:3},r:[['qi',.2],['aura',.12]],gear:['pistol','leather|padded|brigandine','-|-|cap'],side:'arming|falchion|shortsword|pistol',town:3,
+  style:'ranged',core:'gunner',pool:['gunner','duelist','skirmisher','scout','dualwield','rogue','tactician','sharpshooter'],wt:['flintlock','sword','dagger'],at:['lightarmor','medarmor'],
+  d:'A city duellist with a wheellock in the sash and a blade on the hip: rides in close, fires, and is gone before the smoke clears.',
+  tr:{quick:2.5,cocky:3,dexterous:2,greedy:2,showman:1.5,sluggish:.3,loyal:.5},look:{hat:'feathercap',cloth:'black',accent:'crimson',trim:'gold',garb:'sash',hair:['swept','long','short'],beard:['goatee','stache','']}},
+ sapper:{n:'Sapper',cost:130,wage:10,w:1.5,st:{rs:4,init:4,fat:6,hp:-2,brv:-4,ms:-2},r:[['chi',.08],['mana',.05]],gear:['handgonne','rags|jack|padded','armcap|cap|-'],side:'hatchet|knife|mallet|-',bio:['hills'],
+  style:'ranged',core:'gunner',pool:['gunner','survivor','scout','brawler','skirmisher','medic','thrower'],wt:['flintlock','axe','dagger','hammer','throwing'],at:['lightarmor'],
+  d:'A powder monkey grown up: dug mines under walls, carried the kegs, lit the fuses, and kept most of their fingers. Comes with an old hand cannon and a cough.',
+  tr:{lucky:2,asthmatic:2,tiny:1.5,fragile:1.5,craven:1.5,steady:1.5,nightowl:1.5,hulking:.4},look:{hat:'bandana',cloth:'tan',accent:'rust',trim:'',garb:'patches',prop:'shovel',marks:{soot:1}}},
+ fowler:{n:'Fowler',cost:180,wage:12,w:1.5,st:{rs:10,init:4,fat:4,ms:-4,brv:-2},r:[['qi',.15],['chi',.05]],gear:['handgonne|handgonne|arquebus','rags|jack|padded','hood|-'],side:'knife|huntknife',bio:['swamp'],
+  style:'ranged',core:'gunner',pool:['gunner','marksman','sharpshooter','scout','survivor','skirmisher','medic'],wt:['flintlock','bow','dagger','axe','spear'],at:['lightarmor'],
+  d:'A market hunter of the marshes: a long fowling piece, a punt, and a hundred ducks a morning for the town stalls. Patient, and a fine shot.',
+  tr:{eagle:2.5,beastwise:2,nightowl:1.5,steady:1.5,loyal:1.3,nearsight:.2,sluggish:.6},look:{hat:'wide',cloth:'verd',accent:'brown',trim:'',garb:'fleece',prop:'net'}},
+ musketeer:{n:'Musketeer',cost:600,wage:28,w:1,st:{rs:12,ms:4,md:3,brv:8,fat:4,init:-6},r:[['aura',.25],['qi',.05]],gear:['caliver|caliver|arquebus|carbine','leather|padded|brigandine|mail','kettle|cap|nasal'],side:'arming|shortsword|falchion|oldsword',town:2,
+  style:'ranged',core:'gunner',pool:['gunner','sharpshooter','marksman','tactician','vanguard','bulwark','survivor','shieldbearer'],wt:['flintlock','sword','polearm','spear','mace'],at:['lightarmor','medarmor'],
+  d:'Twenty years in a lord’s gunline: fires by the drum, reloads by feel, and has stood still in front of a cavalry charge more often than anyone sane.',
+  tr:{steady:3,brave:2,loyal:1.5,drunkard:1.5,eagle:1.3,craven:.3,quick:.6},look:{hat:'capotain',cloth:'blue',accent:'royal',trim:'white',garb:'tabard',beard:['goatee','stache','full']}}
 });
 /* The Beast Slayer: the one sword of the Solo origin (ORIGINS.slayer). w 0 and noHire: never in a tavern, a rival roster or an event. */
 BG.slayer={n:'Beast slayer',cost:1100,wage:30,w:0,noHire:1,st:{hp:12,ms:10,rs:8,md:6,rd:4,fat:12,brv:16,init:6},r:[['qi',.2],['aura',.12]],
@@ -849,7 +876,7 @@ BG.isekai={n:'Isekai',proper:1,d:'A stranger from another world: woke in a field
 // a background's name inside a sentence: lowercased ('a level 3 sellsword'), unless it is a proper name (proper: 'Isekai')
 function bgLow(k){const b=BG[k];return b?b.proper?b.n:b.n.toLowerCase():''}
 /* The Monster hunter tree as one of a recruit's 4 trees: hw is the chance rollTrees puts it in place of the 4th style tree ('hunter' in pool). */
-for(const [k,w] of [['slayer',1],['hunter',.6],['poacher',.6],['witchhunter',.5],['wildling',.5],['woodcutter',.15],['nomad',.15],['butcher',.1]])if(BG[k]){BG[k].hw=w;if(!BG[k].pool.includes('hunter'))BG[k].pool.push('hunter')}
+for(const [k,w] of [['slayer',1],['hunter',.6],['poacher',.6],['witchhunter',.5],['wildling',.5],['fowler',.3],['woodcutter',.15],['nomad',.15],['butcher',.1]])if(BG[k]){BG[k].hw=w;if(!BG[k].pool.includes('hunter'))BG[k].pool.push('hunter')}
 for(const k in BG)if(!BG[k].m)BG[k].m=BG[k].pool.slice(0,2);
 for(const k in BG){const b=BG[k];if(b.town)b.size=b.town;if(b.bio)b.biomes=b.bio}   // the names 50-towns' recruitBG also reads (size: minimum town size, biomes)                              // the old two-mastery list (read by nothing new; kept for shape)
 /* Trait weights and looks of the first twelve backgrounds (the portraits already draw these hats). */
@@ -1123,4 +1150,4 @@ const RVNAMES=[['Black Hounds','wolf'],['Iron Crows','raven'],['Red Lanterns','s
  ['Crimson Hand','skull'],['Gallows Men','skull'],['Brass Lions','lion'],['Night Ravens','raven'],['Salt Dogs','anchor'],['Hollow Crowns','crown'],['Seventh Banner','tower'],
  ['Thorn Company','rose'],['Wild Boars','boar'],['Stag Riders','stag'],['Moon Wardens','moon'],['Lily Guard','fleur'],['Tower Swords','tower']];
 // backgrounds a rival company signs on (weights): fighters first, a few casters
-const RVBG={sellsword:5,militia:4,hunter:3,squire:2,wildling:3,thief:2,knight:1,hedge:1,acolyte:1,monk:1,spellblade:1};
+const RVBG={sellsword:5,militia:4,hunter:3,squire:2,wildling:3,thief:2,knight:1,hedge:1,acolyte:1,monk:1,spellblade:1,arquebusier:1.5,musketeer:.5,gunner:.5};   // the gunners: about one rival sword in ten carries a gun
