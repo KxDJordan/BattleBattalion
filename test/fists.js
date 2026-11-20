@@ -266,7 +266,7 @@ section('the AI uses them: the company on auto, a rival company of fist fighters
     for(const u of P){if(!u.alive)continue;b.cur=u;await X.aiTurn2(u);b.busy=true}X.ctx.nextTurn=tn0;ok(seen[id]>0,'the AI uses '+id+' where it fits: '+JSON.stringify(seen));X.B=null;X.mode='world'}
    X.ctx.nextTurn=tn0;X.ctx.useAbility=u1;console.log('the AI picks each where it fits: '+JSON.stringify(seen)) } }
 section('saves: the PKV 3 refit (a monk\'s or pit fighter\'s lost tree traded for a fist tree, its points back; the gun refit not run twice)');
-{ const G=fresh(SEED+70);const a=X.newMerc('monk'),p=X.newMerc('pitfighter'),s=X.newMerc('musketeer'),c=X.newMerc('acrobat');G.roster.push(a,p,s,c);
+{ const G=fresh(SEED+70);const a=X.newMerc('monk'),p=X.newMerc('pitfighter'),s=X.newMerc('musketeer'),c=X.newMerc('acrobat');G.roster.push(a,p,s,c);a.name='Monk Amar';p.name='Pit Pell';s.name='Musket Sorn';c.name='Tumbler Cass';   // names of their own: the sheet lists refunds by name
   a.lvl=8;a.trees=['scout','bulwark','willow','survivor'];a.perks=['scout.1','scout.2','bulwark.1','willow.1','survivor.1'];a.pp=0;
   p.lvl=6;p.trees=['wrestle','vanguard','brawler','survivor'];p.perks=['vanguard.1','brawler.1'];p.pp=1;
   s.lvl=6;s.trees=['gunner','survivor','scout','skirmisher'];s.perks=['gunner.1','gunner.3','survivor.1'];s.pp=0;   // a pkv 2 save: Musketry's changed tiers were refunded already
