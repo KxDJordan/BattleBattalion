@@ -12,9 +12,14 @@
 // the back facings are the front frames; faces 1 and 2 mirrored; every frame is played; the live board frame: the blow's frame at AN_HIT_AT
 // and the follow-through after the game's attack, a charge's dash on the run row, War cry on the cast row, the hurt row past the game's
 // short flinch, the corpse; the warrior's and crusher's idle expressions; the warlord's and brave's faces follow the mood (wounded, dying,
-// after an ability); the warlord's lordaxe through both fists and the brave's hand axe in the weapon fist in every drawn frame and the
-// rig, under the figure; no red or blue key colour left on their hands (the warlord's red cape stays); the baked sprite is the figure; the
-// pixel orc while it is off; the bars stay where they were; the brave reads smaller than the warrior; in an untouched seeded battle each
+// after an ability); every orc's own weapon drawn live (src/76mo-orcweap.js): in the weapon hand in every drawn frame but the cast's and in
+// the rig, at its frame's swing angle (the attack's wind-up raising it back, the swing sweeping it forward to the blow, never flat
+// but on the blow; carried head up 30-60 deg off the vertical in the run, the hurt row and the idle), a two-hander's haft through the
+// weapon fist, under the figure (the crusher's across his body over it, his fists over the haft); hung at the belt on the near hip,
+// head down, in every cast frame and in no hand; the warrior's and crusher's painted weapons erased from their frames (nothing opaque
+// left round the old weapon head) and their hands found on the haft; no red or blue key colour left on the warlord's and brave's hands
+// (the warlord's red cape stays); the baked sprite is the figure; the pixel orc while it is off; the bars at their tops; the sizes (the
+// brave a little larger than a man, the warrior and crusher ~1.2x, the warlord ~1.3x); in an untouched seeded battle each
 // orc's tile centre, ring centre and figure agree within 1 art px; Detail Low draws the same pixels as main for all four orcs.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process'),os=require('os');

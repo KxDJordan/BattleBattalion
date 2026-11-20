@@ -20,7 +20,7 @@ assets/incoming-<name>-sheet.webp, if there, is moved into place first):
 No weapon is drawn: the hands are colour keys, RED the off (left) hand and BLUE the weapon (right) hand. Every hand is found (the blue blob;
 the red glove by a hint point where the warlord's red cape and crest share its colour, else the largest compact red blob), its centre
 recorded, and recoloured to the figure's own colour (an orc's green skin, an ent's bark; its shading kept); the game draws the unit's
-own weapon in the weapon hand (src/76m-skelsol.js skDress, as for the skeletons; the ents carry none). Faulty frames are repaired
+own weapon in the weapon hand (src/76mo-orcweap.js orDress, the orcs; the ents carry none). Faulty frames are repaired
 here first, reproducibly (FIX below):
   - the warlord's attack 3 has no hands: a red and a blue glove, copied from attack 2, are painted where its hands grip the haft in the
     wind-up (the near forearm's end, the far hand just above it, the axe raised behind);

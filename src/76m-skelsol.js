@@ -11,11 +11,10 @@
      under the figure (the fist closes over its grip); the shield on the shield fist, over the figure;
    - a two-handed weapon (the halberd) through both fists (wa2: the shield fist to the weapon fist; its head just past the weapon fist, the haft
      back through the shield fist), under the figure; no shield. The shield lies down with the falling body.
-   The gear is drawn in the people's units (SU, 1/HUM_A per art px): a skeleton's sword is a man's sword. The Orc warlord and the Orc
-   brave (76k-orc.js) are dressed by the same skDress from their own atlases' hands (the warlord's lordaxe two-handed, the brave's hand
-   axe). No rnd(). */
+   The gear is drawn in the people's units (SU, 1/HUM_A per art px): a skeleton's sword is a man's sword. The orcs (76k-orc.js) are
+   dressed by 76mo-orcweap.js orDress instead (the same weapon art and baking, a swing angle per frame). No rnd(). */
 OR_FIG.skel={atl:()=>typeof SKA==='object'?SKA:null,sway:{},look:(t,seed)=>{const c=((t+(seed||0))%4+4)%4;return c>=2.2&&c<2.6?'head_glare':c>=3.3&&c<3.65?'head_smug':'head_neutral'}};
-const SK_GEAR={skel:{w:'shortsword',sh:'tower'},skelhal:{w:'halberd',sh:null},orcl:{w:'lordaxe',sh:null,gs:1.5},orcy:{w:'handaxe',sh:null}};
+const SK_GEAR={skel:{w:'shortsword',sh:'tower'},skelhal:{w:'halberd',sh:null}};
 const SK_BK=new Map();
 // the unit's gear: its look's weapon (and the painted icon's info) and shield; without a unit, the type's own
 function skGear(id,u){let S=null;try{S=u&&typeof usLook==='function'?usLook(u).S:null}catch(e){S=null}
@@ -34,5 +33,3 @@ for(const id of['skel','skelhal'])FS_DEF[id]={atl:OR_FIG.skel.atl,rig:(st,t,K,se
  dressKey:u=>{const G=skGear(id,u);return G.wi.id+':'+G.sh+':'+G.crack},
  an:{walk:{f:'run',loop:1,rate:1},flee:{f:'run',loop:1,rate:1},attack:{f:'attack',imp:3,hit:'melee',ms:560},charge:{f:'run',loop:1,cyc:300},
   cast:{f:'cast',ms:760},hit:{f:'hurt',ms:600},death:{f:'death'}}};
-// the Orc warlord and the Orc brave (76k-orc.js, 76n-keyatlas.js OLA / OYA): their colour-keyed hands dressed the same way
-for(const id of['orcl','orcy'])if(FS_DEF[id])Object.assign(FS_DEF[id],{dress:skDress,dressKey:u=>{const G=skGear(id,u);return G.wi.id+':'+G.sh+':'+G.crack}});
