@@ -44,8 +44,10 @@ function rvAi(u,X){const a=abilityInfo(u,'relieve');if(!canUse(u,a)||usz(u)!==1|
  try{for(const t of X.allies){if(!t.alive||usz(t)!==1||rvStuck(t)||X.near(t)>3)continue;
    const tiles=[];if(mdist(u,t)===1)tiles.push(cur);
    if(!u.rooted)for(const [dx,dy] of DIRS){const nc=t.c+dx,nr=t.r+dy;if(!inb(nc,nr))continue;const s=key(nc,nr),e=X.D.get(s);if(s===cur||!e||e.air||e.cost+a.ap>u.ap||unitAt(nc,nr))continue;tiles.push(s)}
+   if(!tiles.length)continue;const tNow=rvLoss(t,rvThreat(t,t.c,t.r));if(tNow<4)continue;   // nothing to spare it from: no look further
+   const uThen=rvLoss(u,rvThreat(u,t.c,t.r));if(uThen>=tNow)continue;
    for(const s of tiles){const sc=s%BW,sr=(s/BW)|0;u.c=sc;u.r=sr;if(!rvOK(u,t))continue;
-    const now=rvLoss(t,rvThreat(t,t.c,t.r))+rvLoss(u,rvThreat(u,sc,sr)),then=rvLoss(t,rvThreat(t,sc,sr))+rvLoss(u,rvThreat(u,t.c,t.r)),v=now-then-4;
+    const v=tNow+rvLoss(u,rvThreat(u,sc,sr))-rvLoss(t,rvThreat(t,sc,sr))-uThen-4;
     if(v>0)out.push({s,k:key(t.c,t.r),v})}
    u.c=c0;u.r=r0}}finally{u.c=c0;u.r=r0}
  return out}
