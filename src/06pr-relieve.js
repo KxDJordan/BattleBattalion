@@ -4,8 +4,8 @@
    shield slam. 16 px pixel (Detail Low): drawn here, outlined like the set; painted (Detail High): the 06p kit, the arrows as an exchange
    arc around the shield. This file only adds entries. */
 if(typeof ICONS==='object'&&ICONS&&typeof _icOutline==='function')ICONS['ab-relieve']=_icOutline([
- '................','................','............d...','.qqqqqq.....dd..','.qrrqqp.eddddcd.','.qrdqqp.dcccccb.','.qdcdqp.....cb..','.qqdqpp.....b...',
- '.qqcqpp.........','..qqqp....h.....','..qqpp...hg.....','...qp...hgggggg.','...po...gffffff.','.........gf.....','..........f.....','................']);
+ '................','................','............d...','.cccccc.....dd..','.cqqppb.eddddcd.','.cqddpb.dcccccb.','.cqdcpb.....cb..','.cqqppb.....b...',
+ '..cqpb..........','..cqob....h.....','...cb....hg.....','...b....hgggggg.','........gffffff.','.........gf.....','..........f.....','................']);
 (function(){if(typeof PAINT!=='object'||!PAINT||typeof pkArc!=='function')return;const P=PAINT;
  // an arrow along an arc (0 = up, clockwise), its head at a1 pointing on round the circle
  const arc=(g,cx,cy,r,a0,a1,mat)=>{pkFill(g,pbTubeF(pkArc(cx,cy,r,a0,a1,24),pbTaper(3.6,1.2)),mat,{k:.55,lw:PK.lw*.85});
