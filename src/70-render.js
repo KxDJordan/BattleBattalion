@@ -799,14 +799,14 @@ function drawUnitPx(u,v){let s=null,Fr=null;if(typeof humLiveFrame==='function')
    g.globalAlpha=v.pA*pu;for(const [dx,dy] of TURNOL)humSkDraw(g,Fr,x+dx*o,y+dy*o,mp,1);g.globalAlpha=v.pA}
   humSkDraw(g,Fr,x,y,tintedOf);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;const t=v.pT;humSkDraw(g,Fr,x,y,c=>silOf(c,t),1)}
   if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);humSkDraw(g,Fr,x,y,c=>silOf(c,'r'),1)}
-  if(v.pBf>.02){g.globalAlpha=v.pA*Math.min(1,v.pBf)*.7;humSkDraw(g,Fr,x,y,c=>silOf(c,'F'),1)}   // a blocked blow: a steel-blue flash
+  if(v.pBf>.02){g.globalAlpha=v.pA*Math.min(1,v.pBf)*.5;humSkDraw(g,Fr,x,y,c=>silOf(c,'F'),1)}   // a blocked blow: a steel-blue flash
   g.imageSmoothingEnabled=false;g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
  g.globalAlpha=v.pA;const sk=s.k||1,sw=s.cv.width/sk,sh2=s.cv.height/sk;   // an HD figure (k 2, 73h-unitshd.js) is blitted at half size
  if(u===B.cur&&!B.over&&!v.mv){const o=.9*(B.cam&&B.cam.s?1/B.cam.s:.5)+.45,pu=reduced?.6:.45+.45*(.5+.5*Math.sin(now/260)),sl=silOf(s.cv,u.side!==0?'r':u.ally?'x':'e');   // whose turn: a pulsing outline round the figure
   g.globalAlpha=v.pA*pu;if(s.smooth)g.imageSmoothingEnabled=true;for(const [dx,dy] of TURNOL)g.drawImage(sl,x-s.ax+dx*o,y-s.ay+dy*o,sw,sh2);g.imageSmoothingEnabled=false;g.globalAlpha=v.pA}
  if(s.smooth)g.imageSmoothingEnabled=true;g.drawImage(tintedOf(s.cv),x-s.ax,y-s.ay,sw,sh2);if(v.pT&&PAL[v.pT]){g.globalAlpha=v.pA*.34;g.drawImage(silOf(s.cv,v.pT),x-s.ax,y-s.ay,sw,sh2)}
  if(v.pFl>.02){g.globalAlpha=v.pA*Math.min(1,v.pFl);g.drawImage(silOf(s.cv,'r'),x-s.ax,y-s.ay,sw,sh2)}
- if(v.pBf>.02){g.globalAlpha=v.pA*Math.min(1,v.pBf)*.7;g.drawImage(silOf(s.cv,'F'),x-s.ax,y-s.ay,sw,sh2)}
+ if(v.pBf>.02){g.globalAlpha=v.pA*Math.min(1,v.pBf)*.5;g.drawImage(silOf(s.cv,'F'),x-s.ax,y-s.ay,sw,sh2)}
  g.imageSmoothingEnabled=false;g.globalAlpha=1;v.ox=x;v.oy=y-(v.bh||(v.bh=unitTop(u)-3));v.oy0=gy;return true}
 /* fallback figure (no 73-units.js): the old vector stand-in, cached at device resolution */
 function drawUnitArt(q,u){const d=u.def||{},F=u.side===1?FACT[u.f]:null,body=u.side===0?'#2f7868':F.col,skin=u.side===0?'#e3bf9c':F.skin;q.strokeStyle='#0b1514';q.lineWidth=1.5;q.lineJoin='round';

@@ -23,11 +23,12 @@
    Facing (u.face, [dc,dr] along one board axis; faceOf(u) defaults to the side's front: the company faces -r, the foes +r). The rules keep
    it from the same events the figures turn on (faceEv, called by FX.emit whether or not a scene listens): a step or any other move faces the
    way it went (a knockback or a hook does not turn anyone), a strike or a cast at a unit or a tile faces it. Being struck does not turn a
-   unit: a foe that walked round behind keeps hitting its back until it turns to fight. 74-anim.js draws every figure the way u.face says.
+   unit: a foe that walked round behind keeps hitting its back until it turns to fight. At the end of its turn (faceSettle, seen at the next
+   'turn') a unit that struck nobody squares up to the nearest foe (BLK.settle). 74-anim.js draws every figure the way u.face says.
    blockSide(u,t): 2 front, 1 flank, 0 behind, by the angle between t's facing and the line to u (cos >= BLK.cos front, <= -BLK.cos behind).
    Randomness: one draw after a hit roll that hits, and only when the block chance is above 0; a blocked blow then draws its damage roll
    (for the shield). Nothing else, so fights without shields keep their old stream. */
-const BLK={km:1.8,kr:2.1,max:80,side:.5,magic:.5,cos:.4};
+const BLK={km:1.8,kr:2.1,max:80,side:.5,magic:.5,cos:.4,settle:1};
 const SHK={axe:.5,hammer:.4,mace:.4,polearm:.3,greatsword:.25,sword:.25,spear:.2,dagger:.15,fist:.15,staff:.25,bow:.15,sling:.15,throwing:.25,crossbow:.3,flintlock:.5},SHK0=.25,SHK2=1.25,SHKBIG=1.5,SHKMAG=.3;
 const FACE0=[0,-1],FACE1=[0,1];
 function faceOf(u){return u&&Array.isArray(u.face)?u.face:u&&u.side===0?FACE0:FACE1}
@@ -37,9 +38,12 @@ function faceTo(u,t){if(!u||!t||u===t)return;const a=unitCenter(u),b=unitCenter(
 function faceEv(type,d){if(!d||typeof B==='undefined'||!B||!B.units)return;
  if(type==='move'){const u=d.u;if(!u)return;const p=u.fpos;if(p)faceSet(u,u.c-p[0],u.r-p[1]);u.fpos=[u.c,u.r]}
  else if(type==='kb'||type==='spawn'){const u=d.t||d.u;if(u)u.fpos=[u.c,u.r]}
- else if(type==='turn'){for(const x of B.units)if(x.alive)x.fpos=[x.c,x.r]}
+ else if(type==='turn'){const p=B.fcPrev;if(p&&p!==d.u&&p.alive&&BLK.settle)faceSettle(p);B.fcPrev=d.u||null;if(d.u)d.u.fcHit=0;for(const x of B.units)if(x.alive)x.fpos=[x.c,x.r]}
  else if(type==='cast'){const u=d.u,ab=d.ab||{};if(!u)return;if(d.t&&d.t!==u)faceTo(u,d.t);else if(d.k>=0&&ab.tgt==='tile'){const a=unitCenter(u);faceSet(u,d.k%BW-a.c,((d.k/BW)|0)-a.r)}}
- else if(type==='hit'||type==='miss'){if(d.u&&d.t&&d.u!==d.t&&d.u.alive)faceTo(d.u,d.t)}}
+ else if(type==='hit'||type==='miss'){if(d.u&&d.t&&d.u!==d.t&&d.u.alive){faceTo(d.u,d.t);if(B.cur===d.u)d.u.fcHit=1}}}
+// The end of u's turn (seen at the next unit's 'turn'): one that struck keeps facing its foe; any other squares up to the nearest foe
+// (fewest tiles, then the lowest id), so a unit that only moved does not stand with its shield the wrong way.
+function faceSettle(u){if(u.fcHit)return;let best=null,bd=1e9;for(const x of B.units){if(!x.alive||x.side===u.side||x.gone)continue;const d=mdist(u,x);if(d<bd||d===bd&&x.id<best.id){bd=d;best=x}}if(best)faceTo(u,best)}
 // 2 front, 1 flank, 0 behind: where u stands as t's shield sees it
 function blockSide(u,t){const f=faceOf(t),a=unitCenter(u),b=unitCenter(t),dx=a.c-b.c,dy=a.r-b.r,L=Math.hypot(dx,dy);if(!(L>0))return 2;
  const cs=(dx*f[0]+dy*f[1])/L;return cs>=BLK.cos-1e-9?2:cs<=-BLK.cos+1e-9?0:1}

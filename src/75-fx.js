@@ -398,7 +398,7 @@ function fxOnInjury(d){const t=d.t;if(!t)return;const p=fxUP(t),x=p.x,y=p.y,h=p.
  for(let i=0;i<fxN(8);i++)spawn(K_SQ,i&1?R_BONE:R_BLOOD,x+rr(-6,6),y-h*(I&&I.loc==='h'?.85:.5),rr(-110,110),rr(-170,-60),rr(.4,.7),i%3?1:2,560,.8,at/1000);
  ringFx(x,y-h*(I&&I.loc==='h'?.85:.5),2,12,240*sp,R_RED,at,1,2)}
 function fxOnStatus(d){const t=d.t,key=d.key;if(!t||!key)return;if(!(FXS.cu&&(FXS.cid==='shove'||FXS.cid==='bash'))){const f0=fxTail(t,/^Shoved$/);if(f0)f0.fx=1}   // the rules' word for any blow without damage; only a shove shows it
- const p=fxUP(t),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),S=typeof shStatus==='function'?shStatus(key):null,at=Math.max(0,anOf(t).hitT-now);
+ const p=fxUP(t),x=p.x,y=p.y,h=p.h,sp=Math.max(.6,fxSp()),S=typeof shStatus==='function'?shStatus(key):null,at=Math.max(0,anOf(t).hitT-now,(anOf(t).bkT==null?-1e9:anOf(t).bkT)-now);   // (bkT: a blocked blow's impact, 74-anim.js)
  if(key==='splitshield'){const f=fxTail(t,/^Shield -\d+$/);if(f){f.fx=1;fxFloat(t,'SHIELD -'+(d.n|0),FS_ARM,at)}const f2=fxTail(t,/^Shield split$/);if(f2)f2.fx=1;
   if(FXS.cu&&FXS.cid==='split'){const u=FXS.cu;FXS.cu=null;try{animEvent('miss',{u,t});const ld=fxStrike(u,t,'split',0,false),e=fxQueue(t,u,now+ld,-1,0,S_SPLIT,false);animImpact(t,u,now+ld,false)}catch(e){}}   // a blow at the shield draws no 'hit': stage it here
   else{cone(K_SQ,R_ROOT,x,y-h*.5,0,-1,8,60,200,.5,2,600,1,1.4);if(!t.shield){for(const sg of[-1,1]){const g=glyphFx(sg<0?'shl':'shr',x+sg*4,y-h*.5,0,620,at);g.c=sg*rr(70,120);g.d=-rr(120,180)}fxShake(4)}}return}
