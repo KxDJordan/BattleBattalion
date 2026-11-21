@@ -425,7 +425,7 @@ function logPush(t,cls,side,R){if(!B||!t)return;if(HLOG.b!==B){HLOG.b=B;HLOG.lin
    chance (below it hits), the head roll, then the chance rolls the hit or miss drew (stun, root, statuses, knockback, a stray, a counter).
    R.dmg / R.arm / R.head come from the 'hit' event. Later rolls of the same strike land on R after the line is pushed: the line is
    rendered from R, so they show up. One line per strike; a multi-hit ability writes one per blow. ---- */
-const ROLLN={hit:'',head:'head',stray:'stray',counter:'counter',knock:'knockback',stun:'stun',root:'root'};
+const ROLLN={hit:'',head:'head',stray:'stray',counter:'counter',knock:'knockback',stun:'stun',root:'root',block:'block'};
 function rollName(k){if(k in ROLLN)return ROLLN[k];const S=shStatus(k);return S&&S.n?S.n.toLowerCase():k}
 function rollPad(n){return n<10?'0'+n:''+n}
 // the parts of a roll line: [text, cls] pairs (cls: 'u' a name, 'n' a roll, 'c' a chance, 'ok' / 'no' / 'hd' an outcome, '' plain)
@@ -437,23 +437,24 @@ function rollParts(R){const P=[],add=(t,c)=>P.push([t,c||'']),hit=R.L.find(e=>e.
  else{add(' on ');add(R.t,'u');add(': ');add('auto hit','ok');add(' (no roll)','c')}
  for(const e of R.L){if(e.k==='hit')continue;
   if(e.k==='head'){if(!(e.c>0))continue;add(', head ');if(e.c>=100)add('sure','c');else{add(rollPad(e.n),'n');add(' vs '+e.c+'%','c')}add(': ');add(e.on?'HEAD':'body',e.on?'hd':'');continue}
-  add('; '+rollName(e.k)+' ');if(e.c>=100)add('sure','c');else{add(rollPad(e.n),'n');add(' vs '+e.c+'%','c')}add(': ');add(e.k==='stray'?(e.on?'into '+(e.v||'an ally'):'flies wide'):e.on?'yes':'no',e.on?'ok':'no')}
+  add('; '+rollName(e.k)+' ');if(e.c>=100)add('sure','c');else{add(rollPad(e.n),'n');add(' vs '+e.c+'%','c')}add(': ');add(e.k==='stray'?(e.on?'into '+(e.v||'an ally'):'flies wide'):e.k==='block'?(e.on?'BLOCKED':'gets past the shield'):e.on?'yes':'no',e.k==='block'?(e.on?'no':'ok'):e.on?'ok':'no')}
+ if(R.blk!=null){add(', ');add('shield -'+R.blk,'')}
  if(!miss&&R.dmg!=null){add(', ');add(R.dmg>0?'-'+R.dmg+' HP':'no wound',R.dmg>0?'dm':'');if(R.arm>0)add(', -'+R.arm+(R.head?' helmet':' armor'))}
  else if(!miss&&R.noDmg)add(', no damage');
  return P}
 // the plain line (Settings: Show rolls in log off): as the log read before the rolls
-function rollPlain(R){const h=R.L.find(e=>e.k==='hit');if(h&&!h.on&&R.k==='roll')return R.u+' misses '+R.t;
+function rollPlain(R){const h=R.L.find(e=>e.k==='hit');if(h&&!h.on&&R.k==='roll')return R.u+' misses '+R.t;if(R.blk!=null)return R.t+' blocks '+R.u+'\'s blow with the shield (shield -'+R.blk+')';
  return R.u+' hits '+R.t+(R.head?' on the head':'')+(R.dmg!=null?': '+(R.dmg>0?'-'+R.dmg+' HP':'no wound')+(R.arm>0?', -'+R.arm+(R.head?' helmet':' armor'):''):'')}
 const rollsOn=()=>typeof SET!=='object'||!SET||SET.rolls!==false;
 function rollText(R){return rollParts(R).map(p=>p[0]).join('')}
 function rollHTML(R){return rollParts(R).map(([t,c])=>c?'<span class="r'+c+'">'+esc(t)+'</span>':esc(t)).join('')}
 // a strike's roll line when no 'hit' or 'miss' event carried it (a shove, a blow doing nothing, the FX muted)
-function rollLog(R){if(!R||R.logged)return;R.logged=1;if(R.dmg==null)R.noDmg=1;const h=R.L.find(e=>e.k==='hit');logPush(rollText(R),h&&!h.on&&R.k==='roll'?'miss roll':'hit roll',R.side,R)}
+function rollLog(R){if(!R||R.logged)return;R.logged=1;if(R.dmg==null&&R.blk==null)R.noDmg=1;const h=R.L.find(e=>e.k==='hit');logPush(rollText(R),h&&!h.on&&R.k==='roll'||R.blk!=null?'miss roll':'hit roll',R.side,R)}
 function logEvent(type,d){if(!B||!d)return;
  if(type==='hit'&&d.roll&&!d.roll.logged&&d.t){const R=d.roll;R.logged=1;R.dmg=d.dmg;R.arm=d.armor;R.head=!!d.head;logPush(rollText(R),'hit roll',R.side,R)}
  else if(type==='miss'&&d.roll&&!d.roll.logged&&d.u&&d.t){const R=d.roll;R.logged=1;logPush(rollText(R),'miss roll',R.side,R)}
  else if(type==='hit'){const u=d.u,t=d.t;if(!t)return;logPush((u?u.name+' hits '+t.name:t.name+' is hurt')+(d.head?' on the head':'')+': '+(d.dmg>0?'-'+d.dmg+' HP':'no wound')+(d.armor>0?', -'+d.armor+(d.head?' helmet':' armor'):''),'hit',u?u.side:-1)}
- else if(type==='miss'&&d.u&&d.t)logPush(d.u.name+' misses '+d.t.name,'miss',d.u.side);
+ else if(type==='miss'&&d.u&&d.t)logPush(d.block!=null?d.t.name+' blocks '+d.u.name+'\'s blow with the shield':d.u.name+' misses '+d.t.name,'miss',d.u.side);
  else if(type==='heal'&&d.t&&d.n>0)logPush(d.t.name+' recovers '+d.n+' HP','heal',d.t.side);
  else if(type==='morale'&&d.u&&d.to!==0)logPush(d.u.name+(d.to>d.from?' takes heart: ':' falters: ')+shMorN(d.to).toLowerCase(),d.to>d.from?'heal':'miss',d.u.side);
  else if(type==='status'&&d.t&&d.key!=='splitshield'){const S=shStatus(d.key);if(S)logPush(d.t.name+': '+S.n.toLowerCase()+(d.n>1?' ('+d.n+' turns)':''),S.good?'heal':'miss',d.t.side)}

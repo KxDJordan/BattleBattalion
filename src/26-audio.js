@@ -180,7 +180,8 @@ const AU_FXMAP={
   if(d.head&&dmg>0)out.push(['head',dl+.01,{pan}]);
   if(dmg>0&&t&&t.hpMax>0&&dmg>=t.hpMax*.3)out.push(['heavy',dl+.01,{pan}]);
   return out},
- miss(d){const u=d.u,dl=auDelay(d.t),k=auWKind(u),pan=auPan(d.t);if(u&&u.wpn&&u.wpn.rng>1&&(k==='arrow'||k==='bolt'||k==='shot'))return[[k==='bolt'?'boltFly':k==='shot'?'shotFire':'arrowFly',0,{pan:auPan(u)}],['miss',dl,{pan,v:.6}]];
+ miss(d){const u=d.u,dl=auDelay(d.t),k=auWKind(u),pan=auPan(d.t);if(d.block!=null){const sh=!!(u&&u.wpn&&u.wpn.rng>1&&(k==='arrow'||k==='bolt'||k==='shot'));return(sh?[[k==='bolt'?'boltFly':k==='shot'?'shotFire':'arrowFly',0,{pan:auPan(u)}]]:[['whoosh',Math.max(0,dl-.12),{v:.7,pan}]]).concat([['block',dl,{pan,p:u&&u.sz>1?.8:1}]])}   // a blow taken on the shield (60b-block.js)
+  if(u&&u.wpn&&u.wpn.rng>1&&(k==='arrow'||k==='bolt'||k==='shot'))return[[k==='bolt'?'boltFly':k==='shot'?'shotFire':'arrowFly',0,{pan:auPan(u)}],['miss',dl,{pan,v:.6}]];
   const sp=u&&auSpellFrom(u,d.t);if(sp&&sp.g)return[['miss',dl,{pan,v:.5}]];return[['miss',Math.max(0,dl-.1),{pan}]]},
  death(d){return[[d.t&&d.t.side===0?'deathAlly':'death',.2,{pan:auPan(d.t)}]]},
  cast(d){const ab=d.ab;if(!ab||ab.id==='attack'||ab.id==='swap'||ab.swap)return[];const g=auGift(ab,d.u),pan=auPan(d.u);

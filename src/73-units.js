@@ -1168,7 +1168,7 @@ function usLookKey(u){const H=usHand(u);if(u&&u.m&&u.m.eq){const m=u.m,e=m.eq;re
 function usSpearW(u){return u&&Array.isArray(u.buffs)&&u.buffs.some(b=>b&&b.key==='spearwall')?1:0}
 // the company's 'wear the colours' choice (G.wearCol {coat, cloth}): part of every look
 function usWearSig(){const w=typeof G==='object'&&G&&G.wearCol;return(w&&w.coat===false?'0':'1')+(w&&w.cloth?'1':'0')}
-function usWall(u){return u&&u.shield&&Array.isArray(u.buffs)&&u.buffs.some(b=>b&&b.key==='shieldwall')?1:0}
+function usWall(u){return u&&u.shield&&(Array.isArray(u.buffs)&&u.buffs.some(b=>b&&b.key==='shieldwall')||typeof anBlocking==='function'&&anBlocking(u))?1:0}   // Shield wall, or a blow being blocked (74-anim.js)
 /* what the shield in hand looks like now: 0 whole, 1 cracked (half its hitpoints gone), 2 split (gone); 3 a merc whose shield the foes smashed */
 function usShs(u){if(!u)return 0;if(u.shpMax>0)return!(u.shield||(u.slung&&u.shp>0))?2:u.shp<=u.shpMax*.5?1:0;return u.sund?2:0}
 function usLook(u){let c=US.byUnit.get(u);const m=u.m,e=m&&m.eq,shs=usShs(u),H=usHand(u),hw=H.w,ha=H.a,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null,ld=usLd(u),wl=usWall(u)*2+usSpearW(u),ws=usWearSig();

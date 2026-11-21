@@ -64,7 +64,7 @@ const FX={on:null,cap:120,err:null,
   F.push({x:u.sx,y:u.sy-52-F.filter(f=>f.u===u&&t-f.t<500).length*14,txt,col:col||'#fff',t,u})},
  shot(a,b,col,ya,yb){if(!B)return;const S=B.shots;if(S.length>=FX.cap)S.splice(0,S.length-FX.cap+1);S.push({a:{x:a.sx,y:a.sy-ya},b:{x:b.sx,y:b.sy-yb},col,t:FX.clock()})},
  say(t){if(B)B.log=t;if(typeof document==='undefined')return;const e=$('blog');if(e)e.textContent=t},
- emit(type,data){const f=FX.on;if(typeof f!=='function')return;try{f(type,data)}catch(e){if(!FX.err){FX.err=e;if(typeof console!=='undefined')console.warn('FX.on('+type+') failed: '+(e&&e.message||e))}}},
+ emit(type,data){if(typeof faceEv==='function')faceEv(type,data);const f=FX.on;if(typeof f!=='function')return;try{f(type,data)}catch(e){if(!FX.err){FX.err=e;if(typeof console!=='undefined')console.warn('FX.on('+type+') failed: '+(e&&e.message||e))}}},
  ui(){if(typeof updateBUI==='function')updateBUI()}};
 function say(t){FX.say(t)}
 function float(u,txt,col){FX.float(u,txt,col)}
@@ -102,7 +102,7 @@ const SOLOBUD={base:6,lvl:7,knee:6,late:4};   // 27 at level 3, 48 at 6, 60 at 9
 /* ---- Units ----
    A battle unit (both sides): side, name, lvl, hp/hpMax, arm/armMax (body armor), helm/helmMax (head armor), ap/apMax, fat/fatMax,
    init, ms, rs, md, rd, brv (resolve), mor (morale 0..4), fearless, wpn, abs, res, flags, dmgB, buffs, st (status turns), alive,
-   shield (true while it carries an intact shield), shp/shpMax (shield hitpoints), shb ({md,rd} the shield adds, already in md/rd),
+   shield (true while it carries an intact shield), shp/shpMax (shield hitpoints), shb ({md,rd} the shield adds, already in md/rd; the hit roll leaves it out and the block roll uses it: 60b-block.js), face (facing, 60b-block.js),
    gone ('withdraw'|'retreat'|'fled' once it has left the field alive), c, r, id, sx, sy. Company units also carry m (the merc);
    enemies def (their EN entry) and f (faction). initUnit() fills whatever a hand-made unit lacks.
    Arms: slung (an intact shield on the back while a two-handed weapon is in hand: shield is false then), swapFree (this turn's swap costs nothing).
@@ -499,7 +499,7 @@ function armorDef(u,t,a){const f=t.flags||{};let v=0;if(!(f.fleet||f.freshDef||f
 // bombs), inside hitChance so the forecast is the strike; still capped at 95. 0 on the other levels and in the arena.
 function foeHitB(u){if(!u||u.side!==1||typeof diffX!=='function'||B&&B.opts&&B.opts.arena)return 0;const v=+diffX('foeHit');return v>0&&isFinite(v)?v:0}
 function hitChance(u,t,a){if(a.sure||pvSure(u,a))return 100;const d=mdist(u,t),melee=!!a.melee||d<=1,fu=u.flags||{},ft=t.flags||{};let sk,df;
- if(a.magic){sk=72+(u.lvl||1)*2;df=eff(t,'rd')*.5}else{sk=(isRangedAtk(u,a)||a.bomb?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md'):eff(t,'rd');if(a.bomb&&t.shield&&t.shb)df-=t.shb.rd||0}   // a raised shield is no cover from a bomb (Grenadier)
+ if(a.magic){sk=72+(u.lvl||1)*2;df=(eff(t,'rd')-shieldDef(t,'rd'))*.5}else{sk=(isRangedAtk(u,a)||a.bomb?eff(u,'rs'):eff(u,'ms'))+(a.dmgD?0:u.wpn.hit||0);df=melee?eff(t,'md')-shieldDef(t,'md'):eff(t,'rd')-shieldDef(t,'rd')}   // a raised shield is not in the hit roll: it blocks (60b-block.js)
  let ch=sk-df+(a.hit||0);const hd=T(u).h-T(t).h;ch+=hd>0?10:hd<0?-10:0;if(d>2&&!a.melee&&!fu.longShot)ch-=(d-2)*2;if(t.st.stun)ch+=15;if(t.st.webbed)ch+=10;if(t.st.marked>0)ch+=STBONUS.marked;
  if(ft.adjDef||ft.loneDef){if(hasAdj(t,t.side))ch-=ft.adjDef||0;else ch-=ft.loneDef||0}
  if(melee&&!a.magic){if(fu.flank&&hasAdj(t,u.side,u))ch+=fu.flank;if(fu.duelHit&&isDuel(u,a))ch+=fu.duelHit}else if(fu.reachHit&&shotKind(u,t,a)===1)ch+=fu.reachHit;
@@ -662,6 +662,7 @@ function rollDone(R){if(R&&!R.logged&&typeof rollLog==='function'){try{rollLog(R
    ends up (the target, or the ally it strays into). A stray emits 'miss' on the target (stray: the ally), then 'ff' {u, t: ally,
    from: target}, then strikes the ally (auto, FFDMG of the damage, no projectile of its own).
    Order of the seeded draws: hit roll; on a miss the stray-shot roll (only with allies in the line) and its victim;
+   on a hit against a raised shield that can take it the block roll (60b-block.js; a blocked blow then rolls its damage for the shield and stops);
    on a hit the damage roll, the location roll, then whatever hurt() needs (injury, morale), statuses, knockback (never from a stray), a hook's pull, a scare. */
 async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const d=mdist(u,t),shot=(d>1||a.magic)&&!o.noShot&&!o.stray,
   col=a.magic?'#c9a8ff':a.cost?RESC[a.cost[0]]:'#e9e0c9',fly=x=>{if(shot)FX.shot(u,x,col,26,22)};
@@ -673,6 +674,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
   if(v){if(v.alive&&u.alive){say(`${u.name}'s shot strays into ${v.name}.`);FX.emit('ff',{u,t:v,from:t});await strike(u,v,a,{auto:1,stray:1,free:'stray',noShot:1,splash:(o.splash||1)*FFDMG})}}
   else if(!o.free&&!a.magic&&d===1&&t.alive&&u.alive&&buffSum(t,'rip'))await freeAttack(t,u,'riposte');
   pvStruck(u,t,a,o);await pvMiss(u,t,a,o,v,R);return false}
+ {const bc=blockChance(u,t,a,o);if(bc>0){const bx=rnd(),on=bx*100<bc;rollAdd(R,'block',bx,bc/100,on);if(on)return blockHit(u,t,a,o,R,d,fly)}}   // the block roll (60b-block.js)
  fly(t);
 const hp0=t.hp;let dmg=0;const ign=a.noDmg?1:ignOf(u,a),wd=rollOf(u,a);if(a.noDmg){}else if(a.magic)dmg=ri(a.magic[0],a.magic[1])*spellMult(u);else dmg=ri(wd[0],wd[1])*(a.mult||1);
  if(!a.noDmg)dmg=dmgAfter(u,t,a,dmg,o);

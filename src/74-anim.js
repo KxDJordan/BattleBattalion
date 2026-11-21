@@ -16,7 +16,7 @@ const AN_HIT_AT=.38;                       // share of a melee attack spent wind
 const AN_THR_MS=320,AN_THR_REL=.3,AN_THR_FR=[.17,AN_THR_REL,.7];   // Detail Low frames: wind-up | release | follow-through (empty hand) | drawing the next
 function anThrowLead(sp){return AN_THR_MS*sp*AN_THR_REL}
 const ANIM=new WeakMap();
-const POSE={state:'idle',frame:0,dc:0,dr:1,ox:0,oy:0,alpha:1,flash:0,shadow:1,lift:0,tint:null,ph:0,cyc:0,anim:''};   // ph / cyc / anim: continuous time for the skeletal figures (73m-skel.js)
+const POSE={state:'idle',frame:0,dc:0,dr:1,ox:0,oy:0,alpha:1,flash:0,bflash:0,shadow:1,lift:0,tint:null,ph:0,cyc:0,anim:''};   // ph / cyc / anim: continuous time for the skeletal figures (73m-skel.js)
 const ANB={t:-1e9,rot:-9,cx:32,cy:16,rx:-32,ry:16,hy:-16};   // board-space basis of +c, +r, +h under the current view
 function anNow(){return typeof now==='number'&&now>0?now:typeof performance!=='undefined'?performance.now():0}
 function anSp(){return(typeof reduced!=='undefined'&&reduced)||!(SPEEDF>0)?0:SPEEDF}
@@ -84,7 +84,8 @@ const AN_VAR={sting:'sting',buffet:'buffet','dive-land':'dive',dive:'takeoff',sm
 function anVariant(u){const s=ANIM.get(u);if(!s||!s.va)return'';return anNow()-s.vaT<2500?s.va:''}
 /* called by the effects when a blow will visibly land on `tg` at time `at` (ms, same clock as `now`) */
 function animImpact(tg,u,at,miss){if(!tg)return;const s=anOf(tg),sp=anSp();
- if(u&&u!==tg)anFace(s,u.c-tg.c,u.r-tg.r);
+ if(u&&u!==tg&&!(typeof faceOf==='function'&&B&&B.units&&B.units.indexOf(tg)>=0))anFace(s,u.c-tg.c,u.r-tg.r);   // in battle a struck unit does not turn (its facing is the rules', 60b-block.js)
+ if(miss==='block'){s.bkT=sp?at:-1e9;s.bkD=Math.max(180,320*(sp||1));if(u&&u!==tg){const dc=tg.c-u.c,dr=tg.r-u.r;s.hc=0;s.hr=0;if(Math.abs(dc)>=Math.abs(dr))s.hc=dc>0?1:-1;else s.hr=dr>0?1:-1}return}   // a blow taken on the shield: braced behind it, a short push back
  if(miss){s.dgT=sp?at:-1e9;return}
  s.hitT=SPEEDF>0?at:-1e9;s.hdur=Math.max(130,230*(sp||1));s.hc=0;s.hr=0;
  if(u&&u!==tg&&sp){const dc=tg.c-u.c,dr=tg.r-u.r;if(Math.abs(dc)>=Math.abs(dr))s.hc=dc>0?1:-1;else s.hr=dr>0?1:-1}}
@@ -94,23 +95,28 @@ const AN_H={w:null,a:null},AN_HO={w:null,a:null};
 function anSwapPoll(u,s,t,sp){if(typeof usHand!=='function'||t-s.swT<s.swD*.34)return;const pw=s.hw,pa=s.ha;usHand(u,AN_H);
  if(pw!==undefined&&(AN_H.w!==pw||AN_H.a!==pa)&&u.alive&&!s.dead){if(sp){s.swT=t;s.swD=Math.max(240,460*sp);s.ow=pw;s.oa=pa}if(typeof fxSwap==='function')try{fxSwap(u,s.swD)}catch(e){}}
  s.hw=AN_H.w;s.ha=AN_H.a}
+// a blow is landing on u's raised shield right now (the block pose: 73-units.js usWall holds the shield out in front for it)
+function anBlocking(u){const s=ANIM.get(u);if(!s||s.bkT==null)return false;const k=(anNow()-s.bkT)/(s.bkD||1);return k>=0&&k<1}
 function anHandOv(u){const s=ANIM.get(u);if(!s||!(anNow()-s.swT<s.swD*.34))return null;AN_HO.w=s.ow;AN_HO.a=s.oa;return AN_HO}
 function animThrow(u,keep){if(!u)return;const s=anOf(u),sp=anSp();if(!sp||s.act!==1)return;s.adur=AN_THR_MS*sp;s.lc=s.lr=0;s.thr=s.at0;s.thrK=keep?1:0}   // the attack just begun is a throw: no lunge, its own length
 function anLunge(a){return a<.2?-.07*(a/.2):a<AN_HIT_AT?-.07+.41*((a-.2)/(AN_HIT_AT-.2)):a<.56?.34:.34*(1-(a-.56)/.44)*(1-(a-.56)/.44)}
 function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
+ if(typeof faceOf==='function'&&typeof B!=='undefined'&&B&&B.units&&B.units.indexOf(u)>=0){const f=faceOf(u);s.dc=f[0];s.dr=f[1]}   // a battle figure faces the way the rules say (u.face: its shield covers that side, 60b-block.js)
  if(u.c!==s.c||u.r!==s.r)anMove(u,s,-1);
  if(!u.alive&&!s.dead&&!s.wd){if(u.gone)s.wd=true;else{s.dead=true;s.deadT=SPEEDF>0?Math.max(t,s.hitT):-1e9}}else if(u.alive&&(s.dead||s.wd)){s.dead=false;s.wd=false}
  anVis(u,s,t);anSwapPoll(u,s,t,sp);
  // displayed hp/armor follow the rules only once the blow has visibly landed
  if(t>=s.hitT){if(u.hp<s.hp){s.lag0=Math.max(s.lag,s.hp);s.lagT=t}s.hp=u.hp;s.arm=u.arm;s.helm=u.helm||0;if(s.rev!==SHV.rev||t-s.revT>700)anStRefresh(u,s,t)}else{if(u.hp>s.hp)s.hp=u.hp;if(u.arm>s.arm)s.arm=u.arm;if(u.helm>s.helm)s.helm=u.helm}
  {const k=(t-s.lagT-300)/260;s.lag=k<=0?s.lag0:k>=1?s.hp:s.lag0+(s.hp-s.lag0)*k;if(s.lag<s.hp)s.lag=s.lag0=s.hp}
- let gx=s.vc-u.c,gy=s.vr-u.r,lift=s.lift,state='idle',frame=0,alpha=s.va,flash=0,n,ph=0,cyc=0,anm='';
+ let gx=s.vc-u.c,gy=s.vr-u.r,lift=s.lift,state='idle',frame=0,alpha=s.va,flash=0,bfl=0,n,ph=0,cyc=0,anm='';
  const dt=t-s.deadT,hb=(t-s.hitT)/s.hdur;
  if(s.dead&&dt>=0){n=anN('death',u);const C=sp?Math.max(210,420*sp):1,hold=sp?150:60,fade=sp?320:220;state='death';ph=Math.min(1,dt/C);
   frame=n<2?0:dt>=C?n-1:Math.min(n-2,(dt/C*(n-1))|0);alpha=dt<C+hold?1:Math.max(0,1-(dt-C-hold)/fade);if(dt<90)flash=1-dt/90;
   if(hb>=0&&hb<1){const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}}
  else{
-  if(hb>=0&&hb<1){n=anN('hit',u);state='hit';ph=hb;frame=Math.min(n-1,(hb*n)|0);flash=hb<.42?1-hb/.42:0;const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}
+  const bk=(t-(s.bkT==null?-1e9:s.bkT))/(s.bkD||1);
+  if(bk>=0&&bk<1){n=anN('hit',u);state='hit';ph=Math.min(.3,bk*.6);frame=0;bfl=bk<.55?1-bk/.55:0;const k=.08*(1-bk)*(1-bk);gx+=s.hc*k;gy+=s.hr*k}   // a blocked blow: braced behind the shield (usWall), a steel flash
+  else if(hb>=0&&hb<1){n=anN('hit',u);state='hit';ph=hb;frame=Math.min(n-1,(hb*n)|0);flash=hb<.42?1-hb/.42:0;const k=.14*(1-hb)*(1-hb);gx+=s.hc*k;gy+=s.hr*k}
   else if(s.mv&&t>=s.mt0){const k=s.mk;
    if(k===AN_BLINK){n=anN('cast',u);state='cast';ph=.5;frame=Math.min(n-1,n>>1)}
    else if(k===AN_KB){n=anN('hit',u);state='hit';ph=.8;frame=n-1}
@@ -131,7 +137,7 @@ function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
   let rise=0;if(s.wd)alpha=0;                                                                                         // a unit that left the field is drawn by the effect that walks it off
  else if(t-s.spT<s.spD){const a=Math.max(0,(t-s.spT)/s.spD);if(s.spK===1){rise=Math.round((1-a)*9)*2;alpha*=a<.15?0:((t/60)|0)&1&&a<.5?.55:1}else if(s.spK===2)alpha*=a<.3?0:a<.6?(((t/50)|0)&1?.9:.3):1;else alpha*=Math.min(1,a*2.5)}
  const hv=anHover(u,s,t,sp);if(hv){lift+=hv;P.oy-=hv}
- P.alpha=alpha;P.flash=flash;P.lift=lift;P.shadow=alpha*(1-Math.min(.6,lift/70));P.oy+=rise;P.tint=!s.dead&&t>=s.hitT?(s.gath&&((t/160)|0)&1?'C':s.tint):null;return P}
+ P.alpha=alpha;P.flash=flash;P.bflash=bfl;P.lift=lift;P.shadow=alpha*(1-Math.min(.6,lift/70));P.oy+=rise;P.tint=!s.dead&&t>=s.hitT?(s.gath&&((t/160)|0)&1?'C':s.tint):null;return P}
 /* fliers hover over the ground (the board draws their shadow on it): higher while gathering a dive, falling when killed,
    down on the ground while grounded. Eased, in board units. */
 function anHover(u,s,t,sp){const mi=typeof umon==='function'?umon(u):null;if(!mi||!mi.fly){s.fly=false;return 0}s.fly=true;

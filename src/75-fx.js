@@ -120,7 +120,13 @@ const IMP=[];for(let i=0;i<32;i++)IMP.push({on:false,at:0,t:null,u:null,dmg:0,ar
 function fxQueue(t,u,at,dmg,arm,sty,miss){let e=null;for(let i=0;i<IMP.length;i++)if(!IMP[i].on){e=IMP[i];break}if(!e){e=IMP[0];fxImpact(e)}
  e.on=true;e.at=at;e.t=t;e.u=u;e.dmg=dmg;e.arm=arm;e.sty=sty;e.miss=miss;e.dead=false;e.dx=0;e.dy=-1;e.head=false;e.rmp=FXS.rmp|0;
  if(u&&u!==t){const a=fxUP(u),ax=a.x,ay=a.y,b=fxUP(t),dx=b.x-ax,dy=b.y-ay,L=Math.hypot(dx,dy)||1;e.dx=dx/L;e.dy=dy/L}FXS.lastQ=e;return e}   // lastQ: the audio times a blow's sound to its landing (26-audio.js)
+// A blow lands on a raised shield: sparks and splinters off the shield face toward the attacker, the shield glyph thrown up, 'BLOCKED'.
+function fxBlockImp(t,u,x,y,fy,h,dx,dy,n){const sx=x-dx*9,sy=y-dy*9-2,big=n>=14;
+ cone(K_TRAIL,R_SPARK,sx,sy,-dx,-dy*.6-.4,6+Math.min(8,n/3|0),110,300,.24,1,380,2,1.1);cone(K_SQ,R_STEEL,sx,sy,-dx,-dy*.5-.5,4+Math.min(6,n/5|0),60,190,.42,big?2:1,520,1.2,.9);
+ ringFx(sx,sy,2,big?14:10,200,R_STEEL,0,1,2);glyphFx('glint',sx,sy,0,140,0);{const g=glyphFx('shield:AqBpeq',sx,sy,6,330,0);g.c=-dx*30;g.d=-40}
+ fxShake(Math.min(4,1+n/12));fxFloat(t,'BLOCKED',FS_ARM)}
 function fxImpact(e){e.on=false;const t=e.t;if(!t)return;e.t=null;const u=e.u;e.u=null;const p=fxUB(t),x=p.x,fy=p.y,h=p.h,head=!!e.head,y=fy-h*(head?.84:.48),dx=e.dx,dy=e.dy,dmg=e.dmg,arm=e.arm,sty=e.sty,sp=Math.max(.6,fxSp());
+ if(e.miss&&e.blk){fxBlockImp(t,u,x,y,fy,h,dx,dy,e.blk);return}   // a blocked blow (60b-block.js)
  if(e.miss){fxFloat(t,'MISS',FS_MISS);return}
  if(arm>0){cone(K_TRAIL,R_STEEL,x,y,dx,dy*.6-.25,5+Math.min(9,arm/8|0),90,260,.26,1,300,2,1);glyphFx('glint',x-dx*6,y-dy*6,0,110,0)}
  if(head){if(arm>0){cone(K_TRAIL,R_SPARK,x,y,dx*.4,-1,7,120,300,.3,1,420,2,1.2);ringFx(x,y,2,9,170,R_STEEL,0,1);glyphFx('glint:rd',x,y-4,0,150,40)}                // a blow on the helmet: sparks fly up
@@ -210,13 +216,13 @@ function fxOnHit(d){const t=d.t,u=d.u&&d.u!==d.t?d.u:null;if(!t)return;const dmg
  else if(u){const id=FXS.cu===u?FXS.cid:fxFree(u,t),k=id&&FXS.cu===u?FXS.cn++:0;delay=fxStrike(u,t,id,k,false);sty=FXS.sty;if(id&&FXS.cu===u&&!FXS.multi)FXS.cu=null}
  else if(fxTail(t,/^Slam$/))sty=S_SLAM;else if(FXS.turnU===t&&FXS.turnBurn){sty=S_BURN;FXS.turnBurn=false}else if(B.tiles[key(t.c,t.r)].t==='haz')sty=S_HAZ;else sty=S_FALL;
  const at=now+delay,e=fxQueue(t,u,at,dmg,arm,sty,false);e.head=!!d.head;animImpact(t,u,at,false)}
-function fxOnMiss(d){const t=d.t,u=d.u;if(!t)return;const f=fxTail(t,/^Miss$/);if(f)f.fx=1;let delay=0;
+function fxOnMiss(d){const t=d.t,u=d.u;if(!t)return;const blk=d.block!=null,f=fxTail(t,blk?/^Blocked$/:/^Miss$/);if(f)f.fx=1;let delay=0;   // d.block: the blow was taken on the shield (60b-block.js)
  if(u&&u!==t&&d.stray&&d.stray!==t){const v=d.stray,id=FXS.cu===u?FXS.cid:fxFree(u,v),k=id&&FXS.cu===u?FXS.cn++:0;delay=fxStrike(u,v,id,k,false);   // a stray: ONE projectile, flying to the ally it hits
   FXS.ffShot={u,v,at:now+delay,sty:FXS.sty,t0:now};const at=now+delay*.6;fxQueue(t,u,at,0,0,0,true);animImpact(t,u,at,true);return}
  if(u&&u!==t){const id=FXS.cu===u?FXS.cid:fxFree(u,t),k=id&&FXS.cu===u?FXS.cn++:0;delay=fxStrike(u,t,id,k,true);if(id&&FXS.cu===u&&!FXS.multi)FXS.cu=null;
   if(mdist(u,t)===1&&!(id==='awave')){const b=fxUP(t),o=fxo(T_SLASH,b.x,b.y-b.h*.5,delay*.7,170,R_WHITE);o.a=Math.atan2(b.y-fxUP(u).y,o.x-FUP.x);o.b=9;o.c=3}
   else if(FXS.sty===S_BLAST){const b=fxUP(t);ringFx(b.x+20,b.y+8,3,18,300,R_FIRE,delay,.5,2);for(let i=0;i<fxN(14);i++)spawn(K_SQ,R_FIRE,b.x+20+rr(-8,8),b.y+8,rr(-60,60),rr(-170,-50),rr(.3,.6),i&1?2:1,-40,2,delay/1000)}}
- const at=now+delay;fxQueue(t,u,at,0,0,0,true);animImpact(t,u,at,true)}
+ const at=now+delay,e=fxQueue(t,u,at,0,0,0,true);e.blk=blk?Math.max(1,d.block|0):0;animImpact(t,u,at,blk?'block':true)}
 function fxOnDeath(t){if(!t)return;fxU(t).dead=true;let e=null;for(let i=0;i<IMP.length;i++)if(IMP[i].on&&IMP[i].t===t&&!IMP[i].miss&&(!e||IMP[i].at>e.at))e=IMP[i];if(e)e.dead=true;else fxDeathNow(t)}
 function fxOnCast(u,t,ab,k){if(!u||!ab)return;if(ab.id==='swap'||ab.swap){FXS.cu=null;return}   // staged by fxSwap when the figure changes hands
 const id=ab.id==='spell'?(/hex/i.test(ab.n)?'hex':/grave/i.test(ab.n)?'grave':/void/i.test(ab.n)?'void':u.f==='void'?'void':u.f==='undead'?'grave':'hex'):fxKey(ab);

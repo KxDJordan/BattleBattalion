@@ -3,7 +3,7 @@
    players (B.opts.pilot = 'naive' | 'sensible') that test/balance.js measures the game with.
    One engine, aiRun(u,P): up to AI_CAP decisions per turn. Each decision scores every "walk to tile s, then
    use ability a on target k" the unit can afford, plus plain moves and ending the turn:
-     score = chance to hit x value of the hit (forecast() damage, armor stripped, kill chance, statuses,
+     score = chance to hit x value of the hit (the chance a hit lands: aiChance takes the target's shield blocks out, 60b-block.js) (forecast() damage, armor stripped, kill chance, statuses,
              target priority, focus fire) + what else the remaining AP could do
              + worth of standing on s (threat from foes that can reach it, height, hazards, formation,
                closing the distance, the plan) - the free attack for leaving a foe's reach - resource cost
@@ -291,7 +291,11 @@ let AI_RISK=0;   // set by aiChance: what a miss from there costs (a stray shot 
 function aiChance(u,a,t,s){const c0=u.c,r0=u.r;let p;AI_RISK=0;if(s!==c0+r0*BW){u.c=s%BW;u.r=(s/BW)|0}
  try{if(!AI_DBG.nolock&&aiBowAb(u,a)&&!(u.flags&&u.flags.noLock)&&aiLockAt(u,s)){p=0;return 0}p=hitChance(u,t,a)/100;const d=mdist(u,t);
   if(p>0&&d>1&&!a.dash){const L=losInfo(u,t,a);if(L.blocked)p=0;else if(L.ff.length&&p<1)AI_RISK=(1-p)*FFCH*14}
-  else if(d===1&&!a.magic&&!a.sure&&buffSum(t,'rip')>0&&canFree(t))AI_RISK=(1-p)*(t.wpn.d[0]+t.wpn.d[1])*.3}finally{u.c=c0;u.r=r0}return p}
+  else if(d===1&&!a.magic&&!a.sure&&buffSum(t,'rip')>0&&canFree(t))AI_RISK=(1-p)*(t.wpn.d[0]+t.wpn.d[1])*.3;
+  if(p>0&&t.shield&&typeof blockChance==='function'){const bc=blockChance(u,t,a)/100;if(bc>0){AI_RISK-=p*bc*aiShieldV(u,t,a);p*=1-bc}}}finally{u.c=c0;u.r=r0}return p}   // a raised shield: from here it blocks bc of the hits (less from the flank, none from behind), and what a blocked blow does to the shield is worth something
+// What one blocked blow of u's a is worth against t's shield (60b-block.js): its bite out of the shield, more when it can split it.
+function aiShieldV(u,t,a){if(!t.shield||!(t.shp>0)||a.noDmg)return 0;const W=t.aiW||10,wd=a.dmgD||u.wpn.d,m=(wd[0]+wd[1])/2*(a.mult||1)*(a.magic?0:1)+(a.magic?(a.magic[0]+a.magic[1])/2:0),sd=Math.min(t.shp,m*blockShK(u,a)),sb=t.shb?(t.shb.md||0)+(t.shb.rd||0)*.3:10,gone=W*sb/45;
+ return sd*.2+Math.min(1,sd/t.shp)*gone*.5+(sd>=t.shp?5+W*.3+gone*.5:0)}
 /* ---- choosing ---- */
 // What u's own blows are worth this turn if a foe is in reach (for buffs to damage and skill), else 0.
 function aiOwn(u,X,atk){const k=X.at,r=atk.rng+(u.rooted?0:Math.floor(Math.max(0,u.ap-atk.ap)/2.4));if(X.nearTile(k%BW,(k/BW)|0)>r)return 0;return(u.wpn.d[0]+u.wpn.d[1])/2*Math.max(1,Math.floor(u.apMax/(atk.ap||4)))*.6}

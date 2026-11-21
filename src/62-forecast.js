@@ -59,6 +59,11 @@
    Roles update (64v-roles.js; the new perks' terms are inside hit and the damage figures):
      shock      a hit that reaches hitpoints tests the target's morale (Shock, Vanguard)
      icpt       the unit that will step in and take this attack when it is ordered (Intercept, Shieldbearer), else null
+   Shield blocks (60b-block.js): hit is the hit roll alone (the raised shield is not in it); then
+     block      chance in percent that a hit is blocked by the target's raised shield (0: no shield, from behind, a bomb, cannot miss...)
+     bside      'front' | 'flank' | 'behind': where the blow comes from as the shield sees it (null when the shield cannot take it at all)
+     blkSh      {min,max,hp,brk,sure}: the shield damage of a blocked blow (capped at hp, what is left), or null when block is 0
+     land       chance in percent (to a hundredth) that the blow lands: hit x (1 - block). The damage figures are for a blow that lands.
    Endgame (24-endgame.js): realm {k, n, notes:[text]} | null (the portal realm's rules on this strike; spellK is inside spellMult already);
    lines [{k,t}] legendary powers (legendFcLines, 25-legend.js). */
 // The damage one roll does before armor: the same dmgAfter() strike() calls (talent bonuses, executioner, splash, height, reduction).
@@ -77,8 +82,9 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],
   headCh:0,head:null,body:null,cover:los.cover,blocked:los.blocked,ff:[],mor:{att:mu.hit,def:mt.def},shake:false,injure:false,shield:null,riposte:false,
   locked:isRangedAtk(u,a)&&rangedLocked(u),mitB:0,mitH:0,undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
-  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),shock:rlShockOK(u,t,a),icpt:B&&B.icpOn&&!(o&&(o.free||o.auto))?rlInterceptOf(u,t,a):null,fire:t.fw&&fireAb(a)?t.fw:0,
+  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),shock:rlShockOK(u,t,a),icpt:B&&B.icpOn&&!(o&&(o.free||o.auto))?rlInterceptOf(u,t,a):null,fire:t.fw&&fireAb(a)?t.fw:0,block:0,bside:null,blkSh:null,land:0,
   tiredAtt:sure?0:tiredPen(u),tiredDef:sure?0:tiredPen(t),armDef:sure?0:armorDef(u,t,a),armDr:a.split||a.noDmg?0:armorDr(t),sidestep:false,soak:(t.flags&&t.flags.hpSoak)||0,quarry:fcQuarry(u,t,a,sure)};
+ f.land=f.hit;
  if(a.shieldD&&t.shield){const d=Math.min(a.shieldD,t.shp);f.shield={min:d,max:d,hp:t.shp,brk:a.shieldD>=t.shp,sure:false}}   // a Petard: a hit also takes a.shieldD off a raised shield (64u-guntrees.js)
  if(a.split){const m=splitMult(u,a),lo=Math.round(u.wpn.d[0]*m),hi=Math.round(u.wpn.d[1]*m);if(t.shield)f.shield={min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp};f.body={hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false};return f}
  let lo=0,hi=0;if(a.noDmg){}else if(a.magic){lo=a.magic[0];hi=a.magic[1];f.ign=ignOf(u,a)}else{const wd=rollOf(u,a);lo=wd[0];hi=wd[1];f.ign=ignOf(u,a)}
@@ -94,6 +100,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const parts=[];if(useH)parts.push(H);if(useB)parts.push(Bd);
  f.hpMin=Math.min(...parts.map(p=>p.hpMin));f.hpMax=Math.max(...parts.map(p=>p.hpMax));f.armMin=Math.min(...parts.map(p=>p.armMin));f.armMax=Math.max(...parts.map(p=>p.armMax));
  f.kill=!f.undying&&f.hpMax>=t.hp;f.sure=!f.undying&&f.hpMin>=t.hp;
+ {const bf=sure?null:blockFc(u,t,a,o,f.dmgMin,f.dmgMax);if(bf){f.block=bf.block;f.bside=bf.side;if(bf.block>0)f.blkSh={min:bf.min,max:bf.max,hp:bf.hp,brk:bf.brk,sure:bf.sure}}}   // the block roll (60b-block.js)
  f.shake=!t.fearless&&!(t.flags&&t.flags.noStun)&&!moraleImmune(t)&&f.hpMax>=heavyHit(t)&&!f.sure;   // Beast-wise against beasts: no check
  {const tf=t.flags||{};f.sidestep=!!(tf.sidestep&&!t.ss&&!a.noDmg)}f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
  const st={},as=u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{};for(const k in as)st[k]={k,n:as[k],ch:1};   // an elite's poison or hex rides on its blows (64e-elites.js)
@@ -110,6 +117,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  if(kind===2&&!o.free&&!sure&&los.ff.length&&!(u.flags&&u.flags.noStray)){const ch=(100-f.hit)*FFCH/los.ff.length;f.ff=los.ff.map(x=>({t:x,ch}))}
  f.riposte=!sure&&!o.free&&!a.magic&&mdist(u,t)===1&&buffSum(t,'rip')>0&&canFree(t);
  {const g=t.flags||{};f.counter=!sure&&!o.free&&!a.magic&&mdist(u,t)===1&&!f.riposte&&g.counter>0&&isDuel(t,FREEAB)&&canFree(t)?g.counter:0}   // Counter-cut: the chance a miss draws one
+ f.land=Math.round(f.hit*(100-f.block))/100;   // chance the blow lands: hits and is not blocked (percent, to a hundredth)
  f.ammo=ammoLeft(u);f.out=outOfThrows(u,a);   // throws left (null: not a throwing weapon), none left for this throw
  f.realm=fcRealm(u,a);   // a portal realm's say in this strike (24-endgame.js), already inside the figures
  f.lines=typeof legendFcLines==='function'?legendFcLines(u,t,a):[];   // legendary powers (25-legend.js): [{k,t}] for the HUD
