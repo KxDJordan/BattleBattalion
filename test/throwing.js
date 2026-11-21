@@ -87,7 +87,7 @@ X.ctx.strike=async function(u,t,a,o){if(!FCHECK||!t.alive||!u.alive)return strik
 section('catalog');
 { fresh(SEED);const M=X.MAST,AB=X.AB,I=X.ITEMS;let actives=0;
   for(const k in M){const T=M[k],n=T.p.filter(p=>p.ab).length;actives+=n;
-   if(T.kind==='style')ok(n<=(['gunner','pistol','powder','wrestle','pugilist','willow'].includes(k)?2:1),k+': at most one ability in a style tree, two in a firearm or fist tree ('+n+')');if(T.kind==='gift')ok(n===2,k+': two abilities in a gift tree ('+n+')');if(T.kind==='fabled')ok(n<=1,k+': at most one ability');
+   if(T.kind==='style')ok(n<=(['gunner','pistol','powder','wrestle','pugilist','willow','bulwark'].includes(k)?2:1),k+': at most one ability in a style tree, two in a firearm or fist tree or the Bulwark ('+n+')');if(T.kind==='gift')ok(n===2,k+': two abilities in a gift tree ('+n+')');if(T.kind==='fabled')ok(n<=1,k+': at most one ability');
    for(const p of T.p){ok(typeof p.d==='string'&&p.d.length>=8,p.id+': a text');if(p.ab)ok(AB[p.ab]&&AB[p.ab].n&&AB[p.ab].d,p.id+': ability '+p.ab)}}
   ok(actives<=74,'tree abilities in all: '+actives);   // 56, the 8 of the four throwing gift trees (test/throwgifts.js), 5 of the firearm trees (test/guntrees.js) and 5 of the fist trees (test/fists.js)
   for(const id of X.PERKV20){const P=X.perkById(id);ok(P&&!P.perk.ab&&(P.perk.mod||P.perk.flag)&&P.perk.d.length>20,'a changed perk is a passive with a text: '+id)}
