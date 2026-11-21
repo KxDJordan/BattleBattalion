@@ -111,6 +111,8 @@ section('facing');
   const f0=D.face.slice();X.FX.emit('turn',{u:D});await X.knockback(th,D,1,0);ok(D.c===8&&D.face[0]===f0[0]&&D.face[1]===f0[1],'a knockback moves it without turning it ('+D.c+','+D.r+')');
   X.FX.emit('cast',{u:D,t:null,ab:{tgt:'tile'},k:X.key(D.c,D.r-3)});ok(D.face[1]===-1,'a cast at a tile faces it');
   const P0=X.unitPose(D);ok(P0.dc===D.face[0]&&P0.dr===D.face[1],'the figure faces the way the rules say ('+P0.dc+','+P0.dr+')');
+  put(D,8,8);D.face=[0,1];put(th,10,8);X.FX.emit('turn',{u:D});X.FX.emit('turn',{u:th});ok(D.face[0]===1&&D.face[1]===0,'a unit that struck nobody squares up to the nearest foe at the end of its turn: '+D.face);
+  D.face=[0,1];X.FX.emit('turn',{u:D});await X.strike(D,th,Object.assign({},atk(D),{sure:1}));put(th,8,7);X.FX.emit('turn',{u:th});ok(D.face[0]===1,'one that struck keeps facing its foe: '+D.face);
   put(D,8,8);D.face=[0,-1];put(th,8,7);heal(D)}
  console.log('facing: ok');
 
