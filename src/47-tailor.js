@@ -16,7 +16,7 @@ const FINISH={steel:{n:'Bright steel',r:['o','p','q'],p:0},blackened:{n:'Blacken
  lacquer:{n:'Black lacquer',r:['0','1','G'],p:180,east:1},shu:{n:'Red lacquer',r:['f','g','h'],p:220,east:1}};
 /* the dye that matches each banner colour (tailor's "use banner colours") */
 const BANNERDYE={'5':'verdigris',c:'ochre',g:'crimson',x:'sky',D:'violet',l:'bone',G:'charcoal',B:'forest',E:'ember',j:'brown',y:'saffron',p:'grey'};
-const TLR_PARTS=[['cloth','Cloth','Tunics, robes, padding, hoods and cloaks'],['accent','Trim','Sashes, trims, plumes, tabards and shield faces'],['metal','Metal','Mail, plate, helmets and scale']];
+const TLR_PARTS=[['cloth','Cloth','Tunics, robes, padding, hoods, caps and cloaks'],['accent','Trim','Sashes, trims, plumes, tabards and shield faces'],['metal','Metal','Mail, plate, steel helmets and scale']];
 function dyeRamp(k){const d=DYES[k];return d?d.r.slice():null}
 function finishRamp(k){const f=FINISH[k];return f?f.r.slice():null}
 /* a clean colours object or null (absent fields are the plain look) */
