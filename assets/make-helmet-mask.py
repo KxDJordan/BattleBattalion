@@ -19,6 +19,7 @@
 #  4. each region takes its key whole (shading and specks inside it follow it), the anti-aliased rim between ink and fill joins its nearest
 #     region; the outline stays black.
 import sys, os, importlib.util
+sys.dont_write_bytecode = True
 import numpy as np
 from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__)); D = os.path.join(HERE, 'parts2')
@@ -86,7 +87,7 @@ def classify(i, P):
     for r in R:
         if cls == 'n': r['key'] = 'k'
         elif cls == 'p':
-            r['key'] = 'r' if grey(r) else 'b' if gold(r) else ('b' if 40 <= r['H'] <= 110 else 'r') if r['C'] < 30 else 'g'
+            r['key'] = 'r' if grey(r) else 'b' if gold(r) or 40 <= r['H'] <= 110 else 'r' if r['C'] < 30 else 'g'   # on a helm: steel, gold / brass, else its cloth
         else:
             r['key'] = 'r' if near(r, P0) else 'b' if gold(r) else 'm' if brown(r) and not near(r, P0, 24) else 'g'
     if i in PALS:

@@ -81,7 +81,7 @@ function usFinOf(k){let f=null;try{let t=typeof finishRamp==='function'?finishRa
 function usFin(k){if(!k||k==='steel')return null;let r=US_RC.get('f'+k);if(r!==undefined)return r;const f=usFinOf(k);r=f?{steel:usRamp(f[0],1),plate:usRamp(f[0],2),iron:usRamp(f[1],1),fin:k}:null;US_RC.set('f'+k,r);return r}
 function usColSig(m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;return c&&typeof c==='object'?(c.cloth||'')+'/'+(c.accent||'')+'/'+(c.metal||''):''}
 function usLivery(S,m){const col=typeof mercLook==='function'?mercLook(m):m&&m.colors;if(!col||typeof col!=='object')return;const cr=usDye(col.cloth),ar=usDye(col.accent),mf=usFin(col.metal);
- if(cr){S.clothR=cr;S.legR=usRamp(cr.t,0);if(S.hat==='hood')S.hatR=cr}
+ if(cr){S.clothR=cr;S.legR=usRamp(cr.t,0);if(S.hat==='hood'||S.hat==='cap'||S.hat==='armcap')S.hatR=cr}   // cloth and leather headgear take the cloth (Detail High: the helmet mask)
  if(ar){S.accR=ar;S.shR=ar;S.tabR=ar;S.sashR=ar;S.trim=ar;if(S.hat==='band'||S.hat==='feather')S.hatR=ar}
  if(mf)S.MR=Object.assign({},USR,mf)}
 function usHairR(a){const k='h'+a.join('');let r=US_RC.get(k);if(!r){r=usRamp(a.join(''),1);US_RC.set(k,r)}return r}
