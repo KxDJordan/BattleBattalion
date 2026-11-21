@@ -69,7 +69,7 @@ function makeContext(){const els=new Map(),store=new Map();
  X.FX.on=null;X.SPEEDF=0;return X}
 
 /* ---------- the check, wrapped around the real strike() ---------- */
-const S={trU:0,trT:0,lucky:0,luckySaved:0,bwise:0,tired:0,tiredT:0,armP:0,sidestep:0,brace:0,crush:0,reach:0,tal:0,swap:0,wmod:0,weak:0,undy:0,undySaved:0,marked:0,slung:0,n:0,hits:0,expHits:0,varHits:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
+const S={trU:0,trT:0,lucky:0,luckySaved:0,bwise:0,tired:0,tiredT:0,armP:0,sidestep:0,brace:0,crush:0,reach:0,tal:0,swap:0,wmod:0,weak:0,undy:0,undySaved:0,marked:0,slung:0,n:0,hits:0,expHits:0,varHits:0,block:0,expBlk:0,varBlk:0,blkCh:0,blkBroke:0,behind:0,flank:0,atMin:0,atMax:0,kills:0,lethal:0,armored:0,bare:0,broke:0,high:0,low:0,statuses:0,kb:0,splash:0,auto:0,magic:0,
  head:0,body:0,headAtMax:0,cover:0,ffRisk:0,stray:0,riposte:0,free:0,pierce:0,split:0,splitBroke:0,bleed:0,shake:0,inj:0,morAtt:0,morDef:0,byAb:{},byWt:{}};
 const snap=(X,u,t)=>JSON.stringify([u,t,X.B.tiles]);
 let DIRECTED=false;const nested=[];                 // strikes started from inside another strike (strays, ripostes): {u,t,o}
@@ -97,18 +97,24 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
     if(!DIRECTED&&!(o&&(o.splash||o.auto||o.free)))ok(!f.blocked,'the game ordered a strike with no line of fire: '+tag);
     if(f.cover>0&&!sure)S.cover++;
     if(f.ff.length){S.ffRisk++;ok(f.ff.every(x=>x.t&&x.t.side===u.side&&x.t!==u&&x.ch>0&&L.ff.includes(x.t))&&f.ff.length===L.ff.length,'forecast friendly-fire list differs from losInfo: '+tag)} }
-  const hp0=t.hp,arm0=t.arm,helm0=t.helm,shp0=t.shp,shield0=t.shield,st0=Object.assign({},t.st),inj0=t.m?t.m.inj.length:0,heavyAt=Math.max(8,Math.ceil(t.hpMax*X.HEAVYHIT)),hd=X.B.tiles[u.r*X.BW+u.c].h-X.B.tiles[t.r*X.BW+t.c].h,d0=dist(u,t);let ev=null,died=false,injured=false;
-  const on0=X.FX.on;X.FX.on=(type,d)=>{if(type==='hit'&&d.u===u&&d.t===t&&!ev){ev={dmg:d.dmg,armor:d.armor,head:!!d.head,hpAt:t.hp};died=t.hp<=0}if(type==='injury'&&d.t===t)injured=true;if(on0)on0(type,d)};
+  const hp0=t.hp,arm0=t.arm,helm0=t.helm,shp0=t.shp,shield0=t.shield,st0=Object.assign({},t.st),inj0=t.m?t.m.inj.length:0,heavyAt=Math.max(8,Math.ceil(t.hpMax*X.HEAVYHIT)),hd=X.B.tiles[u.r*X.BW+u.c].h-X.B.tiles[t.r*X.BW+t.c].h,d0=dist(u,t);let ev=null,blk=null,died=false,injured=false;
+  const on0=X.FX.on;X.FX.on=(type,d)=>{if(type==='hit'&&d.u===u&&d.t===t&&!ev){ev={dmg:d.dmg,armor:d.armor,head:!!d.head,hpAt:t.hp};died=t.hp<=0}if(type==='miss'&&d.u===u&&d.t===t&&d.block!=null&&!blk)blk={n:d.block};if(type==='injury'&&d.t===t)injured=true;if(on0)on0(type,d)};
   let hit;try{hit=await strike0(u,t,a,o)}finally{X.FX.on=on0}
   const kids=nested.slice(mark).filter(x=>x.u===u||x.t===u);
-  S.n++;if(f.crush>0)S.crush++;if(f.reach)S.reach++;S.expHits+=f.hit/100;S.varHits+=f.hit/100*(1-f.hit/100);const id=a.id||a.n;S.byAb[id]=(S.byAb[id]||0)+1;S.byWt[u.wpn.wt]=(S.byWt[u.wpn.wt]||0)+1;
+  S.n++;if(f.crush>0)S.crush++;if(f.reach)S.reach++;S.expHits+=f.hit/100;S.varHits+=f.hit/100*(1-f.hit/100);{const pb=f.hit/100*f.block/100;S.expBlk+=pb;S.varBlk+=pb*(1-pb);if(f.block>0)S.blkCh++}const id=a.id||a.n;S.byAb[id]=(S.byAb[id]||0)+1;S.byWt[u.wpn.wt]=(S.byWt[u.wpn.wt]||0)+1;
   if(f.mor.att)S.morAtt++;if(f.mor.def)S.morDef++;if(o&&o.free)S.free++;if(o&&o.stray)S.stray++;
   if(a.split){ok(hit===!!shield0,'splitting a shield must always land on a shield bearer: '+tag);ok(!ev&&t.hp===hp0&&t.arm===arm0&&t.helm===helm0,'splitting a shield hurt its bearer: '+tag);
    if(shield0){const sd=shp0-t.shp;S.split++;S.hits++;ok(f.shield&&f.shield.hp===shp0&&sd>=f.shield.min&&sd<=f.shield.max,`shield damage ${sd} outside forecast ${f.shield&&f.shield.min}-${f.shield&&f.shield.max}: `+tag);
     if(!t.shield){S.splitBroke++;ok(f.shield.brk&&t.shp===0,'the shield broke but the forecast said it could not: '+tag)}else ok(!f.shield.sure,'the forecast promised a broken shield: '+tag)}
    else ok(f.shield===null,'forecast shows shield damage on a unit without a shield: '+tag);return hit}
   if(a.shieldD&&shield0){ok(f.shield&&f.shield.min===Math.min(a.shieldD,shp0),'a Petard forecasts its shield damage: '+tag);ok(!hit||!t.alive||shp0-t.shp===Math.min(a.shieldD,shp0),'a Petard took '+(shp0-t.shp)+' off the shield: '+tag)}   // the gun trees: a Petard's charge on a raised shield
+  else if(blk){S.block++;S.hits++;const sd=shp0-t.shp;   // a blow taken on the shield (60b-block.js): no damage, the shield loses what the forecast said
+   ok(!hit&&shield0&&f.block>0&&f.blkSh&&f.shield===null&&!sure,'a block the forecast did not offer: '+tag);
+   ok(sd===blk.n&&sd>=f.blkSh.min&&sd<=f.blkSh.max&&f.blkSh.hp===shp0,`blocked: shield damage ${sd} outside forecast ${f.blkSh.min}-${f.blkSh.max}: `+tag);
+   if(!t.shield){S.blkBroke++;ok(f.blkSh.brk&&t.shp===0,'a block split the shield but the forecast said it could not: '+tag)}else ok(!f.blkSh.sure,'the forecast promised a block would split the shield: '+tag)}
   else ok(f.shield===null&&t.shp===shp0,'a blow that does not split shields damaged one: '+tag);
+  if(f.bside==='behind'){S.behind++;ok(f.block===0,'a shield blocked from behind: '+tag)}else if(f.bside==='flank')S.flank++;
+  ok(f.block===0||shield0&&f.bside,'a block chance without a raised shield: '+tag);ok(Math.abs(f.land-f.hit*(100-f.block)/100)<.01,'forecast land is not hit x (1 - block): '+tag);
   if(!hit){const strays=kids.filter(x=>x.u===u&&x.o.stray),rips=kids.filter(x=>x.u===t&&x.t===u&&x.o.free==='riposte'),thorn=rips.length&&u.elite&&(u.elite.includes('thorns')||(u.elite.includes('volatile')&&!u.alive));   // a riposte into a Thorned elite costs the riposter; one that kills a Volatile elite takes its blast
    ok(!ev&&(thorn||t.hp===hp0&&t.arm===arm0&&t.helm===helm0),'a miss did damage: '+tag);ok(!sure,'a strike that cannot miss missed: '+tag);
    for(const x of strays)ok(f.ff.some(y=>y.t===x.t),'a shot strayed into an ally the forecast did not name: '+tag);ok(strays.length<=1,'one miss strayed twice: '+tag);
@@ -268,6 +274,8 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  await sweep(X,company(X,TIERS[2],SEED+5),6000);
  console.log(`${S.n-nBattle} strikes checked`);
  const sd=Math.sqrt(S.varHits),z=(S.hits-S.expHits)/sd;
+ {const zb=S.varBlk>0?(S.block-S.expBlk)/Math.sqrt(S.varBlk):0;console.log(`blocks: ${S.block} of ${S.blkCh} strikes with a block chance (forecast expected ${S.expBlk.toFixed(1)}, z=${zb.toFixed(2)}), ${S.blkBroke} split a shield; ${S.flank} from the flank, ${S.behind} from behind`);
+  ok(Math.abs(zb)<4.5,'blocks drift from the forecast block chance: z='+zb.toFixed(2));ok(S.block>0,'no strike was blocked')}
  console.log(`\ntotal ${S.n} strikes, ${S.hits} hits (forecast expected ${S.expHits.toFixed(0)}, z=${z.toFixed(2)}), ${S.kills} kills, ${S.lethal} forecast lethal`);
  console.log(`armor: ${S.armored} armored (${S.broke} broken through), ${S.bare} bare; height: ${S.high} from above, ${S.low} from below; ${S.magic} magic, ${S.splash} splash, ${S.auto} arcs; ${S.statuses} statuses applied`);
  console.log(`range tightness: ${S.atMin} hits landed exactly on the forecast minimum, ${S.atMax} on the maximum`);

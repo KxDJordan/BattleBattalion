@@ -64,7 +64,7 @@ async function arena(seed,ros,foes,f){const G=X.G;G.roster=ros;G.day=10;X.seedRn
  let n=0;while(!b.over&&(b.busy||b.cur.side!==0)){await null;if(++n>3e6)fail('arena never reached a company turn')}
  const P=b.units.filter(u=>u.side===0),E=b.units.filter(u=>u.side===1);
  const park=()=>{b.tiles.forEach(t=>{t.t='ground';t.h=0});b.units.forEach((u,i)=>{u.alive=true;u.gone=null;u.down=false;u.hp=u.hpMax=Math.max(u.hpMax,80);u.arm=u.armMax;u.helm=u.helmMax;u.st={};u.buffs=u.buffs.filter(x=>x.foe);
-   u.mor=3;u.fearless=true;u.aoo=0;u.rooted=false;u.dazed=false;u.fat=0;u.ap=u.apMax;u.dnc=0;u.bonusAP=0;u.used={};u.qsT=0;u.slipT=0;u.c=i;u.r=u.side?0:BH-1});b.order=[];b.busy=true;b.cur=P[0];X.foeAuras();X.auraScan()};
+   u.mor=3;u.fearless=true;u.aoo=0;u.rooted=false;u.dazed=false;u.fat=0;u.ap=u.apMax;u.dnc=0;u.bonusAP=0;u.used={};u.qsT=0;u.slipT=0;u.c=i;u.r=u.side?0:BH-1;u.face=u.side?[0,-1]:[0,1]});b.order=[];b.busy=true;b.cur=P[0];X.foeAuras();X.auraScan()};
  park();return{b,P,E,park}}
 const put=(u,c,r)=>{u.c=c;u.r=r};
 /* ---- forecast == strike for every blow (test/forecast.js's check, condensed): the hit chance, the damage to hitpoints and armor, kills, statuses ---- */
@@ -187,7 +187,7 @@ section('the new passives, one by one');
   // Unmoved: a melee miss on you gives AP, two at most
   F(u,{missAP:1,kbImm:1});u.bonusAP=0;u.umvN=0;e.ms=-500;for(let i=0;i<4;i++)await X.strike(e,u,atk(e));ok(u.bonusAP===2&&X.kbImmune(u),'Unmoved: +1 AP a miss, at most 2, no knockback: '+u.bonusAP);e.ms=60;
   // Shield bind: needs a raised shield; the attacker is off balance
-  F(u,{bindOff:1});u.shield=true;e.st={};e.ms=-500;await X.strike(e,u,atk(e));ok(e.st.offbal===1,'Shield bind: the attacker is off balance');const md0=X.eff(e,'md');X.foeAuras();ok(X.eff(e,'md')<=md0,'… −10 melee defense');u.shield=false;e.ms=60;e.st={};X.foeAuras();
+  F(u,{bindOff:1});u.shield=true;e.st={};e.ms=-500;for(let i=0;i<6&&e.st.offbal!==1;i++)await X.strike(e,u,atk(e));ok(e.st.offbal===1,'Shield bind: the attacker is off balance');const md0=X.eff(e,'md');X.foeAuras();ok(X.eff(e,'md')<=md0,'… −10 melee defense');u.shield=false;e.ms=60;e.st={};X.foeAuras();
   // Counter-cut: a chance free attack on a melee miss (one-handed, no shield)
   F(u,{counter:1});u.shield=false;u.dw=null;e.ms=-500;let cc=0;const on=X.FX.on;X.FX.on=(t,d)=>{if((t==='hit'||t==='miss')&&d.u===u&&d.t===e)cc++};const fc=X.forecast(e,u,atk(e));ok(fc.counter===1&&!fc.riposte,'the forecast names the Counter-cut chance');
   for(let i=0;i<6&&!cc;i++)await X.strike(e,u,atk(e));X.FX.on=on;ok(cc===1,'Counter-cut struck back');e.ms=60;
