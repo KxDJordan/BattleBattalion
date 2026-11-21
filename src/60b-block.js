@@ -51,6 +51,10 @@ function shieldDef(t,k){return t&&t.shield&&t.shb?(t.shb[k]||0)+shWallOf(t,k):0}
 // Can t's shield take u's attack a at all (whatever the side)?
 function blockOK(u,t,a,o){return!!(u&&t&&a&&t!==u&&t.alive&&t.shield&&t.shb&&t.shp>0&&!a.noDmg&&!a.split&&!a.bomb&&!a.sure&&!a.unblock&&!(o&&(o.auto||o.stray))&&!pvSure(u,a)
   &&t.mor!==0&&!(t.st&&(t.st.stun>0||t.st.netted>0)))}
+// The block chance of t's raised shield from the front against a blow (k 'md') or a shot (k 'rd'), as the inspector shows it.
+function blockFront(t,k){if(!t||!t.shield||!t.shb||!(t.shp>0))return 0;return clamp(Math.round(shieldDef(t,k)*(k==='md'?BLK.km:BLK.kr)-tiredPen(t)),0,BLK.max)}
+// An item's block chances from the front, blow and shot, for a shield of md / rd (no perks): the shop and the stash show them.
+const blockItem=(md,rd)=>[clamp(Math.round((md||0)*BLK.km),0,BLK.max),clamp(Math.round((rd||0)*BLK.kr),0,BLK.max)];
 // Chance in percent (0..BLK.max) that a hit of u's attack a on t is blocked by t's shield.
 function blockChance(u,t,a,o){if(!blockOK(u,t,a,o))return 0;const side=blockSide(u,t);if(!side)return 0;
  const melee=!a.magic&&(!!a.melee||mdist(u,t)<=1);let p=shieldDef(t,melee?'md':'rd')*(a.magic?BLK.magic:1)*(melee?BLK.km:BLK.kr);if(side===1)p*=BLK.side;p-=tiredPen(t);
