@@ -222,7 +222,7 @@ function ptHat(L,P,E){const t=P.hat;if(!t)return;if(ptHatBg(L,P,E))return;const 
  else if(t==='straw'){const y0=E.y0-3;ptH(L,12,19,y0,c[1]);ptR(L,11,y0+1,20,y0+4,c[1]);ptH(L,13,16,y0,c[2]);ptH(L,12,14,y0+1,c[2]);ptS(L,12,y0+2,c[2]);ptV(L,20,y0+1,y0+4,c[0]);ptV(L,19,y0+2,y0+4,c[0]);
   ptH(L,11,20,y0+4,'i');ptH(L,11,14,y0+4,'j');ptH(L,5,26,y0+5,c[1]);ptH(L,4,27,y0+6,c[1]);ptH(L,5,15,y0+5,c[2]);ptH(L,18,27,y0+6,c[0]);ptH(L,6,26,y0+7,c[0]);
   for(let x=6;x<=25;x+=3)ptS(L,x,y0+6,c[0]);for(let x=E.X0(y0+8);x<=E.X1(y0+8);x++){const k=ptG(L,x,y0+8);if(k===sk[0])ptS(L,x,y0+8,sk[1])}}
- else if(t==='kettle'||t==='nasal'||t==='cap'){const r=t==='cap'?PT_CLOTH.tan:PT_CLOTH.steel,y0=E.y0-2,hw0=P.head.w[3]+1;
+ else if(t==='kettle'||t==='nasal'||t==='cap'){const r=t==='cap'?P.capC&&ptCl(P.capC)||PT_CLOTH.tan:PT_CLOTH.steel,y0=E.y0-2,hw0=P.head.w[3]+1;
   for(let y=y0;y<=ey-4;y++){const d=y-y0,hw=d===0?hw0-4:d===1?hw0-2:d===2?hw0-1:hw0;for(let x=16-hw;x<=15+hw;x++)ptS(L,x,y,x>=15+hw-1?r[0]:(d===1&&x<15&&x>16-hw+1)||(d===2&&x<12)?r[2]:r[1])}
   if(t!=='cap'){ptS(L,12,y0+1,'r');ptS(L,11,y0+2,'r')}
   if(t==='kettle'){ptH(L,16-hw0-3,15+hw0+3,ey-4,r[1]);ptH(L,16-hw0-3,14,ey-4,r[2]);ptH(L,16-hw0-2,15+hw0+2,ey-3,r[0]);ptS(L,15+hw0+3,ey-4,r[0]);for(let x=E.X0(ey-2);x<=E.X1(ey-2);x++)if(ptG(L,x,ey-2)===sk[0])ptS(L,x,ey-2,sk[1])}
@@ -525,7 +525,7 @@ function ptDye(k){if(!k)return null;let a=null;try{if(typeof dyeRamp==='function
 function ptFin(k){if(!k||k==='steel'||typeof usFinOf!=='function')return null;const f=usFinOf(k);if(!f)return null;const t=f[0].split('');t.push(f[1][0]);return t}
 function ptColSig(m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;return c&&typeof c==='object'?(c.cloth||'')+'/'+(c.accent||'')+'/'+(c.metal||''):''}
 function ptLivery(P,m){const c=typeof mercLook==='function'?mercLook(m):m&&m.colors;if(!c||typeof c!=='object')return;const cl=ptDye(c.cloth),ac=ptDye(c.accent),mt=ptFin(c.metal);if(!cl&&!ac&&!mt)return;
- P.liv={cl,ac,mt};if(cl){P.ragC=cl;P.robeC=cl;P.clothC=cl;if(P.hat==='hood')P.hatC=cl}if(ac){P.shC=ac;if(P.hat==='band'||P.hat==='feather')P.hatC=ac}}
+ P.liv={cl,ac,mt};if(cl){P.ragC=cl;P.robeC=cl;P.clothC=cl;if(P.hat==='hood'||P.hat==='armcap')P.hatC=cl;if(P.hat==='cap')P.capC=cl}if(ac){P.shC=ac;if(P.hat==='band'||P.hat==='feather')P.hatC=ac}}
 function ptPick(R,a){return a[R(a.length)]}
 function ptMercSpec(m){const FB=m.fabled&&typeof FABLED==='object'?FABLED[m.fabled]:null;if(FB)m={id:0,name:'fabled:'+m.fabled,race:m.race,bg:m.bg,eq:m.eq,gift:m.gift,perks:m.perks,mast:m.mast,colors:m.colors};const seed=ptHash(Number.isInteger(m.pseed)?'hero:'+m.pseed:(m.id|0)+':'+(m.name||'')),R=ptRng(seed),race=RACE[m.race]?m.race:'human',bg=m.bg,eq=m.eq||{},fem=R(100)<42;
  const P={seed,race,fem,face:{},marks:{}};

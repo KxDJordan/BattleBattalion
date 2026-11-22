@@ -271,7 +271,7 @@ section('saves: the PKV 3 refit (a monk\'s or pit fighter\'s lost tree traded fo
   p.lvl=6;p.trees=['wrestle','vanguard','brawler','survivor'];p.perks=['vanguard.1','brawler.1'];p.pp=1;
   s.lvl=6;s.trees=['gunner','survivor','scout','skirmisher'];s.perks=['gunner.1','gunner.3','survivor.1'];s.pp=0;   // a pkv 2 save: Musketry's changed tiers were refunded already
   c.lvl=5;c.trees=['shadow','brawler','duelist','rogue'];c.perks=['brawler.1','brawler.2','shadow.1'];c.pp=0;
-  X.mode='world';ok(X.save(),'save');const g=JSON.parse(X.store.get(X.SAVEKEY));ok(g.pkv===X.PKV&&X.PKV===3,'a save carries the perk version 3');g.pkv=2;delete g.refund;delete g.refundWhy;g.note=null;
+  X.mode='world';ok(X.save(),'save');const g=JSON.parse(X.store.get(X.SAVEKEY));ok(g.pkv===X.PKV&&X.PKV>=3,'a save carries the perk version (3 or later)');g.pkv=2;delete g.refund;delete g.refundWhy;g.note=null;
   X.store.set(X.SAVEKEY,JSON.stringify(g));const r=X.readSave();ok(r.state==='ok'&&r.g.pkv===X.PKV&&r.g.v===X.SAVEVER,'a pkv 2 save loads, refit, same save version');
   const by=id=>r.g.roster.find(q=>q.id===id),A2=by(a.id),P2=by(p.id),S2=by(s.id),C2=by(c.id);
   ok(A2.trees.join()==='wrestle,pugilist,willow,survivor'&&A2.perks.join()==='willow.1,survivor.1'&&A2.pp===3,'the monk trades Scout and Bulwark for the Wrestler and the Pugilist, 3 points back: '+A2.trees+' '+A2.perks+' pp '+A2.pp);

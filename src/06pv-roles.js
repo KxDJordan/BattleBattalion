@@ -32,7 +32,7 @@ if(typeof icPerk==='function'&&!icPerk.rl){const ip0=icPerk;icPerk=function(id){
   for(const [x,a] of [[5,-14],[14,4],[25,16]])pkAt(g,x,14,a,1,g=>{pkFill(g,pkRect(-.7,-11,1.4,12,.4),'wood',{k:.3,lw:PK.lw*.7});pkFill(g,pkPoly([0,-12.5,2.2,-9,-2.2,-9]),'cloth',{k:.3,lw:PK.lw*.7})})};
  if(typeof PK_SQ==='object'&&PK_SQ)PK_SQ['st-suppr']=P['st-suppr'];
  const M={'vanguard.1':['ab-lunge','up'],'vanguard.3':['ab-warcry','bolt'],'vanguard.5':['morale-1','up'],'vanguard.6':['ab-decap','drop'],
-  'bulwark.1':['ab-indom','ring'],'bulwark.2':['armor-heavy','ring'],'bulwark.5':['ab-batter','bolt'],'bulwark.cap':['armor-heavy','plus'],
+  'bulwark.2':['armor-heavy','ring'],'bulwark.5':['ab-batter','bolt'],'bulwark.cap':['armor-heavy','plus'],
   'marksman.1':['ab-quickshot','up'],'marksman.6':['st-suppr',null],'skirmisher.3':['st-fleet','up'],'duelist.3':['ab-mark','eye'],'duelist.5':['riposte','ring'],
   'brute.3':['ab-crush',null],'brute.4':['ab-whirl',null],'brute.5':['daze','bolt'],'shieldbearer.3':['shieldwall','plus'],'shieldbearer.5':['ab-slam','up'],
   'tactician.5':['ab-command','up'],'survivor.4':['ab-poison','up'],'medic.5':['ab-surge','plus'],'scout.5':['st-marked','eye'],'berserker.4':['enraged','drop'],
@@ -43,6 +43,6 @@ if(typeof icPerk==='function'&&!icPerk.rl){const ip0=icPerk;icPerk=function(id){
  // Juggernaut: the plate charging forward, speed lines behind it
  P['perk-heavyarmor.3']=g=>{pkLine(g,'M1.5 9 L8 9 M0.5 14.5 L7 14.5 M1.5 20 L8 20',1.8,'#ffffff',.85);if(P['armor-heavy'])pkAt(g,17,14,-8,.8,g=>{g.translate(-16,-16);P['armor-heavy'](g)});seal(g)}})();
 /* the ids above, for the tests and the icon sheet */
-const RL_ICONS=['vanguard.1','vanguard.3','vanguard.5','vanguard.6','bulwark.1','bulwark.2','bulwark.5','bulwark.cap','marksman.1','marksman.6','skirmisher.3','duelist.3','duelist.5',
+const RL_ICONS=['vanguard.1','vanguard.3','vanguard.5','vanguard.6','bulwark.2','bulwark.5','bulwark.cap','marksman.1','marksman.6','skirmisher.3','duelist.3','duelist.5',
  'brute.3','brute.4','brute.5','shieldbearer.3','shieldbearer.5','tactician.5','survivor.4','medic.5','scout.5','berserker.4','sharpshooter.5','gunner.3','thrower.5','qi_r.2','chi_m.5',
  'weapons.sword','weapons.axe','weapons.mace','weapons.dagger','weapons.spear','weapons.shield','medarmor.1','heavyarmor.1','heavyarmor.2','heavyarmor.3'];

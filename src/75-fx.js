@@ -688,7 +688,7 @@ const FX_ID={conjure:'tgconj',swarm:'tgconj',ahurl:'tghurl',comet:'tgcomet',tsta
  bindshot:'bindshot',starpierce:'starpierce',spiritarrow:'spirit',pparrow:'pparrow',volley:'volley',headshot:'headshot',pshot:'pshot',mark:'mark',breath:'breath',
  flurry:'multi',hundred:'multi',earthsplit:'quake',staffquake:'quake',palm:'palm',shatter:'palm',overload:'overload',dragon:'dragon',runeedge:'runeedge',blinkstrike:'blinkstr',
  manashield:'manashield',starfall:'starfall',avatar:'avatar',rage:'rage',decap:'decap',kick:'kick',lotus:'lotus',surge:'surge',secwind:'secwind',
- bandage:'bandage',triage:'bandage',tumble:'tumble',vanish:'vanish',bastion:'bastion',phalanx:'phalanx',parry:'parry',masterstroke:'master',whirl:'round',cleave:'round'};
+ bandage:'bandage',triage:'bandage',tumble:'tumble',relieve:'relieve',vanish:'vanish',bastion:'bastion',phalanx:'phalanx',parry:'parry',masterstroke:'master',whirl:'round',cleave:'round'};
 const FX_BOWAB=ab=>ab.needs==='bow'||(Array.isArray(ab.needs)&&ab.needs.includes('bow'))||(ab.wpn&&B&&B.cur&&B.cur.wpn&&B.cur.wpn.wt==='bow');
 const FX_HINT2={swap:()=>'swapk',volley:()=>'volley',leap:()=>'tumble',multi:()=>'multi',quake:()=>'quake',heal:ab=>ab.party?'lotus':'bandage',mark:()=>'mark',rage:()=>'rage',
  pierce:ab=>FX_BOWAB(ab)?'pshot':'stab',storm:ab=>FX_BOWAB(ab)?'tarrow':'overload',aura:ab=>ab.tgt==='self'?'avatar':FX_BOWAB(ab)?'aarrow':null,flame:ab=>FX_BOWAB(ab)?'farrow':null,
@@ -793,6 +793,7 @@ function fxCastN(u,t,ab,id,k,x,y,h,sp){if(fxCastA(u,t,ab,id,k,x,y,h,sp))return t
   case'surge':{const o=fxo(T_COL,x,y,0,600*sp,R_CHI);o.a=h+30;o.b=1;glyphFx('cross',x,y-h-14,14,700*sp,80*sp,null);ringFx(x,y,4,(ab.party||2)*30,640*sp,R_WHITE,0,.5,2);glowFx(x,y-h*.5,100,'r',.55,400);return true}
   case'secwind':{for(let i=0;i<fxN(14);i++){const yy=y-rr(4,h);spawn(K_STREAK,i%3?R_WIND:R_WHITE,x-rr(30,44),yy,rr(260,400),rr(-20,20),rr(.18,.28),1,0,1,i*.025*sp)}glyphFx('heart',x,y-h-8,12,600*sp,120*sp,null);ringFx(x,y,3,14,280*sp,R_WIND,0,.5);return true}
   case'bandage':if(t){const b=fxUP(t);for(let i=0;i<fxN(12);i++){const a=i/12*6.283*2;spawn(K_SQ,R_WHITE,b.x+Math.cos(a)*10,b.y-b.h*.45+i*1.5,-Math.sin(a)*60,Math.cos(a)*20,.3,1,0,1,i*.03)}}return true;
+  case'relieve':{puff(x,y,6);if(t){const b=fxUP(t);puff(b.x,b.y,6)}glyphFx('ic:ab-relieve',x,y-h-12,8,600*sp,0,null);return true}   // Relieve (64y-relieve.js): a scuff of dust at both tiles, the shield-and-arrows over the Bulwark
   case'tumble':puff(x,y,8);for(let i=0;i<fxN(6);i++)spawn(K_TRAIL,R_DUST,x+rr(-8,8),y-rr(0,10),rr(-60,60),rr(-80,-20),.3,1,60,2);return true;
   case'vanish':{for(let i=0;i<fxN(22);i++)spawn(K_SQ,i%3?R_SMOKE:R_DUST,x+rr(-14,14),y-rr(0,h),rr(-30,30),rr(-60,-10),rr(.5,.9),2,0,.9,rr(0,.1));glowFx(x,y-h*.4,40,'n',.4,260);return true}
   case'bastion':case'phalanx':case'parry':return false}

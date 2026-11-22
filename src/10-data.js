@@ -296,7 +296,8 @@ const STATUS={
    strike, fly on along the line into up to n more foes for 75%), party (also affects every ally within n tiles: buff, heal,
    rally), rally (lift one step of morale, up to steady), cleanse (status keys removed from the healed ally), rest (fatigue shed),
    vsHurt (more damage against a foe below half health), noBow (not with a bow in hand), nostun (the weapon's stun never rides on it),
-   noDmgTxt (the float of a no-damage hit), swapW (the weapon swap). fx is a hint for the presentation. */
+   noDmgTxt (the float of a no-damage hit), swapW (the weapon swap), perTurn (once a turn: u.usedT, cleared at the unit's turn),
+   tgtOK(u,t) (a filter on the targets of an enemy or ally ability), place (a place trade: no cast pose, 64y-relieve.js). fx is a hint for the presentation. */
 Object.assign(AB,{
  swap:{n:'Swap weapons',ap:2,fat:0,tgt:'self',swapW:1,fx:'swap',d:'Exchange the weapon in hand for your other one (2 AP, no fatigue). A shield is raised with a one-handed weapon or none, slung on the back with a two-handed one.'},
  decap:{n:'Decapitate',fat:20,tgt:'enemy',wpn:1,mult:1,vsHurt:.6,head:25,noBow:1,fx:'chop',d:'A stroke at the neck: +60% damage against a foe below half health, +25% chance to hit the head.'},
@@ -493,7 +494,7 @@ const MAST={
   [perkDef('Shock','A melee hit of yours that reaches hitpoints shakes the foe: it tests its morale (at +10 resolve)',{mod:{shock:10}})],[perkDef('Breakthrough','Regain 4 AP on a kill, once per turn',{flag:'berserk'})],
   [perkDef('Rout them','+10 to hit and +20% damage against a foe that is wavering, breaking or fleeing',{mod:{shakenHit:10,shakenDmg:.2}})],[perkDef('Terror','A foe you kill spreads fear: its allies within 3 tiles test their morale at 15 less resolve than they would',{mod:{killFear:15}})]]},
  bulwark:{n:'Bulwark',kind:'style',aff:['melee','shield','heavy'],d:'Holding the line',role:'The anchor: plants itself, turns blows aside on its armor and punishes whoever strikes it',tiers:[
-  [perkDef('Stand firm','+8 melee and ranged defense while you did not move on your last turn',{mod:{holdDef:8}})],[perkDef('Rooted','While you did not move on your last turn, your armor counts 60% more on the mitigation curve (the heavier the armor, the more this gives)',{mod:{holdMit:.6}})],
+  [perkDef('Relieve','Ability (3 AP, once a turn): trade places with an ally beside you, drawing no free attacks for either of you; neither of you counts as having moved',{ab:'relieve'})],[perkDef('Rooted','While you did not move on your last turn, your armor counts 60% more on the mitigation curve (the heavier the armor, the more this gives)',{mod:{holdMit:.6}})],
   [perkDef('Battle-forged','Your armor turns more of every blow aside: it counts 50% more on the mitigation curve, and the curve\'s ceiling is 10 points higher (the heavier the armor, the more this gives)',{flag:'forged',mod:{mitK:.5,mitCap:.1}})],[perkDef('Unmoved','You cannot be knocked back or dragged; every melee attack that misses you gives +1 AP on your next turn (at most +2 between your turns)',{flag:'kbImm',mod:{missAP:1}})],
   [perkDef('Iron retort','Against a foe that has attacked you since your last turn: +1% melee damage for every 10 points of body armor you still wear (at most +25%)',{mod:{armDmg:.01}})],[perkDef('Bastion','Ability: +20 melee and ranged defense, 20% less damage and no knockback until your next turn',{ab:'bastion'})]]},
  marksman:{n:'Marksman',kind:'style',aff:['ranged','bow'],d:'Bow work',role:'The volley archer: shoots often and on the move, and pins the enemy down with arrows',tiers:[

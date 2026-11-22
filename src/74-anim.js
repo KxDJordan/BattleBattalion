@@ -58,13 +58,13 @@ function anMove(u,s,kind){const t=anNow(),sp=anSp(),nh=anUH(u,u.c,u.r),oc=s.c,or
  if(kind===AN_WALK&&(!s.mv&&t-s.mend>90))s.wt0=t;
  s.mv=true;if(typeof fxAnimMove==='function')try{fxAnimMove(u,kind,oc,or,dist)}catch(e){}}
 function animEvent(type,d){if(!d)return;const t=anNow(),sp=anSp();
- if(type==='move'){if(d.u)anMove(d.u,anOf(d.u),-1)}
+ if(type==='move'){if(d.u){const s=anOf(d.u);anMove(d.u,s,d.step?AN_STEP:-1);if(d.face)anFace(s,d.face[0],d.face[1])}}   // d.step: a short step (Relieve's place trade); d.face: the way it turns once there
  else if(type==='kb'){if(d.t)anMove(d.t,anOf(d.t),AN_KB)}
  else if(type==='cast'){const u=d.u;if(!u)return;const s=anOf(u),ab=d.ab||{};if(ab.id==='swap'||ab.swap){anSwapPoll(u,s,anNow(),anSp());return}
   const fx=ab.fx||'';s.va=AN_VAR[fx]||'';s.vaId=ab.id||'';s.vaT=t;s.next=fx==='dive-land'?AN_DIVE:ab.id==='blink'||fx==='blink'?AN_BLINK:ab.id==='gale'?AN_LEAP:ab.id==='footwork'||fx==='dash'?AN_STEP:ab.dash||fx==='charge'?AN_DASH:ab.tgt==='move'&&ab.leap?AN_LEAP:-1;s.hold=false;
   if(d.t&&d.t!==u)anFace(s,d.t.c-u.c,d.t.r-u.r);else if(d.k>=0&&ab.tgt==='tile')anFace(s,d.k%BW-u.c,((d.k/BW)|0)-u.r);
   if(ab.reloadW||ab.id==='reload'){anAct(s,3,t,Math.max(1,560*sp),0,0);return}
-  if(ab.tgt==='aoe')anAct(s,1,t,260*sp,0,0);else if(!(ab.wpn||ab.id==='shove'||fx==='shove'||ab.tgt==='move'||ab.withdraw)){anAct(s,2,t,380*sp,0,0);s.hold=true}}
+  if(ab.tgt==='aoe')anAct(s,1,t,260*sp,0,0);else if(!(ab.wpn||ab.id==='shove'||fx==='shove'||ab.tgt==='move'||ab.withdraw||ab.place)){anAct(s,2,t,380*sp,0,0);s.hold=true}}
  else if(type==='spawn'){const u=d.u;if(!u)return;const s=anOf(u);s.dead=false;s.wd=false;s.c=u.c;s.r=u.r;s.h=anTileH(u.c,u.r);s.mv=false;s.hp=u.hp;s.lag=s.lag0=u.hp;s.arm=u.arm;s.helm=u.helm||0;if(!sp)return;
   s.spT=t;s.spK=u.side===0?0:u.risen?1:2;s.spD=(s.spK===1?620:s.spK===2?420:260)*sp;
   if(s.spK===0){const e=typeof EDGE==='object'&&EDGE?EDGE[0]:BH-1;s.fc=u.c;s.fr=u.r+(e>BH/2?1.4:-1.4);s.fh=s.h;s.mv=true;s.mt0=t;s.mdur=460*sp;s.mk=AN_WALK;s.hop=0;s.wt0=t;anFace(s,0,u.r-s.fr)}}   // a reserve walks in from beyond its own edge

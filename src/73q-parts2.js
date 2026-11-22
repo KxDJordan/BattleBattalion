@@ -232,17 +232,29 @@ function p2LivCol(c,i){const B=typeof BANNERC==='object'&&BANNERC[c];return B?hu
 function p2RampCol(r){if(!r||!r.t)return null;const n=r.t.length,b=r.b==null?1:r.b;return b+1<n?humMix(humRC(r),humRC(r,1),.3):humRC(r)}
 function p2DyeCol(k){return k&&typeof usDye==='function'?p2RampCol(usDye(k)):null}
 function p2FinCol(k){if(!k||k==='steel'||typeof usFin!=='function')return null;const f=usFin(k);return f?p2RampCol(f.steel):null}
-function p2Dress(L,ai){const S=L.S,w=typeof G==='object'&&G&&G.wearCol||{},m=L.m,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null;
+// the colours a merc's clothes take (cloth, accent, metal finish; flag: the company's livery), or null: worn as drawn
+function p2DressCols(L){const w=typeof G==='object'&&G&&G.wearCol||{},m=L.m,cs=m?(typeof mercLook==='function'?mercLook(m):m.colors):null;
  let cl=null,ac=null,mt=null,flag=false;
  if(cs&&typeof cs==='object'&&(cs.cloth||cs.accent||cs.metal)){cl=p2DyeCol(cs.cloth);ac=p2DyeCol(cs.accent);mt=p2FinCol(cs.metal)}
  else if(m&&w.cloth&&typeof mercLivery==='function'){const lv=mercLivery(m);if(lv){cl=p2LivCol(lv.c1,0);ac=p2LivCol(lv.c2,1);flag=true}}
- if(!cl&&!ac&&!mt)return null;
- const cls=P2_ACLASS[ai]||'c',eg=(P2A.p['torso'+ai].a||{}).eg||'r',R={b:mt};
+ return cl||ac||mt?{cl,ac,mt,flag}:null}
+// a piece's mask regions by its class (P2_ACLASS / P2_HCLASS): eg the emblem's ground key, TL the piece's layers
+function p2MaskCols(D,cls,eg,TL){const{cl,ac,mt,flag}=D,R={b:mt};
+ if(cls==='n')return null;
  if(cls==='c'){R.r=cl;R.g=ac;R.y=eg==='g'?cl:ac}
  else if(cls==='l'&&!flag){R.r=cl;R.g=ac;R.y=eg==='g'?cl:ac}
  else{R.r=cls==='p'?mt:null;R.g=cl;R.y=ac}
- const TL=P2A.p['torso'+ai].L;if(ac&&!flag&&!(TL.g&&(R.g===ac))&&!(TL.y&&R.y===ac))R.m=ac;   // no trim to take the accent: the belts and straps do
- return{R:R.r||R.g||R.b||R.y?R:null,leg:cl}}
+ if(ac&&!flag&&!(TL.g&&(R.g===ac))&&!(TL.y&&R.y===ac))R.m=ac;   // no trim to take the accent: the belts and straps do
+ return R.r||R.g||R.b||R.y||R.m?R:null}
+function p2Dress(L,ai){const D=p2DressCols(L);if(!D)return null;const T=P2A.p['torso'+ai];
+ const R=p2MaskCols(D,P2_ACLASS[ai]||'c',(T.a||{}).eg||'r',T.L);
+ return{R:R&&(R.r||R.g||R.b||R.y)?R:null,leg:D.cl}}
+/* a helmet's colours (Detail High), from the helmet mask (assets/make-helmet-mask.py: the armour mask's keys) by its class, as an armour's:
+   cloth hoods, caps, turbans, bandanas (c) and leather caps / fur pelts (l): r <- cloth, g (a band, a border) <- accent; steel helms (p):
+   r <- the metal finish (never the cloth), g (cloth on a helm: a lacquered, laced neck guard) <- cloth; plumes and crests (y) <- accent,
+   gold / brass fittings (b) <- the metal finish; bone, horn and straw (n) never. Wings, horns, gems, glass stay as drawn (black in the mask). */
+const P2_HCLASS='lcccl'+'cpppp'+'ppppp'+'ppppp'+'ppllnccppp'+'pppncccl'+'pp';
+function p2HelmDress(L,hi){if(hi<0)return null;const P=P2A.p['helm'+hi],D=P&&p2DressCols(L);return D?p2MaskCols(D,P2_HCLASS[hi]||'n','r',P.L):null}
 /* ---- surcoats (Detail High): the user's surcoat sheet (assets/parts2/surcoats.webp, cut by assets/make-surcoats.py into P2A coat0..9:
    0 plain, 1 per pale, 2 pales, 3 cross, 4 bend, 5 bordure, 6-9 a plain field with the place of a charge) drawn over the torso only, so
    the armour's own shoulders, collar and arms show. The design follows the livery's banner: its division (P2_COATDIV: per pale, paly,
@@ -269,7 +281,8 @@ function p2CoatTorso(tc,tn,C){const rec=!(typeof G==='object'&&G&&G.wearCol&&G.w
  if(P2_COATEM[d]&&typeof bnEmCanvas==='function'){const E=Ca.ex!=null?Ca:P2A.p.coat6.a,sz=Math.min(E.ew,E.eh)*1.05,px=Math.max(16,Math.round(sz*k));
   try{const ec=bnEmCanvas(C.em,cs.em,cs.fld,px);if(ec)g.drawImage(ec,(ox-x0+E.ex-sz/2)*k,(oy-y0+E.ey-sz/2)*k,sz*k,sz*k)}catch(e){}}
  c.coat=d;P2_PC.set(id,c);return c}
-function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1,K=k*HUM_A*hs.sc*P2.sc*(hs.race==='dwarf'?.96:1),mf=mir?-1:1;
+function p2Assets(L,face,k){const A=p2Assets0(L,face,k);A.helmR=p2HelmDress(L,A.helm);return A}
+function p2Assets0(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1,K=k*HUM_A*hs.sc*P2.sc*(hs.race==='dwarf'?.96:1),mf=mir?-1:1;
  const ho=p2Orc(hs,S),ai=p2Armor(L),leg=P2_LEGS.indexOf(P2_ARMOR[ai][1]),skin=ho&&S.skin===usSkin(PT_SKIN.orc)?P2_OSKIN:hs.orc?humLit(hs.S.skin):hs.C.skin,fem=!!hs.fem;
  const tone=hs.race==='human'&&!hs.orc&&/^s/.test((S.skin&&S.skin.t)||'')?null:skin;   // the sheet's own skin is a fair human's
  const dr=p2Dress(L,ai),RC=dr&&dr.R,lk=dr&&dr.leg;   // tailored colours or the company's cloth in the flag's colours
@@ -286,7 +299,7 @@ function p2Assets(L,face,k){const hs=humSpec(L),S=L.S,mir=face===1||face===2,f=1
  const tri=ho?null:p2Tribal(L,hs),hf=ho?'orch':tri?'trh':hs.el?(fem?'elff':'elfm'):fem?'headf':'head',h0=tri?'trh'+tri.i:hf+'0',HP=P2A.p[h0].a,hR=p2Rig(h0,HP.nx,HP.ny,{cx:HP.cx,cy:HP.cy,r:HP.r}),skull=loc(HP.cx-HP.nx,HP.cy-HP.ny);
  return{p2:1,hs,S,v:'f',f,mir,K,back:false,mf,face,T,LA,LB,tR:T.R,tw:1,legL,legY,legk,hx,hipY0,UBy0:hipY0-14,shA,shB,neck,wSide,oSide,sw0,so0,
   head:{n:'head0',R:hR,c:null},hR,R0:hR.r,skull,AW:arm(wSide),AO:arm(oSide),HW:hand(wSide==='a'?'hand_a':'hand_b'),HO:hand(oSide==='a'?'hand_a':'hand_b'),bk:new Map(),armor:ai,leg,tone,
-  hf,ho,tri,fem,helm:p2Helm(S),hair:ho?p2OHair(S,fem):hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el&&!ho,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25),beard:p2Beard(S,hs),beardC:p2BeardCol(S)}}
+  hf,ho,tri,fem,helm:p2Helm(S),helmR:null,hair:ho?p2OHair(S,fem):hs.el?p2EHair(S,fem):p2Hair(S,fem),ehair:!!hs.el&&!ho,hairC:humMix(humRC(S.hairR||usHairR(['i','H','k'])),humRC(S.hairR||usHairR(['i','H','k']),1),.25),beard:p2Beard(S,hs),beardC:p2BeardCol(S)}}
 /* the head attachment for an expression: head piece, hair (none under a helmet), helmet, race cues */
 function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
  return hskAtt(A,'p2head:'+ex,[-480,-640,480,420],g=>{const n=A.tri?'trh'+A.tri.i:(A.hf||'head')+ex,c=A.tri?p2TriHead(A.tri,ex,A.fem,A.tone):p2Piece(n,A.tone),R=A.hR,pk=P2A.k;
@@ -311,7 +324,7 @@ function p2HeadAtt(A,ex){const S=A.S,hs=A.hs,R0=A.R0,sk=A.skull;
   // the sheet beard: its mouth on the head's mouth (P2A anchors mx, my / bmx, bmy), over the hair, under the helmet; none under a full-face helmet
   if(A.beard>=0&&!P2_NOBEARD.has(A.helm)){const bn='beard'+A.beard,Ba=P2A.p[bn].a,bs=A.ho?P2.oBeard:1;put(bn,p2Piece(bn,null,A.beardC),bs,HA.bmx-R.px-Ba.mx*bs,HA.bmy-R.py-Ba.my*bs);A.drawn.beard=bn;
    const tn='otusk'+ex;if(A.ho&&P2A.p[tn]){put(tn,p2Piece(tn),1,-R.px,-R.py);A.drawn.tusk=tn}}   // a half-orc's tusks in front of the beard
-  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[n].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
+  if(A.helm>=0){const hn='helm'+A.helm,Hc=p2Piece(hn,null,null,null,null,A.helmR),Hm=P2A.p[hn].a,bt=P2_BOWL[A.helm]&&Hm.mtop!=null?Hm.mtop-.08*P2A.p[hn].h:P2_HTOP[A.helm]!=null?P2_HTOP[A.helm]*P2A.p[hn].h:Hm.btop,adj=P2_HADJ[A.helm]||[1,0,0],HP=P2A.p[n].a,x0=HP.sx0-HP.nx,x1=HP.sx1-HP.nx,s=((x1-x0)*1.06)/Hm.bw*adj[0];   // the helmet's body spans the skull's back and front edges with a margin
    put(hn,Hc,s,(x0+x1)/2+R0*adj[1]-Hm.bcx*s,top-R0*(.2-adj[2])-bt*s)}})}
 /* which head: HEAD_RULES over the unit's situation, held HEAD_HOLD ms, instant on hit and death */
 const P2_MEM=new WeakMap();

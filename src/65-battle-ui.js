@@ -100,7 +100,7 @@ function selAb(id){const u=B.cur;if(B.busy||u.side!==0)return;fcClear();const a=
  if(!now){abHint(id);if(shLocked(u,a))fxLockPopSafe(u);return}
  if(a.tgt==='self'){useAbility(u,a,key(u.c,u.r));return}
  if(a.tgt==='aoe'){if(!B.units.some(t=>t.alive&&t.side!==u.side&&mdist(u,t)===1)){toast('No foe is adjacent');return}useAbility(u,a,key(u.c,u.r));return}
- const ts=validTargets(u,a);if(!ts.size){toast('Nothing in reach for '+a.n);return}B.sel=id;B.targets=ts;B.selKind=a.tgt;updateBUI()}
+ const ts=validTargets(u,a);if(!ts.size){toast(typeof a.noTgt==='function'?a.noTgt(u):'Nothing in reach for '+a.n);return}B.sel=id;B.targets=ts;B.selKind=a.tgt;updateBUI()}
 // The tile (or the unit standing in front of it) under a board-space point; -1 off the board.
 function pickKey(mx,my){if(typeof pickAtBoard==='function')return pickAtBoard(mx,my);   // the renderer's picking follows the view rotation and the cliffs
  const us=B.units.filter(x=>x.alive).sort((a,b)=>(b.c+b.r)-(a.c+a.r));for(const x of us)if(Math.abs(mx-x.sx)<15&&my<x.sy+6&&my>x.sy-46)return key(x.c,x.r);
@@ -290,7 +290,7 @@ function updateBUI(){if(!B)return;const u=B.cur;if(!u)return;const mine=u.side==
   const swapOK=AB.swap&&(shAlt(u)||shCanSwap(u));if(abPeek==='swap'&&swapOK&&!show)show='swap';
   if(show){const sa=abilityInfo(u,show),pw=P?(show==='swap'?I.swap&&I.swap.why:I.ab[show]&&I.ab[show].why)||'':'',why=B.sel===show||FC.t?'':pw||shWhyNot(u,sa);
    let pl='';if(P&&B.sel===show&&!FC.t){const n=I.sel?I.sel.size:0;pl=sa.tgt==='enemy'||sa.tgt==='ally'?'<u class="pln">'+(n?n+' in reach from the planned tile':'none in reach from the planned tile')+'</u>':pw?'<u class="pln bad">'+esc(pw)+'</u>':''}
-   hdr=(show==='swap'?pic('swap',16,'a-burst'):abIcon(u,show,16))+abLine(u,sa)+(FC.armed?'<u>Tap again to strike</u>':FC.t&&FC.lock?'<u class="bad">'+SH_LOCKTXT+'</u>':FC.t&&FC.unl?'<u class="bad">'+SH_UNLOADTXT+'</u>':FC.t&&FC.blocked?'<u class="bad">No line of fire</u>':B.sel?(P&&B.targets&&!B.targets.size?'<u>Move first: '+(P.touch?'tap':'click')+' the planned tile again</u>':'<u>'+(sa.withdraw?'Tap again to leave the field':'Tap a '+(sa.tgt==='move'?'tile':sa.tgt==='ally'?'comrade':'foe'))+'</u>')+pl:why?'<u class="bad">'+(why===SH_LOCKTXT||/^Ranged lock/.test(why)?pic('ranged-lock',16,'a-burst'):'')+esc(why)+'</u>':'')}
+   hdr=(show==='swap'?pic('swap',16,'a-burst'):abIcon(u,show,16))+abLine(u,sa)+(FC.armed?'<u>Tap again to strike</u>':FC.t&&FC.lock?'<u class="bad">'+SH_LOCKTXT+'</u>':FC.t&&FC.unl?'<u class="bad">'+SH_UNLOADTXT+'</u>':FC.t&&FC.blocked?'<u class="bad">No line of fire</u>':B.sel?(P&&B.targets&&!B.targets.size?'<u>Move first: '+(P.touch?'tap':'click')+' the planned tile again</u>':'<u>'+(sa.withdraw?'Tap again to leave the field':typeof sa.selTxt==='function'?esc(sa.selTxt(u)):'Tap a '+(sa.tgt==='move'?'tile':sa.tgt==='ally'?'comrade':'foe'))+'</u>')+pl:why?'<u class="bad">'+(why===SH_LOCKTXT||/^Ranged lock/.test(why)?pic('ranged-lock',16,'a-burst'):'')+esc(why)+'</u>':'')}
   else if(P){const n=I.atk?I.atk.size:0,nb=ids.filter(id=>I.ab[id]&&I.ab[id].why).length;
    hdr=pic('ab-footwork',16,'a-step')+'<b>Move</b><span>'+P.cost+' AP · '+P.left+' left</span>'+(P.hz?'<u class="bad">Burning ground on the way</u>':'')+(I.lock&&shRangedW(u.wpn)?'<u class="bad">'+pic('ranged-lock',16,'a-burst')+'Ranged lock there</u>':'')
     +'<i>'+(n?n+(n===1?' foe':' foes')+' in reach from there':'No foe in reach from there')+(nb?' · '+nb+' greyed':'')+'</i><u>'+(P.touch?'Tap':'Click')+' again to move</u>'}

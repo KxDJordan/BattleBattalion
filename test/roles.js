@@ -87,7 +87,7 @@ let LC=987654321;const R=()=>{LC=(Math.imul(LC,1103515245)+12345)>>>0;return LC/
 section('catalog: a role for every tree, perks that build on it');
 { fresh(SEED);const M=X.MAST,AB=X.AB;
   for(const k in M){const T=M[k];ok(typeof T.role==='string'&&T.role.length>=20&&T.role!==T.d,k+': a role line of its own');
-   const n=T.p.filter(p=>p.ab).length;if(T.kind==='style')ok(n<=(['gunner','pistol','powder','wrestle','pugilist','willow'].includes(k)?2:1),k+': at most one ability ('+n+'; the firearm trees and the fist trees two, test/guntrees.js, test/fists.js)');if(T.kind==='gift')ok(n===2,k+': two abilities ('+n+')');
+   const n=T.p.filter(p=>p.ab).length;if(T.kind==='style')ok(n<=(['gunner','pistol','powder','wrestle','pugilist','willow','bulwark'].includes(k)?2:1),k+': at most one ability ('+n+'; the firearm trees, the fist trees and the Bulwark (Relieve and Bastion) two, test/guntrees.js, test/fists.js, test/bulswap.js)');if(T.kind==='gift')ok(n===2,k+': two abilities ('+n+')');
    for(const p of T.p)ok(typeof p.d==='string'&&p.d.length>=8&&!/undefined|NaN/.test(p.d),p.id+': a text')}
   // the mechanic keys of each tree (stats, flags, mods, weapon mods, abilities, the gift pool): no two trees the same
   const keys=T=>{const s=new Set();for(const p of T.p.concat(T.cap?T.cap.tiers.flat():[])){for(const q in p.st||{})s.add('st:'+q);if(p.flag)s.add('f:'+p.flag);for(const q in p.mod||{})s.add('m:'+q);for(const q in p.wmod||{})s.add('w:'+q+(p.wt?'/'+p.wt:''));if(p.ab)s.add('ab:'+p.ab);if(p.res||p.regen)s.add('res');if(p.quarry)s.add('q:'+p.quarry)}return[...s].sort().join(' ')};
@@ -106,7 +106,7 @@ section('catalog: a role for every tree, perks that build on it');
   for(const id of X.PERKV21)ok(X.pkHas('perk-'+id)||X.perkById(id).perk.ab,'painted icon perk-'+id);
   for(const id of X.RL_ICONS){ok(X.icResolve('perk-'+id)!=='none','pixel icon perk-'+id);ok(X.pkHas('perk-'+id),'painted icon perk-'+id)}
   ok(X.icResolve('st-suppr')!=='none'&&X.pkHas('st-suppr')&&X.STATUS.suppr,'the Suppressed status: both icons');
-  ok(M.marksman.p[1].ab==='volley'&&!M.vanguard.p.some(p=>p.ab)&&M.bulwark.p[5].ab==='bastion','Marksman has Volley, Vanguard no ability, Bulwark Bastion');
+  ok(M.marksman.p[1].ab==='volley'&&!M.vanguard.p.some(p=>p.ab)&&M.bulwark.p[5].ab==='bastion'&&M.bulwark.p[0].ab==='relieve','Marksman has Volley, Vanguard no ability, Bulwark Relieve and Bastion');
   console.log(Object.keys(M).length+' trees, each with its role; '+nk+' flags and mods read by the rules; '+X.PERKV21.length+' changed: ok') }
 section('FOEMAST: valid ids, coherent roles');
 { const FM=X.FOEMAST,EN=X.EN;let n=0;
@@ -114,7 +114,7 @@ section('FOEMAST: valid ids, coherent roles');
     const d=EN[id],w=d.w&&X.ITEMS[d.w],m=P.perk.mod||{};
     if(m.shelter||m.intercept)ok(d.shield,id+': '+pid+' needs a shield');if(m.twoIgn||m.sweep||m.twoDaze)ok(w&&w.two,id+': '+pid+' needs a two-handed weapon');
     if(m.mvShot||m.suppress)ok(d.rng||w&&X.isRangedW(w),id+': '+pid+' needs a bow')}}
-  ok(FM.thug.e.includes('shieldbearer.5')&&FM.braid.p.includes('vanguard.1')&&FM.barbhus.e.includes('bulwark.1'),'the brigand thug intercepts, the raider charges, the huscarl stands firm');
+  ok(FM.thug.e.includes('shieldbearer.5')&&FM.braid.p.includes('vanguard.1')&&FM.barbhus.e.includes('bulwark.2'),'the brigand thug intercepts, the raider charges, the huscarl is rooted in the shield wall');
   console.log(n+' foe perks, all valid and fitting: ok') }
 section('the new mechanics, one by one');
 { fresh(SEED+1);
@@ -134,9 +134,9 @@ section('the new mechanics, one by one');
   // Terror: allies of the slain test at 15 less
   park();b.cur=V;put(V,5,5);put(e1,5,4);put(e2,7,4);e2.fearless=false;e1.hp=1;e1.arm=0;e1.helm=0;let tb=null;X.ctx.moraleCheck=function(u,bn,dir){if(u===e2&&dir<0)tb=bn;return mc0(u,bn,dir)};
   for(let i=0;i<20&&e1.alive;i++)await X.strike(V,e1,at(V));X.ctx.moraleCheck=mc0;ok(!e1.alive&&tb===35-15,'Terror: the dead foe\'s ally within 3 tests at 20 ('+tb+')');
-  // Stand firm / Rooted / Iron retort (Bulwark)
+  // Rooted / Iron retort (Bulwark; Stand firm became Relieve, test/bulswap.js)
   park();b.cur=e3;put(BW2,5,5);put(e3,5,4);const ea=at(e3);BW2.mvd=1;const h1=X.hitChance(e3,BW2,ea),m1=X.armorMitOf(BW2,false,.3);BW2.mvd=0;
-  ok(X.hitChance(e3,BW2,ea)===Math.max(5,h1-8),'Stand firm: −8 to hit a Bulwark that held its ground');ok(X.armorMitOf(BW2,false,.3)>m1,'Rooted: more mitigation while held ('+m1+' -> '+X.armorMitOf(BW2,false,.3)+')');
+  ok(X.hitChance(e3,BW2,ea)===h1,'no Stand firm any more: holding its ground does not make a Bulwark harder to hit');ok(X.armorMitOf(BW2,false,.3)>m1,'Rooted: more mitigation while held ('+m1+' -> '+X.armorMitOf(BW2,false,.3)+')');
   b.cur=BW2;const ba=at(BW2),r0=X.dmgBonus(BW2,e3,ba);BW2.hitBy=[e3.id];ok(near(X.dmgBonus(BW2,e3,ba)-r0,.25),'Iron retort: +25% in full plate against the foe that struck');BW2.arm=150;ok(near(X.dmgBonus(BW2,e3,ba)-r0,.15),'… +15% at 150 armor');BW2.hitBy=null;
   // Shelter and Intercept (Shieldbearer)
   park();put(SB,5,6);put(V,5,5);put(e3,5,4);SB.shield=true;X.auraScan();b.cur=e3;const dr0=X.drOf(e3,V,ea);SB.shield=false;X.auraScan();ok(near(dr0-X.drOf(e3,V,ea),.1),'Shelter: −10% damage to the ally beside a raised shield');
@@ -153,7 +153,7 @@ section('the new mechanics, one by one');
   park();b.cur=DU;put(DU,5,5);put(e1,5,4);put(e2,9,9);const i0=X.hitChance(DU,e1,at(DU));put(e2,6,4);ok(X.hitChance(DU,e1,at(DU))===Math.max(5,i0-10),'Isolate: +10 against a foe with no ally beside it');
   b.cur=e1;put(e2,9,9);const g0=X.hitChance(e1,DU,at(e1));DU.flags=Object.assign({},DU.flags,{duelDef:0});ok(X.hitChance(e1,DU,at(e1))===Math.min(95,g0+8),'Fencer\'s guard: +8 melee defense in a duel stance');DU.flags=X.calc(DU.m).flags;
   put(SK,7,7);put(e1,7,6);SK.mvd=0;const s0=X.hitChance(e1,SK,at(e1));SK.mvd=1;ok(X.hitChance(e1,SK,at(e1))===Math.max(5,s0-8),'Never still: −8 to hit a skirmisher that moved');
-  console.log('Charge, Shock, Rout them, Terror, Stand firm, Rooted, Iron retort, Shelter, Intercept, Sweeping blows, Armor-breaker, Isolate, Fencer\'s guard, Never still: ok') }
+  console.log('Charge, Shock, Rout them, Terror, Rooted, Iron retort, Shelter, Intercept, Sweeping blows, Armor-breaker, Isolate, Fencer\'s guard, Never still: ok') }
 { fresh(SEED+3);
   const mm=mk('hunter','longbow',['marksman.1','marksman.6'],{trees:['marksman','sharpshooter','scout','survivor']}),ss=mk('hunter','longbow',['sharpshooter.5','scout.5'],{trees:['marksman','sharpshooter','scout','survivor']}),
    gn=mk('noble','musket',['gunner.3'],{trees:['gunner','tactician','duelist','vanguard']}),th=mk('woodcutter','taxe',['thrower.5'],{trees:['thrower','gunner','skirmisher','vanguard']}),
