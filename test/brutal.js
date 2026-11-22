@@ -17,10 +17,9 @@
 //        isekai   I3   89 78 58 30   I6    98 79 54 30   I9     100 85 55 32   pooled 96 81 56 31
 //      naive pooled: company 82 27 15 5, slayer 85 70 55 19, isekai 92 74 50 23. Before this retune (sensible pooled): company 98 / 88 / 66 / 25,
 //      slayer 92 / 86 / 73 / 48, isekai 94 / 90 / 86 / 68.)
-//      Shield blocks (60b-block.js: a raised shield blocks from the front, half from the flank, never from behind) cost the company Hard
-//      wins (66% -> 58% at --n 100, with the old DIFF): retuned DIFF.hard.foeHit 5 -> 3, Hard's isekai solo curve .35/.83 -> .18/.71,
-//      Normal's isekai .5 -> .44, Hard's vet hi .03 -> .08 (--quick then: company 79 / 61 / 31,
-//      slayer 76 / 57 / 24, isekai 74 / 54 / 26; at --n 100 before the last two: company 76 / 65 / 27, slayer 77 / 61 / 31, isekai 77 / 59 / 26).
+//      Shield blocks (60b-block.js: a raised shield blocks a share of the hits, less when surrounded) left the company and the slayer on
+//      their marks; the isekai's sword-and-buckler hero, alone among packs, fell to Normal 75% (--n 100): Normal's isekai hi .5 -> .44 and
+//      Hard's solo curve .04/.26 -> .02/.2 (its level-6 stage). Hard keeps foeHit 5.
 //   2. The order holds: Story at least TARGET.story (8) points above Normal, Normal > Hard > Brutal; and Brutal costs more blood (deaths +
 //      struck down a fight) than Hard (TARGET.blood x).
 //   3. (folded into 1: solo runs are judged by the same marks as the company.)
