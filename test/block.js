@@ -205,6 +205,13 @@ const w=D.buffs.find(x=>x.key==='shieldwall');ok(w&&w.md===15+(D.shw||0),'Shield
  }
  console.log('shield abilities and perks: ok');
 
+section('Relieve (64y-relieve.js) with blocks');
+ {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));D=refit(b,D,mD,'kite');MA.side=0;put(MA,7,6);put(D,7,7);put(th,7,5);only(D,MA,th);heal(D);th.st={};th.mor=3;
+  const s0=D.shp;let ev=0;const on0=X.FX.on;X.FX.on=(ty,d)=>{if(ty==='hit'||ty==='miss')ev++;if(on0)on0(ty,d)};await X.rvRun(D,X.key(7,6),Object.assign({id:'relieve'},X.AB.relieve));X.FX.on=on0;
+  ok(D.c===7&&D.r===6&&MA.r===7&&ev===0&&D.shp===s0,'Relieve: a trade of places, not a blow: no strike, no block, the shield untouched');
+  ok(X.surroundN(D)===1&&X.blockChance(th,D,atk(th))>0,'… and the bearer now in the line blocks the foe in front ('+X.blockChance(th,D,atk(th))+'%)');put(MA,0,1)}
+ console.log('Relieve: ok');
+
 section('the foes\' shields');
  {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));MA.side=0;MA.ms=400;put(MA,7,7);
   for(const [u,id,md] of [[sk,'skel',8],[th2,'thug',8]]){put(u,7,6);only(MA,u);u.mor=3;u.st={};u.hp=u.hpMax=9999;

@@ -13,7 +13,7 @@
    Presentation: a short step each (74-anim.js 'move' with step), the ally turning to face the tile it left (toward the line), a float, a
    line in the log; the auras (Battle orders, Cover, the foes' auras) are rescanned at once.
    The AI (AB.relieve.ai, aiBest's custom path): the hitpoints the two would lose this round where they stand now against where they would
-   stand after the trade (each foe that can reach the tile: its expected blow, forecast() with the unit set on that tile), a lost hitpoint
+   stand after the trade (each foe that can reach the tile: its expected blow, forecast() with the unit set on that tile: the chance it lands past a raised shield, f.land, 60b-block.js), a lost hitpoint
    weighing more the closer the unit is to falling; worth taking when it spares the line, from where the Bulwark stands or from a tile
    beside the ally it can walk to. No randomness. */
 const RLV={ap:3,fat:12,step:1};
@@ -37,7 +37,7 @@ function rvNoTgt(u){const adj=B.units.filter(t=>t.alive&&t!==u&&t.side===u.side&
 function rvThreat(o,c,r){const c0=o.c,r0=o.r;let v=0;o.c=c;o.r=r;
  try{for(const e of B.units){if(!e.alive||e.side===o.side||e.mor===0||(e.st&&e.st.stun>0)||!e.wpn)continue;const d=mdist(e,o),ea=abilityInfo(e,'attack');
    const reach=isRangedAtk(e,ea)?0:d<=Math.max(1,ea.rng||1)?1:d<=1+Math.floor((e.apMax||9)/2)-1?.45:0;if(!reach)continue;   // beside it now, or a short walk off
-   const f=forecast(e,o,ea);v+=reach*f.hit/100*(f.hpMin+f.hpMax)/2}}finally{o.c=c0;o.r=r0}
+   const f=forecast(e,o,ea);v+=reach*(f.land!=null?f.land:f.hit)/100*(f.hpMin+f.hpMax)/2}}finally{o.c=c0;o.r=r0}
  return v}
 const rvLoss=(o,d)=>d<=0?0:d*(1+1.5*(1-o.hp/o.hpMax))+(d>=o.hp*.8?o.hpMax*.4:0)+(d>=o.hp?o.hpMax*.6:0);
 function rvAi(u,X){const a=abilityInfo(u,'relieve');if(!canUse(u,a)||usz(u)!==1||rvStuck(u))return[];const out=[],c0=u.c,r0=u.r,cur=X.at;
