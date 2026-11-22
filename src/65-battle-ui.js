@@ -385,12 +385,12 @@ function fcHTML(u,t,a,armed){const lock=shLocked(u,a);FC.unl=false;if(lock){FC.b
  +(blocked?'<span class="fcr"><span class="fch lo blk" title="Something stands in the way: this cannot be ordered">'+pic('los-blocked',16,'a-burst')+'<b>No line of fire</b></span></span>'
   :'<span class="fcr"><span class="fch'+(f.hit>=75?' hi':f.hit<45?' lo':'')+'" title="Chance to hit (the raised shield is not in it: it blocks)">'+abIcon(u,a.id,16)+'<b>'+f.hit+'%</b></span>'+fcBlockHTML(t,f)+mods+'</span>'+rows
   +(st?'<span class="fcs">'+st+'</span>':'')+ff)+'</span>'}
-/* the block roll (60b-block.js): the chance a hit is taken on the target's raised shield, from where the blow comes, the share that lands
-   (hit x (1 - block)) and what a blocked blow costs the shield; 'behind' when the shield cannot cover that side */
-function fcBlockHTML(t,f){if(!t||!t.shield||!f||!f.bside)return'';const S=f.blkSh,land=Math.round(f.land||0);
- if(!(f.block>0))return'<span class="fcbk off" title="'+(f.bside==='behind'?'From behind: '+esc(t.name)+'’s shield cannot block it':'The shield cannot block this')+'">'+pic('shield',16,'shield')+'<b>'+(f.bside==='behind'?'behind':'0%')+'</b></span>';
- const tip='Block '+f.block+'%: a hit is taken on the shield'+(f.bside==='flank'?' (from the flank: half the block)':'')+' and does no harm'+(S?'; the shield loses '+fcRange(S.min,S.max)+' of its '+S.hp+(S.sure?' and splits':S.brk?' and may split':''):'')+'. The blow lands '+land+'% of the time.';
- return'<span class="fcbk'+(f.bside==='flank'?' fl':'')+'" title="'+tip+'"><i class="fcsep">·</i>'+pic('shield',16,'shield')+'<b>'+f.block+'%</b>'+(S&&S.brk?pic('st-splitshield',16,'shield'):'')+'<small>→'+land+'%</small></span>'}
+/* the block roll (60b-block.js): the chance a hit is taken on the target's raised shield, the cut a surrounded bearer suffers (foes next
+   to it that can fight: 2 x.75, 3 x.5, 4+ x.25, already in the chance), the share that lands (hit x (1 - block)) and what a blocked blow
+   costs the shield */
+function fcBlockHTML(t,f){if(!t||!t.shield||!f||!(f.block>0))return'';const S=f.blkSh,land=Math.round(f.land||0),cut=f.surK<1?Math.round((1-f.surK)*100):0;
+ const tip='Block '+f.block+'%: a hit is taken on the shield and does no harm'+(cut?' (surrounded by '+f.sur+' foes: −'+cut+'%, already counted)':'')+(S?'; the shield loses '+fcRange(S.min,S.max)+' of its '+S.hp+(S.sure?' and splits':S.brk?' and may split':''):'')+'. The blow lands '+land+'% of the time.';
+ return'<span class="fcbk" title="'+tip+'"><i class="fcsep">·</i>'+pic('shield',16,'shield')+'<b>'+f.block+'%</b>'+(cut?'<small class="sur">−'+cut+'%</small>':'')+(S&&S.brk?pic('st-splitshield',16,'shield'):'')+'<small>→'+land+'%</small></span>'}
 /* monsters: fire on a fire-weak foe (already counted in the figures), a huge foe, a flier a root would ground, a dive being gathered */
 function fcMon(u,t,a){let h='';const d=t&&t.def;if(!d)return h;const fire=typeof fireAb==='function'?fireAb(a):!!(a&&a.status&&a.status.burn);
  if(d.fireWeak&&fire)h+='<span class="sd fw" style="--sc:#ff8a3c" title="Weak to fire: +'+Math.round(d.fireWeak*100)+'% damage from fire and burning (already counted)">'+pic('burn',16,'a-flame')+'<b>+'+Math.round(d.fireWeak*100)+'%</b></span>';

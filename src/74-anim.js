@@ -84,7 +84,7 @@ const AN_VAR={sting:'sting',buffet:'buffet','dive-land':'dive',dive:'takeoff',sm
 function anVariant(u){const s=ANIM.get(u);if(!s||!s.va)return'';return anNow()-s.vaT<2500?s.va:''}
 /* called by the effects when a blow will visibly land on `tg` at time `at` (ms, same clock as `now`) */
 function animImpact(tg,u,at,miss){if(!tg)return;const s=anOf(tg),sp=anSp();
- if(u&&u!==tg&&!(typeof faceOf==='function'&&B&&B.units&&B.units.indexOf(tg)>=0))anFace(s,u.c-tg.c,u.r-tg.r);   // in battle a struck unit does not turn (its facing is the rules', 60b-block.js)
+ if(u&&u!==tg)anFace(s,u.c-tg.c,u.r-tg.r);
  if(miss==='block'){s.bkT=sp?at:-1e9;s.bkD=Math.max(180,320*(sp||1));if(u&&u!==tg){const dc=tg.c-u.c,dr=tg.r-u.r;s.hc=0;s.hr=0;if(Math.abs(dc)>=Math.abs(dr))s.hc=dc>0?1:-1;else s.hr=dr>0?1:-1}return}   // a blow taken on the shield: braced behind it, a short push back
  if(miss){s.dgT=sp?at:-1e9;return}
  s.hitT=SPEEDF>0?at:-1e9;s.hdur=Math.max(130,230*(sp||1));s.hc=0;s.hr=0;
@@ -101,7 +101,6 @@ function anHandOv(u){const s=ANIM.get(u);if(!s||!(anNow()-s.swT<s.swD*.34))retur
 function animThrow(u,keep){if(!u)return;const s=anOf(u),sp=anSp();if(!sp||s.act!==1)return;s.adur=AN_THR_MS*sp;s.lc=s.lr=0;s.thr=s.at0;s.thrK=keep?1:0}   // the attack just begun is a throw: no lunge, its own length
 function anLunge(a){return a<.2?-.07*(a/.2):a<AN_HIT_AT?-.07+.41*((a-.2)/(AN_HIT_AT-.2)):a<.56?.34:.34*(1-(a-.56)/.44)*(1-(a-.56)/.44)}
 function unitPose(u){const P=POSE,s=anOf(u),t=anNow(),sp=anSp();anBasis(t);
- if(typeof faceOf==='function'&&typeof B!=='undefined'&&B&&B.units&&B.units.indexOf(u)>=0){const f=faceOf(u);s.dc=f[0];s.dr=f[1]}   // a battle figure faces the way the rules say (u.face: its shield covers that side, 60b-block.js)
  if(u.c!==s.c||u.r!==s.r)anMove(u,s,-1);
  if(!u.alive&&!s.dead&&!s.wd){if(u.gone)s.wd=true;else{s.dead=true;s.deadT=SPEEDF>0?Math.max(t,s.hitT):-1e9}}else if(u.alive&&(s.dead||s.wd)){s.dead=false;s.wd=false}
  anVis(u,s,t);anSwapPoll(u,s,t,sp);

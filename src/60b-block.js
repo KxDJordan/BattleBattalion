@@ -1,4 +1,4 @@
-/* ================= SHIELD BLOCKS: facing, the block roll, a blocked blow (60b-block.js) =================
+/* ================= SHIELD BLOCKS: the block roll, surrounded, a blocked blow (60b-block.js) =================
    A raised shield no longer adds its melee / ranged defense to the hit roll. An attack is rolled in two steps:
      1. the hit roll, against the defender's own defense (dodge and parry: hitChance() leaves the shield's part out, shieldDef());
      2. if it would hit, the BLOCK roll: blockChance(u,t,a,o) percent that the raised shield takes the blow instead.
@@ -11,9 +11,12 @@
      100 x S / h: the shield's defense S taken as its share of the would-be hits h (the hit chance, 5..95). S is the shield's md against a
      melee blow, its rd against a shot or a reach blow two tiles away (half its rd against a spell, as a spell's hit roll halves rd): the
      item's md / rd with Shield training / Living wall (t.shb), plus Shield wall's buff (u.shw included), all taken out of the hit roll.
-     So from the front a blow lands h - S percent of the time, as the old rule's subtraction had it (unless it was clamped at 5): a weak
+     So against a lone foe a blow lands h - S percent of the time, as the old rule's subtraction had it (unless it was clamped at 5): a weak
      attacker is blocked more often, a sure one less; a shield's table value still says how much it takes. The forecast shows the chance.
-     x BLK.side from the flank, 0 from behind (blockSide: the defender's facing, below); capped to 0..BLK.max.
+     x the surround factor BLK.sur[n] (surroundN: foes standing next to the bearer and able to fight, the attacker among them when it is
+     next to it; a shot or a reach blow from two tiles does not count itself): 1 or none 1, 2 x.75, 3 x.5, 4+ x.25. Capped to 0..BLK.max.
+     The game had no general outnumbering bonus to build on (only perks: the attacker's Flanking / Backstab-style +hit with an ally next to
+     the target, the Gladiator's crowdDef / crowdDmg); those stay as they are and the surround factor only shrinks the block.
      (A tired bearer is hit more easily (tiredPen in the hit roll), which already makes its block a smaller share.)
    No block: no raised intact shield (slung, split, none), a shove or bash (noDmg), Split shield, a bomb (Grenade, Petard: a raised shield
    is no cover from them), anything that cannot miss (sure, Deadly arc, arcs and strays: o.auto), a stunned, netted or fleeing defender.
@@ -22,34 +25,13 @@
    x BLK.two for a two-handed melee weapon, x BLK.big for a huge attacker (size 2 or def.big), x splitMult (Hew, Headsman: the axe perks that
    make shield-splitting blows hit shields harder), + Shieldbreaker's (Aura hurling) bite on a throw. At least 1.
 
-   Facing (u.face, [dc,dr] along one board axis; faceOf(u) defaults to the side's front: the company faces -r, the foes +r). The rules keep
-   it from the same events the figures turn on (faceEv, called by FX.emit whether or not a scene listens): a step or any other move faces the
-   way it went (a knockback or a hook does not turn anyone), a strike or a cast at a unit or a tile faces it. Being struck does not turn a
-   unit: a foe that walked round behind keeps hitting its back until it turns to fight. At the end of its turn (faceSettle, seen at the next
-   'turn') a unit that struck nobody squares up to the nearest foe (BLK.settle). 74-anim.js draws every figure the way u.face says.
-   blockSide(u,t): 2 front, 1 flank, 0 behind, by the angle between t's facing and the line to u (cos >= BLK.cos front, <= -BLK.cos behind).
    Randomness: one draw after a hit roll that hits, and only when the block chance is above 0; a blocked blow then draws its damage roll
    (for the shield). Nothing else, so fights without shields keep their old stream. */
-const BLK={k:1,max:85,side:.5,magic:.5,cos:.4,settle:1,two:1.25,big:1.5,ref:50};
+const BLK={k:1,max:85,sur:[1,1,.75,.5,.25],magic:.5,two:1.25,big:1.5,ref:50};
 const SHK={axe:.5,hammer:.4,mace:.4,polearm:.3,greatsword:.25,sword:.25,spear:.2,dagger:.15,fist:.15,staff:.25,bow:.15,sling:.15,throwing:.25,crossbow:.3,flintlock:.5},SHK0=.25,SHKMAG=.3;
-const FACE0=[0,-1],FACE1=[0,1];
-function faceOf(u){return u&&Array.isArray(u.face)?u.face:u&&u.side===0?FACE0:FACE1}
-function faceSet(u,dc,dr){if(!u||(!dc&&!dr))return;u.face=Math.abs(dc)>=Math.abs(dr)?[dc>0?1:-1,0]:[0,dr>0?1:-1]}
-function faceTo(u,t){if(!u||!t||u===t)return;const a=unitCenter(u),b=unitCenter(t);faceSet(u,b.c-a.c,b.r-a.r)}
-// FX.emit calls this first: the rules' facing follows the events the figures turn on. fpos: where the unit last stood (the next 'move' is measured from it).
-function faceEv(type,d){if(!d||typeof B==='undefined'||!B||!B.units)return;
- if(type==='move'){const u=d.u;if(!u)return;const p=u.fpos;if(p)faceSet(u,u.c-p[0],u.r-p[1]);u.fpos=[u.c,u.r]}
- else if(type==='kb'||type==='spawn'){const u=d.t||d.u;if(u)u.fpos=[u.c,u.r]}
- else if(type==='turn'){const p=B.fcPrev;if(p&&p!==d.u&&p.alive&&BLK.settle)faceSettle(p);B.fcPrev=d.u||null;if(d.u)d.u.fcHit=0;for(const x of B.units)if(x.alive)x.fpos=[x.c,x.r]}
- else if(type==='cast'){const u=d.u,ab=d.ab||{};if(!u)return;if(d.t&&d.t!==u)faceTo(u,d.t);else if(d.k>=0&&ab.tgt==='tile'){const a=unitCenter(u);faceSet(u,d.k%BW-a.c,((d.k/BW)|0)-a.r)}}
- else if(type==='hit'||type==='miss'){if(d.u&&d.t&&d.u!==d.t&&d.u.alive){faceTo(d.u,d.t);if(B.cur===d.u)d.u.fcHit=1}}}
-// The end of u's turn (seen at the next unit's 'turn'): one that struck keeps facing its foe; any other squares up to the nearest foe
-// (fewest tiles, then the lowest id), so a unit that only moved does not stand with its shield the wrong way.
-function faceSettle(u){if(u.fcHit)return;let best=null,bd=1e9;for(const x of B.units){if(!x.alive||x.side===u.side||x.gone)continue;const d=mdist(u,x);if(d<bd||d===bd&&x.id<best.id){bd=d;best=x}}if(best)faceTo(u,best)}
-// 2 front, 1 flank, 0 behind: where u stands as t's shield sees it
-function blockSide(u,t){const f=faceOf(t),a=unitCenter(u),b=unitCenter(t),dx=a.c-b.c,dy=a.r-b.r,L=Math.hypot(dx,dy);if(!(L>0))return 2;
- const cs=(dx*f[0]+dy*f[1])/L;return cs>=BLK.cos-1e-9?2:cs<=-BLK.cos+1e-9?0:1}
-const BSIDEN=['behind','flank','front'];
+// Foes next to t that can fight (alive, not fled, not fleeing, not stunned): how surrounded it is.
+function surroundN(t){if(!B||!B.units)return 0;let n=0;for(const o of B.units)if(o.alive&&!o.gone&&o.side!==t.side&&o.mor!==0&&!(o.st&&o.st.stun>0)&&mdist(o,t)===1)n++;return n}
+const surK=n=>BLK.sur[Math.min(BLK.sur.length-1,Math.max(0,n))];
 // The defense a raised shield gives against k ('md' | 'rd'): the item's (t.shb, already inside t.md / t.rd) and Shield wall's buff. It is the
 // shield's part of t's defense, which the hit roll leaves out and the block roll uses.
 function shWallOf(t,k){let v=0;for(const b of t.buffs)if(b.key==='shieldwall')v+=b[k]||0;return v}
@@ -64,8 +46,8 @@ function blockFront(t,k){if(!t||!t.shield||!t.shb||!(t.shp>0))return 0;return cl
 const blockItem=(md,rd)=>[clamp(Math.round(100*(md||0)*BLK.k/BLK.ref),0,BLK.max),clamp(Math.round(100*(rd||0)*BLK.k/BLK.ref),0,BLK.max)];
 // Chance in percent (0..BLK.max) that a hit of u's attack a on t is blocked by t's shield. h: the hit chance (hitChance(u,t,a), passed
 // by strike() which has it already).
-function blockChance(u,t,a,o,h){if(!blockOK(u,t,a,o))return 0;const side=blockSide(u,t);if(!side)return 0;if(h==null)h=hitChance(u,t,a);
- const melee=!a.magic&&(!!a.melee||mdist(u,t)<=1);let p=100*shieldDef(t,melee?'md':'rd')*(a.magic?BLK.magic:1)*BLK.k/Math.max(5,h);if(side===1)p*=BLK.side;
+function blockChance(u,t,a,o,h){if(!blockOK(u,t,a,o))return 0;if(h==null)h=hitChance(u,t,a);
+ const melee=!a.magic&&(!!a.melee||mdist(u,t)<=1);let p=100*shieldDef(t,melee?'md':'rd')*(a.magic?BLK.magic:1)*BLK.k/Math.max(5,h)*surK(surroundN(t));
  return clamp(Math.round(p),0,BLK.max)}
 // The share of a blocked blow's damage the shield takes (before Shieldbreaker), by the attacker's weapon.
 function blockShK(u,a){if(a.magic)return SHKMAG;const w=u.wpn||{};let k=SHK[w.wt]!=null?SHK[w.wt]:SHK0;if(w.two&&!isRangedW(w))k*=BLK.two;if(usz(u)>1||(u.def&&u.def.big))k*=BLK.big;return k*splitMult(u,a)}
@@ -80,7 +62,7 @@ async function blockHit(u,t,a,o,R,d,fly){fly(t);const wd=rollOf(u,a);let dmg=a.m
  FX.emit('miss',{u,t,block:R.blk,roll:R});rollDone(R);damageShield(t,sd,u);if(t.flags&&(t.flags.dance||t.flags.flow))t.dnc=Math.min(3,(t.dnc||0)+1);await sleep(230);
  if(!o.free&&!a.magic&&d===1&&t.alive&&u.alive&&buffSum(t,'rip'))await freeAttack(t,u,'riposte');
  pvStruck(u,t,a,o);await pvMiss(u,t,a,o,null,R);return false}
-// For the forecast and the HUD: {block, side ('front' | 'flank' | 'behind', null when the shield cannot take this attack), min, max (shield
+// For the forecast and the HUD: {block, sur (foes next to the bearer that can fight), surK (the factor on the block), min, max (shield
 // damage of a blocked blow, capped at what is left), hp, brk (a blocked blow can split it), sure (any blocked blow splits it)}, or null.
 function blockFc(u,t,a,o,dmgMin,dmgMax){if(!blockOK(u,t,a,o))return null;const ch=blockChance(u,t,a,o),lo=blockShDmg(u,t,a,dmgMin),hi=blockShDmg(u,t,a,dmgMax);
- return{block:ch,side:BSIDEN[blockSide(u,t)],min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp}}
+ const n=surroundN(t);return{block:ch,sur:n,surK:surK(n),min:Math.min(lo,t.shp),max:Math.min(hi,t.shp),hp:t.shp,brk:hi>=t.shp,sure:lo>=t.shp}}

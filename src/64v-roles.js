@@ -58,7 +58,6 @@ function rlInterceptOf(u,t,a){if(!B||!t||!u||a.magic||a.noDmg||a.split||a.dash||
  return best}
 function rlIntercept(u,t,a){const g=rlInterceptOf(u,t,a);if(!g)return t;g.icpT=1;
  if(!!a.melee||mdist(u,t)<=1){const c=g.c,r=g.r;g.c=t.c;g.r=t.r;t.c=c;t.r=r;FX.emit('move',{u:g});FX.emit('move',{u:t})}
- if(typeof faceTo==='function')faceTo(g,u);   // it takes the blow on the shield, turned to meet it (60b-block.js)
  float(g,'Intercept','#ffd27a');say(`${g.name} steps in front of ${t.name}.`);FX.emit('buff',{t:g});return g}
 /* ---- the status: Suppressed (Suppressing fire): −10 melee and ranged skill until its next turn; ticks like the foes' own (FOE_ST t:1) ---- */
 const RL_ST={suppr:{n:'Suppressed',d:'Pinned down by arrows: −10 melee and ranged skill until its next turn.',icon:'st-suppr',good:0,t:1}};

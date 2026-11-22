@@ -113,8 +113,8 @@ function install(X){const ctx=X.ctx,strike0=ctx.strike,dist=(a,b)=>Math.abs(a.c-
    ok(sd===blk.n&&sd>=f.blkSh.min&&sd<=f.blkSh.max&&f.blkSh.hp===shp0,`blocked: shield damage ${sd} outside forecast ${f.blkSh.min}-${f.blkSh.max}: `+tag);
    if(!t.shield){S.blkBroke++;ok(f.blkSh.brk&&t.shp===0,'a block split the shield but the forecast said it could not: '+tag)}else ok(!f.blkSh.sure,'the forecast promised a block would split the shield: '+tag)}
   else ok(f.shield===null&&t.shp===shp0,'a blow that does not split shields damaged one: '+tag);
-  if(f.bside==='behind'){S.behind++;ok(f.block===0,'a shield blocked from behind: '+tag)}else if(f.bside==='flank')S.flank++;
-  ok(f.block===0||shield0&&f.bside,'a block chance without a raised shield: '+tag);ok(Math.abs(f.land-f.hit*(100-f.block)/100)<.01,'forecast land is not hit x (1 - block): '+tag);
+  if(f.block>0&&f.sur>1)S.flank++;ok(f.block===0||f.surK===X.surK(f.sur),'forecast surround differs from the rules: '+tag);
+  ok(f.block===0||shield0,'a block chance without a raised shield: '+tag);ok(Math.abs(f.land-f.hit*(100-f.block)/100)<.01,'forecast land is not hit x (1 - block): '+tag);
   if(!hit){const strays=kids.filter(x=>x.u===u&&x.o.stray),rips=kids.filter(x=>x.u===t&&x.t===u&&x.o.free==='riposte'),thorn=rips.length&&u.elite&&(u.elite.includes('thorns')||(u.elite.includes('volatile')&&!u.alive));   // a riposte into a Thorned elite costs the riposter; one that kills a Volatile elite takes its blast
    ok(!ev&&(thorn||t.hp===hp0&&t.arm===arm0&&t.helm===helm0),'a miss did damage: '+tag);ok(!sure,'a strike that cannot miss missed: '+tag);
    for(const x of strays)ok(f.ff.some(y=>y.t===x.t),'a shot strayed into an ally the forecast did not name: '+tag);ok(strays.length<=1,'one miss strayed twice: '+tag);
@@ -274,7 +274,7 @@ async function sweep(X,roster,N){X.G.roster=JSON.parse(JSON.stringify(roster));X
  await sweep(X,company(X,TIERS[2],SEED+5),6000);
  console.log(`${S.n-nBattle} strikes checked`);
  const sd=Math.sqrt(S.varHits),z=(S.hits-S.expHits)/sd;
- {const zb=S.varBlk>0?(S.block-S.expBlk)/Math.sqrt(S.varBlk):0;console.log(`blocks: ${S.block} of ${S.blkCh} strikes with a block chance (forecast expected ${S.expBlk.toFixed(1)}, z=${zb.toFixed(2)}), ${S.blkBroke} split a shield; ${S.flank} from the flank, ${S.behind} from behind`);
+ {const zb=S.varBlk>0?(S.block-S.expBlk)/Math.sqrt(S.varBlk):0;console.log(`blocks: ${S.block} of ${S.blkCh} strikes with a block chance (forecast expected ${S.expBlk.toFixed(1)}, z=${zb.toFixed(2)}), ${S.blkBroke} split a shield; ${S.flank} with the bearer surrounded`);
   ok(Math.abs(zb)<4.5,'blocks drift from the forecast block chance: z='+zb.toFixed(2));ok(S.block>0,'no strike was blocked')}
  console.log(`\ntotal ${S.n} strikes, ${S.hits} hits (forecast expected ${S.expHits.toFixed(0)}, z=${z.toFixed(2)}), ${S.kills} kills, ${S.lethal} forecast lethal`);
  console.log(`armor: ${S.armored} armored (${S.broke} broken through), ${S.bare} bare; height: ${S.high} from above, ${S.low} from below; ${S.magic} magic, ${S.splash} splash, ${S.auto} arcs; ${S.statuses} statuses applied`);

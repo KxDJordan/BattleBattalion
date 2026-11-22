@@ -1,12 +1,12 @@
 // Shield blocks test (60b-block.js; the hit roll in 60-battle-core.js hitChance, strike's block roll, forecast().block, the AI's aiChance).
 // Plain node:  node test/block.js [--seed N] [--quick]
-// Checks: the hit roll leaves a raised shield out; block chances per shield (front, flank half, none from behind, slung or split: none,
-// fatigue, Shield wall); facing (moves, strikes and casts turn a unit, a knockback or a blow taken does not; the figures face the rules' way);
+// Checks: the hit roll leaves a raised shield out; block chances per shield (alone, surrounded by 2 / 3 / 4 foes, slung or split: none,
+// fatigue, Shield wall); the surround count (only foes next to the bearer that can fight; a reach blow or a shot does not count itself);
 // a blocked blow: no hitpoint or armor damage, no status, the shield loses what the forecast said, 'Blocked', the log line; a shield
 // at 0 splits and then blocks nothing; forecast == strike over many forced strikes with blocks (shield damage inside the forecast, the block
 // rate against the forecast); every shield ability and perk with the new step (Split shield, Grenade, Petard, Intercept, Shield wall, Tower
 // guard, Bastion, Phalanx, Shield bind, Unmoved, a riposte, Hew, Shieldbreaker, Aegis, Shield bash); the foes' shields block the company;
-// the AI weighs blocks (aiChance, a flank or the back over the front, the shield's worth); the balance table (expected damage taken per attack
+// the AI weighs blocks (aiChance, ganging up on a shield-bearer, the shield's worth); the balance table (expected damage taken per attack
 // for every shield against typical attackers, before = the old rule computed from the same state, after = hit x (1 - block)) within tolerance.
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm');
@@ -65,13 +65,13 @@ async function arena(seed,ros,foes,f){const G=X.G;G.roster=ros;G.day=10;X.seedRn
  let n=0;while(!b.over&&(b.busy||b.cur.side!==0)){await null;if(++n>3e6)fail('arena never reached a company turn')}
  const P=b.units.filter(u=>u.side===0),E=b.units.filter(u=>u.side===1);
  const park=()=>{b.tiles.forEach(t=>{t.t='ground';t.h=0});b.units.forEach((u,i)=>{u.alive=true;u.gone=null;u.down=false;u.hp=u.hpMax=Math.max(u.hpMax,80);u.arm=u.armMax;u.helm=u.helmMax;u.st={};u.buffs=u.buffs.filter(x=>x.foe);
-   u.mor=3;u.fearless=true;u.aoo=0;u.rooted=false;u.dazed=false;u.fat=0;u.ap=u.apMax;u.dnc=0;u.bonusAP=0;u.used={};u.qsT=0;u.slipT=0;u.c=i;u.r=u.side?0:BH-1;u.face=u.side?[0,-1]:[0,1]});b.order=[];b.busy=true;b.cur=P[0];X.foeAuras();X.auraScan()};
+   u.mor=3;u.fearless=true;u.aoo=0;u.rooted=false;u.dazed=false;u.fat=0;u.ap=u.apMax;u.dnc=0;u.bonusAP=0;u.used={};u.qsT=0;u.slipT=0;u.c=i;u.r=u.side?0:BH-1});b.order=[];b.busy=true;b.cur=P[0];X.foeAuras();X.auraScan()};
  park();return{b,P,E,park}}
 const put=(u,c,r)=>{u.c=c;u.r=r};
 const T0=Date.now(),QUICK=ARGV.includes('--quick');
 const atk=x=>X.abilityInfo(x,'attack'),F=(x,o)=>{x.flags=Object.assign({},x.flags,o)};
 // a merc unit rebuilt with shield s (or none) in place of u: same tile, id and side
-function refit(b,u,m,s){m.eq.s=s;const v=X.mkMercUnit(m,u.side);v.id=u.id;v.c=u.c;v.r=u.r;v.fearless=true;v.hp=v.hpMax=Math.max(v.hpMax,400);v.face=u.face;b.units[b.units.indexOf(u)]=v;X.auraScan();return v}
+function refit(b,u,m,s){m.eq.s=s;const v=X.mkMercUnit(m,u.side);v.id=u.id;v.c=u.c;v.r=u.r;v.fearless=true;v.hp=v.hpMax=Math.max(v.hpMax,400);b.units[b.units.indexOf(u)]=v;X.auraScan();return v}
 function heal(t){t.hp=t.hpMax;t.arm=t.armMax;t.helm=t.helmMax;t.st={};t.mor=3;t.alive=true;t.ss=0;t.brc=0;t.dnc=0;if(t.m)t.m.inj=[];t.undy=0;t.lck=0}
 // every event of the strike on t: blocks {n}, hits {dmg,armor}
 async function struck(u,t,a,o){const E={blk:null,hit:null,miss:false},on0=X.FX.on;X.FX.on=(ty,d)=>{if(ty==='miss'&&d.u===u&&d.t===t){if(d.block!=null)E.blk={n:d.block,R:d.roll};else E.miss=true}if(ty==='hit'&&d.u===u&&d.t===t&&!E.hit)E.hit={dmg:d.dmg,armor:d.armor};if(on0)on0(ty,d)};
@@ -83,7 +83,7 @@ section('the hit roll leaves the shield out; block chances per shield');
  fresh(SEED);const mk=(bg,w)=>{const m=merc(bg,w,[],['shieldbearer','bulwark','vanguard','tactician']);m.base.md=12;m.base.rd=8;m.eq.a='padded';return m};
  const mD=mk('sellsword','arming'),mA=mk('sellsword','arming'),mG=mk('sellsword','greataxe'),mW=mk('sellsword','warbow');
  const A=await arena(SEED,[mD,mA,mG,mW],['thug','bmark','skel','orcw','ogre','thug']),b=A.b;let [D,MA,MG,MW]=A.P;const [th,bm,sk,ow,og,th2]=A.E;
- b.units.forEach(u=>u.alive=u===D||u===th||u===bm);put(D,8,8);put(th,8,7);put(bm,8,3);D.face=[0,-1];
+ b.units.forEach(u=>u.alive=u===D||u===th||u===bm);put(D,8,8);put(th,8,7);put(bm,8,3);
  D=refit(b,D,mD,'kite');ok(D.shield&&D.shb.md===15&&D.shb.rd===25,'a kite shield raised: md 15, rd 25');
  {const h=X.hitChance(th,D,atk(th)),h2=X.hitChance(bm,D,atk(bm));const N=refit(b,D,mD,null),h0=X.hitChance(th,N,atk(th)),h02=X.hitChance(bm,N,atk(bm));D=refit(b,N,mD,'kite');
   ok(h===h0&&h2===h02,`the hit roll is the same with the shield raised as without it (${h} / ${h0} melee, ${h2} / ${h02} shots)`);
@@ -94,27 +94,27 @@ section('the hit roll leaves the shield out; block chances per shield');
   ok(fm===em&&fr===er,`${id}: block ${fm}% of blows (expected ${em}), ${fr}% of shots (expected ${er})`);
   const bi=X.blockItem(I.md,I.rd);ok(bi[0]===Math.min(85,2*I.md)&&bi[1]===Math.min(85,2*I.rd)&&X.blockFront(D,'md')===bi[0]&&X.blockFront(D,'rd')===bi[1],id+': the shop and the inspector show the chances against an even (50%) foe');
   ok(/blocks \d+% of blows/.test(X.itemDesc(id)),id+': the item text names its block chances: '+X.itemDesc(id));
-  put(th,9,8);const fl=X.blockChance(th,D,atk(th));put(th,8,9);const bh=X.blockChance(th,D,atk(th));put(th,8,7);
-  ok(fl===Math.min(85,Math.round(100*I.md/hm*.5))&&bh===0,`${id}: half from the flank (${fl}), none from behind (${bh})`);rows.push(`${(I.n||id).padEnd(26)} md ${String(I.md).padStart(2)} rd ${String(I.rd).padStart(2)} hp ${String(I.hp).padStart(3)}  block: blows ${String(fm).padStart(2)}% (flank ${String(fl).padStart(2)}%), shots ${String(fr).padStart(2)}%`)}
+  put(th2,9,8);th2.alive=true;const s2=X.blockChance(th,D,atk(th)),h2=X.hitChance(th,D,atk(th));put(sk,7,8);sk.alive=true;const s3=X.blockChance(th,D,atk(th)),h3=X.hitChance(th,D,atk(th));
+  put(ow,8,9);ow.alive=true;const s4=X.blockChance(th,D,atk(th)),h4=X.hitChance(th,D,atk(th));th2.alive=sk.alive=ow.alive=false;put(th2,0,0);put(sk,1,0);put(ow,2,0);const fl=s3;
+  ok(s2===Math.min(85,Math.round(100*I.md/h2*.75))&&s3===Math.min(85,Math.round(100*I.md/h3*.5))&&s4===Math.min(85,Math.round(100*I.md/h4*.25)),`${id}: surrounded by 2 / 3 / 4 foes it blocks ${s2} / ${s3} / ${s4}%`);rows.push(`${(I.n||id).padEnd(26)} md ${String(I.md).padStart(2)} rd ${String(I.rd).padStart(2)} hp ${String(I.hp).padStart(3)}  block: blows ${String(fm).padStart(2)}% (3 foes round it ${String(fl).padStart(2)}%), shots ${String(fr).padStart(2)}%`)}
  console.log(rows.join('\n'));
  D=refit(b,D,mD,'kite');
  {const b0=X.blockChance(th,D,atk(th));D.fat=D.fatMax*.9;const tp=X.tiredPen(D),h=X.hitChance(th,D,atk(th));ok(tp>0&&X.blockChance(th,D,atk(th))===Math.round(1500/h)&&X.blockChance(th,D,atk(th))<b0,'a tired bearer is hit more easily, so it blocks a smaller share: '+b0+'% -> '+X.blockChance(th,D,atk(th))+'%');D.fat=0}
  {D.st.stun=1;ok(X.blockChance(th,D,atk(th))===0,'a stunned bearer cannot block');D.st={};D.mor=0;ok(X.blockChance(th,D,atk(th))===0,'nor a fleeing one');D.mor=3}
- {const N=refit(b,D,mD,null);ok(X.blockChance(th,N,atk(th))===0&&X.forecast(th,N,atk(th)).block===0&&X.forecast(th,N,atk(th)).bside===null,'no shield, no block');D=refit(b,N,mD,'kite')}
+ {const N=refit(b,D,mD,null);ok(X.blockChance(th,N,atk(th))===0&&X.forecast(th,N,atk(th)).block===0&&X.forecast(th,N,atk(th)).blkSh===null,'no shield, no block');D=refit(b,N,mD,'kite')}
  {mD.eq.w='greataxe';const S=refit(b,D,mD,'kite');ok(!S.shield&&S.slung&&X.blockChance(th,S,atk(th))===0,'a slung shield (two-handed weapon in hand) blocks nothing');mD.eq.w='arming';D=refit(b,S,mD,'kite')}
  console.log('the hit roll and block chances: ok');
 
-section('facing');
- {put(th,14,0);X.FX.emit('turn',{u:D});X.B.cur=D;D.ap=9;await X.walkPath(D,[X.key(9,8)]);ok(D.c===9&&D.face[0]===1&&D.face[1]===0,'a step east faces east: '+D.face);
-  X.FX.emit('turn',{u:D});D.ap=9;await X.walkPath(D,[X.key(9,9),X.key(9,10)]);ok(D.face[0]===0&&D.face[1]===1,'two steps south face south: '+D.face);
-  put(th,10,10);th.face=[0,1];await X.strike(th,D,Object.assign({},atk(th),{sure:1}));ok(th.face[0]===-1&&th.face[1]===0&&D.face[1]===1,'the striker turns to its target; the struck unit does not turn');
-  const f0=D.face.slice();X.FX.emit('turn',{u:D});await X.knockback(th,D,1,0);ok(D.c===8&&D.face[0]===f0[0]&&D.face[1]===f0[1],'a knockback moves it without turning it ('+D.c+','+D.r+')');
-  X.FX.emit('cast',{u:D,t:null,ab:{tgt:'tile'},k:X.key(D.c,D.r-3)});ok(D.face[1]===-1,'a cast at a tile faces it');
-  const P0=X.unitPose(D);ok(P0.dc===D.face[0]&&P0.dr===D.face[1],'the figure faces the way the rules say ('+P0.dc+','+P0.dr+')');
-  put(D,8,8);D.face=[0,1];put(th,10,8);X.FX.emit('turn',{u:D});X.FX.emit('turn',{u:th});ok(D.face[0]===1&&D.face[1]===0,'a unit that struck nobody squares up to the nearest foe at the end of its turn: '+D.face);
-  D.face=[0,1];X.FX.emit('turn',{u:D});await X.strike(D,th,Object.assign({},atk(D),{sure:1}));put(th,8,7);X.FX.emit('turn',{u:th});ok(D.face[0]===1,'one that struck keeps facing its foe: '+D.face);
-  put(D,8,8);D.face=[0,-1];put(th,8,7);heal(D)}
- console.log('facing: ok');
+section('surrounded');
+ {const one=X.surroundN(D);ok(one===1&&X.forecast(th,D,atk(th)).surK===1,'one foe next to the bearer: the full block');
+  put(th2,9,8);th2.alive=true;ok(X.surroundN(D)===2&&X.forecast(th,D,atk(th)).surK===.75,'two foes: ×.75');
+  th2.st={stun:1};ok(X.surroundN(D)===1,'a stunned foe does not press the bearer');th2.st={};th2.mor=0;ok(X.surroundN(D)===1,'nor a fleeing one');th2.mor=3;
+  put(th2,10,8);ok(X.surroundN(D)===1,'two tiles off (a spear or a halberd\'s reach) does not count');
+  put(bm,8,4);const fb=X.forecast(bm,D,atk(bm));ok(fb.sur===1&&fb.surK===1,'a shot: the archer is not next to it; the thug beside it is one foe');
+  put(th2,9,8);put(sk,7,8);sk.alive=true;put(ow,8,9);ow.alive=true;const f4=X.forecast(th,D,atk(th));ok(f4.sur===4&&f4.surK===.25,'four foes round it: ×.25 ('+f4.block+'%)');
+  const N=X.mkMercUnit(mA,0);N.id=4242;N.c=7;N.r=7;b.units.push(N);ok(X.surroundN(D)===4,'its own allies do not count');N.alive=false;
+  th2.alive=sk.alive=ow.alive=false;put(th2,0,0);put(sk,1,0);put(ow,2,0);put(bm,8,3)}
+ console.log('surrounded: ok');
 
 section('a blocked blow');
  {th.ms=400;const a=Object.assign({},atk(th),{status:{bleed:3}});let E=null,n=0;
@@ -131,36 +131,37 @@ section('a blocked blow');
   ok(split&&!D.shield&&D.shp===0&&X.unitStatuses(D).some(s=>s.key==='splitshield'),'a block at 2 shield hitpoints splits the shield');
   ok(X.blockChance(th,D,atk(th))===0&&!X.forecast(th,D,atk(th)).blkSh,'a split shield blocks nothing');
   let nb=0;for(let i=0;i<120;i++){heal(D);const E3=await struck(th,D,atk(th));if(E3.blk)nb++}ok(nb===0,'… and 120 forced blows later still nothing: '+nb);
-  th.ms=52;D=refit(b,D,mD,'kite');D.face=[0,-1]}
+  th.ms=52;D=refit(b,D,mD,'kite')}
  console.log('a blocked blow: ok');
 
 section('forecast == strike over forced strikes, blocks included');
- {const SH=Object.keys(X.ITEMS).filter(k=>X.ITEMS[k].k==='s'),ATT=[th,sk,ow,og,bm,MA,MG,MW],N=QUICK?1200:4000;let n=0,blk=0,eB=0,vB=0,hits=0,eH=0,vH=0,behind=0,flank=0,broke=0,magic=0,wall=0;
-  const R=()=>X.rnd(),spots={front:[[0,-1],[0,-4]],flank:[[1,0],[4,0]],behind:[[0,1],[0,4]]},DC=7,DR=6,rot=(dc,dr,f,big)=>{let [x,y]=f[0]===0&&f[1]===-1?[dc,dr]:f[0]===0&&f[1]===1?[-dc,-dr]:f[0]===1?[-dr,dc]:[dr,-dc];if(big){if(x<0)x--;if(y<0)y--}return[DC+x,DR+y]};   // offsets for a defender facing north, turned with it; a size-2 foe's footprint kept clear of the defender
+ {const SH=Object.keys(X.ITEMS).filter(k=>X.ITEMS[k].k==='s'),ATT=[th,sk,ow,og,bm,MA,MG,MW],N=QUICK?1200:4000;let n=0,blk=0,eB=0,vB=0,hits=0,eH=0,vH=0,surN=[0,0,0,0,0],broke=0,magic=0,wall=0;
+  const R=()=>X.rnd(),spots={front:[[0,-1],[0,-4]],flank:[[1,0],[4,0]],behind:[[0,1],[0,4]]},DC=7,DR=6,rot=(dc,dr,f,big)=>{let [x,y]=f[0]===0&&f[1]===-1?[dc,dr]:f[0]===0&&f[1]===1?[-dc,-dr]:f[0]===1?[-dr,dc]:[dr,-dc];if(big){if(x<0)x--;if(y<0)y--}return[DC+x,DR+y]},SPARE=[th2,sk,ow].filter(x=>(x.sz||1)===1);   // the attacker on any side of the defender (a size-2 foe's footprint kept clear) and spare foes to crowd it
   for(;n<N;n++){if(n%25===0){D=refit(b,D,mD,SH[(n/25|0)%SH.length]);}
    const u=ATT[n%ATT.length];b.units.forEach(x=>x.alive=x===D||x===u);heal(D);u.alive=true;u.st={};u.mor=3;u.ap=u.apMax;u.fat=0;u.loaded=true;if(u.ld)for(const k in u.ld)u.ld[k]=true;if(u.am)for(const k in u.am)u.am[k]=9;
-   const f4=[[0,-1],[0,1],[1,0],[-1,0]][Math.floor(R()*4)];D.face=f4.slice();const side=['front','flank','behind'][Math.floor(R()*3)],rng=X.isRangedW(u.wpn)?1:0,[c,r]=rot(...spots[side][rng],f4,(u.sz||1)>1);put(u,c,r);put(D,DC,DR);
+   const f4=[[0,-1],[0,1],[1,0],[-1,0]][Math.floor(R()*4)];const side=['front','flank','behind'][Math.floor(R()*3)],rng=X.isRangedW(u.wpn)?1:0,[c,r]=rot(...spots[side][rng],f4,(u.sz||1)>1);put(u,c,r);put(D,DC,DR);
+   {let k=Math.floor(R()*4);for(const x of SPARE){if(k<=0||x===u)continue;for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){const cc=DC+dc,rr=DR+dr;if(!X.unitAt(cc,rr)){put(x,cc,rr);x.alive=true;x.st={};x.mor=R()<.1?0:3;k--;break}}}}
    if(D.shpMax>0&&!D.shield&&!D.slung)D=refit(b,D,mD,D.m.eq.s);
    D.shp=D.shpMax>0?(R()<.25?1+Math.floor(R()*12):D.shpMax):0;D.buffs=R()<.25&&D.shield?[{key:'shieldwall',md:15+(D.shw||0),rd:15+(D.shw||0),dur:1}]:[];if(D.buffs.length)wall++;D.fat=R()<.3?Math.floor(D.fatMax*R()):0;
    const a=R()<.08&&u.side===0?Object.assign({id:'bolt'},X.AB.bolt):atk(u);if(a.magic)magic++;
-   const tag=`${u.name} (${u.wpn.wt}) -> ${D.m.eq.s||'no shield'} from the ${side}, facing ${D.face}, shp ${D.shp}${D.buffs.length?', shield wall':''} with ${a.id}`;
+   const tag=`${u.name} (${u.wpn.wt}) -> ${D.m.eq.s||'no shield'} from the ${side}, ${X.surroundN(D)} foes round it, shp ${D.shp}${D.buffs.length?', shield wall':''} with ${a.id}`;
    const r0=X.rngState(),s0=JSON.stringify([u,D]),f=X.forecast(u,D,a);ok(X.rngState()===r0&&JSON.stringify([u,D])===s0,'the forecast drew rnd() or changed state: '+tag);
    ok(f.hit===X.hitChance(u,D,a)&&f.block===X.blockChance(u,D,a)&&Math.abs(f.land-f.hit*(100-f.block)/100)<.01,`forecast hit ${f.hit} / block ${f.block} differ from the rules: `+tag);
-   ok(f.bside===(D.shield?side:null),`forecast side ${f.bside}: `+tag);if(side==='behind'){ok(f.block===0,'a block chance from behind: '+tag);if(D.shield)behind++}if(side==='flank'&&D.shield)flank++;
+   ok(f.block===0||f.sur===X.surroundN(D)&&f.surK===X.surK(f.sur),`forecast surround ${f.sur} / ${f.surK}: `+tag);if(D.shield)surN[Math.min(4,X.surroundN(D))]++;
    const hp0=D.hp,ar0=D.arm,he0=D.helm,s1=D.shp,sh0=D.shield,E=await struck(u,D,a);const pb=f.hit/100*f.block/100;eB+=pb;vB+=pb*(1-pb);eH+=f.hit/100;vH+=f.hit/100*(1-f.hit/100);
-   if(E.blk){blk++;hits++;ok(sh0&&f.block>0&&side!=='behind','a block the forecast ruled out: '+tag);ok(!E.r&&!E.hit&&D.hp===hp0&&D.arm===ar0&&D.helm===he0,'a blocked blow did damage: '+tag);
+   if(E.blk){blk++;hits++;ok(sh0&&f.block>0,'a block the forecast ruled out: '+tag);ok(!E.r&&!E.hit&&D.hp===hp0&&D.arm===ar0&&D.helm===he0,'a blocked blow did damage: '+tag);
     const sd=s1-D.shp;ok(sd===E.blk.n&&sd>=f.blkSh.min&&sd<=f.blkSh.max&&f.blkSh.hp===s1,`blocked shield damage ${sd} outside the forecast ${f.blkSh.min}–${f.blkSh.max}: `+tag);
     if(!D.shield){broke++;ok(f.blkSh.brk&&D.shp===0,'the block split the shield, the forecast said it could not: '+tag)}else ok(!f.blkSh.sure,'the forecast promised a split: '+tag)}
    else if(E.r){hits++;const hp=E.hit?E.hit.dmg:0;ok(hp>=f.hpMin&&hp<=f.hpMax,`hit for ${hp}, forecast ${f.hpMin}–${f.hpMax}: `+tag);ok(D.shp===s1,'a blow that landed took shield hitpoints: '+tag)}
    else ok(!E.hit&&D.hp===hp0&&D.shp===s1,'a miss did something: '+tag)}
   const zb=z(blk,eB,vB),zh=z(hits,eH,vH);
-  console.log(`${n} strikes: ${hits} hit rolls hit (forecast ${eH.toFixed(0)}, z=${zh.toFixed(2)}), ${blk} of them blocked (forecast ${eB.toFixed(1)}, z=${zb.toFixed(2)}), ${broke} blocks split the shield; ${flank} from the flank, ${behind} from behind (none blocked); ${wall} behind a Shield wall, ${magic} spells`);
+  console.log(`${n} strikes: ${hits} hit rolls hit (forecast ${eH.toFixed(0)}, z=${zh.toFixed(2)}), ${blk} of them blocked (forecast ${eB.toFixed(1)}, z=${zb.toFixed(2)}), ${broke} blocks split the shield; shield-bearers with 0..4 foes round them: ${surN.join(' / ')}; ${wall} behind a Shield wall, ${magic} spells`);
   ok(Math.abs(zb)<4&&Math.abs(zh)<4,'the strikes drift from the forecast');ok(blk>50&&broke>3,'too few blocks or splits to say anything')}
  console.log('forecast == strike: ok');
 
 section('shield abilities and perks with the block step');
  {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));const ab=(id,o)=>Object.assign({id},X.AB[id],o||{});
-  D=refit(b,D,mD,'kite');put(D,7,6);D.face=[0,-1];put(th,7,5);only(D,th);heal(D);
+  D=refit(b,D,mD,'kite');put(D,7,6);put(th,7,5);only(D,th);heal(D);
   // Split shield: cannot miss, hews the shield, never blocked
   put(MG,7,5);only(D,MG);MG.side=1;const sp=X.abilityInfo(MG,'split');ok(sp&&sp.split&&X.blockChance(MG,D,sp)===0,'Split shield is never blocked');
   {const s0=D.shp,r=await X.strike(MG,D,sp);ok(r&&D.shp<s0&&D.hp===D.hpMax,'… and hews '+(s0-D.shp)+' off the shield, not the bearer')}
@@ -169,9 +170,9 @@ section('shield abilities and perks with the block step');
    const ds=X.blockShDmg(th,D,atk(th),100),dg=X.blockShDmg(og,D,atk(og),100);ok(ds===25&&dg===Math.round(100*.4*1.25*1.5),`a sword blow of 100 takes ${ds} off the shield, an ogre's maul ${dg}`)}
   MG.side=0;put(MG,0,0);
   // Grenade: the hit roll as before (no shield in it), and never blocked; Petard: cannot miss, never blocked, 60 off a raised shield
-  {const g=ab('grenade');put(th,7,3);only(D,th);const h=X.hitChance(th,D,g),N=refit(b,D,mD,null),h0=X.hitChance(th,N,g);D=refit(b,N,mD,'kite');D.face=[0,-1];
+  {const g=ab('grenade');put(th,7,3);only(D,th);const h=X.hitChance(th,D,g),N=refit(b,D,mD,null),h0=X.hitChance(th,N,g);D=refit(b,N,mD,'kite');
    ok(h===h0&&X.blockChance(th,D,g)===0&&X.forecast(th,D,g).block===0,`Grenade: the shield is no cover (${h}% = ${h0}% without it) and blocks nothing`);
-   const pe=ab('petard');put(th,7,5);only(D,th);ok(X.blockChance(th,D,pe)===0,'Petard: never blocked');const s0=D.shp,r=await X.strike(th,D,pe);ok(r&&s0-D.shp===Math.min(60,s0),'… and the charge takes 60 off the raised shield ('+(s0-D.shp)+')');D=refit(b,D,mD,'kite');D.face=[0,-1];put(D,7,6)}   // (the Petard knocked it back)
+   const pe=ab('petard');put(th,7,5);only(D,th);ok(X.blockChance(th,D,pe)===0,'Petard: never blocked');const s0=D.shp,r=await X.strike(th,D,pe);ok(r&&s0-D.shp===Math.min(60,s0),'… and the charge takes 60 off the raised shield ('+(s0-D.shp)+')');D=refit(b,D,mD,'kite');put(D,7,6)}   // (the Petard knocked it back)
   // Shield bash: a shove, never blocked
   {const bash=X.abilityInfo(D,'bash');put(th,7,5);ok(bash&&bash.noDmg&&X.blockChance(D,th,bash)===0&&X.blockChance(D,th,atk(D))>0,'Shield bash shoves past a raised shield; a blow on the same foe can be blocked')}
   // Shield wall: its defense moves into the block roll; the hit roll does not change
@@ -193,20 +194,20 @@ const w=D.buffs.find(x=>x.key==='shieldwall');ok(w&&w.md===15+(D.shw||0),'Shield
    const f0=X.forecast(th,D,atk(th));F(D,{shieldDr:.15});const f1=X.forecast(th,D,atk(th));F(D,{shieldDr:0});ok(f1.blkSh&&f1.blkSh.max<f0.blkSh.max,`Aegis: the blow is lighter, so is its bite (${f0.blkSh.max} -> ${f1.blkSh.max})`);
    mA.eq.w='arming';MA=refit(b,T,mA,null);MA.side=0;put(MA,0,1)}
   // Intercept: the Shieldbearer steps in, turned to meet the blow, and its shield can take it
-  {const mS=mk('sellsword','arming');mS.eq.s='heater';const SB=X.mkMercUnit(mS,0);SB.id=777;SB.fearless=true;b.units.push(SB);F(SB,{intercept:1});put(D,7,6);put(SB,8,6);SB.face=[1,0];put(th,7,5);only(D,SB,th);SB.icpT=0;X.pvScan();
-   const g=X.rlIntercept(th,D,atk(th));ok(g===SB&&SB.c===7&&SB.r===6&&D.c===8,'Intercept: the bearer trades places with its ally');ok(SB.face[0]===0&&SB.face[1]===-1,'… turned to the attacker ('+SB.face+')');
+  {const mS=mk('sellsword','arming');mS.eq.s='heater';const SB=X.mkMercUnit(mS,0);SB.id=777;SB.fearless=true;b.units.push(SB);F(SB,{intercept:1});put(D,7,6);put(SB,8,6);put(th,7,5);only(D,SB,th);SB.icpT=0;X.pvScan();
+   const g=X.rlIntercept(th,D,atk(th));ok(g===SB&&SB.c===7&&SB.r===6&&D.c===8,'Intercept: the bearer trades places with its ally');
    ok(X.blockChance(th,SB,atk(th))===Math.round(100*22/X.hitChance(th,SB,atk(th))),'… and its heater blocks the blow as it would its own ('+X.blockChance(th,SB,atk(th))+'%)');put(SB,0,2);SB.alive=false;put(D,7,6)}
   // Tower shield: its Cover still guards the allies beside it, until blocked blows split it
-  {mD.eq.s='tower';D=refit(b,D,mD,'tower');D.face=[0,-1];put(D,7,6);put(MA,8,6);put(bm,8,2);only(D,MA,bm,th);MA.side=0;X.auraScan();const gd=D.flags.guard||0,h1=X.hitChance(bm,MA,atk(bm));
+  {mD.eq.s='tower';D=refit(b,D,mD,'tower');put(D,7,6);put(MA,8,6);put(bm,8,2);only(D,MA,bm,th);MA.side=0;X.auraScan();const gd=D.flags.guard||0,h1=X.hitChance(bm,MA,atk(bm));
    ok(gd>0&&D.flags.shGuard>0,'a raised tower shield gives Cover: −'+gd+' to shots at the allies beside it');
    th.ms=400;let split=false;for(let i=0;i<300&&D.shield;i++){heal(D);D.shp=1;await struck(th,D,atk(th));split=!D.shield}th.ms=52;
-   ok(split&&!(D.flags.guard>0),'blocked blows split it, and the Cover is gone');ok(X.hitChance(bm,MA,atk(bm))===Math.min(95,h1+gd),`… shots at the ally beside it: ${h1}% -> ${X.hitChance(bm,MA,atk(bm))}%`);D=refit(b,D,mD,'kite');D.face=[0,-1]}
+   ok(split&&!(D.flags.guard>0),'blocked blows split it, and the Cover is gone');ok(X.hitChance(bm,MA,atk(bm))===Math.min(95,h1+gd),`… shots at the ally beside it: ${h1}% -> ${X.hitChance(bm,MA,atk(bm))}%`);D=refit(b,D,mD,'kite')}
  }
  console.log('shield abilities and perks: ok');
 
 section('the foes\' shields');
  {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));MA.side=0;MA.ms=400;put(MA,7,7);
-  for(const [u,id,md] of [[sk,'skel',8],[th2,'thug',8]]){put(u,7,6);u.face=[0,1];only(MA,u);u.hp=u.hpMax=9999;
+  for(const [u,id,md] of [[sk,'skel',8],[th2,'thug',8]]){put(u,7,6);only(MA,u);u.mor=3;u.st={};u.hp=u.hpMax=9999;
    ok(u.shield&&u.shb.md>=md&&X.blockChance(MA,u,atk(MA))===Math.round(100*u.shb.md/X.hitChance(MA,u,atk(MA))),`${id}: its shield blocks ${X.blockChance(MA,u,atk(MA))}% of the company's blows`);
    let nb=0,n=0;for(;n<400&&u.shield;n++){u.st={};const s0=u.shp,E=await struck(MA,u,atk(MA));if(E.blk){nb++;ok(u.hp===9999&&s0-u.shp===E.blk.n,'a foe\'s block costs its shield, not its hitpoints')}else if(E.r)u.hp=9999}
    ok(nb>0&&!u.shield&&X.blockChance(MA,u,atk(MA))===0,`${id}: ${nb} blocks in ${n} forced blows split it; then it blocks nothing`);put(u,0,0)}
@@ -214,15 +215,16 @@ section('the foes\' shields');
  console.log('the foes\' shields: ok');
 
 section('the AI weighs blocks');
- {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));D=refit(b,D,mD,'kite');put(D,7,6);D.face=[0,-1];heal(D);only(D,th);
-  const a=atk(th),k=(c,r)=>X.key(c,r),front=X.aiChance(th,a,D,k(7,5)),side=X.aiChance(th,a,D,k(8,6)),back=X.aiChance(th,a,D,k(7,7));
-  put(th,7,5);const h=X.hitChance(th,D,a)/100,bc=X.blockChance(th,D,a)/100;put(th,7,1);
-  ok(Math.abs(front-h*(1-bc))<1e-9&&back>side&&side>front,`aiChance: ${front.toFixed(3)} from the front (= hit ${h} x (1 − block ${bc})), ${side.toFixed(3)} from the flank, ${back.toFixed(3)} from behind`);
+ {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));D=refit(b,D,mD,'kite');put(D,7,6);heal(D);only(D,th);
+  const a=atk(th),k=(c,r)=>X.key(c,r),alone=X.aiChance(th,a,D,k(7,5));put(th,7,5);const h=X.hitChance(th,D,a)/100,bc=X.blockChance(th,D,a)/100;put(th,7,1);
+  put(sk,6,6);sk.alive=true;const two=X.aiChance(th,a,D,k(7,5));put(th2,8,6);th2.alive=true;const three=X.aiChance(th,a,D,k(7,5));sk.alive=th2.alive=false;put(sk,1,0);put(th2,0,0);
+  ok(Math.abs(alone-h*(1-bc))<1e-9&&two>alone&&three>two,`aiChance: ${alone.toFixed(3)} alone (= hit ${h} x (1 − block ${bc})), ${two.toFixed(3)} with a second foe beside the bearer, ${three.toFixed(3)} with a third`);
   ok(X.aiShieldV(og,D,atk(og))>X.aiShieldV(th,D,a)*2,'a blocked maul blow is worth more against the shield than a sword\'s');
-  // a thug with two equally near tiles beside the shield-bearer takes the one its shield does not face
-  const pick=async face=>{only(D,th);heal(D);D.face=face.slice();put(th,9,5);th.ap=th.apMax;th.st={};th.mor=3;b.cur=th;b.over=false;b.busy=true;await X.aiTurn(th);b.over=true;return[th.c,th.r]};
-  const p1=await pick([0,-1]),p2=await pick([1,0]);
-  ok(p1[0]===8&&p1[1]===6,'facing north: the thug steps to the flank (8,6), not the front (7,5): '+p1);ok(p2[0]===7&&p2[1]===5,'facing east: it takes (7,5), its flank: '+p2);
+  // two shield-bearers alike, equally far: the thug gangs up on the one a skeleton already presses
+  {const mE=mk('sellsword','arming');mE.eq.s='kite';const D2=X.mkMercUnit(mE,0);D2.id=4343;D2.fearless=true;D2.hp=D2.hpMax=D.hpMax;b.units.push(D2);
+   const pick=async(eng)=>{only(D,D2,th,sk);heal(D);heal(D2);put(D,5,6);put(D2,9,6);put(sk,eng===D?4:10,6);sk.ap=0;put(th,7,5);th.ap=th.apMax;th.st={};th.mor=3;b.cur=th;b.over=false;b.busy=true;await X.aiTurn(th);b.over=true;return mdA(th,D)===1?'D':mdA(th,D2)===1?'D2':'none'};
+   const mdA=(x,y)=>Math.abs(x.c-y.c)+Math.abs(x.r-y.r);const p1=await pick(D),p2=await pick(D2);D2.alive=false;sk.alive=false;
+   ok(p1==='D'&&p2==='D2','the thug goes for the bearer already pressed by a skeleton: '+p1+', then '+p2)}
   b.over=false}
  console.log('the AI: ok');
 
@@ -230,7 +232,7 @@ section('balance: expected damage taken per attack, before and after');
  {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));const ATT=[[th,'Brigand thug'],[sk,'Skeleton legionary'],[ow,'Orc warrior'],[og,'Ogre (maul, huge)'],[bm,'Brigand archer'],[MA,'Merc arming sword'],[MG,'Merc greataxe'],[MW,'Merc war bow']];
   const SH=Object.keys(X.ITEMS).filter(k=>X.ITEMS[k].k==='s'),lines=[],R={};let tb=0,ta=0;
   lines.push('shield'.padEnd(22)+ATT.map(x=>x[1].slice(0,13).padStart(15)).join('')+'   mean');
-  for(const id of SH){D=refit(b,D,mD,id);put(D,7,6);D.face=[0,-1];heal(D);let sb=0,sa=0;const cells=[];
+  for(const id of SH){D=refit(b,D,mD,id);put(D,7,6);heal(D);let sb=0,sa=0;const cells=[];
    for(const [u,nm] of ATT){const rng=X.isRangedW(u.wpn);put(u,7,(u.sz||1)>1?4:rng?2:5);only(D,u);u.st={};u.mor=3;u.fat=0;const a=atk(u),f=X.forecast(u,D,a),avg=(f.dmgMin+f.dmgMax)/2;
     D.shield=false;const old=X.hitChance(u,D,a);D.shield=true;   // the old rule: the shield's md / rd in the hit roll (it is in D.md / D.rd), no block
     const eb=old/100*avg,ea=f.land/100*avg;sb+=eb;sa+=ea;tb+=eb;ta+=ea;const brk=f.blkSh&&f.block>0?D.shp/(f.hit/100*f.block/100*(f.blkSh.min+f.blkSh.max)/2):Infinity;

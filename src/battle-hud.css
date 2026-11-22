@@ -148,7 +148,7 @@
 .fcr{flex-wrap:wrap;row-gap:2px}
 .fch.blk{font-size:.86rem}
 .fcbk{display:inline-flex;align-items:center;gap:2px;margin-left:-5px;font-family:'Fredoka',serif;font-weight:700;font-size:.98rem;line-height:1;color:#9fc8ff;white-space:nowrap;font-variant-numeric:tabular-nums}
-.fcbk .fcsep{font-style:normal;color:#b9ad8f;margin-right:2px}.fcbk small{font-size:.72rem;color:#c8d0d8;margin-left:2px}.fcbk.fl b{color:#c8d0d8}.fcbk.off{color:#ef8a78;font-size:.78rem;margin-left:-3px}.fcbk.off .pxi{opacity:.55}
+.fcbk .fcsep{font-style:normal;color:#b9ad8f;margin-right:2px}.fcbk small{font-size:.72rem;color:#c8d0d8;margin-left:2px}.fcbk small.sur{color:#ff8a3c;margin-left:1px}
 .fcff{display:flex;align-items:center;gap:5px;height:18px;padding-top:1px;border-top:2px solid #0b1514;font-family:'Fredoka',serif;font-size:.74rem;font-weight:700;line-height:1;color:#ef8a78}
 .fcfa{display:inline-flex;align-items:center;gap:2px}.fcfa>:first-child{box-shadow:0 0 0 1px #58b39c}
 /* ---- reserves sheet ---- */

@@ -60,8 +60,8 @@
      shock      a hit that reaches hitpoints tests the target's morale (Shock, Vanguard)
      icpt       the unit that will step in and take this attack when it is ordered (Intercept, Shieldbearer), else null
    Shield blocks (60b-block.js): hit is the hit roll alone (the raised shield is not in it); then
-     block      chance in percent that a hit is blocked by the target's raised shield (0: no shield, from behind, a bomb, cannot miss...)
-     bside      'front' | 'flank' | 'behind': where the blow comes from as the shield sees it (null when the shield cannot take it at all)
+     block      chance in percent that a hit is blocked by the target's raised shield (0: no shield, a bomb, cannot miss...; surK already in it)
+     sur, surK  foes next to the target that can fight (surroundN) and the factor that puts on the block (1 when none or one)
      blkSh      {min,max,hp,brk,sure}: the shield damage of a blocked blow (capped at hp, what is left), or null when block is 0
      land       chance in percent (to a hundredth) that the blow lands: hit x (1 - block). The damage figures are for a blow that lands.
    Endgame (24-endgame.js): realm {k, n, notes:[text]} | null (the portal realm's rules on this strike; spellK is inside spellMult already);
@@ -82,7 +82,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const f={hit:sure?100:hitChance(u,t,a),dmgMin:0,dmgMax:0,hpMin:0,hpMax:0,armMin:0,armMax:0,kill:false,sure:false,ign:1,pierce:!!a.pierce,kb:null,statuses:[],
   headCh:0,head:null,body:null,cover:los.cover,blocked:los.blocked,ff:[],mor:{att:mu.hit,def:mt.def},shake:false,injure:false,shield:null,riposte:false,
   locked:isRangedAtk(u,a)&&rangedLocked(u),mitB:0,mitH:0,undying:canUndy(t),hits:a.hits||1,through:a.through&&!o.splash?lineBeyond(u,t,a.through):[],
-  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),shock:rlShockOK(u,t,a),icpt:B&&B.icpOn&&!(o&&(o.free||o.auto))?rlInterceptOf(u,t,a):null,fire:t.fw&&fireAb(a)?t.fw:0,block:0,bside:null,blkSh:null,land:0,
+  crush:crushOf(u,a),unloaded:!canFire(u,a),reach:kind===1,pull:null,scare:!!a.scare&&!t.fearless&&!moraleImmune(t),shock:rlShockOK(u,t,a),icpt:B&&B.icpOn&&!(o&&(o.free||o.auto))?rlInterceptOf(u,t,a):null,fire:t.fw&&fireAb(a)?t.fw:0,block:0,sur:0,surK:1,blkSh:null,land:0,
   tiredAtt:sure?0:tiredPen(u),tiredDef:sure?0:tiredPen(t),armDef:sure?0:armorDef(u,t,a),armDr:a.split||a.noDmg?0:armorDr(t),sidestep:false,soak:(t.flags&&t.flags.hpSoak)||0,quarry:fcQuarry(u,t,a,sure)};
  f.land=f.hit;
  if(a.shieldD&&t.shield){const d=Math.min(a.shieldD,t.shp);f.shield={min:d,max:d,hp:t.shp,brk:a.shieldD>=t.shp,sure:false}}   // a Petard: a hit also takes a.shieldD off a raised shield (64u-guntrees.js)
@@ -100,7 +100,7 @@ function forecast(u,t,a,o){o=o||{};const sure=!!(o.auto||a.sure),kind=shotKind(u
  const parts=[];if(useH)parts.push(H);if(useB)parts.push(Bd);
  f.hpMin=Math.min(...parts.map(p=>p.hpMin));f.hpMax=Math.max(...parts.map(p=>p.hpMax));f.armMin=Math.min(...parts.map(p=>p.armMin));f.armMax=Math.max(...parts.map(p=>p.armMax));
  f.kill=!f.undying&&f.hpMax>=t.hp;f.sure=!f.undying&&f.hpMin>=t.hp;
- {const bf=sure?null:blockFc(u,t,a,o,f.dmgMin,f.dmgMax);if(bf){f.block=bf.block;f.bside=bf.side;if(bf.block>0)f.blkSh={min:bf.min,max:bf.max,hp:bf.hp,brk:bf.brk,sure:bf.sure}}}   // the block roll (60b-block.js)
+ {const bf=sure?null:blockFc(u,t,a,o,f.dmgMin,f.dmgMax);if(bf){f.block=bf.block;f.sur=bf.sur;f.surK=bf.surK;if(bf.block>0)f.blkSh={min:bf.min,max:bf.max,hp:bf.hp,brk:bf.brk,sure:bf.sure}}}   // the block roll (60b-block.js)
  f.shake=!t.fearless&&!(t.flags&&t.flags.noStun)&&!moraleImmune(t)&&f.hpMax>=heavyHit(t)&&!f.sure;   // Beast-wise against beasts: no check
  {const tf=t.flags||{};f.sidestep=!!(tf.sidestep&&!t.ss&&!a.noDmg)}f.injure=!!t.m&&f.hpMax>=heavyHit(t)&&!f.sure;
  const st={},as=u.elite&&typeof eliteSt==='function'?eliteSt(u,a):a.status||{};for(const k in as)st[k]={k,n:as[k],ch:1};   // an elite's poison or hex rides on its blows (64e-elites.js)
