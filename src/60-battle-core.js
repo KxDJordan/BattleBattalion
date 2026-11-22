@@ -407,13 +407,13 @@ function useBlock(u,a){if(!u||!a)return'Unavailable';if(u.mor===0)return'Fleeing
  if(a.noBow&&isRangedW(u.wpn))return'Not with a ranged weapon in hand';if(a.shield&&!u.shield)return u.slung?'Shield slung: swap to a one-handed weapon':'Needs a shield';
  if(isRangedAtk(u,a)&&rangedLocked(u))return'Engaged: no shooting with a foe next to you';if(outOfThrows(u,a))return'Out of throws: swap weapons or strike with it in hand';if(!canFire(u,a))return'Not loaded: reload first';
  if(a.reloadW&&!u.wpn.reload)return'Nothing to reload';if(a.reloadW&&u.loaded!==false)return'Already loaded';if(a.withdraw&&!canWithdraw(u))return'Only from your own edge';
- if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.uses&&gtUsesLeft(u,a)<=0)return'None left this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
+ if(a.once&&u.used&&u.used[a.id])return'Already used this battle';if(a.perTurn&&u.usedT&&u.usedT[a.id])return'Already used this turn';if(a.uses&&gtUsesLeft(u,a)<=0)return'None left this battle';if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return'Not enough '+(RESN[a.cost[0]]||a.cost[0]);
  if(u.ap<a.ap)return'Not enough AP';if(u.fat+a.fat>u.fatMax)return'Too tired';return''}
 function canUse(u,a){if(u.mor===0||u.ap<a.ap||u.fat+a.fat>u.fatMax)return false;if(a.cost&&(!u.res[a.cost[0]]||u.res[a.cost[0]].cur<a.cost[1]))return false;if(!needsOK(a,u.wpn.wt))return false;if(a.fresh&&u.ap<u.apMax)return false;if(a.light&&!isLightW(u.wpn))return false;if(a.offhand&&(u.shield||u.wpn.two||u.dw))return false;if(a.dual&&!u.dw)return false;
- if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;if(a.uses&&gtUsesLeft(u,a)<=0)return false;if(a.oneH&&u.wpn.two)return false;
+ if(a.two&&!u.wpn.two)return false;if(a.shield&&!u.shield)return false;if(a.withdraw&&!canWithdraw(u))return false;if(a.once&&u.used&&u.used[a.id])return false;if(a.perTurn&&u.usedT&&u.usedT[a.id])return false;if(a.uses&&gtUsesLeft(u,a)<=0)return false;if(a.oneH&&u.wpn.two)return false;
  if(a.noBow&&isRangedW(u.wpn))return false;if(a.swapW&&!canSwap(u))return false;if(isRangedAtk(u,a)&&rangedLocked(u))return false;if(!canFire(u,a))return false;
  if(a.reloadW&&(!u.wpn.reload||u.loaded!==false))return false;return true}
-function payFor(u,a){u.ap-=a.ap;u.fat+=a.fat;if(a.cost)u.res[a.cost[0]].cur-=a.cost[1];if(a.once)(u.used||(u.used={}))[a.id]=1;if(a.uses){u.used=Object.assign({},u.used);u.used[a.id]=(u.used[a.id]||0)+1}if(a.swapW)u.swapFree=false;
+function payFor(u,a){u.ap-=a.ap;u.fat+=a.fat;if(a.cost)u.res[a.cost[0]].cur-=a.cost[1];if(a.once)(u.used||(u.used={}))[a.id]=1;if(a.uses){u.used=Object.assign({},u.used);u.used[a.id]=(u.used[a.id]||0)+1}if(a.perTurn){u.usedT=Object.assign({},u.usedT);u.usedT[a.id]=1}if(a.swapW)u.swapFree=false;
  pvPay(u,a);if(u.wpn&&u.wpn.reload&&isRangedAtk(u,a)&&!pvBarrel(u))setLoaded(u,false)}      // firing a reload weapon spends its load (a twin barrel: the second one)
 // Loads or unloads the weapon in hand (u.loaded, and its entry in u.ld).
 function setLoaded(u,v){u.loaded=!!v;u.ld=Object.assign({},u.ld);u.ld[wkey(u.wpn)]=!!v;if(v&&u.wpn&&u.wpn.barrels>1)setAmmo(u,u.wpn.barrels);if(v)rlPrime(u)}   // Primed (Gunnery, 64v-roles.js)
@@ -558,7 +558,7 @@ function dashSpot(u,t){let best=null,bd=1e9;const s=u.sz||1,st=t.sz||1;
  for(const [x,y] of DIRS){const nc=t.c+x,nr=t.r+y;if(!inb(nc,nr)||B.tiles[key(nc,nr)].t==='block'||unitAt(nc,nr))continue;const d=Math.abs(nc-u.c)+Math.abs(nr-u.r);if(d<bd){bd=d;best=[nc,nr]}}return best}
 function validTargets(u,a){const out=new Set();if(isRangedAtk(u,a)&&rangedLocked(u)||!canFire(u,a))return out;
  if(a.tgt==='enemy')B.units.forEach(t=>{if(t.alive&&t.side!==u.side&&mdist(u,t)<=a.rng&&!(a.dash&&mdist(u,t)>1&&u.wpn.rng<mdist(u,t)&&!dashSpot(u,t))&&!(a.needShieldT&&!t.shield)&&!(a.tgtOK&&!a.tgtOK(u,t))&&!losInfo(u,t,a).blocked)for(const [c,r] of unitTiles(t))out.add(key(c,r))});   // any tile of a footprint picks the unit
- else if(a.tgt==='ally')B.units.forEach(t=>{if(t.alive&&t.side===u.side&&mdist(u,t)<=a.rng&&!(a.noSelf&&t===u))out.add(key(t.c,t.r))});
+ else if(a.tgt==='ally')B.units.forEach(t=>{if(t.alive&&t.side===u.side&&mdist(u,t)<=a.rng&&!(a.noSelf&&t===u)&&!(a.tgtOK&&!a.tgtOK(u,t)))out.add(key(t.c,t.r))});
  else if(a.tgt==='move')for(let r=0;r<BH;r++)for(let c=0;c<BW;c++){const d=Math.abs(c-u.c)+Math.abs(r-u.r);if(!d||d>a.rng)continue;const t=B.tiles[key(c,r)];if((u.sz||1)>1){if(!footFree(c,r,u.sz,u))continue}else if(t.t==='block'||unitAt(c,r))continue;if(!a.leap&&t.h-T(u).h>1)continue;out.add(key(c,r))}
  return out}
 /* ---- Damage ---- */
@@ -785,7 +785,7 @@ async function nextTurn(){const b=B;if(!b||checkEnd())return;
   const x=b.order.shift();if(x.alive&&!x.vip)u=x}
  b.cur=u;b.busy=true;u.bzk=0;u.aoo=0;b.sel=null;b.targets=null;b.reach=null;
  u.ap=u.apMax+(u.bonusAP||0);u.bonusAP=0;if(u.unready){u.unready=0;u.ap=Math.max(0,u.ap-AMBUSHAP);float(u,'Caught unready','#ffd27a')}u.fat=Math.max(0,u.fat-Math.max(0,15+((u.flags&&u.flags.fatRec)||0)));   // Athletic / Asthmatic
- u.swapFree=!!(u.flags&&u.flags.freeSwap);u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;u.qsT=0;auraScan();
+ u.swapFree=!!(u.flags&&u.flags.freeSwap);u.usedT=null;u.ss=0;u.brc=0;u.dnc=0;u.mvd=0;u.slipT=0;u.qsT=0;auraScan();
  if(u.flags&&u.flags.armRegen>0&&u.armMax>0&&u.arm<u.armMax){const a0=u.arm;u.arm=Math.min(u.armMax,u.arm+u.flags.armRegen);float(u,'Armor +'+(u.arm-a0),'#c8d0d8')}   // Mail mender
  for(const k in u.res)u.res[k].cur=Math.min(u.res[k].max,u.res[k].cur+u.res[k].regen);
  u.buffs=u.buffs.filter(x=>--x.dur>0);if(u.st.chill){u.ap=Math.max(0,u.ap-3);u.st.chill--;float(u,'Chilled','#8fd8ff')}u.rooted=false;if(u.st.root){u.rooted=true;u.st.root--}if(u.st.webbed){u.rooted=true;u.st.webbed--}if(u.st.netted>0)u.rooted=true;   // Netted (64g-gladiators.js): it ticks off with the foes' statuses

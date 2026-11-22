@@ -44,10 +44,10 @@ const FOEMAST={
  barbz:{p:['weapons.axe','berserker.1'],v:['berserker.4'],e:['brute.1']},
  barbax:{p:['weapons.throwing'],v:['thrower.1']},
  barbskald:{p:['tactician.2','tactician.3'],v:['tactician.4']},
- barbhus:{p:['weapons.axe','shieldbearer.1'],v:['bulwark.4'],e:['bulwark.1']},     // the huscarl: plants himself in the shield wall
+ barbhus:{p:['weapons.axe','shieldbearer.1'],v:['bulwark.4'],e:['bulwark.2']},     // the huscarl: plants himself in the shield wall
  emperor:{p:['vanguard.3','berserker.1','tactician.3','survivor.3','vanguard.cap']},
  // the East
- ashi:{p:['skirmisher.1'],v:['weapons.spear'],e:['bulwark.1']},             // the ashigaru: a spear line that holds
+ ashi:{p:['skirmisher.1'],v:['weapons.spear'],e:['bulwark.2']},             // the ashigaru: a spear line that holds
  ashiy:{p:['scout.1'],v:['sharpshooter.1'],e:['marksman.3']},
  kageuchi:{p:['thrower.1'],v:['weapons.throwing']},
  shinobi:{p:['skirmisher.2'],v:['assassin.1']},
