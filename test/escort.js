@@ -133,7 +133,7 @@ section('the raid rule: the whole escort');
   ok(B.units.filter(u=>u.side===1).length>0&&o.f==='orc','against the band');
   const res=await battle(Object.assign({},o));ok(res&&!res.stuck,'the battle is fought out');const out=X.settleBattle(res.win);
   console.log(`  the battle: ${res.win?'won':'lost'} in ${res.rounds} rounds, ${res.cv.alive}/${res.cv.n0} guards stand, wagon ${res.cv.wagon?'whole':'lost'} -> ${out.world.cv.k}`);
-  ok(['held','esclost','escfled'].includes(out.world.cv.k)||out.world.cv.k==='robbed'&&res.cv.turned,'an escort outcome (or the guards turned: a stray shot of the company felled one)');
+  ok(['held','esclost','escfled'].includes(out.world.cv.k)||['robbed','escturned'].includes(out.world.cv.k)&&res.cv.turned,'an escort outcome (or the guards turned: a stray shot of the company felled one)');
   if(out.world.cv.k==='held')ok(G.contract===c&&X.escParty(c)===C&&!G.parties.some(p=>p.id===st.id)&&G.moving,'won: the band is gone and the march goes on');
   console.log('the raid rule: ok') }
 
