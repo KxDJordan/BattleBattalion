@@ -90,15 +90,15 @@ section('the hit roll leaves the shield out; block chances per shield');
   D.shield=false;const old=X.hitChance(th,D,atk(th));D.shield=true;ok(old===Math.max(5,h-15)||h-15<5,`the old rule put the shield into the hit roll: ${old} = ${h} − 15`)}
  const rows=[];
  for(const id of Object.keys(X.ITEMS).filter(k=>X.ITEMS[k].k==='s')){const I=X.ITEMS[id];D=refit(b,D,mD,id);
-  const fm=X.blockChance(th,D,atk(th)),fr=X.blockChance(bm,D,atk(bm)),em=Math.min(80,Math.round(I.md*1.8)),er=Math.min(80,Math.round(I.rd*2.1));
+  const fm=X.blockChance(th,D,atk(th)),fr=X.blockChance(bm,D,atk(bm)),hm=X.hitChance(th,D,atk(th)),hr=X.hitChance(bm,D,atk(bm)),em=Math.min(85,Math.round(100*I.md/hm)),er=Math.min(85,Math.round(100*I.rd/hr));   // block = the shield's points as a share of the hit chance
   ok(fm===em&&fr===er,`${id}: block ${fm}% of blows (expected ${em}), ${fr}% of shots (expected ${er})`);
-  const bi=X.blockItem(I.md,I.rd);ok(bi[0]===fm&&bi[1]===fr&&X.blockFront(D,'md')===fm&&X.blockFront(D,'rd')===fr,id+': the shop and the inspector show the same chances');
+  const bi=X.blockItem(I.md,I.rd);ok(bi[0]===Math.min(85,2*I.md)&&bi[1]===Math.min(85,2*I.rd)&&X.blockFront(D,'md')===bi[0]&&X.blockFront(D,'rd')===bi[1],id+': the shop and the inspector show the chances against an even (50%) foe');
   ok(/blocks \d+% of blows/.test(X.itemDesc(id)),id+': the item text names its block chances: '+X.itemDesc(id));
   put(th,9,8);const fl=X.blockChance(th,D,atk(th));put(th,8,9);const bh=X.blockChance(th,D,atk(th));put(th,8,7);
-  ok(fl===Math.round(I.md*1.8*.5)&&bh===0,`${id}: half from the flank (${fl}), none from behind (${bh})`);rows.push(`${(I.n||id).padEnd(26)} md ${String(I.md).padStart(2)} rd ${String(I.rd).padStart(2)} hp ${String(I.hp).padStart(3)}  block: blows ${String(fm).padStart(2)}% (flank ${String(fl).padStart(2)}%), shots ${String(fr).padStart(2)}%`)}
+  ok(fl===Math.min(85,Math.round(100*I.md/hm*.5))&&bh===0,`${id}: half from the flank (${fl}), none from behind (${bh})`);rows.push(`${(I.n||id).padEnd(26)} md ${String(I.md).padStart(2)} rd ${String(I.rd).padStart(2)} hp ${String(I.hp).padStart(3)}  block: blows ${String(fm).padStart(2)}% (flank ${String(fl).padStart(2)}%), shots ${String(fr).padStart(2)}%`)}
  console.log(rows.join('\n'));
  D=refit(b,D,mD,'kite');
- {D.fat=D.fatMax*.9;const tp=X.tiredPen(D);ok(tp>0&&X.blockChance(th,D,atk(th))===27-tp,'a tired bearer blocks less: −'+tp);D.fat=0}
+ {const b0=X.blockChance(th,D,atk(th));D.fat=D.fatMax*.9;const tp=X.tiredPen(D),h=X.hitChance(th,D,atk(th));ok(tp>0&&X.blockChance(th,D,atk(th))===Math.round(1500/h)&&X.blockChance(th,D,atk(th))<b0,'a tired bearer is hit more easily, so it blocks a smaller share: '+b0+'% -> '+X.blockChance(th,D,atk(th))+'%');D.fat=0}
  {D.st.stun=1;ok(X.blockChance(th,D,atk(th))===0,'a stunned bearer cannot block');D.st={};D.mor=0;ok(X.blockChance(th,D,atk(th))===0,'nor a fleeing one');D.mor=3}
  {const N=refit(b,D,mD,null);ok(X.blockChance(th,N,atk(th))===0&&X.forecast(th,N,atk(th)).block===0&&X.forecast(th,N,atk(th)).bside===null,'no shield, no block');D=refit(b,N,mD,'kite')}
  {mD.eq.w='greataxe';const S=refit(b,D,mD,'kite');ok(!S.shield&&S.slung&&X.blockChance(th,S,atk(th))===0,'a slung shield (two-handed weapon in hand) blocks nothing');mD.eq.w='arming';D=refit(b,S,mD,'kite')}
@@ -177,11 +177,11 @@ section('shield abilities and perks with the block step');
   // Shield wall: its defense moves into the block roll; the hit roll does not change
   {b.cur=D;D.ap=9;b.busy=false;const h0=X.hitChance(th,D,atk(th)),k0=X.blockChance(th,D,atk(th)),r0=X.blockChance(bm,D,atk(bm));put(bm,7,2);only(D,th,bm);await X.useAbility(D,X.abilityInfo(D,'shieldwall'),X.key(D.c,D.r));await rest(b);b.busy=true;
 const w=D.buffs.find(x=>x.key==='shieldwall');ok(w&&w.md===15+(D.shw||0),'Shield wall: +'+(w&&w.md)+' on the shield');
-   ok(X.hitChance(th,D,atk(th))===h0&&X.blockChance(th,D,atk(th))===Math.min(80,Math.round((15+w.md)*1.8))&&X.blockChance(bm,D,atk(bm))===Math.min(80,Math.round((25+w.rd)*2.1)),`… the hit roll stays ${h0}%, the block goes ${k0}% -> ${X.blockChance(th,D,atk(th))}% (shots ${X.blockChance(bm,D,atk(bm))}%)`);
+   ok(X.hitChance(th,D,atk(th))===h0&&X.blockChance(th,D,atk(th))===Math.min(85,Math.round(100*(15+w.md)/h0))&&X.blockChance(bm,D,atk(bm))===Math.min(85,Math.round(100*(25+w.rd)/X.hitChance(bm,D,atk(bm)))),`… the hit roll stays ${h0}%, the block goes ${k0}% -> ${X.blockChance(th,D,atk(th))}% (shots ${X.blockChance(bm,D,atk(bm))}%)`);
    D.buffs=[];put(bm,8,2)}
   // Bastion and Phalanx: plain defense, in the hit roll; the block is the shield's and stays
   for(const [k,md] of [['bastion',20],['phalanx',10]]){const h0=X.hitChance(th,D,atk(th)),k0=X.blockChance(th,D,atk(th));X.addBuff(D,{key:k,md,rd:md},1);
-   ok(X.hitChance(th,D,atk(th))===Math.max(5,h0-md)&&X.blockChance(th,D,atk(th))===k0,`${k}: −${md} to be hit (${h0} -> ${X.hitChance(th,D,atk(th))}), the block stays ${k0}%`);D.buffs=[]}
+   const h1=X.hitChance(th,D,atk(th));ok(h1===Math.max(5,h0-md)&&X.blockChance(th,D,atk(th))===Math.min(85,Math.round(100*15/h1)),`${k}: −${md} to be hit (${h0} -> ${h1}); the shield's 15 points are a bigger share of that: block ${k0}% -> ${X.blockChance(th,D,atk(th))}%`);D.buffs=[]}
   // a block is a miss for the miss rules: Shield bind, Unmoved, a riposte
   {th.ms=400;F(D,{bindOff:1,missAP:1});D.bonusAP=0;D.umvN=0;th.st={};X.addBuff(D,{key:'riposte',rip:1},1);let rip=0,bl=0;const on0=X.FX.on;X.FX.on=(ty,d)=>{if((ty==='hit'||ty==='miss')&&d.u===D&&d.t===th)rip++;if(on0)on0(ty,d)};
    for(let i=0;i<300&&!bl;i++){heal(D);D.shp=D.shpMax;th.hp=th.hpMax=9999;const E=await struck(th,D,atk(th));if(E.blk)bl++;else{th.st={};D.bonusAP=0;D.umvN=0;rip=0}}X.FX.on=on0;
@@ -195,7 +195,7 @@ const w=D.buffs.find(x=>x.key==='shieldwall');ok(w&&w.md===15+(D.shw||0),'Shield
   // Intercept: the Shieldbearer steps in, turned to meet the blow, and its shield can take it
   {const mS=mk('sellsword','arming');mS.eq.s='heater';const SB=X.mkMercUnit(mS,0);SB.id=777;SB.fearless=true;b.units.push(SB);F(SB,{intercept:1});put(D,7,6);put(SB,8,6);SB.face=[1,0];put(th,7,5);only(D,SB,th);SB.icpT=0;X.pvScan();
    const g=X.rlIntercept(th,D,atk(th));ok(g===SB&&SB.c===7&&SB.r===6&&D.c===8,'Intercept: the bearer trades places with its ally');ok(SB.face[0]===0&&SB.face[1]===-1,'… turned to the attacker ('+SB.face+')');
-   ok(X.blockChance(th,SB,atk(th))===Math.round(22*1.8),'… and its heater blocks the blow as it would its own ('+X.blockChance(th,SB,atk(th))+'%)');put(SB,0,2);SB.alive=false;put(D,7,6)}
+   ok(X.blockChance(th,SB,atk(th))===Math.round(100*22/X.hitChance(th,SB,atk(th))),'… and its heater blocks the blow as it would its own ('+X.blockChance(th,SB,atk(th))+'%)');put(SB,0,2);SB.alive=false;put(D,7,6)}
   // Tower shield: its Cover still guards the allies beside it, until blocked blows split it
   {mD.eq.s='tower';D=refit(b,D,mD,'tower');D.face=[0,-1];put(D,7,6);put(MA,8,6);put(bm,8,2);only(D,MA,bm,th);MA.side=0;X.auraScan();const gd=D.flags.guard||0,h1=X.hitChance(bm,MA,atk(bm));
    ok(gd>0&&D.flags.shGuard>0,'a raised tower shield gives Cover: −'+gd+' to shots at the allies beside it');
@@ -207,7 +207,7 @@ const w=D.buffs.find(x=>x.key==='shieldwall');ok(w&&w.md===15+(D.shw||0),'Shield
 section('the foes\' shields');
  {const only=(...L)=>b.units.forEach(x=>x.alive=L.includes(x));MA.side=0;MA.ms=400;put(MA,7,7);
   for(const [u,id,md] of [[sk,'skel',8],[th2,'thug',8]]){put(u,7,6);u.face=[0,1];only(MA,u);u.hp=u.hpMax=9999;
-   ok(u.shield&&u.shb.md>=md&&X.blockChance(MA,u,atk(MA))===Math.round(u.shb.md*1.8),`${id}: its shield blocks ${X.blockChance(MA,u,atk(MA))}% of the company's blows`);
+   ok(u.shield&&u.shb.md>=md&&X.blockChance(MA,u,atk(MA))===Math.round(100*u.shb.md/X.hitChance(MA,u,atk(MA))),`${id}: its shield blocks ${X.blockChance(MA,u,atk(MA))}% of the company's blows`);
    let nb=0,n=0;for(;n<400&&u.shield;n++){u.st={};const s0=u.shp,E=await struck(MA,u,atk(MA));if(E.blk){nb++;ok(u.hp===9999&&s0-u.shp===E.blk.n,'a foe\'s block costs its shield, not its hitpoints')}else if(E.r)u.hp=9999}
    ok(nb>0&&!u.shield&&X.blockChance(MA,u,atk(MA))===0,`${id}: ${nb} blocks in ${n} forced blows split it; then it blocks nothing`);put(u,0,0)}
   MA.ms=mA.base.ms;MA=refit(b,MA,mA,null)}

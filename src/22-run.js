@@ -24,10 +24,10 @@ const DIFF={
  normal:{n:'Normal',icon:'swords',d:'The march as it was meant to be: hard choices, fair odds and a crisis that will not wait for you.',
   budget:1,pay:1,injury:1,death:1,crisisDay:1,vet:{lo:-.06,hi:.13,lvl0:4,lvl1:8},solo:{hi:.1,lvl0:3,lvl1:9,isekai:{hi:.44,lvl0:3,lvl1:9}},line:['Fair odds','The usual pay','Steel kills','The crisis on time']},
  hard:{n:'Hard',icon:'skull',d:'Bands are larger, foes strike truer and employers are tighter. A struck-down sword is more likely to stay down.',
-  budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,foeHit:2,vet:{lo:-.1,hi:.03,lvl0:4,lvl1:8},solo:{lo:.04,hi:.26,lvl0:3,lvl1:9,isekai:{lo:.18,hi:.71,lvl0:3,lvl1:9}},line:['Enemies 5-10% stronger than on Normal, a lone sword\'s 20-55%','Foes strike truer: +2 to hit','Pay -10%','More deaths','The crisis comes early']},
+  budget:1.15,pay:.9,injury:1.2,death:1.3,crisisDay:.85,foeHit:3,vet:{lo:-.1,hi:.08,lvl0:4,lvl1:8},solo:{lo:.04,hi:.26,lvl0:3,lvl1:9,isekai:{lo:.18,hi:.71,lvl0:3,lvl1:9}},line:['Enemies 5-10% stronger than on Normal, a lone sword\'s 20-55%','Foes strike truer: +3 to hit','Pay -10%','More deaths','The crisis comes early']},
  brutal:{n:'Brutal',icon:'flame',d:'For veterans of the march. Every fight is a gamble with the company\'s life: foes go for the wounded, strike true, grow as you do, and hunt a lone sword in packs.',
   budget:1.3,pay:.8,injury:1.4,death:1.65,crisisDay:.72,line:['Enemies 15-20% stronger than on Normal, a lone sword\'s 40-65%','Foes fight without mercy','Foes strike truer: +15 to hit','Lone swords face bigger bands','Pay -20%','Death is common','The crisis comes very early'],
-  foePlan:{cut:1,volley:1,lock:.6},foeHit:15,solo:{max:3,lo:.08,hi:.2,lvl0:3,lvl1:9,isekai:{lo:.27,hi:.77,lvl0:3,lvl1:9}},vet:{lo:-.15,hi:.02,lvl0:4,lvl1:8}}};
+  foePlan:{cut:1,volley:1,lock:.6},foeHit:15,solo:{max:3,lo:.08,hi:.2,lvl0:3,lvl1:9,isekai:{lo:.27,hi:.77,lvl0:3,lvl1:9}},vet:{lo:-.15,hi:0,lvl0:4,lvl1:8}}};
 /* Beyond the factors (absent where a level has none):
      foePlan   the plan the foes' AI plays by (63-ai.js aiFoePlan; arena bouts excepted): cut, the wounded first; volley, their shooters go for
                the company's; lock, their fighters go out of their way to stand beside the company's archers

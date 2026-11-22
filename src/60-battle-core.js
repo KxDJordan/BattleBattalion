@@ -674,7 +674,7 @@ async function strike(u,t,a,o){o=o||{};if(!t.alive||!u.alive)return false;const 
   if(v){if(v.alive&&u.alive){say(`${u.name}'s shot strays into ${v.name}.`);FX.emit('ff',{u,t:v,from:t});await strike(u,v,a,{auto:1,stray:1,free:'stray',noShot:1,splash:(o.splash||1)*FFDMG})}}
   else if(!o.free&&!a.magic&&d===1&&t.alive&&u.alive&&buffSum(t,'rip'))await freeAttack(t,u,'riposte');
   pvStruck(u,t,a,o);await pvMiss(u,t,a,o,v,R);return false}
- {const bc=blockChance(u,t,a,o);if(bc>0){const bx=rnd(),on=bx*100<bc;rollAdd(R,'block',bx,bc/100,on);if(on)return blockHit(u,t,a,o,R,d,fly)}}   // the block roll (60b-block.js)
+ {const bc=blockChance(u,t,a,o,o.auto||a.sure?100:hc);if(bc>0){const bx=rnd(),on=bx*100<bc;rollAdd(R,'block',bx,bc/100,on);if(on)return blockHit(u,t,a,o,R,d,fly)}}   // the block roll (60b-block.js)
  fly(t);
 const hp0=t.hp;let dmg=0;const ign=a.noDmg?1:ignOf(u,a),wd=rollOf(u,a);if(a.noDmg){}else if(a.magic)dmg=ri(a.magic[0],a.magic[1])*spellMult(u);else dmg=ri(wd[0],wd[1])*(a.mult||1);
  if(!a.noDmg)dmg=dmgAfter(u,t,a,dmg,o);
